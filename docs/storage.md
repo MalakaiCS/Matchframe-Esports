@@ -24,10 +24,11 @@ Backups are separate from raw deletion: deleting a raw demo is not a backup. If 
 
 ## Crash recovery
 
-- Jobs interrupted in `PARSING`/`EXTRACTED`/`VALIDATING` become `RECOVERABLE` → `QUEUED` on start; leftover temporary dataset directories are removed. Workers write to a temporary directory and rename atomically, so no half-written dataset is ever marked committed.
+- Jobs interrupted in `PARSING`/`EXTRACTED`/`VALIDATING` become `RECOVERABLE` → `QUEUED` on start; leftover temporary dataset directories are removed. Workers write to a temporary directory and rename atomically, so no half-written dataset is ever marked committed. If an attempt committed its dataset and crashed before the engine recorded it, the retry gets `duplicate` from the worker and adopts that dataset (after validation) instead of extracting twice (tested on real demos).
+- Unreadable, unsupported, truncated or partial demos (worker codes `UNSUPPORTED_FORMAT`, `PARSER_FAILED`, `EMPTY_PARSE`, `INPUT_UNREADABLE`, or a `quarantine` validation verdict) go to `QUARANTINED` and are never retention-eligible; missing files and internal errors are `FAILED` and can be retried.
 - The engine restarts in manual/disarmed mode and keeps its database, outputs, packages and settings.
 - Before any schema migration of an existing database a copy is written to `backups/`.
 
 ## Event packages
 
-`GET /api/v1/export/event-package` produces a checksummed JSON package (teams, players, rosters with history, events, matches, map instances, veto history, sponsors, rundown, rules, outputs, corrections, referenced assets). Import previews counts and id collisions first; a modified package fails the checksum; restore refuses collisions.
+`GET /api/v1/export/event-package` produces a checksummed JSON package (teams, players, rosters with history, events, matches, map instances, veto history, sponsors, rundown, stages, rules, outputs, corrections, referenced assets). Import previews counts and id collisions first; a modified package fails the checksum; restore refuses collisions.
