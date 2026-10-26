@@ -276,3 +276,12 @@ python -m mf_common.cli export-model --model-dir MODELS/<id> --out EXPORT
 python -m mf_common.cli estimate --benchmark-json bench.json --maps 9 --demos-per-map 3000 --budget-gb 2000
 MF_TEST_DEMOS=DEMOS python -m pytest workers/tests
 ```
+
+## 13. Addendum — engine integration (same day)
+
+Items from §11 that were closed afterwards, with the tests that show it:
+
+* **TypeScript LightGBM runtime exercised.** `packages/director-policy/test/gbdt.test.ts` evaluates the committed parity fixture (`fixtures/models/contact_2s_parity/`, 64 vectors incl. missing values) with the engine's TypeScript evaluator: raw scores and probabilities match LightGBM within 1e-9.
+* **Engine ↔ worker integration on real demos.** `services/local-engine/test/demo-pipeline.integration.test.ts` (opt-in: `MF_TEST_DEMOS`, `MATCHFRAME_PYTHON`) drives the engine's Demo Library and Training Service over the worker CLI: 4 demos committed, the POV demo, a garbage file and a 2 MB truncated demo quarantined, a byte-identical copy marked duplicate, a dataset committed by a "crashed" earlier attempt adopted exactly once, raw retention removing only verified demos while a tampered dataset keeps its raw file, a full train → evaluate → export run, the registry refusing `experimental → approved`, and the exported model running **locally in shadow** next to the baseline (corrupt-checksum and live-incompatible models are refused while the baseline keeps deciding). 4/4 passed in 62 s on the machine in §1.
+* **Measured profiles in the live tracker.** The engine loads `assets/utility-profiles/measured.json` over the defaults for types with ≥ 5 samples (HE, flashbang, smoke, molotov, incendiary; decoy keeps the default). Standard deviations are floored at 100 ms (fuse) and 250 ms (effect duration) because the measurement comes from one match with 3-tick quantisation and live GSI arrives at ~10 Hz (`profilesFromMeasured` in `packages/cs2-state/src/utility/profiles.ts`).
+* **Live feature parity** between demo-derived and GSI-derived `contact_2s` features is implemented by definition (`services/local-engine/src/live/model-runtime.ts` mirrors `features.py`) but **not measured**: no real GSI recording was available to compare distributions.

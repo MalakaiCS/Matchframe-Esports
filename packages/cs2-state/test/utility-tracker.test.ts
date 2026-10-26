@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { UtilityObservation, UtilityTrackerContext, TrackerPlayerView } from "../src/index.ts";
-import { CapabilitySampler, UtilityTracker, buildSyntheticGsiPayload, normalizeGsi, parseGsiPayload, syntheticRoster } from "../src/index.ts";
+import { CapabilitySampler, DEFAULT_PROFILES, MEASURED_SD_FLOOR_MS, UtilityTracker, buildSyntheticGsiPayload, normalizeGsi, parseGsiPayload, profilesFromMeasured, syntheticRoster } from "../src/index.ts";
 import type { Vec3, WeaponState } from "@matchframe/contracts";
 
 const T1 = "76561198000000001";
@@ -275,5 +275,24 @@ describe("CapabilitySampler", () => {
     // Control capabilities are never derived from telemetry.
     expect(r.staticCameraControl.support).toBe("unverified");
     expect(r.playerSelectionControl.support).toBe("unverified");
+  });
+});
+
+describe("measured utility profiles", () => {
+  it("applies measured means with floored uncertainty and keeps defaults for unmeasured types", () => {
+    const file = {
+      source: "measured_from_demos",
+      profiles: {
+        he: { source: "measured_from_demos" as const, sampleCount: 66, fuse: { meanMs: 1640.9, sdMs: 1.9 }, measuredOn: "test" },
+        smoke: { source: "measured_from_demos" as const, sampleCount: 47, effectDuration: { meanMs: 22062.5, sdMs: 21.9 } },
+        decoy: { source: "measured_from_demos" as const, sampleCount: 1, fuse: { meanMs: 1, sdMs: 1 } },
+      },
+    };
+    const { profiles, measuredTypes } = profilesFromMeasured(file);
+    expect(measuredTypes.sort()).toEqual(["he", "smoke"]);
+    expect(profiles.he.fuse).toEqual({ meanMs: 1640.9, sdMs: MEASURED_SD_FLOOR_MS.fuse });
+    expect(profiles.smoke.effectDuration).toEqual({ meanMs: 22062.5, sdMs: MEASURED_SD_FLOOR_MS.effectDuration });
+    expect(profiles.decoy).toEqual(DEFAULT_PROFILES.decoy);
+    expect(profiles.flashbang.source).toBe("default_unmeasured");
   });
 });

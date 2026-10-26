@@ -103,6 +103,41 @@ export function mergeProfiles(measured: Partial<ProfileSet>): ProfileSet {
   return { ...DEFAULT_PROFILES, ...measured };
 }
 
+/** Minimum uncertainty kept when applying measured profiles (GSI packet spacing, 3-tick demo quantisation, small samples). */
+export const MEASURED_SD_FLOOR_MS = { fuse: 100, effectDuration: 250 } as const;
+
+export interface MeasuredProfilesFile {
+  source?: string;
+  profiles?: Record<string, Partial<UtilityTypeProfile> & { sampleCount?: number }>;
+}
+
+/**
+ * Applies a `measure-utility` output over the defaults. Only known types with at least
+ * `minSamples` event-linked samples replace a default; standard deviations are floored so a
+ * small, quantised sample cannot make live predictions overconfident. Returns the merged set and
+ * which types were taken from measurements.
+ */
+export function profilesFromMeasured(file: MeasuredProfilesFile, minSamples = 5): { profiles: ProfileSet; measuredTypes: GrenadeType[] } {
+  const out: Partial<ProfileSet> = {};
+  const measuredTypes: GrenadeType[] = [];
+  const floor = (d: Distribution | null | undefined, min: number): Distribution | null => (d && Number.isFinite(d.meanMs) && d.meanMs > 0 ? { meanMs: d.meanMs, sdMs: Math.max(Number.isFinite(d.sdMs) ? d.sdMs : 0, min) } : null);
+  for (const type of Object.keys(DEFAULT_PROFILES) as GrenadeType[]) {
+    const m = file.profiles?.[type];
+    if (!m || m.source !== "measured_from_demos" || (m.sampleCount ?? 0) < minSamples) continue;
+    const base = DEFAULT_PROFILES[type];
+    out[type] = {
+      ...base,
+      fuse: base.fuse ? (floor(m.fuse, MEASURED_SD_FLOOR_MS.fuse) ?? base.fuse) : null,
+      effectDuration: base.effectDuration ? (floor(m.effectDuration, MEASURED_SD_FLOOR_MS.effectDuration) ?? base.effectDuration) : null,
+      source: "measured_from_demos",
+      sampleCount: m.sampleCount ?? 0,
+      measuredOn: typeof m.measuredOn === "string" ? m.measuredOn : null,
+    };
+    measuredTypes.push(type);
+  }
+  return { profiles: mergeProfiles(out), measuredTypes };
+}
+
 /** Inventory weapon names for each grenade type (CS2 item class names). */
 export const GRENADE_WEAPON_NAMES: Record<GrenadeType, string> = {
   he: "weapon_hegrenade",

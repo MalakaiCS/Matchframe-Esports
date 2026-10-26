@@ -5,7 +5,8 @@ import type { AutomationRule, ProgramMode, TriggerEvent, TriggerKind } from "@ma
 import { AutomationRule as RuleSchema, exampleRules, RuleEngine } from "@matchframe/automation";
 import type { HudManifest, MapPack, MatchState, Side } from "@matchframe/contracts";
 import { EventRecord, EventStage, Match, Player, RundownCue, Sponsor, StatCorrection, Team } from "@matchframe/contracts";
-import type { DerivedEvent } from "@matchframe/cs2-state";
+import type { DerivedEvent, MeasuredProfilesFile, ProfileSet } from "@matchframe/cs2-state";
+import { DEFAULT_PROFILES, profilesFromMeasured } from "@matchframe/cs2-state";
 import type { UtilityScenarioRule } from "@matchframe/director-policy";
 import { INFERNO_BOTTOM_BANANA_RULE } from "@matchframe/director-policy";
 import type { HudState } from "@matchframe/hud-sdk";
@@ -101,6 +102,8 @@ export class Engine {
   readonly demos: DemoLibrary;
   readonly workers: PythonWorkerRunner;
   readonly training: TrainingService;
+  /** Utility profiles in use and which types come from demo measurements. */
+  readonly utilityProfiles: { profiles: ProfileSet; measuredTypes: string[]; file: string | null; error: string | null };
   readonly sponsorRotation = new SponsorRotation();
   readonly startedAt = new Date().toISOString();
   readonly now = () => performance.now();
@@ -142,10 +145,12 @@ export class Engine {
     this.demoJobs = new DemoJobRepo(this.db);
 
     this.loadMapPacks();
+    this.utilityProfiles = this.loadUtilityProfiles();
     this.session = new LiveSession({
       logger: this.logger,
       maps: this.maps,
       now: this.now,
+      utilityProfiles: this.utilityProfiles.profiles,
       resolveRoster: (steamId) => {
         const playerId = this.steamIndex.lookup(steamId);
         if (!playerId) return null;
@@ -188,6 +193,17 @@ export class Engine {
     this.session.on("events", (evs) => this.onDerivedEvents(evs));
     this.session.on("state", (s) => this.onState(s));
     this.session.on("alert", (a) => this.logger.log(a.level === "error" ? "error" : a.level === "warn" ? "warn" : "info", `alert: ${a.message}`, { code: a.code }));
+  }
+
+  private loadUtilityProfiles(): Engine["utilityProfiles"] {
+    const file = this.cfg.utilityProfilesFile;
+    if (!file || !existsSync(file)) return { profiles: DEFAULT_PROFILES, measuredTypes: [], file: null, error: null };
+    try {
+      const r = profilesFromMeasured(JSON.parse(readFileSync(file, "utf8")) as MeasuredProfilesFile);
+      return { profiles: r.profiles, measuredTypes: r.measuredTypes, file, error: null };
+    } catch (e) {
+      return { profiles: DEFAULT_PROFILES, measuredTypes: [], file, error: e instanceof Error ? e.message : String(e) };
+    }
   }
 
   // ---------------------------------------------------------------------------- map packs
@@ -629,6 +645,7 @@ export class Engine {
       telemetry: primary ? { sourceId: primary.sourceId, stale: primary.stale, packets: primary.packetsReceived, gameBuild: primary.gameBuild } : null,
       director: { mode: this.session.director.currentMode, ownership: this.session.arbiter.state(), adapter: this.session.arbiter.getAdapter()?.kind ?? "none" },
       obs: { connected: this.obs.state.connected, lastError: this.obs.state.lastError },
+      utilityProfiles: { measuredTypes: this.utilityProfiles.measuredTypes, defaultsFor: Object.keys(this.utilityProfiles.profiles).filter((t) => !this.utilityProfiles.measuredTypes.includes(t)), error: this.utilityProfiles.error },
       program: this.program.mode,
       schemaVersion: this.db.schemaVersion,
       mapPacks: this.maps.list().map((m) => m.mapName),

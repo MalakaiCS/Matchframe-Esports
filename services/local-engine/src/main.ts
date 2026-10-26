@@ -20,6 +20,7 @@ export async function main(): Promise<void> {
     operatorUiDir: process.env.MATCHFRAME_OPERATOR_UI_DIR ?? repoPath("apps", "operator-web", "dist"),
     hudRendererDir: process.env.MATCHFRAME_HUD_DIR ?? repoPath("apps", "hud-renderer", "dist"),
     mapPackDir: process.env.MATCHFRAME_MAP_PACK_DIR ?? repoPath("assets", "map-packs"),
+    utilityProfilesFile: process.env.MATCHFRAME_UTILITY_PROFILES ?? repoPath("assets", "utility-profiles", "measured.json"),
     workersDir: process.env.MATCHFRAME_WORKERS_DIR ?? repoPath("workers"),
   });
   const engine = new Engine(cfg);

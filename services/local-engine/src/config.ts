@@ -14,6 +14,8 @@ export interface EngineConfig {
   hudRendererDir: string | null;
   /** Directory holding map packs shipped with the app. */
   mapPackDir: string | null;
+  /** Measured utility profiles (workers `measure-utility` output); defaults are used when absent. */
+  utilityProfilesFile: string | null;
   /** Python interpreter for workers (demo parsing, training). */
   pythonPath: string | null;
   workersDir: string | null;
@@ -47,6 +49,7 @@ export function loadConfig(overrides: Partial<EngineConfig> = {}): EngineConfig 
     operatorUiDir: process.env.MATCHFRAME_OPERATOR_UI_DIR ?? null,
     hudRendererDir: process.env.MATCHFRAME_HUD_DIR ?? null,
     mapPackDir: process.env.MATCHFRAME_MAP_PACK_DIR ?? null,
+    utilityProfilesFile: process.env.MATCHFRAME_UTILITY_PROFILES ?? null,
     pythonPath: process.env.MATCHFRAME_PYTHON ?? null,
     workersDir: process.env.MATCHFRAME_WORKERS_DIR ?? null,
     allowedOrigins: (process.env.MATCHFRAME_ALLOWED_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean),

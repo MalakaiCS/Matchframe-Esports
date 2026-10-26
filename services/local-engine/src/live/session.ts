@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
 import type { CameraRecord, DirectorDecision, DirectorMode, MatchState, ReasonCode, Side, SourceCapabilities } from "@matchframe/contracts";
 import { emptySourceCapabilities } from "@matchframe/contracts";
-import type { DerivedEvent, GsiObservation, IngestResult, UtilityTrackerEvent } from "@matchframe/cs2-state";
+import type { DerivedEvent, GsiObservation, IngestResult, ProfileSet, UtilityTrackerEvent } from "@matchframe/cs2-state";
 import { CapabilitySampler, hash53, MatchStateStore, normalizeGsi, parseGsiPayload, stripAuth } from "@matchframe/cs2-state";
 import type { ArbiterEvent, ControlCapabilities, DirectorOutput, ObserverControlAdapter, Pin } from "@matchframe/director-policy";
 import { cameraShot, ControlArbiter, Director, parseShot, povShot } from "@matchframe/director-policy";
@@ -33,6 +33,8 @@ export interface LiveSessionOptions {
   /** Capability evidence recorded by real setup tests (e.g. confirmed player selection). */
   verifiedControl?: () => Partial<Record<keyof ControlCapabilities, { support: "supported" | "partial"; build: string | null; at: string }>>;
   simulated?: boolean;
+  /** Per-type utility profiles (measured where available, defaults otherwise). */
+  utilityProfiles?: ProfileSet;
 }
 
 export interface IngestOutcome {
@@ -92,6 +94,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
       ...(this.opts.resolveRoster ? { resolveRoster: this.opts.resolveRoster } : {}),
       mapContextFor: (name) => this.opts.maps.get(name),
       simulated: this.opts.simulated ?? false,
+      ...(this.opts.utilityProfiles ? { tracker: { profiles: this.opts.utilityProfiles } } : {}),
     });
   }
 
