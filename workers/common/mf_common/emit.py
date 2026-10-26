@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import sys
 import time
 from typing import Any, TextIO
@@ -42,6 +43,15 @@ def _sanitize(value: Any) -> Any:
 def dumps(obj: Any, *, indent: int | None = None) -> str:
     """Strict JSON serialization (no NaN/Infinity) shared by all writers."""
     return json.dumps(_sanitize(obj), default=_default, allow_nan=False, indent=indent, ensure_ascii=False)
+
+
+_NUMERIC_ARRAY = re.compile(r"\[\s*(-?\d[\d.eE+-]*(?:\s*,\s*-?\d[\d.eE+-]*)*)\s*\]")
+
+
+def dumps_readable(obj: Any) -> str:
+    """Indented JSON with innermost numeric arrays kept on one line (diffable, compact assets)."""
+    text = dumps(obj, indent=2)
+    return _NUMERIC_ARRAY.sub(lambda m: "[" + ",".join(x.strip() for x in m.group(1).split(",")) + "]", text)
 
 
 class Emitter:

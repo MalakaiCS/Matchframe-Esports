@@ -70,14 +70,15 @@ def fsync_path(path: Path) -> None:
         os.close(fd)
 
 
-def write_json_atomic(path: Path, obj: Any, *, indent: int | None = 2) -> None:
-    """Write JSON via a temp file in the same directory + rename, so readers never see partial files."""
+def write_text_atomic(path: Path, text: str) -> None:
+    """Write text via a temp file in the same directory + rename, so readers never see partial files."""
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
     try:
         with tmp.open("w", encoding="utf-8") as fh:
-            fh.write(dumps(obj, indent=indent))
-            fh.write("\n")
+            fh.write(text)
+            if not text.endswith("\n"):
+                fh.write("\n")
             fh.flush()
             os.fsync(fh.fileno())
         os.replace(tmp, path)
@@ -85,6 +86,11 @@ def write_json_atomic(path: Path, obj: Any, *, indent: int | None = 2) -> None:
         if tmp.exists():
             tmp.unlink()
     fsync_path(path.parent)
+
+
+def write_json_atomic(path: Path, obj: Any, *, indent: int | None = 2) -> None:
+    """Atomically write strict JSON (see :func:`write_text_atomic`)."""
+    write_text_atomic(path, dumps(obj, indent=indent))
 
 
 def read_json(path: Path) -> Any:

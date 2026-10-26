@@ -1,0 +1,176 @@
+{
+  "id": "contact_2s-synthetic-parity-fixture",
+  "task": "contact_2s",
+  "status": "experimental",
+  "created_at": "2026-10-26T13:49:38.248769Z",
+  "objective": "binary",
+  "label_definition": "synthetic logistic process over the contact_2s feature schema",
+  "metrics": null,
+  "feature_schema": [
+    {
+      "index": 0,
+      "name": "dist_3d",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 1,
+      "name": "dist_2d",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 2,
+      "name": "dz",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 3,
+      "name": "facing_a",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 4,
+      "name": "facing_b",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 5,
+      "name": "facing_max",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 6,
+      "name": "facing_min",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 7,
+      "name": "closing_speed",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 8,
+      "name": "speed_a",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 9,
+      "name": "speed_b",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 10,
+      "name": "health_a",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 11,
+      "name": "health_b",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 12,
+      "name": "armor_a",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 13,
+      "name": "armor_b",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 14,
+      "name": "weapon_class_a",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 15,
+      "name": "weapon_class_b",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 16,
+      "name": "alive_t",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 17,
+      "name": "alive_ct",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 18,
+      "name": "round_time_s",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    }
+  ],
+  "required_capabilities": [
+    "gsi_compatible"
+  ],
+  "supported_builds": [],
+  "supported_maps": [],
+  "training": {
+    "seed": 1234,
+    "params": {
+      "objective": "binary",
+      "learning_rate": 0.1,
+      "num_leaves": 7,
+      "min_data_in_leaf": 50,
+      "deterministic": true,
+      "force_row_wise": true,
+      "num_threads": 1,
+      "seed": 1234,
+      "verbose": -1
+    },
+    "num_boost_round": 40,
+    "data": {
+      "rows": 20000,
+      "positives": 3367,
+      "source": "synthetic (mf_training.synthetic.synthetic_contact_frame)"
+    },
+    "lightgbm_version": "4.7.0"
+  },
+  "notes": "Trained on synthetic data. Exists only so the TypeScript runtime can prove LightGBM JSON parity; never use for direction.",
+  "model_sha256": "25c3f7a7818400bb51b40ff5fa55cf159a87a59d6344024965d5de67037869e6",
+  "files": {
+    "model": "model.json",
+    "parity_vectors": "parity_vectors.json"
+  }
+}
