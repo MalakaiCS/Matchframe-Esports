@@ -1,0 +1,467 @@
+{
+  "schemaVersion": 1,
+  "mapName": "de_anubis",
+  "source": "demo_place_name_transitions",
+  "description": "Undirected region adjacency from observed place-name transitions of alive players (consecutive samples ≤ 1 s apart within a round). Not part of the MapPack schema.",
+  "minTransitions": 2,
+  "nodes": [
+    {
+      "id": "alley",
+      "place": "Alley",
+      "sampleCount": 3974
+    },
+    {
+      "id": "backof_b",
+      "place": "BackofB",
+      "sampleCount": 3369
+    },
+    {
+      "id": "bombsite_a",
+      "place": "BombsiteA",
+      "sampleCount": 5172
+    },
+    {
+      "id": "bombsite_b",
+      "place": "BombsiteB",
+      "sampleCount": 14122
+    },
+    {
+      "id": "bricks",
+      "place": "Bricks",
+      "sampleCount": 2200
+    },
+    {
+      "id": "bridge",
+      "place": "Bridge",
+      "sampleCount": 11793
+    },
+    {
+      "id": "ct_side_upper",
+      "place": "CTSideUpper",
+      "sampleCount": 25704
+    },
+    {
+      "id": "ct_spawn",
+      "place": "CTSpawn",
+      "sampleCount": 681
+    },
+    {
+      "id": "canal",
+      "place": "Canal",
+      "sampleCount": 12401
+    },
+    {
+      "id": "connector",
+      "place": "Connector",
+      "sampleCount": 4571
+    },
+    {
+      "id": "fountain",
+      "place": "Fountain",
+      "sampleCount": 1626
+    },
+    {
+      "id": "heaven",
+      "place": "Heaven",
+      "sampleCount": 1792
+    },
+    {
+      "id": "lower_tunnel",
+      "place": "LowerTunnel",
+      "sampleCount": 1200
+    },
+    {
+      "id": "main",
+      "place": "Main",
+      "sampleCount": 9531
+    },
+    {
+      "id": "mid_doors",
+      "place": "MidDoors",
+      "sampleCount": 2508
+    },
+    {
+      "id": "middle",
+      "place": "Middle",
+      "sampleCount": 15420
+    },
+    {
+      "id": "outside_long",
+      "place": "OutsideLong",
+      "sampleCount": 7602
+    },
+    {
+      "id": "palace_interior",
+      "place": "PalaceInterior",
+      "sampleCount": 7629
+    },
+    {
+      "id": "ruins",
+      "place": "Ruins",
+      "sampleCount": 10309
+    },
+    {
+      "id": "snipers_nest",
+      "place": "SnipersNest",
+      "sampleCount": 1971
+    },
+    {
+      "id": "street",
+      "place": "Street",
+      "sampleCount": 5776
+    },
+    {
+      "id": "t_side_upper",
+      "place": "TSideUpper",
+      "sampleCount": 2065
+    },
+    {
+      "id": "t_spawn",
+      "place": "TSpawn",
+      "sampleCount": 30193
+    },
+    {
+      "id": "t_stairs",
+      "place": "TStairs",
+      "sampleCount": 2010
+    },
+    {
+      "id": "tunnel",
+      "place": "Tunnel",
+      "sampleCount": 453
+    },
+    {
+      "id": "tunnel_stairs",
+      "place": "TunnelStairs",
+      "sampleCount": 480
+    },
+    {
+      "id": "walkway",
+      "place": "Walkway",
+      "sampleCount": 3474
+    },
+    {
+      "id": "water",
+      "place": "Water",
+      "sampleCount": 128
+    }
+  ],
+  "edges": [
+    {
+      "a": "alley",
+      "b": "bombsite_b",
+      "transitions": 52,
+      "a_to_b": 40,
+      "b_to_a": 12
+    },
+    {
+      "a": "alley",
+      "b": "lower_tunnel",
+      "transitions": 18,
+      "a_to_b": 4,
+      "b_to_a": 14
+    },
+    {
+      "a": "alley",
+      "b": "snipers_nest",
+      "transitions": 18,
+      "a_to_b": 0,
+      "b_to_a": 18
+    },
+    {
+      "a": "backof_b",
+      "b": "bombsite_b",
+      "transitions": 24,
+      "a_to_b": 11,
+      "b_to_a": 13
+    },
+    {
+      "a": "bombsite_a",
+      "b": "fountain",
+      "transitions": 12,
+      "a_to_b": 7,
+      "b_to_a": 5
+    },
+    {
+      "a": "bombsite_a",
+      "b": "heaven",
+      "transitions": 8,
+      "a_to_b": 4,
+      "b_to_a": 4
+    },
+    {
+      "a": "bombsite_a",
+      "b": "main",
+      "transitions": 27,
+      "a_to_b": 17,
+      "b_to_a": 10
+    },
+    {
+      "a": "bombsite_a",
+      "b": "walkway",
+      "transitions": 41,
+      "a_to_b": 13,
+      "b_to_a": 28
+    },
+    {
+      "a": "bombsite_b",
+      "b": "bricks",
+      "transitions": 25,
+      "a_to_b": 17,
+      "b_to_a": 8
+    },
+    {
+      "a": "bombsite_b",
+      "b": "connector",
+      "transitions": 39,
+      "a_to_b": 24,
+      "b_to_a": 15
+    },
+    {
+      "a": "bombsite_b",
+      "b": "outside_long",
+      "transitions": 26,
+      "a_to_b": 6,
+      "b_to_a": 20
+    },
+    {
+      "a": "bricks",
+      "b": "palace_interior",
+      "transitions": 34,
+      "a_to_b": 19,
+      "b_to_a": 15
+    },
+    {
+      "a": "bridge",
+      "b": "ct_side_upper",
+      "transitions": 2,
+      "a_to_b": 2,
+      "b_to_a": 0
+    },
+    {
+      "a": "bridge",
+      "b": "canal",
+      "transitions": 10,
+      "a_to_b": 10,
+      "b_to_a": 0
+    },
+    {
+      "a": "bridge",
+      "b": "mid_doors",
+      "transitions": 20,
+      "a_to_b": 11,
+      "b_to_a": 9
+    },
+    {
+      "a": "bridge",
+      "b": "middle",
+      "transitions": 19,
+      "a_to_b": 10,
+      "b_to_a": 9
+    },
+    {
+      "a": "bridge",
+      "b": "ruins",
+      "transitions": 46,
+      "a_to_b": 7,
+      "b_to_a": 39
+    },
+    {
+      "a": "bridge",
+      "b": "street",
+      "transitions": 32,
+      "a_to_b": 17,
+      "b_to_a": 15
+    },
+    {
+      "a": "bridge",
+      "b": "t_spawn",
+      "transitions": 2,
+      "a_to_b": 2,
+      "b_to_a": 0
+    },
+    {
+      "a": "ct_side_upper",
+      "b": "ct_spawn",
+      "transitions": 8,
+      "a_to_b": 6,
+      "b_to_a": 2
+    },
+    {
+      "a": "ct_side_upper",
+      "b": "canal",
+      "transitions": 2,
+      "a_to_b": 0,
+      "b_to_a": 2
+    },
+    {
+      "a": "ct_side_upper",
+      "b": "lower_tunnel",
+      "transitions": 17,
+      "a_to_b": 14,
+      "b_to_a": 3
+    },
+    {
+      "a": "ct_side_upper",
+      "b": "middle",
+      "transitions": 2,
+      "a_to_b": 0,
+      "b_to_a": 2
+    },
+    {
+      "a": "ct_side_upper",
+      "b": "palace_interior",
+      "transitions": 58,
+      "a_to_b": 51,
+      "b_to_a": 7
+    },
+    {
+      "a": "ct_side_upper",
+      "b": "snipers_nest",
+      "transitions": 24,
+      "a_to_b": 21,
+      "b_to_a": 3
+    },
+    {
+      "a": "ct_side_upper",
+      "b": "street",
+      "transitions": 2,
+      "a_to_b": 0,
+      "b_to_a": 2
+    },
+    {
+      "a": "ct_spawn",
+      "b": "tunnel",
+      "transitions": 9,
+      "a_to_b": 5,
+      "b_to_a": 4
+    },
+    {
+      "a": "ct_spawn",
+      "b": "water",
+      "transitions": 4,
+      "a_to_b": 2,
+      "b_to_a": 2
+    },
+    {
+      "a": "canal",
+      "b": "connector",
+      "transitions": 32,
+      "a_to_b": 15,
+      "b_to_a": 17
+    },
+    {
+      "a": "canal",
+      "b": "main",
+      "transitions": 35,
+      "a_to_b": 18,
+      "b_to_a": 17
+    },
+    {
+      "a": "canal",
+      "b": "t_side_upper",
+      "transitions": 11,
+      "a_to_b": 2,
+      "b_to_a": 9
+    },
+    {
+      "a": "canal",
+      "b": "t_stairs",
+      "transitions": 41,
+      "a_to_b": 16,
+      "b_to_a": 25
+    },
+    {
+      "a": "fountain",
+      "b": "main",
+      "transitions": 14,
+      "a_to_b": 8,
+      "b_to_a": 6
+    },
+    {
+      "a": "heaven",
+      "b": "tunnel_stairs",
+      "transitions": 15,
+      "a_to_b": 8,
+      "b_to_a": 7
+    },
+    {
+      "a": "heaven",
+      "b": "walkway",
+      "transitions": 17,
+      "a_to_b": 6,
+      "b_to_a": 11
+    },
+    {
+      "a": "mid_doors",
+      "b": "middle",
+      "transitions": 28,
+      "a_to_b": 14,
+      "b_to_a": 14
+    },
+    {
+      "a": "middle",
+      "b": "palace_interior",
+      "transitions": 73,
+      "a_to_b": 16,
+      "b_to_a": 57
+    },
+    {
+      "a": "middle",
+      "b": "walkway",
+      "transitions": 42,
+      "a_to_b": 34,
+      "b_to_a": 8
+    },
+    {
+      "a": "outside_long",
+      "b": "ruins",
+      "transitions": 37,
+      "a_to_b": 9,
+      "b_to_a": 28
+    },
+    {
+      "a": "ruins",
+      "b": "t_spawn",
+      "transitions": 56,
+      "a_to_b": 2,
+      "b_to_a": 54
+    },
+    {
+      "a": "street",
+      "b": "t_side_upper",
+      "transitions": 8,
+      "a_to_b": 8,
+      "b_to_a": 0
+    },
+    {
+      "a": "street",
+      "b": "t_spawn",
+      "transitions": 35,
+      "a_to_b": 5,
+      "b_to_a": 30
+    },
+    {
+      "a": "street",
+      "b": "t_stairs",
+      "transitions": 35,
+      "a_to_b": 23,
+      "b_to_a": 12
+    },
+    {
+      "a": "tunnel",
+      "b": "tunnel_stairs",
+      "transitions": 8,
+      "a_to_b": 4,
+      "b_to_a": 4
+    }
+  ],
+  "transitionsObserved": 1073,
+  "provenance": {
+    "createdBy": "matchframe-workers 0.1.0 mf_features.map_pack",
+    "createdAt": "2026-10-26T14:04:33.147597Z",
+    "sources": [
+      "dataset:de_anubis-13914-fe6be1aceb1b8834"
+    ]
+  }
+}

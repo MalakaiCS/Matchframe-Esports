@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 1,
+  "mapName": "de_ancient",
+  "source": "demo_place_name_transitions",
+  "description": "Undirected region adjacency from observed place-name transitions of alive players (consecutive samples ≤ 1 s apart within a round). Not part of the MapPack schema.",
+  "minTransitions": 2,
+  "nodes": [
+    {
+      "id": "alley",
+      "place": "Alley",
+      "sampleCount": 15453
+    },
+    {
+      "id": "bombsite_a",
+      "place": "BombsiteA",
+      "sampleCount": 31110
+    },
+    {
+      "id": "bombsite_b",
+      "place": "BombsiteB",
+      "sampleCount": 16715
+    },
+    {
+      "id": "ct_spawn",
+      "place": "CTSpawn",
+      "sampleCount": 12287
+    },
+    {
+      "id": "house",
+      "place": "House",
+      "sampleCount": 10935
+    },
+    {
+      "id": "main_hall",
+      "place": "MainHall",
+      "sampleCount": 14909
+    },
+    {
+      "id": "middle",
+      "place": "Middle",
+      "sampleCount": 22472
+    },
+    {
+      "id": "outside",
+      "place": "Outside",
+      "sampleCount": 17356
+    },
+    {
+      "id": "ramp",
+      "place": "Ramp",
+      "sampleCount": 8865
+    },
+    {
+      "id": "ruins",
+      "place": "Ruins",
+      "sampleCount": 6441
+    },
+    {
+      "id": "side_entrance",
+      "place": "SideEntrance",
+      "sampleCount": 11732
+    },
+    {
+      "id": "side_hall",
+      "place": "SideHall",
+      "sampleCount": 6495
+    },
+    {
+      "id": "t_side_lower",
+      "place": "TSideLower",
+      "sampleCount": 5681
+    },
+    {
+      "id": "t_side_upper",
+      "place": "TSideUpper",
+      "sampleCount": 14665
+    },
+    {
+      "id": "t_spawn",
+      "place": "TSpawn",
+      "sampleCount": 47632
+    },
+    {
+      "id": "topof_mid",
+      "place": "TopofMid",
+      "sampleCount": 1688
+    },
+    {
+      "id": "tunnel",
+      "place": "Tunnel",
+      "sampleCount": 2496
+    },
+    {
+      "id": "water",
+      "place": "Water",
+      "sampleCount": 1366
+    }
+  ],
+  "edges": [
+    {
+      "a": "alley",
+      "b": "bombsite_b",
+      "transitions": 71,
+      "a_to_b": 45,
+      "b_to_a": 26
+    },
+    {
+      "a": "alley",
+      "b": "ct_spawn",
+      "transitions": 8,
+      "a_to_b": 8,
+      "b_to_a": 0
+    },
+    {
+      "a": "alley",
+      "b": "house",
+      "transitions": 76,
+      "a_to_b": 20,
+      "b_to_a": 56
+    },
+    {
+      "a": "bombsite_a",
+      "b": "ct_spawn",
+      "transitions": 90,
+      "a_to_b": 41,
+      "b_to_a": 49
+    },
+    {
+      "a": "bombsite_a",
+      "b": "main_hall",
+      "transitions": 54,
+      "a_to_b": 16,
+      "b_to_a": 38
+    },
+    {
+      "a": "bombsite_a",
+      "b": "side_hall",
+      "transitions": 32,
+      "a_to_b": 17,
+      "b_to_a": 15
+    },
+    {
+      "a": "bombsite_b",
+      "b": "ct_spawn",
+      "transitions": 9,
+      "a_to_b": 9,
+      "b_to_a": 0
+    },
+    {
+      "a": "bombsite_b",
+      "b": "ramp",
+      "transitions": 39,
+      "a_to_b": 10,
+      "b_to_a": 29
+    },
+    {
+      "a": "bombsite_b",
+      "b": "side_entrance",
+      "transitions": 54,
+      "a_to_b": 33,
+      "b_to_a": 21
+    },
+    {
+      "a": "ct_spawn",
+      "b": "house",
+      "transitions": 111,
+      "a_to_b": 88,
+      "b_to_a": 23
+    },
+    {
+      "a": "ct_spawn",
+      "b": "main_hall",
+      "transitions": 8,
+      "a_to_b": 0,
+      "b_to_a": 8
+    },
+    {
+      "a": "ct_spawn",
+      "b": "middle",
+      "transitions": 19,
+      "a_to_b": 0,
+      "b_to_a": 19
+    },
+    {
+      "a": "ct_spawn",
+      "b": "outside",
+      "transitions": 5,
+      "a_to_b": 0,
+      "b_to_a": 5
+    },
+    {
+      "a": "ct_spawn",
+      "b": "ramp",
+      "transitions": 2,
+      "a_to_b": 0,
+      "b_to_a": 2
+    },
+    {
+      "a": "ct_spawn",
+      "b": "side_entrance",
+      "transitions": 5,
+      "a_to_b": 0,
+      "b_to_a": 5
+    },
+    {
+      "a": "ct_spawn",
+      "b": "side_hall",
+      "transitions": 3,
+      "a_to_b": 0,
+      "b_to_a": 3
+    },
+    {
+      "a": "ct_spawn",
+      "b": "t_side_lower",
+      "transitions": 3,
+      "a_to_b": 0,
+      "b_to_a": 3
+    },
+    {
+      "a": "ct_spawn",
+      "b": "t_side_upper",
+      "transitions": 7,
+      "a_to_b": 0,
+      "b_to_a": 7
+    },
+    {
+      "a": "house",
+      "b": "topof_mid",
+      "transitions": 45,
+      "a_to_b": 35,
+      "b_to_a": 10
+    },
+    {
+      "a": "main_hall",
+      "b": "outside",
+      "transitions": 44,
+      "a_to_b": 4,
+      "b_to_a": 40
+    },
+    {
+      "a": "middle",
+      "b": "outside",
+      "transitions": 40,
+      "a_to_b": 12,
+      "b_to_a": 28
+    },
+    {
+      "a": "middle",
+      "b": "side_hall",
+      "transitions": 31,
+      "a_to_b": 17,
+      "b_to_a": 14
+    },
+    {
+      "a": "middle",
+      "b": "t_side_upper",
+      "transitions": 34,
+      "a_to_b": 18,
+      "b_to_a": 16
+    },
+    {
+      "a": "middle",
+      "b": "t_spawn",
+      "transitions": 3,
+      "a_to_b": 3,
+      "b_to_a": 0
+    },
+    {
+      "a": "middle",
+      "b": "topof_mid",
+      "transitions": 45,
+      "a_to_b": 11,
+      "b_to_a": 34
+    },
+    {
+      "a": "outside",
+      "b": "t_spawn",
+      "transitions": 73,
+      "a_to_b": 6,
+      "b_to_a": 67
+    },
+    {
+      "a": "ramp",
+      "b": "t_side_lower",
+      "transitions": 62,
+      "a_to_b": 18,
+      "b_to_a": 44
+    },
+    {
+      "a": "ruins",
+      "b": "t_side_lower",
+      "transitions": 49,
+      "a_to_b": 47,
+      "b_to_a": 2
+    },
+    {
+      "a": "ruins",
+      "b": "water",
+      "transitions": 47,
+      "a_to_b": 0,
+      "b_to_a": 47
+    },
+    {
+      "a": "side_entrance",
+      "b": "t_side_upper",
+      "transitions": 41,
+      "a_to_b": 19,
+      "b_to_a": 22
+    },
+    {
+      "a": "t_side_lower",
+      "b": "t_side_upper",
+      "transitions": 28,
+      "a_to_b": 21,
+      "b_to_a": 7
+    },
+    {
+      "a": "t_spawn",
+      "b": "tunnel",
+      "transitions": 47,
+      "a_to_b": 47,
+      "b_to_a": 0
+    },
+    {
+      "a": "tunnel",
+      "b": "water",
+      "transitions": 47,
+      "a_to_b": 47,
+      "b_to_a": 0
+    }
+  ],
+  "transitionsObserved": 1234,
+  "provenance": {
+    "createdBy": "matchframe-workers 0.1.0 mf_features.map_pack",
+    "createdAt": "2026-10-26T14:04:32.455466Z",
+    "sources": [
+      "dataset:de_ancient-13916-9051f4690a8a2f1a"
+    ]
+  }
+}
