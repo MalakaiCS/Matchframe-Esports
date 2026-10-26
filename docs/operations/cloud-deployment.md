@@ -44,17 +44,22 @@ new services cannot use it and existing files stop being read on 2026-12-01 — 
 does not ship one.
 
 1. **New Project → Deploy from GitHub repo** → this repository and the branch to deploy. Leave the
-   service's *Root Directory* empty: the Dockerfile builds from the repository root.
-2. Service **Variables**: `RAILWAY_DOCKERFILE_PATH=services/cloud-api/Dockerfile`.
-3. **New → Database → PostgreSQL**, then in the website service:
+   service's *Root Directory* empty. Railway uses the `Dockerfile` at the repository root
+   automatically; if the build log shows "Railpack", the service is not building that file
+   (check the branch, and remove any `RAILWAY_DOCKERFILE_PATH` variable pointing elsewhere).
+2. **New → Database → PostgreSQL**, then in the website service:
    `DATABASE_URL=${{Postgres.DATABASE_URL}}`.
+3. Set the required variables before the first deploy finishes: `MF_CLOUD_PUBLIC_URL`,
+   `MF_CLOUD_SIGNING_KEY` (step 1 above). In production the server refuses to start without
+   `DATABASE_URL`, `MF_CLOUD_SIGNING_KEY` and `MF_CLOUD_PUBLIC_URL` and says which is missing in
+   the deploy log, rather than running with an in-memory database or a throwaway key.
 4. Service **Settings → Networking → Generate Domain** (the server listens on the `PORT` Railway
    provides; if asked for a port, it is the value of `PORT`, 8080 by default). Add a custom domain
    there later; Railway issues the certificate.
 5. Service **Settings → Deploy → Healthcheck Path**: `/v1/health` (Railway ignores the Dockerfile's
    `HEALTHCHECK`).
-6. Variables: `MF_CLOUD_PUBLIC_URL` (the `https://` domain), `MF_CLOUD_SIGNING_KEY` (step 1 above),
-   `MF_STAFF_EMAILS`, and later the Stripe and SMTP variables (sections 3 and 4).
+6. Variables: `MF_STAFF_EMAILS`, and later the Stripe and SMTP variables (sections 3 and 4). After
+   generating the domain, make sure `MF_CLOUD_PUBLIC_URL` is that `https://` address.
 7. Check `https://<domain>/v1/health`: `"database":"postgres"` and `"ephemeralSigningKey":false`.
 
 Program download on Railway: a public GitHub release is the simplest host for the installer (see
@@ -65,7 +70,7 @@ and upload the file with `railway volume files upload`.
 ### Image only (managed Postgres)
 
 ```sh
-docker build -f services/cloud-api/Dockerfile -t matchframe-cloud .
+docker build -t matchframe-cloud .
 docker run -d -p 8080:8080 --env-file config/cloud.env -e DATABASE_URL=postgres://… matchframe-cloud
 ```
 

@@ -1,6 +1,7 @@
 # Matchframe website + cloud API (accounts, billing, device linking, licences, auto-director usage).
-# Build from the repository root:
-#   docker build -f services/cloud-api/Dockerfile -t matchframe-cloud .
+# At the repository root so hosts such as Railway use it automatically:
+#   docker build -t matchframe-cloud .
+# (The Matchframe program for Windows is built by .github/workflows/windows-program.yml, not here.)
 # Configuration is environment-only; see docs/operations/cloud-deployment.md.
 
 FROM node:22.22.0-bookworm-slim AS build

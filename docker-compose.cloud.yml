@@ -21,7 +21,6 @@ services:
   cloud:
     build:
       context: .
-      dockerfile: services/cloud-api/Dockerfile
     depends_on:
       db:
         condition: service_healthy
