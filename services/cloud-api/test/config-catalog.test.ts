@@ -10,6 +10,12 @@ describe("deployment configuration", () => {
     expect(cfg).toMatchObject({ stripeSecretKey: null, stripeWebhookSecret: null, smtpUrl: null, databaseUrl: null, signingKeyPem: null, port: 8080, downloads: { windowsUrl: null } });
   });
 
+  it("listens on the platform's PORT unless MF_CLOUD_PORT is set (Railway and similar hosts)", () => {
+    expect(loadCloudConfig({ PORT: "4123" }).port).toBe(4123);
+    expect(loadCloudConfig({ PORT: "4123", MF_CLOUD_PORT: "8081" }).port).toBe(8081);
+    expect(loadCloudConfig({}).port).toBe(8080);
+  });
+
   it("fills Stripe price ids from the environment after the first start without overwriting staff edits", async () => {
     const sql = new PgliteSql();
     await migrate(sql);

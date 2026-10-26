@@ -36,6 +36,32 @@ The service listens on `127.0.0.1:8080`. Put a TLS-terminating reverse proxy (Ca
 cloud load balancer) in front of it and set `MF_CLOUD_PUBLIC_URL` to the public `https://` address:
 it is used in emails, Stripe return URLs and the desktop link page, and turns on `Secure` cookies.
 
+### Railway
+
+Railway builds the same Dockerfile and provides Postgres, HTTPS and the domain. Configure the
+service in the dashboard: Railway has deprecated `railway.json`/`railway.toml` (Config as Code) —
+new services cannot use it and existing files stop being read on 2026-12-01 — so this repository
+does not ship one.
+
+1. **New Project → Deploy from GitHub repo** → this repository and the branch to deploy. Leave the
+   service's *Root Directory* empty: the Dockerfile builds from the repository root.
+2. Service **Variables**: `RAILWAY_DOCKERFILE_PATH=services/cloud-api/Dockerfile`.
+3. **New → Database → PostgreSQL**, then in the website service:
+   `DATABASE_URL=${{Postgres.DATABASE_URL}}`.
+4. Service **Settings → Networking → Generate Domain** (the server listens on the `PORT` Railway
+   provides; if asked for a port, it is the value of `PORT`, 8080 by default). Add a custom domain
+   there later; Railway issues the certificate.
+5. Service **Settings → Deploy → Healthcheck Path**: `/v1/health` (Railway ignores the Dockerfile's
+   `HEALTHCHECK`).
+6. Variables: `MF_CLOUD_PUBLIC_URL` (the `https://` domain), `MF_CLOUD_SIGNING_KEY` (step 1 above),
+   `MF_STAFF_EMAILS`, and later the Stripe and SMTP variables (sections 3 and 4).
+7. Check `https://<domain>/v1/health`: `"database":"postgres"` and `"ephemeralSigningKey":false`.
+
+Program download on Railway: a public GitHub release is the simplest host for the installer (see
+section 5): set `MF_DOWNLOAD_WINDOWS_URL`, `MF_DOWNLOAD_WINDOWS_SHA256` and `MF_DOWNLOAD_VERSION`.
+To serve it from Railway instead, attach a volume at `/downloads`, set `MF_DOWNLOAD_DIR=/downloads`
+and upload the file with `railway volume files upload`.
+
 ### Image only (managed Postgres)
 
 ```sh
@@ -113,7 +139,7 @@ invitation links can be recovered by staff if delivery fails.
 | `MF_CLOUD_PGLITE_DIR` | no | in memory | PGlite data directory for trials |
 | `MF_CLOUD_SIGNING_KEY` | yes (production) | ephemeral | Ed25519 private key (PEM, `\n` escapes allowed) that signs desktop licences |
 | `MF_CLOUD_EXTRA_PUBLIC_KEYS` | no | — | Older public keys still accepted during rotation (`|||`-separated PEMs) |
-| `MF_CLOUD_HOST`, `MF_CLOUD_PORT` (`PORT`) | no | `127.0.0.1`, `8080` (image: `0.0.0.0`) | Listen address |
+| `MF_CLOUD_HOST`, `MF_CLOUD_PORT` / `PORT` | no | `127.0.0.1`, `8080` (image: host `0.0.0.0`; port from `PORT` when the platform sets it) | Listen address |
 | `MF_CLOUD_WEB_DIR` | no | `apps/cloud-web/dist` (image: `/app/web`) | Built website |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | for billing | — | Without them plans are shown but not purchasable |
 | `STRIPE_PRICE_PRO`, `STRIPE_PRICE_STUDIO`, `STRIPE_PRICE_PACK_10`, `STRIPE_PRICE_PACK_50` | for billing | — | Stripe price ids for the default catalogue |
