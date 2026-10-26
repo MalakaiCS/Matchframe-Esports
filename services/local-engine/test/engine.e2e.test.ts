@@ -1,7 +1,8 @@
 import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { zipSync, strToU8 } from "fflate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import WebSocket from "ws";
@@ -128,6 +129,14 @@ describe("engine end-to-end (real HTTP/WS servers)", () => {
     expect(pub.data.presetId).toBe("arena");
     const back = (await (await api("/api/v1/hud/outputs/preview/rollback", { method: "POST", body: JSON.stringify({ revision: before.revision }) })).json()) as { data: { presetId: string } };
     expect(back.data.presetId).toBe(before.data.presetId);
+  });
+
+  it("F30: the example HUD package in examples/hud-minimal installs and publishes", async () => {
+    const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "examples", "hud-minimal");
+    const pkg = (await (await api("/api/v1/hud/packages/import-directory", { method: "POST", body: JSON.stringify({ path: dir }) })).json()) as { manifest: { id: string; permissions: string[] } };
+    expect(pkg.manifest.id).toBe("example.minimal-scorebug");
+    expect((await api("/api/v1/hud/outputs", { method: "POST", body: JSON.stringify({ outputId: "example", name: "Example", packageId: pkg.manifest.id, variant: "live" }) })).status).toBe(200);
+    expect((await api("/api/v1/hud/outputs/example/publish", { method: "POST", body: "{}" })).status).toBe(200);
   });
 
   it("program cues fail clearly when no mixer scene is mapped or the mixer is not connected", async () => {

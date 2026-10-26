@@ -63,7 +63,7 @@ Numbered work items in dependency order. Status: **done**, **open**, **blocked (
 | B052 | Companion module / Stream Deck plugin | open |
 | B053 | Win-probability or other predictions (calibrated, optional) | open |
 | B054 | Accounts/organisations, cloud asset/preset sync, conflict handling | open |
-| B055 | SDK guide + example HUD package + example game adapter | open |
+| B055 | SDK guide + example HUD package | done (example game adapter open) |
 | B056 | MatchFrame bridge against the real service | **blocked (input: service API)** |
 
 ### Phase 9 — release
