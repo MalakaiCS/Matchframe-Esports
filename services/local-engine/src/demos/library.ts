@@ -55,7 +55,9 @@ export class PythonWorkerRunner implements WorkerRunner {
   ) {}
 
   available(): boolean {
-    return !!this.python && existsSync(this.python) && !!this.workersDir && existsSync(this.workersDir);
+    // A bare command name (e.g. "python3") is resolved through PATH when spawned.
+    const pythonOk = !!this.python && (/[\\/]/.test(this.python) ? existsSync(this.python) : true);
+    return pythonOk && !!this.workersDir && existsSync(this.workersDir);
   }
 
   run(args: string[], onProgress?: (p: Record<string, unknown>) => void): Promise<Record<string, unknown>> {
