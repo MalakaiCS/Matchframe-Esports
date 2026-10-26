@@ -33,6 +33,7 @@ export class StripeStub {
           res.end(JSON.stringify(obj));
         };
         if (req.method === "POST" && url.pathname === "/v1/customers") return send(200, { id: `cus_${++this.n}`, object: "customer", email: form.email, name: form.name, metadata: { orgId: form["metadata[orgId]"] } });
+        if (req.method === "POST" && url.pathname === "/v1/checkout/sessions" && form["line_items[0][price]"]?.startsWith("price_missing")) return send(400, { error: { type: "invalid_request_error", code: "resource_missing", param: "line_items[0][price]", message: `No such price: '${form["line_items[0][price]"]}'` } });
         if (req.method === "POST" && url.pathname === "/v1/checkout/sessions") return send(200, { id: `cs_test_${++this.n}`, object: "checkout.session", url: `https://checkout.stripe.test/c/${this.n}`, mode: form.mode });
         if (req.method === "POST" && url.pathname === "/v1/billing_portal/sessions") return send(200, { id: `bps_${++this.n}`, object: "billing_portal.session", url: `https://billing.stripe.test/p/${this.n}` });
         if (req.method === "GET" && url.pathname.startsWith("/v1/subscriptions/")) {

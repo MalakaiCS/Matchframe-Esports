@@ -38,9 +38,13 @@ export const OrgView = z.object({
   name: z.string(),
   role: OrgRole,
   planId: z.string(),
+  planName: z.string(),
   subscriptionStatus: z.string(),
 });
 export type OrgView = z.infer<typeof OrgView>;
+
+export const UpdateProfileRequest = z.object({ displayName: z.string().trim().min(1).max(80) });
+export const ChangeEmailRequest = z.object({ newEmail: Email, password: z.string().min(1).max(200) });
 
 export const InviteRequest = z.object({ email: Email, role: OrgRole.exclude(["owner"]) });
 

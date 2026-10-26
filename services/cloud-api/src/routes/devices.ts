@@ -127,7 +127,7 @@ export function registerDeviceRoutes(r: Router, app: CloudApp): void {
       [normalizeUserCode(ctx.params.userCode!)],
     );
     const a = rows[0];
-    if (!a || a.status !== "pending" || a.expires_at <= app.now()) throw new HttpError(404, "invalid_code", "this code is invalid or expired; start linking again in the desktop app");
+    if (!a || a.status !== "pending" || a.expires_at <= app.now()) throw new HttpError(404, "invalid_code", "this code is invalid or expired; start linking again in the Matchframe program (Account & Hours)");
     return { deviceName: a.device_name, platform: a.platform, appVersion: a.app_version, requestedAt: a.created_at.toISOString(), expiresAt: a.expires_at.toISOString() };
   });
 
@@ -139,9 +139,9 @@ export function registerDeviceRoutes(r: Router, app: CloudApp): void {
     return app.sql.transaction(async (tx) => {
       const { rows } = await tx.query<{ install_id: string; device_name: string }>("SELECT install_id, device_name FROM device_auth WHERE user_code = $1 AND status = 'pending' AND expires_at > $2 FOR UPDATE", [code, app.now()]);
       const a = rows[0];
-      if (!a) throw new HttpError(404, "invalid_code", "this code is invalid or expired; start linking again in the desktop app");
+      if (!a) throw new HttpError(404, "invalid_code", "this code is invalid or expired; start linking again in the Matchframe program (Account & Hours)");
       const active = await tx.query<{ n: string }>("SELECT count(*) AS n FROM devices WHERE org_id = $1 AND revoked_at IS NULL AND install_id <> $2", [ctx.body.orgId, a.install_id]);
-      if (Number(active.rows[0]!.n) >= st.plan.features.maxDevices) throw new HttpError(409, "device_limit", `the ${st.plan.name} plan allows ${st.plan.features.maxDevices} linked computer(s); unlink one or upgrade`);
+      if (Number(active.rows[0]!.n) >= st.plan.features.maxDevices) throw new HttpError(409, "device_limit", `the ${st.plan.name} plan allows ${st.plan.features.maxDevices === 1 ? "1 linked computer" : `${st.plan.features.maxDevices} linked computers`}; unlink one or upgrade`);
       await tx.query("UPDATE device_auth SET status = 'approved', org_id = $2, approved_by = $3 WHERE user_code = $1", [code, ctx.body.orgId, user.id]);
       await audit(tx, user.id, ctx.body.orgId, "device.link_approved", { deviceName: a.device_name });
       return { approved: true, deviceName: a.device_name };

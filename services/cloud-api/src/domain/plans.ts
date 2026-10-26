@@ -9,7 +9,7 @@ import type { Queryable } from "../db/sql.ts";
  */
 export function defaultPlans(env: NodeJS.ProcessEnv = process.env): Plan[] {
   return [
-    { id: "free", name: "Free", description: "HUDs, manual and advisory direction, and a small monthly allowance of automatic direction to try it.", priceMonthlyCents: 0, currency: "usd", includedAutoDirectorHours: 2, features: { autoDirector: true, learnedDirectorShadow: false, maxDevices: 1, maxMembers: 2 }, stripePriceId: null, public: true, sortOrder: 0 },
+    { id: "free", name: "Free", description: "A small monthly allowance of auto-director hours to try automatic direction.", priceMonthlyCents: 0, currency: "usd", includedAutoDirectorHours: 2, features: { autoDirector: true, learnedDirectorShadow: false, maxDevices: 1, maxMembers: 2 }, stripePriceId: null, public: true, sortOrder: 0 },
     { id: "pro", name: "Pro", description: "For regular productions.", priceMonthlyCents: 4900, currency: "usd", includedAutoDirectorHours: 40, features: { autoDirector: true, learnedDirectorShadow: true, maxDevices: 2, maxMembers: 5 }, stripePriceId: env.STRIPE_PRICE_PRO || null, public: true, sortOrder: 1 },
     { id: "studio", name: "Studio", description: "For leagues and multi-stream studios.", priceMonthlyCents: 14900, currency: "usd", includedAutoDirectorHours: 150, features: { autoDirector: true, learnedDirectorShadow: true, maxDevices: 6, maxMembers: 20 }, stripePriceId: env.STRIPE_PRICE_STUDIO || null, public: true, sortOrder: 2 },
   ];

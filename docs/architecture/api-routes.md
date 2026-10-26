@@ -45,11 +45,13 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/players` | metadata.write |
 | GET | `/api/v1/players/:id` | metadata.read |
 | PATCH | `/api/v1/players/:id` | metadata.write |
+| POST | `/api/v1/players/:id/archive` | metadata.write |
 | POST | `/api/v1/players/:id/merge` | metadata.write |
 | POST | `/api/v1/import/players/preview` | metadata.write |
 | POST | `/api/v1/import/players/commit` | metadata.write |
 | GET | `/api/v1/events` | metadata.read |
 | POST | `/api/v1/events` | metadata.write |
+| DELETE | `/api/v1/events/:id` | metadata.write |
 | PATCH | `/api/v1/events/:id` | metadata.write |
 | GET | `/api/v1/matches` | metadata.read |
 | POST | `/api/v1/matches` | metadata.write |
@@ -68,6 +70,7 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/veto/:matchId/revise` | metadata.write |
 | POST | `/api/v1/veto/:matchId/apply-to-maps` | metadata.write |
 | POST | `/api/v1/veto/:matchId/reset` | metadata.write |
+| POST | `/api/v1/rundown/reorder` | metadata.write |
 | GET | `/api/v1/sponsors` | metadata.read |
 | POST | `/api/v1/sponsors` | metadata.write |
 | PATCH | `/api/v1/sponsors/:id` | metadata.write |
@@ -196,6 +199,13 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | PUT | `/api/v1/integrations/matchframe` | settings.manage |
 | POST | `/api/v1/integrations/matchframe/discover` | settings.manage |
 | POST | `/api/v1/integrations/matchframe/push-result` | metadata.write |
+| GET | `/api/v1/cloud/status` | state.read |
+| PUT | `/api/v1/cloud/url` | settings.manage |
+| POST | `/api/v1/cloud/link/start` | settings.manage |
+| POST | `/api/v1/cloud/link/cancel` | settings.manage |
+| POST | `/api/v1/cloud/refresh` | settings.manage |
+| POST | `/api/v1/cloud/unlink` | settings.manage |
+| GET | `/api/v1/cloud/usage` | state.read |
 | GET | `/api/v1/openapi.json` | public |
 
 ## WebSockets

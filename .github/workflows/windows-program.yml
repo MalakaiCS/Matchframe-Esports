@@ -1,0 +1,131 @@
+# Builds the Matchframe program for Windows (.exe installer + portable zip) on a real Windows
+# machine, installs it silently, smoke-tests the INSTALLED program (bundled engine, console from
+# app://matchframe, HUD outputs, no console from the engine's HTTP address), uninstalls it, and
+# uploads the installer with SHA-256 checksums as a workflow artifact. Tags v* also create a DRAFT
+# GitHub release for the owner to review and publish. Builds are unsigned unless CSC_LINK /
+# CSC_KEY_PASSWORD secrets are configured.
+name: Windows program (.exe)
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+    paths:
+      - "apps/desktop/**"
+      - "apps/operator-web/**"
+      - "apps/hud-renderer/**"
+      - "services/local-engine/**"
+      - "services/observer-agent/**"
+      - "services/replay-agent/**"
+      - "packages/**"
+      - "assets/**"
+      - "config/**"
+      - "scripts/packaged-smoke.cjs"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/windows-program.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-program-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, install and smoke-test (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the console, captain page, HUD renderer and program bundles
+        run: |
+          pnpm --filter @matchframe/hud-renderer build
+          pnpm --filter @matchframe/operator-web build
+          pnpm --filter @matchframe/desktop build
+
+      - name: Package the installer (.exe) and portable zip
+        run: pnpm --filter @matchframe/desktop run package:win
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Install the program silently (per user)
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem apps/desktop/release/MatchframeEsports-Setup-*.exe | Select-Object -First 1
+          Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
+          $installed = Join-Path $env:LOCALAPPDATA 'Programs\Matchframe Esports\Matchframe Esports.exe'
+          if (-not (Test-Path $installed)) { throw "The installer did not create $installed" }
+          "INSTALLED_EXE=$installed" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Smoke-test the installed program
+        shell: pwsh
+        run: |
+          npm install --no-save --no-audit --no-fund --prefix "$env:RUNNER_TEMP\pw" playwright-core@1.63.0
+          $env:NODE_PATH = "$env:RUNNER_TEMP\pw\node_modules"
+          node scripts/packaged-smoke.cjs "$env:INSTALLED_EXE" "$env:RUNNER_TEMP\installed-program.png"
+
+      - name: Uninstall
+        if: always()
+        shell: pwsh
+        run: |
+          $uninstaller = Join-Path $env:LOCALAPPDATA 'Programs\Matchframe Esports\Uninstall Matchframe Esports.exe'
+          if (Test-Path $uninstaller) { Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait }
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem apps/desktop/release -File | Where-Object { $_.Extension -in '.exe', '.zip' } |
+            ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } |
+            Out-File apps/desktop/release/SHA256SUMS.txt -Encoding ascii
+          Get-Content apps/desktop/release/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matchframe-windows-${{ github.sha }}
+          path: |
+            apps/desktop/release/MatchframeEsports-Setup-*.exe
+            apps/desktop/release/*.zip
+            apps/desktop/release/SHA256SUMS.txt
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: installed-program-screenshot-${{ github.sha }}
+          path: ${{ runner.temp }}/installed-program.png
+          if-no-files-found: ignore
+          retention-days: 30
+
+  draft-release:
+    name: Draft GitHub release (tags only)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: matchframe-windows-${{ github.sha }}
+          path: release
+      - name: Create a draft release with the installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/* --repo "$GITHUB_REPOSITORY" --draft --title "Matchframe $GITHUB_REF_NAME" --notes "Windows installer and portable zip. SHA-256 checksums in SHA256SUMS.txt."

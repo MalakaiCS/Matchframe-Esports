@@ -21,6 +21,8 @@ export interface CloudConfig {
   devLogEmails: boolean;
   /** Static website build to serve (apps/cloud-web/dist). */
   webDir: string | null;
+  /** Directory holding `MatchframeEsports-Setup-<version>.exe` installers served at /downloads/. */
+  downloadDir: string | null;
   /** Installer metadata shown on the downloads page. */
   downloads: { version: string; windowsUrl: string | null; sha256: string | null; notesUrl: string | null };
   entitlementTtlHours: number;
@@ -48,6 +50,7 @@ export function loadCloudConfig(env: NodeJS.ProcessEnv = process.env, overrides:
     mailFrom: opt(env.MF_MAIL_FROM) ?? "Matchframe <no-reply@localhost>",
     devLogEmails: env.MF_DEV_LOG_EMAILS === "1",
     webDir: opt(env.MF_CLOUD_WEB_DIR),
+    downloadDir: opt(env.MF_DOWNLOAD_DIR),
     downloads: { version: opt(env.MF_DOWNLOAD_VERSION) ?? "0.1.0", windowsUrl: opt(env.MF_DOWNLOAD_WINDOWS_URL), sha256: opt(env.MF_DOWNLOAD_WINDOWS_SHA256), notesUrl: opt(env.MF_DOWNLOAD_NOTES_URL) },
     entitlementTtlHours: Number(opt(env.MF_ENTITLEMENT_TTL_HOURS) ?? 24),
     offlineGraceDays: Number(opt(env.MF_OFFLINE_GRACE_DAYS) ?? 7),

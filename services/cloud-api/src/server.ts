@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import type { Server, ServerResponse } from "node:http";
 import { extname, join, normalize, resolve } from "node:path";
 import type { CloudApp } from "./app.ts";
+import { latestInstaller, serveDownload } from "./domain/downloads.ts";
 import { Router, json } from "./http/router.ts";
 import { registerAdminRoutes } from "./routes/admin.ts";
 import { registerAuthRoutes } from "./routes/auth.ts";
@@ -38,7 +39,16 @@ export function buildRouter(app: CloudApp): Router {
     await app.sql.query("SELECT 1");
     return { ok: true, version: "0.1.0", database: app.sql.kind, billingConfigured: app.billing.configured, email: app.mailer.kind, signingKeyId: app.kid, ephemeralSigningKey: app.ephemeralKey };
   });
-  router.add("GET", "/v1/downloads", { summary: "Desktop app downloads" }, () => ({ windows: app.cfg.downloads.windowsUrl ? { url: app.cfg.downloads.windowsUrl, sha256: app.cfg.downloads.sha256, version: app.cfg.downloads.version } : null, notesUrl: app.cfg.downloads.notesUrl, version: app.cfg.downloads.version }));
+  router.add("GET", "/v1/downloads", { summary: "Matchframe program for Windows (.exe installer): URL, version, SHA-256" }, async () => {
+    // An installer placed in MF_DOWNLOAD_DIR is served by this server; otherwise an external URL may be configured.
+    const local = await latestInstaller(app.cfg.downloadDir);
+    const windows = local
+      ? { url: `/downloads/${local.name}`, sha256: local.sha256, version: local.version, size: local.size }
+      : app.cfg.downloads.windowsUrl
+        ? { url: app.cfg.downloads.windowsUrl, sha256: app.cfg.downloads.sha256, version: app.cfg.downloads.version, size: null }
+        : null;
+    return { windows, notesUrl: app.cfg.downloads.notesUrl, version: windows?.version ?? app.cfg.downloads.version };
+  });
   registerAuthRoutes(router, app);
   registerOrgRoutes(router, app);
   registerBillingRoutes(router, app);
@@ -73,6 +83,7 @@ export async function startCloudServer(app: CloudApp): Promise<{ server: Server;
       if (await router.handle(req, res)) return;
       const url = new URL(req.url ?? "/", "http://local");
       if (url.pathname.startsWith("/v1/")) return json(res, 404, { error: "not_found", message: "no such API route" });
+      if ((req.method === "GET" || req.method === "HEAD") && serveDownload(app.cfg.downloadDir, url.pathname, req.method, res)) return;
       if ((req.method === "GET" || req.method === "HEAD") && app.cfg.webDir && serveStatic(app.cfg.webDir, url.pathname, res)) return;
       json(res, 404, { error: "not_found", message: app.cfg.webDir ? "not found" : "website build not configured (MF_CLOUD_WEB_DIR)" });
     } catch (e) {

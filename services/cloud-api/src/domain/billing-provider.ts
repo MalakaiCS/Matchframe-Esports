@@ -1,4 +1,21 @@
 import Stripe from "stripe";
+import { HttpError } from "../http/router.ts";
+
+/**
+ * Stripe SDK errors carry `statusCode`/`type`, not `status`; without this they would surface as
+ * "internal error". Refusals (bad price id, missing customer, …) become a clear 502.
+ */
+async function stripeCall<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    const se = e as { type?: unknown; statusCode?: unknown; message?: unknown };
+    if (typeof se.type === "string" && se.type.startsWith("Stripe")) {
+      throw new HttpError(typeof se.statusCode === "number" && se.statusCode >= 500 ? 503 : 502, "payment_provider_error", `The payment provider refused the request: ${typeof se.message === "string" ? se.message : se.type}`);
+    }
+    throw e;
+  }
+}
 
 /** The subset of a Stripe subscription the API stores. */
 export interface ProviderSubscription {
@@ -83,33 +100,35 @@ export class StripeBilling implements BillingProvider {
   }
 
   async createCustomer(args: { orgId: string; orgName: string; email: string }): Promise<string> {
-    const c = await this.stripe.customers.create({ name: args.orgName, email: args.email, metadata: { orgId: args.orgId } }, { idempotencyKey: `customer-${args.orgId}` });
+    const c = await stripeCall(() => this.stripe.customers.create({ name: args.orgName, email: args.email, metadata: { orgId: args.orgId } }, { idempotencyKey: `customer-${args.orgId}` }));
     return c.id;
   }
 
   async createCheckout(args: { mode: "subscription" | "payment"; customerId: string; priceId: string; orgId: string; metadata: Record<string, string>; successUrl: string; cancelUrl: string }): Promise<{ id: string; url: string }> {
     const metadata = { orgId: args.orgId, ...args.metadata };
-    const s = await this.stripe.checkout.sessions.create({
-      mode: args.mode,
-      customer: args.customerId,
-      client_reference_id: args.orgId,
-      line_items: [{ price: args.priceId, quantity: 1 }],
-      success_url: args.successUrl,
-      cancel_url: args.cancelUrl,
-      metadata,
-      ...(args.mode === "subscription" ? { subscription_data: { metadata } } : { payment_intent_data: { metadata } }),
-    });
+    const s = await stripeCall(() =>
+      this.stripe.checkout.sessions.create({
+        mode: args.mode,
+        customer: args.customerId,
+        client_reference_id: args.orgId,
+        line_items: [{ price: args.priceId, quantity: 1 }],
+        success_url: args.successUrl,
+        cancel_url: args.cancelUrl,
+        metadata,
+        ...(args.mode === "subscription" ? { subscription_data: { metadata } } : { payment_intent_data: { metadata } }),
+      }),
+    );
     if (!s.url) throw new Error("Stripe did not return a checkout URL");
     return { id: s.id, url: s.url };
   }
 
   async createPortal(args: { customerId: string; returnUrl: string }): Promise<{ url: string }> {
-    const p = await this.stripe.billingPortal.sessions.create({ customer: args.customerId, return_url: args.returnUrl });
+    const p = await stripeCall(() => this.stripe.billingPortal.sessions.create({ customer: args.customerId, return_url: args.returnUrl }));
     return { url: p.url };
   }
 
   async listInvoices(customerId: string): Promise<ProviderInvoice[]> {
-    const list = await this.stripe.invoices.list({ customer: customerId, limit: 24 });
+    const list = await stripeCall(() => this.stripe.invoices.list({ customer: customerId, limit: 24 }));
     return list.data.map((i) => ({
       id: i.id ?? "",
       number: i.number ?? null,
@@ -124,7 +143,7 @@ export class StripeBilling implements BillingProvider {
   }
 
   async retrieveSubscription(id: string): Promise<ProviderSubscription> {
-    const s = await this.stripe.subscriptions.retrieve(id);
+    const s = await stripeCall(() => this.stripe.subscriptions.retrieve(id));
     return mapSubscription(s as unknown as Record<string, unknown>);
   }
 

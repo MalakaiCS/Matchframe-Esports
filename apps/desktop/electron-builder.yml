@@ -57,4 +57,5 @@ nsis:
   artifactName: MatchframeEsports-Setup-${version}.${ext}
 linux:
   target: [dir]
+  executableName: matchframe-esports
 publish: null

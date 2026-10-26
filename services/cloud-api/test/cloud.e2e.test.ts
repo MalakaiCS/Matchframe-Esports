@@ -1,4 +1,7 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createServer } from "node:net";
 import Stripe from "stripe";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -300,6 +303,53 @@ describe("cloud API end to end (HTTP server, PGlite Postgres, Stripe SDK against
     expect(admin.data.find((o) => o.id === orgId)!.usedSeconds).toBe(12600);
     const health = await new Client(base).req<{ ok: boolean; database: string }>("GET", "/v1/health");
     expect(health.data).toMatchObject({ ok: true, database: "pglite" });
+  });
+
+  it("account management: name, email change confirmed from the new address, plan names; installer downloads; clear Stripe refusals", async () => {
+    const { client, orgId } = await signupVerified("acct@example.com", "Account Org");
+    expect((await client.req("PATCH", "/v1/auth/me", { displayName: "  " })).status).toBe(400);
+    expect((await client.req("PATCH", "/v1/auth/me", { displayName: "Renamed Producer" })).status).toBe(200);
+    const me = await client.req<{ user: { displayName: string }; orgs: { planName: string }[] }>("GET", "/v1/auth/me");
+    expect(me.data.user.displayName).toBe("Renamed Producer");
+    expect(me.data.orgs[0]!.planName).toBe("Free");
+
+    // Email change: password required, address must be free, confirmed from the new address only.
+    expect((await client.req<{ error: string }>("POST", "/v1/auth/change-email", { newEmail: "new-acct@example.com", password: "wrong password!" })).data.error).toBe("invalid_credentials");
+    expect((await client.req<{ error: string }>("POST", "/v1/auth/change-email", { newEmail: "staff@example.com", password: "correct horse battery" })).status).toBe(409);
+    expect((await client.req("POST", "/v1/auth/change-email", { newEmail: "New-Acct@Example.com", password: "correct horse battery" })).status).toBe(200);
+    expect((await lastEmail("acct@example.com")).subject).toMatch(/being changed/);
+    const confirm = await lastEmail("new-acct@example.com");
+    expect(confirm.body_text).toContain("/confirm-email?token=");
+    const token = /token=([A-Za-z0-9_-]+)/.exec(confirm.body_text)![1]!;
+    expect((await new Client(base).req("POST", "/v1/auth/confirm-email-change", { token })).data).toMatchObject({ changed: true, email: "new-acct@example.com" });
+    expect((await new Client(base).req("POST", "/v1/auth/confirm-email-change", { token })).status).toBe(400); // single use
+    expect((await new Client(base).req("POST", "/v1/auth/login", { email: "acct@example.com", password: "correct horse battery" })).status).toBe(401);
+    expect((await new Client(base).req("POST", "/v1/auth/login", { email: "new-acct@example.com", password: "correct horse battery" })).status).toBe(200);
+
+    // Installers placed in MF_DOWNLOAD_DIR are served by the website (newest version, with SHA-256).
+    const dir = mkdtempSync(join(tmpdir(), "mf-downloads-"));
+    writeFileSync(join(dir, "MatchframeEsports-Setup-0.1.0.exe"), "old installer");
+    writeFileSync(join(dir, "MatchframeEsports-Setup-0.2.0.exe"), "new installer bytes");
+    writeFileSync(join(dir, "notes.txt"), "not an installer");
+    (app.cfg as { downloadDir: string | null }).downloadDir = dir;
+    const dl = await new Client(base).req<{ windows: { url: string; sha256: string; version: string; size: number } }>("GET", "/v1/downloads");
+    expect(dl.data.windows).toEqual({ url: "/downloads/MatchframeEsports-Setup-0.2.0.exe", version: "0.2.0", size: 19, sha256: createHash("sha256").update("new installer bytes").digest("hex") });
+    const file = await fetch(`${base}${dl.data.windows.url}`);
+    expect(file.headers.get("content-disposition")).toBe('attachment; filename="MatchframeEsports-Setup-0.2.0.exe"');
+    expect(await file.text()).toBe("new installer bytes");
+    for (const bad of ["/downloads/notes.txt", "/downloads/..%2F..%2Fetc%2Fpasswd", "/downloads/MatchframeEsports-Setup-9.9.9.exe"]) expect((await fetch(base + bad)).headers.get("content-disposition")).toBeNull();
+    (app.cfg as { downloadDir: string | null }).downloadDir = null;
+
+    // A Stripe refusal (here: a price id that does not exist) is reported clearly, not as an internal error.
+    const staff = new Client(base);
+    await staff.req("POST", "/v1/auth/login", { email: "staff@example.com", password: "correct horse battery" });
+    const catalog = await staff.req<{ plans: { id: string }[] }>("GET", "/v1/admin/catalog");
+    const studio = catalog.data.plans.find((p) => p.id === "studio")!;
+    expect((await staff.req("PUT", "/v1/admin/plans/studio", { ...studio, stripePriceId: "price_missing_studio" })).status).toBe(200);
+    const refused = await client.req<{ error: string; message: string }>("POST", `/v1/orgs/${orgId}/billing/checkout`, { kind: "subscription", planId: "studio" });
+    expect(refused.status).toBe(502);
+    expect(refused.data).toMatchObject({ error: "payment_provider_error" });
+    expect(refused.data.message).toContain("No such price");
   });
 });
 

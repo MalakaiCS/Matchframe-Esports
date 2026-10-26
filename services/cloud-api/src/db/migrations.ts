@@ -157,6 +157,15 @@ CREATE TABLE outbox_emails (
 );
 `,
   },
+  {
+    version: 2,
+    name: "email address changes",
+    sql: `
+ALTER TABLE email_tokens DROP CONSTRAINT email_tokens_purpose_check;
+ALTER TABLE email_tokens ADD CONSTRAINT email_tokens_purpose_check CHECK (purpose IN ('verify', 'reset', 'email_change'));
+ALTER TABLE email_tokens ADD COLUMN new_email text;
+`,
+  },
 ];
 
 export async function migrate(sql: Sql): Promise<{ from: number; to: number }> {

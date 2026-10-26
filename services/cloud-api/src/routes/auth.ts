@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Email, LoginRequest, Password, SignupRequest } from "@matchframe/cloud-contracts";
+import { ChangeEmailRequest, Email, LoginRequest, Password, SignupRequest, UpdateProfileRequest } from "@matchframe/cloud-contracts";
 import type { OrgView } from "@matchframe/cloud-contracts";
 import type { CloudApp } from "../app.ts";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "../auth/passwords.ts";
@@ -13,19 +13,25 @@ import { hashSecret, newId, newSecret } from "../ids.ts";
 const VERIFY_HOURS = 48;
 const RESET_MINUTES = 60;
 
-async function issueEmailToken(db: Queryable, userId: string, purpose: "verify" | "reset", ttlMs: number, now: Date): Promise<string> {
+type EmailTokenPurpose = "verify" | "reset" | "email_change";
+
+async function issueEmailToken(db: Queryable, userId: string, purpose: EmailTokenPurpose, ttlMs: number, now: Date, newEmail: string | null = null): Promise<string> {
   const secret = newSecret();
-  await db.query("INSERT INTO email_tokens (token_hash, user_id, purpose, expires_at) VALUES ($1, $2, $3, $4)", [hashSecret(secret), userId, purpose, new Date(now.getTime() + ttlMs)]);
+  await db.query("INSERT INTO email_tokens (token_hash, user_id, purpose, expires_at, new_email) VALUES ($1, $2, $3, $4, $5)", [hashSecret(secret), userId, purpose, new Date(now.getTime() + ttlMs), newEmail]);
   return secret;
 }
 
-async function consumeEmailToken(db: Queryable, secret: string, purpose: "verify" | "reset", now: Date): Promise<string> {
-  const { rows } = await db.query<{ user_id: string }>(
-    "UPDATE email_tokens SET used_at = $3 WHERE token_hash = $1 AND purpose = $2 AND used_at IS NULL AND expires_at > $3 RETURNING user_id",
+async function consumeEmailToken(db: Queryable, secret: string, purpose: EmailTokenPurpose, now: Date): Promise<string> {
+  return (await consumeEmailTokenRow(db, secret, purpose, now)).userId;
+}
+
+async function consumeEmailTokenRow(db: Queryable, secret: string, purpose: EmailTokenPurpose, now: Date): Promise<{ userId: string; newEmail: string | null }> {
+  const { rows } = await db.query<{ user_id: string; new_email: string | null }>(
+    "UPDATE email_tokens SET used_at = $3 WHERE token_hash = $1 AND purpose = $2 AND used_at IS NULL AND expires_at > $3 RETURNING user_id, new_email",
     [hashSecret(secret), purpose, now],
   );
   if (!rows[0]) throw new HttpError(400, "invalid_token", "this link is invalid or has expired; request a new one");
-  return rows[0].user_id;
+  return { userId: rows[0].user_id, newEmail: rows[0].new_email };
 }
 
 export async function orgsFor(app: CloudApp, userId: string): Promise<OrgView[]> {
@@ -33,7 +39,7 @@ export async function orgsFor(app: CloudApp, userId: string): Promise<OrgView[]>
   const out: OrgView[] = [];
   for (const r of rows) {
     const st = await orgPlanState(app.sql, r.id, app.now());
-    out.push({ id: r.id, name: r.name, role: r.role, planId: st.plan.id, subscriptionStatus: st.subscriptionStatus });
+    out.push({ id: r.id, name: r.name, role: r.role, planId: st.plan.id, planName: st.plan.name, subscriptionStatus: st.subscriptionStatus });
   }
   return out;
 }
@@ -94,6 +100,49 @@ export function registerAuthRoutes(r: Router, app: CloudApp): void {
     const u = await app.requireUser(ctx);
     const { sessionHash: _s, ...user } = u;
     return { user, orgs: await orgsFor(app, u.id), billingConfigured: app.billing.configured };
+  });
+
+  r.add("PATCH", "/v1/auth/me", { body: UpdateProfileRequest, summary: "Change your display name" }, async (ctx) => {
+    const u = await app.requireUser(ctx);
+    await app.sql.query("UPDATE users SET display_name = $2 WHERE id = $1", [u.id, ctx.body.displayName]);
+    await audit(app.sql, u.id, null, "account.profile_updated", { displayName: ctx.body.displayName });
+    return { ok: true, displayName: ctx.body.displayName };
+  });
+
+  r.add("POST", "/v1/auth/change-email", { body: ChangeEmailRequest, summary: "Change your email address (confirmed from a link sent to the new address)" }, async (ctx) => {
+    const u = await app.requireUser(ctx);
+    app.rateLimit(app.limits.email, `email-change:${u.id}`);
+    const { rows } = await app.sql.query<{ password_hash: string }>("SELECT password_hash FROM users WHERE id = $1", [u.id]);
+    if (!(await verifyPassword(ctx.body.password, rows[0]!.password_hash))) throw new HttpError(400, "invalid_credentials", "password is incorrect");
+    if (ctx.body.newEmail === u.email) throw new HttpError(400, "same_email", "that is already your email address");
+    const taken = await app.sql.query("SELECT 1 FROM users WHERE email = $1", [ctx.body.newEmail]);
+    if (taken.rows[0]) throw new HttpError(409, "email_taken", "another account already uses this email address");
+    const token = await issueEmailToken(app.sql, u.id, "email_change", VERIFY_HOURS * 3_600_000, app.now(), ctx.body.newEmail);
+    await app.mailer.send({
+      to: ctx.body.newEmail,
+      subject: "Confirm your new Matchframe email address",
+      text: `Confirm this address for your Matchframe account:\n\n${app.cfg.publicUrl}/confirm-email?token=${token}\n\nThe link expires in ${VERIFY_HOURS} hours. If you did not ask for this, ignore this email.`,
+    });
+    await app.mailer.send({
+      to: u.email,
+      subject: "Your Matchframe email address is being changed",
+      text: `A change of your Matchframe sign-in email to ${ctx.body.newEmail} was requested. It takes effect once confirmed from that address.\n\nIf this was not you, change your password now: ${app.cfg.publicUrl}/forgot-password`,
+    });
+    await audit(app.sql, u.id, null, "account.email_change_requested", { newEmail: ctx.body.newEmail });
+    return { sent: true };
+  });
+
+  r.add("POST", "/v1/auth/confirm-email-change", { body: z.object({ token: z.string().min(10).max(200) }), browserMutation: false, summary: "Confirm a new email address from the emailed link" }, async (ctx) => {
+    const { userId, newEmail } = await consumeEmailTokenRow(app.sql, ctx.body.token, "email_change", app.now());
+    if (!newEmail) throw new HttpError(400, "invalid_token", "this link is invalid or has expired; request a new one");
+    try {
+      await app.sql.query("UPDATE users SET email = $2, email_verified_at = $3 WHERE id = $1", [userId, newEmail, app.now()]);
+    } catch (e) {
+      if (String(e).includes("duplicate key") || String(e).includes("users_email_key")) throw new HttpError(409, "email_taken", "another account already uses this email address");
+      throw e;
+    }
+    await audit(app.sql, userId, null, "account.email_changed", { newEmail });
+    return { changed: true, email: newEmail };
   });
 
   r.add("POST", "/v1/auth/verify-email", { body: z.object({ token: z.string().min(10).max(200) }), browserMutation: false, summary: "Confirm an email address from the emailed link" }, async (ctx) => {
