@@ -142,6 +142,11 @@ def test_map_packs_and_utility_profiles(corpus: dict[str, Any]) -> None:
     prof = measure_utility([corpus["root"]], work / "measured.json", NullEmitter())
     assert prof["gravity_overall"]["n"] > 50
     assert abs(prof["gravity_overall"]["gravityMedian"] - 320.0) < 5.0
+    doc = json.loads((work / "measured.json").read_text())
+    for p in doc["profiles"].values():
+        # provenance names only datasets that contributed event-linked samples
+        assert p["measurement"]["datasets"] and set(p["measurement"]["datasets"]) <= set(doc["lifecycleDatasets"])
+        assert f"({len(p['measurement']['datasets'])} demo" in p["measuredOn"]
 
 
 def test_freeze_audit_train_export(corpus: dict[str, Any]) -> None:

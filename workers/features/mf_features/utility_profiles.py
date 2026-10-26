@@ -71,8 +71,10 @@ def describe(values: list[float]) -> dict[str, Any]:
     }
 
 
-def collect_durations(refs: list[DatasetRef]) -> dict[str, dict[str, list[float]]]:
+def collect_durations(refs: list[DatasetRef]) -> tuple[dict[str, dict[str, list[float]]], dict[str, dict[str, str]]]:
+    """Event-linked durations per type, plus ``type → {dataset_id: build}`` of contributing datasets."""
     out: dict[str, dict[str, list[float]]] = {}
+    contributors: dict[str, dict[str, str]] = {}
     for ref in refs:
         g = pl.read_parquet(ref.path / "grenades.parquet")
         if g.height == 0:
@@ -84,12 +86,19 @@ def collect_durations(refs: list[DatasetRef]) -> dict[str, dict[str, list[float]
             q = out.setdefault(t, {"fuse": [], "fuseFromWeaponFire": [], "effectDuration": []})
             exact_activation = row["activation_evidence"] in ("event_entityid", "event_time_position")
             if exact_activation and row["activation_tick"] is not None:
+                contributors.setdefault(t, {})[ref.dataset_id] = ref.build
                 q["fuse"].append((row["activation_tick"] - row["first_seen_tick"]) / rate * 1000.0)
                 if row["throw_tick_evidence"] == "event:weapon_fire":
                     q["fuseFromWeaponFire"].append((row["activation_tick"] - row["throw_tick"]) / rate * 1000.0)
                 if row["expire_tick"] is not None:
                     q["effectDuration"].append((row["expire_tick"] - row["activation_tick"]) / rate * 1000.0)
-    return out
+    return out, contributors
+
+
+def measured_on(datasets: dict[str, str]) -> str:
+    builds = sorted(set(datasets.values()))
+    n = len(datasets)
+    return f"cs2 builds {','.join(builds)} ({n} demo{'s' if n != 1 else ''} with event-linked samples)"
 
 
 def airborne_prefix(z: np.ndarray, bounces: np.ndarray | None) -> int:
@@ -171,9 +180,8 @@ def measure_utility(
     if not refs:
         raise errors.MfError(errors.INSUFFICIENT_DATA, "no usable datasets", skipped=skipped)
     emitter.progress("durations", 0.2, datasets=len(refs))
-    q = collect_durations(refs)
+    q, contributors = collect_durations(refs)
     builds = sorted({r.build for r in refs})
-    measured_on = f"cs2 builds {','.join(builds)} ({len(refs)} demos)"
     profiles: dict[str, Any] = {}
     omitted: dict[str, str] = {}
     for t in ("he", "flashbang", "smoke", "molotov", "incendiary", "decoy"):
@@ -207,8 +215,9 @@ def measure_utility(
             "editorialWeight": DEFAULT_WEIGHT[t],
             "source": "measured_from_demos",
             "sampleCount": int(n_primary),
-            "measuredOn": measured_on,
+            "measuredOn": measured_on(contributors.get(t, {})),
             "measurement": {
+                "datasets": sorted(contributors.get(t, {})),
                 "primaryQuantity": primary,
                 "quantities": stats,
                 "measuredFields": [f for f, v in (("fuse", fuse), ("effectDuration", effect)) if v is not None],
@@ -226,6 +235,7 @@ def measure_utility(
         "datasets": [r.dataset_id for r in refs],
         "datasetsSkipped": skipped,
         "builds": builds,
+        "lifecycleDatasets": sorted({ds for group in contributors.values() for ds in group}),
         "minSamples": min_samples,
         "minTypeConfidence": MIN_TYPE_CONFIDENCE,
         "profiles": profiles,
