@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Simulated soak: starts an isolated engine, runs the labelled simulation with operator and
 // overlay WebSocket clients attached, enables automatic direction, and samples memory, queue
-// and log sizes. Usage: node scripts/soak.mjs [--minutes 20] [--out soak.json]
+// and log sizes. Usage: node scripts/soak.mjs [--minutes 20] [--out soak.json] [--port-base 38510]
 // This is SIMULATED evidence (synthetic GSI and observer); it does not replace a real match.
 import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -19,7 +19,8 @@ const minutes = Number(opt("minutes", "20"));
 const outFile = opt("out", null);
 const WebSocket = createRequire(join(repoRoot, "services", "local-engine", "package.json"))("ws");
 const dataDir = mkdtempSync(join(tmpdir(), "mf-soak-"));
-const ports = { MATCHFRAME_GSI_PORT: "38510", MATCHFRAME_API_PORT: "38511", MATCHFRAME_OVERLAY_PORT: "38512" };
+const base = Number(opt("port-base", "38510"));
+const ports = { MATCHFRAME_GSI_PORT: String(base), MATCHFRAME_API_PORT: String(base + 1), MATCHFRAME_OVERLAY_PORT: String(base + 2) };
 const env = { ...process.env, ...ports, MATCHFRAME_DATA_DIR: dataDir, MATCHFRAME_LOG_STDOUT: "0" };
 const engine = spawn(process.execPath, ["--import", "tsx", join(repoRoot, "services/local-engine/src/main.ts")], { cwd: repoRoot, env, stdio: ["ignore", "pipe", "inherit"] });
 await new Promise((resolve, reject) => {
