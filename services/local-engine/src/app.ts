@@ -4,7 +4,7 @@ import { performance } from "node:perf_hooks";
 import type { AutomationRule, ProgramMode, TriggerEvent, TriggerKind } from "@matchframe/automation";
 import { AutomationRule as RuleSchema, exampleRules, RuleEngine } from "@matchframe/automation";
 import type { HudManifest, MapPack, MatchState, Side } from "@matchframe/contracts";
-import { EventRecord, Match, Player, RundownCue, Sponsor, StatCorrection, Team } from "@matchframe/contracts";
+import { EventRecord, EventStage, Match, Player, RundownCue, Sponsor, StatCorrection, Team } from "@matchframe/contracts";
 import type { DerivedEvent } from "@matchframe/cs2-state";
 import type { UtilityScenarioRule } from "@matchframe/director-policy";
 import { INFERNO_BOTTOM_BANANA_RULE } from "@matchframe/director-policy";
@@ -32,6 +32,7 @@ import { TeamSideTracker } from "./live/team-sides.ts";
 import { Logger } from "./logger.ts";
 import { ProgramArbiter } from "./production/program.ts";
 import { TrainingService } from "./demos/training.ts";
+import { buildBracket, computeStandings } from "./domain/standings.ts";
 import { DemoLibrary, PythonWorkerRunner } from "./demos/library.ts";
 import { RoundSimulator } from "./sim/simulator.ts";
 
@@ -79,6 +80,7 @@ export class Engine {
   readonly matches: DocumentRepo<typeof Match>;
   readonly sponsors: DocumentRepo<typeof Sponsor>;
   readonly rundown: DocumentRepo<typeof RundownCue>;
+  readonly stages: DocumentRepo<typeof EventStage>;
   readonly rules: DocumentRepo<typeof RuleSchema>;
   readonly setupProfiles: DocumentRepo<typeof SetupProfile>;
   readonly corrections: DocumentRepo<typeof StatCorrection>;
@@ -128,6 +130,7 @@ export class Engine {
     this.matches = new DocumentRepo(this.db, "match", Match);
     this.sponsors = new DocumentRepo(this.db, "sponsor", Sponsor);
     this.rundown = new DocumentRepo(this.db, "rundown_cue", RundownCue);
+    this.stages = new DocumentRepo(this.db, "event_stage", EventStage);
     this.rules = new DocumentRepo(this.db, "automation_rule", RuleSchema);
     this.setupProfiles = new DocumentRepo(this.db, "setup_profile", SetupProfile);
     this.corrections = new DocumentRepo(this.db, "stat_correction", StatCorrection);
@@ -282,6 +285,29 @@ export class Engine {
     this.roundWinnersLR.clear();
   }
 
+  /** Standings/bracket for studio and break screens only (public team fields). */
+  private stageProjection(stageId: string | null, variant: string): Pick<HudContext, "standings" | "bracket"> {
+    const stage = stageId && (variant === "studio" || variant === "break") ? this.stages.get(stageId)?.data : undefined;
+    if (!stage) return { standings: null, bracket: null };
+    const matches = this.matches.list().map((d) => d.data).filter((m) => m.stageId === stage.id || stage.bracket.some((n) => n.matchId === m.id));
+    const team = (id: string | null) => {
+      const t = id ? this.teams.get(id)?.data : undefined;
+      return t ? { name: t.name, shortName: t.shortName, logoUrl: this.assetUrl(t.logoAssetId) } : null;
+    };
+    const standings =
+      stage.kind === "single_elimination"
+        ? null
+        : {
+            stageName: stage.name,
+            rows: computeStandings(stage, matches, matches.flatMap((m) => this.mapInstances.forMatch(m.id))).rows.map((r) => ({ position: r.position, tied: r.tied, advancing: r.advancing, team: team(r.teamId), played: r.played, wins: r.wins, ties: r.ties, losses: r.losses, points: r.points, mapDifference: r.mapDifference, roundDifference: r.roundDifference })),
+          };
+    const bracket =
+      stage.bracket.length === 0
+        ? null
+        : { stageName: stage.name, nodes: buildBracket(stage, matches).map((n) => ({ id: n.id, round: n.round, slot: n.slot, label: n.label, status: n.status, a: { team: team(n.a.teamId), placeholder: n.a.placeholder, score: n.a.score, winner: n.a.winner }, b: { team: team(n.b.teamId), placeholder: n.b.placeholder, score: n.b.score, winner: n.b.winner } })) };
+    return { standings, bracket };
+  }
+
   private hudContext(outputId: string, variant: string, presetId: string | null, timeline: HudContext["timeline"], settings: Record<string, unknown>, profile: string): HudContext {
     const match = this.activeMatch();
     const teams = new Map(this.teams.list().map((t) => [t.id, t.data]));
@@ -319,7 +345,11 @@ export class Engine {
       mapInstances: match ? this.mapInstances.forMatch(match.id) : [],
       teams,
       playersBySteam,
-      event: match?.eventId ? (this.events.get(match.eventId)?.data ?? null) : null,
+      event: (() => {
+        const stageId = typeof settings.stageId === "string" ? settings.stageId : null;
+        const eventId = match?.eventId ?? (stageId ? (this.stages.get(stageId)?.data.eventId ?? null) : null);
+        return eventId ? (this.events.get(eventId)?.data ?? null) : null;
+      })(),
       assetUrl: (id) => this.assetUrl(id),
       map: state?.mapName ? this.maps.get(state.mapName) : undefined,
       killfeed: { mode: this.killfeed.mode, entries: this.killfeed.list() },
@@ -328,6 +358,7 @@ export class Engine {
       replay: { active: replayActive, label: replayActive ? "REPLAY" : null },
       annotations: this.annotations.filter((a) => a.expiresAtMs === null || a.expiresAtMs > Date.now()),
       veto: null,
+      ...this.stageProjection(typeof settings.stageId === "string" ? settings.stageId : (match?.stageId ?? null), variant),
       settings: { ...settings, roundWinnersLR: Object.fromEntries(this.roundWinnersLR) },
       radarUtility: this.settings.get("hud.radarUtility", true),
       allowUnverifiedRadar: this.settings.get("hud.allowUnverifiedRadar", false),

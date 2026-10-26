@@ -173,3 +173,39 @@ export const RundownCue = z.object({
   ready: z.boolean().default(false),
 });
 export type RundownCue = z.infer<typeof RundownCue>;
+
+/** Event stage (group, Swiss or single-elimination bracket). Standings are derived, never stored. */
+export const StageKind = z.enum(["round_robin", "swiss", "single_elimination"]);
+export type StageKind = z.infer<typeof StageKind>;
+
+export const StageTiebreaker = z.enum(["head_to_head", "map_difference", "round_difference", "maps_won", "opponent_wins"]);
+export type StageTiebreaker = z.infer<typeof StageTiebreaker>;
+
+export const BracketSource = z.object({ nodeId: z.string(), outcome: z.enum(["winner", "loser"]) });
+
+export const BracketNode = z.object({
+  id: z.string().min(1).max(40),
+  round: z.number().int().min(1).max(12),
+  slot: z.number().int().min(1).max(256),
+  label: z.string().max(40).nullable().default(null),
+  matchId: z.string().nullable().default(null),
+  /** Where each side comes from when the match is not created yet (or to verify it). */
+  teamAFrom: BracketSource.nullable().default(null),
+  teamBFrom: BracketSource.nullable().default(null),
+});
+export type BracketNode = z.infer<typeof BracketNode>;
+
+export const EventStage = z.object({
+  id: z.string(),
+  eventId: z.string(),
+  name: z.string().min(1).max(80),
+  kind: StageKind,
+  order: z.number().int().min(1).default(1),
+  teamIds: z.array(z.string()).default([]),
+  points: z.object({ win: z.number().default(3), tie: z.number().default(1), loss: z.number().default(0) }).default({ win: 3, tie: 1, loss: 0 }),
+  tiebreakers: z.array(StageTiebreaker).default(["head_to_head", "map_difference", "round_difference"]),
+  /** Top N rows are marked as advancing (display only). */
+  advancing: z.number().int().min(0).default(0),
+  bracket: z.array(BracketNode).default([]),
+});
+export type EventStage = z.infer<typeof EventStage>;

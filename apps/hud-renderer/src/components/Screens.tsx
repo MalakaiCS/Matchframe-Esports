@@ -1,4 +1,4 @@
-import type { HudState, HudTeam } from "@matchframe/hud-sdk";
+import type { HudStageTeam, HudState, HudTeam } from "@matchframe/hud-sdk";
 
 function TeamCard({ team, big }: { team: HudTeam; big?: boolean }) {
   return (
@@ -154,6 +154,90 @@ export function ReplayFrame() {
   return (
     <div className="mf-replay">
       <span className="mf-replay-tag">REPLAY</span>
+    </div>
+  );
+}
+
+function StageTeam({ team, placeholder }: { team: HudStageTeam | null; placeholder?: string | null }) {
+  if (!team) return <span className="mf-stage-team is-tbd">{placeholder ?? "TBD"}</span>;
+  return (
+    <span className="mf-stage-team">
+      <span className="mf-stage-logo">{team.logoUrl ? <img src={team.logoUrl} alt="" /> : team.shortName}</span>
+      <span className="mf-stage-name">{team.name}</span>
+    </span>
+  );
+}
+
+const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
+
+export function StandingsBoard({ state }: { state: HudState }) {
+  const s = state.standings!;
+  return (
+    <div className="mf-screen mf-standings">
+      <div className="mf-screen-eyebrow">{state.event.name ?? "Matchframe Esports"}</div>
+      <div className="mf-screen-title">{s.stageName}</div>
+      <table className="mf-standings-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th className="is-team">Team</th>
+            <th>P</th>
+            <th>W</th>
+            <th>T</th>
+            <th>L</th>
+            <th>Maps</th>
+            <th>Rounds</th>
+            <th>Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {s.rows.map((r, i) => (
+            <tr key={i} className={`${r.advancing ? "is-advancing" : ""} ${r.tied ? "is-tied" : ""}`}>
+              <td className="mf-standings-pos">{r.tied ? `${r.position}=` : r.position}</td>
+              <td className="is-team">
+                <StageTeam team={r.team} />
+              </td>
+              <td>{r.played}</td>
+              <td>{r.wins}</td>
+              <td>{r.ties}</td>
+              <td>{r.losses}</td>
+              <td>{signed(r.mapDifference)}</td>
+              <td>{signed(r.roundDifference)}</td>
+              <td className="mf-standings-pts">{r.points}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function BracketBoard({ state }: { state: HudState }) {
+  const b = state.bracket!;
+  const rounds = [...new Set(b.nodes.map((n) => n.round))].sort((x, y) => x - y);
+  return (
+    <div className="mf-screen mf-bracket">
+      <div className="mf-screen-eyebrow">{state.event.name ?? "Matchframe Esports"}</div>
+      <div className="mf-screen-title">{b.stageName}</div>
+      <div className="mf-bracket-rounds">
+        {rounds.map((r) => (
+          <div key={r} className="mf-bracket-round">
+            {b.nodes
+              .filter((n) => n.round === r)
+              .map((n) => (
+                <div key={n.id} className={`mf-bracket-node s-${n.status}`}>
+                  <div className="mf-bracket-label">{n.label}</div>
+                  {[n.a, n.b].map((side, i) => (
+                    <div key={i} className={`mf-bracket-side ${side.winner ? "is-winner" : ""}`}>
+                      <StageTeam team={side.team} placeholder={side.placeholder} />
+                      <span className="mf-bracket-score">{side.score ?? ""}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

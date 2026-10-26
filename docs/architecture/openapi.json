@@ -1929,6 +1929,13 @@
                       "null"
                     ]
                   },
+                  "stageId": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
                   "teamAId": {
                     "type": "string"
                   },
@@ -3522,6 +3529,579 @@
                 ]
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/stages": {
+      "get": {
+        "operationId": "get_api_v1_stages",
+        "summary": "GET /api/v1/stages",
+        "description": "Requires permission `metadata.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_api_v1_stages",
+        "summary": "POST /api/v1/stages",
+        "description": "Requires permission `metadata.write`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "round_robin",
+                      "swiss",
+                      "single_elimination"
+                    ]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "teamIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "points": {
+                    "type": "object",
+                    "properties": {
+                      "win": {
+                        "type": "number"
+                      },
+                      "tie": {
+                        "type": "number"
+                      },
+                      "loss": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "win",
+                      "tie",
+                      "loss"
+                    ]
+                  },
+                  "tiebreakers": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "head_to_head",
+                        "map_difference",
+                        "round_difference",
+                        "maps_won",
+                        "opponent_wins"
+                      ]
+                    }
+                  },
+                  "advancing": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "bracket": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "round": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 12
+                        },
+                        "slot": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 256
+                        },
+                        "label": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "maxLength": 40
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "matchId": {
+                          "default": null,
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "teamAFrom": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "nodeId": {
+                                  "type": "string"
+                                },
+                                "outcome": {
+                                  "type": "string",
+                                  "enum": [
+                                    "winner",
+                                    "loser"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "nodeId",
+                                "outcome"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "teamBFrom": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "nodeId": {
+                                  "type": "string"
+                                },
+                                "outcome": {
+                                  "type": "string",
+                                  "enum": [
+                                    "winner",
+                                    "loser"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "nodeId",
+                                "outcome"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "round",
+                        "slot"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "eventId",
+                  "name",
+                  "kind"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stages/{id}": {
+      "patch": {
+        "operationId": "patch_api_v1_stages_id",
+        "summary": "PATCH /api/v1/stages/:id",
+        "description": "Requires permission `metadata.write`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "round_robin",
+                      "swiss",
+                      "single_elimination"
+                    ]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "teamIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "points": {
+                    "type": "object",
+                    "properties": {
+                      "win": {
+                        "type": "number"
+                      },
+                      "tie": {
+                        "type": "number"
+                      },
+                      "loss": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "win",
+                      "tie",
+                      "loss"
+                    ]
+                  },
+                  "tiebreakers": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "head_to_head",
+                        "map_difference",
+                        "round_difference",
+                        "maps_won",
+                        "opponent_wins"
+                      ]
+                    }
+                  },
+                  "advancing": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "bracket": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "round": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 12
+                        },
+                        "slot": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 256
+                        },
+                        "label": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "maxLength": 40
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "matchId": {
+                          "default": null,
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "teamAFrom": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "nodeId": {
+                                  "type": "string"
+                                },
+                                "outcome": {
+                                  "type": "string",
+                                  "enum": [
+                                    "winner",
+                                    "loser"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "nodeId",
+                                "outcome"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "teamBFrom": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "nodeId": {
+                                  "type": "string"
+                                },
+                                "outcome": {
+                                  "type": "string",
+                                  "enum": [
+                                    "winner",
+                                    "loser"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "nodeId",
+                                "outcome"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "round",
+                        "slot"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete_api_v1_stages_id",
+        "summary": "DELETE /api/v1/stages/:id",
+        "description": "Requires permission `metadata.write`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/stages/{id}/standings": {
+      "get": {
+        "operationId": "get_api_v1_stages_id_standings",
+        "summary": "GET /api/v1/stages/:id/standings",
+        "description": "Requires permission `metadata.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/stages/{id}/bracket": {
+      "get": {
+        "operationId": "get_api_v1_stages_id_bracket",
+        "summary": "GET /api/v1/stages/:id/bracket",
+        "description": "Requires permission `metadata.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
           }
         }
       }

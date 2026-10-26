@@ -162,7 +162,33 @@ export interface HudState {
   replay: { active: boolean; label: string | null };
   annotations: { id: string; kind: "pencil" | "arrow"; points: [number, number][]; color: string; expiresAtMs: number | null }[];
   veto: { steps: { order: number; kind: string; team: "left" | "right" | null; mapName: string | null; side: HudSide | null; locked: boolean }[]; currentStep: number | null } | null;
+  /** Stage table for studio/break screens (derived from completed results; ties shown as shared positions). */
+  standings: HudStandings | null;
+  bracket: HudBracket | null;
   settings: Record<string, unknown>;
+}
+
+export interface HudStageTeam {
+  name: string;
+  shortName: string;
+  logoUrl: string | null;
+}
+
+export interface HudStandings {
+  stageName: string;
+  rows: { position: number; tied: boolean; advancing: boolean; team: HudStageTeam | null; played: number; wins: number; ties: number; losses: number; points: number; mapDifference: number; roundDifference: number }[];
+}
+
+export interface HudBracketSide {
+  team: HudStageTeam | null;
+  placeholder: string | null;
+  score: number | null;
+  winner: boolean;
+}
+
+export interface HudBracket {
+  stageName: string;
+  nodes: { id: string; round: number; slot: number; label: string; status: string; a: HudBracketSide; b: HudBracketSide }[];
 }
 
 export interface HudMessage {

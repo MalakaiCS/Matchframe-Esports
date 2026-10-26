@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "eventId": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "round_robin",
+        "swiss",
+        "single_elimination"
+      ]
+    },
+    "order": {
+      "default": 1,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "teamIds": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "points": {
+      "default": {
+        "win": 3,
+        "tie": 1,
+        "loss": 0
+      },
+      "type": "object",
+      "properties": {
+        "win": {
+          "default": 3,
+          "type": "number"
+        },
+        "tie": {
+          "default": 1,
+          "type": "number"
+        },
+        "loss": {
+          "default": 0,
+          "type": "number"
+        }
+      }
+    },
+    "tiebreakers": {
+      "default": [
+        "head_to_head",
+        "map_difference",
+        "round_difference"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "head_to_head",
+          "map_difference",
+          "round_difference",
+          "maps_won",
+          "opponent_wins"
+        ]
+      }
+    },
+    "advancing": {
+      "default": 0,
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "bracket": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "round": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "slot": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 256
+          },
+          "label": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "matchId": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "teamAFrom": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "nodeId": {
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "winner",
+                      "loser"
+                    ]
+                  }
+                },
+                "required": [
+                  "nodeId",
+                  "outcome"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "teamBFrom": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "nodeId": {
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "winner",
+                      "loser"
+                    ]
+                  }
+                },
+                "required": [
+                  "nodeId",
+                  "outcome"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "round",
+          "slot"
+        ]
+      }
+    }
+  },
+  "required": [
+    "id",
+    "eventId",
+    "name",
+    "kind"
+  ]
+}

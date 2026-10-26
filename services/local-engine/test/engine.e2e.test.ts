@@ -169,6 +169,40 @@ describe("engine end-to-end (real HTTP/WS servers)", () => {
     await api("/api/v1/observer/clear-emergency-stop", { method: "POST" });
   });
 
+  it("derives stage standings and brackets from results and projects them to a studio output", async () => {
+    const post = async <T,>(path: string, body: unknown) => {
+      const r = await api(path, { method: "POST", body: JSON.stringify(body) });
+      expect(r.status, `${path}: ${await r.clone().text()}`).toBe(200);
+      return (await r.json()) as T;
+    };
+    const ev = await post<{ id: string }>("/api/v1/events", { name: "Stage Cup" });
+    const teams = await Promise.all(["North", "East", "South"].map((n) => post<{ id: string }>("/api/v1/teams", { name: n, shortName: n.slice(0, 3).toUpperCase() })));
+    const fmt = { bestOf: 1, regulationRounds: 24, overtimeEnabled: true, overtimeRounds: 6 };
+    const stage = await post<{ id: string }>("/api/v1/stages", { eventId: ev.id, name: "Group A", kind: "round_robin", teamIds: teams.map((t) => t.id), advancing: 1 });
+    expect((await api("/api/v1/stages", { method: "POST", body: JSON.stringify({ eventId: ev.id, name: "Bad", kind: "single_elimination", bracket: [{ id: "f", round: 1, slot: 1, teamAFrom: { nodeId: "nope", outcome: "winner" } }] }) })).status).toBe(400);
+    // Results come only from recorded map scores (the series score is derived, never typed in).
+    const m = await post<{ id: string }>("/api/v1/matches", { eventId: ev.id, stageId: stage.id, teamAId: teams[0]!.id, teamBId: teams[1]!.id, format: fmt });
+    const maps = (await (await api(`/api/v1/matches/${m.id}/maps`, { method: "PUT", body: JSON.stringify({ maps: [{ order: 1, mapName: "de_inferno", pickedByTeamId: null, isDecider: true, startingCtTeamId: null, status: "live" }] }) })).json()) as { maps: { id: string }[] };
+    await post(`/api/v1/matches/${m.id}/maps/${maps.maps[0]!.id}/result`, { scoreA: 13, scoreB: 9, completed: true });
+    await post("/api/v1/matches", { eventId: ev.id, stageId: stage.id, teamAId: teams[1]!.id, teamBId: teams[2]!.id, format: fmt });
+    const st = (await (await api(`/api/v1/stages/${stage.id}/standings`)).json()) as { rows: { team: { name: string }; position: number; points: number; tied: boolean; roundDifference: number }[]; pendingMatches: number };
+    expect(st.rows[0]).toMatchObject({ team: { name: "North" }, position: 1, points: 3, roundDifference: 4 });
+    // South (unplayed, map diff 0) ranks above East (lost 0–1) by map difference.
+    expect(st.rows.map((r) => [r.team.name, r.position, r.tied])).toEqual([
+      ["North", 1, false],
+      ["South", 2, false],
+      ["East", 3, false],
+    ]);
+    expect(st.pendingMatches).toBe(1);
+
+    await post("/api/v1/hud/outputs", { outputId: "studio-table", name: "Studio table", variant: "studio", settings: { studioPanel: "standings", stageId: stage.id } });
+    await post("/api/v1/hud/outputs/studio-table/publish", {});
+    const hud = (await (await api("/api/v1/hud/outputs/studio-table/state")).json()) as { standings: { stageName: string; rows: { team: { name: string } }[] } | null; bracket: unknown };
+    expect(hud.standings?.stageName).toBe("Group A");
+    expect(hud.standings?.rows[0]!.team.name).toBe("North");
+    expect(JSON.stringify(hud.standings)).not.toMatch(/steamId|token/);
+  });
+
   it("exports and restores an event package with checksum and collision checks", async () => {
     const team = (await (await api("/api/v1/teams", { method: "POST", body: JSON.stringify({ name: "Alpha", shortName: "ALP" }) })).json()) as { id: string };
     await api("/api/v1/players", { method: "POST", body: JSON.stringify({ displayName: "Player One", steamId: "76561198000000999" }) });

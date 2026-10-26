@@ -5,7 +5,7 @@ import { ObservedPanel, TeamPanel } from "./components/Players.tsx";
 import { Radar } from "./components/Radar.tsx";
 import { Annotations, Badges, Cues, SponsorZone } from "./components/Overlays.tsx";
 import { RoundHistory, Scoreboard, SeriesStrip } from "./components/Scoreboard.tsx";
-import { BreakScreen, PostMap, PostSeries, PreMatch, ReplayFrame, VetoBoard } from "./components/Screens.tsx";
+import { BracketBoard, BreakScreen, PostMap, PostSeries, PreMatch, ReplayFrame, StandingsBoard, VetoBoard } from "./components/Screens.tsx";
 import { readParams } from "./params.ts";
 import { useHud, useTicker } from "./useHud.ts";
 
@@ -80,6 +80,8 @@ export function App() {
     else if (variant === "post-map") body = <PostMap state={state} />;
     else if (variant === "post-series") body = <PostSeries state={state} />;
     else if (variant === "veto") body = <VetoBoard state={state} />;
+    else if (variant === "studio" && state.settings.studioPanel === "standings" && state.standings) body = <StandingsBoard state={state} />;
+    else if (variant === "studio" && state.settings.studioPanel === "bracket" && state.bracket) body = <BracketBoard state={state} />;
     else if (variant === "studio") body = <Cues state={state} />;
     else if (variant === "compact")
       body = (

@@ -83,6 +83,12 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | DELETE | `/api/v1/automation/rules/:id` | settings.manage |
 | GET | `/api/v1/automation/log` | metadata.read |
 | POST | `/api/v1/automation/simulate` | settings.manage |
+| GET | `/api/v1/stages` | metadata.read |
+| POST | `/api/v1/stages` | metadata.write |
+| PATCH | `/api/v1/stages/:id` | metadata.write |
+| DELETE | `/api/v1/stages/:id` | metadata.write |
+| GET | `/api/v1/stages/:id/standings` | metadata.read |
+| GET | `/api/v1/stages/:id/bracket` | metadata.read |
 | GET | `/api/v1/export/event-package` | metadata.read |
 | POST | `/api/v1/import/event-package` | settings.manage |
 | GET | `/api/v1/matches/current/state` | state.read |

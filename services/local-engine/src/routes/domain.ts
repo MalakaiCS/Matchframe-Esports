@@ -3,7 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import { z } from "zod";
 import type { MapInstance } from "@matchframe/contracts";
-import { MapInstance as MapInstanceSchema, MatchFormat, Side } from "@matchframe/contracts";
+import { BracketNode, MapInstance as MapInstanceSchema, MatchFormat, Side, StageKind, StageTiebreaker } from "@matchframe/contracts";
+import { buildBracket, computeStandings, validateBracket } from "../domain/standings.ts";
 import type { Engine } from "../app.ts";
 import { newId } from "../db/store.ts";
 import { mapWinner, seriesScore } from "../domain/series.ts";
@@ -172,6 +173,7 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
   // ---- matches -----------------------------------------------------------------------------
   const MatchCreate = z.object({
     eventId: z.string().nullable().default(null),
+    stageId: z.string().nullable().default(null),
     teamAId: z.string(),
     teamBId: z.string(),
     format: MatchFormat.default({ bestOf: 3, regulationRounds: 24, overtimeEnabled: true, overtimeRounds: 6, allowTie: false }),
@@ -184,6 +186,7 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
     if (req.body.teamAId === req.body.teamBId) throw new HttpError(400, "a match needs two different teams", "same_team");
     e.teams.require(req.body.teamAId);
     e.teams.require(req.body.teamBId);
+    if (req.body.stageId && !e.stages.get(req.body.stageId)) throw new HttpError(400, `unknown stage ${req.body.stageId}`, "bad_stage");
     const d = e.matches.create({ ...req.body, status: "scheduled", seriesScoreA: 0, seriesScoreB: 0 }, "match");
     e.audit.record(req.principal!.label, "match.create", d.id);
     return d.data;
@@ -385,6 +388,66 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
     return results;
   });
 
+  // ---- event stages: standings and brackets (derived from completed results) --------------
+  const StageBody = z.object({
+    eventId: z.string(),
+    name: z.string().min(1).max(80),
+    kind: StageKind,
+    order: z.number().int().min(1).optional(),
+    teamIds: z.array(z.string()).optional(),
+    points: z.object({ win: z.number(), tie: z.number(), loss: z.number() }).optional(),
+    tiebreakers: z.array(StageTiebreaker).optional(),
+    advancing: z.number().int().min(0).optional(),
+    bracket: z.array(BracketNode).optional(),
+  });
+  const checkStage = (body: { eventId?: string; teamIds?: string[]; bracket?: z.infer<typeof BracketNode>[] }) => {
+    if (body.eventId && !e.events.get(body.eventId)) throw new HttpError(400, `unknown event ${body.eventId}`, "bad_event");
+    for (const t of body.teamIds ?? []) if (!e.teams.get(t)) throw new HttpError(400, `unknown team ${t}`, "bad_team");
+    const issues = validateBracket(body.bracket ?? []);
+    if (issues.length) throw new HttpError(400, "invalid bracket", "bad_bracket", issues);
+    for (const n of body.bracket ?? []) if (n.matchId && !e.matches.get(n.matchId)) throw new HttpError(400, `unknown match ${n.matchId}`, "bad_match");
+  };
+  r.get("/api/v1/stages", { permission: "metadata.read" }, (req) => {
+    const ev = req.query.get("eventId");
+    return e.stages.list().map((d) => d.data).filter((s) => !ev || s.eventId === ev).sort((a, b) => a.order - b.order);
+  });
+  r.post("/api/v1/stages", { permission: "metadata.write", body: StageBody }, (req) => {
+    checkStage(req.body);
+    const d = e.stages.create(req.body, "stage");
+    e.audit.record(req.principal!.label, "stage.create", d.id);
+    return d.data;
+  });
+  r.patch("/api/v1/stages/:id", { permission: "metadata.write", body: StageBody.partial() }, (req) => {
+    checkStage(req.body);
+    const d = e.stages.update(req.params.id!, req.body);
+    e.audit.record(req.principal!.label, "stage.update", d.id);
+    return d.data;
+  });
+  r.delete("/api/v1/stages/:id", { permission: "metadata.write" }, (req) => {
+    e.stages.delete(req.params.id!);
+    e.audit.record(req.principal!.label, "stage.delete", req.params.id!);
+    return { deleted: true };
+  });
+  const stageInputs = (id: string) => {
+    const stage = e.stages.require(id).data;
+    const matches = e.matches.list().map((d) => d.data).filter((m) => m.stageId === stage.id || stage.bracket.some((n) => n.matchId === m.id));
+    const maps = matches.flatMap((m) => e.mapInstances.forMatch(m.id));
+    return { stage, matches, maps };
+  };
+  const teamInfo = (id: string | null) => {
+    const t = id ? e.teams.get(id)?.data : undefined;
+    return t ? { id: t.id, name: t.name, shortName: t.shortName, logoAssetId: t.logoAssetId } : null;
+  };
+  r.get("/api/v1/stages/:id/standings", { permission: "metadata.read" }, (req) => {
+    const { stage, matches, maps } = stageInputs(req.params.id!);
+    const res = computeStandings(stage, matches, maps);
+    return { ...res, name: stage.name, tiebreakers: stage.tiebreakers, rows: res.rows.map((row) => ({ ...row, team: teamInfo(row.teamId) })) };
+  });
+  r.get("/api/v1/stages/:id/bracket", { permission: "metadata.read" }, (req) => {
+    const { stage, matches } = stageInputs(req.params.id!);
+    return { stageId: stage.id, name: stage.name, nodes: buildBracket(stage, matches).map((n) => ({ ...n, a: { ...n.a, team: teamInfo(n.a.teamId) }, b: { ...n.b, team: teamInfo(n.b.teamId) } })) };
+  });
+
   // ---- event package export / import ----------------------------------------------------
   r.get("/api/v1/export/event-package", { permission: "metadata.read" }, () => {
     const assets: Record<string, string> = {};
@@ -411,6 +474,7 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
         vetoDecisions: e.db.all<{ data: string; superseded_by: string | null }>("SELECT data, superseded_by FROM veto_decisions").map((x) => ({ ...JSON.parse(x.data), supersededBy: x.superseded_by })),
         sponsors: e.sponsors.list().map((d) => d.data),
         rundown: e.rundown.list().map((d) => d.data),
+        stages: e.stages.list().map((d) => d.data),
         rules: e.rules.list().map((d) => d.data),
         outputs: e.outputs.drafts.list().map((d) => d.data),
         corrections: e.corrections.list().map((d) => d.data),
@@ -458,6 +522,7 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
       for (const mi of data.mapInstances ?? []) e.mapInstances.upsert(mi as MapInstance);
       for (const s of data.sponsors ?? []) if (!e.sponsors.get((s as { id: string }).id)) e.sponsors.create(s as Record<string, unknown>);
       for (const c of data.rundown ?? []) if (!e.rundown.get((c as { id: string }).id)) e.rundown.create(c as Record<string, unknown>);
+      for (const st of data.stages ?? []) if (!e.stages.get((st as { id: string }).id)) e.stages.create(st as Record<string, unknown>);
     });
     const dir = assetDir(e);
     mkdirSync(dir, { recursive: true });

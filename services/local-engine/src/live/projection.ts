@@ -23,6 +23,8 @@ export interface HudContext {
   replay: HudState["replay"];
   annotations: HudState["annotations"];
   veto: HudState["veto"];
+  standings: HudState["standings"];
+  bracket: HudState["bracket"];
   settings: Record<string, unknown>;
   /** Public radar policy: show confirmed utility effects; never predictions. */
   radarUtility: boolean;
@@ -265,6 +267,8 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
       replay: ctx.replay,
       annotations: ctx.annotations,
       veto: ctx.veto,
+      standings: ctx.standings,
+      bracket: ctx.bracket,
       settings: ctx.settings,
     };
   }
@@ -332,6 +336,8 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
     replay: ctx.replay,
     annotations: ctx.annotations,
     veto: ctx.veto,
+    standings: ctx.standings,
+    bracket: ctx.bracket,
     settings: ctx.settings,
   };
 }

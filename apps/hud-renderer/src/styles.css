@@ -914,6 +914,118 @@ body,
   font-weight: 800;
 }
 
+/* ---------------------------------------------------------------- standings / bracket */
+.mf-standings-table {
+  border-collapse: collapse;
+  width: 1180px;
+  font-variant-numeric: tabular-nums;
+}
+.mf-standings-table th {
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  color: var(--mf-ink-dim);
+  font-weight: 600;
+  padding: 0 14px 10px;
+  text-align: center;
+}
+.mf-standings-table td {
+  background: var(--mf-panel);
+  border-top: 2px solid rgba(0, 0, 0, 0.25);
+  padding: 12px 14px;
+  font-size: 22px;
+  text-align: center;
+}
+.mf-standings-table .is-team {
+  text-align: left;
+  width: 46%;
+}
+.mf-standings-table tr.is-advancing td:first-child {
+  box-shadow: inset 4px 0 0 var(--mf-accent);
+}
+.mf-standings-pos {
+  font-weight: 800;
+  width: 64px;
+}
+.mf-standings-pts {
+  font-weight: 800;
+  background: var(--mf-panel-2) !important;
+}
+.mf-stage-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.mf-stage-team.is-tbd {
+  color: var(--mf-ink-dim);
+  font-weight: 500;
+  font-style: italic;
+}
+.mf-stage-logo {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  background: var(--mf-panel-2);
+}
+.mf-stage-logo img {
+  max-width: 100%;
+  max-height: 100%;
+}
+.mf-bracket-rounds {
+  display: flex;
+  gap: 56px;
+  align-items: stretch;
+}
+.mf-bracket-round {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 28px;
+  min-width: 340px;
+}
+.mf-bracket-node {
+  background: var(--mf-panel);
+  border-left: 3px solid var(--mf-line);
+}
+.mf-bracket-node.s-live {
+  border-left-color: var(--mf-hp-low);
+}
+.mf-bracket-node.s-completed {
+  border-left-color: var(--mf-accent);
+}
+.mf-bracket-label {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--mf-ink-dim);
+  padding: 8px 14px 4px;
+  text-transform: uppercase;
+}
+.mf-bracket-side {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  font-size: 20px;
+}
+.mf-bracket-side + .mf-bracket-side {
+  border-top: 1px solid var(--mf-line);
+}
+.mf-bracket-side.is-winner .mf-stage-name,
+.mf-bracket-side.is-winner .mf-bracket-score {
+  color: var(--mf-accent);
+}
+.mf-bracket-score {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  min-width: 28px;
+  text-align: right;
+}
+
 /* ================================================================ preset: MINIMAL */
 .mf-preset-minimal {
   --mf-panel: rgba(12, 14, 20, 0.62);
