@@ -27,7 +27,7 @@ function normalizeName(n: string): string {
 
 export function registerDomainRoutes(r: Router, e: Engine): void {
   // ---- assets (logos, avatars, sponsor media) ---------------------------------------------
-  r.post("/api/v1/assets", { permission: "metadata.write" }, (req) => {
+  r.post("/api/v1/assets", { permission: "metadata.write", maxBodyBytes: ASSET_MAX }, (req) => {
     const name = String(req.query.get("name") ?? "asset");
     const ext = extname(name).toLowerCase();
     if (!ASSET_EXT.has(ext)) throw new HttpError(400, `asset type ${ext} not allowed`, "bad_type");
@@ -59,10 +59,10 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
     e.audit.record(req.principal!.label, "team.update", d.id, patch);
     return d.data;
   });
-  r.post("/api/v1/teams/:id/archive", { permission: "metadata.write" }, (req) => {
-    e.teams.archive(req.params.id!, true);
-    e.audit.record(req.principal!.label, "team.archive", req.params.id!);
-    return { archived: true };
+  r.post("/api/v1/teams/:id/archive", { permission: "metadata.write", body: z.object({ archived: z.boolean().default(true) }) }, (req) => {
+    e.teams.archive(req.params.id!, req.body.archived);
+    e.audit.record(req.principal!.label, req.body.archived ? "team.archive" : "team.unarchive", req.params.id!);
+    return { archived: req.body.archived };
   });
   r.post("/api/v1/teams/:id/roster", { permission: "metadata.write", body: z.object({ playerId: z.string(), role: z.enum(["player", "substitute", "coach", "stand_in"]).default("player") }) }, (req) => {
     e.teams.require(req.params.id!);
@@ -107,6 +107,11 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
     return d.data;
   });
   /** Merge a duplicate into a primary player, preserving roster history and aliases. */
+  r.post("/api/v1/players/:id/archive", { permission: "metadata.write", body: z.object({ archived: z.boolean().default(true) }) }, (req) => {
+    e.players.archive(req.params.id!, req.body.archived);
+    e.audit.record(req.principal!.label, req.body.archived ? "player.archive" : "player.unarchive", req.params.id!);
+    return { archived: req.body.archived };
+  });
   r.post("/api/v1/players/:id/merge", { permission: "metadata.write", body: z.object({ duplicateId: z.string() }) }, (req) => {
     const primary = e.players.require(req.params.id!);
     const dup = e.players.require(req.body.duplicateId);
@@ -162,6 +167,14 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
     const d = e.events.create(req.body as Record<string, unknown>, "event");
     e.audit.record(req.principal!.label, "event.create", d.id);
     return d.data;
+  });
+  r.delete("/api/v1/events/:id", { permission: "metadata.write" }, (req) => {
+    e.events.require(req.params.id!);
+    const used = e.matches.list().filter((m) => m.data.eventId === req.params.id).length + e.stages.list().filter((s) => s.data.eventId === req.params.id).length;
+    if (used > 0) throw new HttpError(409, `event is referenced by ${used} matches/stages; remove or reassign them first`, "in_use");
+    e.events.delete(req.params.id!);
+    e.audit.record(req.principal!.label, "event.delete", req.params.id!);
+    return { deleted: true };
   });
   r.patch("/api/v1/events/:id", { permission: "metadata.write" }, (req) => {
     const { revision, ...patch } = req.body as Record<string, unknown> & { revision?: number };
@@ -334,6 +347,13 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
   });
 
   // ---- sponsors / rundown / automation rules ---------------------------------------------
+  r.post("/api/v1/rundown/reorder", { permission: "metadata.write", body: z.object({ ids: z.array(z.string()).min(1) }) }, (req) => {
+    const all = new Set(e.rundown.list().map((d) => d.id));
+    if (req.body.ids.length !== all.size || req.body.ids.some((id) => !all.has(id)) || new Set(req.body.ids).size !== all.size) throw new HttpError(400, "ids must list every rundown cue exactly once", "bad_order");
+    e.db.transaction(() => req.body.ids.forEach((id, i) => e.rundown.update(id, { order: i + 1 })));
+    e.audit.record(req.principal!.label, "rundown.reorder", null, { ids: req.body.ids });
+    return e.rundown.list().map((d) => d.data).sort((a, b) => a.order - b.order);
+  });
   for (const [path, repo, prefix] of [
     ["sponsors", e.sponsors, "sponsor"],
     ["rundown", e.rundown, "cue"],

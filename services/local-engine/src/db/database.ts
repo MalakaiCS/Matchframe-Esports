@@ -48,8 +48,28 @@ export class Database {
     return { from, to: pending[pending.length - 1]!.version, backup };
   }
 
+  private txDepth = 0;
+
+  /** Runs fn atomically. Nested calls use savepoints, so repository methods compose. */
   transaction<T>(fn: () => T): T {
+    if (this.txDepth > 0) {
+      const sp = `sp_${this.txDepth}`;
+      this.db.exec(`SAVEPOINT ${sp}`);
+      this.txDepth++;
+      try {
+        const r = fn();
+        this.db.exec(`RELEASE ${sp}`);
+        return r;
+      } catch (e) {
+        this.db.exec(`ROLLBACK TO ${sp}`);
+        this.db.exec(`RELEASE ${sp}`);
+        throw e;
+      } finally {
+        this.txDepth--;
+      }
+    }
     this.db.exec("BEGIN IMMEDIATE");
+    this.txDepth = 1;
     try {
       const r = fn();
       this.db.exec("COMMIT");
@@ -57,6 +77,8 @@ export class Database {
     } catch (e) {
       this.db.exec("ROLLBACK");
       throw e;
+    } finally {
+      this.txDepth = 0;
     }
   }
 

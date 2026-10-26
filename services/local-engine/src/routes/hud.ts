@@ -2,7 +2,7 @@ import { existsSync, statSync } from "node:fs";
 import { z } from "zod";
 import { HudVariant } from "@matchframe/contracts";
 import type { Engine } from "../app.ts";
-import { readArchive, readDirectory } from "../hud/packages.ts";
+import { PACKAGE_LIMITS, readArchive, readDirectory } from "../hud/packages.ts";
 import { OutputDraft } from "../hud/outputs.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
@@ -12,7 +12,7 @@ export function registerHudRoutes(r: Router, e: Engine): void {
 
   r.get("/api/v1/hud/packages", { permission: "metadata.read" }, () => e.hudPackages.list().map((p) => ({ ...p, installDir: p.classification === "builtin" ? "[app]" : "[data]/huds", verify: e.hudPackages.verify(p.id) })));
   /** Import an archive (raw zip body). A failed import never affects the installed version. */
-  r.post("/api/v1/hud/packages/import", { permission: "hud.publish" }, (req) => {
+  r.post("/api/v1/hud/packages/import", { permission: "hud.publish", maxBodyBytes: PACKAGE_LIMITS.maxTotalBytes }, (req) => {
     if (req.rawBody.length === 0) throw new HttpError(400, "send the package archive as the request body", "empty");
     const files = readArchive(new Uint8Array(req.rawBody));
     const pkg = e.hudPackages.install(files);

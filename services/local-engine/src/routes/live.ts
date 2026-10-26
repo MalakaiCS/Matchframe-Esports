@@ -324,7 +324,9 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
   r.get("/api/v1/maps/:map/outline", { permission: "metadata.read" }, (req) => {
     const m = e.maps.get(req.params.map!);
     if (!m) throw new HttpError(404, "no map pack", "not_found");
-    return m.schematicOutline();
+    const outline = m.schematicOutline();
+    if (!outline) throw new HttpError(404, "map pack has no geometry for an outline", "no_outline");
+    return outline;
   });
   /** Camera authoring from real captured coordinates (CS2 `getpos` output). */
   r.post("/api/v1/maps/:map/cameras/from-getpos", { permission: "metadata.write", body: z.object({ id: z.string().regex(/^[a-z0-9-]{3,64}$/), displayName: z.string().min(1), getpos: z.string(), focus: z.object({ x: z.number(), y: z.number(), z: z.number() }), coverageRadiusUnits: z.number().positive().max(3000).default(600), targetRegionIds: z.array(z.string()).default([]) }) }, (req) => {

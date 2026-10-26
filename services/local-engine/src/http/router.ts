@@ -36,6 +36,8 @@ interface RouteOpts<S extends z.ZodTypeAny | undefined> {
   /** Required permission; "public" routes need none. */
   permission: Permission | "public";
   body?: S;
+  /** Per-route request body limit (raw uploads); defaults to the router limit. */
+  maxBodyBytes?: number;
 }
 
 interface Route {
@@ -184,7 +186,7 @@ export class Router {
       if (method !== "GET" && method !== "HEAD" && !this.opts.originAllowed(req.headers.origin, req.headers.host)) {
         throw new HttpError(403, "origin not allowed", "bad_origin");
       }
-      const rawBody = method === "GET" || method === "HEAD" ? Buffer.alloc(0) : await readBody(req, this.maxBody);
+      const rawBody = method === "GET" || method === "HEAD" ? Buffer.alloc(0) : await readBody(req, route.opts.maxBodyBytes ?? this.maxBody);
       let body: unknown = undefined;
       if (rawBody.length > 0 && (req.headers["content-type"] ?? "").includes("application/json")) {
         try {
@@ -205,6 +207,7 @@ export class Router {
       const code = e instanceof HttpError ? e.code : status === 500 ? "internal" : "error";
       const message = e instanceof Error ? e.message : String(e);
       if (status >= 500) this.opts.onError?.(e, { method, path });
+      if (status === 413) res.setHeader("connection", "close");
       const detail = e instanceof HttpError ? e.detail : ((e as { issues?: unknown }).issues ?? null);
       json(res, status, { error: code, message, detail });
     }
@@ -214,18 +217,29 @@ export class Router {
 
 export function readBody(req: IncomingMessage, max: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {
+    const declared = Number(req.headers["content-length"]);
+    if (Number.isFinite(declared) && declared > max) {
+      // Refuse before reading; the response (413) is sent and the connection closed afterwards.
+      reject(new HttpError(413, `body exceeds ${max} bytes`, "too_large"));
+      return;
+    }
     const chunks: Buffer[] = [];
     let size = 0;
+    let over = false;
     req.on("data", (c: Buffer) => {
+      if (over) return; // discard the rest so the 413 response can still be delivered
       size += c.length;
       if (size > max) {
+        over = true;
+        chunks.length = 0;
         reject(new HttpError(413, `body exceeds ${max} bytes`, "too_large"));
-        req.destroy();
         return;
       }
       chunks.push(c);
     });
-    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("end", () => {
+      if (!over) resolve(Buffer.concat(chunks));
+    });
     req.on("error", reject);
   });
 }

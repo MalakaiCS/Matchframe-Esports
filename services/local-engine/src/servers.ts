@@ -121,6 +121,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     program: { mode: e.program.mode, owner: e.program.owner, activeReplay: e.program.activeReplay },
     obs: { connected: e.obs.state.connected, programScene: e.obs.state.programScene, previewScene: e.obs.state.previewScene, studioMode: e.obs.state.studioMode, replayBuffer: e.obs.state.replayBuffer, recording: e.obs.state.recording, streaming: e.obs.state.streaming, lastError: e.obs.state.lastError },
     simulated: e.simulationRunning,
+    /** Engine monotonic clock at send time (same base as state.time.receivedAtMonotonicMs). */
+    engineNowMonotonicMs: e.now(),
     metrics: e.session.metrics(),
     tally: tally(e),
   });

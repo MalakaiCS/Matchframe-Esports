@@ -160,3 +160,24 @@ describe("secret store", () => {
     expect(new SecretStore(join(dir, "secrets.json"), undefined).getSecret("obs.password")).toBeUndefined();
   });
 });
+
+describe("database transactions", () => {
+  it("nests through savepoints and rolls back only the failed inner part", () => {
+    const d = new Database(":memory:");
+    d.migrate();
+    d.run("CREATE TABLE t (v TEXT)");
+    d.transaction(() => {
+      d.run("INSERT INTO t VALUES ('outer')");
+      expect(() =>
+        d.transaction(() => {
+          d.run("INSERT INTO t VALUES ('inner')");
+          throw new Error("inner failure");
+        }),
+      ).toThrow("inner failure");
+      d.transaction(() => d.run("INSERT INTO t VALUES ('inner-ok')"));
+    });
+    expect(d.all<{ v: string }>("SELECT v FROM t ORDER BY v").map((r) => r.v)).toEqual(["inner-ok", "outer"]);
+    expect(() => d.transaction(() => { d.run("INSERT INTO t VALUES ('x')"); throw new Error("outer failure"); })).toThrow();
+    expect(d.all("SELECT v FROM t").length).toBe(2);
+  });
+});

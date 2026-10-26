@@ -19,6 +19,9 @@ export interface QueueItem {
  * Replay queue: bookmark → capture/prepare → operator approval → playout → played.
  * Playout is operator-approved by default; the director may only suggest bookmarks.
  */
+/** Errors carrying an HTTP-style status so API layers report 4xx instead of 500. */
+const fail = (status: number, message: string) => Object.assign(new Error(message), { status });
+
 export class ReplayQueue {
   private items: QueueItem[] = [];
   private counter = 0;
@@ -66,13 +69,14 @@ export class ReplayQueue {
 
   approve(id: string): QueueItem {
     const it = this.require(id);
-    if (it.state !== "prepared") throw new Error(`clip must be prepared before approval (is ${it.state})`);
+    if (it.state !== "prepared") throw fail(409, `clip must be prepared before approval (is ${it.state})`);
     it.state = "approved";
     return it;
   }
 
   reject(id: string): QueueItem {
     const it = this.require(id);
+    if (it.state === "playing" || it.state === "played" || it.state === "rejected") throw fail(409, `a ${it.state} clip cannot be rejected`);
     it.state = "rejected";
     return it;
   }
@@ -80,7 +84,9 @@ export class ReplayQueue {
   setTrim(id: string, startMs: number, durationMs: number): QueueItem {
     const it = this.require(id);
     const d = it.clip?.media.durationMs;
-    if (d !== null && d !== undefined && (startMs < 0 || startMs + durationMs > d)) throw new Error("trim outside clip duration");
+    if (d === null || d === undefined) throw fail(409, `clip has no measured media yet (is ${it.state})`);
+    if (it.state === "playing" || it.state === "played" || it.state === "rejected") throw fail(409, `a ${it.state} clip cannot be trimmed`);
+    if (startMs < 0 || startMs + durationMs > d) throw fail(400, "trim outside clip duration");
     it.trim = { startMs, durationMs };
     return it;
   }
@@ -91,7 +97,7 @@ export class ReplayQueue {
 
   markPlaying(id: string): QueueItem {
     const it = this.require(id);
-    if (it.state !== "approved") throw new Error("only approved clips can be played");
+    if (it.state !== "approved") throw fail(409, "only approved clips can be played");
     it.state = "playing";
     return it;
   }

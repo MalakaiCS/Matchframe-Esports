@@ -224,6 +224,42 @@ describe("engine end-to-end (real HTTP/WS servers)", () => {
     expect(cfg.config.sources).toEqual({ [consent.id]: "Cam 2" });
   });
 
+  it("returns 4xx (not 500 or a reset) for invalid replay states, oversize uploads and in-use deletes", async () => {
+    // Replay state errors.
+    const item = (await (await api("/api/v1/replays/bookmarks", { method: "POST", body: JSON.stringify({ label: "no capture", capture: false }) })).json()) as { id: string; state: string };
+    expect(item.state).toBe("bookmarked");
+    expect((await api(`/api/v1/replays/${item.id}/approve`, { method: "POST" })).status).toBe(409);
+    expect((await api(`/api/v1/replays/${item.id}/trim`, { method: "POST", body: JSON.stringify({ startMs: 0, durationMs: 1000 }) })).status).toBe(409);
+    expect((await api(`/api/v1/replays/${item.id}/reject`, { method: "POST" })).status).toBe(200);
+    expect((await api(`/api/v1/replays/${item.id}/reject`, { method: "POST" })).status).toBe(409);
+    expect((await api("/api/v1/replays/nope/approve", { method: "POST" })).status).toBe(404);
+
+    // Uploads: per-route limits, and an oversize body gets a 413 response instead of a reset.
+    const upload = (bytes: number) => fetch(`http://127.0.0.1:${ctx.ports.api}/api/v1/assets?name=big.png`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/octet-stream" }, body: new Uint8Array(bytes).fill(7) });
+    expect((await upload(3 * 1024 * 1024)).status).toBe(200);
+    const tooBig = await upload(21 * 1024 * 1024);
+    expect(tooBig.status).toBe(413);
+    expect(((await tooBig.json()) as { error: string }).error).toBe("too_large");
+
+    // Event delete refuses while referenced; archive/unarchive; rundown defaults and reorder.
+    const ev = (await (await api("/api/v1/events", { method: "POST", body: JSON.stringify({ name: "Delete me" }) })).json()) as { id: string };
+    const t1 = (await (await api("/api/v1/teams", { method: "POST", body: JSON.stringify({ name: "Del A", shortName: "DA" }) })).json()) as { id: string };
+    const t2 = (await (await api("/api/v1/teams", { method: "POST", body: JSON.stringify({ name: "Del B", shortName: "DB" }) })).json()) as { id: string };
+    const m = (await (await api("/api/v1/matches", { method: "POST", body: JSON.stringify({ eventId: ev.id, teamAId: t1.id, teamBId: t2.id }) })).json()) as { id: string };
+    expect((await api(`/api/v1/events/${ev.id}`, { method: "DELETE" })).status).toBe(409);
+    await api(`/api/v1/matches/${m.id}`, { method: "PATCH", body: JSON.stringify({ eventId: null }) });
+    expect((await api(`/api/v1/events/${ev.id}`, { method: "DELETE" })).status).toBe(200);
+    expect(((await (await api(`/api/v1/teams/${t1.id}/archive`, { method: "POST", body: JSON.stringify({ archived: false }) })).json()) as { archived: boolean }).archived).toBe(false);
+    const c1 = (await (await api("/api/v1/rundown", { method: "POST", body: JSON.stringify({ order: 1, title: "Intro", kind: "intro" }) })).json()) as { id: string; hudVariant: string | null };
+    expect(c1.hudVariant).toBeNull();
+    const all = (await (await api("/api/v1/rundown")).json()) as { id: string }[];
+    const reorderRes = await api("/api/v1/rundown/reorder", { method: "POST", body: JSON.stringify({ ids: [...all.map((c) => c.id)].reverse() }) });
+    const reordered = (await reorderRes.json()) as { id: string; order: number }[];
+    expect(reorderRes.status, JSON.stringify(reordered)).toBe(200);
+    expect(reordered.map((c) => c.id)).toEqual([...all.map((c) => c.id)].reverse());
+    expect((await api("/api/v1/rundown/reorder", { method: "POST", body: JSON.stringify({ ids: [c1.id, c1.id] }) })).status).toBe(400);
+  });
+
   it("exports and restores an event package with checksum and collision checks", async () => {
     const team = (await (await api("/api/v1/teams", { method: "POST", body: JSON.stringify({ name: "Alpha", shortName: "ALP" }) })).json()) as { id: string };
     await api("/api/v1/players", { method: "POST", body: JSON.stringify({ displayName: "Player One", steamId: "76561198000000999" }) });
