@@ -25,7 +25,8 @@
     "openapi": "tsx services/local-engine/scripts/generate-openapi.ts",
     "worker": "node scripts/run-python.mjs -m mf_common.cli",
     "test:integration": "vitest run services/local-engine/test/demo-pipeline.integration.test.ts packages/obs-adapter",
-    "coverage:maps": "tsx services/local-engine/scripts/generate-coverage.ts"
+    "coverage:maps": "tsx services/local-engine/scripts/generate-coverage.ts",
+    "soak": "node scripts/soak.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
