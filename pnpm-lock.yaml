@@ -45,6 +45,24 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
 
+  packages/director-policy:
+    dependencies:
+      '@matchframe/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@matchframe/cs2-state':
+        specifier: workspace:*
+        version: link:../cs2-state
+      '@matchframe/map-runtime':
+        specifier: workspace:*
+        version: link:../map-runtime
+
+  packages/map-runtime:
+    dependencies:
+      '@matchframe/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
 packages:
 
   '@cacheable/memory@2.2.0':

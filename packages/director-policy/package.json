@@ -1,0 +1,17 @@
+{
+  "name": "@matchframe/director-policy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@matchframe/contracts": "workspace:*",
+    "@matchframe/cs2-state": "workspace:*",
+    "@matchframe/map-runtime": "workspace:*"
+  }
+}
