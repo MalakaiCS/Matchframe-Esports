@@ -57,6 +57,8 @@ interface SecretFile {
   operatorToken: string;
   gsiToken: string;
   tokens: StoredToken[];
+  /** Other credentials (e.g. OBS passwords) keyed by name. Never logged or exported. */
+  extra?: Record<string, string>;
 }
 
 export const hashToken = (t: string) => createHash("sha256").update(t).digest("hex");
@@ -106,6 +108,21 @@ export class SecretStore {
     this.data.gsiToken = randomBytes(16).toString("hex");
     this.save();
     return this.data.gsiToken;
+  }
+
+  setSecret(name: string, value: string | null): void {
+    this.data.extra = this.data.extra ?? {};
+    if (value === null) delete this.data.extra[name];
+    else this.data.extra[name] = value;
+    this.save();
+  }
+
+  getSecret(name: string): string | undefined {
+    return this.data.extra?.[name];
+  }
+
+  hasSecret(name: string): boolean {
+    return this.data.extra?.[name] !== undefined;
   }
 
   checkGsiToken(token: string | undefined): boolean {

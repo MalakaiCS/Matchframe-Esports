@@ -121,6 +121,85 @@ export class MapRuntime {
     return best;
   }
 
+  private schematic: { minX: number; maxY: number; size: number } | null | undefined;
+
+  /**
+   * Square world-XY bounds of the pack's sampled geometry (region cells and floor grid). Used for
+   * the Matchframe schematic radar, whose outline is drawn from the same cells, so markers are
+   * placed with the same transform as the outline. Null when the pack has no cell geometry.
+   */
+  schematicTransform(): { minX: number; maxY: number; size: number } | null {
+    if (this.schematic !== undefined) return this.schematic;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const r of this.pack.regions) {
+      for (const sh of r.shapes) {
+        if (sh.kind === "cells") {
+          for (const [ix, iy] of sh.cells) {
+            minX = Math.min(minX, ix * sh.cellSize);
+            minY = Math.min(minY, iy * sh.cellSize);
+            maxX = Math.max(maxX, (ix + 1) * sh.cellSize);
+            maxY = Math.max(maxY, (iy + 1) * sh.cellSize);
+          }
+        } else {
+          for (const [x, y] of sh.points) {
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+          }
+        }
+      }
+    }
+    if (!Number.isFinite(minX)) {
+      this.schematic = null;
+      return null;
+    }
+    const size = Math.max(maxX - minX, maxY - minY) * 1.04;
+    const padX = (size - (maxX - minX)) / 2;
+    const padY = (size - (maxY - minY)) / 2;
+    this.schematic = { minX: minX - padX, maxY: maxY + padY, size };
+    return this.schematic;
+  }
+
+  worldToSchematic(p: Vec3): { u: number; v: number } | null {
+    const t = this.schematicTransform();
+    if (!t) return null;
+    return { u: (p.x - t.minX) / t.size, v: (t.maxY - p.y) / t.size };
+  }
+
+  /** Normalized outline cells [u, v, sizeU, regionIndex] for drawing the schematic radar. */
+  schematicOutline(): {
+    cells: [number, number, number, number][];
+    polygons: { regionIndex: number; points: [number, number][] }[];
+    regions: { id: string; name: string; kind: string }[];
+  } | null {
+    const t = this.schematicTransform();
+    if (!t) return null;
+    const cells: [number, number, number, number][] = [];
+    const polygons: { regionIndex: number; points: [number, number][] }[] = [];
+    const seen = new Set<string>();
+    this.pack.regions.forEach((r, ri) => {
+      for (const sh of r.shapes) {
+        if (sh.kind === "polygon") {
+          polygons.push({ regionIndex: ri, points: sh.points.map(([x, y]) => [Math.round(((x - t.minX) / t.size) * 1e4) / 1e4, Math.round(((t.maxY - y) / t.size) * 1e4) / 1e4]) });
+          continue;
+        }
+        for (const [ix, iy] of sh.cells) {
+          const k = `${sh.cellSize}:${ix}:${iy}`;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          const u = (ix * sh.cellSize - t.minX) / t.size;
+          const v = (t.maxY - (iy + 1) * sh.cellSize) / t.size;
+          cells.push([Math.round(u * 1e4) / 1e4, Math.round(v * 1e4) / 1e4, Math.round((sh.cellSize / t.size) * 1e4) / 1e4, ri]);
+        }
+      }
+    });
+    return { cells, polygons, regions: this.pack.regions.map((r) => ({ id: r.id, name: r.name, kind: r.kind })) };
+  }
+
   siteAt(p: Vec3): "A" | "B" | null {
     const regions = new Set(this.regionsAt(p));
     for (const b of this.pack.bombsites) if (regions.has(b.regionId)) return b.site;

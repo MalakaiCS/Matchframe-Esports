@@ -103,9 +103,15 @@ export interface HudRadar {
   available: boolean;
   reason: string | null;
   mapName: string | null;
+  /**
+   * "schematic": Matchframe outline generated from map-pack geometry sampled from real positions,
+   * using the same world transform as the markers. "image": a game radar image with a verified
+   * calibration. "none": no trustworthy transform — markers are not drawn.
+   */
+  mode: "schematic" | "image" | "none";
   calibrationVerified: boolean;
-  /** Schematic outline cells (normalized u,v,size) generated from map-pack geometry, if any. */
-  outlineCells: [number, number, number][] | null;
+  /** URL of the outline (schematic) or radar image, served by the overlay server. */
+  backgroundUrl: string | null;
   players: HudRadarMarker[];
   bomb: { u: number; v: number; state: string } | null;
   utility: { id: string; type: string; u: number; v: number; phase: string; side: HudSide | null; evidence: string; radius: number | null }[];

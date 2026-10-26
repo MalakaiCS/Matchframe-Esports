@@ -36,6 +36,12 @@ importers:
         specifier: 44.9.3
         version: 44.9.3
 
+  packages/automation:
+    dependencies:
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+
   packages/contracts:
     dependencies:
       zod:
@@ -85,6 +91,9 @@ importers:
 
   services/local-engine:
     dependencies:
+      '@matchframe/automation':
+        specifier: workspace:*
+        version: link:../../packages/automation
       '@matchframe/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -94,12 +103,24 @@ importers:
       '@matchframe/director-policy':
         specifier: workspace:*
         version: link:../../packages/director-policy
+      '@matchframe/game-adapters':
+        specifier: workspace:*
+        version: link:../../packages/game-adapters
       '@matchframe/hud-sdk':
         specifier: workspace:*
         version: link:../../packages/hud-sdk
       '@matchframe/map-runtime':
         specifier: workspace:*
         version: link:../../packages/map-runtime
+      '@matchframe/obs-adapter':
+        specifier: workspace:*
+        version: link:../../packages/obs-adapter
+      '@matchframe/observer-agent':
+        specifier: workspace:*
+        version: link:../observer-agent
+      '@matchframe/replay-agent':
+        specifier: workspace:*
+        version: link:../replay-agent
       fflate:
         specifier: 0.8.2
         version: 0.8.2
@@ -122,6 +143,12 @@ importers:
       '@matchframe/director-policy':
         specifier: workspace:*
         version: link:../../packages/director-policy
+
+  services/replay-agent:
+    dependencies:
+      '@matchframe/obs-adapter':
+        specifier: workspace:*
+        version: link:../../packages/obs-adapter
 
 packages:
 

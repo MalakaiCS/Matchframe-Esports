@@ -10,6 +10,7 @@ export default tseslint.config(
       "**/release/**",
       "**/.vite/**",
       "workers/**",
+      ".claude/**",
       "**/*.d.ts",
     ],
   },

@@ -96,7 +96,7 @@ export class Director {
   private capabilities: SourceCapabilities | null = null;
   private readonly history = new StateHistory();
   private readonly planner: ShotPlanner;
-  private readonly scenarios: UtilityScenarioRule[];
+  private scenarios: UtilityScenarioRule[];
   private readonly profiles: ProfileSet | undefined;
   private modelVersion: string | null;
   private readonly newId: () => string;
@@ -142,6 +142,14 @@ export class Director {
   setConfig(partial: Partial<DirectorConfig>): void {
     this.cfg = mergeConfig({ ...this.cfg, ...partial });
     this.planner.setConfig(this.cfg);
+  }
+
+  setScenarios(rules: UtilityScenarioRule[]): void {
+    this.scenarios = rules;
+  }
+
+  get scenarioRules(): readonly UtilityScenarioRule[] {
+    return this.scenarios;
   }
 
   setMap(map: MapRuntime | undefined): void {

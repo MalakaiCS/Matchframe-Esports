@@ -18,7 +18,12 @@
     "@matchframe/hud-sdk": "workspace:*",
     "fflate": "0.8.2",
     "ws": "8.22.0",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "@matchframe/automation": "workspace:*",
+    "@matchframe/observer-agent": "workspace:*",
+    "@matchframe/replay-agent": "workspace:*",
+    "@matchframe/obs-adapter": "workspace:*",
+    "@matchframe/game-adapters": "workspace:*"
   },
   "devDependencies": {
     "@types/ws": "8.18.2"
