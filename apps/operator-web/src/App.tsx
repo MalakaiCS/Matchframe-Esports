@@ -14,7 +14,6 @@ import { SessionContext } from "./state/session.tsx";
 
 // Screens are code-split: each loads on first visit.
 const AccountScreen = lazy(() => import("./screens/Account.tsx").then((m) => ({ default: m.AccountScreen })));
-const CaptainPage = lazy(() => import("./screens/Captain.tsx").then((m) => ({ default: m.CaptainPage })));
 const DemosScreen = lazy(() => import("./screens/Demos.tsx").then((m) => ({ default: m.DemosScreen })));
 const DevicesScreen = lazy(() => import("./screens/Devices.tsx").then((m) => ({ default: m.DevicesScreen })));
 const DirectorScreen = lazy(() => import("./screens/Director.tsx").then((m) => ({ default: m.DirectorScreen })));
@@ -178,7 +177,7 @@ function TokenGate() {
     try {
       const me = await api.get<Me>("/api/v1/me");
       if (!me.role) return setGate({ kind: "invalid", message: "The engine did not accept this token. It may have been rotated, revoked or belong to another engine installation." });
-      if (me.role === "captain") return setGate({ kind: "invalid", message: "This is a captain veto link, not an operator token. Open it at /captain." });
+      if (me.role === "captain") return setGate({ kind: "invalid", message: "This is a captain veto token, not an operator token. Captains use their veto link in a browser." });
       setGate({ kind: "ready", me });
     } catch (e) {
       setGate({ kind: e instanceof NetworkError ? "unreachable" : "invalid", message: describeError(e) });
@@ -196,15 +195,18 @@ function TokenGate() {
         <div className="gate-brand">
           <Logo /> <span>Matchframe Operator</span>
         </div>
-        {gate.kind === "resolving" ? <p>Connecting to the local engine…</p> : null}
+        {gate.kind === "resolving" ? <p>{window.matchframe?.connectionMode === "remote" ? "Connecting to the production computer…" : "Connecting to the Matchframe engine…"}</p> : null}
         {gate.kind === "unreachable" ? (
           <>
             <Note tone="danger" title="ENGINE UNREACHABLE">
               {gate.message}
             </Note>
-            <Button variant="primary" onClick={() => void verify()}>
-              Try again
-            </Button>
+            <div className="row">
+              <Button variant="primary" onClick={() => void verify()}>
+                Try again
+              </Button>
+              {window.matchframe?.openConnection ? <Button onClick={() => void window.matchframe!.openConnection!()}>Connection settings</Button> : null}
+            </div>
           </>
         ) : null}
         {gate.kind === "no_token" || gate.kind === "invalid" ? (
@@ -214,7 +216,7 @@ function TokenGate() {
                 {gate.message}
               </Note>
             ) : (
-              <p>This console needs the operator token. Open the operator URL printed by the engine (it is also written to <code>operator-url.txt</code> in the Matchframe data folder), or paste the token below.</p>
+              <p>This console runs inside the Matchframe program, which signs it in automatically. During development, paste the operator token from <code>operator-token.txt</code> in the Matchframe data folder.</p>
             )}
             <form
               onSubmit={(e) => {
@@ -224,7 +226,7 @@ function TokenGate() {
                 void verify();
               }}
             >
-              <Field label="Operator token" hint="Kept only for this browser session; never shown in the address bar.">
+              <Field label="Operator token" hint="Kept only for this session; never shown in the address bar.">
                 <input type="password" autoComplete="off" value={manual} onChange={(e) => setManual(e.target.value)} />
               </Field>
               <Button type="submit" variant="primary" disabledReason={manual.trim() ? null : "Paste a token first"} reasonPlacement="tooltip">
@@ -240,16 +242,9 @@ function TokenGate() {
 }
 
 export function App() {
-  const { path } = useLocation();
   return (
     <ToastProvider>
-      {path === "/captain" ? (
-        <Suspense fallback={<Loading label="Loading veto…" />}>
-          <CaptainPage />
-        </Suspense>
-      ) : (
-        <TokenGate />
-      )}
+      <TokenGate />
     </ToastProvider>
   );
 }

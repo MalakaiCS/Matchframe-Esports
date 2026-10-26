@@ -24,7 +24,7 @@ async function freePort(): Promise<number> {
 async function boot(dataDir: string, ports?: { gsi: number; api: number; overlay: number }) {
   const p = ports ?? { gsi: await freePort(), api: await freePort(), overlay: await freePort() };
   process.env.MATCHFRAME_LOG_STDOUT = "0";
-  const cfg = loadConfig({ dataDir, gsiPort: p.gsi, apiPort: p.api, overlayPort: p.overlay, host: "127.0.0.1", operatorUiDir: null, hudRendererDir: null, mapPackDir: null, workersDir: null, pythonPath: null });
+  const cfg = loadConfig({ dataDir, gsiPort: p.gsi, apiPort: p.api, overlayPort: p.overlay, host: "127.0.0.1", captainUiDir: null, hudRendererDir: null, mapPackDir: null, workersDir: null, pythonPath: null });
   const engine = new Engine(cfg);
   await engine.init();
   const servers = await startServers(engine);

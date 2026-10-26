@@ -8,6 +8,7 @@ import { ROLE_DESCRIPTIONS } from "../lib/permissions.ts";
 import { Link } from "../router.tsx";
 import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
+import { engineOrigin } from "../lib/engine.ts";
 
 function onOff(v: boolean | null): string {
   return v === null ? "unknown" : v ? "ON" : "off";
@@ -270,7 +271,7 @@ function ActionRow({ a }: { a: DeviceActionInfo }) {
   const [params, setParams] = useState(() => JSON.stringify(defaultsFromSchema(a.params)));
   const hasParams = Object.keys((a.params.properties ?? {}) as object).length > 0;
   const parsed = parseJsonOr<Record<string, unknown>>(params, {});
-  const curl = `curl -X POST -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '${hasParams ? params : "{}"}' ${window.location.origin}/api/v1/devices/actions/${a.id}`;
+  const curl = `curl -X POST -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '${hasParams ? params : "{}"}' ${engineOrigin()}/api/v1/devices/actions/${a.id}`;
   return (
     <tr>
       <td>
@@ -339,7 +340,7 @@ function ControlSurfacesTab() {
   return (
     <div className="stack">
       <Note tone="neutral" title="COMPANION / STREAM DECK">
-        Control surfaces use the same local HTTP API as this console: <code>POST {window.location.origin}/api/v1/devices/actions/&lt;action&gt;</code> with <code>Authorization: Bearer &lt;token&gt;</code> and a JSON body. In Bitfocus Companion use the Generic HTTP module (POST, JSON body, custom header). Poll <code>GET /api/v1/devices/tally</code> for button feedback. Every action goes through the same control/program arbiters as the console and is audited. Issue a role-scoped token in the Tokens tab (e.g. role <em>observer</em> for camera buttons) — never share the operator token.
+        Control surfaces use the same local HTTP API as this console: <code>POST {engineOrigin()}/api/v1/devices/actions/&lt;action&gt;</code> with <code>Authorization: Bearer &lt;token&gt;</code> and a JSON body. In Bitfocus Companion use the Generic HTTP module (POST, JSON body, custom header). Poll <code>GET /api/v1/devices/tally</code> for button feedback. Every action goes through the same control/program arbiters as the console and is audited. Issue a role-scoped token in the Tokens tab (e.g. role <em>observer</em> for camera buttons) — never share the operator token.
       </Note>
       <Panel title="Tally" subtitle="What a control surface sees for button feedback">
         {t ? <TallyView t={t} /> : <Async state={tally}>{(x) => <TallyView t={x} />}</Async>}
@@ -449,7 +450,7 @@ function TokensTab() {
             </div>
             {issued.role === "captain" ? (
               <div className="small">
-                Captain link: <code>{`${window.location.origin}/captain?match=${matchId}&token=${issued.token}`}</code>
+                Captain link: <code>{`${engineOrigin()}/captain?match=${matchId}&token=${issued.token}`}</code>
               </div>
             ) : (
               <div className="small">Use as <code>Authorization: Bearer {issued.token.slice(0, 6)}…</code>. Only a hash is stored by the engine.</div>

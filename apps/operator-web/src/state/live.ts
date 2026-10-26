@@ -6,6 +6,7 @@ import type { ArbiterEvent, DerivedEvent, EngineAlert, EventEnvelope, Me, Operat
 import type { SocketInfo, SocketStatus } from "../api/ws.ts";
 import { OperatorSocket } from "../api/ws.ts";
 import { EngineClock } from "../lib/clock.ts";
+import { engineWsUrl } from "../lib/engine.ts";
 
 export interface AlertItem extends EngineAlert {
   id: string;
@@ -149,8 +150,7 @@ let socket: OperatorSocket | null = null;
 function wsUrl(): string | null {
   const token = getOperatorToken();
   if (!token) return null;
-  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${window.location.host}/api/v1/ws?token=${encodeURIComponent(token)}`;
+  return engineWsUrl(`/api/v1/ws?token=${encodeURIComponent(token)}`);
 }
 
 export function startLive(): void {

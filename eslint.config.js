@@ -6,6 +6,7 @@ export default tseslint.config(
     ignores: [
       "**/node_modules/**",
       "**/dist/**",
+      "**/dist-captain/**",
       "**/out/**",
       "**/release/**",
       "**/.vite/**",
@@ -46,6 +47,11 @@ export default tseslint.config(
       globals: { require: "readonly", __dirname: "readonly", module: "writable", document: "readonly", location: "readonly", window: "readonly" },
     },
     rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  {
+    // The program's connection settings page runs in its sandboxed window (classic script).
+    files: ["apps/desktop/connect/**/*.js"],
+    languageOptions: { sourceType: "script", globals: { document: "readonly", window: "readonly" } },
   },
   {
     // Example HUD packages run in the browser.

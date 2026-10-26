@@ -28,7 +28,7 @@ await new Promise((resolve, reject) => {
   engine.on("exit", (c) => reject(new Error(`engine exited ${c}`)));
 });
 const api = `http://127.0.0.1:${ports.MATCHFRAME_API_PORT}`;
-const token = new URL(readFileSync(join(dataDir, "operator-url.txt"), "utf8").trim()).searchParams.get("token");
+const token = readFileSync(join(dataDir, "operator-token.txt"), "utf8").trim();
 const call = async (method, path, body) => {
   const r = await fetch(api + path, { method, headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
   return r.json();

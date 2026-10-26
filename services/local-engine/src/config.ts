@@ -11,8 +11,8 @@ export interface EngineConfig {
   apiPort: number;
   overlayPort: number;
   dataDir: string;
-  /** Static operator UI build directory (served by the API server), if present. */
-  operatorUiDir: string | null;
+  /** Captain veto page build (apps/operator-web/dist-captain), served at /captain for scoped captain links. The operator console itself is never served to browsers. */
+  captainUiDir: string | null;
   /** Static HUD renderer build directory (served by the overlay server). */
   hudRendererDir: string | null;
   /** Directory holding map packs shipped with the app. */
@@ -55,7 +55,7 @@ export function loadConfig(overrides: Partial<EngineConfig> = {}): EngineConfig 
     apiPort: intEnv("MATCHFRAME_API_PORT", 37211),
     overlayPort: intEnv("MATCHFRAME_OVERLAY_PORT", 37212),
     dataDir: defaultDataDir(),
-    operatorUiDir: process.env.MATCHFRAME_OPERATOR_UI_DIR ?? null,
+    captainUiDir: process.env.MATCHFRAME_CAPTAIN_UI_DIR ?? null,
     hudRendererDir: process.env.MATCHFRAME_HUD_DIR ?? null,
     mapPackDir: process.env.MATCHFRAME_MAP_PACK_DIR ?? null,
     utilityProfilesFile: process.env.MATCHFRAME_UTILITY_PROFILES ?? null,

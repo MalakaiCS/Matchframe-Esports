@@ -1,0 +1,21 @@
+:root { color-scheme: dark; --bg: #11141b; --panel: #181c25; --line: #2a3140; --text: #e6e9ef; --muted: #9aa3b5; --accent: #2f7cf6; --ok: #35c27d; --bad: #f05656; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--text); font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
+.card { width: min(640px, calc(100vw - 32px)); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 28px 32px; }
+h1 { font-size: 22px; margin: 0 0 6px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.option { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; margin: 10px 0; cursor: pointer; }
+.option span { display: flex; flex-direction: column; }
+fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin: 14px 0 0; }
+fieldset:disabled { opacity: 0.45; }
+label { display: block; margin-bottom: 10px; font-weight: 600; font-size: 13px; }
+input:not([type="radio"]) { display: block; width: 100%; margin-top: 4px; padding: 8px 10px; background: #0d1016; color: var(--text); border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+button { padding: 8px 14px; border-radius: 6px; border: 1px solid var(--line); background: #222836; color: var(--text); font: inherit; cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.actions { display: flex; gap: 8px; margin-top: 16px; }
+.status { min-height: 1.5em; margin: 12px 0 0; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--bad); }
+code { font-family: Consolas, monospace; }

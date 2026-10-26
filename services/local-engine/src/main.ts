@@ -17,7 +17,7 @@ function repoPath(...parts: string[]): string | null {
 
 export async function main(): Promise<void> {
   const cfg = loadConfig({
-    operatorUiDir: process.env.MATCHFRAME_OPERATOR_UI_DIR ?? repoPath("apps", "operator-web", "dist"),
+    captainUiDir: process.env.MATCHFRAME_CAPTAIN_UI_DIR ?? repoPath("apps", "operator-web", "dist-captain"),
     hudRendererDir: process.env.MATCHFRAME_HUD_DIR ?? repoPath("apps", "hud-renderer", "dist"),
     mapPackDir: process.env.MATCHFRAME_MAP_PACK_DIR ?? repoPath("assets", "map-packs"),
     utilityProfilesFile: process.env.MATCHFRAME_UTILITY_PROFILES ?? repoPath("assets", "utility-profiles", "measured.json"),
@@ -26,9 +26,9 @@ export async function main(): Promise<void> {
   const engine = new Engine(cfg);
   await engine.init();
   const servers = await startServers(engine);
-  const url = `http://127.0.0.1:${cfg.apiPort}/?token=${engine.secrets.operatorToken}`;
-  const urlFile = join(cfg.dataDir, "operator-url.txt");
-  writeFileSync(urlFile, url + "\n", { mode: 0o600 });
+  // For scripts and headless use of the API. The console itself runs only inside the Matchframe program.
+  const tokenFile = join(cfg.dataDir, "operator-token.txt");
+  writeFileSync(tokenFile, engine.secrets.operatorToken + "\n", { mode: 0o600 });
   process.stdout.write(
     [
       "",
@@ -36,7 +36,8 @@ export async function main(): Promise<void> {
       `  GSI receiver : http://${cfg.host}:${cfg.gsiPort}/gsi`,
       `  Operator API : http://${cfg.host}:${cfg.apiPort}/api/v1`,
       `  Overlays     : http://${cfg.host}:${cfg.overlayPort}/overlay/main/live?t=…`,
-      `  Operator URL (contains the operator token) written to: ${urlFile}`,
+      `  Console      : runs inside the Matchframe program (pnpm desktop in development)`,
+      `  API token (for scripts) written to: ${tokenFile}`,
       "",
     ].join("\n") + "\n",
   );

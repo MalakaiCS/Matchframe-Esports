@@ -44,9 +44,9 @@ export function describeError(e: unknown): string {
     const msg = e.message || e.code;
     switch (e.status) {
       case 401:
-        return "Not authenticated: the operator token is missing, expired or was rejected. Reopen the operator URL from the engine (operator-url.txt) or the desktop app.";
+        return "Not authenticated: the access token is missing, expired or was rejected. Restart the Matchframe program, or check the token in File → Connection settings.";
       case 403:
-        if (e.code === "bad_origin") return "Blocked: this page's origin is not allowed to change engine state. Open the console from the engine's own address.";
+        if (e.code === "bad_origin") return "Blocked: this page is not allowed to change engine state. Use the Matchframe program.";
         if (e.code === "scope") return `Not allowed for this link: ${msg}`;
         return `Permission denied: ${msg}`;
       case 404:

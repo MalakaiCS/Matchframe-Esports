@@ -171,7 +171,7 @@ export function OfflineBanner() {
   if (status === "unauthorized")
     return (
       <div className="banner tone-danger" role="alert">
-        <strong>TOKEN REJECTED</strong> The engine rejected this console's token (rotated or revoked). Reopen the operator URL from the engine or desktop app.
+        <strong>TOKEN REJECTED</strong> The engine rejected this console's token (rotated or revoked). Restart the Matchframe program, or update the token in File → Connection settings.
       </div>
     );
   return (

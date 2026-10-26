@@ -20,7 +20,7 @@ describe.skipIf(!url || !password)("engine replay flow against real OBS (A29)", 
 
   beforeAll(async () => {
     process.env.MATCHFRAME_LOG_STDOUT = "0";
-    e = new Engine(loadConfig({ dataDir: mkdtempSync(join(tmpdir(), "mf-replay-obs-")), gsiPort: 47510, apiPort: 47511, overlayPort: 47512, operatorUiDir: null, hudRendererDir: null, mapPackDir: null, workersDir: null, pythonPath: null }));
+    e = new Engine(loadConfig({ dataDir: mkdtempSync(join(tmpdir(), "mf-replay-obs-")), gsiPort: 47510, apiPort: 47511, overlayPort: 47512, captainUiDir: null, hudRendererDir: null, mapPackDir: null, workersDir: null, pythonPath: null }));
     await e.init();
     servers = await startServers(e);
     api = (path, init = {}) => fetch(`http://127.0.0.1:47511${path}`, { ...init, headers: { authorization: `Bearer ${e.secrets.operatorToken}`, "content-type": "application/json", ...(init.headers ?? {}) } });

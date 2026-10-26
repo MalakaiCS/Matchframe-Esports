@@ -1,7 +1,7 @@
 /**
- * Token handling. The operator URL carries `?token=`; it is read once, kept in sessionStorage
- * (cleared when the window closes) and removed from the address bar so it is not left in history,
- * screenshots or screen shares. The Electron shell may instead expose a preload bridge.
+ * Token handling. Inside the Matchframe program the preload bridge supplies the token. During
+ * development (Vite) a `?token=` in the URL is read once, kept in sessionStorage (cleared when the
+ * window closes) and removed from the address bar, or the token can be pasted.
  */
 
 export const OPERATOR_TOKEN_KEY = "matchframe.operatorToken";
@@ -11,7 +11,12 @@ declare global {
   interface Window {
     /** Electron preload bridge (apps/desktop/src/preload.ts); absent in a plain browser. */
     matchframe?: {
+      /** Engine address (this computer, or the production computer in remote mode). */
+      engineOrigin?: string;
+      /** "local" (this computer runs the engine) or "remote" (connected to another computer). */
+      connectionMode?: "local" | "remote";
       getOperatorToken?: () => Promise<string | null>;
+      openConnection?: () => Promise<void>;
       onEmergencyStop?: (fn: (s: unknown) => void) => () => void;
       onEngineStatus?: (fn: (s: unknown) => void) => () => void;
     };

@@ -168,9 +168,17 @@ export async function startServers(e: Engine): Promise<RunningServers> {
         const f = safeResolve(assetDir(e), url.pathname.slice("/assets/".length));
         if (f) return serveFile(res, f);
       }
-      const uiHeaders = { "content-security-policy": `default-src 'self'; img-src 'self' data: blob: http://127.0.0.1:${cfg.overlayPort} http://localhost:${cfg.overlayPort}; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:${cfg.apiPort} ws://localhost:${cfg.apiPort}; frame-src http://127.0.0.1:${cfg.overlayPort} http://localhost:${cfg.overlayPort}; object-src 'none'; base-uri 'none'` };
-      if (serveStatic(res, cfg.operatorUiDir, url.pathname, { spa: true, headers: uiHeaders })) return;
-      json(res, 404, { error: "not_found", message: cfg.operatorUiDir ? "not found" : "Operator UI build not found; API is available under /api/v1" });
+      // The operator console runs only inside the Matchframe program (apps/desktop). Browsers get
+      // the captain veto page (scoped captain links) and nothing else from this server.
+      const captainHeaders = { "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" };
+      if ((url.pathname === "/captain" || url.pathname === "/captain/") && cfg.captainUiDir && serveStatic(res, cfg.captainUiDir, "/captain.html", { headers: captainHeaders })) return;
+      if (url.pathname.startsWith("/captain-assets/") && serveStatic(res, cfg.captainUiDir, url.pathname, { headers: captainHeaders })) return;
+      if (req.method === "GET" && !url.pathname.startsWith("/api/") && (req.headers.accept ?? "").includes("text/html")) {
+        res.writeHead(404, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'" });
+        res.end(`<!doctype html><meta charset="utf-8"><title>Matchframe</title><body style="font:16px system-ui;background:#11141b;color:#e6e9ef;padding:48px"><h1 style="font-size:20px">Matchframe engine</h1><p>The Matchframe console runs inside the Matchframe program for Windows. Open the program on this computer, or connect to this computer from the program on another one (File &rarr; Connect to another Matchframe computer).</p><p>This address serves the engine API for the program and control surfaces; HUD outputs for OBS are on port ${cfg.overlayPort}.</p></body>`);
+        return;
+      }
+      json(res, 404, { error: "not_found", message: "not found (the console runs inside the Matchframe program; the API is under /api/v1)" });
     } catch (err) {
       e.logger.error("api server error", { error: String(err) });
       json(res, 500, { error: "internal" });

@@ -13,7 +13,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const engine = new Engine(
   loadConfig({
     dataDir: mkdtempSync(join(tmpdir(), "mf-coverage-")),
-    operatorUiDir: null,
+    captainUiDir: null,
     hudRendererDir: null,
     mapPackDir: join(root, "assets", "map-packs"),
     utilityProfilesFile: join(root, "assets", "utility-profiles", "measured.json"),

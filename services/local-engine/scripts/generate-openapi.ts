@@ -9,7 +9,7 @@ import { startServers } from "../src/servers.ts";
 
 process.env.MATCHFRAME_LOG_STDOUT = "0";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const engine = new Engine(loadConfig({ dataDir: mkdtempSync(join(tmpdir(), "mf-openapi-")), gsiPort: 47210, apiPort: 47211, overlayPort: 47212, operatorUiDir: null, hudRendererDir: null, mapPackDir: null, workersDir: null, pythonPath: null }));
+const engine = new Engine(loadConfig({ dataDir: mkdtempSync(join(tmpdir(), "mf-openapi-")), gsiPort: 47210, apiPort: 47211, overlayPort: 47212, captainUiDir: null, hudRendererDir: null, mapPackDir: null, workersDir: null, pythonPath: null }));
 await engine.init();
 const servers = await startServers(engine);
 const doc = servers.router.openapi({ title: "Matchframe Esports local API", version: "0.1.0" });

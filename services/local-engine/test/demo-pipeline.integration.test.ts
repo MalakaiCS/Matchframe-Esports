@@ -40,7 +40,7 @@ describe.skipIf(!enabled)("demo pipeline with real demos and Python workers", ()
 
   beforeAll(async () => {
     process.env.MATCHFRAME_LOG_STDOUT = "0";
-    e = new Engine(loadConfig({ dataDir, gsiPort: 47410, apiPort: 47411, overlayPort: 47412, operatorUiDir: null, hudRendererDir: null, mapPackDir: join(repo, "assets", "map-packs"), workersDir: join(repo, "workers"), pythonPath: python! }));
+    e = new Engine(loadConfig({ dataDir, gsiPort: 47410, apiPort: 47411, overlayPort: 47412, captainUiDir: null, hudRendererDir: null, mapPackDir: join(repo, "assets", "map-packs"), workersDir: join(repo, "workers"), pythonPath: python! }));
     await e.init();
     e.demos.stop(); // the test drives the queue itself
     e.demos.setConfig({ ingestRoots: [ingest], watch: false, minFreeBytes: 0, retention: { policy: "remove_after_validation", quarantineDays: 0, auditSampleRate: 0 } });

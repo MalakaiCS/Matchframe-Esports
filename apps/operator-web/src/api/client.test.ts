@@ -33,12 +33,12 @@ describe("api client", () => {
   });
 
   it("explains 401 with how to recover", () => {
-    expect(describeError(new ApiError(401, "unauthorized", "authentication required"))).toMatch(/operator token is missing, expired or was rejected/);
+    expect(describeError(new ApiError(401, "unauthorized", "authentication required"))).toMatch(/access token is missing, expired or was rejected/);
   });
 
   it("distinguishes forbidden roles from rejected origins", () => {
     expect(describeError(new ApiError(403, "forbidden", "role viewer lacks camera.control"))).toBe("Permission denied: role viewer lacks camera.control");
-    expect(describeError(new ApiError(403, "bad_origin", "origin not allowed"))).toMatch(/origin is not allowed/);
+    expect(describeError(new ApiError(403, "bad_origin", "origin not allowed"))).toMatch(/not allowed to change engine state/);
   });
 
   it("summarises zod validation issues", () => {

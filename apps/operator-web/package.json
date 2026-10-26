@@ -2,11 +2,11 @@
   "name": "@matchframe/operator-web",
   "version": "0.1.0",
   "private": true,
-  "description": "Matchframe Esports operator console (web UI served by the local engine)",
+  "description": "Matchframe Esports operator console (bundled into the Matchframe program) and the captain veto page",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.captain.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --config vitest.config.ts"
   },

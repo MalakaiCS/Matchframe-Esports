@@ -11,8 +11,14 @@ files:
 extraResources:
   - from: dist/engine
     to: engine
+  # Operator console (shown only inside the program from app://matchframe) and its connection page.
   - from: ../operator-web/dist
     to: operator-web
+  - from: connect
+    to: connect
+  # Captain veto page, served by the engine for scoped captain links.
+  - from: ../operator-web/dist-captain
+    to: captain-web
   - from: ../hud-renderer/dist
     to: hud-renderer
   - from: ../../assets/map-packs

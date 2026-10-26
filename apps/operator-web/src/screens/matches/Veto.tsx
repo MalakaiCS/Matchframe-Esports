@@ -6,6 +6,7 @@ import { ActionButton, Async, Badge, Button, CopyButton, Field, JsonEditor, Note
 import { fmtTime } from "../../lib/format.ts";
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
+import { engineOrigin } from "../../lib/engine.ts";
 
 export const VETO_KIND_LABEL: Record<string, string> = { ban: "Ban", pick: "Pick", decider: "Decider", side_choice: "Side choice" };
 
@@ -24,7 +25,7 @@ function CaptainLinks({ match, teamA, teamB }: { match: MatchDetail; teamA: Team
         size="sm"
         action={() => api.post<{ id: string; token: string }>("/api/v1/tokens", { role: "captain", label: `Captain ${team?.shortName ?? ""} · ${match.title ?? match.id}`.slice(0, 80), matchId: match.id, teamId: team!.id, ttlHours: Number(ttl) })}
         success="Captain link issued (shown once)"
-        onDone={(t) => setLinks({ ...links, [team!.id]: `${window.location.origin}/captain?match=${encodeURIComponent(match.id)}&token=${t.token}` })}
+        onDone={(t) => setLinks({ ...links, [team!.id]: `${engineOrigin()}/captain?match=${encodeURIComponent(match.id)}&token=${t.token}` })}
         disabledReason={reason ?? (team ? null : "Team missing")}
         reasonPlacement="tooltip"
       >

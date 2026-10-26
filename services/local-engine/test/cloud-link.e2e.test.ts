@@ -79,7 +79,7 @@ describe("desktop engine <-> Matchframe website (real servers on both sides)", (
     ports = { gsi: await freePort(), api: await freePort(), overlay: await freePort() };
     process.env.MATCHFRAME_LOG_STDOUT = "0";
     const dataDir = mkdtempSync(join(tmpdir(), "mf-engine-cloud-"));
-    engine = new Engine(loadConfig({ dataDir, gsiPort: ports.gsi, apiPort: ports.api, overlayPort: ports.overlay, host: "127.0.0.1", operatorUiDir: null, hudRendererDir: null, mapPackDir: null, workersDir: null, pythonPath: null, cloudUrl: cloudBase, cloudPublicKeys: null, cloudEnforcement: "required" }));
+    engine = new Engine(loadConfig({ dataDir, gsiPort: ports.gsi, apiPort: ports.api, overlayPort: ports.overlay, host: "127.0.0.1", captainUiDir: null, hudRendererDir: null, mapPackDir: null, workersDir: null, pythonPath: null, cloudUrl: cloudBase, cloudPublicKeys: null, cloudEnforcement: "required" }));
     await engine.init();
     const servers = await startServers(engine);
     closeEngine = async () => {
