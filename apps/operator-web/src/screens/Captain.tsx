@@ -121,6 +121,7 @@ export function CaptainPage() {
                   </div>
                 ) : cur.kind === "side_choice" ? (
                   <div className="row" style={{ marginTop: 10 }}>
+                    <span>Starting side on {[...view.decisions].reverse().find((d) => d.mapName && (d.kind === "pick" || d.kind === "decider"))?.mapName ?? "the picked map"}:</span>
                     <Button size="lg" variant="primary" disabled={busy} onClick={() => void act({ side: "CT" })}>
                       Start CT
                     </Button>

@@ -25,7 +25,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const push = useCallback(
     (tone: ToastTone, title: string, body?: string) => {
       const id = ++seq.current;
-      setToasts((t) => [...t.slice(-4), { id, tone, title, body }]);
+      setToasts((t) => [...t.slice(-2), { id, tone, title, body }]);
       setTimeout(() => dismiss(id), tone === "danger" ? 9000 : 4500);
     },
     [dismiss],

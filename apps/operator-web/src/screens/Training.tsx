@@ -31,6 +31,22 @@ export const PROMOTION_TARGETS: Record<string, string[]> = {
 
 const SHADOW_OK = new Set(["shadow", "candidate", "approved"]);
 
+/** Compact "key value" text for a worker step summary (paths shortened, long values truncated). */
+export function summarizeStep(summary: Record<string, unknown>): string {
+  const short = (v: unknown): string => {
+    if (v === null || v === undefined) return "—";
+    if (typeof v === "string") return v.includes("/") || v.includes("\\") ? `…/${v.split(/[\\/]/).filter(Boolean).slice(-2).join("/")}` : v.length > 60 ? `${v.slice(0, 57)}…` : v;
+    if (typeof v === "number") return Number.isInteger(v) ? String(v) : v.toFixed(3);
+    if (typeof v === "boolean") return v ? "yes" : "no";
+    if (Array.isArray(v)) return v.length === 0 ? "none" : `${v.length} item(s)`;
+    const t = JSON.stringify(v);
+    return t.length > 80 ? `${t.slice(0, 77)}…` : t;
+  };
+  return Object.entries(summary)
+    .map(([k, v]) => `${k} ${short(v)}`)
+    .join(" · ");
+}
+
 function StepList({ run }: { run: TrainingRun }) {
   if (run.steps.length === 0) return <span className="muted small">starting…</span>;
   return (
@@ -38,7 +54,7 @@ function StepList({ run }: { run: TrainingRun }) {
       {run.steps.map((s, i) => (
         <li key={i}>
           <strong>{s.name}</strong> <Badge tone={s.status === "completed" ? "ok" : s.status === "failed" ? "danger" : "info"}>{s.status}</Badge>
-          {s.summary ? <span className="muted"> {JSON.stringify(s.summary).slice(0, 160)}</span> : null}
+          {s.summary ? <div className="muted">{summarizeStep(s.summary)}</div> : null}
         </li>
       ))}
     </ol>

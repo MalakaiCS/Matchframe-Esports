@@ -35,12 +35,33 @@ const PHASE_LABEL: Record<string, string> = {
   unknown: "Phase unknown",
 };
 
+/** Commands still awaiting transport or observed confirmation. */
+export function isInFlight(status: string | null | undefined): boolean {
+  return status === "pending" || status === "sent" || status === "transport_acknowledged";
+}
+
 function describeCommandResult(r: CommandResult | null | undefined, who: string): { tone: "ok" | "info" | "danger"; text: string } {
   if (!r) return { tone: "info", text: `No command was issued for ${who} (no valid POV candidate).` };
   const precision = r.precision.replace(/_/g, " ");
   if (r.status === "confirmed") return { tone: "ok", text: `POV ${who}: confirmed (${precision}).` };
   if (r.status === "failed" || r.status === "cancelled") return { tone: "danger", text: `POV ${who}: ${r.status}${r.failureReason ? ` — ${r.failureReason.replace(/_/g, " ")}` : ""}${r.detail ? ` (${r.detail})` : ""}.` };
   return { tone: "info", text: `POV ${who}: ${r.status.replace(/_/g, " ")} (${precision}) — waiting for observed confirmation.` };
+}
+
+/** Waits (≤4 s) for the arbiter's observed result for a command and reports it. */
+async function followConfirmation(commandId: string, who: string, push: (tone: "ok" | "info" | "warn" | "danger", title: string, body?: string) => void) {
+  const deadline = Date.now() + 4000;
+  while (Date.now() < deadline) {
+    const ev = liveStore.state.arbiterLog.find((e) => e.kind === "result" && e.detail.commandId === commandId && e.detail.status !== "transport_acknowledged" && e.detail.status !== "sent");
+    if (ev) {
+      const status = String(ev.detail.status);
+      if (status === "confirmed") push("ok", `POV ${who}: confirmed by telemetry (${String(ev.detail.precision ?? "").replace(/_/g, " ")})`);
+      else push("danger", `POV ${who}: ${status}`, ev.detail.failureReason ? String(ev.detail.failureReason).replace(/_/g, " ") : undefined);
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  push("warn", `POV ${who}: no observed confirmation yet`, "Check the Point of view panel: the confirmed POV comes from source feedback.");
 }
 
 function useActiveMatch() {
@@ -125,6 +146,7 @@ function PovStatus({ snap }: { snap: OperatorSnapshot }) {
   const arbiterLog = useLive((st) => st.arbiterLog);
   const lastResult = [...arbiterLog].reverse().find((e) => e.kind === "result" || e.kind === "rejected" || e.kind === "external_change");
   const p = snap.pending;
+  const inFlight = isInFlight(p?.status);
   const pendingTarget = p ? (p.request.kind === "select_player" ? `POV · ${nameOf(p.request.steamId)}` : p.request.kind === "activate_static_camera" ? `Camera · ${p.request.camera.displayName}` : p.request.kind.replace(/_/g, " ")) : null;
   return (
     <div className="pov-grid">
@@ -133,8 +155,8 @@ function PovStatus({ snap }: { snap: OperatorSnapshot }) {
         <span className="pov-value">{shotLabel(snap.currentShot, nameOf)}</span>
         <span className="pov-meta">source feedback ({s.observer.evidence}) · {s.observer.cameraMode.replace("_", " ")}</span>
       </div>
-      <div className={`pov-cell pov-pending ${p ? "is-active" : ""}`}>
-        <span className="pov-label">PENDING command</span>
+      <div className={`pov-cell pov-pending ${inFlight ? "is-active" : ""}`}>
+        <span className="pov-label">{p && !inFlight ? "LAST command" : "PENDING command"}</span>
         <span className="pov-value">{pendingTarget ?? "none"}</span>
         <span className="pov-meta">{p ? `${p.status.replace(/_/g, " ")} · owner ${p.context.owner}${p.retries ? ` · retry ${p.retries}` : ""}` : "nothing in flight"}</span>
       </div>
@@ -504,6 +526,7 @@ export function LiveControlScreen() {
       const r = await api.post<CommandResult>("/api/v1/observer/commands", { kind: "select_player", steamId: p.steamId });
       const d = describeCommandResult(r, p.name);
       toast.push(d.tone === "danger" ? "danger" : d.tone === "ok" ? "ok" : "info", d.text);
+      if (r && isInFlight(r.status)) void followConfirmation(r.commandId, p.name, toast.push);
     } catch (e) {
       toast.push("danger", `POV request for ${p.name} failed`, describeError(e));
     } finally {
@@ -564,7 +587,7 @@ export function LiveControlScreen() {
 
   const s = snap.state;
   const sides = playersBySide(s);
-  const pendingSteam = snap.pending?.request.kind === "select_player" ? snap.pending.request.steamId : null;
+  const pendingSteam = snap.pending?.request.kind === "select_player" && isInFlight(snap.pending.status) ? snap.pending.request.steamId : null;
   const desired = shotTarget(snap.director?.desiredShot);
   const rolesOf = (p: PlayerState): PovRole[] => {
     const r: PovRole[] = [];
