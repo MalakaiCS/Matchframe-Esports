@@ -375,7 +375,39 @@ export class Engine {
     for (const fn of this.hudListeners) fn("*");
   }
 
+  private playerCam = { lastPlayerId: null as string | null, lastSource: null as string | null, lastError: null as string | null, lastAt: null as string | null, applied: 0 };
+
+  playerCamStatus(): Record<string, unknown> {
+    return { ...this.playerCam, obsConnected: this.obs.state.connected, programMode: this.program.mode };
+  }
+
+  /**
+   * Shows the observed player's camera source (by stable player ID, never by observer slot) and
+   * hides the other configured player sources. Only players who consented are routed; outside LIVE
+   * program mode nothing is changed. An optional delay aligns cameras with a delayed program.
+   */
+  private routePlayerCamera(observedSteamId: string | null): void {
+    const cfg = this.settings.get<{ enabled?: boolean; scene?: string | null; sources?: Record<string, string>; fallbackSource?: string | null; delayMs?: number }>("playerCams", {});
+    if (!cfg.enabled || !cfg.scene || !this.obs.state.connected || this.program.mode !== "LIVE") return;
+    const playerId = observedSteamId ? this.steamIndex.lookup(observedSteamId) : null;
+    const player = playerId ? this.players.get(playerId)?.data : undefined;
+    const target = player?.cameraConsent && playerId ? (cfg.sources?.[playerId] ?? null) : null;
+    const show = target ?? cfg.fallbackSource ?? null;
+    const apply = async () => {
+      try {
+        const all = new Set([...Object.values(cfg.sources ?? {}), ...(cfg.fallbackSource ? [cfg.fallbackSource] : [])]);
+        for (const src of all) await this.obs.setSourceVisible(cfg.scene!, src, src === show);
+        this.playerCam = { lastPlayerId: playerId, lastSource: show, lastError: null, lastAt: new Date().toISOString(), applied: this.playerCam.applied + 1 };
+      } catch (err) {
+        this.playerCam = { ...this.playerCam, lastError: err instanceof Error ? err.message : String(err), lastAt: new Date().toISOString() };
+      }
+    };
+    if (cfg.delayMs && cfg.delayMs > 0) setTimeout(() => void apply(), cfg.delayMs);
+    else void apply();
+  }
+
   private onDerivedEvents(evs: DerivedEvent[]): void {
+    for (const ev of evs) if (ev.kind === "observer_changed") this.routePlayerCamera((ev.data.to as string | null) ?? null);
     const state = this.session.state();
     const nameOf = (steamId: string) => {
       const p = state?.players.find((x) => x.steamId === steamId);

@@ -10,3 +10,4 @@ export * from "./planner.ts";
 export * from "./director.ts";
 export * from "./control/adapter.ts";
 export * from "./control/arbiter.ts";
+export * from "./model/gbdt.ts";

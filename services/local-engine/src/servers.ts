@@ -11,6 +11,8 @@ import { registerCoreRoutes } from "./routes/core.ts";
 import { registerHudRoutes } from "./routes/hud.ts";
 import { registerLiveRoutes } from "./routes/live.ts";
 import { registerDemoRoutes } from "./routes/demos.ts";
+import { registerReportRoutes } from "./routes/reports.ts";
+import { registerIntegrationRoutes } from "./routes/integrations.ts";
 import { bearer, json, readBody, Router } from "./http/router.ts";
 import { overlayCsp, safeResolve, serveFile, serveStatic } from "./http/static.ts";
 import type { HubClient } from "./http/ws-hub.ts";
@@ -52,6 +54,9 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerLiveRoutes(router, e);
   registerHudRoutes(router, e);
   registerDemoRoutes(router, e);
+  registerReportRoutes(router, e);
+  registerIntegrationRoutes(router, e);
+  router.get("/api/v1/openapi.json", { permission: "public" }, () => router.openapi({ title: "Matchframe Esports local API", version: "0.1.0" }));
 
   // ------------------------------------------------------------------ GSI ingest server
   let gsiRejectedAuth = 0;

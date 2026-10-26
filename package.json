@@ -21,7 +21,8 @@
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "schemas": "tsx packages/contracts/scripts/generate-json-schema.ts",
     "package:win": "pnpm build && pnpm --filter @matchframe/desktop run package:win",
-    "package:dir": "pnpm build && pnpm --filter @matchframe/desktop run package:dir"
+    "package:dir": "pnpm build && pnpm --filter @matchframe/desktop run package:dir",
+    "openapi": "tsx services/local-engine/scripts/generate-openapi.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
