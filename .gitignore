@@ -25,3 +25,6 @@ Thumbs.db
 
 # Agent worktrees
 .claude/worktrees/
+
+# Filled-in cloud deployment environment
+config/cloud.env

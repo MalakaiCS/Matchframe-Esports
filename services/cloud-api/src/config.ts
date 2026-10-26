@@ -31,24 +31,26 @@ export interface CloudConfig {
 
 export function loadCloudConfig(env: NodeJS.ProcessEnv = process.env, overrides: Partial<CloudConfig> = {}): CloudConfig {
   const list = (v: string | undefined) => (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  // Blank values count as unset (container tooling often passes empty strings for unset variables).
+  const opt = (v: string | undefined) => (v && v.trim() ? v.trim() : null);
   const cfg: CloudConfig = {
-    publicUrl: (env.MF_CLOUD_PUBLIC_URL ?? "http://127.0.0.1:8080").replace(/\/$/, ""),
-    host: env.MF_CLOUD_HOST ?? "127.0.0.1",
-    port: Number(env.MF_CLOUD_PORT ?? env.PORT ?? 8080),
-    databaseUrl: env.DATABASE_URL ?? null,
-    pgliteDir: env.MF_CLOUD_PGLITE_DIR ?? null,
-    signingKeyPem: env.MF_CLOUD_SIGNING_KEY?.replace(/\\n/g, "\n") ?? null,
+    publicUrl: (opt(env.MF_CLOUD_PUBLIC_URL) ?? "http://127.0.0.1:8080").replace(/\/$/, ""),
+    host: opt(env.MF_CLOUD_HOST) ?? "127.0.0.1",
+    port: Number(opt(env.MF_CLOUD_PORT) ?? opt(env.PORT) ?? 8080),
+    databaseUrl: opt(env.DATABASE_URL),
+    pgliteDir: opt(env.MF_CLOUD_PGLITE_DIR),
+    signingKeyPem: opt(env.MF_CLOUD_SIGNING_KEY)?.replace(/\\n/g, "\n") ?? null,
     extraPublicKeysPem: (env.MF_CLOUD_EXTRA_PUBLIC_KEYS ?? "").replace(/\\n/g, "\n").split("|||").map((k) => k.trim()).filter(Boolean),
-    stripeSecretKey: env.STRIPE_SECRET_KEY ?? null,
-    stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET ?? null,
-    stripeApiBase: env.MF_STRIPE_API_BASE ?? null,
-    smtpUrl: env.SMTP_URL ?? null,
-    mailFrom: env.MF_MAIL_FROM ?? "Matchframe <no-reply@localhost>",
+    stripeSecretKey: opt(env.STRIPE_SECRET_KEY),
+    stripeWebhookSecret: opt(env.STRIPE_WEBHOOK_SECRET),
+    stripeApiBase: opt(env.MF_STRIPE_API_BASE),
+    smtpUrl: opt(env.SMTP_URL),
+    mailFrom: opt(env.MF_MAIL_FROM) ?? "Matchframe <no-reply@localhost>",
     devLogEmails: env.MF_DEV_LOG_EMAILS === "1",
-    webDir: env.MF_CLOUD_WEB_DIR ?? null,
-    downloads: { version: env.MF_DOWNLOAD_VERSION ?? "0.1.0", windowsUrl: env.MF_DOWNLOAD_WINDOWS_URL ?? null, sha256: env.MF_DOWNLOAD_WINDOWS_SHA256 ?? null, notesUrl: env.MF_DOWNLOAD_NOTES_URL ?? null },
-    entitlementTtlHours: Number(env.MF_ENTITLEMENT_TTL_HOURS ?? 24),
-    offlineGraceDays: Number(env.MF_OFFLINE_GRACE_DAYS ?? 7),
+    webDir: opt(env.MF_CLOUD_WEB_DIR),
+    downloads: { version: opt(env.MF_DOWNLOAD_VERSION) ?? "0.1.0", windowsUrl: opt(env.MF_DOWNLOAD_WINDOWS_URL), sha256: opt(env.MF_DOWNLOAD_WINDOWS_SHA256), notesUrl: opt(env.MF_DOWNLOAD_NOTES_URL) },
+    entitlementTtlHours: Number(opt(env.MF_ENTITLEMENT_TTL_HOURS) ?? 24),
+    offlineGraceDays: Number(opt(env.MF_OFFLINE_GRACE_DAYS) ?? 7),
     staffEmails: list(env.MF_STAFF_EMAILS).map((e) => e.toLowerCase()),
     ...overrides,
   };

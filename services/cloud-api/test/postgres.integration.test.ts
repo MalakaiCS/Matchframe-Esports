@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { migrate } from "../src/db/migrations.ts";
 import { PgSql } from "../src/db/sql.ts";
 import { computeAllowance, ingestUsage } from "../src/domain/allowance.ts";
-import { seedCatalog } from "../src/domain/plans.ts";
+import { getPlan, seedCatalog } from "../src/domain/plans.ts";
 
 /**
  * Real Postgres server through node-postgres (the production driver). Opt-in: set
@@ -30,6 +30,8 @@ describe.skipIf(!url)("cloud API storage on a real Postgres server", () => {
     await seedCatalog(sql);
     const { rows } = await sql.query<{ n: string }>("SELECT count(*) AS n FROM plans");
     expect(Number(rows[0]!.n)).toBe(3);
+    await seedCatalog(sql, { STRIPE_PRICE_PRO: "price_pro_after_first_start" });
+    expect((await getPlan(sql, "pro"))?.stripePriceId).toBe("price_pro_after_first_start");
     await expect(
       sql.transaction(async (tx) => {
         await tx.query("INSERT INTO orgs (id, name) VALUES ('org_rb', 'rollback')");

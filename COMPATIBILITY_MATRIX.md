@@ -50,3 +50,15 @@ Versions actually used in this repository's environment and what was exercised o
 | Bitfocus Companion / Stream Deck | – | HTTP actions documented; not tested with the products |
 | Replay tool bridge | contract v1 | blocked (tool API not available) |
 | MatchFrame bridge | contract v1 | blocked (service API not available) |
+
+## Website and cloud API
+
+| Item | Version | Status |
+|---|---|---|
+| Postgres (production database) | 16 (local server), node-postgres 8.23.1 | **verified** — migrations, rollback, six concurrent computers debiting credits exactly once (`MF_TEST_DATABASE_URL` integration test); bundled server run against it |
+| PGlite (tests, trials) | 0.5.8 | verified in every cloud test |
+| Stripe API | SDK 23.0.0, API 2026-09-30.endive | real SDK against a local Stripe API stub with real webhook signatures; **no real Stripe account** used; the official `stripe-mock` binary could not be run here |
+| SMTP | nodemailer 10.1.0 | not tested against a real mail server (outbox table and console logging tested) |
+| Container | Docker 29.9.2, `node:22.22.0-bookworm-slim` | see BUILD_PROGRESS.md for the image build and run result |
+| Desktop ↔ website | licence format `mfe1`, Ed25519 | verified with both real servers in one test (link, licence, gate, usage upload, credits, map-change handback, revocation) |
+

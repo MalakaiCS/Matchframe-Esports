@@ -1,4 +1,4 @@
-import { PGlite } from "@electric-sql/pglite";
+import type { PGlite } from "@electric-sql/pglite";
 import pg from "pg";
 
 export type SqlParam = string | number | boolean | null | Date | Buffer;
@@ -49,31 +49,35 @@ export class PgSql implements Sql {
   }
 }
 
-/** Tests and single-machine development: Postgres compiled to WebAssembly, in process. */
+/**
+ * Tests and single-machine development: Postgres compiled to WebAssembly, in process. Loaded on
+ * first use so Postgres-only deployments do not need the package.
+ */
 export class PgliteSql implements Sql {
   readonly kind = "pglite" as const;
-  private readonly db: PGlite;
+  private readonly db: Promise<PGlite>;
   private chain: Promise<unknown> = Promise.resolve();
 
   constructor(dataDir?: string) {
-    this.db = new PGlite(dataDir);
+    this.db = import("@electric-sql/pglite").then((m) => new m.PGlite(dataDir));
   }
 
-  query<T>(text: string, params: SqlParam[] = []): Promise<{ rows: T[] }> {
-    return this.db.query<T>(text, params).then((r) => ({ rows: r.rows }));
+  async query<T>(text: string, params: SqlParam[] = []): Promise<{ rows: T[] }> {
+    const r = await (await this.db).query<T>(text, params);
+    return { rows: r.rows };
   }
 
   /** PGlite has a single connection: serialise transactions so they never interleave. */
   transaction<T>(fn: (tx: Queryable) => Promise<T>): Promise<T> {
-    const run = this.chain.then(() =>
-      this.db.transaction(async (t) => fn({ query: async <R>(text: string, params: SqlParam[] = []) => ({ rows: (await t.query<R>(text, params)).rows }) })),
+    const run = this.chain.then(async () =>
+      (await this.db).transaction(async (t) => fn({ query: async <R>(text: string, params: SqlParam[] = []) => ({ rows: (await t.query<R>(text, params)).rows }) })),
     );
     this.chain = run.catch(() => undefined);
     return run;
   }
 
   async close(): Promise<void> {
-    await this.db.close();
+    await (await this.db).close();
   }
 }
 

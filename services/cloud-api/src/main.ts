@@ -7,7 +7,7 @@ import { startCloudServer } from "./server.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const defaultWeb = [resolve(here, "..", "..", "..", "apps", "cloud-web", "dist"), resolve(here, "..", "web")].find((p) => existsSync(join(p, "index.html"))) ?? null;
-const cfg = loadCloudConfig(process.env, { webDir: process.env.MF_CLOUD_WEB_DIR ?? defaultWeb });
+const cfg = loadCloudConfig(process.env, { webDir: process.env.MF_CLOUD_WEB_DIR?.trim() || defaultWeb });
 const app = new CloudApp(cfg);
 await app.init();
 const { close } = await startCloudServer(app);

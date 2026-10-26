@@ -11,12 +11,16 @@
 | Python workers | Local subprocesses | Run with explicit arguments; never delete raw demos (retention is enforced by the engine with path-containment checks). |
 | Imported HUD packages | Third-party HTML/JS | Static assets only, extension allowlist, size limits, traversal/absolute-path/symlink rejection, checksums, no install scripts executed, served on the overlay origin under CSP with no access to operator data or Node. |
 | Desktop renderer | Operator UI | Context isolation, sandbox, no Node integration, navigation locked to the loopback engine origin, token released only to that origin. |
+| Engine → Matchframe website (`/v1/device/*`) | The hosted cloud API | Outbound HTTPS only (the website never connects to the engine). Device token (from the device-code link, approved on the website) kept in the encrypted secret store and sent only as a Bearer token to the configured website. Licences are Ed25519-signed and verified offline against keys pinned into release builds (`cloud.json`); a licence for another computer, an unknown key or a bad signature is refused. Changing the website address unlinks the computer and forgets learned keys. Only link details (computer name, OS platform, app version, a random installation id) and usage records (times, duration, map name, session id, active match id) leave the computer — no telemetry, player data or media. |
+| Browser → website | Customers and staff | See [cloud architecture](architecture/cloud.md#trust-boundaries): scrypt passwords, HttpOnly SameSite session cookies, Origin checks on mutations, rate limits, enumeration-safe auth, hashed single-use email tokens, per-organisation roles, staff only from `MF_STAFF_EMAILS`, audited changes. |
+| Stripe → website | Stripe webhooks | Signature verification with the endpoint secret, events stored once per id, plan state only from verified events or direct reads from Stripe. |
 
 ## Tokens and secrets
 
 - `secrets.json` in the data directory (owner-only file mode): operator token, GSI token, hashed role tokens, and credentials (OBS password, bridge tokens). With the desktop shell, credentials are AES-256-GCM encrypted with a key protected by the OS credential store (Electron `safeStorage`).
 - Role tokens are stored as SHA-256 hashes and shown once on creation; captain tokens are scoped to one match and team and expire (default 6 h).
 - Logs pass through a redactor: keys matching token/secret/password/auth/stream key/join key/credential are replaced, and `t=`, `token=`, `key=` query values are stripped from URLs. The operator URL is written to `operator-url.txt` (owner-only) instead of the console log.
+- Cloud secrets: the website's licence signing key, Stripe keys, webhook secret, SMTP credentials and database URL live only in the server environment (`config/cloud.env` is git-ignored). Website session tokens, device tokens and email tokens are stored as SHA-256 hashes; passwords as scrypt hashes. The licence gate on the desktop is a licensing control, not DRM: the server-side usage record is authoritative.
 - Event package exports never include secrets. Support bundles are sanitized (config redacted, hostname hashed, no tokens).
 
 ## Network modes

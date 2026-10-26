@@ -62,7 +62,10 @@ Numbered work items in dependency order. Status: **done**, **open**, **blocked (
 | B051 | Device action API + tally | done |
 | B052 | Companion module / Stream Deck plugin | open |
 | B053 | Win-probability or other predictions (calibrated, optional) | open |
-| B054 | Accounts/organisations, cloud asset/preset sync, conflict handling | open |
+| B054 | Accounts/organisations on the website | done (website + cloud API) |
+| B057 | Stripe billing (plans, hour packs, portal, webhooks), auto-director hour quotas, computer linking, signed licences, usage metering | done (tested against a Stripe API stub; real Stripe account not used) |
+| B058 | Hosted deployment: domain, TLS, Postgres, Stripe live mode, SMTP, signing key, desktop `cloud.json` | **blocked (input: owner's accounts and hosting)** |
+| B059 | Cloud asset/preset sync and conflict handling; multi-site coordination | open |
 | B055 | SDK guide + example HUD package | done (example game adapter open) |
 | B056 | MatchFrame bridge against the real service | **blocked (input: service API)** |
 
@@ -90,3 +93,6 @@ Numbered work items in dependency order. Status: **done**, **open**, **blocked (
 | R10 | Licence contamination from reference products | low | high | No LHM code/assets/account; GPL projects used only as documentation (THIRD_PARTY_NOTICES.md) |
 | R11 | Overconfident utility predictions from small measured samples | medium | medium | Measured SDs floored (100 ms / 250 ms); prediction never promoted to confirmation |
 | R12 | Storage growth beyond the 2 TB plan | low | medium | Measured estimate (p95 465 GB / 812 GB for 9k / 27k demos); quotas and admission control; raw retention as queue + curated sample |
+| R13 | Client-side licence gate bypassed by a modified desktop build | medium | low–medium | Licensing control, not DRM; pinned keys stop fake servers; server-side usage is the billing record; signed releases (B062) |
+| R14 | Billing behaviour differs from the stub-tested Stripe flows | medium | medium | Real SDK and signed webhooks in tests; test-mode checklist in `docs/operations/cloud-deployment.md`; webhook failures listed for staff; idempotent event handling |
+| R15 | A paying customer is cut off mid-match by an outage or quota | low | high | Running automation is never stopped by the gate; 7-day offline grace; quota only blocks re-arming; staff credit grants |

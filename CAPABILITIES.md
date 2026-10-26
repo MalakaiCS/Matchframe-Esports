@@ -41,7 +41,19 @@ Control safety (tested): single writer with ownership generations, sticky manual
 | Statistics | implemented for source-reported values | ADR, KAST, utility damage, opening duels reported unavailable on GSI |
 | Learned models | implemented in shadow | real-demo training run + local inference test; never drives the camera |
 
-## 4. Not supported (by design or out of scope here)
+## 4. Accounts, billing and auto-director hours (website)
+
+| Capability | Status | Evidence |
+|---|---|---|
+| Signup, email verification, login, password reset, organisations, roles, invitations | implemented; tested with fixtures | cloud API end-to-end test over HTTP (PGlite) |
+| Stripe Checkout (plans, hour packs), customer portal, invoices, webhooks | implemented; tested against a local Stripe API stub | real Stripe SDK requests asserted; signed, duplicate and forged webhooks; no real Stripe account available |
+| Linking computers (device code), signed licences, offline grace, revocation | implemented; tested end to end | engine ↔ website test with both real servers |
+| Auto-director metering and allowance (included hours, credits, quotas, no mid-map cut-off) | implemented; tested end to end | meter unit tests, engine ↔ website test, real Postgres concurrency test |
+| Hosting | deployable (Dockerfile, compose, bundle) | real deployment, TLS, Stripe live mode and SMTP need the owner's accounts |
+
+The licence check runs on the customer's computer: it is a licensing control, not DRM. Server-side usage records are the billing source of truth. Everything except automatic direction on live matches works without an account or internet.
+
+## 5. Not supported (by design or out of scope here)
 
 - Treating GSI as a camera controller, or HUD player cards as video feeds.
 - Inferring exact kills, headshots, damage or grenade impacts from GSI and presenting them as confirmed.
