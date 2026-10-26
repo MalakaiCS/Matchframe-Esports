@@ -24,10 +24,11 @@
     "package:dir": "pnpm build && pnpm --filter @matchframe/desktop run package:dir",
     "openapi": "tsx services/local-engine/scripts/generate-openapi.ts",
     "worker": "node scripts/run-python.mjs -m mf_common.cli",
-    "test:integration": "vitest run --no-file-parallelism services/local-engine/test/demo-pipeline.integration.test.ts services/local-engine/test/replay-obs.integration.test.ts packages/obs-adapter",
+    "test:integration": "vitest run --no-file-parallelism services/local-engine/test/demo-pipeline.integration.test.ts services/local-engine/test/replay-obs.integration.test.ts packages/obs-adapter services/cloud-api/test/postgres.integration.test.ts",
     "coverage:maps": "tsx services/local-engine/scripts/generate-coverage.ts",
     "soak": "node scripts/soak.mjs",
-    "smoke:desktop": "node scripts/desktop-smoke.cjs"
+    "smoke:desktop": "node scripts/desktop-smoke.cjs",
+    "cloud": "tsx services/cloud-api/src/main.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
