@@ -87,5 +87,5 @@ class NullEmitter(Emitter):
     def __init__(self) -> None:
         super().__init__("null")
 
-    def _write(self, kind: str, payload: dict[str, Any]) -> None:  # noqa: D102
+    def _write(self, kind: str, payload: dict[str, Any]) -> None:
         return None

@@ -86,7 +86,9 @@ def _describe(d: SplitData) -> dict[str, Any]:
     }
 
 
-def train_model(task: str, manifest_path: Path, out_dir: Path, emitter: Emitter, seed: int = 7, feature_set: str = "gsi_compatible") -> dict[str, Any]:
+def train_model(
+    task: str, manifest_path: Path, out_dir: Path, emitter: Emitter, seed: int = 7, feature_set: str = "gsi_compatible"
+) -> dict[str, Any]:
     t0 = time.monotonic()
     if task not in TASK_LABELS:
         raise errors.MfError(errors.INSUFFICIENT_DATA, f"unknown task {task}")
@@ -144,7 +146,11 @@ def train_model(task: str, manifest_path: Path, out_dir: Path, emitter: Emitter,
         "feature_importance_gain": importance,
         "git_commit": git_commit(Path(__file__).resolve().parent),
         "lightgbm_version": importlib.metadata.version("lightgbm"),
-        "dataset_manifest": {"path": str(manifest_path), "content_hash": manifest["content_hash"], "file_sha256": sha256_file(Path(manifest_path))},
+        "dataset_manifest": {
+            "path": str(manifest_path),
+            "content_hash": manifest["content_hash"],
+            "file_sha256": sha256_file(Path(manifest_path)),
+        },
         "data": {"train": _describe(train), "val": _describe(val)},
         "validation_metrics": metrics,
         "heuristic": {

@@ -75,7 +75,18 @@ def test_counter_delta_attribution_and_ambiguity() -> None:
         rows.append((t, "W", 3, 100 if t < 6 else 60, True, 0, 0, 0))
     att = counter_attributions(_player_frames(rows))
     d3 = att.filter((pl.col("tick") == 3) & (pl.col("kind") == "damage")).to_dicts()
-    assert d3 == [{"tick": 3, "kind": "damage", "victim_id": "V", "attacker_id": "A", "amount": 30, "status": "attributed", "n_candidates": 1, "evidence": "counter_delta"}]
+    assert d3 == [
+        {
+            "tick": 3,
+            "kind": "damage",
+            "victim_id": "V",
+            "attacker_id": "A",
+            "amount": 30,
+            "status": "attributed",
+            "n_candidates": 1,
+            "evidence": "counter_delta",
+        }
+    ]
     d6 = att.filter((pl.col("tick") == 6) & (pl.col("kind") == "damage")).to_dicts()
     assert d6[0]["status"] == "ambiguous" and d6[0]["attacker_id"] is None
 
@@ -97,8 +108,22 @@ def test_fill_event_identity_only_when_unique() -> None:
         rows.append((t, "D", 3, 100 if t == 0 else 0, t == 0, 0, 0 if t == 0 else 1, 0))
     att = counter_attributions(_player_frames(rows))
     events = pl.DataFrame(
-        {"event_type": ["player_death"], "tick": [2], "user_id": [None], "user_evidence": [None], "attacker_id": [None], "attacker_evidence": [None]},
-        schema={"event_type": pl.Utf8, "tick": pl.Int64, "user_id": pl.Utf8, "user_evidence": pl.Utf8, "attacker_id": pl.Utf8, "attacker_evidence": pl.Utf8},
+        {
+            "event_type": ["player_death"],
+            "tick": [2],
+            "user_id": [None],
+            "user_evidence": [None],
+            "attacker_id": [None],
+            "attacker_evidence": [None],
+        },
+        schema={
+            "event_type": pl.Utf8,
+            "tick": pl.Int64,
+            "user_id": pl.Utf8,
+            "user_evidence": pl.Utf8,
+            "attacker_id": pl.Utf8,
+            "attacker_evidence": pl.Utf8,
+        },
     )
     filled, stats = fill_event_identity(events, att, np.array([0, 3]))
     row = filled.to_dicts()[0]

@@ -68,7 +68,7 @@ _STR_FIELDS = {"place", "active_weapon"}
 
 
 def _is_steamid_column(name: str) -> bool:
-    return name == "steamid" or name.endswith("_steamid") or name.endswith("_xuid")
+    return name == "steamid" or name.endswith(("_steamid", "_xuid"))
 
 
 def _steamids_to_str(series: pd.Series, column: str, notes: AdapterNotes) -> list[str | None]:
@@ -131,13 +131,13 @@ class Demoparser2Demo:
             return {}
         try:
             parsed = self._parser.parse_events(wanted)
-        except Exception as exc:  # fall back to one pass per event so one bad event cannot hide others
+        except Exception as exc:  # noqa: BLE001 - fall back to one pass per event so one bad event cannot hide others
             self.notes.event_errors["parse_events"] = repr(exc)[:300]
             out: dict[str, pl.DataFrame] = {}
             for n in wanted:
                 try:
                     out[n] = self.event(n)
-                except Exception as exc2:
+                except Exception as exc2:  # noqa: BLE001 - recorded as a compatibility note
                     self.notes.event_errors[n] = repr(exc2)[:300]
             return out
         return {str(name): self._normalize_event(str(name), df) for name, df in parsed}
@@ -154,7 +154,9 @@ class Demoparser2Demo:
                 continue
             series = df[col]
             if pd.api.types.is_object_dtype(series.dtype) or pd.api.types.is_string_dtype(series.dtype):
-                cols[col] = pl.Series(col, [None if (isinstance(v, float) and math.isnan(v)) else str(v) for v in series.tolist()], dtype=pl.Utf8)
+                cols[col] = pl.Series(
+                    col, [None if (isinstance(v, float) and math.isnan(v)) else str(v) for v in series.tolist()], dtype=pl.Utf8
+                )
             else:
                 cols[col] = pl.from_pandas(series).alias(col)
         out = pl.DataFrame(cols)
@@ -210,15 +212,17 @@ class Demoparser2Demo:
                 cols[canon] = pl.from_pandas(df[native]).cast(pl.Float64).fill_nan(None).alias(canon)
         out = pl.DataFrame(cols)
         # owner "0" means no thrower resolved
-        return out.with_columns(
-            pl.when(pl.col("owner_id") == "0").then(None).otherwise(pl.col("owner_id")).alias("owner_id")
-        )
+        return out.with_columns(pl.when(pl.col("owner_id") == "0").then(None).otherwise(pl.col("owner_id")).alias("owner_id"))
 
     def players(self) -> pl.DataFrame:
         df = self._parser.parse_player_info()
         if df is None or len(df) == 0:
             return pl.DataFrame(
-                {"steamid": pl.Series([], dtype=pl.Utf8), "player_id": pl.Series([], dtype=pl.Utf8), "team_num": pl.Series([], dtype=pl.Int64)}
+                {
+                    "steamid": pl.Series([], dtype=pl.Utf8),
+                    "player_id": pl.Series([], dtype=pl.Utf8),
+                    "team_num": pl.Series([], dtype=pl.Int64),
+                }
             )
         sids = _steamids_to_str(df["steamid"], "player_info.steamid", self.notes)
         names = df["name"].tolist() if "name" in df.columns else [None] * len(df)
@@ -228,7 +232,9 @@ class Demoparser2Demo:
             {
                 "steamid": pl.Series(sids, dtype=pl.Utf8),
                 "player_id": pl.Series(pids, dtype=pl.Utf8),
-                "team_num": pl.Series([None if t is None or (isinstance(t, float) and math.isnan(t)) else int(t) for t in teams], dtype=pl.Int64),
+                "team_num": pl.Series(
+                    [None if t is None or (isinstance(t, float) and math.isnan(t)) else int(t) for t in teams], dtype=pl.Int64
+                ),
             }
         )
 
@@ -247,12 +253,12 @@ def _to_polars(series: pd.Series, canon: str) -> pl.Series:
     if canon in _STR_FIELDS:
         try:
             return pl.from_pandas(series).cast(pl.Utf8).alias(canon)
-        except Exception:  # mixed object column: fall back to a Python pass
+        except Exception:  # noqa: BLE001 - mixed object column: fall back to a Python pass
             vals = [None if v is None or (isinstance(v, float) and math.isnan(v)) else str(v) for v in series.tolist()]
             return pl.Series(canon, vals, dtype=pl.Utf8)
     if canon in _BOOL_FIELDS:
-        vals = [None if v is None or (isinstance(v, float) and math.isnan(v)) else bool(v) for v in series.tolist()]
-        return pl.Series(canon, vals, dtype=pl.Boolean)
+        flags = [None if v is None or (isinstance(v, float) and math.isnan(v)) else bool(v) for v in series.tolist()]
+        return pl.Series(canon, flags, dtype=pl.Boolean)
     s = pl.from_pandas(series).alias(canon)
     if canon in _FLOAT32_FIELDS:
         return s.cast(pl.Float32).fill_nan(None)

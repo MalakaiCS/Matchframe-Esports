@@ -99,10 +99,7 @@ def load_position_samples(refs: list[DatasetRef]) -> pl.DataFrame:
             columns=["tick", "round_index", "player_id", "is_alive", "x", "y", "z", "place", "dt"],
         )
         t = t.filter(
-            pl.col("is_alive").fill_null(False)
-            & pl.col("x").is_not_null()
-            & pl.col("y").is_not_null()
-            & pl.col("z").is_not_null()
+            pl.col("is_alive").fill_null(False) & pl.col("x").is_not_null() & pl.col("y").is_not_null() & pl.col("z").is_not_null()
         ).with_columns(pl.lit(ref.dataset_id).alias("dataset_id"))
         frames.append(t)
     if not frames:
@@ -216,17 +213,13 @@ def place_centroid(samples: pl.DataFrame, place: str) -> tuple[float, float] | N
 
 def build_graph(samples: pl.DataFrame, min_transitions: int, max_gap_s: float = 1.0) -> dict[str, Any]:
     """Undirected place adjacency from consecutive samples of the same player within a round."""
-    named = samples.filter(pl.col("place").is_not_null() & (pl.col("place") != "")).sort(
-        ["dataset_id", "round_index", "player_id", "tick"]
-    )
+    named = samples.filter(pl.col("place").is_not_null() & (pl.col("place") != "")).sort(["dataset_id", "round_index", "player_id", "tick"])
     keys = ["dataset_id", "round_index", "player_id"]
     named = named.with_columns(
         pl.col("place").shift(1).over(keys).alias("prev_place"),
         pl.col("dt").alias("gap"),
     )
-    trans = named.filter(
-        pl.col("prev_place").is_not_null() & (pl.col("prev_place") != pl.col("place")) & (pl.col("gap") <= max_gap_s)
-    )
+    trans = named.filter(pl.col("prev_place").is_not_null() & (pl.col("prev_place") != pl.col("place")) & (pl.col("gap") <= max_gap_s))
     directed = trans.group_by(["prev_place", "place"]).len("n")
     undirected: dict[tuple[str, str], dict[str, int]] = {}
     for a, b, n in directed.iter_rows():
@@ -321,9 +314,7 @@ def _assemble(
     zcell: float,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     cells = build_cells(samples, cell, zcell, settings.min_cell_samples)
-    place_counts = dict(
-        samples.filter(pl.col("place").is_not_null() & (pl.col("place") != "")).group_by("place").len("n").iter_rows()
-    )
+    place_counts = dict(samples.filter(pl.col("place").is_not_null() & (pl.col("place") != "")).group_by("place").len("n").iter_rows())
     regions: list[dict[str, Any]] = []
     for place in sorted(place_counts):
         pc = cells.filter(pl.col("place") == place)
@@ -378,7 +369,9 @@ def _assemble(
                     "tags": ["derived_split", "requires_operator_validation", f"derived_from:{region_id(spec['place'])}"],
                 }
             )
-        derived_info.append({"place": spec["place"], "reference_place": spec["reference"], "near": spec["near_id"], "far": spec["far_id"], **info})
+        derived_info.append(
+            {"place": spec["place"], "reference_place": spec["reference"], "near": spec["near_id"], "far": spec["far_id"], **info}
+        )
     bombsites = [
         {"site": site, "regionId": region_id(f"Bombsite{site}")}
         for site in ("A", "B")

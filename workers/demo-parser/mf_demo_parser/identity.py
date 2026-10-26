@@ -49,7 +49,12 @@ def counter_attributions(ticks: pl.DataFrame) -> pl.DataFrame:
     teams = pl.col("team_num").is_in([2, 3])
     out: list[pl.DataFrame] = []
     for kind, victim_expr, attacker_expr, amount_expr in (
-        ("damage", (pl.col("d_health") < 0) & pl.col("prev_alive").fill_null(False), pl.col("d_round_damage_dealt") > 0, -pl.col("d_health")),
+        (
+            "damage",
+            (pl.col("d_health") < 0) & pl.col("prev_alive").fill_null(False),
+            pl.col("d_round_damage_dealt") > 0,
+            -pl.col("d_health"),
+        ),
         ("kill", pl.col("d_deaths_total") > 0, pl.col("d_kills_total") > 0, pl.col("d_deaths_total")),
     ):
         victims = df.filter(victim_expr & teams).select(
@@ -85,9 +90,7 @@ def counter_attributions(ticks: pl.DataFrame) -> pl.DataFrame:
     return pl.concat(out).sort(["tick", "kind", "victim_id"])
 
 
-def fill_event_identity(
-    events: pl.DataFrame, attributions: pl.DataFrame, frame_ticks: np.ndarray
-) -> tuple[pl.DataFrame, dict[str, Any]]:
+def fill_event_identity(events: pl.DataFrame, attributions: pl.DataFrame, frame_ticks: np.ndarray) -> tuple[pl.DataFrame, dict[str, Any]]:
     """Fill null ``user_id`` (victim) / ``attacker_id`` of death/hurt events from counter attributions.
 
     The attribution frame is the first recorded frame at or after the event tick. A field is only
@@ -147,9 +150,7 @@ def identity_crosscheck(events: pl.DataFrame, attributions: pl.DataFrame, frame_
     """
     out: dict[str, Any] = {}
     for name in ("player_death", "player_hurt"):
-        known = events.filter(
-            (pl.col("event_type") == name) & pl.col("user_id").is_not_null() & pl.col("attacker_id").is_not_null()
-        )
+        known = events.filter((pl.col("event_type") == name) & pl.col("user_id").is_not_null() & pl.col("attacker_id").is_not_null())
         if known.height == 0:
             continue
         blank = known.with_columns(

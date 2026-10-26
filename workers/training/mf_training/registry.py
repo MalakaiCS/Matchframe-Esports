@@ -98,5 +98,8 @@ def list_models(models_dir: Path) -> dict[str, Any]:
     reg = load_registry(models_dir)
     return {
         "models_dir": str(models_dir),
-        "models": [{"model_id": k, "status": v["status"], "task": v.get("task"), "created_at": v.get("created_at")} for k, v in sorted(reg["models"].items())],
+        "models": [
+            {"model_id": k, "status": v["status"], "task": v.get("task"), "created_at": v.get("created_at")}
+            for k, v in sorted(reg["models"].items())
+        ],
     }

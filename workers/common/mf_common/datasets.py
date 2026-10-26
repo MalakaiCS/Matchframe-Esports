@@ -62,9 +62,7 @@ def load_dataset(path: Path) -> DatasetRef:
         raise errors.MfError(errors.DATASET_NOT_FOUND, f"no manifest.json in {path}", path=str(path))
     manifest = read_json(manifest_path)
     if manifest.get("status") != "COMMITTED":
-        raise errors.MfError(
-            errors.DATASET_INVALID, f"dataset {path} is not COMMITTED", path=str(path), status=manifest.get("status")
-        )
+        raise errors.MfError(errors.DATASET_INVALID, f"dataset {path} is not COMMITTED", path=str(path), status=manifest.get("status"))
     return DatasetRef(path=path, manifest=manifest)
 
 

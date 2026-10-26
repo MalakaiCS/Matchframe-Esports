@@ -85,7 +85,9 @@ class FakeDemo:
         self._maybe_fail("ticks")
         rows: list[dict[str, Any]] = []
         if self.empty:
-            return pl.DataFrame({"tick": pl.Series([], dtype=pl.Int64), "steamid": pl.Series([], dtype=pl.Utf8), "player_id": pl.Series([], dtype=pl.Utf8)})
+            return pl.DataFrame(
+                {"tick": pl.Series([], dtype=pl.Int64), "steamid": pl.Series([], dtype=pl.Utf8), "player_id": pl.Series([], dtype=pl.Utf8)}
+            )
         score = {2: 0, 3: 0}
         kills = {p: 0 for p in self.roster}
         deaths = {p: 0 for p in self.roster}
@@ -165,15 +167,52 @@ class FakeDemo:
             _, fe, end, _ = self.round_bounds(r)
             hurt, kill = self._hurt_kill_ticks(r)
             he0, he1 = self._he_ticks(r)
-            hurts.append({"tick": hurt, "user_steamid": self.pid(3), "attacker_steamid": self.pid(1), "weapon": "ak47", "dmg_health": 73, "health": 27})
-            hurts.append({"tick": kill, "user_steamid": self.pid(3), "attacker_steamid": self.pid(1), "weapon": "ak47", "dmg_health": 27, "health": 0})
-            deaths.append({"tick": kill, "user_steamid": self.pid(3), "attacker_steamid": self.pid(1), "assister_steamid": None, "weapon": "ak47", "headshot": True})
+            hurts.append(
+                {
+                    "tick": hurt,
+                    "user_steamid": self.pid(3),
+                    "attacker_steamid": self.pid(1),
+                    "weapon": "ak47",
+                    "dmg_health": 73,
+                    "health": 27,
+                }
+            )
+            hurts.append(
+                {
+                    "tick": kill,
+                    "user_steamid": self.pid(3),
+                    "attacker_steamid": self.pid(1),
+                    "weapon": "ak47",
+                    "dmg_health": 27,
+                    "health": 0,
+                }
+            )
+            deaths.append(
+                {
+                    "tick": kill,
+                    "user_steamid": self.pid(3),
+                    "attacker_steamid": self.pid(1),
+                    "assister_steamid": None,
+                    "weapon": "ak47",
+                    "headshot": True,
+                }
+            )
             ends.append({"tick": end, "winner": 2, "reason": 9})
             fes.append({"tick": fe})
             dets.append({"tick": he1 + 1, "entityid": 100 + r, "user_steamid": self.pid(2), "x": -500.0, "y": 300.0, "z": 0.0})
             fires.append({"tick": he0 - 6, "user_steamid": self.pid(2), "weapon": "weapon_hegrenade"})
         return {
-            "player_death": pl.DataFrame(deaths, schema={"tick": pl.Int64, "user_steamid": pl.Utf8, "attacker_steamid": pl.Utf8, "assister_steamid": pl.Utf8, "weapon": pl.Utf8, "headshot": pl.Boolean}),
+            "player_death": pl.DataFrame(
+                deaths,
+                schema={
+                    "tick": pl.Int64,
+                    "user_steamid": pl.Utf8,
+                    "attacker_steamid": pl.Utf8,
+                    "assister_steamid": pl.Utf8,
+                    "weapon": pl.Utf8,
+                    "headshot": pl.Boolean,
+                },
+            ),
             "player_hurt": pl.DataFrame(hurts),
             "round_end": pl.DataFrame(ends),
             "round_freeze_end": pl.DataFrame(fes),
@@ -214,11 +253,35 @@ class FakeDemo:
                 )
             for t in range(he0 - 40, he0, FRAME):
                 rows.append(
-                    {"raw_class": "CHEGrenade", "entity_id": 300 + r, "tick": t, "x": None, "y": None, "z": None, "owner_id": self.pid(2),
-                     "is_inc_grenade": None, "dmg_radius": None, "damage": None, "bounces": None, "explode_effect_tick": None}
+                    {
+                        "raw_class": "CHEGrenade",
+                        "entity_id": 300 + r,
+                        "tick": t,
+                        "x": None,
+                        "y": None,
+                        "z": None,
+                        "owner_id": self.pid(2),
+                        "is_inc_grenade": None,
+                        "dmg_radius": None,
+                        "damage": None,
+                        "bounces": None,
+                        "explode_effect_tick": None,
+                    }
                 )
-        schema = {"raw_class": pl.Utf8, "entity_id": pl.Int64, "tick": pl.Int64, "x": pl.Float64, "y": pl.Float64, "z": pl.Float64, "owner_id": pl.Utf8,
-                  "is_inc_grenade": pl.Boolean, "dmg_radius": pl.Float64, "damage": pl.Float64, "bounces": pl.Float64, "explode_effect_tick": pl.Float64}
+        schema = {
+            "raw_class": pl.Utf8,
+            "entity_id": pl.Int64,
+            "tick": pl.Int64,
+            "x": pl.Float64,
+            "y": pl.Float64,
+            "z": pl.Float64,
+            "owner_id": pl.Utf8,
+            "is_inc_grenade": pl.Boolean,
+            "dmg_radius": pl.Float64,
+            "damage": pl.Float64,
+            "bounces": pl.Float64,
+            "explode_effect_tick": pl.Float64,
+        }
         return pl.DataFrame(rows, schema=schema)
 
     def players(self) -> pl.DataFrame:

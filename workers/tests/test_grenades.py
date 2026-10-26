@@ -108,7 +108,10 @@ def test_weapon_fire_ambiguity_yields_no_link() -> None:
     rows = [("CMolotovProjectile", 11, t, 1.0, None) for t in range(1000, 1060, 3)]
     proj, _ = segment_projectiles(_samples(rows))
     segs = summarize_segments(proj)
-    wf = pl.DataFrame({"tick": [994, 995], "weapon": ["weapon_molotov", "weapon_incgrenade"], "user_steamid": [None, None]}, schema_overrides={"user_steamid": pl.Utf8})
+    wf = pl.DataFrame(
+        {"tick": [994, 995], "weapon": ["weapon_molotov", "weapon_incgrenade"], "user_steamid": [None, None]},
+        schema_overrides={"user_steamid": pl.Utf8},
+    )
     links, amb = link_weapon_fire(segs, wf)
     assert links == {} and amb == 1
     wf2 = pl.DataFrame({"tick": [994], "weapon": ["weapon_incgrenade"], "user_steamid": [None]}, schema_overrides={"user_steamid": pl.Utf8})

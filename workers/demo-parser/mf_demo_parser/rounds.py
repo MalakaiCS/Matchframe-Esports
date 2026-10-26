@@ -64,11 +64,7 @@ def frame_state(ticks: pl.DataFrame) -> pl.DataFrame:
     """Collapse per-player rows to one game-rule state row per recorded frame."""
     cols = ["total_rounds_played", "is_freeze_period", "is_warmup_period", "round_win_status", "round_win_reason"]
     present = [c for c in cols if c in ticks.columns]
-    return (
-        ticks.group_by("tick")
-        .agg([pl.col(c).drop_nulls().first().alias(c) for c in present])
-        .sort("tick")
-    )
+    return ticks.group_by("tick").agg([pl.col(c).drop_nulls().first().alias(c) for c in present]).sort("tick")
 
 
 def _first_event(events: list[dict[str, Any]], lo: int, hi: int) -> dict[str, Any] | None:

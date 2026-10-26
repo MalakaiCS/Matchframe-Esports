@@ -115,9 +115,7 @@ def _validate_map_pack(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
 def _measure_utility(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
     from mf_features.utility_profiles import measure_utility
 
-    return measure_utility(
-        [Path(p) for p in a.datasets], Path(a.out), em, min_samples=a.min_samples, allow_unvalidated=a.allow_unvalidated
-    )
+    return measure_utility([Path(p) for p in a.datasets], Path(a.out), em, min_samples=a.min_samples, allow_unvalidated=a.allow_unvalidated)
 
 
 def _build_features(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
@@ -167,9 +165,7 @@ def _train(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
 def _evaluate(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
     from mf_evaluation.evaluate import evaluate_model
 
-    return evaluate_model(
-        Path(a.model_dir), Path(a.dataset_manifest), em, split=a.split, bootstrap=a.bootstrap, seed=a.seed
-    )
+    return evaluate_model(Path(a.model_dir), Path(a.dataset_manifest), em, split=a.split, bootstrap=a.bootstrap, seed=a.seed)
 
 
 def _export(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:

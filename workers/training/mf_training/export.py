@@ -109,7 +109,10 @@ def export_model(model_dir: Path, out: Path, emitter: Emitter, parity_count: int
             "model": strip_bins(evaluation["overall"]["model"]),
             "heuristic": strip_bins(evaluation["overall"]["heuristic"]),
             "model_ci": evaluation["overall"]["model_ci"],
-            "per_map": {m: {"model_auc": b["model"]["auc"], "heuristic_auc": b["heuristic"]["auc"], "n": b["model"]["n"]} for m, b in evaluation["per_map"].items()},
+            "per_map": {
+                m: {"model_auc": b["model"]["auc"], "heuristic_auc": b["heuristic"]["auc"], "n": b["model"]["n"]}
+                for m, b in evaluation["per_map"].items()
+            },
         }
     members = manifest["members"]
     card = {

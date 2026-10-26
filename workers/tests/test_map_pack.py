@@ -79,8 +79,16 @@ def test_validator_rejects_contract_violations() -> None:
         "radar": None,
         "levels": [{"id": "ground", "name": "Ground", "zMin": 0, "zMax": 10, "radar": None}],
         "regions": [
-            {"id": "a", "name": "A", "kind": "bombsite", "levelId": "ground", "source": "demo_place_names", "validated": False, "tags": [],
-             "shapes": [{"kind": "cells", "cellSize": 64, "zCellSize": 64, "cells": [[1, 2, 3]]}]}
+            {
+                "id": "a",
+                "name": "A",
+                "kind": "bombsite",
+                "levelId": "ground",
+                "source": "demo_place_names",
+                "validated": False,
+                "tags": [],
+                "shapes": [{"kind": "cells", "cellSize": 64, "zCellSize": 64, "cells": [[1, 2, 3]]}],
+            }
         ],
         "cameras": [],
         "paths": [],

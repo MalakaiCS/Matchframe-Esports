@@ -9,6 +9,7 @@ only integrity failures, implausible structure or insufficient coverage quaranti
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -166,14 +167,14 @@ def check_round_structure(t: dict[str, pl.DataFrame]) -> tuple[Check, list[str]]
     for r in rounds.to_dicts():
         ticks = [r["start_tick"], r["freeze_end_tick"], r["end_tick"], r["official_end_tick"]]
         seq = [x for x in ticks if x is not None]
-        if any(b < a for a, b in zip(seq, seq[1:], strict=False)):
+        if any(b < a for a, b in pairwise(seq)):
             order_bad += 1
         for f in r["flags"]:
             flags.append(f"round {r['round_index']}: {f}")
     if order_bad:
         problems.append(f"{order_bad} round(s) with non-monotonic start/freeze-end/end ticks")
     starts = rounds["start_tick"].to_list()
-    if any(b <= a for a, b in zip(starts, starts[1:], strict=False)):
+    if any(b <= a for a, b in pairwise(starts)):
         problems.append("round start ticks are not strictly increasing")
     numbers = [x for x in with_result["round_number"].to_list() if x is not None]
     if numbers and numbers[0] > 1:
@@ -261,9 +262,7 @@ def check_bounds(t: dict[str, pl.DataFrame]) -> Check:
     alive = t["ticks"].filter(pl.col("is_alive").fill_null(False))
     if alive.height == 0:
         return Check("map_bounds", "fail", "major", "no alive samples")
-    outside = alive.filter(
-        (pl.col("x").abs() > WORLD_LIMIT) | (pl.col("y").abs() > WORLD_LIMIT) | (pl.col("z").abs() > WORLD_LIMIT)
-    ).height
+    outside = alive.filter((pl.col("x").abs() > WORLD_LIMIT) | (pl.col("y").abs() > WORLD_LIMIT) | (pl.col("z").abs() > WORLD_LIMIT)).height
     pos = alive.filter(pl.col("x").is_not_null() & pl.col("y").is_not_null() & pl.col("z").is_not_null())
     outliers = 0
     box: dict[str, list[float]] = {}
@@ -457,8 +456,18 @@ def verify_dataset(path: Path, emitter: Emitter) -> dict[str, Any]:
         checks.append(check_checksums(path, manifest))
         con = duckdb.connect()
         try:
-            n = con.execute(f"SELECT count(*), count(DISTINCT round_index) FROM read_parquet('{_sql_path(path / 'ticks.parquet')}')").fetchone()
-            checks.append(Check("sample_query", "pass" if n and n[0] > 0 else "fail", "critical", f"ticks rows={n[0] if n else 0}", {"rows": n[0] if n else 0, "rounds": n[1] if n else 0}))
+            n = con.execute(
+                f"SELECT count(*), count(DISTINCT round_index) FROM read_parquet('{_sql_path(path / 'ticks.parquet')}')"
+            ).fetchone()
+            checks.append(
+                Check(
+                    "sample_query",
+                    "pass" if n and n[0] > 0 else "fail",
+                    "critical",
+                    f"ticks rows={n[0] if n else 0}",
+                    {"rows": n[0] if n else 0, "rounds": n[1] if n else 0},
+                )
+            )
         except duckdb.Error as exc:
             checks.append(Check("sample_query", "fail", "critical", f"query failed: {exc}"[:300]))
         finally:

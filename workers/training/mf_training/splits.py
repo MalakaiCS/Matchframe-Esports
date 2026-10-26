@@ -162,9 +162,9 @@ def audit_split(manifest_path: Path, emitter: Emitter, datasets: list[Path] | No
     for s, ids in splits.items():
         for i in ids:
             listed.setdefault(i, []).append(s)
-    for i, ss in listed.items():
-        if len(ss) > 1:
-            violations.append(f"dataset {i} listed in splits {ss}")
+    for i, names in listed.items():
+        if len(names) > 1:
+            violations.append(f"dataset {i} listed in splits {names}")
     for key in ("dataset_id", "sha256", "group_id"):
         seen: dict[str, set[str]] = {}
         for m in members:

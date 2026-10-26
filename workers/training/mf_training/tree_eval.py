@@ -28,9 +28,7 @@ def _leaf_value(node: dict[str, Any], x: Sequence[float | None]) -> float:
         missing = node.get("missing_type", "None")
         if node.get("decision_type", "<=") != "<=":
             raise ValueError(f"unsupported decision_type {node.get('decision_type')!r} (categorical splits)")
-        if missing == "NaN" and math.isnan(v):
-            go_left = bool(node["default_left"])
-        elif missing == "Zero" and (math.isnan(v) or _is_zero(v)):
+        if (missing == "NaN" and math.isnan(v)) or (missing == "Zero" and (math.isnan(v) or _is_zero(v))):
             go_left = bool(node["default_left"])
         else:
             if math.isnan(v):

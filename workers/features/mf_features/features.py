@@ -19,7 +19,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import polars as pl
 
 from mf_common import errors
@@ -76,11 +75,7 @@ for _names, _cls in (
 
 def weapon_class_expr(col: str) -> pl.Expr:
     """Ordinal engagement-range class: 4 sniper, 3 rifle/MG, 2 SMG/shotgun, 1 pistol, 0 other."""
-    return (
-        pl.when(pl.col(col).is_null())
-        .then(None)
-        .otherwise(pl.col(col).replace_strict(WEAPON_CLASS, default=0, return_dtype=pl.Int8))
-    )
+    return pl.when(pl.col(col).is_null()).then(None).otherwise(pl.col(col).replace_strict(WEAPON_CLASS, default=0, return_dtype=pl.Int8))
 
 
 def _view_vec(pitch: str, yaw: str) -> tuple[pl.Expr, pl.Expr, pl.Expr]:
@@ -107,7 +102,24 @@ def compute_pair_features(ticks: pl.DataFrame, rounds: pl.DataFrame, tick_rate: 
     """Pure function: pairwise T×CT features for every live grid tick (inputs at or before t only)."""
     grid = ticks.filter(pl.col("in_grid")).with_columns(pl.col("tick").cast(pl.Int64), pl.col("round_index").cast(pl.Int64))
     samples = live_grid(ticks, rounds)
-    cols = ["tick", "round_index", "_live_start", "player_id", "x", "y", "z", "vx", "vy", "pitch", "yaw", "health", "armor", "active_weapon", "flash_duration", "place"]
+    cols = [
+        "tick",
+        "round_index",
+        "_live_start",
+        "player_id",
+        "x",
+        "y",
+        "z",
+        "vx",
+        "vy",
+        "pitch",
+        "yaw",
+        "health",
+        "armor",
+        "active_weapon",
+        "flash_duration",
+        "place",
+    ]
     teams = samples.select("tick", "player_id", "team_num")
     counts = teams.group_by("tick").agg(
         (pl.col("team_num") == 2).sum().cast(pl.Int16).alias("alive_t"),
@@ -121,11 +133,13 @@ def compute_pair_features(ticks: pl.DataFrame, rounds: pl.DataFrame, tick_rate: 
     pairs = pairs.join(counts, on="tick", how="left")
 
     # history (as-of, grid only, strictly <= t - HISTORY_S)
-    lag = int(round(HISTORY_S * tick_rate))
+    lag = round(HISTORY_S * tick_rate)
     hist = grid.select(pl.col("player_id"), pl.col("tick").alias("lookup_tick"), pl.col("tick").alias("hist_tick"), "x", "y", "z")
     pairs = pairs.with_columns((pl.col("tick") - lag).alias("lookup_tick"))
     for side in ("a", "b"):
-        h = hist.rename({"player_id": f"{side}_id", "hist_tick": f"{side}_hist_tick", "x": f"{side}_hx", "y": f"{side}_hy", "z": f"{side}_hz"})
+        h = hist.rename(
+            {"player_id": f"{side}_id", "hist_tick": f"{side}_hist_tick", "x": f"{side}_hx", "y": f"{side}_hy", "z": f"{side}_hz"}
+        )
         pairs = asof_backward(pairs, h, on="lookup_tick", by=f"{side}_id")
 
     dx = pl.col("b_x") - pl.col("a_x")
@@ -144,7 +158,9 @@ def compute_pair_features(ticks: pl.DataFrame, rounds: pl.DataFrame, tick_rate: 
         ((ax * dx + ay * dy + az * dzc) / safe).alias("facing_a"),
         ((bx * -dx + by * -dy + bz * -dzc) / safe).alias("facing_b"),
     )
-    hist_dist = ((pl.col("b_hx") - pl.col("a_hx")) ** 2 + (pl.col("b_hy") - pl.col("a_hy")) ** 2 + (pl.col("b_hz") - pl.col("a_hz")) ** 2).sqrt()
+    hist_dist = (
+        (pl.col("b_hx") - pl.col("a_hx")) ** 2 + (pl.col("b_hy") - pl.col("a_hy")) ** 2 + (pl.col("b_hz") - pl.col("a_hz")) ** 2
+    ).sqrt()
     hist_dt = (pl.col("tick") - (pl.col("a_hist_tick") + pl.col("b_hist_tick")) / 2.0) / tick_rate
     hist_ok = (
         pl.col("a_hist_tick").is_not_null()
@@ -195,7 +211,9 @@ def pair_interactions(attributions: pl.DataFrame, events: pl.DataFrame) -> pl.Da
         parts.append(a)
     if events.height:
         e = events.filter(
-            pl.col("event_type").is_in(["player_hurt", "player_death"]) & pl.col("user_id").is_not_null() & pl.col("attacker_id").is_not_null()
+            pl.col("event_type").is_in(["player_hurt", "player_death"])
+            & pl.col("user_id").is_not_null()
+            & pl.col("attacker_id").is_not_null()
         ).select(
             "tick",
             pl.col("attacker_id").alias("u"),
@@ -206,12 +224,16 @@ def pair_interactions(attributions: pl.DataFrame, events: pl.DataFrame) -> pl.Da
     if not parts:
         return pl.DataFrame(schema={"tick": pl.Int64, "p_lo": pl.Utf8, "p_hi": pl.Utf8, "kind": pl.Utf8})
     df = pl.concat(parts).filter(pl.col("u") != pl.col("v"))
-    return df.select(
-        pl.col("tick").cast(pl.Int64),
-        pl.min_horizontal("u", "v").alias("p_lo"),
-        pl.max_horizontal("u", "v").alias("p_hi"),
-        "kind",
-    ).unique().sort("tick")
+    return (
+        df.select(
+            pl.col("tick").cast(pl.Int64),
+            pl.min_horizontal("u", "v").alias("p_lo"),
+            pl.max_horizontal("u", "v").alias("p_hi"),
+            "kind",
+        )
+        .unique()
+        .sort("tick")
+    )
 
 
 def damage_attribution_rate(attributions: pl.DataFrame) -> float:
@@ -244,19 +266,23 @@ def compute_labels(
             .select("p_lo", "p_hi", pl.col("tick").alias("_on"), pl.col("tick").alias(f"_next_{kind_label}"))
             .unique()
         )
-        joined = k.with_columns(pl.col("tick").alias("_on")).sort("_on").join_asof(
-            nxt.sort("_on"), on="_on", by=["p_lo", "p_hi"], strategy="forward", allow_exact_matches=False, check_sortedness=False
+        joined = (
+            k.with_columns(pl.col("tick").alias("_on"))
+            .sort("_on")
+            .join_asof(
+                nxt.sort("_on"), on="_on", by=["p_lo", "p_hi"], strategy="forward", allow_exact_matches=False, check_sortedness=False
+            )
         )
-        out = out.join(joined.select(KEY_COLUMNS + [f"_next_{kind_label}"]), on=KEY_COLUMNS, how="left")
+        out = out.join(joined.select([*KEY_COLUMNS, f"_next_{kind_label}"]), on=KEY_COLUMNS, how="left")
     # next ambiguous attribution touching a or b
     for side in ("a", "b"):
         av = amb.rename({"victim_id": f"{side}_id"}).with_columns(pl.col("tick").alias(f"_amb_{side}")).rename({"tick": "_t"})
         tmp = out.select(KEY_COLUMNS).with_columns(pl.col("tick").cast(pl.Int64).alias("_t")).sort("_t")
         j = tmp.join_asof(av.sort("_t"), on="_t", by=f"{side}_id", strategy="forward", allow_exact_matches=False, check_sortedness=False)
-        out = out.join(j.select(KEY_COLUMNS + [f"_amb_{side}"]), on=KEY_COLUMNS, how="left")
+        out = out.join(j.select([*KEY_COLUMNS, f"_amb_{side}"]), on=KEY_COLUMNS, how="left")
     exprs = []
     for h in HORIZONS_S:
-        lim = pl.col("tick") + int(round(h * tick_rate))
+        lim = pl.col("tick") + round(h * tick_rate)
         amb_hit = (pl.col("_amb_a") <= lim).fill_null(False) | (pl.col("_amb_b") <= lim).fill_null(False)
         tag = f"{h:g}s".replace(".", "p")
         for kind_label in ("damage", "death", "contact"):
@@ -300,7 +326,9 @@ def place_lookup(ticks: pl.DataFrame, cell: float = 64.0) -> dict[tuple[int, int
     return {(int(a), int(b), int(c)): str(p) for a, b, c, p, _n in g.iter_rows()}
 
 
-def lookup_place(cells: dict[tuple[int, int, int], str], x: float | None, y: float | None, z: float | None, cell: float = 64.0) -> str | None:
+def lookup_place(
+    cells: dict[tuple[int, int, int], str], x: float | None, y: float | None, z: float | None, cell: float = 64.0
+) -> str | None:
     if x is None or y is None or z is None or any(map(math.isnan, (x, y, z))):
         return None
     ix, iy, iz = math.floor(x / cell), math.floor(y / cell), math.floor(z / 128.0)
@@ -325,7 +353,9 @@ def compute_utility_labels(grenades: pl.DataFrame, ticks: pl.DataFrame, tick_rat
                 "round_index": g["round_index"],
                 "type": g["type"],
                 "throw_tick": g["throw_tick"],
-                "activation_delay_s": (g["activation_tick"] - g["first_seen_tick"]) / tick_rate if exact and g["activation_tick"] is not None else None,
+                "activation_delay_s": (g["activation_tick"] - g["first_seen_tick"]) / tick_rate
+                if exact and g["activation_tick"] is not None
+                else None,
                 "activation_x": g["activation_x"] if exact else None,
                 "activation_y": g["activation_y"] if exact else None,
                 "activation_z": g["activation_z"] if exact else None,

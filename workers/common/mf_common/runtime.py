@@ -20,9 +20,7 @@ def git_commit(start: Path | None = None) -> str | None:
     """Current git commit of the repository containing ``start`` (None if unavailable)."""
     cwd = start if start is not None else Path(__file__).resolve().parent
     try:
-        out = subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=cwd, capture_output=True, text=True, timeout=10, check=False
-        )
+        out = subprocess.run(["git", "rev-parse", "HEAD"], cwd=cwd, capture_output=True, text=True, timeout=10, check=False)
     except (OSError, subprocess.SubprocessError):
         return None
     sha = out.stdout.strip()

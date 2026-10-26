@@ -232,7 +232,11 @@ def estimate_capacity(
         "projected_gb_p95": round(n * float(meta.get("p95") or 0) / gb, 3),
     }
     for name in ("models", "clips"):
-        categories[name] = {"basis": "not measured by this benchmark; full allocation reserved", "projected_gb_mean": None, "projected_gb_p95": None}
+        categories[name] = {
+            "basis": "not measured by this benchmark; full allocation reserved",
+            "projected_gb_mean": None,
+            "projected_gb_p95": None,
+        }
 
     rows = []
     total_p95 = 0.0

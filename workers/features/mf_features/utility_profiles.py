@@ -42,7 +42,14 @@ ACTIVATION_KIND = {
 #: Copied from DEFAULT_PROFILES in profiles.ts (not measured here).
 DEFAULT_RADIUS = {"he": 350, "flashbang": None, "smoke": 144, "molotov": 150, "incendiary": 150, "decoy": None}
 DEFAULT_WEIGHT = {"he": 0.8, "flashbang": 0.7, "smoke": 0.5, "molotov": 0.65, "incendiary": 0.65, "decoy": 0.1}
-PRIMARY = {"he": "fuse", "flashbang": "fuse", "smoke": "effectDuration", "molotov": "effectDuration", "incendiary": "effectDuration", "decoy": "effectDuration"}
+PRIMARY = {
+    "he": "fuse",
+    "flashbang": "fuse",
+    "smoke": "effectDuration",
+    "molotov": "effectDuration",
+    "incendiary": "effectDuration",
+    "decoy": "effectDuration",
+}
 USES_FUSE = {"he", "flashbang", "molotov", "incendiary"}
 HAS_EFFECT = {"smoke", "molotov", "incendiary", "decoy"}
 MIN_TYPE_CONFIDENCE = 0.9
@@ -127,6 +134,7 @@ def fit_gravity(refs: list[DatasetRef], min_points: int = 8, min_duration_s: flo
                 rejected += 1
                 continue
             fits.setdefault(types[gid], []).append((-2.0 * float(coef[0]), rms))
+
     def summarize(vals: list[tuple[float, float]]) -> dict[str, Any]:
         g_ = np.asarray([v[0] for v in vals])
         r_ = np.asarray([v[1] for v in vals])
@@ -138,6 +146,7 @@ def fit_gravity(refs: list[DatasetRef], min_points: int = 8, min_duration_s: flo
             "residualRmsMedian": round(float(np.median(r_)), 3),
             "residualRmsP95": round(float(np.percentile(r_, 95)), 3),
         }
+
     all_fits = [v for vs in fits.values() for v in vs]
     return {
         "units": "world units / s^2",
@@ -233,7 +242,9 @@ def measure_utility(
         "out": str(out),
         "datasets_used": doc["datasets"],
         "datasets_skipped": skipped,
-        "profiles": {t: {"sampleCount": p["sampleCount"], "fuse": p["fuse"], "effectDuration": p["effectDuration"]} for t, p in profiles.items()},
+        "profiles": {
+            t: {"sampleCount": p["sampleCount"], "fuse": p["fuse"], "effectDuration": p["effectDuration"]} for t, p in profiles.items()
+        },
         "omitted": omitted,
         "gravity_overall": gravity["overall"],
     }

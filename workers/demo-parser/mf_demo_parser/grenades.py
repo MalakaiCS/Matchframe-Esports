@@ -39,9 +39,7 @@ CLASS_CANDIDATES: dict[str, tuple[str, ...]] = {
 }
 
 #: Inventory (held) grenade weapon entities — not thrown projectiles.
-HELD_WEAPON_CLASSES = frozenset(
-    {"CHEGrenade", "CFlashbang", "CSmokeGrenade", "CMolotovGrenade", "CIncendiaryGrenade", "CDecoyGrenade"}
-)
+HELD_WEAPON_CLASSES = frozenset({"CHEGrenade", "CFlashbang", "CSmokeGrenade", "CMolotovGrenade", "CIncendiaryGrenade", "CDecoyGrenade"})
 
 #: Activation events that carry the projectile entity id.
 ENTITY_ACTIVATION_EVENTS: dict[str, str] = {
@@ -125,7 +123,7 @@ def resolve_type(
         ev.append(Evidence(weapon_fire_type, "event:weapon_fire(tick_match)", 0.8))
 
     if not ev:
-        return Resolution("unknown", 0.0, f"class:{raw_class} ambiguous; no narrowing evidence", candidates)
+        return Resolution("unknown", 0.0, f"class:{raw_class} ambiguous (no narrowing evidence)", candidates)
 
     outside = [e for e in ev if e.type not in candidates]
     strong = [e for e in ev if e.confidence >= STRONG and e.type in candidates]
@@ -191,9 +189,7 @@ def segment_projectiles(samples: pl.DataFrame, max_gap_ticks: int = 16) -> tuple
     ).fill_null(True)
     proj = proj.with_columns(new_seg.cum_sum().alias("_seg"))
     first_tick = pl.col("tick").min().over("_seg")
-    proj = proj.with_columns(
-        pl.format("g{}_{}", pl.col("entity_id"), first_tick).alias("grenade_id")
-    ).drop("_seg")
+    proj = proj.with_columns(pl.format("g{}_{}", pl.col("entity_id"), first_tick).alias("grenade_id")).drop("_seg")
     return proj, stats
 
 

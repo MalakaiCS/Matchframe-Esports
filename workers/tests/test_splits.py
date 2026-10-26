@@ -13,7 +13,9 @@ from synthetic_demo import build_dataset
 
 def _datasets(tmp: Path) -> list[Path]:
     out = []
-    for i, (build, prefix) in enumerate((("90001", "7656119100000000"), ("90002", "7656119200000000"), ("90003", "7656119300000000"), ("90004", "7656119400000000"))):
+    for i, (build, prefix) in enumerate(
+        (("90001", "7656119100000000"), ("90002", "7656119200000000"), ("90003", "7656119300000000"), ("90004", "7656119400000000"))
+    ):
         ds = build_dataset(tmp, salt=f"d{i}", build=build, player_prefix=prefix)
         validate_dataset(ds, NullEmitter())
         out.append(ds)

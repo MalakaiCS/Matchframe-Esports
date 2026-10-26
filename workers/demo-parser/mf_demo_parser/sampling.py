@@ -96,16 +96,16 @@ def window_frame_ticks(frame_ticks: np.ndarray, anchors: np.ndarray, half_window
     # merge intervals
     merged_lo = [lo[0]]
     merged_hi = [hi[0]]
-    for l, h in zip(lo[1:], hi[1:], strict=True):
-        if l <= merged_hi[-1]:
-            merged_hi[-1] = max(merged_hi[-1], h)
+    for a_lo, a_hi in zip(lo[1:], hi[1:], strict=True):
+        if a_lo <= merged_hi[-1]:
+            merged_hi[-1] = max(merged_hi[-1], a_hi)
         else:
-            merged_lo.append(l)
-            merged_hi.append(h)
+            merged_lo.append(a_lo)
+            merged_hi.append(a_hi)
     mask = np.zeros(frame_ticks.size, dtype=bool)
-    for l, h in zip(merged_lo, merged_hi, strict=True):
-        i0 = np.searchsorted(frame_ticks, l, side="left")
-        i1 = np.searchsorted(frame_ticks, h, side="right")
+    for a_lo, a_hi in zip(merged_lo, merged_hi, strict=True):
+        i0 = np.searchsorted(frame_ticks, a_lo, side="left")
+        i1 = np.searchsorted(frame_ticks, a_hi, side="right")
         mask[i0:i1] = True
     return frame_ticks[mask]
 
@@ -122,9 +122,7 @@ def add_motion(ticks: pl.DataFrame, tick_rate: float, max_gap_s: float = 0.5, ma
     df = df.with_columns(comps)
     speed = (pl.col("vx") ** 2 + pl.col("vy") ** 2).sqrt()
     valid = (pl.col("frame_dt") <= max_gap_s) & (speed <= max_speed) & pl.col("is_alive").fill_null(False)
-    df = df.with_columns(
-        [pl.when(valid).then(pl.col(c)).otherwise(None).cast(pl.Float32).alias(c) for c in ("vx", "vy", "vz")]
-    )
+    df = df.with_columns([pl.when(valid).then(pl.col(c)).otherwise(None).cast(pl.Float32).alias(c) for c in ("vx", "vy", "vz")])
     return df.with_columns(pl.col("frame_dt").cast(pl.Float32))
 
 

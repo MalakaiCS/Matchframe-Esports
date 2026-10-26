@@ -78,7 +78,10 @@ def make_parity_fixture(out: Path, emitter: Emitter, seed: int = 1234, parity_co
         "objective": "binary",
         "label_definition": "synthetic logistic process over the contact_2s feature schema",
         "metrics": None,
-        "feature_schema": [{"index": i, "name": f, "capability": "gsi_compatible", "dtype": "float32", "missing": "null/NaN allowed"} for i, f in enumerate(names)],
+        "feature_schema": [
+            {"index": i, "name": f, "capability": "gsi_compatible", "dtype": "float32", "missing": "null/NaN allowed"}
+            for i, f in enumerate(names)
+        ],
         "required_capabilities": required_capabilities(names),
         "supported_builds": [],
         "supported_maps": [],
@@ -86,7 +89,11 @@ def make_parity_fixture(out: Path, emitter: Emitter, seed: int = 1234, parity_co
             "seed": seed,
             "params": params,
             "num_boost_round": 40,
-            "data": {"rows": int(X.shape[0]), "positives": int(y.sum()), "source": "synthetic (mf_training.synthetic.synthetic_contact_frame)"},
+            "data": {
+                "rows": int(X.shape[0]),
+                "positives": int(y.sum()),
+                "source": "synthetic (mf_training.synthetic.synthetic_contact_frame)",
+            },
             "lightgbm_version": importlib.metadata.version("lightgbm"),
         },
         "notes": "Trained on synthetic data. Exists only so the TypeScript runtime can prove LightGBM JSON parity; never use for direction.",
