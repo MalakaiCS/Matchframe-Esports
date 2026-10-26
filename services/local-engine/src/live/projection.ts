@@ -124,7 +124,8 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
   });
   if (!map) return none("no map pack for this map");
   const cal = map.radarCalibrationFor(null);
-  const useImage = cal && (cal.verified || ctx.allowUnverifiedRadar);
+  // Image mode needs both a calibrated transform and the radar image it was calibrated for.
+  const useImage = !!cal && !!cal.imageAssetId && (cal.verified || ctx.allowUnverifiedRadar);
   const transform = useImage
     ? (p: { x: number; y: number; z: number }) => {
         const r = map.worldToRadar(p, { requireVerified: !ctx.allowUnverifiedRadar });
@@ -171,7 +172,7 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
     mapName: state.mapName,
     mode: useImage ? "image" : "schematic",
     calibrationVerified: useImage ? !!cal?.verified : true,
-    backgroundUrl: `/overlay-api/radar/${encodeURIComponent(state.mapName ?? "")}`,
+    backgroundUrl: useImage ? ctx.assetUrl(cal!.imageAssetId) : `/overlay-api/radar/${encodeURIComponent(state.mapName ?? "")}`,
     players,
     bomb: bombUv ? { ...bombUv, state: state.bomb!.state } : null,
     utility,

@@ -141,6 +141,34 @@ describe("engine end-to-end (real HTTP/WS servers)", () => {
     expect(ctx.engine.program.mode).toBe("LIVE");
   });
 
+  it("device actions use per-action permissions, the shared arbiter, and report tally", async () => {
+    const deviceApi = (role: "viewer" | "observer", path: string, body?: unknown) => {
+      const t = ctx.engine.secrets.issue(role, `deck ${role}`).token;
+      return fetch(`http://127.0.0.1:${ctx.ports.api}${path}`, { method: body === undefined ? "GET" : "POST", headers: { authorization: `Bearer ${t}`, "content-type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+    };
+    const catalogue = (await (await deviceApi("viewer", "/api/v1/devices/actions")).json()) as { id: string; allowed: boolean }[];
+    expect(catalogue.find((a) => a.id === "takeover")?.allowed).toBe(false);
+    expect((await deviceApi("viewer", "/api/v1/devices/actions/takeover", {})).status).toBe(403);
+    expect((await deviceApi("observer", "/api/v1/devices/actions/no_such_action", {})).status).toBe(404);
+    expect((await deviceApi("observer", "/api/v1/devices/actions/select_slot", { slot: 99 })).status).toBe(400);
+    expect((await deviceApi("observer", "/api/v1/devices/actions/return_live", {})).status).toBe(403);
+
+    const take = (await (await deviceApi("observer", "/api/v1/devices/actions/takeover", {})).json()) as { tally: { control: { owner: string; manualSticky: boolean } } };
+    expect(take.tally.control).toMatchObject({ owner: "operator", manualSticky: true });
+    const slotted = ctx.engine.session.state()!.players.find((p) => p.observerSlot !== null)!;
+    const sel = await deviceApi("observer", "/api/v1/devices/actions/select_slot", { slot: slotted.observerSlot });
+    expect(sel.status).toBe(200);
+    expect(((await sel.json()) as { action: string }).action).toBe("select_slot");
+
+    const stop = (await (await deviceApi("observer", "/api/v1/devices/actions/emergency_stop", {})).json()) as { tally: { control: { emergencyStopped: boolean; automationActive: boolean } } };
+    expect(stop.tally.control).toMatchObject({ emergencyStopped: true, automationActive: false });
+    const tally = (await (await deviceApi("viewer", "/api/v1/devices/tally")).json()) as { slots: { slot: number }[]; program: { mode: string } };
+    expect(tally.slots.length).toBe(10);
+    expect(tally.program.mode).toBe("LIVE");
+    expect(((await (await api("/api/v1/audit")).json()) as { action: string }[]).some((a) => a.action === "device.emergency_stop")).toBe(true);
+    await api("/api/v1/observer/clear-emergency-stop", { method: "POST" });
+  });
+
   it("exports and restores an event package with checksum and collision checks", async () => {
     const team = (await (await api("/api/v1/teams", { method: "POST", body: JSON.stringify({ name: "Alpha", shortName: "ALP" }) })).json()) as { id: string };
     await api("/api/v1/players", { method: "POST", body: JSON.stringify({ displayName: "Player One", steamId: "76561198000000999" }) });

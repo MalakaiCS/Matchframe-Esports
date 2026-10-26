@@ -10,6 +10,7 @@ import { mapWinner, seriesScore } from "../domain/series.ts";
 import { standardSequence } from "../domain/veto.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
+import { pushResultIfEnabled } from "./integrations.ts";
 
 const ASSET_EXT = new Set([".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".webm", ".mp4"]);
 const ASSET_MAX = 20 * 1024 * 1024;
@@ -241,6 +242,7 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
     const s = seriesScore(match, e.mapInstances.forMatch(match.id));
     e.matches.update(match.id, { seriesScoreA: s.a, seriesScoreB: s.b, status: s.winnerTeamId ? "completed" : match.status });
     e.audit.record(req.principal!.label, "map.result", mi.id, { ...req.body, winner });
+    pushResultIfEnabled(e, match.id);
     return { map: updated, series: s, note: req.body.completed && !winner && !req.body.forfeitWinnerTeamId ? "Map tied or below the regulation win threshold: series not advanced." : null };
   });
 

@@ -1,4 +1,4 @@
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
@@ -74,10 +74,39 @@ function safeEqual(a: string, b: string): boolean {
  * this with the OS credential store (Electron safeStorage); stream keys and remote credentials are
  * never written here in plain text.
  */
+/**
+ * Optional at-rest encryption for stored credentials. The desktop shell derives the key from the
+ * OS credential store (Electron safeStorage) and passes it as MATCHFRAME_SECRET_KEY (hex, 32 bytes).
+ */
+function encryptValue(key: Buffer, value: string): string {
+  const iv = randomBytes(12);
+  const c = createCipheriv("aes-256-gcm", key, iv);
+  const enc = Buffer.concat([c.update(value, "utf8"), c.final()]);
+  return `enc:v1:${iv.toString("base64")}:${c.getAuthTag().toString("base64")}:${enc.toString("base64")}`;
+}
+
+function decryptValue(key: Buffer | null, value: string): string | undefined {
+  if (!value.startsWith("enc:v1:")) return value;
+  if (!key) return undefined;
+  const [, , iv, tag, data] = value.split(":");
+  try {
+    const d = createDecipheriv("aes-256-gcm", key, Buffer.from(iv!, "base64"));
+    d.setAuthTag(Buffer.from(tag!, "base64"));
+    return Buffer.concat([d.update(Buffer.from(data!, "base64")), d.final()]).toString("utf8");
+  } catch {
+    return undefined;
+  }
+}
+
 export class SecretStore {
   private data: SecretFile;
+  private readonly key: Buffer | null;
 
-  constructor(private readonly path: string) {
+  constructor(
+    private readonly path: string,
+    keyHex: string | undefined = process.env.MATCHFRAME_SECRET_KEY,
+  ) {
+    this.key = keyHex && /^[0-9a-f]{64}$/i.test(keyHex) ? Buffer.from(keyHex, "hex") : null;
     if (existsSync(path)) {
       this.data = JSON.parse(readFileSync(path, "utf8")) as SecretFile;
     } else {
@@ -110,15 +139,20 @@ export class SecretStore {
     return this.data.gsiToken;
   }
 
+  get encryptedAtRest(): boolean {
+    return this.key !== null;
+  }
+
   setSecret(name: string, value: string | null): void {
     this.data.extra = this.data.extra ?? {};
     if (value === null) delete this.data.extra[name];
-    else this.data.extra[name] = value;
+    else this.data.extra[name] = this.key ? encryptValue(this.key, value) : value;
     this.save();
   }
 
   getSecret(name: string): string | undefined {
-    return this.data.extra?.[name];
+    const v = this.data.extra?.[name];
+    return v === undefined ? undefined : decryptValue(this.key, v);
   }
 
   hasSecret(name: string): boolean {

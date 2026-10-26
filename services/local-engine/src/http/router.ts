@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { z } from "zod";
+import { z } from "zod";
 import type { Permission, Principal, SecretStore } from "../auth.ts";
 import { can } from "../auth.ts";
 
@@ -40,6 +40,7 @@ interface RouteOpts<S extends z.ZodTypeAny | undefined> {
 
 interface Route {
   method: string;
+  path: string;
   pattern: RegExp;
   keys: string[];
   opts: RouteOpts<z.ZodTypeAny | undefined>;
@@ -96,7 +97,7 @@ export class Router {
 
   add<S extends z.ZodTypeAny | undefined>(method: string, path: string, opts: RouteOpts<S>, handler: (req: Req<S extends z.ZodTypeAny ? z.infer<S> : unknown>) => unknown): void {
     const { pattern, keys } = compile(path);
-    this.routes.push({ method, pattern, keys, opts, handler: handler as Handler });
+    this.routes.push({ method, path, pattern, keys, opts, handler: handler as Handler });
   }
 
   get<S extends z.ZodTypeAny | undefined>(path: string, opts: RouteOpts<S>, h: (req: Req<S extends z.ZodTypeAny ? z.infer<S> : unknown>) => unknown) {
@@ -116,7 +117,38 @@ export class Router {
   }
 
   routeList(): { method: string; path: string; permission: string }[] {
-    return this.routes.map((r) => ({ method: r.method, path: r.pattern.source, permission: r.opts.permission }));
+    return this.routes.map((r) => ({ method: r.method, path: r.path, permission: r.opts.permission }));
+  }
+
+  /** OpenAPI 3.1 document generated from the registered routes and their zod body schemas. */
+  openapi(info: { title: string; version: string }): Record<string, unknown> {
+    const paths: Record<string, Record<string, unknown>> = {};
+    for (const r of this.routes) {
+      const p = r.path.replace(/:([A-Za-z]+)/g, "{$1}");
+      const op: Record<string, unknown> = {
+        operationId: `${r.method.toLowerCase()}_${r.path.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "")}`,
+        summary: `${r.method} ${r.path}`,
+        description: r.opts.permission === "public" ? "Public." : `Requires permission \`${r.opts.permission}\`.`,
+        ...(r.opts.permission === "public" ? {} : { security: [{ bearer: [] }] }),
+        parameters: r.keys.map((k) => ({ name: k, in: "path", required: true, schema: { type: "string" } })),
+        responses: { "200": { description: "OK" }, "400": { description: "Validation error" }, "401": { description: "Unauthenticated" }, "403": { description: "Forbidden" }, "409": { description: "Conflict / not allowed in current state" } },
+      };
+      if (r.opts.body) {
+        try {
+          op.requestBody = { required: true, content: { "application/json": { schema: z.toJSONSchema(r.opts.body, { unrepresentable: "any", io: "input" }) } } };
+        } catch {
+          op.requestBody = { required: true, content: { "application/json": { schema: {} } } };
+        }
+      }
+      paths[p] = { ...(paths[p] ?? {}), [r.method.toLowerCase()]: op };
+    }
+    return {
+      openapi: "3.1.0",
+      info: { ...info, description: "Matchframe Esports local engine API (loopback by default). Not the API of the separate MatchFrame service or any replay tool." },
+      servers: [{ url: "http://127.0.0.1:37211" }],
+      components: { securitySchemes: { bearer: { type: "http", scheme: "bearer" } } },
+      paths,
+    };
   }
 
   /** Returns false when no route matched (caller may serve static files). */

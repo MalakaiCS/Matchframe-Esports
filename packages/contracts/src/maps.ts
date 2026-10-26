@@ -12,6 +12,8 @@ export const RadarCalibration = z.object({
   scale: z.number().positive(),
   rotationDeg: z.number().default(0),
   imageSizePx: z.number().int().positive().default(1024),
+  /** Radar image asset (operator supplied) this calibration belongs to; image mode needs it. */
+  imageAssetId: z.string().nullable().default(null),
   source: z.enum(["game_overview_file", "operator_calibration", "recalled_unverified"]),
   verified: z.boolean(),
   notes: z.string().nullable().default(null),

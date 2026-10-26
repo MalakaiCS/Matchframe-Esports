@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "mapName": "de_overpass",
+  "source": "demo_place_name_transitions",
+  "description": "Undirected region adjacency from observed place-name transitions of alive players (consecutive samples ≤ 1 s apart within a round). Not part of the MapPack schema.",
+  "minTransitions": 2,
+  "nodes": [
+    {
+      "id": "alley",
+      "place": "Alley",
+      "sampleCount": 3391
+    },
+    {
+      "id": "bombsite_b",
+      "place": "BombsiteB",
+      "sampleCount": 9774
+    },
+    {
+      "id": "bridge",
+      "place": "Bridge",
+      "sampleCount": 814
+    },
+    {
+      "id": "canal",
+      "place": "Canal",
+      "sampleCount": 11545
+    },
+    {
+      "id": "connector",
+      "place": "Connector",
+      "sampleCount": 575
+    },
+    {
+      "id": "construction",
+      "place": "Construction",
+      "sampleCount": 3624
+    },
+    {
+      "id": "pipe",
+      "place": "Pipe",
+      "sampleCount": 2389
+    },
+    {
+      "id": "snipers_nest",
+      "place": "SnipersNest",
+      "sampleCount": 237
+    },
+    {
+      "id": "t_spawn",
+      "place": "TSpawn",
+      "sampleCount": 7061
+    },
+    {
+      "id": "t_stairs",
+      "place": "TStairs",
+      "sampleCount": 26
+    },
+    {
+      "id": "tunnels",
+      "place": "Tunnels",
+      "sampleCount": 181
+    },
+    {
+      "id": "under_a",
+      "place": "UnderA",
+      "sampleCount": 9040
+    },
+    {
+      "id": "walkway",
+      "place": "Walkway",
+      "sampleCount": 2454
+    },
+    {
+      "id": "water",
+      "place": "Water",
+      "sampleCount": 6119
+    }
+  ],
+  "edges": [
+    {
+      "a": "alley",
+      "b": "canal",
+      "transitions": 39,
+      "a_to_b": 34,
+      "b_to_a": 5
+    },
+    {
+      "a": "alley",
+      "b": "t_spawn",
+      "transitions": 33,
+      "a_to_b": 0,
+      "b_to_a": 33
+    },
+    {
+      "a": "bombsite_b",
+      "b": "bridge",
+      "transitions": 15,
+      "a_to_b": 4,
+      "b_to_a": 11
+    },
+    {
+      "a": "bombsite_b",
+      "b": "canal",
+      "transitions": 56,
+      "a_to_b": 29,
+      "b_to_a": 27
+    },
+    {
+      "a": "bombsite_b",
+      "b": "construction",
+      "transitions": 19,
+      "a_to_b": 10,
+      "b_to_a": 9
+    },
+    {
+      "a": "bombsite_b",
+      "b": "water",
+      "transitions": 42,
+      "a_to_b": 10,
+      "b_to_a": 32
+    },
+    {
+      "a": "bridge",
+      "b": "walkway",
+      "transitions": 13,
+      "a_to_b": 3,
+      "b_to_a": 10
+    },
+    {
+      "a": "bridge",
+      "b": "water",
+      "transitions": 5,
+      "a_to_b": 2,
+      "b_to_a": 3
+    },
+    {
+      "a": "canal",
+      "b": "pipe",
+      "transitions": 28,
+      "a_to_b": 18,
+      "b_to_a": 10
+    },
+    {
+      "a": "connector",
+      "b": "water",
+      "transitions": 5,
+      "a_to_b": 3,
+      "b_to_a": 2
+    },
+    {
+      "a": "construction",
+      "b": "water",
+      "transitions": 23,
+      "a_to_b": 10,
+      "b_to_a": 13
+    },
+    {
+      "a": "pipe",
+      "b": "water",
+      "transitions": 18,
+      "a_to_b": 12,
+      "b_to_a": 6
+    },
+    {
+      "a": "snipers_nest",
+      "b": "under_a",
+      "transitions": 3,
+      "a_to_b": 0,
+      "b_to_a": 3
+    },
+    {
+      "a": "snipers_nest",
+      "b": "water",
+      "transitions": 3,
+      "a_to_b": 3,
+      "b_to_a": 0
+    },
+    {
+      "a": "t_spawn",
+      "b": "under_a",
+      "transitions": 2,
+      "a_to_b": 1,
+      "b_to_a": 1
+    },
+    {
+      "a": "under_a",
+      "b": "walkway",
+      "transitions": 34,
+      "a_to_b": 33,
+      "b_to_a": 1
+    },
+    {
+      "a": "walkway",
+      "b": "water",
+      "transitions": 31,
+      "a_to_b": 27,
+      "b_to_a": 4
+    }
+  ],
+  "transitionsObserved": 372,
+  "provenance": {
+    "createdBy": "matchframe-workers 0.1.0 mf_features.map_pack",
+    "createdAt": "2026-10-26T14:04:33.614838Z",
+    "sources": [
+      "dataset:de_overpass-13914-d7f8405454bafcc9"
+    ]
+  }
+}

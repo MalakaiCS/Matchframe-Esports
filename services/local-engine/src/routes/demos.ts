@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import { DemoJobState, RetentionPolicy } from "@matchframe/contracts";
@@ -6,20 +6,7 @@ import type { Engine } from "../app.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
 
-interface TrainingRun {
-  id: string;
-  task: string;
-  state: "queued" | "running" | "completed" | "failed";
-  startedAt: string;
-  finishedAt: string | null;
-  result: Record<string, unknown> | null;
-  error: string | null;
-  progress: Record<string, unknown> | null;
-}
-
 export function registerDemoRoutes(r: Router, e: Engine): void {
-  const runs: TrainingRun[] = [];
-  const modelsDir = () => join(e.cfg.dataDir, "models");
 
   r.get("/api/v1/demos/config", { permission: "demos.manage" }, () => ({ config: e.demos.config(), workersAvailable: e.workers.available(), paused: e.demos.isPaused }));
   r.put("/api/v1/demos/config", { permission: "demos.manage", body: z.object({ ingestRoots: z.array(z.string()).optional(), datasetRoot: z.string().optional(), quarantineDir: z.string().optional(), watch: z.boolean().optional(), retention: z.object({ policy: RetentionPolicy, quarantineDays: z.number().int().min(0).max(365), auditSampleRate: z.number().min(0).max(1) }).optional(), concurrency: z.number().int().min(1).max(8).optional(), pauseDuringLive: z.boolean().optional(), minFreeBytes: z.number().int().min(0).optional() }) }, (req) => {
@@ -38,7 +25,7 @@ export function registerDemoRoutes(r: Router, e: Engine): void {
     return { jobs: jobs.map((j) => ({ ...j, progress: e.demos.progress.get(j.id) ?? null })), counts: e.demoJobs.counts() };
   });
   r.get("/api/v1/jobs/:id", { permission: "state.read" }, (req) => {
-    const run = runs.find((x) => x.id === req.params.id);
+    const run = e.training.runs.find((x) => x.id === req.params.id);
     if (run) return { kind: "training", ...run };
     const j = e.demoJobs.require(req.params.id!);
     return { kind: "demo_import", ...j, transitions: e.demoJobs.transitions(j.id), progress: e.demos.progress.get(j.id) ?? null };
@@ -83,52 +70,39 @@ export function registerDemoRoutes(r: Router, e: Engine): void {
     return { manifest: existsSync(manifest) ? JSON.parse(readFileSync(manifest, "utf8")) : null, qa: existsSync(qa) ? JSON.parse(readFileSync(qa, "utf8")) : null, validation: j.validation };
   });
 
-  // ---- training & evaluation (offline; throttled away from live broadcasts) ---------------
-  r.post("/api/v1/training/runs", { permission: "training.manage", body: z.object({ task: z.string().regex(/^[a-z0-9_]+$/).default("contact_2s"), datasets: z.array(z.string()).min(1), allowDuringLive: z.boolean().default(false) }) }, async (req) => {
+  // ---- training & evaluation (offline; workers run at below-normal priority) ---------------
+  r.post("/api/v1/training/runs", { permission: "training.manage", body: z.object({ task: z.enum(["contact_2s"]).default("contact_2s"), datasets: z.array(z.string()).min(1).optional(), allowDuringLive: z.boolean().default(false) }) }, (req) => {
     const st = e.session.state();
     if (!req.body.allowDuringLive && st && !st.simulated && !st.sources[0]?.stale) throw new HttpError(409, "training is paused while a live broadcast is running (allowDuringLive to override)", "live_protected");
     if (!e.workers.available()) throw new HttpError(409, "Python workers are not configured", "no_workers");
-    const run: TrainingRun = { id: `train_${Date.now().toString(36)}`, task: req.body.task, state: "running", startedAt: new Date().toISOString(), finishedAt: null, result: null, error: null, progress: null };
-    runs.push(run);
-    e.audit.record(req.principal!.label, "training.start", run.id, req.body);
-    void (async () => {
-      try {
-        const manifest = join(modelsDir(), `${run.id}.dataset.json`);
-        await e.workers.run(["freeze-dataset", "--datasets", ...req.body.datasets, "--out", manifest], (p) => (run.progress = p));
-        await e.workers.run(["audit-split", "--dataset-manifest", manifest], (p) => (run.progress = p));
-        const trained = await e.workers.run(["train", "--task", req.body.task, "--dataset-manifest", manifest, "--out-dir", modelsDir()], (p) => (run.progress = p));
-        run.result = trained;
-        run.state = "completed";
-      } catch (err) {
-        run.state = "failed";
-        run.error = err instanceof Error ? err.message : String(err);
-      } finally {
-        run.finishedAt = new Date().toISOString();
-      }
-    })();
+    const run = e.training.start(req.body.task, req.body.datasets ?? null);
+    e.audit.record(req.principal!.label, "training.start", run.id, { task: run.task, datasets: run.datasets.length });
     return run;
   });
-  r.get("/api/v1/training/runs", { permission: "training.manage" }, () => runs.slice(-50));
-  r.get("/api/v1/models", { permission: "state.read" }, () => {
-    const dir = modelsDir();
-    if (!existsSync(dir)) return { models: [], approvedForLive: e.settings.get("models.liveModelId", null) };
-    const models: unknown[] = [];
-    for (const name of readdirSync(dir)) {
-      const card = join(dir, name, "model_card.json");
-      if (existsSync(card)) {
-        try {
-          models.push(JSON.parse(readFileSync(card, "utf8")));
-        } catch {
-          models.push({ id: name, error: "unreadable model card" });
-        }
-      }
-    }
-    return { models, approvedForLive: e.settings.get("models.liveModelId", null) };
-  });
-  r.post("/api/v1/models/:id/promote", { permission: "models.promote", body: z.object({ status: z.enum(["shadow", "candidate", "approved", "retired", "rolled_back"]) }) }, async (req) => {
+  r.get("/api/v1/training/runs", { permission: "training.manage" }, () => e.training.runs.slice(-50));
+  r.get("/api/v1/models", { permission: "state.read" }, () => ({ models: e.training.registry(), shadowModelId: e.session.shadowModelId }));
+  r.post("/api/v1/models/:id/promote", { permission: "models.promote", body: z.object({ to: z.enum(["shadow", "candidate", "approved", "retired", "rolled_back"]), reason: z.string().min(3).max(500) }) }, async (req) => {
     if (!e.workers.available()) throw new HttpError(409, "Python workers are not configured", "no_workers");
-    const res = await e.workers.run(["promote", "--models-dir", modelsDir(), "--model-id", req.params.id!, "--status", req.body.status]);
-    e.audit.record(req.principal!.label, "model.promote", req.params.id!, { status: req.body.status, result: res });
-    return res;
+    try {
+      const res = await e.training.promote(req.params.id!, req.body.to, req.body.reason);
+      e.audit.record(req.principal!.label, "model.promote", req.params.id!, req.body);
+      return res;
+    } catch (err) {
+      const we = (err as { workerError?: { code?: string; message?: string; details?: unknown } }).workerError;
+      if (we?.code === "PROMOTION_REFUSED" || we?.code === "MODEL_NOT_FOUND") throw new HttpError(409, we.message ?? "promotion refused", we.code.toLowerCase(), we.details ?? null);
+      throw err;
+    }
   });
+  r.post("/api/v1/models/:id/shadow", { permission: "models.promote" }, (req) => {
+    const res = e.training.loadShadow(req.params.id!);
+    e.audit.record(req.principal!.label, "model.shadow_load", req.params.id!, res.ok ? { ok: true } : { ok: false, reason: res.reason });
+    if (!res.ok) throw new HttpError(409, `model not loaded; the baseline director continues: ${res.reason}`, "model_rejected");
+    return { shadowModelId: res.model.id, sha256: res.model.sha256, notes: res.model.card.notes ?? null };
+  });
+  r.delete("/api/v1/models/shadow", { permission: "models.promote" }, (req) => {
+    e.training.unloadShadow();
+    e.audit.record(req.principal!.label, "model.shadow_unload", null);
+    return { shadowModelId: null };
+  });
+  r.get("/api/v1/models/shadow", { permission: "state.read" }, () => ({ shadowModelId: e.session.shadowModelId, summary: e.session.shadow.summary(), recent: e.session.shadow.recent.slice(-20), note: "Shadow models never drive the camera; this compares their contact estimate with the baseline." }));
 }

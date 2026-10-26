@@ -26,6 +26,15 @@ export class HudClient {
     this.connect();
   }
 
+  /**
+   * Sends a sponsor display acknowledgement (proof of delivery). This is the only message the
+   * overlay socket accepts; anything else is ignored by the engine.
+   */
+  ackSponsor(sponsorId: string, zone: string, durationMs?: number): void {
+    if (this.ws?.readyState !== WebSocket.OPEN) return;
+    this.ws.send(JSON.stringify({ type: "ack", sponsorId, zone, shownAt: new Date().toISOString(), ...(durationMs !== undefined ? { durationMs } : {}) }));
+  }
+
   stop(): void {
     this.closed = true;
     if (this.timer) clearTimeout(this.timer);

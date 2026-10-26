@@ -34,8 +34,8 @@ export class Sim {
   readonly store: MatchStateStore;
   now = 10_000;
   private ts = 1_700_000_000;
-  constructor(mapName = "de_synthetic") {
-    const rt = new MapRuntime(syntheticMapPack({ withValidatedCamera: true, mapName }));
+  constructor(mapName = "de_synthetic", runtime?: MapRuntime) {
+    const rt = runtime ?? new MapRuntime(syntheticMapPack({ withValidatedCamera: true, mapName }));
     this.store = new MatchStateStore({ sessionId: "sim", simulated: true, mapContextFor: () => rt });
   }
   push(players: SyntheticPlayer[], opts: { grenades?: SyntheticGrenade[]; observed?: string | null; dtMs?: number; bomb?: { state: string; position?: Vec3; countdown?: number }; phase?: string; mapName?: string } = {}) {

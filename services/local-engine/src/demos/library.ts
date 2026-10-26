@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
+import { constants, setPriority } from "node:os";
 import { createHash } from "node:crypto";
-import { createReadStream, existsSync, mkdirSync, readdirSync, realpathSync, renameSync, rmSync, statfsSync, statSync, unlinkSync } from "node:fs";
+import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statfsSync, statSync, unlinkSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import type { RetentionPolicy } from "@matchframe/contracts";
 import type { DemoJob, DemoJobRepo, SettingsRepo } from "../db/store.ts";
@@ -89,8 +90,18 @@ export class PythonWorkerRunner implements WorkerRunner {
       child.stderr.on("data", (d: Buffer) => {
         stderr = (stderr + d.toString("utf8")).slice(-4000);
       });
+      // Offline work must never compete with the live broadcast for CPU (spec A46).
+      if (child.pid !== undefined) {
+        try {
+          setPriority(child.pid, constants.priority.PRIORITY_BELOW_NORMAL);
+        } catch {
+          // not permitted on this platform/user; the live-broadcast guard still applies
+        }
+      }
       child.on("close", (code) => {
-        if (code === 0 && result) return resolvePromise(result);
+        // Exit 3 = the command completed with a negative verdict (quarantine, verify mismatch,
+        // leakage…); the result line carries the details.
+        if ((code === 0 || code === 3) && result) return resolvePromise({ ...result, exitCode: code });
         const msg = error ? `${error.code ?? "error"}: ${error.message ?? ""}` : `worker exited with code ${code}: ${stderr.trim().split("\n").slice(-3).join(" | ")}`;
         reject(Object.assign(new Error(msg), { workerError: error }));
       });
@@ -131,6 +142,24 @@ export function dirSize(path: string): number {
   let total = 0;
   for (const name of readdirSync(path)) total += dirSize(join(path, name));
   return total;
+}
+
+function readManifest(datasetDir: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(readFileSync(join(datasetDir, "manifest.json"), "utf8")) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function readManifestParser(datasetDir: string): string | null {
+  const p = readManifest(datasetDir)?.parser as { name?: string; version?: string } | undefined;
+  return p?.name ? `${p.name} ${p.version ?? ""}`.trim() : null;
+}
+
+function readManifestSchemaVersion(datasetDir: string): number | null {
+  const v = readManifest(datasetDir)?.schema_version;
+  return typeof v === "number" ? v : null;
 }
 
 const DEMO_RE = /\.(dem|dem\.gz|dem\.bz2|dem\.zst)$/i;
@@ -326,22 +355,25 @@ export class DemoLibrary {
     try {
       this.repo.transition(j.id, "PARSING", { attempts, lastCheckpoint: "extract" });
       const extract = await this.runner.run(["extract", "--input", j.sourcePath, "--dataset-root", cfg.datasetRoot], (p) => this.progress.set(j.id, p));
-      if (extract.duplicate === true || extract.status === "duplicate") {
-        // The same content was already committed by an earlier job.
-        this.repo.transition(j.id, "FAILED", { failureReason: "dataset already exists for this content hash" });
+      // "duplicate" means a committed dataset with this content hash already exists — e.g. a
+      // previous attempt committed it and crashed before the engine recorded it. Adopt it (after
+      // validation) instead of extracting twice.
+      const datasetDir = String(extract.dataset ?? extract.dataset_dir ?? "");
+      if (!datasetDir || !existsSync(datasetDir)) throw new Error("worker reported success without a dataset directory");
+      const owner = this.repo.findByDataset(datasetDir);
+      if (extract.status === "duplicate" && owner && owner.id !== j.id) {
+        this.repo.transition(j.id, "FAILED", { failureReason: `dataset already committed by ${owner.id}` });
         return;
       }
-      const datasetDir = String(extract.dataset_dir ?? extract.datasetDir ?? extract.dataset ?? "");
-      if (!datasetDir || !existsSync(datasetDir)) throw new Error("worker reported success without a dataset directory");
       this.repo.transition(j.id, "EXTRACTED", {
         datasetDir,
-        mapName: (extract.map as string | undefined) ?? (extract.map_name as string | undefined) ?? null,
-        gameBuild: extract.build !== undefined ? String(extract.build) : null,
-        parser: (extract.parser as string | undefined) ?? null,
-        schemaVersion: typeof extract.schema_version === "number" ? extract.schema_version : null,
+        mapName: (extract.map as string | undefined) ?? null,
+        gameBuild: extract.build !== undefined && extract.build !== null ? String(extract.build) : null,
+        parser: readManifestParser(datasetDir),
+        schemaVersion: readManifestSchemaVersion(datasetDir),
         bytesRead: j.sizeBytes,
-        bytesWritten: typeof extract.bytes_written === "number" ? extract.bytes_written : dirSize(datasetDir),
-        lastCheckpoint: "validate",
+        bytesWritten: typeof extract.output_bytes === "number" ? extract.output_bytes : dirSize(datasetDir),
+        lastCheckpoint: extract.status === "duplicate" ? "validate (adopted existing dataset)" : "validate",
       });
       this.repo.transition(j.id, "VALIDATING", {});
       const validation = await this.runner.run(["validate", "--dataset", datasetDir], (p) => this.progress.set(j.id, p));
@@ -356,7 +388,10 @@ export class DemoLibrary {
       const msg = e instanceof Error ? e.message : String(e);
       const cur = this.repo.require(j.id);
       if (cur.state === "PARSING" || cur.state === "EXTRACTED" || cur.state === "VALIDATING") {
-        const corrupt = /corrupt|invalid demo|unexpected end|parse/i.test(msg);
+        // Unreadable, unsupported, partial or empty demos are quarantined (never deletion-eligible);
+        // other failures (missing file, internal errors) are retryable.
+        const code = String((e as { workerError?: { code?: unknown } }).workerError?.code ?? "");
+        const corrupt = ["UNSUPPORTED_FORMAT", "PARSER_FAILED", "EMPTY_PARSE", "INPUT_UNREADABLE"].includes(code) || /corrupt|unexpected end/i.test(msg);
         this.repo.transition(j.id, corrupt ? "QUARANTINED" : "FAILED", { failureReason: msg.slice(0, 1000) });
       }
       this.logger.warn("demo job failed", { jobId: j.id, error: msg });
@@ -421,7 +456,7 @@ export class DemoLibrary {
       }
       try {
         const v = await this.runner.run(["verify", "--dataset", j.datasetDir]);
-        if (v.ok !== true && v.verdict !== "ok" && v.verdict !== "usable") throw new Error(`verify returned ${JSON.stringify(v).slice(0, 200)}`);
+        if (v.ok !== true) throw new Error(`verify returned ${JSON.stringify(v).slice(0, 200)}`);
       } catch (e) {
         blocked.push(`${j.id}: dataset verification failed — raw demo kept (${String(e).slice(0, 200)})`);
         continue;

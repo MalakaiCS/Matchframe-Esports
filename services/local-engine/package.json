@@ -23,7 +23,8 @@
     "@matchframe/observer-agent": "workspace:*",
     "@matchframe/replay-agent": "workspace:*",
     "@matchframe/obs-adapter": "workspace:*",
-    "@matchframe/game-adapters": "workspace:*"
+    "@matchframe/game-adapters": "workspace:*",
+    "@matchframe/matchframe-bridge": "workspace:*"
   },
   "devDependencies": {
     "@types/ws": "8.18.2"

@@ -57,7 +57,7 @@ export function syntheticMapPack(opts: { withValidatedCamera?: boolean; mapName?
     mapName,
     displayName: "Synthetic Test Map",
     mapRevision: "synthetic-1",
-    radar: { posX: -3500, posY: 4500, scale: 8, rotationDeg: 0, imageSizePx: 1024, source: "operator_calibration", verified: true, notes: "synthetic" },
+    radar: { posX: -3500, posY: 4500, scale: 8, rotationDeg: 0, imageSizePx: 1024, imageAssetId: null, source: "operator_calibration", verified: true, notes: "synthetic" },
     levels: [
       { id: "ground", name: "Ground", zMin: -1000, zMax: 400, radar: null },
       { id: "upper", name: "Upper", zMin: 400, zMax: 2000, radar: null },

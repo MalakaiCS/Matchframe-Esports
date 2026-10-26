@@ -31,6 +31,7 @@ import { LiveSession } from "./live/session.ts";
 import { TeamSideTracker } from "./live/team-sides.ts";
 import { Logger } from "./logger.ts";
 import { ProgramArbiter } from "./production/program.ts";
+import { TrainingService } from "./demos/training.ts";
 import { DemoLibrary, PythonWorkerRunner } from "./demos/library.ts";
 import { RoundSimulator } from "./sim/simulator.ts";
 
@@ -97,6 +98,7 @@ export class Engine {
   readonly outputs: OutputService;
   readonly demos: DemoLibrary;
   readonly workers: PythonWorkerRunner;
+  readonly training: TrainingService;
   readonly sponsorRotation = new SponsorRotation();
   readonly startedAt = new Date().toISOString();
   readonly now = () => performance.now();
@@ -174,6 +176,7 @@ export class Engine {
     this.registerBuiltinHud();
 
     this.workers = new PythonWorkerRunner(cfg.pythonPath, cfg.workersDir);
+    this.training = new TrainingService({ workers: this.workers, dataDir: cfg.dataDir, demoJobs: this.demoJobs, settings: this.settings, session: this.session, logger: this.logger });
     this.demos = new DemoLibrary(this.demoJobs, this.settings, this.workers, this.logger, cfg.dataDir, () => {
       const st = this.session.state();
       return !!st && !st.simulated && !st.sources[0]?.stale;
@@ -368,13 +371,46 @@ export class Engine {
         buf.push(this.now(), s);
       }
     }
-    this.killfeed.resetForRound(s.roundAttemptId);
+    // Keyed by session + round attempt: a restarted session must not inherit old entries.
+    this.killfeed.resetForRound(`${s.sessionId}:${s.epoch}:${s.roundAttemptId}`);
     const map = s.mapName ? this.maps.get(s.mapName) : undefined;
     this.session.director.setMap(map);
     for (const fn of this.hudListeners) fn("*");
   }
 
+  private playerCam = { lastPlayerId: null as string | null, lastSource: null as string | null, lastError: null as string | null, lastAt: null as string | null, applied: 0 };
+
+  playerCamStatus(): Record<string, unknown> {
+    return { ...this.playerCam, obsConnected: this.obs.state.connected, programMode: this.program.mode };
+  }
+
+  /**
+   * Shows the observed player's camera source (by stable player ID, never by observer slot) and
+   * hides the other configured player sources. Only players who consented are routed; outside LIVE
+   * program mode nothing is changed. An optional delay aligns cameras with a delayed program.
+   */
+  private routePlayerCamera(observedSteamId: string | null): void {
+    const cfg = this.settings.get<{ enabled?: boolean; scene?: string | null; sources?: Record<string, string>; fallbackSource?: string | null; delayMs?: number }>("playerCams", {});
+    if (!cfg.enabled || !cfg.scene || !this.obs.state.connected || this.program.mode !== "LIVE") return;
+    const playerId = observedSteamId ? this.steamIndex.lookup(observedSteamId) : null;
+    const player = playerId ? this.players.get(playerId)?.data : undefined;
+    const target = player?.cameraConsent && playerId ? (cfg.sources?.[playerId] ?? null) : null;
+    const show = target ?? cfg.fallbackSource ?? null;
+    const apply = async () => {
+      try {
+        const all = new Set([...Object.values(cfg.sources ?? {}), ...(cfg.fallbackSource ? [cfg.fallbackSource] : [])]);
+        for (const src of all) await this.obs.setSourceVisible(cfg.scene!, src, src === show);
+        this.playerCam = { lastPlayerId: playerId, lastSource: show, lastError: null, lastAt: new Date().toISOString(), applied: this.playerCam.applied + 1 };
+      } catch (err) {
+        this.playerCam = { ...this.playerCam, lastError: err instanceof Error ? err.message : String(err), lastAt: new Date().toISOString() };
+      }
+    };
+    if (cfg.delayMs && cfg.delayMs > 0) setTimeout(() => void apply(), cfg.delayMs);
+    else void apply();
+  }
+
   private onDerivedEvents(evs: DerivedEvent[]): void {
+    for (const ev of evs) if (ev.kind === "observer_changed") this.routePlayerCamera((ev.data.to as string | null) ?? null);
     const state = this.session.state();
     const nameOf = (steamId: string) => {
       const p = state?.players.find((x) => x.steamId === steamId);
@@ -534,6 +570,8 @@ export class Engine {
     await this.applyObserverAdapter();
     this.session.start();
     this.demos.start();
+    const shadowIssue = this.training.restore();
+    if (shadowIssue) this.audit.record("system", "model.shadow_rejected", this.settings.get("models.shadowModelId", null), { reason: shadowIssue });
     // Restart always resumes in manual/disarmed mode until sources and ownership are validated.
     this.session.setMode("advisory");
     this.audit.record("system", "engine.start", null, { version: "0.1.0", migration: this.migration });
