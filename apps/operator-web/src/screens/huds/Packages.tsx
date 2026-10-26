@@ -7,7 +7,8 @@ import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
 
 /** The engine's default request body limit; larger archives must be imported from a directory. */
-const MAX_UPLOAD = 2 * 1024 * 1024;
+/** Engine limit for HUD archive uploads (POST /api/v1/hud/packages/import). */
+const MAX_UPLOAD = 60 * 1024 * 1024;
 
 export function PackagesTab() {
   const pk = useApi<HudPackage[]>("/api/v1/hud/packages");
@@ -20,7 +21,7 @@ export function PackagesTab() {
       <div className="grid-2">
         <Panel title="Import a package archive (.zip)" subtitle="Validated before install; a failed import never touches the installed version">
           <div className="row-end">
-            <Field label="Archive" hint={`Max ${fmtBytes(MAX_UPLOAD)} via upload (engine request limit)`}>
+            <Field label="Archive" hint={`Max ${fmtBytes(MAX_UPLOAD)} via upload (engine archive limit)`}>
               <input ref={fileRef} type="file" accept=".zip,application/zip" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             </Field>
             <ActionButton

@@ -3,8 +3,8 @@ import { api, describeError } from "../api/index.ts";
 import { fmtBytes } from "../lib/format.ts";
 import { Button } from "./ui.tsx";
 
-/** The engine's default JSON/raw request limit (larger assets are rejected with 413). */
-export const ASSET_UPLOAD_LIMIT = 2 * 1024 * 1024;
+/** The engine's asset upload limit (POST /api/v1/assets; larger bodies get 413). */
+export const ASSET_UPLOAD_LIMIT = 20 * 1024 * 1024;
 const ACCEPT = ".png,.jpg,.jpeg,.webp,.svg,.gif,.webm,.mp4";
 
 export function assetUrl(id: string | null | undefined): string | null {
