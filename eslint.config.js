@@ -38,4 +38,9 @@ export default tseslint.config(
       "no-constant-condition": ["error", { checkLoops: false }],
     },
   },
+  {
+    // Example HUD packages run in the browser.
+    files: ["examples/**/*.js"],
+    languageOptions: { globals: { document: "readonly", location: "readonly", URLSearchParams: "readonly", performance: "readonly", WebSocket: "readonly" } },
+  },
 );
