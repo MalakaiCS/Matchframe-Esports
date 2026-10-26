@@ -368,7 +368,8 @@ export class Engine {
         buf.push(this.now(), s);
       }
     }
-    this.killfeed.resetForRound(s.roundAttemptId);
+    // Keyed by session + round attempt: a restarted session must not inherit old entries.
+    this.killfeed.resetForRound(`${s.sessionId}:${s.epoch}:${s.roundAttemptId}`);
     const map = s.mapName ? this.maps.get(s.mapName) : undefined;
     this.session.director.setMap(map);
     for (const fn of this.hudListeners) fn("*");

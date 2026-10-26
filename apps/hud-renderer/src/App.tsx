@@ -1,0 +1,105 @@
+import { useCallback, useEffect, useState } from "react";
+import type { HudState } from "@matchframe/hud-sdk";
+import { Killfeed } from "./components/Killfeed.tsx";
+import { ObservedPanel, TeamPanel } from "./components/Players.tsx";
+import { Radar } from "./components/Radar.tsx";
+import { Annotations, Badges, Cues, SponsorZone } from "./components/Overlays.tsx";
+import { RoundHistory, Scoreboard, SeriesStrip } from "./components/Scoreboard.tsx";
+import { BreakScreen, PostMap, PostSeries, PreMatch, ReplayFrame, VetoBoard } from "./components/Screens.tsx";
+import { readParams } from "./params.ts";
+import { useHud, useTicker } from "./useHud.ts";
+
+const PRESETS = new Set(["classic", "minimal", "arena"]);
+
+/** Fixed 1920×1080 design stage scaled to the browser-source size (resolution independent). */
+function useStageScale(): number {
+  const [scale, setScale] = useState(() => window.innerWidth / 1920);
+  useEffect(() => {
+    const on = () => setScale(Math.min(window.innerWidth / 1920, window.innerHeight / 1080));
+    on();
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
+  return scale;
+}
+
+function LiveHud({ state, receivedAt, now, onSponsorShown }: { state: HudState; receivedAt: number; now: number; onSponsorShown: (id: string, zone: string) => void }) {
+  const hidden = (k: string) => (state.settings[`hide.${k}`] as boolean | undefined) === true;
+  const observedTeam = state.observed ? (state.left.players.some((p) => p.steamId === state.observed!.steamId) ? state.left : state.right) : null;
+  const showHistory = state.match.phase === "freezetime" || state.match.phase === "over" || state.match.phase === "halftime";
+  return (
+    <>
+      {!hidden("scoreboard") && (
+        <div className="mf-top">
+          <Scoreboard state={state} receivedAt={receivedAt} now={now} />
+          <SeriesStrip state={state} />
+          {showHistory && !hidden("history") ? <RoundHistory state={state} /> : null}
+          <SponsorZone zone="top_bar" state={state} onShown={onSponsorShown} />
+        </div>
+      )}
+      {!hidden("radar") && <Radar radar={state.radar} />}
+      {!hidden("killfeed") && <Killfeed state={state} />}
+      {!hidden("players") && (
+        <>
+          <TeamPanel team={state.left} align="left" />
+          <TeamPanel team={state.right} align="right" />
+        </>
+      )}
+      {!hidden("observed") && <ObservedPanel p={state.observed} team={observedTeam} />}
+      <SponsorZone zone="bottom_right" state={state} onShown={onSponsorShown} />
+      <SponsorZone zone="bottom_left" state={state} onShown={onSponsorShown} />
+      <Cues state={state} />
+    </>
+  );
+}
+
+export function App() {
+  const params = readParams();
+  const feed = useHud(params.wsUrl);
+  const now = useTicker(200);
+  const scale = useStageScale();
+  const state = feed.state;
+  const preset = state?.presetId && PRESETS.has(state.presetId) ? state.presetId : "classic";
+  const variant = state?.variant ?? params.variant;
+  const reducedMotion = state?.settings.reducedMotion === true;
+
+  const ack = feed.ackSponsor;
+  const onSponsorShown = useCallback((sponsorId: string, zone: string) => ack(sponsorId, zone), [ack]);
+
+  let body: React.ReactNode = null;
+  if (state) {
+    if (state.replay.active || variant === "replay") body = <ReplayFrame />;
+    else if (variant === "pre-match") body = <PreMatch state={state} />;
+    else if (variant === "break")
+      body = (
+        <>
+          <BreakScreen state={state} />
+          <SponsorZone zone="break_fullscreen" state={state} onShown={onSponsorShown} />
+        </>
+      );
+    else if (variant === "post-map") body = <PostMap state={state} />;
+    else if (variant === "post-series") body = <PostSeries state={state} />;
+    else if (variant === "veto") body = <VetoBoard state={state} />;
+    else if (variant === "studio") body = <Cues state={state} />;
+    else if (variant === "compact")
+      body = (
+        <>
+          <div className="mf-top">
+            <Scoreboard state={state} receivedAt={feed.receivedAt} now={now} />
+          </div>
+          <ObservedPanel p={state.observed} team={null} />
+        </>
+      );
+    else body = <LiveHud state={state} receivedAt={feed.receivedAt} now={now} onSponsorShown={onSponsorShown} />;
+  }
+
+  return (
+    <div className={`mf-viewport ${reducedMotion ? "mf-reduced-motion" : ""} ${params.preview ? "is-preview" : ""}`}>
+      <div className={`mf-stage mf-preset-${preset} mf-variant-${variant} ${state?.stale ? "is-stale" : ""}`} style={{ transform: `scale(${scale})` }} data-preset={preset}>
+        {body}
+        {state ? <Annotations state={state} /> : null}
+        <Badges state={state} connected={feed.status === "open"} />
+      </div>
+    </div>
+  );
+}
