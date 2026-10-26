@@ -256,18 +256,10 @@ export class ObsManager extends EventEmitter {
   async provisionBrowserSource(opts: { sceneName: string; sourceName: string; url: string; width: number; height: number }): Promise<{ createdScene: boolean; createdInput: boolean; updatedUrl: boolean }> {
     this.requireConnected();
     await this.refresh();
-    let createdScene = false;
-    let createdInput = false;
-    let updatedUrl = false;
-    if (!this.state.scenes.includes(opts.sceneName)) {
-      await this.obs.call("CreateScene", { sceneName: opts.sceneName });
-      createdScene = true;
-    }
+    const createdScene = !this.state.scenes.includes(opts.sceneName);
     const settings = { url: opts.url, width: opts.width, height: opts.height, shutdown: false, restart_when_active: false, reroute_audio: false };
     const r = await this.ensureInput({ sceneName: opts.sceneName, inputName: opts.sourceName, inputKind: "browser_source", settings });
-    createdInput = r.created;
-    updatedUrl = r.updated;
-    return { createdScene, createdInput, updatedUrl };
+    return { createdScene, createdInput: r.created, updatedUrl: r.updated };
   }
 
   /**
