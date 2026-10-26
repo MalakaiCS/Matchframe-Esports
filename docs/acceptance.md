@@ -57,7 +57,7 @@ Test files: `packages/cs2-state/test/reconciler.test.ts` (R), `packages/cs2-stat
 | A47 | Cloud outage | partial | No cloud dependency exists (local-first); MatchFrame bridge failures contained (tested). Cloud sync itself is planned. |
 | A48 | Application restart | pass (fixture) | E: restart resumes manual/disarmed with data intact. |
 | A49 | Unauthorized overlay client | pass (fixture) | E: overlay socket read-only, public projection only. |
-| A50 | Full-match soak | partial | Simulated soak only (see BUILD_PROGRESS.md); no real full match. |
+| A50 | Full-match soak | partial | `pnpm soak --minutes 20` (simulated GSI + simulated observer, operator and overlay WebSocket clients attached, automatic mode): RSS 150 → 188 MB, flat (+0.2 MB) over the last 12 min; 75/75 automated cuts confirmed; p95 ingest 1.0 ms, evaluation 0.43 ms; decision log capped at 1,000; readable broadcast report. No real full match. |
 | A51 | All six grenade types | partial | U: all six types tracked with scoped identity and per-type lifecycle; real demos resolve all six (report §4). Live GSI per-type support unverified. |
 | A52 | Utility beyond named regions | pass (fixture) | U: tracking with no region and above the walkable area, both teams. |
 | A53 | Multi-map validation | partial | Coverage matrix (docs/maps/MAP_UTILITY_COVERAGE.md): 4 real packs, 5 maps without packs; logic tests on several map names and real Inferno geometry. |

@@ -141,8 +141,10 @@ export function StudioScreen() {
     const other = list[i + dir];
     if (!other) return;
     try {
-      await api.patch(`/api/v1/rundown/${seg(c.id)}`, { order: other.order });
-      await api.patch(`/api/v1/rundown/${seg(other.id)}`, { order: c.order });
+      // One atomic request: the engine rewrites every cue's order in a single transaction.
+      const ids = list.map((x) => x.id);
+      [ids[i], ids[i + dir]] = [ids[i + dir]!, ids[i]!];
+      await api.post("/api/v1/rundown/reorder", { ids });
       await cues.reload();
     } catch (e) {
       toast.push("danger", "Reorder failed", String(e instanceof Error ? e.message : e));
