@@ -162,6 +162,59 @@ export interface OperatorSnapshot {
   metrics: EngineMetrics;
   /** Compact control-surface tally (added with the devices API). */
   tally?: DeviceTally;
+  /** Account link and auto-director hours (added with the cloud link). */
+  cloud?: CloudSummary;
+}
+
+export type CloudGate = { ok: true; free?: boolean } | { ok: false; code: "not_linked" | "no_entitlement" | "entitlement_expired" | "plan_excludes" | "hours_exhausted"; reason: string };
+
+export interface CloudSummary {
+  linkState: "unlinked" | "linking" | "linked" | "revoked";
+  plan: string | null;
+  licence: string | null;
+  remainingSeconds: number | null;
+  gate: CloudGate;
+  metering: boolean;
+  enforcement: "required" | "off";
+}
+
+/** GET /api/v1/cloud/status (CloudLink.status in the engine). */
+export interface CloudStatus {
+  url: string | null;
+  urlFixed?: boolean;
+  enforcement: "required" | "off";
+  keysPinned: boolean;
+  linkState: CloudSummary["linkState"];
+  linking: { userCode: string; verificationUri: string; verificationUriComplete: string; expiresAt: string } | null;
+  device: { deviceId: string; orgId: string; orgName: string; linkedAt: string } | null;
+  entitlement: {
+    state: "valid" | "grace" | "expired" | "malformed" | "unknown_key" | "bad_signature" | "wrong_device";
+    plan: { id: string; name: string };
+    subscriptionStatus: string;
+    features: { autoDirector: boolean; learnedDirectorShadow: boolean; maxDevices: number; maxMembers: number };
+    autoDirector: { periodStart: string; periodEnd: string; includedSeconds: number; creditSeconds: number; usedSeconds: number; remainingSeconds: number; overageAllowed: boolean };
+    issuedAt: string;
+    expiresAt: string;
+    graceUntil: string;
+    localRemainingSeconds: number;
+  } | null;
+  gate: CloudGate;
+  usage: { pendingRecords: number; pendingSeconds: number; rejected: number; totalSeconds: number; openSeconds: number; metering: boolean };
+  lastRefreshAt: string | null;
+  lastSyncAt: string | null;
+  lastError: string | null;
+}
+
+export interface CloudUsageRecord {
+  recordId: string;
+  startedAt: string;
+  endedAt: string;
+  seconds: number;
+  sessionId: string;
+  matchRef: string | null;
+  mapName: string | null;
+  uploadedAt: string | null;
+  rejectedReason: string | null;
 }
 
 export interface EventEnvelope<T> {

@@ -17,6 +17,7 @@ const PATHS: Record<string, string> = {
   devices: "M3 4h14v9H3zM7 17h6M10 13v4M14 7h1",
   settings: "M10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM10 2v2M10 16v2M2 10h2M16 10h2M4.3 4.3l1.4 1.4M14.3 14.3l1.4 1.4M4.3 15.7l1.4-1.4M14.3 5.7l1.4-1.4",
   setup: "M4 4h12v12H4zM7 10l2 2 4-4",
+  account: "M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM4 17c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5",
   stop: "M5 5h10v10H5z",
   menu: "M3 5h14M3 10h14M3 15h14",
 };

@@ -17,7 +17,11 @@ import type { ReplayProvider } from "@matchframe/replay-agent";
 import { ObsReplayBufferProvider, ReplayBridgeProvider, ReplayQueue } from "@matchframe/replay-agent";
 import { z } from "zod";
 import { SecretStore } from "./auth.ts";
+import { CloudLink } from "./cloud/link.ts";
+import type { MeterInput } from "./cloud/meter.ts";
+import { AutoDirectorMeter, UsageLedger } from "./cloud/meter.ts";
 import type { EngineConfig } from "./config.ts";
+import { APP_VERSION } from "./config.ts";
 import { Database } from "./db/database.ts";
 import { AuditRepo, DemoJobRepo, DocumentRepo, MapInstanceRepo, RosterRepo, SettingsRepo, SteamIndexRepo, VetoRepo } from "./db/store.ts";
 import { SponsorRotation, zoneAllowed } from "./domain/sponsors.ts";
@@ -108,6 +112,12 @@ export class Engine {
   readonly startedAt = new Date().toISOString();
   readonly now = () => performance.now();
   readonly migration: { from: number; to: number; backup: string | null };
+  /** Matchframe account link, signed licence and auto-director hour metering. */
+  readonly cloud: CloudLink;
+  readonly usageLedger: UsageLedger;
+  readonly meter: AutoDirectorMeter;
+  private meterTimer: ReturnType<typeof setInterval> | null = null;
+  private cloudMap: string | null = null;
 
   private readonly killfeed = new KillfeedBuilder();
   private sides = new TeamSideTracker();
@@ -143,6 +153,19 @@ export class Engine {
     this.vetoRepo = new VetoRepo(this.db);
     this.veto = new VetoService(this.vetoRepo);
     this.demoJobs = new DemoJobRepo(this.db);
+    this.usageLedger = new UsageLedger(this.db);
+    this.meter = new AutoDirectorMeter(this.usageLedger, { appVersion: APP_VERSION, monoNow: this.now, wallNow: Date.now });
+    this.cloud = new CloudLink({
+      settings: this.settings,
+      secrets: this.secrets,
+      ledger: this.usageLedger,
+      meter: this.meter,
+      logger: this.logger,
+      appVersion: APP_VERSION,
+      pinnedKeys: cfg.cloudPublicKeys,
+      enforcement: cfg.cloudEnforcement,
+      fixedUrl: cfg.cloudUrl,
+    });
 
     this.loadMapPacks();
     this.utilityProfiles = this.loadUtilityProfiles();
@@ -158,6 +181,7 @@ export class Engine {
         return { playerId, teamId: this.roster.teamOf(playerId), displayName: p?.data.displayName ?? null };
       },
       verifiedControl: () => this.settings.get("observer.verifiedControl", {}),
+      armGate: (simulated) => this.cloud.canArm(simulated || this.simulationRunning),
     });
     this.refreshScenarios();
 
@@ -422,7 +446,47 @@ export class Engine {
     this.killfeed.resetForRound(`${s.sessionId}:${s.epoch}:${s.roundAttemptId}`);
     const map = s.mapName ? this.maps.get(s.mapName) : undefined;
     this.session.director.setMap(map);
+    this.enforceAllowanceAtMapChange(s);
     for (const fn of this.hudListeners) fn("*");
+  }
+
+  // ---------------------------------------------------------------------------- cloud metering
+
+  /** What the auto-director meter needs to decide whether this second is billable. */
+  meterInput(): MeterInput {
+    const s = this.session.state();
+    const adapter = this.session.arbiter.getAdapter();
+    return {
+      accountLinked: this.cloud.link !== null,
+      automationActive: this.session.arbiter.automationAllowed,
+      controlAvailable: !!adapter && adapter.kind !== "none" && !adapter.simulated,
+      mode: this.session.director.currentMode,
+      simulated: this.simulationRunning || this.session.simulated || !!s?.simulated,
+      // GSI heartbeats every 10 s when nothing changes; longer silence means the game is gone.
+      telemetryLive: !!s && this.now() - s.time.receivedAtMonotonicMs <= 15_000,
+      sessionId: this.session.sessionId,
+      mapName: s?.mapName ?? null,
+      matchRef: this.activeMatch()?.id ?? null,
+    };
+  }
+
+  /**
+   * Hours never run out mid-map: when the allowance is used up (or the licence lapsed) automation
+   * keeps running until the map changes, then hands the camera back to the operator.
+   */
+  private enforceAllowanceAtMapChange(s: MatchState): void {
+    const prev = this.cloudMap;
+    this.cloudMap = s.mapName;
+    if (prev === null || s.mapName === null || prev === s.mapName) return;
+    const mode = this.session.director.currentMode;
+    if (!this.session.arbiter.automationAllowed || (mode !== "automatic" && mode !== "assisted")) return;
+    const gate = this.cloud.canArm(this.session.simulated || this.simulationRunning);
+    if (gate.ok) return;
+    this.meter.flush();
+    this.session.takeover("auto-director-allowance");
+    this.session.setMode("advisory");
+    this.audit.record("system", "cloud.allowance_takeover", s.mapName, { code: gate.code, previousMap: prev });
+    this.session.emit("alert", { level: "warn", code: `cloud_${gate.code}`, message: `Automatic direction stopped at the map change: ${gate.reason}` });
   }
 
   private playerCam = { lastPlayerId: null as string | null, lastSource: null as string | null, lastError: null as string | null, lastAt: null as string | null, applied: 0 };
@@ -616,18 +680,23 @@ export class Engine {
     this.configureReplay();
     await this.applyObserverAdapter();
     this.session.start();
+    this.meterTimer = setInterval(() => this.meter.tick(this.meterInput()), 1000);
+    void this.cloud.start();
     this.demos.start();
     const shadowIssue = this.training.restore();
     if (shadowIssue) this.audit.record("system", "model.shadow_rejected", this.settings.get("models.shadowModelId", null), { reason: shadowIssue });
     // Restart always resumes in manual/disarmed mode until sources and ownership are validated.
     this.session.setMode("advisory");
-    this.audit.record("system", "engine.start", null, { version: "0.1.0", migration: this.migration });
+    this.audit.record("system", "engine.start", null, { version: APP_VERSION, migration: this.migration });
   }
 
   async shutdown(): Promise<void> {
     await this.stopSimulation().catch(() => undefined);
     this.demos.stop();
     this.session.stop();
+    if (this.meterTimer) clearInterval(this.meterTimer);
+    this.meterTimer = null;
+    await this.cloud.stop().catch(() => undefined);
     await this.obs.disconnect().catch(() => undefined);
     await this.session.setAdapter(null);
     this.db.close();

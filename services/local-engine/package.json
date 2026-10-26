@@ -24,9 +24,11 @@
     "@matchframe/replay-agent": "workspace:*",
     "@matchframe/obs-adapter": "workspace:*",
     "@matchframe/game-adapters": "workspace:*",
-    "@matchframe/matchframe-bridge": "workspace:*"
+    "@matchframe/matchframe-bridge": "workspace:*",
+    "@matchframe/cloud-contracts": "workspace:*"
   },
   "devDependencies": {
-    "@types/ws": "8.18.2"
+    "@types/ws": "8.18.2",
+    "@matchframe/cloud-api": "workspace:*"
   }
 }

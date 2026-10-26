@@ -17,6 +17,15 @@ export function fmtMs(ms: number | null | undefined): string {
   return `${Math.floor(ms / 60_000)} min ${Math.round((ms % 60_000) / 1000)} s`;
 }
 
+/** Hours and minutes from seconds ("12 h 05 min", "45 min", "-1 h 00 min"). */
+export function fmtHours(sec: number | null | undefined): string {
+  if (typeof sec !== "number" || !Number.isFinite(sec)) return MISSING;
+  const sign = sec < 0 ? "-" : "";
+  const m = Math.floor(Math.abs(sec) / 60);
+  if (m < 60) return `${sign}${m} min`;
+  return `${sign}${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`;
+}
+
 /** m:ss clock from seconds. */
 export function fmtClock(sec: number | null | undefined): string {
   if (typeof sec !== "number" || !Number.isFinite(sec)) return MISSING;

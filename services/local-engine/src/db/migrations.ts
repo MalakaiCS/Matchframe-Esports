@@ -154,4 +154,23 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 2,
+    name: "cloud usage ledger",
+    sql: `
+      CREATE TABLE cloud_usage (
+        record_id TEXT PRIMARY KEY,
+        started_at TEXT NOT NULL,
+        ended_at TEXT NOT NULL,
+        seconds INTEGER NOT NULL,
+        session_id TEXT NOT NULL,
+        match_ref TEXT,
+        map_name TEXT,
+        app_version TEXT NOT NULL,
+        uploaded_at TEXT,
+        rejected_reason TEXT
+      );
+      CREATE INDEX cloud_usage_pending ON cloud_usage(uploaded_at);
+    `,
+  },
 ];

@@ -14,6 +14,7 @@ import { registerDemoRoutes } from "./routes/demos.ts";
 import { registerDeviceRoutes, tally } from "./routes/devices.ts";
 import { registerReportRoutes } from "./routes/reports.ts";
 import { registerIntegrationRoutes } from "./routes/integrations.ts";
+import { registerCloudRoutes } from "./routes/cloud.ts";
 import { bearer, json, readBody, Router } from "./http/router.ts";
 import { overlayCsp, safeResolve, serveFile, serveStatic } from "./http/static.ts";
 import type { HubClient } from "./http/ws-hub.ts";
@@ -58,6 +59,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerReportRoutes(router, e);
   registerDeviceRoutes(router, e);
   registerIntegrationRoutes(router, e);
+  registerCloudRoutes(router, e);
   router.get("/api/v1/openapi.json", { permission: "public" }, () => router.openapi({ title: "Matchframe Esports local API", version: "0.1.0" }));
 
   // ------------------------------------------------------------------ GSI ingest server
@@ -101,6 +103,10 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   });
 
   // ------------------------------------------------------------------ operator hub
+  const cloudSummary = (eng: Engine) => {
+    const st = eng.cloud.status(eng.simulationRunning || eng.session.simulated);
+    return { linkState: st.linkState, plan: st.entitlement?.plan.name ?? null, licence: st.entitlement?.state ?? null, remainingSeconds: st.entitlement?.localRemainingSeconds ?? null, gate: st.gate, metering: st.usage.metering, enforcement: st.enforcement };
+  };
   let opSeq = 0;
   const env = <T>(topic: string, payload: T): EventEnvelope<T> => {
     const s = e.session.state();
@@ -125,6 +131,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     engineNowMonotonicMs: e.now(),
     metrics: e.session.metrics(),
     tally: tally(e),
+    cloud: cloudSummary(e),
   });
   const operatorHub = new WsHub({
     onConnect: (c) => operatorHub.sendTo(c, env("state.snapshot", operatorSnapshot()), { snapshot: true }),

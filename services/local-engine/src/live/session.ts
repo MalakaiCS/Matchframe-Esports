@@ -35,6 +35,11 @@ export interface LiveSessionOptions {
   simulated?: boolean;
   /** Per-type utility profiles (measured where available, defaults otherwise). */
   utilityProfiles?: ProfileSet;
+  /**
+   * Consulted only when automatic direction is armed (resume, or switching to automatic/assisted
+   * while armed). It never stops automation that is already running.
+   */
+  armGate?: (simulated: boolean) => { ok: true } | { ok: false; code: string; reason: string };
 }
 
 export interface IngestOutcome {
@@ -375,7 +380,17 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   // ---- operator controls (all audited by the API layer) ----------------------------------
 
   setMode(mode: DirectorMode): void {
+    const armedOrArming = this.arbiter.automationAllowed || this.arbiter.resumePendingInMs() !== null;
+    const automated = (m: DirectorMode) => m === "automatic" || m === "assisted";
+    // Switching between automatic and assisted while armed continues automation; it is not arming.
+    if (armedOrArming && automated(mode) && !automated(this.director.currentMode)) this.checkArmGate();
     this.director.setMode(mode);
+  }
+
+  /** Throws (HTTP 402) when automatic direction may not be armed; see `armGate`. */
+  private checkArmGate(): void {
+    const g = this.opts.armGate?.(this.simulated);
+    if (g && !g.ok) throw Object.assign(new Error(g.reason), { status: 402, code: g.code });
   }
 
   hold(durationMs: number | null): void {
@@ -441,6 +456,8 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   }
 
   resume(countdownMs: number): void {
+    const mode = this.director.currentMode;
+    if (mode === "automatic" || mode === "assisted") this.checkArmGate();
     this.arbiter.resumeAutomation(countdownMs);
   }
 

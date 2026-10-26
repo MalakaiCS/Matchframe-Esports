@@ -204,7 +204,7 @@ export class Router {
       send(res, out);
     } catch (e) {
       const status = e instanceof HttpError ? e.status : typeof (e as { status?: unknown }).status === "number" ? (e as { status: number }).status : 500;
-      const code = e instanceof HttpError ? e.code : status === 500 ? "internal" : "error";
+      const code = e instanceof HttpError ? e.code : status >= 500 ? "internal" : typeof (e as { code?: unknown }).code === "string" ? (e as { code: string }).code : "error";
       const message = e instanceof Error ? e.message : String(e);
       if (status >= 500) this.opts.onError?.(e, { method, path });
       if (status === 413) res.setHeader("connection", "close");

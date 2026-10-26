@@ -29,7 +29,8 @@
     "soak": "node scripts/soak.mjs",
     "smoke:desktop": "node scripts/desktop-smoke.cjs",
     "cloud": "tsx services/cloud-api/src/main.ts",
-    "cloud:openapi": "tsx services/cloud-api/scripts/generate-openapi.ts"
+    "cloud:openapi": "tsx services/cloud-api/scripts/generate-openapi.ts",
+    "cloud:keygen": "tsx services/cloud-api/scripts/keygen.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -27,6 +27,11 @@ extraResources:
       - "**/*.md"
       - "!**/__pycache__/**"
       - "!**/.pytest_cache/**"
+  # Optional release configuration: website address + pinned licence keys (see config/cloud.example.json).
+  - from: ../../config
+    to: .
+    filter:
+      - "cloud.json"
   - from: ../../THIRD_PARTY_NOTICES.md
     to: THIRD_PARTY_NOTICES.md
 asar: true

@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { api } from "../api/index.ts";
 import { CONTROL_HEALTH_TEXT, ownershipView } from "../lib/ownership.ts";
-import { fmtMs } from "../lib/format.ts";
+import { fmtHours, fmtMs } from "../lib/format.ts";
+import { gateView } from "../lib/cloud.ts";
 import { liveStore, reconnectLive, useLive, useNow } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
 import { Link } from "../router.tsx";
@@ -126,6 +127,14 @@ export function TopBar({ onToggleNav }: { onToggleNav: () => void }) {
             ) : null}
           </span>
         </div>
+        {snap?.cloud ? (
+          <Link to="/account" className="chip-link" aria-label="Auto-director hours — open Account & Hours">
+            <Chip label="Auto-director" tone={gateView(snap.cloud.gate, snap.cloud.enforcement).tone} title={snap.cloud.gate.ok ? (snap.cloud.metering ? "Automatic direction is controlling the camera and using hours" : "Automatic direction can be armed") : snap.cloud.gate.reason}>
+              <span className="chip-strong">{gateView(snap.cloud.gate, snap.cloud.enforcement).text}</span>
+              {snap.cloud.remainingSeconds !== null ? <span className="chip-meta">{fmtHours(Math.max(0, snap.cloud.remainingSeconds))} left{snap.cloud.metering ? " · metering" : ""}</span> : null}
+            </Chip>
+          </Link>
+        ) : null}
         <Chip label="OBS" tone={obs?.connected ? "ok" : "warn"} title={obs?.lastError ?? undefined}>
           <span className="chip-strong">{obs ? (obs.connected ? "CONNECTED" : "DISCONNECTED") : "—"}</span>
           {obs?.connected ? <span className="chip-meta">{obs.programScene ?? "no program scene"}</span> : null}

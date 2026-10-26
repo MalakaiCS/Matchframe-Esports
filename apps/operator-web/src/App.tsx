@@ -13,6 +13,7 @@ import { startLive, stopLive } from "./state/live.ts";
 import { SessionContext } from "./state/session.tsx";
 
 // Screens are code-split: each loads on first visit.
+const AccountScreen = lazy(() => import("./screens/Account.tsx").then((m) => ({ default: m.AccountScreen })));
 const CaptainPage = lazy(() => import("./screens/Captain.tsx").then((m) => ({ default: m.CaptainPage })));
 const DemosScreen = lazy(() => import("./screens/Demos.tsx").then((m) => ({ default: m.DemosScreen })));
 const DevicesScreen = lazy(() => import("./screens/Devices.tsx").then((m) => ({ default: m.DevicesScreen })));
@@ -56,6 +57,7 @@ export const NAV: NavItem[] = [
   { path: "/demos", label: "Demo Library", icon: "demos", component: DemosScreen },
   { path: "/training", label: "Training & Evaluation", icon: "training", component: TrainingScreen },
   { path: "/devices", label: "Devices & Integrations", icon: "devices", component: DevicesScreen },
+  { path: "/account", label: "Account & Hours", icon: "account", component: AccountScreen },
   { path: "/settings", label: "Settings & Diagnostics", icon: "settings", component: SettingsScreen },
 ];
 

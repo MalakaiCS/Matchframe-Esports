@@ -38,6 +38,25 @@ function secretKey(): string | undefined {
   return key;
 }
 
+/**
+ * Release builds ship `cloud.json` ({ url, publicKeys }) so the website address and the licence
+ * signing keys are pinned and cannot be swapped for another server. Environment variables win.
+ */
+function cloudReleaseConfig(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const file = resourcesPath(isDev ? "config/cloud.json" : "cloud.json");
+  if (!existsSync(file)) return {};
+  try {
+    const cfg = JSON.parse(readFileSync(file, "utf8")) as { url?: unknown; publicKeys?: unknown };
+    const out: NodeJS.ProcessEnv = {};
+    if (typeof cfg.url === "string" && !env.MATCHFRAME_CLOUD_URL) out.MATCHFRAME_CLOUD_URL = cfg.url;
+    if (cfg.publicKeys && typeof cfg.publicKeys === "object" && !env.MATCHFRAME_CLOUD_PUBLIC_KEYS) out.MATCHFRAME_CLOUD_PUBLIC_KEYS = JSON.stringify(cfg.publicKeys);
+    return out;
+  } catch (e) {
+    dialog.showErrorBox("Matchframe", `cloud.json in the installation is unreadable: ${e instanceof Error ? e.message : String(e)}`);
+    return {};
+  }
+}
+
 function startEngine(): void {
   const enginePath = isDev ? resourcesPath("services", "local-engine", "src", "main.ts") : resourcesPath("engine", "engine.mjs");
   const env: NodeJS.ProcessEnv = {
@@ -56,6 +75,7 @@ function startEngine(): void {
   };
   const key = secretKey();
   if (key) env.MATCHFRAME_SECRET_KEY = key;
+  Object.assign(env, cloudReleaseConfig(env));
   const execArgv = isDev ? ["--import", "tsx"] : [];
   engine = fork(enginePath, [], { env, execPath: process.execPath, execArgv, stdio: ["ignore", "pipe", "pipe", "ipc"] });
   engine.stdout?.on("data", (d: Buffer) => process.stdout.write(d));

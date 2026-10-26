@@ -1,5 +1,8 @@
+import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
+
+export const APP_VERSION = "0.1.0";
 
 export interface EngineConfig {
   /** Bind host. Loopback by default; LAN exposure is an explicit operator choice. */
@@ -22,6 +25,12 @@ export interface EngineConfig {
   /** Allowed browser origins for operator mutations (CSRF protection). */
   allowedOrigins: string[];
   logLevel: "debug" | "info" | "warn" | "error";
+  /** Fixed Matchframe website/API address (release builds); when null the operator sets it on the Account screen. */
+  cloudUrl: string | null;
+  /** Ed25519 public keys {kid: PEM} pinned into the build. When null, keys are fetched from the website on first link. */
+  cloudPublicKeys: Record<string, string> | null;
+  /** "off" lets automatic direction arm without an account (development and offline lab builds only). */
+  cloudEnforcement: "required" | "off";
 }
 
 export function defaultDataDir(): string {
@@ -54,11 +63,23 @@ export function loadConfig(overrides: Partial<EngineConfig> = {}): EngineConfig 
     workersDir: process.env.MATCHFRAME_WORKERS_DIR ?? null,
     allowedOrigins: (process.env.MATCHFRAME_ALLOWED_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
     logLevel: (process.env.MATCHFRAME_LOG_LEVEL as EngineConfig["logLevel"]) ?? "info",
+    cloudUrl: process.env.MATCHFRAME_CLOUD_URL ?? null,
+    cloudPublicKeys: loadPinnedKeys(),
+    cloudEnforcement: process.env.MATCHFRAME_CLOUD_ENFORCEMENT === "off" ? "off" : "required",
     ...overrides,
   };
   const ports = [cfg.gsiPort, cfg.apiPort, cfg.overlayPort];
   if (new Set(ports).size !== ports.length) throw new Error(`GSI, API and overlay ports must differ (got ${ports.join(", ")})`);
   return cfg;
+}
+
+/** MATCHFRAME_CLOUD_PUBLIC_KEYS (JSON) or MATCHFRAME_CLOUD_KEYS_FILE (path to the same JSON). */
+function loadPinnedKeys(): Record<string, string> | null {
+  const raw = process.env.MATCHFRAME_CLOUD_PUBLIC_KEYS ?? (process.env.MATCHFRAME_CLOUD_KEYS_FILE && existsSync(process.env.MATCHFRAME_CLOUD_KEYS_FILE) ? readFileSync(process.env.MATCHFRAME_CLOUD_KEYS_FILE, "utf8") : null);
+  if (!raw) return null;
+  const keys = JSON.parse(raw) as unknown;
+  if (!keys || typeof keys !== "object" || Object.values(keys).some((v) => typeof v !== "string" || !v.includes("PUBLIC KEY"))) throw new Error("pinned cloud keys must be a JSON object of {kid: PEM public key}");
+  return keys as Record<string, string>;
 }
 
 export function isLoopback(host: string): boolean {

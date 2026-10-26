@@ -217,6 +217,9 @@ importers:
       '@matchframe/automation':
         specifier: workspace:*
         version: link:../../packages/automation
+      '@matchframe/cloud-contracts':
+        specifier: workspace:*
+        version: link:../../packages/cloud-contracts
       '@matchframe/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -257,6 +260,9 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
     devDependencies:
+      '@matchframe/cloud-api':
+        specifier: workspace:*
+        version: link:../cloud-api
       '@types/ws':
         specifier: 8.18.2
         version: 8.18.2
