@@ -143,3 +143,20 @@ describe("program arbiter", () => {
     expect(p.mode).toBe("LIVE");
   });
 });
+
+describe("secret store", () => {
+  it("encrypts stored credentials at rest when a credential-store key is supplied", async () => {
+    const { mkdtempSync, readFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { SecretStore } = await import("../src/auth.ts");
+    const dir = mkdtempSync(join(tmpdir(), "mf-sec-"));
+    const key = "a".repeat(64);
+    const s = new SecretStore(join(dir, "secrets.json"), key);
+    s.setSecret("obs.password", "hunter2-obs");
+    expect(readFileSync(join(dir, "secrets.json"), "utf8")).not.toContain("hunter2-obs");
+    expect(new SecretStore(join(dir, "secrets.json"), key).getSecret("obs.password")).toBe("hunter2-obs");
+    // Without the key the value is unreadable rather than wrong.
+    expect(new SecretStore(join(dir, "secrets.json"), undefined).getSecret("obs.password")).toBeUndefined();
+  });
+});
