@@ -11,6 +11,7 @@ import { registerCoreRoutes } from "./routes/core.ts";
 import { registerHudRoutes } from "./routes/hud.ts";
 import { registerLiveRoutes } from "./routes/live.ts";
 import { registerDemoRoutes } from "./routes/demos.ts";
+import { registerDeviceRoutes, tally } from "./routes/devices.ts";
 import { registerReportRoutes } from "./routes/reports.ts";
 import { registerIntegrationRoutes } from "./routes/integrations.ts";
 import { bearer, json, readBody, Router } from "./http/router.ts";
@@ -55,6 +56,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerHudRoutes(router, e);
   registerDemoRoutes(router, e);
   registerReportRoutes(router, e);
+  registerDeviceRoutes(router, e);
   registerIntegrationRoutes(router, e);
   router.get("/api/v1/openapi.json", { permission: "public" }, () => router.openapi({ title: "Matchframe Esports local API", version: "0.1.0" }));
 
@@ -120,6 +122,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     obs: { connected: e.obs.state.connected, programScene: e.obs.state.programScene, previewScene: e.obs.state.previewScene, studioMode: e.obs.state.studioMode, replayBuffer: e.obs.state.replayBuffer, recording: e.obs.state.recording, streaming: e.obs.state.streaming, lastError: e.obs.state.lastError },
     simulated: e.simulationRunning,
     metrics: e.session.metrics(),
+    tally: tally(e),
   });
   const operatorHub = new WsHub({
     onConnect: (c) => operatorHub.sendTo(c, env("state.snapshot", operatorSnapshot()), { snapshot: true }),
