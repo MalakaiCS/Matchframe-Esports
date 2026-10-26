@@ -96,6 +96,15 @@ export class ReplayQueue {
     return it;
   }
 
+  /** Playout was requested but the mixer never reported playback: visible failure, not "played". */
+  markPlaybackFailed(id: string, error: string): void {
+    const it = this.get(id);
+    if (it && it.state === "playing") {
+      it.state = "failed";
+      it.error = error;
+    }
+  }
+
   markPlayed(id: string): void {
     const it = this.get(id);
     if (it && it.state === "playing") it.state = "played";

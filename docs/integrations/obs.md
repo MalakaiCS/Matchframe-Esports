@@ -16,7 +16,7 @@ OBS → Tools → WebSocket Server Settings: enable, set a password. In Matchfra
 
 ## Tested
 
-Integration tests (`packages/obs-adapter/test/obs.integration.test.ts`, run with `MF_OBS_URL`/`MF_OBS_PASSWORD`) pass against **OBS 30.0.2 (obs-websocket 5.3.4) on Linux, headless under Xvfb**: wrong-password rejection, request discovery, provisioning without replacement, confirmed program cut and visibility toggles, refusal to replace another input kind, replay buffer start → confirmed save (real .mkv written) → stop. That OBS build has no Browser Source plugin, so browser-source provisioning was verified only as a clear failure path; it is **not yet verified on Windows OBS**.
+Integration tests (`packages/obs-adapter/test/obs.integration.test.ts`, run with `MF_OBS_URL`/`MF_OBS_PASSWORD`) pass against **OBS 30.0.2 (obs-websocket 5.3.4) on Linux, headless under Xvfb**: wrong-password rejection, request discovery, provisioning without replacement, confirmed program cut and visibility toggles, refusal to replace another input kind, replay buffer start → confirmed save (real .mkv written) → stop → playback of the saved clip through a media source, confirmed from OBS's media status. The engine-level replay flow (`services/local-engine/test/replay-obs.integration.test.ts`: bookmark with capture → approve → play on the replay scene → return live) also passes against it. Replay playout is confirmed the same way in production: if OBS does not report playback within 2 s, the clip is marked failed and the program returns to LIVE. That OBS build has no Browser Source plugin, so browser-source provisioning was verified only as a clear failure path; it is **not yet verified on Windows OBS**.
 
 ## Browser source settings
 

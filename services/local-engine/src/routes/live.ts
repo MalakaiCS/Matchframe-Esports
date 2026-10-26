@@ -207,8 +207,20 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
     const t = await e.program.request("REPLAY_PLAYING", "operator", req.principal!.label, { replayItemId: it.id });
     await e.obs.mediaAction(mediaInput, "restart");
     e.replays.markPlaying(it.id);
-    e.audit.record(req.principal!.label, "replay.play", it.id, t);
-    return { item: e.replays.get(it.id), transition: t };
+    // Confirm from OBS's media status that the clip actually plays; otherwise return live.
+    let media = await e.obs.mediaStatus(mediaInput).catch(() => null);
+    for (let i = 0; i < 20 && media?.state !== "OBS_MEDIA_STATE_PLAYING" && media?.state !== "OBS_MEDIA_STATE_ENDED"; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      media = await e.obs.mediaStatus(mediaInput).catch(() => null);
+    }
+    if (media?.state !== "OBS_MEDIA_STATE_PLAYING" && media?.state !== "OBS_MEDIA_STATE_ENDED") {
+      e.replays.markPlaybackFailed(it.id, `OBS did not report playback (media state ${media?.state ?? "unknown"})`);
+      const back = await e.program.request("LIVE", "operator", req.principal!.label);
+      e.audit.record(req.principal!.label, "replay.play_failed", it.id, { media, back });
+      throw new HttpError(502, "replay did not start in OBS; program returned to LIVE", "replay_not_playing", { media });
+    }
+    e.audit.record(req.principal!.label, "replay.play", it.id, { transition: t, media });
+    return { item: e.replays.get(it.id), transition: t, media };
   });
   r.get("/api/v1/replays/playlist", { permission: "state.read" }, (req) => e.replays.playlist(req.query.get("from") ? Number(req.query.get("from")) : undefined, req.query.get("to") ? Number(req.query.get("to")) : undefined));
 

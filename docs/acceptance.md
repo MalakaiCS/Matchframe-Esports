@@ -36,7 +36,7 @@ Test files: `packages/cs2-state/test/reconciler.test.ts` (R), `packages/cs2-stat
 | A26 | Map revision changes | pass (fixture) | M: cameras/regions/radar from older revisions selectively invalidated. |
 | A27 | Delayed observer operation | partial | Per-output delay buffers; delayed outputs show nothing until filled. A separate synchronized delayed observer is planned (F17). |
 | A28 | Lookahead drift/seek | planned | Needs F17. |
-| A29 | Replay from captured footage | partial | Y: bookmark → prepared → approved → playing → played; B (real OBS): replay buffer save confirmed and file written. Playout through an OBS media source not tested against real OBS. |
+| A29 | Replay from captured footage | pass (real OBS) | `services/local-engine/test/replay-obs.integration.test.ts` against OBS 30.0.2: replay-buffer capture → prepared → approved → played through an OBS media source (playback confirmed from OBS media status, program on the replay scene) → return live; Y: queue logic. Game footage was a colour source (no CS2). |
 | A30 | Missing replay angle | partial | OBS provider reports program angle only, so no other angle is offered; not separately tested. |
 | A31 | Historical replay HUD | partial | During REPLAY_PLAYING the HUD shows an intentionally clean replay frame; historical-state graphics not built. |
 | A32 | Existing replay adapter failure | pass (fixture) | Y: failed provider leaves a visible failed item; bridge health failures reported without throwing. Real tool blocked. |
@@ -75,4 +75,4 @@ Test files: `packages/cs2-state/test/reconciler.test.ts` (R), `packages/cs2-stat
 | A65 | Both-team utility and late-round use | pass (fixture) | D: CT HE on a post-plant T cluster handled by the generic engine. |
 | A66 | Utility during delayed/replay output | partial | Delayed outputs read state (incl. utility) from the delay buffer; replay is a clean frame. Not separately tested. |
 
-Summary (66 scenarios): 37 pass with fixtures, 4 pass on real demos, 2 pass with a real trained model, 20 partial, 2 blocked (A01, A03), 1 planned (A28). **None has passed against a real CS2 client or on Windows**; every scenario that depends on them stays open until that environment is available.
+Summary (66 scenarios): 37 pass with fixtures, 4 pass on real demos, 2 pass with a real trained model, 1 passes against real OBS (A29), 19 partial, 2 blocked (A01, A03), 1 planned (A28). **None has passed against a real CS2 client or on Windows**; every scenario that depends on them stays open until that environment is available.

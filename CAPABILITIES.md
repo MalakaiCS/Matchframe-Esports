@@ -35,7 +35,7 @@ Control safety (tested): single writer with ownership generations, sticky manual
 | OBS (obs-websocket v5): connect/auth, discovery, program/preview scenes, source visibility, audio, record/stream/replay outputs, provisioning without replacement, replay buffer save | **verified** on OBS 30.0.2 (Linux, headless) | `packages/obs-adapter/test/obs.integration.test.ts`; set operations confirmed by read-back, replay save by the `ReplayBufferSaved` event. Browser Source provisioning not verified (plugin missing in that build); Windows OBS not tested. |
 | Browser-source HUD (built-in, 3 presets × 9 variants + studio standings/bracket) | implemented, rendered in Chromium | screenshots in `docs/screenshots/hud/`; public projection only, per-output tokens and delay buffers |
 | Imported HUD packages (zip/folder) | implemented | path, size, script and permission checks; draft/publish/rollback (A37/A38) |
-| Replay: bookmarks, approval queue, playout via OBS media source, return live | implemented; OBS replay-buffer capture verified | program angle only; extra angles need the replay tool (blocked) |
+| Replay: bookmarks, approval queue, playout via OBS media source, return live | **verified** with OBS 30.0.2 | capture → approve → playback confirmed from OBS media status → return live; program angle only; extra angles need the replay tool (blocked) |
 | Player cameras: identity → mixer source routing with consent, LIVE-only, delay alignment | implemented | not tested with real camera sources |
 | Device control surface (Companion/Stream Deck/hotkeys) and tally | implemented | engine e2e test; not tested with hardware |
 | Statistics | implemented for source-reported values | ADR, KAST, utility damage, opening duels reported unavailable on GSI |

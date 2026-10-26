@@ -60,16 +60,15 @@ run("ObsManager against a real OBS instance", () => {
     await m.disconnect();
   }, 30000);
 
-  it("starts the replay buffer and saves a clip when OBS replay buffer is configured", async () => {
+  it("starts the replay buffer, saves a clip and plays it back through a media source", async (ctx) => {
     const m = new ObsManager();
     await m.connect({ id: "p", name: "test", url: url!, hasPassword: true }, password);
     try {
       await m.setOutput("replay", true);
     } catch (e) {
-      // Replay buffer requires an output configuration; report rather than fail hard.
-      console.warn("replay buffer could not start:", e);
+      // The replay buffer needs an output configuration in OBS: report as skipped, never as passed.
       await m.disconnect();
-      return;
+      ctx.skip(`replay buffer could not start: ${String(e)}`);
     }
     expect(m.state.replayBuffer).toBe(true); // setOutput confirms by read-back
     await new Promise((r) => setTimeout(r, 2500));
@@ -81,6 +80,23 @@ run("ObsManager against a real OBS instance", () => {
       expect(statSync(saved.savedPath).size).toBeGreaterThan(1000);
     }
     await m.setOutput("replay", false);
+
+    // Playout: load the saved clip into a media source on a replay scene, restart it and confirm
+    // from OBS's own media status that it plays (not just that the request was accepted).
+    if (!m.state.inputKinds.includes("ffmpeg_source")) {
+      await m.disconnect();
+      ctx.skip("this OBS build has no media source (ffmpeg_source)");
+    }
+    await m.ensureInput({ sceneName: "Matchframe Replay", inputName: "Matchframe Replay Media", inputKind: "ffmpeg_source", settings: { local_file: saved.savedPath, is_local_file: true, restart_on_activate: false } });
+    await m.setMediaFile("Matchframe Replay Media", saved.savedPath!);
+    await m.mediaAction("Matchframe Replay Media", "restart");
+    let status = await m.mediaStatus("Matchframe Replay Media");
+    for (let i = 0; i < 30 && status.state !== "OBS_MEDIA_STATE_PLAYING" && status.state !== "OBS_MEDIA_STATE_ENDED"; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      status = await m.mediaStatus("Matchframe Replay Media");
+    }
+    expect(["OBS_MEDIA_STATE_PLAYING", "OBS_MEDIA_STATE_ENDED"]).toContain(status.state);
+    expect(status.durationMs ?? 0).toBeGreaterThan(500);
     await m.disconnect();
-  }, 30000);
+  }, 40000);
 });

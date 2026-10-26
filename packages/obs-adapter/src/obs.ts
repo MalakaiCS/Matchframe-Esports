@@ -348,6 +348,13 @@ export class ObsManager extends EventEmitter {
     await this.obs.call("TriggerMediaInputAction", { inputName, mediaAction });
   }
 
+  /** Media input playback state as OBS reports it (used to confirm a replay is actually playing). */
+  async mediaStatus(inputName: string): Promise<{ state: string; durationMs: number | null; cursorMs: number | null }> {
+    this.requireConnected();
+    const r = await this.obs.call("GetMediaInputStatus", { inputName });
+    return { state: r.mediaState, durationMs: r.mediaDuration ?? null, cursorMs: r.mediaCursor ?? null };
+  }
+
   async setMediaFile(inputName: string, localFile: string): Promise<void> {
     this.requireConnected();
     await this.obs.call("SetInputSettings", { inputName, inputSettings: { local_file: localFile, is_local_file: true }, overlay: true });

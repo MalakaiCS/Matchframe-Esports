@@ -49,7 +49,7 @@ Numbered work items in dependency order. Status: **done**, **open**, **blocked (
 ### Phase 6 — replays, lookahead, cameras
 | # | Item | Status |
 |---|---|---|
-| B040 | Replay queue, OBS replay buffer capture, playout, return live | done (playout not run on real OBS) |
+| B040 | Replay queue, OBS replay buffer capture, playout, return live | done (verified with OBS 30.0.2) |
 | B041 | Existing replay tool adapter | **blocked (input: tool API)** |
 | B042 | Delayed-observer lookahead (F17): synchronized second client, offset measurement, drift/seek safety | open |
 | B043 | Additional replay angles (F20) | open |
