@@ -51,7 +51,7 @@ export class CloudApp {
       deviceLink: new RateLimiter(20 * k, 60_000),
     };
     this.sql = deps.sql ?? openSql(cfg.databaseUrl, cfg.pgliteDir ?? undefined);
-    this.mailer = new Mailer(this.sql, cfg.smtpUrl, cfg.mailFrom);
+    this.mailer = new Mailer(this.sql, cfg.smtpUrl, cfg.mailFrom, cfg.devLogEmails && !cfg.smtpUrl);
     this.billing = deps.billing ?? (cfg.stripeSecretKey ? new StripeBilling(cfg.stripeSecretKey, cfg.stripeWebhookSecret, cfg.stripeApiBase) : new UnconfiguredBilling());
     this.now = deps.now ?? (() => new Date());
     if (cfg.signingKeyPem) {

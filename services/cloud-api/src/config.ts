@@ -17,6 +17,8 @@ export interface CloudConfig {
   /** SMTP connection URL (smtps://user:pass@host:465); null keeps emails in the outbox table only. */
   smtpUrl: string | null;
   mailFrom: string;
+  /** Development only: print emails to the console when SMTP is not configured. */
+  devLogEmails: boolean;
   /** Static website build to serve (apps/cloud-web/dist). */
   webDir: string | null;
   /** Installer metadata shown on the downloads page. */
@@ -42,6 +44,7 @@ export function loadCloudConfig(env: NodeJS.ProcessEnv = process.env, overrides:
     stripeApiBase: env.MF_STRIPE_API_BASE ?? null,
     smtpUrl: env.SMTP_URL ?? null,
     mailFrom: env.MF_MAIL_FROM ?? "Matchframe <no-reply@localhost>",
+    devLogEmails: env.MF_DEV_LOG_EMAILS === "1",
     webDir: env.MF_CLOUD_WEB_DIR ?? null,
     downloads: { version: env.MF_DOWNLOAD_VERSION ?? "0.1.0", windowsUrl: env.MF_DOWNLOAD_WINDOWS_URL ?? null, sha256: env.MF_DOWNLOAD_WINDOWS_SHA256 ?? null, notesUrl: env.MF_DOWNLOAD_NOTES_URL ?? null },
     entitlementTtlHours: Number(env.MF_ENTITLEMENT_TTL_HOURS ?? 24),

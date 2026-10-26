@@ -25,6 +25,8 @@ export class Mailer {
     private readonly sql: Sql,
     smtpUrl: string | null,
     private readonly from: string,
+    /** Development only: print outbox emails (they contain sign-in links) to the console. */
+    private readonly logToConsole = false,
   ) {
     this.transport = smtpUrl ? nodemailer.createTransport(smtpUrl) : null;
     this.kind = this.transport ? "smtp" : "outbox";
@@ -32,7 +34,10 @@ export class Mailer {
 
   async send(msg: EmailMessage): Promise<void> {
     const { rows } = await this.sql.query<{ id: string }>("INSERT INTO outbox_emails (to_addr, subject, body_text) VALUES ($1, $2, $3) RETURNING id", [msg.to, msg.subject, msg.text]);
-    if (!this.transport) return;
+    if (!this.transport) {
+      if (this.logToConsole) console.log(`[cloud-api] email (outbox only) to ${msg.to}: ${msg.subject}\n${msg.text}\n`);
+      return;
+    }
     try {
       await this.transport.sendMail({ from: this.from, to: msg.to, subject: msg.subject, text: msg.text });
       await this.sql.query("UPDATE outbox_emails SET sent_at = now() WHERE id = $1", [rows[0]!.id]);

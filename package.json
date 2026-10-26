@@ -28,7 +28,8 @@
     "coverage:maps": "tsx services/local-engine/scripts/generate-coverage.ts",
     "soak": "node scripts/soak.mjs",
     "smoke:desktop": "node scripts/desktop-smoke.cjs",
-    "cloud": "tsx services/cloud-api/src/main.ts"
+    "cloud": "tsx services/cloud-api/src/main.ts",
+    "cloud:openapi": "tsx services/cloud-api/scripts/generate-openapi.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
