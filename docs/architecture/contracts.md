@@ -19,7 +19,7 @@ All data crossing a process, network or storage boundary is defined once in `pac
 
 - **Versioning.** Every persisted or streamed top-level object carries `schemaVersion`. Changes are additive within a version; a breaking change adds a new version and a migration (database migrations are append-only and back up the database first). HUD packages declare the `HudState` versions they support.
 - **Unknown is not zero.** Absent, empty and null are distinguished (e.g. no `grenades` component vs an empty one); unknown numbers stay `null` (or NaN in model vectors), never 0; SteamID64 is an exact string.
-- **Evidence.** Derived events and utility facts carry an evidence level — `measured` (reported by the source), `derived` (deterministic from measured data) or `estimated` (model/heuristic). Predictions are separate objects and are never promoted to confirmations.
+- **Evidence.** Derived events and utility facts carry an evidence level (`EvidenceType`, `common.ts`) — `measured` (reported by the source), `derived` (deterministic from measured data), `estimated` (model/heuristic), `operator` (manual correction) or `unknown`. Predictions are separate objects and are never promoted to confirmations.
 - **Time.** Observations carry ingest monotonic time; canonical match time carries its uncertainty; see `overview.md` § Clocks.
 - **Simulation.** Every state and HUD snapshot carries `simulated`; simulated data cannot be recorded as setup or camera evidence.
 - **Public vs operator.** Only `HudState` leaves through the overlay server; everything else requires an authenticated operator token with the needed permission.
