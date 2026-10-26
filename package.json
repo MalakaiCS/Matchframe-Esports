@@ -26,7 +26,8 @@
     "worker": "node scripts/run-python.mjs -m mf_common.cli",
     "test:integration": "vitest run services/local-engine/test/demo-pipeline.integration.test.ts services/local-engine/test/replay-obs.integration.test.ts packages/obs-adapter",
     "coverage:maps": "tsx services/local-engine/scripts/generate-coverage.ts",
-    "soak": "node scripts/soak.mjs"
+    "soak": "node scripts/soak.mjs",
+    "smoke:desktop": "node scripts/desktop-smoke.cjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

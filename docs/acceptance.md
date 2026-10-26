@@ -8,7 +8,7 @@ Test files: `packages/cs2-state/test/reconciler.test.ts` (R), `packages/cs2-stat
 
 | ID | Scenario | Status | Evidence / what is missing |
 |---|---|---|---|
-| A01 | Fresh Windows installation | blocked | No Windows machine. A Windows x64 portable zip was produced from Linux (see BUILD_PROGRESS.md); local sample works on Linux (`pnpm dev --sim`); prerequisites in README. |
+| A01 | Fresh Windows installation | blocked | No Windows machine. An unsigned NSIS installer and portable zip were built from Linux; the same desktop shell starts its engine and console on Linux (`pnpm smoke:desktop`); prerequisites in README. |
 | A02 | Real CS2 observer payload | partial | E: token-authenticated GSI over real HTTP, bad tokens rejected, token absent from state/HUD/audit/logs/support bundle — with synthetic payloads. Real payload blocked (no CS2). |
 | A03 | Real live HUD | blocked | Needs real CS2. HUD tracks simulated state (E, screenshots). |
 | A04 | Team side switch | pass (fixture) | R: halftime side swap keeps team identity by roster. Logos/cameras follow team identity (projection); camera routing by player identity (E). |

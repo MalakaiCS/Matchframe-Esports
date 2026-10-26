@@ -69,7 +69,7 @@ Numbered work items in dependency order. Status: **done**, **open**, **blocked (
 ### Phase 9 — release
 | # | Item | Status |
 |---|---|---|
-| B060 | Windows packaging (portable zip, NSIS installer) | see BUILD_PROGRESS.md |
+| B060 | Windows packaging (portable zip, NSIS installer) | done (built from Linux, unsigned) |
 | B061 | Run the installer, app and OBS browser sources on Windows; keyboard adapter on Windows | **blocked (input: Windows machine)** |
 | B062 | Code signing and update channel | **blocked (input: certificate / release environment)** |
 | B063 | Reference-machine performance report and real full-match soak | **blocked (B005/B006)**; simulated soak done |

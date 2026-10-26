@@ -6,8 +6,8 @@ Versions actually used in this repository's environment and what was exercised o
 
 | OS | Engine (Node) | Desktop (Electron) | HUD/browser sources | Observer keyboard adapter | Status |
 |---|---|---|---|---|---|
-| Windows 10/11 x64 (target) | – | – | – | – | **not tested** — packaging attempted from Linux (see BUILD_PROGRESS.md); no Windows machine available |
-| Linux x64 (Ubuntu 24.04.5 container, kernel 6.18) | Node 22.22.0 ✔ | Electron 44.9.3 runtime (engine under `ELECTRON_RUN_AS_NODE`) ✔ | Chromium (Playwright) ✔ | n/a (Windows only) | development and CI environment |
+| Windows 10/11 x64 (target) | – | – | – | – | **not tested** — NSIS installer and portable zip built from Linux (BUILD_PROGRESS.md); no Windows machine available |
+| Linux x64 (Ubuntu 24.04.5 container, kernel 6.18) | Node 22.22.0 ✔ | Electron 44.9.3: shell + supervised engine + console under Xvfb ✔ (`pnpm smoke:desktop`) | Chromium (Playwright) ✔ | n/a (Windows only) | development and CI environment |
 | macOS | – | – | – | n/a | not tested |
 
 ## Runtimes and libraries

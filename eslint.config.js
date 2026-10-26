@@ -39,6 +39,15 @@ export default tseslint.config(
     },
   },
   {
+    // CommonJS Node scripts (Playwright drivers); page.evaluate bodies run in the browser.
+    files: ["scripts/**/*.cjs"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: { require: "readonly", __dirname: "readonly", module: "writable", document: "readonly", location: "readonly", window: "readonly" },
+    },
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  {
     // Example HUD packages run in the browser.
     files: ["examples/**/*.js"],
     languageOptions: { globals: { document: "readonly", location: "readonly", URLSearchParams: "readonly", performance: "readonly", WebSocket: "readonly" } },
