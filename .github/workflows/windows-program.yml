@@ -1,15 +1,17 @@
 # Builds the Matchframe program for Windows (.exe installer + portable zip) on a real Windows
 # machine, installs it silently, smoke-tests the INSTALLED program (bundled engine, console from
 # app://matchframe, HUD outputs, no console from the engine's HTTP address), uninstalls it, and
-# uploads the installer with SHA-256 checksums as a workflow artifact. Tags v* also create a DRAFT
-# GitHub release for the owner to review and publish. Builds are unsigned unless CSC_LINK /
-# CSC_KEY_PASSWORD secrets are configured.
+# uploads the installer with SHA-256 checksums as a workflow artifact.
+#
+# Releases: publishing a release on GitHub (Releases → Draft a new release → Publish) builds that
+# release's tag and attaches the installer, the portable zip and SHA256SUMS.txt to it. To attach
+# them to a release that already exists, run this workflow manually with the release tag.
+# Builds are unsigned unless CSC_LINK / CSC_KEY_PASSWORD secrets are configured.
 name: Windows program (.exe)
 
 on:
   push:
     branches: ["**"]
-    tags: ["v*"]
     paths:
       - "apps/desktop/**"
       - "apps/operator-web/**"
@@ -23,13 +25,20 @@ on:
       - "scripts/packaged-smoke.cjs"
       - "pnpm-lock.yaml"
       - ".github/workflows/windows-program.yml"
+  release:
+    types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag of an existing release to build and attach the installer to (e.g. v0.1.0). Leave empty for a test build of the selected branch."
+        required: false
+        default: ""
 
 permissions:
   contents: read
 
 concurrency:
-  group: windows-program-${{ github.ref }}
+  group: windows-program-${{ github.ref }}-${{ inputs.tag || 'branch' }}
   cancel-in-progress: true
 
 jobs:
@@ -39,6 +48,9 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          # A manual run for a release builds exactly that release's tag.
+          ref: ${{ inputs.tag }}
 
       - uses: pnpm/action-setup@v4
         with:
@@ -113,9 +125,9 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
-  draft-release:
-    name: Draft GitHub release (tags only)
-    if: startsWith(github.ref, 'refs/tags/v')
+  attach-to-release:
+    name: Attach the installer to the GitHub release
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -125,7 +137,8 @@ jobs:
         with:
           name: matchframe-windows-${{ github.sha }}
           path: release
-      - name: Create a draft release with the installer
+      - name: Upload the installer, zip and checksums to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/* --repo "$GITHUB_REPOSITORY" --draft --title "Matchframe $GITHUB_REF_NAME" --notes "Windows installer and portable zip. SHA-256 checksums in SHA256SUMS.txt."
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: gh release upload "$TAG" release/* --repo "$GITHUB_REPOSITORY" --clobber

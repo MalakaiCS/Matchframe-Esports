@@ -47,7 +47,7 @@ Lesson recorded: the two OBS replay tests share one OBS replay buffer, so `test:
 | `Matchframe Esports-0.1.0-win.zip` (portable) | Windows CI (same run) | 155 MB | `10341a83f581f9e305723951772f76481ad3fb4d57d45d2ace737df461cbfff2` |
 | `MatchframeEsports-Setup-0.1.0.exe` | Linux + Wine (`pnpm package:win`) | 122 MB | `b9ad1c8d4cf58366572fee4354c8b1544b5056be3be24ee82cbcde22512e45a2` |
 
-Contents: Electron 44.9.3 program, bundled engine, operator console (`operator-web`), connection settings page, captain veto page (`captain-web`), HUD renderer, map packs, measured utility profiles, Python worker sources, THIRD_PARTY_NOTICES, optional `cloud.json`. All unsigned (configure `CSC_LINK`/`CSC_KEY_PASSWORD` secrets to sign). Artifacts are not committed; CI artifacts are kept 30 days, and `v*` tags create a draft release.
+Contents: Electron 44.9.3 program, bundled engine, operator console (`operator-web`), connection settings page, captain veto page (`captain-web`), HUD renderer, map packs, measured utility profiles, Python worker sources, THIRD_PARTY_NOTICES, optional `cloud.json`. All unsigned (configure `CSC_LINK`/`CSC_KEY_PASSWORD` secrets to sign). Artifacts are not committed; CI artifacts are kept 30 days, and publishing a GitHub release attaches the installer, zip and checksums to it.
 
 ## Known gaps in the console (from its review against the engine)
 
@@ -70,7 +70,7 @@ Contents: Electron 44.9.3 program, bundled engine, operator console (`operator-w
 
 ## Next
 
-1. Owner setup for the website: Stripe products/prices and webhook, SMTP, Postgres host with TLS, `pnpm cloud:keygen` → `MF_CLOUD_SIGNING_KEY` and `config/cloud.json`, then tag `v0.1.0` (draft release) and place the installer in `MF_DOWNLOAD_DIR` (docs/operations/cloud-deployment.md).
+1. Owner setup for the website: Stripe products/prices and webhook, SMTP, Postgres host with TLS, `pnpm cloud:keygen` → `MF_CLOUD_SIGNING_KEY` and `config/cloud.json`, then publish a GitHub release (the workflow attaches the installer) and point the website at it (`MF_DOWNLOAD_WINDOWS_URL`) or place it in `MF_DOWNLOAD_DIR` (docs/operations/cloud-deployment.md).
 2. With a CS2 observer environment: run the Setup checklist (real payload → capability report; player-selection test; static-camera test), then `docs/operations/preflight.md`; record results in CAPABILITIES.md and docs/acceptance.md.
 3. Capture and validate cameras (Bottom Banana first) with `getpos`; enable automatic cinematics per map only after the static-camera test passes on that map.
 4. Build map packs for Mirage, Dust II, Nuke, Train and Vertigo from current-build demos; validate derived regions; author levels.

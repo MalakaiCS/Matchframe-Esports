@@ -122,9 +122,13 @@ invitation links can be recovered by staff if delivery fails.
 
 ## 5. Publishing the Windows program (.exe)
 
-1. Build it: push a `v*` tag (the **Windows program (.exe)** workflow builds, installs and
-   smoke-tests the installer on Windows and attaches it to a **draft** GitHub release), or download
-   the `matchframe-windows-<commit>` artifact from any workflow run, or run `pnpm package:win`.
+1. Build it: on GitHub, **Releases → Draft a new release**, create the tag (e.g. `v0.1.0`) and
+   **Publish**. The **Windows program (.exe)** workflow then builds that tag on Windows, installs
+   and smoke-tests it, and attaches `MatchframeEsports-Setup-<version>.exe`, the portable zip and
+   `SHA256SUMS.txt` to the release (a few minutes after publishing). For a release that already
+   exists, run the workflow manually (Actions → Windows program (.exe) → Run workflow) with its
+   tag. A pushed tag alone does not attach anything. You can also download the
+   `matchframe-windows-<commit>` artifact from any workflow run, or run `pnpm package:win`.
    Configure `CSC_LINK`/`CSC_KEY_PASSWORD` repository secrets to sign it; unsigned builds trigger
    SmartScreen warnings.
 2. Release builds should include `config/cloud.json` (website address + pinned licence public key,

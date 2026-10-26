@@ -63,7 +63,7 @@ pnpm dev --sim          # builds what is missing, starts the Matchframe program 
 | Python worker tests | `pnpm test:py` (with `MF_TEST_DEMOS=<demo folder>` to include real-demo tests) |
 | Real-integration tests | `MF_TEST_DEMOS=<demos> MATCHFRAME_PYTHON=<python> pnpm test:integration` (OBS tests also need `MF_OBS_URL`, `MF_OBS_PASSWORD`; Postgres test needs `MF_TEST_DATABASE_URL`) |
 | Build all apps | `pnpm build` |
-| Windows program (.exe) | `pnpm package:win` locally, or the **Windows program (.exe)** workflow (builds, installs and smoke-tests on Windows; `v*` tags make a draft release) |
+| Windows program (.exe) | `pnpm package:win` locally, or the **Windows program (.exe)** workflow (builds, installs and smoke-tests on Windows; publishing a GitHub release attaches the installer to it) |
 | Program smoke tests | `pnpm smoke:desktop` (dev program: local + remote mode); `node scripts/packaged-smoke.cjs <program exe>` (packaged/installed program) |
 | Website + cloud API locally | `pnpm --filter @matchframe/cloud-web build && MF_DEV_LOG_EMAILS=1 pnpm cloud` |
 | Deploy the website | [docs/operations/cloud-deployment.md](docs/operations/cloud-deployment.md) (Docker image, Postgres, Stripe, signing key, SMTP, installer downloads) |
