@@ -1,0 +1,363 @@
+{
+  "schemaVersion": 1,
+  "mapName": "de_inferno",
+  "source": "demo_place_name_transitions",
+  "description": "Undirected region adjacency from observed place-name transitions of alive players (consecutive samples ≤ 1 s apart within a round). Not part of the MapPack schema.",
+  "minTransitions": 2,
+  "nodes": [
+    {
+      "id": "apartments",
+      "place": "Apartments",
+      "sampleCount": 8022
+    },
+    {
+      "id": "arch",
+      "place": "Arch",
+      "sampleCount": 6518
+    },
+    {
+      "id": "back_alley",
+      "place": "BackAlley",
+      "sampleCount": 1624
+    },
+    {
+      "id": "balcony",
+      "place": "Balcony",
+      "sampleCount": 1204
+    },
+    {
+      "id": "banana",
+      "place": "Banana",
+      "sampleCount": 26257
+    },
+    {
+      "id": "bombsite_a",
+      "place": "BombsiteA",
+      "sampleCount": 14596
+    },
+    {
+      "id": "bombsite_b",
+      "place": "BombsiteB",
+      "sampleCount": 19645
+    },
+    {
+      "id": "bridge",
+      "place": "Bridge",
+      "sampleCount": 834
+    },
+    {
+      "id": "ct_spawn",
+      "place": "CTSpawn",
+      "sampleCount": 42810
+    },
+    {
+      "id": "deck",
+      "place": "Deck",
+      "sampleCount": 273
+    },
+    {
+      "id": "graveyard",
+      "place": "Graveyard",
+      "sampleCount": 659
+    },
+    {
+      "id": "kitchen",
+      "place": "Kitchen",
+      "sampleCount": 30
+    },
+    {
+      "id": "library",
+      "place": "Library",
+      "sampleCount": 2921
+    },
+    {
+      "id": "lower_mid",
+      "place": "LowerMid",
+      "sampleCount": 4492
+    },
+    {
+      "id": "middle",
+      "place": "Middle",
+      "sampleCount": 17061
+    },
+    {
+      "id": "pit",
+      "place": "Pit",
+      "sampleCount": 2555
+    },
+    {
+      "id": "quad",
+      "place": "Quad",
+      "sampleCount": 1710
+    },
+    {
+      "id": "ruins",
+      "place": "Ruins",
+      "sampleCount": 6075
+    },
+    {
+      "id": "second_mid",
+      "place": "SecondMid",
+      "sampleCount": 5710
+    },
+    {
+      "id": "t_ramp",
+      "place": "TRamp",
+      "sampleCount": 6905
+    },
+    {
+      "id": "t_spawn",
+      "place": "TSpawn",
+      "sampleCount": 38460
+    },
+    {
+      "id": "topof_mid",
+      "place": "TopofMid",
+      "sampleCount": 12116
+    },
+    {
+      "id": "underpass",
+      "place": "Underpass",
+      "sampleCount": 2403
+    },
+    {
+      "id": "upstairs",
+      "place": "Upstairs",
+      "sampleCount": 522
+    }
+  ],
+  "edges": [
+    {
+      "a": "apartments",
+      "b": "back_alley",
+      "transitions": 17,
+      "a_to_b": 7,
+      "b_to_a": 10
+    },
+    {
+      "a": "apartments",
+      "b": "balcony",
+      "transitions": 36,
+      "a_to_b": 16,
+      "b_to_a": 20
+    },
+    {
+      "a": "apartments",
+      "b": "bridge",
+      "transitions": 3,
+      "a_to_b": 1,
+      "b_to_a": 2
+    },
+    {
+      "a": "apartments",
+      "b": "middle",
+      "transitions": 2,
+      "a_to_b": 0,
+      "b_to_a": 2
+    },
+    {
+      "a": "apartments",
+      "b": "topof_mid",
+      "transitions": 20,
+      "a_to_b": 10,
+      "b_to_a": 10
+    },
+    {
+      "a": "arch",
+      "b": "bombsite_a",
+      "transitions": 20,
+      "a_to_b": 13,
+      "b_to_a": 7
+    },
+    {
+      "a": "arch",
+      "b": "ct_spawn",
+      "transitions": 44,
+      "a_to_b": 11,
+      "b_to_a": 33
+    },
+    {
+      "a": "arch",
+      "b": "topof_mid",
+      "transitions": 62,
+      "a_to_b": 35,
+      "b_to_a": 27
+    },
+    {
+      "a": "back_alley",
+      "b": "second_mid",
+      "transitions": 11,
+      "a_to_b": 3,
+      "b_to_a": 8
+    },
+    {
+      "a": "balcony",
+      "b": "bombsite_a",
+      "transitions": 21,
+      "a_to_b": 7,
+      "b_to_a": 14
+    },
+    {
+      "a": "balcony",
+      "b": "pit",
+      "transitions": 3,
+      "a_to_b": 3,
+      "b_to_a": 0
+    },
+    {
+      "a": "banana",
+      "b": "bombsite_b",
+      "transitions": 78,
+      "a_to_b": 34,
+      "b_to_a": 44
+    },
+    {
+      "a": "banana",
+      "b": "middle",
+      "transitions": 81,
+      "a_to_b": 30,
+      "b_to_a": 51
+    },
+    {
+      "a": "bombsite_a",
+      "b": "graveyard",
+      "transitions": 5,
+      "a_to_b": 4,
+      "b_to_a": 1
+    },
+    {
+      "a": "bombsite_a",
+      "b": "library",
+      "transitions": 30,
+      "a_to_b": 7,
+      "b_to_a": 23
+    },
+    {
+      "a": "bombsite_a",
+      "b": "pit",
+      "transitions": 14,
+      "a_to_b": 8,
+      "b_to_a": 6
+    },
+    {
+      "a": "bombsite_a",
+      "b": "quad",
+      "transitions": 21,
+      "a_to_b": 8,
+      "b_to_a": 13
+    },
+    {
+      "a": "bombsite_a",
+      "b": "topof_mid",
+      "transitions": 31,
+      "a_to_b": 14,
+      "b_to_a": 17
+    },
+    {
+      "a": "bombsite_b",
+      "b": "ruins",
+      "transitions": 85,
+      "a_to_b": 30,
+      "b_to_a": 55
+    },
+    {
+      "a": "bridge",
+      "b": "upstairs",
+      "transitions": 9,
+      "a_to_b": 4,
+      "b_to_a": 5
+    },
+    {
+      "a": "ct_spawn",
+      "b": "library",
+      "transitions": 31,
+      "a_to_b": 26,
+      "b_to_a": 5
+    },
+    {
+      "a": "ct_spawn",
+      "b": "ruins",
+      "transitions": 59,
+      "a_to_b": 46,
+      "b_to_a": 13
+    },
+    {
+      "a": "lower_mid",
+      "b": "second_mid",
+      "transitions": 19,
+      "a_to_b": 19,
+      "b_to_a": 0
+    },
+    {
+      "a": "lower_mid",
+      "b": "t_ramp",
+      "transitions": 71,
+      "a_to_b": 64,
+      "b_to_a": 7
+    },
+    {
+      "a": "lower_mid",
+      "b": "t_spawn",
+      "transitions": 82,
+      "a_to_b": 1,
+      "b_to_a": 81
+    },
+    {
+      "a": "lower_mid",
+      "b": "upstairs",
+      "transitions": 13,
+      "a_to_b": 8,
+      "b_to_a": 5
+    },
+    {
+      "a": "middle",
+      "b": "second_mid",
+      "transitions": 20,
+      "a_to_b": 8,
+      "b_to_a": 12
+    },
+    {
+      "a": "middle",
+      "b": "t_ramp",
+      "transitions": 96,
+      "a_to_b": 23,
+      "b_to_a": 73
+    },
+    {
+      "a": "middle",
+      "b": "topof_mid",
+      "transitions": 42,
+      "a_to_b": 29,
+      "b_to_a": 13
+    },
+    {
+      "a": "middle",
+      "b": "underpass",
+      "transitions": 25,
+      "a_to_b": 12,
+      "b_to_a": 13
+    },
+    {
+      "a": "quad",
+      "b": "topof_mid",
+      "transitions": 16,
+      "a_to_b": 5,
+      "b_to_a": 11
+    },
+    {
+      "a": "second_mid",
+      "b": "underpass",
+      "transitions": 2,
+      "a_to_b": 2,
+      "b_to_a": 0
+    }
+  ],
+  "transitionsObserved": 1074,
+  "provenance": {
+    "createdBy": "matchframe-workers 0.1.0 mf_features.map_pack",
+    "createdAt": "2026-10-26T14:04:31.849763Z",
+    "sources": [
+      "dataset:de_inferno-13926-ee700e629d47c8ea"
+    ]
+  }
+}
