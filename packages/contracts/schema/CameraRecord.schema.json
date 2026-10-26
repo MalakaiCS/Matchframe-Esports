@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "displayName": {
+      "type": "string"
+    },
+    "mapName": {
+      "type": "string"
+    },
+    "mapRevision": {
+      "type": "string"
+    },
+    "position": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z"
+      ]
+    },
+    "pitch": {
+      "type": "number"
+    },
+    "yaw": {
+      "type": "number"
+    },
+    "fov": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "observerMode": {
+      "type": "string",
+      "enum": [
+        "roaming_static"
+      ]
+    },
+    "targetRegionIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "properties": {
+        "center": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "z": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "z"
+          ]
+        },
+        "radiusUnits": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "zMin": {
+          "type": "number"
+        },
+        "zMax": {
+          "type": "number"
+        },
+        "levelId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "center",
+        "radiusUnits",
+        "zMin",
+        "zMax",
+        "levelId"
+      ]
+    },
+    "allowedPhases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "freezetime",
+          "live",
+          "over"
+        ]
+      }
+    },
+    "actionClasses": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "utility",
+          "tactical",
+          "bomb",
+          "establishing"
+        ]
+      }
+    },
+    "grenadeTypes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "he",
+          "flashbang",
+          "smoke",
+          "molotov",
+          "incendiary",
+          "decoy"
+        ]
+      }
+    },
+    "minAcquisitionMs": {
+      "type": "number",
+      "minimum": 0
+    },
+    "normalDurationMs": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "maxDurationMs": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "occlusionValidation": {
+      "type": "string",
+      "enum": [
+        "unvalidated",
+        "preview_only",
+        "validated",
+        "invalidated"
+      ]
+    },
+    "validation": {
+      "type": "string",
+      "enum": [
+        "unvalidated",
+        "preview_only",
+        "validated",
+        "invalidated"
+      ]
+    },
+    "exitStrategy": {
+      "type": "string",
+      "enum": [
+        "most_relevant_player",
+        "previous_pov",
+        "closest_alive_to_region"
+      ]
+    },
+    "lastTestedGameBuild": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "lastTestedMapVersion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "capturedFrom": {
+      "type": "string",
+      "enum": [
+        "getpos_paste",
+        "netcon_readback",
+        "imported"
+      ]
+    },
+    "notes": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "displayName",
+    "mapName",
+    "mapRevision",
+    "position",
+    "pitch",
+    "yaw",
+    "fov",
+    "observerMode",
+    "targetRegionIds",
+    "coverage",
+    "allowedPhases",
+    "actionClasses",
+    "grenadeTypes",
+    "minAcquisitionMs",
+    "normalDurationMs",
+    "maxDurationMs",
+    "occlusionValidation",
+    "validation",
+    "exitStrategy",
+    "lastTestedGameBuild",
+    "lastTestedMapVersion",
+    "capturedFrom"
+  ]
+}

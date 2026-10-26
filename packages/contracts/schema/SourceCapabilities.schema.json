@@ -1,0 +1,1248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "allPlayerState": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "playerPositions": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "viewDirections": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "weaponReadiness": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "exactDamageEvents": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "exactKillEvents": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "grenadeEntities": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "grenadeLifecycle": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "utilityEffects": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "grenadeTypeSupport": {
+      "type": "object",
+      "properties": {
+        "he": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "support": {
+              "type": "string",
+              "enum": [
+                "supported",
+                "partial",
+                "unsupported",
+                "unverified"
+              ]
+            },
+            "sourceId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "testedGameBuild": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "lastVerifiedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "precision": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "key",
+            "support",
+            "sourceId",
+            "testedGameBuild",
+            "lastVerifiedAt",
+            "limitations"
+          ]
+        },
+        "flashbang": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "support": {
+              "type": "string",
+              "enum": [
+                "supported",
+                "partial",
+                "unsupported",
+                "unverified"
+              ]
+            },
+            "sourceId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "testedGameBuild": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "lastVerifiedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "precision": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "key",
+            "support",
+            "sourceId",
+            "testedGameBuild",
+            "lastVerifiedAt",
+            "limitations"
+          ]
+        },
+        "smoke": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "support": {
+              "type": "string",
+              "enum": [
+                "supported",
+                "partial",
+                "unsupported",
+                "unverified"
+              ]
+            },
+            "sourceId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "testedGameBuild": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "lastVerifiedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "precision": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "key",
+            "support",
+            "sourceId",
+            "testedGameBuild",
+            "lastVerifiedAt",
+            "limitations"
+          ]
+        },
+        "molotov": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "support": {
+              "type": "string",
+              "enum": [
+                "supported",
+                "partial",
+                "unsupported",
+                "unverified"
+              ]
+            },
+            "sourceId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "testedGameBuild": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "lastVerifiedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "precision": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "key",
+            "support",
+            "sourceId",
+            "testedGameBuild",
+            "lastVerifiedAt",
+            "limitations"
+          ]
+        },
+        "incendiary": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "support": {
+              "type": "string",
+              "enum": [
+                "supported",
+                "partial",
+                "unsupported",
+                "unverified"
+              ]
+            },
+            "sourceId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "testedGameBuild": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "lastVerifiedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "precision": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "key",
+            "support",
+            "sourceId",
+            "testedGameBuild",
+            "lastVerifiedAt",
+            "limitations"
+          ]
+        },
+        "decoy": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "support": {
+              "type": "string",
+              "enum": [
+                "supported",
+                "partial",
+                "unsupported",
+                "unverified"
+              ]
+            },
+            "sourceId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "testedGameBuild": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "lastVerifiedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "precision": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "key",
+            "support",
+            "sourceId",
+            "testedGameBuild",
+            "lastVerifiedAt",
+            "limitations"
+          ]
+        }
+      },
+      "required": [
+        "he",
+        "flashbang",
+        "smoke",
+        "molotov",
+        "incendiary",
+        "decoy"
+      ]
+    },
+    "grenadeDamageAttribution": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "playerSelectionControl": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "observerModeControl": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "staticCameraControl": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "cameraPathControl": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "cameraReadback": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    },
+    "matchTimelineTime": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "support": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "partial",
+            "unsupported",
+            "unverified"
+          ]
+        },
+        "sourceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testedGameBuild": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastVerifiedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "support",
+        "sourceId",
+        "testedGameBuild",
+        "lastVerifiedAt",
+        "limitations"
+      ]
+    }
+  },
+  "required": [
+    "allPlayerState",
+    "playerPositions",
+    "viewDirections",
+    "weaponReadiness",
+    "exactDamageEvents",
+    "exactKillEvents",
+    "grenadeEntities",
+    "grenadeLifecycle",
+    "utilityEffects",
+    "grenadeTypeSupport",
+    "grenadeDamageAttribution",
+    "playerSelectionControl",
+    "observerModeControl",
+    "staticCameraControl",
+    "cameraPathControl",
+    "cameraReadback",
+    "matchTimelineTime"
+  ]
+}

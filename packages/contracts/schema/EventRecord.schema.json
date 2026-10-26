@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "timeZone": {
+      "default": "UTC",
+      "type": "string"
+    },
+    "startsOn": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "endsOn": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "brandPrimary": {
+      "default": "#2f7cf6",
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    "brandSecondary": {
+      "default": "#ffffff",
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    "logoAssetId": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mapPool": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "id",
+    "name"
+  ]
+}

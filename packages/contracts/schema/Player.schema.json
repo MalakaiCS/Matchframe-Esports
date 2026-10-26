@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "realName": {
+      "default": null,
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 120
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "steamId": {
+      "default": null,
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^\\d{1,20}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "countryCode": {
+      "default": null,
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 2
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "avatarAssetId": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "aliases": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "photoVisible": {
+      "default": true,
+      "type": "boolean"
+    },
+    "cameraConsent": {
+      "default": false,
+      "type": "boolean"
+    },
+    "cameraSourceId": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "archived": {
+      "default": false,
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "displayName"
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "manifestVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]{2,63}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$"
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "licence": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "description": {
+      "default": "",
+      "type": "string",
+      "maxLength": 500
+    },
+    "game": {
+      "type": "string",
+      "const": "cs2"
+    },
+    "schemaVersions": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      }
+    },
+    "entryPoints": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "enum": [
+          "live",
+          "compact",
+          "replay",
+          "veto",
+          "pre-match",
+          "break",
+          "post-map",
+          "post-series",
+          "studio"
+        ]
+      },
+      "additionalProperties": {
+        "type": "string"
+      },
+      "required": [
+        "live",
+        "compact",
+        "replay",
+        "veto",
+        "pre-match",
+        "break",
+        "post-map",
+        "post-series",
+        "studio"
+      ]
+    },
+    "preview": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "match.public",
+          "players.public",
+          "radar.public",
+          "utility.public",
+          "sponsors",
+          "series",
+          "event",
+          "veto.public",
+          "annotations"
+        ]
+      }
+    },
+    "presets": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      }
+    },
+    "settingsSchema": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {}
+    },
+    "resolutions": {
+      "default": [
+        "1920x1080"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "1920x1080",
+          "2560x1440",
+          "3840x2160"
+        ]
+      }
+    },
+    "classification": {
+      "default": "imported",
+      "type": "string",
+      "enum": [
+        "builtin",
+        "imported"
+      ]
+    }
+  },
+  "required": [
+    "manifestVersion",
+    "id",
+    "name",
+    "version",
+    "author",
+    "licence",
+    "game",
+    "schemaVersions",
+    "entryPoints",
+    "permissions"
+  ]
+}

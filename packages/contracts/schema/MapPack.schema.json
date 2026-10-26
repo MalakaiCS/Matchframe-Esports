@@ -1,0 +1,818 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "mapName": {
+      "type": "string"
+    },
+    "displayName": {
+      "type": "string"
+    },
+    "mapRevision": {
+      "type": "string"
+    },
+    "radar": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "posX": {
+              "type": "number"
+            },
+            "posY": {
+              "type": "number"
+            },
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "rotationDeg": {
+              "default": 0,
+              "type": "number"
+            },
+            "imageSizePx": {
+              "default": 1024,
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "source": {
+              "type": "string",
+              "enum": [
+                "game_overview_file",
+                "operator_calibration",
+                "recalled_unverified"
+              ]
+            },
+            "verified": {
+              "type": "boolean"
+            },
+            "notes": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "posX",
+            "posY",
+            "scale",
+            "source",
+            "verified"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "levels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "zMin": {
+            "type": "number"
+          },
+          "zMax": {
+            "type": "number"
+          },
+          "radar": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "posX": {
+                    "type": "number"
+                  },
+                  "posY": {
+                    "type": "number"
+                  },
+                  "scale": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "rotationDeg": {
+                    "default": 0,
+                    "type": "number"
+                  },
+                  "imageSizePx": {
+                    "default": 1024,
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "game_overview_file",
+                      "operator_calibration",
+                      "recalled_unverified"
+                    ]
+                  },
+                  "verified": {
+                    "type": "boolean"
+                  },
+                  "notes": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "posX",
+                  "posY",
+                  "scale",
+                  "source",
+                  "verified"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "zMin",
+          "zMax"
+        ]
+      }
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "bombsite",
+              "entrance",
+              "choke",
+              "corridor",
+              "mid",
+              "connector",
+              "spawn",
+              "rotation",
+              "retake_route",
+              "elevated",
+              "open_area",
+              "other"
+            ]
+          },
+          "levelId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "shapes": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "polygon"
+                    },
+                    "points": {
+                      "minItems": 3,
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "prefixItems": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ],
+                        "items": false,
+                        "minItems": 2,
+                        "maxItems": 2
+                      }
+                    },
+                    "zMin": {
+                      "type": "number"
+                    },
+                    "zMax": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "points",
+                    "zMin",
+                    "zMax"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "cells"
+                    },
+                    "cellSize": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "zCellSize": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "cells": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "prefixItems": [
+                          {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        ],
+                        "items": false,
+                        "minItems": 3,
+                        "maxItems": 3
+                      }
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "cellSize",
+                    "zCellSize",
+                    "cells"
+                  ]
+                }
+              ]
+            }
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "demo_place_names",
+              "authored",
+              "imported"
+            ]
+          },
+          "sampleCount": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "validated": {
+            "type": "boolean"
+          },
+          "tags": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "levelId",
+          "shapes",
+          "source",
+          "validated"
+        ]
+      }
+    },
+    "cameras": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "mapName": {
+            "type": "string"
+          },
+          "mapRevision": {
+            "type": "string"
+          },
+          "position": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "z": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "x",
+              "y",
+              "z"
+            ]
+          },
+          "pitch": {
+            "type": "number"
+          },
+          "yaw": {
+            "type": "number"
+          },
+          "fov": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "observerMode": {
+            "type": "string",
+            "enum": [
+              "roaming_static"
+            ]
+          },
+          "targetRegionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "coverage": {
+            "type": "object",
+            "properties": {
+              "center": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  },
+                  "z": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "x",
+                  "y",
+                  "z"
+                ]
+              },
+              "radiusUnits": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "zMin": {
+                "type": "number"
+              },
+              "zMax": {
+                "type": "number"
+              },
+              "levelId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "center",
+              "radiusUnits",
+              "zMin",
+              "zMax",
+              "levelId"
+            ]
+          },
+          "allowedPhases": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "freezetime",
+                "live",
+                "over"
+              ]
+            }
+          },
+          "actionClasses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "utility",
+                "tactical",
+                "bomb",
+                "establishing"
+              ]
+            }
+          },
+          "grenadeTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "he",
+                "flashbang",
+                "smoke",
+                "molotov",
+                "incendiary",
+                "decoy"
+              ]
+            }
+          },
+          "minAcquisitionMs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "normalDurationMs": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "maxDurationMs": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "occlusionValidation": {
+            "type": "string",
+            "enum": [
+              "unvalidated",
+              "preview_only",
+              "validated",
+              "invalidated"
+            ]
+          },
+          "validation": {
+            "type": "string",
+            "enum": [
+              "unvalidated",
+              "preview_only",
+              "validated",
+              "invalidated"
+            ]
+          },
+          "exitStrategy": {
+            "type": "string",
+            "enum": [
+              "most_relevant_player",
+              "previous_pov",
+              "closest_alive_to_region"
+            ]
+          },
+          "lastTestedGameBuild": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastTestedMapVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "capturedFrom": {
+            "type": "string",
+            "enum": [
+              "getpos_paste",
+              "netcon_readback",
+              "imported"
+            ]
+          },
+          "notes": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "mapName",
+          "mapRevision",
+          "position",
+          "pitch",
+          "yaw",
+          "fov",
+          "observerMode",
+          "targetRegionIds",
+          "coverage",
+          "allowedPhases",
+          "actionClasses",
+          "grenadeTypes",
+          "minAcquisitionMs",
+          "normalDurationMs",
+          "maxDurationMs",
+          "occlusionValidation",
+          "validation",
+          "exitStrategy",
+          "lastTestedGameBuild",
+          "lastTestedMapVersion",
+          "capturedFrom"
+        ]
+      }
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "mapName": {
+            "type": "string"
+          },
+          "mapRevision": {
+            "type": "string"
+          },
+          "keyframes": {
+            "minItems": 2,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "tMs": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "position": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number"
+                    },
+                    "y": {
+                      "type": "number"
+                    },
+                    "z": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y",
+                    "z"
+                  ]
+                },
+                "pitch": {
+                  "type": "number"
+                },
+                "yaw": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "tMs",
+                "position",
+                "pitch",
+                "yaw"
+              ]
+            }
+          },
+          "maxDurationMs": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "maxSpeedUnitsPerSec": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "collisionValidated": {
+            "type": "boolean"
+          },
+          "validation": {
+            "type": "string",
+            "enum": [
+              "unvalidated",
+              "preview_only",
+              "validated",
+              "invalidated"
+            ]
+          },
+          "targetRegionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "mapName",
+          "mapRevision",
+          "keyframes",
+          "maxDurationMs",
+          "maxSpeedUnitsPerSec",
+          "collisionValidated",
+          "validation",
+          "targetRegionIds"
+        ]
+      }
+    },
+    "bombsites": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "site": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B"
+            ]
+          },
+          "regionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "site",
+          "regionId"
+        ]
+      }
+    },
+    "scenarios": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {}
+      }
+    },
+    "coverage": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "grenadeType": {
+            "type": "string",
+            "enum": [
+              "he",
+              "flashbang",
+              "smoke",
+              "molotov",
+              "incendiary",
+              "decoy"
+            ]
+          },
+          "telemetry": {
+            "type": "string",
+            "enum": [
+              "supported",
+              "partial",
+              "unsupported",
+              "unverified"
+            ]
+          },
+          "activationEffect": {
+            "type": "string",
+            "enum": [
+              "supported",
+              "partial",
+              "unsupported",
+              "unverified"
+            ]
+          },
+          "prediction": {
+            "type": "string",
+            "enum": [
+              "calibrated",
+              "uncalibrated",
+              "unavailable"
+            ]
+          },
+          "testedRegions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cameraCoverage": {
+            "type": "string",
+            "enum": [
+              "validated",
+              "unvalidated",
+              "none"
+            ]
+          },
+          "fallback": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "grenadeType",
+          "telemetry",
+          "activationEffect",
+          "prediction",
+          "testedRegions",
+          "cameraCoverage",
+          "fallback",
+          "evidence"
+        ]
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "createdBy": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "createdBy",
+        "createdAt",
+        "sources"
+      ]
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "mapName",
+    "displayName",
+    "mapRevision",
+    "radar",
+    "levels",
+    "regions",
+    "cameras",
+    "paths",
+    "provenance"
+  ]
+}

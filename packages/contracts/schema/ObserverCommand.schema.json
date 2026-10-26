@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "select_player",
+        "set_observer_mode",
+        "activate_static_camera",
+        "play_camera_path",
+        "cancel_path"
+      ]
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "commandId": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "epoch": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "owner": {
+          "type": "string",
+          "enum": [
+            "operator",
+            "director",
+            "device",
+            "remote",
+            "none"
+          ]
+        },
+        "ownershipGeneration": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "decisionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "basedOnSequence": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "issuedAtMonotonicMs": {
+          "type": "number"
+        },
+        "expiresAtMonotonicMs": {
+          "type": "number"
+        },
+        "confirmationTimeoutMs": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "commandId",
+        "sessionId",
+        "epoch",
+        "owner",
+        "ownershipGeneration",
+        "decisionId",
+        "basedOnSequence",
+        "issuedAtMonotonicMs",
+        "expiresAtMonotonicMs",
+        "confirmationTimeoutMs"
+      ]
+    },
+    "targetSteamId": {
+      "default": null,
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^\\d{1,20}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mode": {
+      "default": null,
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "in_eye",
+            "chase",
+            "roaming",
+            "static_camera",
+            "camera_path",
+            "unknown"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cameraId": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "pathId": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "kind",
+    "context"
+  ]
+}

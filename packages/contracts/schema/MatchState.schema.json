@@ -1,0 +1,1626 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "sessionId": {
+      "type": "string"
+    },
+    "epoch": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "time": {
+      "type": "object",
+      "properties": {
+        "receivedAtMonotonicMs": {
+          "type": "number"
+        },
+        "sourceObservedAtMs": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "matchTimeMs": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "timeUncertaintyMs": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "receivedAtMonotonicMs",
+        "sourceObservedAtMs",
+        "matchTimeMs",
+        "timeUncertaintyMs"
+      ]
+    },
+    "mapName": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mapPhase": {
+      "type": "string",
+      "enum": [
+        "warmup",
+        "live",
+        "intermission",
+        "gameover",
+        "unknown"
+      ]
+    },
+    "roundNumber": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "roundAttemptId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "roundPhase": {
+      "type": "string",
+      "enum": [
+        "freezetime",
+        "live",
+        "over",
+        "unknown"
+      ]
+    },
+    "gamePhase": {
+      "type": "string",
+      "enum": [
+        "warmup",
+        "freezetime",
+        "live",
+        "bomb",
+        "defuse",
+        "over",
+        "timeout_t",
+        "timeout_ct",
+        "paused",
+        "halftime",
+        "gameover",
+        "unknown"
+      ]
+    },
+    "phaseEndsInSec": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "phaseObservedAtMonotonicMs": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "paused": {
+      "type": "boolean"
+    },
+    "teams": {
+      "type": "object",
+      "properties": {
+        "CT": {
+          "type": "object",
+          "properties": {
+            "side": {
+              "type": "string",
+              "enum": [
+                "CT",
+                "T"
+              ]
+            },
+            "teamId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "score": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "consecutiveRoundLosses": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "timeoutsRemaining": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "matchesWonThisSeries": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "side",
+            "teamId",
+            "name",
+            "score",
+            "consecutiveRoundLosses",
+            "timeoutsRemaining",
+            "matchesWonThisSeries"
+          ]
+        },
+        "T": {
+          "type": "object",
+          "properties": {
+            "side": {
+              "type": "string",
+              "enum": [
+                "CT",
+                "T"
+              ]
+            },
+            "teamId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "score": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "consecutiveRoundLosses": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "timeoutsRemaining": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "matchesWonThisSeries": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "side",
+            "teamId",
+            "name",
+            "score",
+            "consecutiveRoundLosses",
+            "timeoutsRemaining",
+            "matchesWonThisSeries"
+          ]
+        }
+      },
+      "required": [
+        "CT",
+        "T"
+      ]
+    },
+    "players": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "steamId": {
+            "type": "string",
+            "pattern": "^\\d{1,20}$"
+          },
+          "playerId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "observerSlot": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "side": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "CT",
+                  "T"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "teamId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lifeState": {
+            "type": "string",
+            "enum": [
+              "alive",
+              "dead",
+              "disconnected",
+              "unknown"
+            ]
+          },
+          "health": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "armor": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "helmet": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "defuseKit": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "flashed": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "smoked": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "burning": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "money": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "equipValue": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "roundKills": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "roundKillsHeadshot": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "roundDamage": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "matchStats": {
+            "type": "object",
+            "properties": {
+              "kills": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "assists": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "deaths": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "mvps": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "score": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "kills",
+              "assists",
+              "deaths",
+              "mvps",
+              "score"
+            ]
+          },
+          "weapons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slotKey": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "holstered",
+                    "reloading",
+                    "unknown"
+                  ]
+                },
+                "ammoClip": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "ammoClipMax": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "ammoReserve": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "slotKey",
+                "name",
+                "type",
+                "state",
+                "ammoClip",
+                "ammoClipMax",
+                "ammoReserve"
+              ]
+            }
+          },
+          "activeWeapon": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "slotKey": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "holstered",
+                      "reloading",
+                      "unknown"
+                    ]
+                  },
+                  "ammoClip": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "ammoClipMax": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "ammoReserve": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "slotKey",
+                  "name",
+                  "type",
+                  "state",
+                  "ammoClip",
+                  "ammoClipMax",
+                  "ammoReserve"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  },
+                  "z": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "x",
+                  "y",
+                  "z"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "forward": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  },
+                  "z": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "x",
+                  "y",
+                  "z"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "positionObservedAtMonotonicMs": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "lastSeenMonotonicMs": {
+            "type": "number"
+          },
+          "provenance": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "sourceId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "evidence": {
+                  "type": "string",
+                  "enum": [
+                    "measured",
+                    "derived",
+                    "estimated",
+                    "operator",
+                    "unknown"
+                  ]
+                },
+                "observedAtMonotonicMs": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "required": [
+                "sourceId",
+                "evidence",
+                "observedAtMonotonicMs",
+                "confidence"
+              ]
+            }
+          }
+        },
+        "required": [
+          "steamId",
+          "playerId",
+          "name",
+          "observerSlot",
+          "side",
+          "teamId",
+          "lifeState",
+          "health",
+          "armor",
+          "helmet",
+          "defuseKit",
+          "flashed",
+          "smoked",
+          "burning",
+          "money",
+          "equipValue",
+          "roundKills",
+          "roundKillsHeadshot",
+          "roundDamage",
+          "matchStats",
+          "weapons",
+          "activeWeapon",
+          "position",
+          "forward",
+          "positionObservedAtMonotonicMs",
+          "lastSeenMonotonicMs"
+        ]
+      }
+    },
+    "bomb": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "carried",
+                "dropped",
+                "planting",
+                "planted",
+                "defusing",
+                "defused",
+                "exploded",
+                "unknown"
+              ]
+            },
+            "position": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number"
+                    },
+                    "y": {
+                      "type": "number"
+                    },
+                    "z": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y",
+                    "z"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "carrierSteamId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{1,20}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "countdownSec": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "countdownObservedAtMonotonicMs": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "site": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "A",
+                    "B"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "measured",
+                "derived",
+                "estimated",
+                "operator",
+                "unknown"
+              ]
+            }
+          },
+          "required": [
+            "state",
+            "position",
+            "carrierSteamId",
+            "countdownSec",
+            "countdownObservedAtMonotonicMs",
+            "site",
+            "evidence"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "utility": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "utilityId": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "sourceEntityId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "he",
+              "flashbang",
+              "smoke",
+              "molotov",
+              "incendiary",
+              "decoy",
+              "fire_unknown",
+              "unknown"
+            ]
+          },
+          "typeConfidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "typeEvidence": {
+            "type": "string"
+          },
+          "throwerSteamId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{1,20}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "throwerSide": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "CT",
+                  "T"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ownerConfidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "firstObservedMonotonicMs": {
+            "type": "number"
+          },
+          "lastObservedMonotonicMs": {
+            "type": "number"
+          },
+          "firstMatchTimeMs": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "lastMatchTimeMs": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "samples": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "monotonicMs": {
+                  "type": "number"
+                },
+                "matchTimeMs": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "position": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number"
+                    },
+                    "y": {
+                      "type": "number"
+                    },
+                    "z": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y",
+                    "z"
+                  ]
+                },
+                "velocity": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "type": "number"
+                        },
+                        "y": {
+                          "type": "number"
+                        },
+                        "z": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "x",
+                        "y",
+                        "z"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "monotonicMs",
+                "matchTimeMs",
+                "position",
+                "velocity"
+              ]
+            }
+          },
+          "bounces": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "monotonicMs": {
+                  "type": "number"
+                },
+                "position": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number"
+                    },
+                    "y": {
+                      "type": "number"
+                    },
+                    "z": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y",
+                    "z"
+                  ]
+                },
+                "evidence": {
+                  "type": "string",
+                  "enum": [
+                    "measured",
+                    "derived",
+                    "estimated",
+                    "operator",
+                    "unknown"
+                  ]
+                }
+              },
+              "required": [
+                "monotonicMs",
+                "position",
+                "evidence"
+              ]
+            }
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "flight",
+              "active",
+              "expired",
+              "lost",
+              "unknown"
+            ]
+          },
+          "predicted": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "activationPosition": {
+                    "type": "object",
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      },
+                      "z": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "x",
+                      "y",
+                      "z"
+                    ]
+                  },
+                  "activationInMs": {
+                    "type": "number"
+                  },
+                  "positionUncertaintyUnits": {
+                    "type": "number"
+                  },
+                  "timeUncertaintyMs": {
+                    "type": "number"
+                  },
+                  "predictorVersion": {
+                    "type": "string"
+                  },
+                  "computedAtMonotonicMs": {
+                    "type": "number"
+                  },
+                  "tier": {
+                    "type": "string",
+                    "enum": [
+                      "A",
+                      "B",
+                      "C",
+                      "D"
+                    ]
+                  }
+                },
+                "required": [
+                  "activationPosition",
+                  "activationInMs",
+                  "positionUncertaintyUnits",
+                  "timeUncertaintyMs",
+                  "predictorVersion",
+                  "computedAtMonotonicMs",
+                  "tier"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "confirmedActivation": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "position": {
+                    "type": "object",
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      },
+                      "z": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "x",
+                      "y",
+                      "z"
+                    ]
+                  },
+                  "monotonicMs": {
+                    "type": "number"
+                  },
+                  "matchTimeMs": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "evidenceRef": {
+                    "type": "string"
+                  },
+                  "evidence": {
+                    "type": "string",
+                    "enum": [
+                      "measured",
+                      "derived",
+                      "estimated",
+                      "operator",
+                      "unknown"
+                    ]
+                  }
+                },
+                "required": [
+                  "position",
+                  "monotonicMs",
+                  "matchTimeMs",
+                  "evidenceRef",
+                  "evidence"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "effect": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "he_burst",
+                      "flash_burst",
+                      "smoke_volume",
+                      "fire_area",
+                      "decoy_active"
+                    ]
+                  },
+                  "extentPoints": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "type": "number"
+                        },
+                        "y": {
+                          "type": "number"
+                        },
+                        "z": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "x",
+                        "y",
+                        "z"
+                      ]
+                    }
+                  },
+                  "centroid": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "x": {
+                            "type": "number"
+                          },
+                          "y": {
+                            "type": "number"
+                          },
+                          "z": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "x",
+                          "y",
+                          "z"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "radiusUnits": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "extentEvidence": {
+                    "type": "string",
+                    "enum": [
+                      "measured",
+                      "derived",
+                      "estimated",
+                      "operator",
+                      "unknown"
+                    ]
+                  },
+                  "estimatedExpiryMonotonicMs": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "expiryEvidence": {
+                    "type": "string",
+                    "enum": [
+                      "measured",
+                      "derived",
+                      "estimated",
+                      "operator",
+                      "unknown"
+                    ]
+                  },
+                  "expiryUncertaintyMs": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "extentPoints",
+                  "centroid",
+                  "radiusUnits",
+                  "extentEvidence",
+                  "estimatedExpiryMonotonicMs",
+                  "expiryEvidence",
+                  "expiryUncertaintyMs"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "affectedPlayers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "steamId": {
+                  "type": "string",
+                  "pattern": "^\\d{1,20}$"
+                },
+                "effect": {
+                  "type": "string",
+                  "enum": [
+                    "flashed",
+                    "damaged",
+                    "burning",
+                    "in_smoke",
+                    "possibly_affected"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "evidence": {
+                  "type": "string",
+                  "enum": [
+                    "measured",
+                    "derived",
+                    "estimated",
+                    "operator",
+                    "unknown"
+                  ]
+                },
+                "attributionConfidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "required": [
+                "steamId",
+                "effect",
+                "value",
+                "evidence",
+                "attributionConfidence"
+              ]
+            }
+          },
+          "regions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "level": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "clusterId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "linkedUtilityIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cleanupReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "expired",
+                  "source_removed",
+                  "epoch_reset",
+                  "map_change",
+                  "stale_timeout",
+                  "round_end"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "visibilityGaps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fromMonotonicMs": {
+                  "type": "number"
+                },
+                "toMonotonicMs": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "fromMonotonicMs",
+                "toMonotonicMs"
+              ]
+            }
+          }
+        },
+        "required": [
+          "utilityId",
+          "sessionId",
+          "epoch",
+          "sourceId",
+          "sourceEntityId",
+          "type",
+          "typeConfidence",
+          "typeEvidence",
+          "throwerSteamId",
+          "throwerSide",
+          "ownerConfidence",
+          "firstObservedMonotonicMs",
+          "lastObservedMonotonicMs",
+          "firstMatchTimeMs",
+          "lastMatchTimeMs",
+          "samples",
+          "bounces",
+          "phase",
+          "predicted",
+          "confirmedActivation",
+          "effect",
+          "affectedPlayers",
+          "regions",
+          "level",
+          "clusterId",
+          "linkedUtilityIds",
+          "cleanupReason",
+          "visibilityGaps"
+        ]
+      }
+    },
+    "roundHistory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "roundNumber": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "winnerSide": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "CT",
+                  "T"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "winnerTeamId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "ct_win_elimination",
+              "t_win_elimination",
+              "ct_win_defuse",
+              "t_win_bomb",
+              "ct_win_time",
+              "ct_win_rescue",
+              "t_win_time",
+              "unknown"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "derived",
+              "estimated",
+              "operator",
+              "unknown"
+            ]
+          }
+        },
+        "required": [
+          "roundNumber",
+          "attemptId",
+          "winnerSide",
+          "winnerTeamId",
+          "reason",
+          "evidence"
+        ]
+      }
+    },
+    "observer": {
+      "type": "object",
+      "properties": {
+        "observedSteamId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{1,20}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observedSlot": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cameraMode": {
+          "type": "string",
+          "enum": [
+            "in_eye",
+            "chase",
+            "roaming",
+            "static_camera",
+            "camera_path",
+            "unknown"
+          ]
+        },
+        "confirmedAtMonotonicMs": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "providerSteamId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{1,20}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "type": "string",
+          "enum": [
+            "measured",
+            "derived",
+            "estimated",
+            "operator",
+            "unknown"
+          ]
+        }
+      },
+      "required": [
+        "observedSteamId",
+        "observedSlot",
+        "cameraMode",
+        "confirmedAtMonotonicMs",
+        "providerSteamId",
+        "evidence"
+      ]
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "lastPacketMonotonicMs": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "packetsReceived": {
+            "type": "number"
+          },
+          "packetsRejected": {
+            "type": "number"
+          },
+          "sequenceGaps": {
+            "type": "number"
+          },
+          "meanIntervalMs": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "gameBuild": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "sourceId",
+          "connected",
+          "lastPacketMonotonicMs",
+          "packetsReceived",
+          "packetsRejected",
+          "sequenceGaps",
+          "meanIntervalMs",
+          "stale",
+          "gameBuild"
+        ]
+      }
+    },
+    "simulated": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "sessionId",
+    "epoch",
+    "sequence",
+    "time",
+    "mapName",
+    "mapPhase",
+    "roundNumber",
+    "roundAttemptId",
+    "roundPhase",
+    "gamePhase",
+    "phaseEndsInSec",
+    "phaseObservedAtMonotonicMs",
+    "paused",
+    "teams",
+    "players",
+    "bomb",
+    "utility",
+    "roundHistory",
+    "observer",
+    "sources",
+    "simulated"
+  ]
+}

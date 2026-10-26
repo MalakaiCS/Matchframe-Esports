@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "observedSteamId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^\\d{1,20}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observedSlot": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "in_eye",
+        "chase",
+        "roaming",
+        "static_camera",
+        "camera_path",
+        "unknown"
+      ]
+    },
+    "pose": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "position": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "z": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "x",
+                "y",
+                "z"
+              ]
+            },
+            "pitch": {
+              "type": "number"
+            },
+            "yaw": {
+              "type": "number"
+            },
+            "fov": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "position",
+            "pitch",
+            "yaw",
+            "fov"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observedAtMonotonicMs": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "precision": {
+      "type": "string",
+      "enum": [
+        "observed_exact",
+        "observed_consistent",
+        "transport_only",
+        "none"
+      ]
+    }
+  },
+  "required": [
+    "observedSteamId",
+    "observedSlot",
+    "mode",
+    "pose",
+    "observedAtMonotonicMs",
+    "precision"
+  ]
+}

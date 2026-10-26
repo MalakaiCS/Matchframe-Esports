@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "commandId": {
+      "type": "string"
+    },
+    "sessionId": {
+      "type": "string"
+    },
+    "epoch": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "owner": {
+      "type": "string",
+      "enum": [
+        "operator",
+        "director",
+        "device",
+        "remote",
+        "none"
+      ]
+    },
+    "ownershipGeneration": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "decisionId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "basedOnSequence": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "issuedAtMonotonicMs": {
+      "type": "number"
+    },
+    "expiresAtMonotonicMs": {
+      "type": "number"
+    },
+    "confirmationTimeoutMs": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "commandId",
+    "sessionId",
+    "epoch",
+    "owner",
+    "ownershipGeneration",
+    "decisionId",
+    "basedOnSequence",
+    "issuedAtMonotonicMs",
+    "expiresAtMonotonicMs",
+    "confirmationTimeoutMs"
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "commandId": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent",
+        "transport_acknowledged",
+        "confirmed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "precision": {
+      "type": "string",
+      "enum": [
+        "observed_exact",
+        "observed_consistent",
+        "transport_only",
+        "none"
+      ]
+    },
+    "failureReason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "expired",
+            "stale_epoch",
+            "ownership_revoked",
+            "unsupported",
+            "capability_unverified",
+            "target_invalid",
+            "target_dead",
+            "transport_error",
+            "window_not_focused",
+            "confirmation_timeout",
+            "superseded",
+            "automation_stopped",
+            "adapter_unavailable"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "detail": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "transportAckAtMonotonicMs": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "confirmedAtMonotonicMs": {
+      "type": [
+        "number",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "commandId",
+    "status",
+    "precision",
+    "failureReason",
+    "detail",
+    "transportAckAtMonotonicMs",
+    "confirmedAtMonotonicMs"
+  ]
+}

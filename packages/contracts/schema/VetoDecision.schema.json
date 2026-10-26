@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "matchId": {
+      "type": "string"
+    },
+    "stepOrder": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "ban",
+        "pick",
+        "decider",
+        "side_choice"
+      ]
+    },
+    "teamId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mapName": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "side": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "CT",
+            "T"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "decidedBy": {
+      "type": "string"
+    },
+    "decidedAt": {
+      "type": "string"
+    },
+    "revisionOf": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "matchId",
+    "stepOrder",
+    "kind",
+    "teamId",
+    "mapName",
+    "side",
+    "decidedBy",
+    "decidedAt"
+  ]
+}

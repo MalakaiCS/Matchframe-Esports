@@ -1,0 +1,387 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "decisionId": {
+      "type": "string"
+    },
+    "sessionId": {
+      "type": "string"
+    },
+    "epoch": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "basedOnSequence": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "decidedAtMonotonicMs": {
+      "type": "number"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "off",
+        "advisory",
+        "assisted",
+        "automatic",
+        "shadow",
+        "demo_review",
+        "delayed_lookahead"
+      ]
+    },
+    "controlHealth": {
+      "type": "string",
+      "enum": [
+        "armed",
+        "degraded",
+        "paused",
+        "manual_owned",
+        "disarmed",
+        "emergency_stopped"
+      ]
+    },
+    "currentShot": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "desiredShot": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "hold",
+        "cut",
+        "recommend",
+        "none"
+      ]
+    },
+    "reasonCodes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "CURRENT_SHOT_VALID",
+          "CURRENT_SHOT_LOW_ACTION",
+          "CURRENT_SHOT_INVALID",
+          "CURRENT_POV_DEAD",
+          "MIN_SHOT_DURATION",
+          "ADVANTAGE_BELOW_THRESHOLD",
+          "ADVANTAGE_NOT_PERSISTENT",
+          "CONTACT_LIKELY_SOON",
+          "CONTACT_IMMINENT",
+          "CT_PUSH_BEFORE_T_EXECUTE",
+          "T_GROUP_DEVELOPING",
+          "EXECUTE_DEVELOPING",
+          "CROSSFIRE_SETUP",
+          "TRADE_OPPORTUNITY",
+          "POST_EVENT_HOLD",
+          "SECOND_CONTACT_LIKELY",
+          "BOMB_PLANT_PRESSURE",
+          "BOMB_DEFUSE_PRESSURE",
+          "BOMB_CRITICAL",
+          "CLUTCH",
+          "RETAKE",
+          "PLAYER_FLASHED",
+          "PLAYER_RELOADING",
+          "PLAYER_READY",
+          "ISOLATED_AGGRESSOR",
+          "UTILITY_INCOMING",
+          "UTILITY_CLUSTER_TARGET",
+          "UTILITY_VOLLEY",
+          "UTILITY_LOW_VALUE",
+          "UTILITY_NO_CAMERA",
+          "CINEMATIC_BUDGET_EXHAUSTED",
+          "CINEMATIC_DISABLED",
+          "CINEMATIC_ELIGIBLE",
+          "CINEMATIC_INTERRUPTED",
+          "CAMERA_UNVERIFIED",
+          "COOLDOWN_ACTIVE",
+          "STALE_DATA",
+          "LOW_CONFIDENCE",
+          "MANUAL_OWNERSHIP",
+          "EMERGENCY_STOP",
+          "PINNED",
+          "HOLD_REQUESTED",
+          "WALL_SEPARATED",
+          "DISTANCE_CLOSING",
+          "MAIN_STORY",
+          "ESTABLISHING",
+          "NO_VALID_CANDIDATE"
+        ]
+      }
+    },
+    "supportingFeatures": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": [
+          "number",
+          "null"
+        ]
+      }
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "evidenceType": {
+      "type": "string",
+      "enum": [
+        "measured",
+        "derived",
+        "estimated",
+        "operator",
+        "unknown"
+      ]
+    },
+    "policyVersion": {
+      "type": "string"
+    },
+    "modelVersion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "expiresInMs": {
+      "type": "number"
+    },
+    "topCandidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string"
+          },
+          "shotClass": {
+            "type": "string",
+            "enum": [
+              "hold",
+              "pov",
+              "third_person",
+              "static_tactical",
+              "static_utility",
+              "camera_path",
+              "bomb_resolution",
+              "establishing"
+            ]
+          },
+          "shotKey": {
+            "type": "string"
+          },
+          "targetSteamId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cameraId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "clusterId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "regionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "components": {
+            "type": "object",
+            "properties": {
+              "actionCoverage": {
+                "type": "number"
+              },
+              "imminence": {
+                "type": "number"
+              },
+              "readiness": {
+                "type": "number"
+              },
+              "significance": {
+                "type": "number"
+              },
+              "narrative": {
+                "type": "number"
+              },
+              "framing": {
+                "type": "number"
+              },
+              "continuity": {
+                "type": "number"
+              },
+              "mainStory": {
+                "type": "number"
+              },
+              "switchCost": {
+                "type": "number"
+              },
+              "stalenessPenalty": {
+                "type": "number"
+              },
+              "cinematicOpportunityCost": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "actionCoverage",
+              "imminence",
+              "readiness",
+              "significance",
+              "narrative",
+              "framing",
+              "continuity",
+              "mainStory",
+              "switchCost",
+              "stalenessPenalty",
+              "cinematicOpportunityCost"
+            ]
+          },
+          "utility": {
+            "type": "number"
+          },
+          "reasonCodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "CURRENT_SHOT_VALID",
+                "CURRENT_SHOT_LOW_ACTION",
+                "CURRENT_SHOT_INVALID",
+                "CURRENT_POV_DEAD",
+                "MIN_SHOT_DURATION",
+                "ADVANTAGE_BELOW_THRESHOLD",
+                "ADVANTAGE_NOT_PERSISTENT",
+                "CONTACT_LIKELY_SOON",
+                "CONTACT_IMMINENT",
+                "CT_PUSH_BEFORE_T_EXECUTE",
+                "T_GROUP_DEVELOPING",
+                "EXECUTE_DEVELOPING",
+                "CROSSFIRE_SETUP",
+                "TRADE_OPPORTUNITY",
+                "POST_EVENT_HOLD",
+                "SECOND_CONTACT_LIKELY",
+                "BOMB_PLANT_PRESSURE",
+                "BOMB_DEFUSE_PRESSURE",
+                "BOMB_CRITICAL",
+                "CLUTCH",
+                "RETAKE",
+                "PLAYER_FLASHED",
+                "PLAYER_RELOADING",
+                "PLAYER_READY",
+                "ISOLATED_AGGRESSOR",
+                "UTILITY_INCOMING",
+                "UTILITY_CLUSTER_TARGET",
+                "UTILITY_VOLLEY",
+                "UTILITY_LOW_VALUE",
+                "UTILITY_NO_CAMERA",
+                "CINEMATIC_BUDGET_EXHAUSTED",
+                "CINEMATIC_DISABLED",
+                "CINEMATIC_ELIGIBLE",
+                "CINEMATIC_INTERRUPTED",
+                "CAMERA_UNVERIFIED",
+                "COOLDOWN_ACTIVE",
+                "STALE_DATA",
+                "LOW_CONFIDENCE",
+                "MANUAL_OWNERSHIP",
+                "EMERGENCY_STOP",
+                "PINNED",
+                "HOLD_REQUESTED",
+                "WALL_SEPARATED",
+                "DISTANCE_CLOSING",
+                "MAIN_STORY",
+                "ESTABLISHING",
+                "NO_VALID_CANDIDATE"
+              ]
+            }
+          },
+          "valid": {
+            "type": "boolean"
+          },
+          "invalidReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidenceType": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "derived",
+              "estimated",
+              "operator",
+              "unknown"
+            ]
+          }
+        },
+        "required": [
+          "candidateId",
+          "shotClass",
+          "shotKey",
+          "targetSteamId",
+          "cameraId",
+          "clusterId",
+          "regionIds",
+          "components",
+          "utility",
+          "reasonCodes",
+          "valid",
+          "invalidReason",
+          "evidenceType"
+        ]
+      }
+    },
+    "effectiveWeights": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "number"
+      }
+    }
+  },
+  "required": [
+    "decisionId",
+    "sessionId",
+    "epoch",
+    "basedOnSequence",
+    "decidedAtMonotonicMs",
+    "mode",
+    "controlHealth",
+    "currentShot",
+    "desiredShot",
+    "action",
+    "reasonCodes",
+    "supportingFeatures",
+    "confidence",
+    "evidenceType",
+    "policyVersion",
+    "modelVersion",
+    "expiresInMs",
+    "topCandidates",
+    "effectiveWeights"
+  ]
+}
