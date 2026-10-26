@@ -17,6 +17,8 @@ extraResources:
     to: hud-renderer
   - from: ../../assets/map-packs
     to: map-packs
+  - from: ../../assets/utility-profiles
+    to: utility-profiles
   - from: ../../workers
     to: workers
     filter:

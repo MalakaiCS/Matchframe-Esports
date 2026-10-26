@@ -48,6 +48,7 @@ function startEngine(): void {
     MATCHFRAME_OPERATOR_UI_DIR: resourcesPath(isDev ? "apps/operator-web/dist" : "operator-web"),
     MATCHFRAME_HUD_DIR: resourcesPath(isDev ? "apps/hud-renderer/dist" : "hud-renderer"),
     MATCHFRAME_MAP_PACK_DIR: resourcesPath(isDev ? "assets/map-packs" : "map-packs"),
+    MATCHFRAME_UTILITY_PROFILES: resourcesPath(isDev ? "assets/utility-profiles/measured.json" : "utility-profiles/measured.json"),
     MATCHFRAME_WORKERS_DIR: resourcesPath("workers"),
     MATCHFRAME_GSI_PORT: String(PORTS.gsi),
     MATCHFRAME_API_PORT: String(PORTS.api),

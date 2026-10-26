@@ -203,6 +203,18 @@ describe("engine end-to-end (real HTTP/WS servers)", () => {
     expect(JSON.stringify(hud.standings)).not.toMatch(/steamId|token/);
   });
 
+  it("routes player cameras only for players who consented", async () => {
+    const noConsent = (await (await api("/api/v1/players", { method: "POST", body: JSON.stringify({ displayName: "Cam Shy", steamId: "76561198000000555" }) })).json()) as { id: string };
+    const consent = (await (await api("/api/v1/players", { method: "POST", body: JSON.stringify({ displayName: "Cam Ready", steamId: "76561198000000556", cameraConsent: true }) })).json()) as { id: string };
+    const put = (sources: Record<string, string>) => api("/api/v1/player-cams/config", { method: "PUT", body: JSON.stringify({ enabled: true, scene: "Live", sources, fallbackSource: "Cam Fallback", delayMs: 0 }) });
+    const refused = await put({ [noConsent.id]: "Cam 1" });
+    expect(refused.status).toBe(400);
+    expect(((await refused.json()) as { error: string }).error).toBe("no_consent");
+    expect((await put({ [consent.id]: "Cam 2" })).status).toBe(200);
+    const cfg = (await (await api("/api/v1/player-cams/config")).json()) as { config: { sources: Record<string, string> } };
+    expect(cfg.config.sources).toEqual({ [consent.id]: "Cam 2" });
+  });
+
   it("exports and restores an event package with checksum and collision checks", async () => {
     const team = (await (await api("/api/v1/teams", { method: "POST", body: JSON.stringify({ name: "Alpha", shortName: "ALP" }) })).json()) as { id: string };
     await api("/api/v1/players", { method: "POST", body: JSON.stringify({ displayName: "Player One", steamId: "76561198000000999" }) });
@@ -239,6 +251,13 @@ describe("engine end-to-end (real HTTP/WS servers)", () => {
     expect(directorCommands.size).toBeGreaterThan(0);
     expect(confirmed.length).toBeGreaterThan(0);
     expect(ctx.engine.session.state()?.observer.observedSteamId).not.toBe(far);
+    // F35: the broadcast report reflects the same session (and labels it as simulated).
+    const report = (await (await api("/api/v1/reports/broadcast")).json()) as { simulated: boolean; director: { automatedCommands: number; automatedConfirmed: number }; continuity: { shotChanges: number }; control: { manualTakeovers: number }; caveats: string[] };
+    expect(report.simulated).toBe(true);
+    expect(report.director.automatedConfirmed).toBeGreaterThan(0);
+    expect(report.continuity.shotChanges).toBeGreaterThan(0);
+    expect(report.caveats.some((c) => c.startsWith("SIMULATION"))).toBe(true);
+    expect((await api("/api/v1/reports/broadcast?format=html")).headers.get("content-type")).toMatch(/text\/html/);
     await api("/api/v1/simulation/stop", { method: "POST" });
   }, 20000);
 
