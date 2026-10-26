@@ -20,6 +20,10 @@ const LOCAL_ENGINE = `http://127.0.0.1:${PORTS.api}`;
 const APP_ORIGIN = "app://matchframe";
 const EMERGENCY_HOTKEY = process.env.MATCHFRAME_STOP_HOTKEY ?? "CommandOrControl+Shift+F12";
 
+/** Engine data folder; the program's own settings (credential key, connection, browser storage) live in its `program` subfolder. */
+const dataDir = () => process.env.MATCHFRAME_DATA_DIR ?? join(app.getPath("appData"), "Matchframe Esports");
+app.setPath("userData", join(dataDir(), "program"));
+
 // Must run before the app is ready: a standard, secure scheme with fetch support for the console.
 protocol.registerSchemesAsPrivileged([{ scheme: "app", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
 
@@ -198,7 +202,7 @@ function startEngine(): void {
     ...process.env,
     ELECTRON_RUN_AS_NODE: "1",
     MATCHFRAME_ENGINE_MAIN: "1",
-    MATCHFRAME_DATA_DIR: process.env.MATCHFRAME_DATA_DIR ?? join(app.getPath("appData"), "Matchframe Esports"),
+    MATCHFRAME_DATA_DIR: dataDir(),
     MATCHFRAME_CAPTAIN_UI_DIR: resourcesPath(isDev ? "apps/operator-web/dist-captain" : "captain-web"),
     MATCHFRAME_HUD_DIR: resourcesPath(isDev ? "apps/hud-renderer/dist" : "hud-renderer"),
     MATCHFRAME_MAP_PACK_DIR: resourcesPath(isDev ? "assets/map-packs" : "map-packs"),
@@ -307,8 +311,8 @@ ipcMain.on("mf:bootstrap", (event) => {
   event.returnValue = fromApp(event) ? { engineOrigin: engineOrigin(), connectionMode: connection.mode } : null;
 });
 ipcMain.handle("mf:token", (event) => (fromApp(event) && !fromApp(event, "/connect") ? accessToken() : null));
-ipcMain.handle("mf:info", () => ({ version: app.getVersion(), dataDir: join(app.getPath("appData"), "Matchframe Esports"), emergencyHotkey: EMERGENCY_HOTKEY, ports: PORTS, packaged: app.isPackaged, connection: connection.mode === "remote" ? { mode: "remote", url: connection.url } : { mode: "local" } }));
-ipcMain.handle("mf:open-data-dir", () => shell.openPath(join(app.getPath("appData"), "Matchframe Esports")));
+ipcMain.handle("mf:info", () => ({ version: app.getVersion(), dataDir: dataDir(), emergencyHotkey: EMERGENCY_HOTKEY, ports: PORTS, packaged: app.isPackaged, connection: connection.mode === "remote" ? { mode: "remote", url: connection.url } : { mode: "local" } }));
+ipcMain.handle("mf:open-data-dir", () => shell.openPath(dataDir()));
 ipcMain.handle("mf:restart-engine", () => {
   if (connection.mode !== "local") return false;
   engine?.send({ type: "shutdown" });
@@ -386,7 +390,7 @@ if (!app.requestSingleInstanceLock()) {
           label: "File",
           submenu: [
             { label: "Connection settings… (this computer or another Matchframe computer)", click: () => showConnectionSettings() },
-            { label: "Open data folder", click: () => void shell.openPath(join(app.getPath("appData"), "Matchframe Esports")) },
+            { label: "Open data folder", click: () => void shell.openPath(dataDir()) },
             { type: "separator" },
             { role: "quit" },
           ],

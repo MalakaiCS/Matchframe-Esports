@@ -41,7 +41,7 @@ export function Computers({ scope }: { scope: OrgScope }) {
               Install the Matchframe program from the <Link to="/download">download page</Link>.
             </li>
             <li>
-              In the program open <strong>Account → Link this computer</strong>. It shows a code and opens this website.
+              In the program open <strong>Account &amp; Hours → Link this computer</strong>. It shows a code and opens this website.
             </li>
             <li>
               Enter the code at <Link to="/link">/link</Link>, choose this organisation and approve. The program finishes linking within a few seconds.

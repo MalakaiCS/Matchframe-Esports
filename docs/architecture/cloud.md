@@ -2,12 +2,19 @@
 
 Matchframe is two products that work together:
 
-- **The desktop app** (Electron shell + local engine) runs on the production computer. It controls
-  the HUDs, the director, observer control, OBS and replays. It keeps working without an account
-  or internet for everything except automatic direction on live matches.
-- **The website** (`apps/cloud-web`, served by `services/cloud-api`) handles signup, email
-  verification, organisations and team members, Stripe billing, auto-director hour quotas and
-  usage, linking computers, downloads and staff administration.
+- **The Matchframe program for Windows** (`.exe` installer; Electron shell + local engine) runs on
+  the production computer and does everything app-related: HUDs, the auto director, observer
+  camera control, OBS, replays, player cameras, match administration. Its operator console exists
+  only inside the program. It keeps working without an account or internet for everything except
+  automatic direction on live matches.
+- **The website** (`apps/cloud-web`, served by `services/cloud-api`) is only for **payments**
+  (Stripe Checkout, invoices, hour packs), **subscription management** (plans, customer portal),
+  **auto-director hours usage** (allowance, daily and per-computer usage, CSV), **account
+  management** (sign-up, verification, password, name and email changes, organisations,
+  linked computers) and **staff management** (team members, invitations and roles for customers;
+  the Matchframe staff admin for organisations, hour grants, the plan catalogue, Stripe events and
+  the audit log). Signed-in accounts can download the program installer there. The website has no
+  HUD, director, camera or match features.
 
 ```
  Browser ──HTTPS (session cookie, same-origin)──▶ website + cloud API ──▶ Postgres
@@ -30,8 +37,9 @@ Matchframe is two products that work together:
 
 ## Flows
 
-**Signup.** Email + password (scrypt), a verification email, and an organisation with the signer
-as owner. Roles: owner (everything), admin (everything but billing), billing (billing and usage),
+**Signup and account.** Email + password (scrypt), a verification email, and an organisation with
+the signer as owner. Name changes take effect at once; an email change is confirmed from a link
+sent to the new address (the old address is told) and only then becomes the sign-in address. Roles: owner (everything), admin (everything but billing), billing (billing and usage),
 member (view, link computers, usage). Invitations are emailed and must be accepted by the invited
 address; an organisation always keeps at least one owner.
 
@@ -79,6 +87,12 @@ the website had not seen yet, including the open segment). If not, the request f
 and a plain reason, shown in the console. **Automation already running is never cut mid-map**: when
 hours run out (or the licence lapses), it continues to the end of the map and hands the camera back
 to the operator at the map change (audited as `cloud.allowance_takeover`).
+
+**Program download.** An installer placed in `MF_DOWNLOAD_DIR` (`MatchframeEsports-Setup-<version>.exe`)
+is served by the website at `/downloads/…`; `/v1/downloads` reports the newest version with its
+SHA-256, shown in the signed-in area. Alternatively `MF_DOWNLOAD_WINDOWS_URL` points at an external
+file host. The installer is built by the **Windows program (.exe)** GitHub Actions workflow, which
+also installs and smoke-tests it on Windows.
 
 ## Trust boundaries
 

@@ -2,7 +2,7 @@
 
 ## Local data directory
 
-`%APPDATA%\Matchframe Esports` on Windows (`MATCHFRAME_DATA_DIR` overrides): `matchframe.sqlite` (+WAL), `backups/` (pre-migration copies), `logs/` (rotating JSON lines, 5 MB × 5), `assets/` (content-addressed uploads), `huds/` (installed HUD packages by version), `datasets/` (Parquet datasets), `demo-ingest/` (managed ingest root), `demo-quarantine/`, `models/`, `secrets.json`, `operator-url.txt`.
+`%APPDATA%\Matchframe Esports` on Windows (`MATCHFRAME_DATA_DIR` overrides): `matchframe.sqlite` (+WAL), `backups/` (pre-migration copies), `logs/` (rotating JSON lines, 5 MB × 5), `assets/` (content-addressed uploads), `huds/` (installed HUD packages by version), `datasets/` (Parquet datasets), `demo-ingest/` (managed ingest root), `demo-quarantine/`, `models/`, `secrets.json`, `operator-token.txt` (owner token for scripts). The program keeps its own settings in the `program\` subfolder: `credential-key.bin` (credential key protected by the Windows credential store), `connection.json` (this computer / production computer; the remote token encrypted) and the window's browser storage.
 
 ## Demo library retention (spec §15.6)
 

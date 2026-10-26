@@ -76,7 +76,7 @@ export function Dashboard({ scope }: { scope: OrgScope }) {
                 </ul>
               ) : (
                 <p>
-                  No computers yet. <Link to="/download">Download the program</Link>, then open <strong>Account → Link this computer</strong> in it and enter the code at <Link to="/link">/link</Link>.
+                  No computers yet. <Link to="/download">Download the program</Link>, then open <strong>Account &amp; Hours → Link this computer</strong> in it and enter the code at <Link to="/link">/link</Link>.
                 </p>
               )}
               {can(role, "devices.link") && (

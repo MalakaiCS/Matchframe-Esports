@@ -72,8 +72,10 @@ Numbered work items in dependency order. Status: **done**, **open**, **blocked (
 ### Phase 9 — release
 | # | Item | Status |
 |---|---|---|
-| B060 | Windows packaging (portable zip, NSIS installer) | done (built from Linux, unsigned) |
-| B061 | Run the installer, app and OBS browser sources on Windows; keyboard adapter on Windows | **blocked (input: Windows machine)** |
+| B060 | Windows packaging (portable zip, NSIS installer) | done (built on Windows CI and from Linux, unsigned) |
+| B061 | Run the installer and program on Windows | done on a Windows CI runner (silent install, installed-program smoke test, uninstall) |
+| B064 | OBS browser sources, keyboard adapter and a full production on a Windows 10/11 desktop | **blocked (input: Windows production desktop with CS2 + OBS)** |
+| B065 | Program auto-update channel | open (download from the website for now) |
 | B062 | Code signing and update channel | **blocked (input: certificate / release environment)** |
 | B063 | Reference-machine performance report and real full-match soak | **blocked (B005/B006)**; simulated soak done |
 
@@ -85,7 +87,7 @@ Numbered work items in dependency order. Status: **done**, **open**, **blocked (
 | R2 | GSI fields or grenade representation differ on the current build | medium | medium | Absent/empty/null distinguished; capability sampler reports what arrives; unknown types preserved |
 | R3 | Demo entity classes/properties change by build | high (already seen 13914→14000) | medium | Evidence-ranked type resolution; `unknown` instead of guessing; validation quarantines partial data |
 | R4 | `node:sqlite` API changes (experimental) | low | medium | Repository layer isolates it; migrations with backups |
-| R5 | Windows-specific behaviour (paths, atomic rename, SendInput focus, safeStorage) untested | medium | medium | Platform code isolated; B061 |
+| R5 | Windows-specific behaviour (SendInput focus, OBS browser sources, long sessions) untested on a production desktop | medium | medium | Installer, paths, bundled engine and console verified on a Windows CI runner (B061); the rest in B064 |
 | R6 | Training corpus not supplied or unrepresentative | high | medium | Pipeline ready and measured; models stay in shadow until release gates are met |
 | R7 | Replay tool / MatchFrame APIs differ from the documented bridges | high | low–medium | Thin shims on the tool side; OBS replay buffer fallback; failures contained |
 | R8 | Live performance on the broadcast PC | low | high | p95 ingest ≈ 1.5 ms, eval ≈ 0.9 ms in simulation; workers at below-normal priority; demo processing pauses during live |

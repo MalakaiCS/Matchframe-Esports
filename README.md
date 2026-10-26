@@ -1,76 +1,86 @@
 # Matchframe Esports
 
-Windows-first CS2 broadcast production suite: a local engine that ingests CS2 Game State Integration, browser-source HUDs, match/event/veto/sponsor administration, an anticipation/readiness CS2 director with a single-writer control arbiter, universal grenade tracking for all six types, OBS control, replays, an offline demo pipeline that trains models, and an Electron desktop shell.
+Matchframe is two products:
 
-**Read this first — what is verified.** Everything below runs and is tested in a Linux development environment with synthetic GSI, a labelled simulation, real OBS 30.0.2 and five real CS2 demos. **No CS2 client, Windows machine, replay tool or MatchFrame service was available**, so real GSI ingest, real observer control (POV cuts and static cameras) and Windows installation are **unverified**. Details: [CAPABILITIES.md](CAPABILITIES.md), [FEATURE_COVERAGE.md](FEATURE_COVERAGE.md), [docs/acceptance.md](docs/acceptance.md), [BUILD_PROGRESS.md](BUILD_PROGRESS.md).
+- **The Matchframe program for Windows** — a downloadable program (`MatchframeEsports-Setup-<version>.exe`) that does everything app-related: CS2 Game State Integration ingest, browser-source HUDs for OBS, match/event/veto/sponsor administration, the auto director (anticipation/readiness director with a single-writer control arbiter), observer camera control, universal grenade tracking for all six types, OBS control, replays, player cameras, and an offline demo pipeline that trains models. Its operator console exists only inside the program.
+- **The website** — only for payments, subscription management, auto-director hours usage, account and team management, and staff administration. It also hosts the program download for signed-in accounts. See [docs/architecture/cloud.md](docs/architecture/cloud.md).
 
-## Prerequisites
+HUDs, manual and advisory direction, replays and the simulation work in the program without an account or internet. Automatic direction on live matches uses auto-director hours from a Matchframe plan; the program links to the account with a code approved on the website.
 
-- Node.js ≥ 22.12 (developed on 22.22.0) and pnpm 10 (`corepack enable`).
-- For the demo pipeline: Python ≥ 3.11 with the worker dependencies (see [workers/README.md](workers/README.md)). Point the engine at it with `MATCHFRAME_PYTHON=/path/to/python`, or create `workers/.venv`.
-- For production: CS2 on the observer PC, OBS Studio 30+ with obs-websocket enabled.
+**Read this first — what is verified.** Everything below runs and is tested in a Linux development environment with synthetic GSI, a labelled simulation, real OBS 30.0.2 and five real CS2 demos; the Windows program is built and smoke-tested on GitHub's Windows runners (see [BUILD_PROGRESS.md](BUILD_PROGRESS.md) for the latest run). **No CS2 client, replay tool or MatchFrame service was available**, so real GSI ingest and real observer control (POV cuts and static cameras) are **unverified**, and real Stripe payments, email delivery and hosting need the owner's accounts. Details: [CAPABILITIES.md](CAPABILITIES.md), [FEATURE_COVERAGE.md](FEATURE_COVERAGE.md), [docs/acceptance.md](docs/acceptance.md).
 
-## Quick start
+## Installing the program
 
-```sh
-pnpm install
-pnpm dev --sim          # builds the HUD and operator console if needed, starts the engine, runs the labelled simulation
-```
+1. Sign in on the website and open **Download the program** (dashboard or account page), or take `MatchframeEsports-Setup-<version>.exe` from the **Windows program (.exe)** GitHub Actions run (artifact `matchframe-windows-<commit>`). Check the SHA-256 shown next to the download (`Get-FileHash .\MatchframeEsports-Setup-0.1.0.exe`).
+2. Run the installer (per-user, choose a folder). Development builds are unsigned, so Windows SmartScreen asks for confirmation.
+3. Start **Matchframe Esports**. It opens on **Overview** with the 12-step **Setup** checklist. Everything stays on this computer; the engine listens on loopback unless you choose otherwise.
 
-The engine prints its addresses and writes the operator URL (which contains the operator token) to `<data dir>/operator-url.txt`. Open it in a browser for the operator console. Overlays for OBS browser sources are under **HUDs & Composer → Outputs** (`http://127.0.0.1:37212/overlay/<output>/<variant>?t=<output token>`). Simulated data is marked SIMULATION everywhere.
+Data folder: `%APPDATA%\Matchframe Esports` (override with `MATCHFRAME_DATA_DIR`). Ports: GSI 37210, engine API 37211, HUD outputs 37212 (`MATCHFRAME_GSI_PORT`, `MATCHFRAME_API_PORT`, `MATCHFRAME_OVERLAY_PORT`). Overlays for OBS browser sources are under **HUDs & Composer → Outputs** (`http://127.0.0.1:37212/overlay/<output>/<variant>?t=<output token>`). Simulated data is marked SIMULATION everywhere.
 
-Data directory: `%APPDATA%\Matchframe Esports` on Windows, `~/.local/share/matchframe-esports` on Linux (override with `MATCHFRAME_DATA_DIR`). Ports: GSI 37210, operator API 37211, overlays 37212 (`MATCHFRAME_GSI_PORT`, `MATCHFRAME_API_PORT`, `MATCHFRAME_OVERLAY_PORT`). The engine binds to loopback unless `MATCHFRAME_HOST` is set.
+**Account & Hours** (in the program) links this computer to your Matchframe account and shows the plan, hours left and usage uploads. Payments, plans, hour packs and team members are managed on the website.
+
+**Multi-PC:** install the program on each extra operator computer and use **File → Connection settings → Connect to the production computer** with the production computer's address and a role token issued there (**Devices & Integrations → Tokens**). See [docs/operations/multi-pc.md](docs/operations/multi-pc.md).
 
 ## Connecting a real CS2 observer (unverified path)
 
-Follow the 12-step **Setup** checklist in the console (`/setup`, linked from **Overview**):
+Follow the **Setup** checklist in the program (`Overview → Open Setup`):
 
-1. Steps 2–3 — **Detect CS2** and **Write the GSI config** (`gamestate_integration_matchframe.cfg`, with a token; or `POST /api/v1/setup/write-gsi-config`), then restart CS2.
+1. Steps 2–3 — **Detect CS2** and **Write the GSI config** (`gamestate_integration_matchframe.cfg`, with a token), then restart CS2.
 2. Steps 4–5 — start CS2 as an observer/spectator; **Wait for a real payload** and read the **Capability report** (what the feed actually delivers).
-3. Steps 6–8 — choose the **Observer control adapter**: direct console (`-netconport <port>` launch option) or keyboard (Windows, focused window only). Run the **Player-selection test**; automatic POV cuts stay blocked until it passes from observed feedback. Static cinematics additionally need the **Static camera test** and operator-validated cameras captured with `getpos` (**Maps & Cameras**).
+3. Steps 6–8 — choose the **Observer control adapter**: direct console (`-netconport <port>` launch option) or keyboard (focused window only). Run the **Player-selection test**; automatic POV cuts stay blocked until it passes from observed feedback. Static cinematics additionally need the **Static camera test** and operator-validated cameras captured with `getpos` (**Maps & Cameras**).
 4. Steps 9–11 — **Connect OBS**, set the **Program scene mapping** and add the main HUD browser source.
-5. Arm automation explicitly from **Live Control** (the engine always starts and restarts disarmed). Stopping: the EMERGENCY STOP button, STOP AUTOMATION (`F8`/`Pause` in the console, ignored while typing), `Ctrl+Shift+F12` in the desktop app, or `POST /api/v1/observer/emergency-stop`.
+5. Arm automation explicitly from **Live Control** (the engine always starts and restarts disarmed). Automatic direction on live telemetry needs a linked computer with hours left; it is never cut mid-map. Stopping: EMERGENCY STOP, STOP AUTOMATION (`F8`/`Pause`, ignored while typing), `Ctrl+Shift+F12` anywhere in Windows, or **Automation → Emergency stop** in the menu.
 
 Guides: [one PC](docs/operations/one-pc.md), [multi-PC](docs/operations/multi-pc.md), [preflight](docs/operations/preflight.md), [takeover and recovery](docs/operations/takeover-and-recovery.md), [GSI](docs/integrations/cs2-gsi.md), [observer control](docs/integrations/observer-control.md), [OBS](docs/integrations/obs.md), [replay bridge](docs/integrations/replay-bridge.md), [MatchFrame bridge](docs/integrations/matchframe-bridge.md), [Companion/Stream Deck](docs/integrations/companion-streamdeck.md).
 
 ## Production topology
 
 ```
-CS2 observer client ──GSI (HTTP POST, token)──▶ Matchframe engine ◀──REST/WS──▶ operator console / devices
-        ▲                                         │   │
+CS2 observer client ──GSI (HTTP POST, token)──▶ Matchframe program (engine) ◀── console inside the program (app://matchframe)
+        ▲                                         │   │   │                 ◀── program on other PCs (role tokens) / Companion (HTTP API)
         └── observer control adapter (console/keyboard; single writer via control arbiter)
-                                                  │   └──obs-websocket v5──▶ OBS (program, replay buffer, media)
-                                                  └──overlay WS (public projection only)──▶ OBS browser sources (HUD)
+                                                  │   │   └──obs-websocket v5──▶ OBS (program, replay buffer, media)
+                                                  │   └──overlay WS (public projection only)──▶ OBS browser sources (HUD)
+                                                  └──HTTPS (device token)──▶ website: licence, auto-director usage
 ```
 
 GSI carries telemetry only — it does not control the camera; observer control is a separate, verified channel. HUD player cards are graphics, not video feeds. See [docs/architecture/overview.md](docs/architecture/overview.md) and [decisions](docs/architecture/decisions.md).
 
-## Commands
+## Development
+
+Prerequisites: Node.js ≥ 22.12 (developed on 22.22.0) and pnpm 10 (`corepack enable`); for the demo pipeline, Python ≥ 3.11 with the worker dependencies ([workers/README.md](workers/README.md)), pointed to with `MATCHFRAME_PYTHON` or `workers/.venv`.
+
+```sh
+pnpm install
+pnpm dev --sim          # builds what is missing, starts the Matchframe program (engine from source) and the labelled simulation
+```
 
 | Task | Command |
 |---|---|
-| Development startup | `pnpm dev` (`--sim` to start the simulation, `--build` to rebuild the browser apps) |
-| Engine only, from source | `pnpm engine` |
+| Start the program from source | `pnpm dev` (`--sim` simulation, `--build` rebuild, `--engine-only` headless engine without the program) |
+| Engine only, from source | `pnpm engine` (API, HUD outputs and captain page; no console) |
 | Type check, lint, tests | `pnpm check` (or `pnpm typecheck`, `pnpm lint`, `pnpm test`) |
 | Python worker tests | `pnpm test:py` (with `MF_TEST_DEMOS=<demo folder>` to include real-demo tests) |
-| Real-integration tests | `MF_TEST_DEMOS=<demos> MATCHFRAME_PYTHON=<python> pnpm test:integration` (OBS tests also need `MF_OBS_URL`, `MF_OBS_PASSWORD`) |
+| Real-integration tests | `MF_TEST_DEMOS=<demos> MATCHFRAME_PYTHON=<python> pnpm test:integration` (OBS tests also need `MF_OBS_URL`, `MF_OBS_PASSWORD`; Postgres test needs `MF_TEST_DATABASE_URL`) |
 | Build all apps | `pnpm build` |
-| Windows packaging | `pnpm package:win` (unpacked folder via `pnpm package:dir`) — see BUILD_PROGRESS.md for the current result |
-| Demo batch import and validation | console **Demo Library**, or `POST /api/v1/demos/import {"paths":[…]}`; directly: `pnpm worker extract --input demo.dem --dataset-root DATA --validate` |
+| Windows program (.exe) | `pnpm package:win` locally, or the **Windows program (.exe)** workflow (builds, installs and smoke-tests on Windows; `v*` tags make a draft release) |
+| Program smoke tests | `pnpm smoke:desktop` (dev program: local + remote mode); `node scripts/packaged-smoke.cjs <program exe>` (packaged/installed program) |
+| Website + cloud API locally | `pnpm --filter @matchframe/cloud-web build && MF_DEV_LOG_EMAILS=1 pnpm cloud` |
+| Deploy the website | [docs/operations/cloud-deployment.md](docs/operations/cloud-deployment.md) (Docker image, Postgres, Stripe, signing key, SMTP, installer downloads) |
+| Demo batch import and validation | program **Demo Library**, or `POST /api/v1/demos/import {"paths":[…]}`; directly: `pnpm worker extract --input demo.dem --dataset-root DATA --validate` |
 | Feature building, dataset freezing | `pnpm worker build-features --dataset <dir>`, `pnpm worker freeze-dataset --datasets DATA --out frozen.json`, `pnpm worker audit-split --manifest frozen.json` |
-| Training, evaluation, export | console **Training & Evaluation**, or `POST /api/v1/training/runs`; directly: `pnpm worker train …`, `pnpm worker evaluate …`, `pnpm worker export-model …` ([docs/models](docs/models/README.md)) |
-| Shadow-run comparison | `POST /api/v1/models/<id>/shadow`, then `GET /api/v1/models/shadow` |
+| Training, evaluation, export | program **Training & Evaluation**, or `POST /api/v1/training/runs`; directly: `pnpm worker train …`, `pnpm worker evaluate …`, `pnpm worker export-model …` ([docs/models](docs/models/README.md)) |
 | Event export / restore | `GET /api/v1/export/event-package`; `POST /api/v1/import/event-package {"package":…, "mode":"preview"|"commit"}` |
 | Diagnostics | `GET /api/v1/diagnostics/bundle` (secrets redacted) |
-| API reference / schemas | `pnpm openapi` → `docs/architecture/openapi.json`, `pnpm schemas` → `packages/contracts/schema/` |
+| API reference / schemas | `pnpm openapi` → `docs/architecture/openapi.json`, `pnpm cloud:openapi` → `docs/architecture/cloud-openapi.json`, `pnpm schemas` → `packages/contracts/schema/` |
 | Map coverage report | `pnpm coverage:maps` |
 | Simulated soak | `pnpm soak --minutes 20 --out soak.json` |
 
-API calls need `Authorization: Bearer <token>` (operator token from `operator-url.txt`, or a role token from **Devices & Integrations → Tokens**).
+Engine API calls from scripts need `Authorization: Bearer <token>`: the owner token is in `operator-token.txt` in the data folder; issue role tokens in **Devices & Integrations → Tokens**.
 
 ## Repository layout
 
-`packages/` shared libraries (contracts, CS2 state + utility tracker, map runtime, director policy + control arbiter, automation, OBS adapter, game adapters, HUD SDK, MatchFrame bridge) · `services/` local engine, observer adapters, replay providers · `apps/` HUD renderer, operator console, Electron desktop · `workers/` Python demo pipeline · `assets/` demo-derived map packs and measured utility profiles · `docs/` architecture, operations, integrations, models, maps, security, storage.
+`packages/` shared libraries (contracts, CS2 state + utility tracker, map runtime, director policy + control arbiter, automation, OBS adapter, game adapters, HUD SDK, MatchFrame bridge, cloud contracts) · `services/` local engine, observer adapters, replay providers, cloud API · `apps/` the Matchframe program (`desktop`), its operator console (`operator-web`), HUD renderer, website (`cloud-web`) · `workers/` Python demo pipeline · `assets/` demo-derived map packs and measured utility profiles · `docs/` architecture, operations, integrations, models, maps, security, storage.
 
 ## Licence and provenance
 

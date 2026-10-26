@@ -8,7 +8,7 @@ Test files: `packages/cs2-state/test/reconciler.test.ts` (R), `packages/cs2-stat
 
 | ID | Scenario | Status | Evidence / what is missing |
 |---|---|---|---|
-| A01 | Fresh Windows installation | blocked | No Windows machine. An unsigned NSIS installer and portable zip were built from Linux; the same desktop shell starts its engine and console on Linux (`pnpm smoke:desktop`); prerequisites in README. |
+| A01 | Fresh Windows installation | **pass (Windows CI runner)** | The `Windows program (.exe)` workflow builds the unsigned NSIS installer on `windows-latest`, installs it silently per user, starts the installed program and checks the bundled engine, the console (from `app://matchframe`), API forwarding, the live connection, the HUD output and that the engine serves no console to browsers, then uninstalls (run 40408121752). Not yet repeated on a production Windows 10/11 desktop with CS2 and OBS. |
 | A02 | Real CS2 observer payload | partial | E: token-authenticated GSI over real HTTP, bad tokens rejected, token absent from state/HUD/audit/logs/support bundle — with synthetic payloads. Real payload blocked (no CS2). |
 | A03 | Real live HUD | blocked | Needs real CS2. HUD tracks simulated state (E, screenshots). |
 | A04 | Team side switch | pass (fixture) | R: halftime side swap keeps team identity by roster. Logos/cameras follow team identity (projection); camera routing by player identity (E). |
@@ -75,4 +75,4 @@ Test files: `packages/cs2-state/test/reconciler.test.ts` (R), `packages/cs2-stat
 | A65 | Both-team utility and late-round use | pass (fixture) | D: CT HE on a post-plant T cluster handled by the generic engine. |
 | A66 | Utility during delayed/replay output | partial | Delayed outputs read state (incl. utility) from the delay buffer; replay is a clean frame. Not separately tested. |
 
-Summary (66 scenarios): 37 pass with fixtures, 4 pass on real demos, 2 pass with a real trained model, 1 passes against real OBS (A29), 19 partial, 2 blocked (A01, A03), 1 planned (A28). **None has passed against a real CS2 client or on Windows**; every scenario that depends on them stays open until that environment is available.
+Summary (66 scenarios): 37 pass with fixtures, 4 pass on real demos, 2 pass with a real trained model, 1 passes against real OBS (A29), 1 passes on a Windows CI runner (A01), 19 partial, 1 blocked (A03), 1 planned (A28). **None has passed against a real CS2 client**, and Windows evidence is limited to installing and smoke-testing the program on a CI runner; every scenario that depends on CS2 or a production Windows desktop stays open until that environment is available.

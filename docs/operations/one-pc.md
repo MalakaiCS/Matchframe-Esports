@@ -2,7 +2,7 @@
 
 Everything on one Windows machine: CS2 observer client, Matchframe, OBS.
 
-1. **Install** Matchframe Esports (or run from source, see README). Basic HUD and rule-director use needs no Python, cloud account or paid service.
+1. **Install** the Matchframe program (`MatchframeEsports-Setup-<version>.exe`, downloaded from your account on the website; or run from source with `pnpm dev`, see README). HUDs, manual and advisory direction need no Python, account or paid service; automatic direction on live matches needs a linked computer with auto-director hours (**Account & Hours**).
 2. **First run** opens Setup. Choose *Live observer*.
 3. **Detect CS2** and **write the GSI config** (Setup). Restart CS2.
 4. Launch CS2 as an observer (spectator/GOTV). Setup should show packets arriving and the capability report.

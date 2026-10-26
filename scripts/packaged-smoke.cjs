@@ -58,7 +58,7 @@ const waitFor = async (fn, ms) => {
   }));
   const meta = await app.evaluate(({ app: a, BrowserWindow }) => {
     const p = BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences?.() ?? {};
-    return { packaged: a.isPackaged, version: a.getVersion(), resources: process.resourcesPath, contextIsolation: p.contextIsolation, sandbox: p.sandbox, nodeIntegration: p.nodeIntegration };
+    return { packaged: a.isPackaged, version: a.getVersion(), resources: process.resourcesPath, userData: a.getPath("userData"), contextIsolation: p.contextIsolation, sandbox: p.sandbox, nodeIntegration: p.nodeIntegration };
   });
   const base = `http://127.0.0.1:${ports.api}`;
   const health = await fetch(`${base}/api/v1/health`).then((r) => r.json());

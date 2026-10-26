@@ -6,7 +6,8 @@ Versions actually used in this repository's environment and what was exercised o
 
 | OS | Engine (Node) | Desktop (Electron) | HUD/browser sources | Observer keyboard adapter | Status |
 |---|---|---|---|---|---|
-| Windows 10/11 x64 (target) | – | – | – | – | **not tested** — NSIS installer and portable zip built from Linux (BUILD_PROGRESS.md); no Windows machine available |
+| Windows 10/11 x64 (target) | – | – | – | – | not tested on a production desktop |
+| Windows Server (GitHub `windows-latest` runner) | bundled engine under Electron's Node ✔ | Electron 44.9.3: installer built, silent per-user install, installed program started, console from `app://matchframe`, uninstall ✔ (`Windows program (.exe)` workflow) | – | not tested (no CS2 window) | **installer + program smoke-tested** |
 | Linux x64 (Ubuntu 24.04.5 container, kernel 6.18) | Node 22.22.0 ✔ | Electron 44.9.3: shell + supervised engine + console under Xvfb ✔ (`pnpm smoke:desktop`) | Chromium (Playwright) ✔ | n/a (Windows only) | development and CI environment |
 | macOS | – | – | – | n/a | not tested |
 
@@ -59,6 +60,6 @@ Versions actually used in this repository's environment and what was exercised o
 | PGlite (tests, trials) | 0.5.8 | verified in every cloud test |
 | Stripe API | SDK 23.0.0, API 2026-09-30.endive | real SDK against a local Stripe API stub with real webhook signatures; **no real Stripe account** used; the official `stripe-mock` binary could not be run here |
 | SMTP | nodemailer 10.1.0 | not tested against a real mail server (outbox table and console logging tested) |
-| Container | Docker 29.9.2, `node:22.22.0-bookworm-slim` | see BUILD_PROGRESS.md for the image build and run result |
+| Container | Docker 29.9.2, `node:22.22.0-bookworm-slim` | runtime image (bundle + website, non-root, health check) run against Postgres 16: healthy, website, API and a 122 MB installer download (byte-identical) ✔. The full multi-stage `Dockerfile` build could not run here: build containers have no route through this environment's proxy (see BUILD_PROGRESS.md) |
 | Desktop ↔ website | licence format `mfe1`, Ed25519 | verified with both real servers in one test (link, licence, gate, usage upload, credits, map-change handback, revocation) |
 

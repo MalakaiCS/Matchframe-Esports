@@ -1,7 +1,7 @@
 # Deploying the Matchframe website and cloud API
 
-The website (signup, billing, team, computers, usage, downloads, staff admin) and its API are one
-service: `services/cloud-api` serves the API under `/v1/*` and the built website
+The website (payments, subscriptions, auto-director hours usage, account and team management,
+staff admin, and the program download) and its API are one service: `services/cloud-api` serves the API under `/v1/*` and the built website
 (`apps/cloud-web`) for every other path. It needs Postgres, and optionally Stripe and SMTP. The
 desktop app keeps working without it: HUDs, manual and advisory direction, replays and the
 simulation never need an account. Automatic direction on live matches needs a linked computer
@@ -89,7 +89,22 @@ Set `SMTP_URL` (`smtps://user:password@smtp.example.com:465`) and `MF_MAIL_FROM`
 with SPF/DKIM. Every email is also recorded in the `outbox_emails` table, so verification, reset and
 invitation links can be recovered by staff if delivery fails.
 
-## 5. Environment reference
+## 5. Publishing the Windows program (.exe)
+
+1. Build it: push a `v*` tag (the **Windows program (.exe)** workflow builds, installs and
+   smoke-tests the installer on Windows and attaches it to a **draft** GitHub release), or download
+   the `matchframe-windows-<commit>` artifact from any workflow run, or run `pnpm package:win`.
+   Configure `CSC_LINK`/`CSC_KEY_PASSWORD` repository secrets to sign it; unsigned builds trigger
+   SmartScreen warnings.
+2. Release builds should include `config/cloud.json` (website address + pinned licence public key,
+   see step 1) before building.
+3. Put `MatchframeEsports-Setup-<version>.exe` into the directory named by `MF_DOWNLOAD_DIR` (a
+   volume in Docker). The website serves the newest version at `/downloads/<file>` and shows its
+   version and SHA-256 to signed-in accounts. Keep older installers there only as long as you want
+   them downloadable by direct link. Alternatively set `MF_DOWNLOAD_WINDOWS_URL` (+
+   `MF_DOWNLOAD_WINDOWS_SHA256`) to an external file host.
+
+## 6. Environment reference
 
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
@@ -106,14 +121,15 @@ invitation links can be recovered by staff if delivery fails.
 | `MF_STAFF_EMAILS` | no | — | Comma-separated accounts that become staff when they sign up or log in |
 | `MF_ENTITLEMENT_TTL_HOURS` | no | `24` | Licence validity before the desktop must refresh |
 | `MF_OFFLINE_GRACE_DAYS` | no | `7` | How long a computer keeps working offline after its last successful licence refresh |
-| `MF_DOWNLOAD_VERSION`, `MF_DOWNLOAD_WINDOWS_URL`, `MF_DOWNLOAD_WINDOWS_SHA256`, `MF_DOWNLOAD_NOTES_URL` | no | — | Download page |
+| `MF_DOWNLOAD_DIR` | recommended | — | Directory with `MatchframeEsports-Setup-<version>.exe` installers served at `/downloads/` (newest shown with its SHA-256) |
+| `MF_DOWNLOAD_VERSION`, `MF_DOWNLOAD_WINDOWS_URL`, `MF_DOWNLOAD_WINDOWS_SHA256`, `MF_DOWNLOAD_NOTES_URL` | no | — | External installer URL instead of `MF_DOWNLOAD_DIR`; release notes link |
 | `MF_DEV_LOG_EMAILS` | no | off | `1` prints emails to the console (development only) |
 
 Desktop side: `MATCHFRAME_CLOUD_URL` and `MATCHFRAME_CLOUD_PUBLIC_KEYS` (or the shipped
 `cloud.json`) pin the website and keys; `MATCHFRAME_CLOUD_ENFORCEMENT=off` lets development builds
 arm automatic direction without an account.
 
-## 6. Operations
+## 7. Operations
 
 - **Backups:** back up Postgres (`pg_dump` or the provider's point-in-time recovery). Usage records,
   credits, Stripe event history and the audit log are all in the database; the service itself is

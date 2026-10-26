@@ -45,7 +45,7 @@ function CodeEntry({ initial = "", autoFocus = false }: { initial?: string; auto
         maxLength={9}
         className="code-input"
         error={error}
-        hint="In the program open Account → Link this computer to see it. Codes expire after 10 minutes."
+        hint="In the program open Account & Hours → Link this computer to see it. Codes expire after 10 minutes."
         autoFocus={autoFocus}
       />
       <Button type="submit" variant="primary">
@@ -276,7 +276,7 @@ export function LinkComputer() {
         <Card title="Enter the code">
           <ol className="plain-steps">
             <li>
-              In the Matchframe program open <strong>Account → Link this computer</strong>.
+              In the Matchframe program open <strong>Account &amp; Hours → Link this computer</strong>.
             </li>
             <li>Type the code it shows below (or click the link the program opens, which fills it in).</li>
           </ol>

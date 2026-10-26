@@ -23,6 +23,12 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
 - Replay playout confirmed from OBS media status (falls back to LIVE when OBS does not report playback).
 - Extension guide and example HUD package; map coverage generator; simulated soak script; Windows NSIS installer and portable zip build.
 
+- **The Matchframe program for Windows** is the only place the operator console runs: shown from `app://matchframe` inside the program with API forwarding; the engine serves no console to browsers (only the API, the captain veto page and HUD outputs). Connection settings let extra operator positions connect to the production computer with a role token. `pnpm dev` launches the program.
+- Windows CI workflow: builds the `.exe` installer and portable zip, installs silently, smoke-tests the installed program, uninstalls, uploads artifacts with checksums; `v*` tags create a draft release.
+- **Website** (`apps/cloud-web`) limited to payments, subscriptions, auto-director hours usage, account and team management and staff administration; program download in the signed-in area.
+- **Cloud API** (`services/cloud-api`): accounts (incl. name and email changes), organisations and roles, Stripe Checkout/portal/webhooks, plans and hour packs, device-code linking, Ed25519-signed licences with offline grace, idempotent auto-director usage with per-organisation credit locking, staff admin, installer downloads; Dockerfile, compose with Postgres, deployment guide.
+- In the program: Account & Hours screen, auto-director meter, arming gate (no account → manual/advisory only; never cut mid-map), auto-director chip in the top bar.
+
 ### Fixed
 - Oversize uploads now get a 413 response instead of a connection reset; per-route upload limits.
 - Replay queue state errors return 4xx; nested database transactions use savepoints.
