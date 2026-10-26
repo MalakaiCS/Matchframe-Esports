@@ -211,6 +211,48 @@ describe("Director — universal utility (other maps, both teams, no cinematic c
     expect(out.decision.action).not.toBe("cut");
   });
 
+  it("A54: a flash ahead of an entry is a flash_entry opportunity; once the defender is blind the entry duel is shown", () => {
+    const { sim, director } = setup({ mapName: "de_dust2" });
+    const players = bananaStack();
+    const entry = { x: 1500, y: 2300, z: 0 };
+    const holder = { x: 1500, y: 3050, z: 0 };
+    players[3] = player(T(4), "T", 4, entry, facingTo(entry, holder));
+    players[4] = player(T(5), "T", 5, { x: 1450, y: 2250, z: 0 });
+    players[5] = player(CT(6), "CT", 6, holder, facingTo(holder, entry));
+    const loop = settle(sim, director, players, "de_dust2");
+    const flash: SyntheticGrenade = { id: "900", type: "flashbang", owner: T(5), position: { x: 1500, y: 2600, z: 100 }, velocity: { x: 0, y: 300, z: 50 }, lifetime: 1.2 };
+    const out = loop.step(players, [flash]);
+    const opp = out.opportunities.find((o) => o.primaryType === "flashbang")!;
+    expect(opp.kind).toBe("flash_entry");
+    expect(opp.evidence).toBe("predicted");
+    expect(opp.affected.map((a) => a.steamId)).toContain(CT(6));
+    // Flash popped: the defender is measured blind and the entry advances.
+    players[3] = player(T(4), "T", 4, { x: 1500, y: 2650, z: 0 }, facingTo({ x: 1500, y: 2650, z: 0 }, holder));
+    players[5] = { ...players[5]!, flashed: 255 };
+    let after = loop.step(players);
+    for (let i = 0; i < 5; i++) after = loop.step(players);
+    expect([povShot(T(4)), povShot(CT(6))]).toContain(after.decision.desiredShot);
+    expect(sim.store.snapshot(sim.now).players.find((p) => p.steamId === CT(6))!.flashed).toBe(1); // GSI 0–255 normalised to 0–1
+  });
+
+  it("A55: a deployed smoke supporting the main group is a smoke_execute story only near deployment, while the smoke stays tracked", () => {
+    const { sim, director } = setup({ mapName: "de_dust2" });
+    const players = bananaStack();
+    const loop = settle(sim, director, players, "de_dust2");
+    const smoke: SyntheticGrenade = { id: "950", type: "smoke", owner: T(2), position: { x: -300, y: 200, z: 0 }, velocity: { x: 0, y: 0, z: 0 }, lifetime: 2, effecttime: 0.4 };
+    const out = loop.step(players, [smoke]);
+    const opp = out.opportunities.find((o) => o.primaryType === "smoke")!;
+    expect(opp.kind).toBe("smoke_execute");
+    expect(opp.scenarioId).toBeNull();
+    expect(out.intent?.kind).not.toBe("activate_static_camera");
+    // Several seconds later the smoke is still active and tracked, but no longer a new story.
+    let later = out;
+    for (let i = 0; i < 35; i++) later = loop.step(players, [{ ...smoke, lifetime: 2 + (i + 1) * 0.1, effecttime: 0.4 + (i + 1) * 0.1 }]);
+    const tracked = sim.store.snapshot(sim.now).utility.find((u) => u.type === "smoke")!;
+    expect(tracked.phase).toBe("active");
+    expect(later.opportunities.some((o) => o.primaryType === "smoke")).toBe(false);
+  });
+
   it("A58: concurrent utility in two areas plus a decisive gunfight: shows the fight, keeps both utility opportunities", () => {
     const { sim, director } = setup();
     const players = bananaStack();
