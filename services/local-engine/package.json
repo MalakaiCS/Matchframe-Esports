@@ -1,0 +1,26 @@
+{
+  "name": "@matchframe/local-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@matchframe/contracts": "workspace:*",
+    "@matchframe/cs2-state": "workspace:*",
+    "@matchframe/director-policy": "workspace:*",
+    "@matchframe/map-runtime": "workspace:*",
+    "@matchframe/hud-sdk": "workspace:*",
+    "fflate": "0.8.2",
+    "ws": "8.22.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2"
+  }
+}

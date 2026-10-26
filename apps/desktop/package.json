@@ -1,0 +1,14 @@
+{
+  "name": "@matchframe/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Matchframe Esports desktop shell (Electron)",
+  "type": "module",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "electron": "44.9.3"
+  }
+}
