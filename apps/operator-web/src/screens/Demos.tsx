@@ -37,16 +37,16 @@ function ConfigPanel({ data, reload }: { data: DemoConfigResponse; reload: () =>
       </div>
       {!data.workersAvailable ? <Note tone="warn">Parsing needs the Python workers (set MATCHFRAME_PYTHON / install the workers). Jobs are hashed and queued but cannot be parsed until workers are available.</Note> : null}
       <div className="form-grid">
-        <Field label="Ingest roots (one per line)" hint="Raw demos are only ever deleted from inside these folders">
+        <Field className="span-all" label="Ingest roots (one per line)" hint="Raw demos are only ever deleted from inside these folders">
           <textarea rows={3} value={roots} onChange={(e) => setRoots(e.target.value)} className="mono" />
         </Field>
-        <Field label="Dataset root">
+        <Field className="span-all" label="Dataset root">
           <input className="mono" value={cfg.datasetRoot} onChange={(e) => set({ datasetRoot: e.target.value })} />
         </Field>
-        <Field label="Quarantine folder">
+        <Field className="span-all" label="Quarantine folder">
           <input className="mono" value={cfg.quarantineDir} onChange={(e) => set({ quarantineDir: e.target.value })} />
         </Field>
-        <Field label="Retention policy" hint={RETENTION_POLICIES.find((p) => p.id === cfg.retention.policy)?.hint}>
+        <Field className="span-2" label="Retention policy" hint={RETENTION_POLICIES.find((p) => p.id === cfg.retention.policy)?.hint}>
           <select value={cfg.retention.policy} onChange={(e) => set({ retention: { ...cfg.retention, policy: e.target.value as RetentionPolicy } })}>
             {RETENTION_POLICIES.map((p) => (
               <option key={p.id} value={p.id}>

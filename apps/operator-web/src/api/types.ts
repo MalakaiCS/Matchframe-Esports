@@ -160,6 +160,8 @@ export interface OperatorSnapshot {
   obs: ObsSummary;
   simulated: boolean;
   metrics: EngineMetrics;
+  /** Compact control-surface tally (added with the devices API). */
+  tally?: DeviceTally;
 }
 
 export interface EventEnvelope<T> {
@@ -766,30 +768,123 @@ export interface StorageReport {
 
 export type { DemoJobState, RetentionPolicy };
 
+export interface TrainingStep {
+  name: "build-features" | "freeze-dataset" | "audit-split" | "train" | "evaluate" | "export-model" | string;
+  status: "running" | "completed" | "failed";
+  summary: Record<string, unknown> | null;
+}
+
 export interface TrainingRun {
   id: string;
   task: string;
-  state: "queued" | "running" | "completed" | "failed";
+  state: "running" | "completed" | "failed";
   startedAt: string;
   finishedAt: string | null;
-  result: Record<string, unknown> | null;
+  datasets: string[];
+  steps: TrainingStep[];
+  modelId: string | null;
   error: string | null;
   progress: Record<string, unknown> | null;
 }
 
-export interface ModelCard {
-  id: string;
-  task?: string;
-  status?: string;
-  metrics?: Record<string, unknown>;
-  createdAt?: string;
-  error?: string;
-  [k: string]: unknown;
+export type ModelStatus = "experimental" | "shadow" | "candidate" | "approved" | "rolled_back" | "retired";
+
+export interface RegistryEntry {
+  modelId: string;
+  status: ModelStatus | string;
+  task: string | null;
+  createdAt: string | null;
+  history: unknown[];
+  evaluations: { split: string; auc: number | null; brier: number | null; at: string }[];
+  exportAvailable: boolean;
+  notes: string | null;
 }
 
 export interface ModelsResponse {
-  models: ModelCard[];
-  approvedForLive: string | null;
+  models: RegistryEntry[];
+  shadowModelId: string | null;
+}
+
+export interface ShadowStatus {
+  shadowModelId: string | null;
+  summary: { samples: number; meanAbsDiffVsBaseline: number | null; topPairAgreementRate: number | null };
+  recent: { atMs: number; round: number | null; top: { t: string; ct: string; probability: number; baseline: number | null }[] }[];
+  note: string;
+}
+
+export interface DeviceActionInfo {
+  id: string;
+  label: string;
+  permission: string;
+  allowed: boolean;
+  params: Record<string, unknown>;
+  request: string;
+}
+
+export interface DeviceTally {
+  simulated: boolean;
+  telemetry: "none" | "live" | "stale";
+  program: { mode: ProgramMode; activeReplay: string | null };
+  obs: { connected: boolean; programScene: string | null; previewScene: string | null; streaming: boolean | null; recording: boolean | null };
+  director: { mode: DirectorMode; hold: boolean; cinematic: string | null };
+  control: { owner: string; holder: string | null; automationActive: boolean; manualSticky: boolean; emergencyStopped: boolean; resumeInMs: number | null };
+  pov: string | null;
+  slots: { slot: number | null; steamId: string; name: string; side: Side | null; alive: boolean; onAir: boolean }[];
+}
+
+export interface PlayerCamConfig {
+  enabled: boolean;
+  scene: string | null;
+  sources: Record<string, string>;
+  fallbackSource: string | null;
+  delayMs: number;
+}
+
+export interface PlayerCamResponse {
+  config: PlayerCamConfig;
+  status: { lastPlayerId: string | null; lastSource: string | null; lastError: string | null; lastAt: string | null; applied: number; obsConnected: boolean; programMode: ProgramMode };
+}
+
+export interface StatsMetric {
+  key: string;
+  label: string;
+  definition: string;
+  requires: string;
+  gsi: boolean;
+  available: boolean;
+  reason: string | null;
+}
+
+export interface StatsResponse {
+  simulated: boolean;
+  map: string | null;
+  round: number | null;
+  metrics: StatsMetric[];
+  players: { steamId: string; name: string; side: Side | null; teamId: string | null; kills: number | null; deaths: number | null; assists: number | null; mvps: number | null; score: number | null; adr: number | null; kast: number | null }[];
+  corrections: StatCorrection[];
+}
+
+export interface BroadcastReport {
+  generatedAt: string;
+  simulated: boolean;
+  sessionId: string;
+  policyVersion: string;
+  window: { decisions: number; minutes: number; note: string };
+  director: { modeNow: string; actions: Record<string, number>; topReasons: [string, number][]; automatedCommands: number; automatedConfirmed: number; automatedFailed: number };
+  continuity: { shotChanges: number; cutsPerMinute: number | null; medianShotMs: number | null; p10ShotMs: number | null; shotsThatOutlivedTheirPlayer: number };
+  control: { manualTakeovers: number; externalChanges: number; emergencyStops: number };
+  program: { transitions: number; history: ProgramTransition[] };
+  replays: { items: { id: string; label: string; state: string; round: number | null }[] };
+  sponsors: { sponsorId: string; name: string; displays: number; acknowledgedMs: number | null }[];
+  caveats: string[];
+}
+
+export interface MatchframeBridgeStatus {
+  config: { enabled: boolean; url: string | null; autoPushResults: boolean };
+  status: "disabled" | "not configured" | "connected" | "blocked" | string;
+  capabilities: Record<string, unknown> | null;
+  lastError: string | null;
+  note: string;
 }
 
 export interface GamesResponse {

@@ -346,7 +346,7 @@ function DirectorPanel({ snap, threshold }: { snap: OperatorSnapshot; threshold:
               ) : (
                 <Badge tone="ok">FRESH</Badge>
               )}{" "}
-              decision input {fmtMs(inputAge)} · data age ≈ {fmtMs(ageEst)} · last packet seen {sequenceChangedAt ? fmtMs(now - sequenceChangedAt) : MISSING} ago
+              decision input {fmtMs(inputAge)} · data age ≈ {fmtMs(ageEst)} · last packet seen {sequenceChangedAt ? fmtMs(Math.max(0, now - sequenceChangedAt)) : MISSING} ago
             </span>,
           ],
           ["Policy / model", d ? `${d.policyVersion} · ${d.modelVersion ?? "no learned model (baseline policy)"}` : MISSING],

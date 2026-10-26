@@ -308,21 +308,20 @@ function MapDetail({ map, reloadList }: { map: string; reloadList: () => void })
   );
 }
 
-function CovCell({ c }: { c: CoverageCell }) {
+function CovCell({ c, showFallback }: { c: CoverageCell; showFallback: boolean }) {
   return (
-    <div className="cov-cell" title={`${c.fallback}${c.evidence.length ? `\nEvidence: ${c.evidence.join(", ")}` : ""}`}>
+    <div className="cov-cell" title={c.evidence.length ? `Evidence: ${c.evidence.join(", ")}` : undefined}>
       <span>
         telemetry <SupportBadge support={c.telemetry} />
       </span>
       <span>
         effect <SupportBadge support={c.activationEffect} />
       </span>
-      <span>prediction: {c.prediction}</span>
       <span>
-        camera:{" "}
+        prediction {c.prediction} · camera{" "}
         {c.cameraCoverage === "validated" ? <Badge tone="ok">VALIDATED</Badge> : c.cameraCoverage === "unvalidated" ? <Badge tone="warn">UNVALIDATED</Badge> : <Badge>NONE</Badge>}
       </span>
-      <span className="muted">fallback: {c.fallback}</span>
+      {showFallback ? <span className="muted">fallback: {c.fallback}</span> : null}
     </div>
   );
 }
@@ -343,7 +342,9 @@ function Coverage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {rows.map((r) => {
+                const shared = r.cells.every((c) => c.fallback === r.cells[0]?.fallback) ? (r.cells[0]?.fallback ?? null) : null;
+                return (
                 <tr key={r.mapName}>
                   <td>
                     <strong>{r.displayName}</strong>
@@ -352,14 +353,16 @@ function Coverage() {
                     <div className="small muted">
                       {r.regionCount} regions ({r.regionSource}) · floor grid {r.floorGrid ? "yes" : "no"} · radar {r.radarCalibration} · cams {r.validatedCameras} validated / {r.unvalidatedCameras} not
                     </div>
+                    {shared ? <div className="small">Fallback (all types): {shared}</div> : null}
                   </td>
                   {r.cells.map((c) => (
                     <td key={c.grenadeType}>
-                      <CovCell c={c} />
+                      <CovCell c={c} showFallback={!shared} />
                     </td>
                   ))}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

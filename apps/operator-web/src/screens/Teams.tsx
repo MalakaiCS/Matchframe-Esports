@@ -174,7 +174,8 @@ function TeamsTab() {
   const [archived, setArchived] = useState(false);
   const teams = useApi<TeamRow[]>(`/api/v1/teams${archived ? "?archived=1" : ""}`);
   const players = useApi<PlayerRow[]>("/api/v1/players");
-  const [sel, setSel] = useState<string | null>(null);
+  const [picked, setSel] = useState<string | null>(null);
+  const sel = picked ?? teams.data?.[0]?.id ?? null;
   return (
     <div className="grid-1-2">
       <div className="stack">
@@ -379,7 +380,8 @@ function PlayersTab() {
   const players = useApi<PlayerRow[]>("/api/v1/players");
   const teams = useApi<TeamRow[]>("/api/v1/teams");
   const [q, setQ] = useState("");
-  const [sel, setSel] = useState<string | null>(null);
+  const [picked, setSel] = useState<string | null>(null);
+  const sel = picked ?? players.data?.[0]?.id ?? null;
   const teamName = (id: string | null) => (id ? (teams.data?.find((t) => t.id === id)?.shortName ?? "?") : null);
   return (
     <div className="grid-1-2">
@@ -459,7 +461,7 @@ function ImportTab() {
                 rows = parseRosterImport(text);
               } catch (e) {
                 setParseError(e instanceof Error ? e.message : String(e));
-                throw new Error("Could not parse the input as CSV or JSON");
+                throw new Error("Could not parse the input as CSV or JSON", { cause: e });
               }
               if (rows.length === 0) throw new Error("No rows found (CSV needs a header row)");
               return api.post<ImportPreviewRow[]>("/api/v1/import/players/preview", { rows });

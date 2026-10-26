@@ -258,6 +258,11 @@ function AdapterConfig() {
               </ActionButton>
             </div>
             <KV items={[["Active adapter", d.active ?? "none"]]} />
+            {d.active?.startsWith("sim") ? (
+              <Note tone="sim" title="SIMULATION">
+                The labelled simulation owns the observer adapter while it runs. The setting saved here is applied when the simulation stops.
+              </Note>
+            ) : null}
             {d.capabilities ? (
               <table className="table table-compact">
                 <tbody>

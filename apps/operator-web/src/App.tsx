@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import { api, describeError, NetworkError } from "./api/index.ts";
 import { resolveOperatorToken, setOperatorToken } from "./api/auth.ts";
@@ -6,29 +6,31 @@ import type { Me } from "./api/types.ts";
 import { Icon, Logo } from "./components/icons.tsx";
 import { emergencyStop, OfflineBanner, STOP_SHORTCUT_LABEL, TopBar } from "./components/TopBar.tsx";
 import { ToastProvider, useToast } from "./components/toasts.tsx";
-import { Button, Field, Note } from "./components/ui.tsx";
+import { Button, Field, Loading, Note } from "./components/ui.tsx";
 import { isTypingTarget, usePersistentState } from "./lib/hooks.ts";
 import { Link, useLocation } from "./router.tsx";
 import { startLive, stopLive } from "./state/live.ts";
 import { SessionContext } from "./state/session.tsx";
-import { CaptainPage } from "./screens/Captain.tsx";
-import { DemosScreen } from "./screens/Demos.tsx";
-import { DevicesScreen } from "./screens/Devices.tsx";
-import { DirectorScreen } from "./screens/Director.tsx";
-import { EventsScreen } from "./screens/Events.tsx";
-import { HudsScreen } from "./screens/Huds.tsx";
-import { LiveControlScreen } from "./screens/LiveControl.tsx";
-import { MapsScreen } from "./screens/Maps.tsx";
-import { MatchesScreen } from "./screens/Matches.tsx";
-import { OverviewScreen } from "./screens/Overview.tsx";
-import { PlayerCamerasScreen } from "./screens/PlayerCameras.tsx";
-import { ReplaysScreen } from "./screens/Replays.tsx";
-import { SettingsScreen } from "./screens/Settings.tsx";
-import { SetupScreen } from "./screens/Setup.tsx";
-import { SponsorsScreen } from "./screens/Sponsors.tsx";
-import { StudioScreen } from "./screens/Studio.tsx";
-import { TeamsScreen } from "./screens/Teams.tsx";
-import { TrainingScreen } from "./screens/Training.tsx";
+
+// Screens are code-split: each loads on first visit.
+const CaptainPage = lazy(() => import("./screens/Captain.tsx").then((m) => ({ default: m.CaptainPage })));
+const DemosScreen = lazy(() => import("./screens/Demos.tsx").then((m) => ({ default: m.DemosScreen })));
+const DevicesScreen = lazy(() => import("./screens/Devices.tsx").then((m) => ({ default: m.DevicesScreen })));
+const DirectorScreen = lazy(() => import("./screens/Director.tsx").then((m) => ({ default: m.DirectorScreen })));
+const EventsScreen = lazy(() => import("./screens/Events.tsx").then((m) => ({ default: m.EventsScreen })));
+const HudsScreen = lazy(() => import("./screens/Huds.tsx").then((m) => ({ default: m.HudsScreen })));
+const LiveControlScreen = lazy(() => import("./screens/LiveControl.tsx").then((m) => ({ default: m.LiveControlScreen })));
+const MapsScreen = lazy(() => import("./screens/Maps.tsx").then((m) => ({ default: m.MapsScreen })));
+const MatchesScreen = lazy(() => import("./screens/Matches.tsx").then((m) => ({ default: m.MatchesScreen })));
+const OverviewScreen = lazy(() => import("./screens/Overview.tsx").then((m) => ({ default: m.OverviewScreen })));
+const PlayerCamerasScreen = lazy(() => import("./screens/PlayerCameras.tsx").then((m) => ({ default: m.PlayerCamerasScreen })));
+const ReplaysScreen = lazy(() => import("./screens/Replays.tsx").then((m) => ({ default: m.ReplaysScreen })));
+const SettingsScreen = lazy(() => import("./screens/Settings.tsx").then((m) => ({ default: m.SettingsScreen })));
+const SetupScreen = lazy(() => import("./screens/Setup.tsx").then((m) => ({ default: m.SetupScreen })));
+const SponsorsScreen = lazy(() => import("./screens/Sponsors.tsx").then((m) => ({ default: m.SponsorsScreen })));
+const StudioScreen = lazy(() => import("./screens/Studio.tsx").then((m) => ({ default: m.StudioScreen })));
+const TeamsScreen = lazy(() => import("./screens/Teams.tsx").then((m) => ({ default: m.TeamsScreen })));
+const TrainingScreen = lazy(() => import("./screens/Training.tsx").then((m) => ({ default: m.TrainingScreen })));
 
 export interface NavItem {
   path: string;
@@ -114,8 +116,18 @@ function useStopShortcut(enabled: boolean) {
   }, [enabled, toast]);
 }
 
+/** Desktop shell (Electron) global hotkey emergency stops are reported here too. */
+function useDesktopEvents() {
+  const toast = useToast();
+  useEffect(() => {
+    const off = window.matchframe?.onEmergencyStop?.(() => toast.push("ok", "Emergency stop engaged from the desktop global hotkey"));
+    return () => off?.();
+  }, [toast]);
+}
+
 function Shell({ me }: { me: Me }) {
   const { path } = useLocation();
+  useDesktopEvents();
   const [navCollapsed, setNavCollapsed] = usePersistentState("navCollapsed", typeof window !== "undefined" && window.innerWidth < 1440);
   useStopShortcut(true);
   useEffect(() => {
@@ -138,7 +150,13 @@ function Shell({ me }: { me: Me }) {
         <Nav collapsed={navCollapsed} path={path} />
         <main id="main" className="main" tabIndex={-1}>
           <OfflineBanner />
-          {Screen ? <Screen /> : <NotFound path={path} />}
+          {Screen ? (
+            <Suspense fallback={<div className="page"><Loading label="Loading page…" /></div>}>
+              <Screen />
+            </Suspense>
+          ) : (
+            <NotFound path={path} />
+          )}
         </main>
       </div>
     </SessionContext.Provider>
@@ -221,5 +239,15 @@ function TokenGate() {
 
 export function App() {
   const { path } = useLocation();
-  return <ToastProvider>{path === "/captain" ? <CaptainPage /> : <TokenGate />}</ToastProvider>;
+  return (
+    <ToastProvider>
+      {path === "/captain" ? (
+        <Suspense fallback={<Loading label="Loading veto…" />}>
+          <CaptainPage />
+        </Suspense>
+      ) : (
+        <TokenGate />
+      )}
+    </ToastProvider>
+  );
 }

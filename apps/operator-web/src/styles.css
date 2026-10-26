@@ -48,7 +48,8 @@ body {
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
-body {
+/* The operator console targets 1280×720 and up; the captain page stays responsive. */
+.shell {
   min-width: 1240px;
 }
 #root {
@@ -387,6 +388,20 @@ kbd {
   max-width: 980px;
   margin: 0 0 14px;
 }
+.page > .panel,
+.page > .stack,
+.page > .grid-2,
+.page > .grid-3,
+.page > .grid-2-1,
+.page > .grid-1-2 {
+  margin-bottom: 14px;
+}
+.page > .note {
+  margin-bottom: 12px;
+}
+.mt {
+  margin-top: 14px;
+}
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -646,7 +661,13 @@ textarea[aria-invalid="true"] {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 10px 12px;
-  align-items: end;
+  align-items: start;
+}
+.field.span-all {
+  grid-column: 1 / -1;
+}
+.field.span-2 {
+  grid-column: span 2;
 }
 .form-actions {
   display: flex;

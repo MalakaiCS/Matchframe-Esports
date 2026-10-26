@@ -5,6 +5,7 @@ import { useToast } from "../components/toasts.tsx";
 import { ActionButton, Async, Badge, Button, Checkbox, EmptyState, Field, KV, Panel } from "../components/ui.tsx";
 import { fmtTime, MISSING, titleCase } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
+import { Link } from "../router.tsx";
 import { usePermission } from "../state/session.tsx";
 import { HUD_VARIANTS } from "./huds/Outputs.tsx";
 
@@ -148,7 +149,13 @@ export function StudioScreen() {
     }
   };
 
-  const takeReason = programReason ?? hudReason ?? settingsReason ?? (!nextCue ? "No NEXT cue — add cues or press NEXT" : !nextCue.ready ? `“${nextCue.title}” is not marked ready` : null);
+  const nextMode = nextCue ? programModeForCue(nextCue.kind) : null;
+  const unmapped = nextMode && nextMode !== "LIVE" && program.data && !program.data.scenes[nextMode] ? nextMode : null;
+  const takeReason =
+    programReason ??
+    hudReason ??
+    settingsReason ??
+    (!nextCue ? "No NEXT cue — add cues or press NEXT" : !nextCue.ready ? `“${nextCue.title}” is not marked ready` : unmapped ? `No OBS scene is mapped for ${unmapped}: map it in Setup → Program scene mapping` : null);
 
   return (
     <div className="page">
@@ -310,6 +317,11 @@ export function StudioScreen() {
                       LIVE
                     </ActionButton>
                   </div>
+                  {!p.scenes.STUDIO || !p.scenes.BREAK ? (
+                    <p className="small text-warn">
+                      STUDIO and BREAK only switch when an OBS scene is mapped for them — <Link to="/setup#step-scenes">map scenes in Setup</Link>.
+                    </p>
+                  ) : null}
                   <h3 className="small muted" style={{ marginTop: 12 }}>
                     RECENT TRANSITIONS
                   </h3>

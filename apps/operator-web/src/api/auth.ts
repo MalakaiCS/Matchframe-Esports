@@ -9,7 +9,12 @@ export const CAPTAIN_TOKEN_KEY = "matchframe.captainToken";
 
 declare global {
   interface Window {
-    matchframe?: { getOperatorToken?: () => Promise<string> };
+    /** Electron preload bridge (apps/desktop/src/preload.ts); absent in a plain browser. */
+    matchframe?: {
+      getOperatorToken?: () => Promise<string | null>;
+      onEmergencyStop?: (fn: (s: unknown) => void) => () => void;
+      onEngineStatus?: (fn: (s: unknown) => void) => () => void;
+    };
   }
 }
 
@@ -57,17 +62,15 @@ export function setOperatorToken(token: string | null): void {
   storageSet(OPERATOR_TOKEN_KEY, token);
 }
 
-/** Resolves the operator token: URL → session storage → Electron preload bridge. */
+/**
+ * Resolves the operator token: URL → Electron preload bridge (authoritative inside the desktop
+ * shell) → session storage.
+ */
 export async function resolveOperatorToken(): Promise<string | null> {
   const fromUrl = captureTokenFromUrl(OPERATOR_TOKEN_KEY);
   if (fromUrl) {
     memoryToken = fromUrl;
     return fromUrl;
-  }
-  const stored = storageGet(OPERATOR_TOKEN_KEY);
-  if (stored) {
-    memoryToken = stored;
-    return stored;
   }
   const bridge = typeof window !== "undefined" ? window.matchframe?.getOperatorToken : undefined;
   if (bridge) {
@@ -80,6 +83,11 @@ export async function resolveOperatorToken(): Promise<string | null> {
     } catch {
       // fall through: the bridge is optional
     }
+  }
+  const stored = storageGet(OPERATOR_TOKEN_KEY);
+  if (stored) {
+    memoryToken = stored;
+    return stored;
   }
   return null;
 }

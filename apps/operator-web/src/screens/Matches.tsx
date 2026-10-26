@@ -458,7 +458,8 @@ export function MatchesScreen() {
   const events = useApi<EventRecord[]>("/api/v1/events");
   const players = useApi<PlayerRow[]>("/api/v1/players");
   const active = useApi<{ value: string | null }>("/api/v1/settings/live.activeMatchId");
-  const [sel, setSel] = useState<string | null>(null);
+  const [picked, setSel] = useState<string | null>(null);
+  const sel = picked ?? active.data?.value ?? matches.data?.[0]?.id ?? null;
   const [creating, setCreating] = useState(false);
   const teamName = (id: string) => teams.data?.find((t) => t.id === id)?.shortName ?? "?";
   return (

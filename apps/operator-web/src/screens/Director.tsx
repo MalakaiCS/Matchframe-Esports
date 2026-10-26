@@ -4,7 +4,7 @@ import type { DirectorStatus } from "../api/types.ts";
 import { CapabilityTable } from "../components/CapabilityTable.tsx";
 import { CandidateList, DecisionExplain, OpportunityList, ReasonChips } from "../components/director.tsx";
 import { Async, Badge, Checkbox, EmptyState, KV, Note, Panel } from "../components/ui.tsx";
-import { capabilityGate } from "../lib/capabilities.ts";
+import { capabilityGate, capabilityMeta } from "../lib/capabilities.ts";
 import { MODE_INFO } from "../lib/director.ts";
 import { fmtMs, MISSING, shotLabel } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
@@ -125,6 +125,21 @@ function DecisionLog({ nameOf }: { nameOf: (id: string) => string }) {
   );
 }
 
+function MainStory({ story, nameOf }: { story: Record<string, unknown>; nameOf: (id: string) => string }) {
+  const members = Array.isArray(story.members) ? (story.members as string[]) : [];
+  const regions = Array.isArray(story.regionIds) ? (story.regionIds as string[]) : [];
+  const rest = Object.entries(story).filter(([k]) => !["members", "regionIds", "centroid"].includes(k));
+  return (
+    <KV
+      items={[
+        ...(members.length ? ([["Players", members.map((m) => nameOf(m)).join(", ")]] as [string, string][]) : []),
+        ...(regions.length ? ([["Regions", regions.join(", ")]] as [string, string][]) : []),
+        ...rest.map(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)] as [string, string]),
+      ]}
+    />
+  );
+}
+
 const GATES = [
   { key: "playerSelectionControl", gates: "POV cuts (automatic/assisted) and roster-card POV requests" },
   { key: "staticCameraControl", gates: "Cinematic static cameras and utility camera shots" },
@@ -176,7 +191,7 @@ export function DirectorScreen() {
                 </p>
               </Panel>
               <Panel title="Main story & clusters">
-                {st.mainStory ? <pre className="json-view">{JSON.stringify(st.mainStory, null, 2)}</pre> : <p className="muted small">No main story identified.</p>}
+                {st.mainStory ? <MainStory story={st.mainStory} nameOf={nameOf} /> : <p className="muted small">No main story identified.</p>}
                 {st.clusters.length ? (
                   <ul className="list-plain small">
                     {st.clusters.map((c, i) => (
@@ -207,7 +222,10 @@ export function DirectorScreen() {
                       const gate = capabilityGate(g.key, c ?? null, { simulated: snap?.simulated });
                       return (
                         <tr key={g.key}>
-                          <td className="mono small">{g.key}</td>
+                          <td className="small">
+                            {capabilityMeta(g.key).label}
+                            <div className="mono muted">{g.key}</div>
+                          </td>
                           <td>{gate.enabled ? <Badge tone="ok">OPEN</Badge> : <Badge tone="warn">CLOSED</Badge>}</td>
                           <td className="small">
                             {g.gates}
