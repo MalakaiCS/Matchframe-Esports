@@ -175,9 +175,9 @@ function Editor({ entry, reload }: { entry: HudOutputEntry; reload: () => void }
           </details>
         </Panel>
         <Note tone="warn" title="PREVIEW SCOPE">
-          <strong>Implemented:</strong> element visibility (<code>hide.*</code>) and reduced motion — both applied by the built-in renderer — plus position offsets stored as <code>settings.layout</code>, saved to the draft and published with revisions/rollback.
+          <strong>Implemented:</strong> element visibility (<code>hide.*</code>) and reduced motion — both applied by the built-in renderer — plus position offsets stored as <code>settings.layout</code> and applied by the built-in renderer, saved to the draft and published with revisions/rollback.
           <br />
-          <strong>Not yet implemented (Full Suite):</strong> applying <code>settings.layout</code> offsets in the built-in renderer, resize/scale handles, adding new layers (text, images, video), data bindings to HUD state fields, per-variant layouts, multi-step undo, and rendering the unpublished draft in the live preview (the underlay shows the published revision).
+          <strong>Not yet implemented (Full Suite):</strong> resize/scale handles, adding new layers (text, images, video), data bindings to HUD state fields, per-variant layouts, multi-step undo, and rendering the unpublished draft in the live preview (the underlay shows the published revision).
         </Note>
       </div>
     </div>

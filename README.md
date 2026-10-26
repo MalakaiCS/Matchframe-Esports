@@ -17,17 +17,19 @@ pnpm install
 pnpm dev --sim          # builds the HUD and operator console if needed, starts the engine, runs the labelled simulation
 ```
 
-The engine prints its addresses and writes the operator URL (which contains the operator token) to `<data dir>/operator-url.txt`. Open it in a browser for the operator console. Overlays for OBS browser sources are under **HUD → Outputs** (`http://127.0.0.1:37212/overlay/<output>/<variant>?t=<output token>`). Simulated data is marked SIMULATION everywhere.
+The engine prints its addresses and writes the operator URL (which contains the operator token) to `<data dir>/operator-url.txt`. Open it in a browser for the operator console. Overlays for OBS browser sources are under **HUDs & Composer → Outputs** (`http://127.0.0.1:37212/overlay/<output>/<variant>?t=<output token>`). Simulated data is marked SIMULATION everywhere.
 
 Data directory: `%APPDATA%\Matchframe Esports` on Windows, `~/.local/share/matchframe-esports` on Linux (override with `MATCHFRAME_DATA_DIR`). Ports: GSI 37210, operator API 37211, overlays 37212 (`MATCHFRAME_GSI_PORT`, `MATCHFRAME_API_PORT`, `MATCHFRAME_OVERLAY_PORT`). The engine binds to loopback unless `MATCHFRAME_HOST` is set.
 
 ## Connecting a real CS2 observer (unverified path)
 
-1. **Setup → Game**: detect CS2 and write the GSI config (`gamestate_integration_matchframe.cfg`, with a token) — or `POST /api/v1/setup/write-gsi-config`.
-2. Start CS2 as an observer/spectator; **Setup → Capabilities** shows what the feed actually delivers.
-3. Choose an observer control adapter (**Setup → Observer**): direct console (`-netconport <port>` launch option) or keyboard (Windows, focused window only). Run the **player selection** setup test; automatic POV cuts stay blocked until it passes from observed feedback. Static cinematics additionally need the **static camera** test and operator-validated cameras captured with `getpos`.
-4. Connect OBS (**Production → OBS**) and map program scenes.
-5. Arm automation explicitly (the engine always starts and restarts disarmed). Emergency stop: the console button, `Ctrl+Shift+F12` in the desktop app, or `POST /api/v1/observer/emergency-stop`.
+Follow the 12-step **Setup** checklist in the console (`/setup`, linked from **Overview**):
+
+1. Steps 2–3 — **Detect CS2** and **Write the GSI config** (`gamestate_integration_matchframe.cfg`, with a token; or `POST /api/v1/setup/write-gsi-config`), then restart CS2.
+2. Steps 4–5 — start CS2 as an observer/spectator; **Wait for a real payload** and read the **Capability report** (what the feed actually delivers).
+3. Steps 6–8 — choose the **Observer control adapter**: direct console (`-netconport <port>` launch option) or keyboard (Windows, focused window only). Run the **Player-selection test**; automatic POV cuts stay blocked until it passes from observed feedback. Static cinematics additionally need the **Static camera test** and operator-validated cameras captured with `getpos` (**Maps & Cameras**).
+4. Steps 9–11 — **Connect OBS**, set the **Program scene mapping** and add the main HUD browser source.
+5. Arm automation explicitly from **Live Control** (the engine always starts and restarts disarmed). Stopping: the EMERGENCY STOP button, STOP AUTOMATION (`F8`/`Pause` in the console, ignored while typing), `Ctrl+Shift+F12` in the desktop app, or `POST /api/v1/observer/emergency-stop`.
 
 Guides: [one PC](docs/operations/one-pc.md), [multi-PC](docs/operations/multi-pc.md), [preflight](docs/operations/preflight.md), [takeover and recovery](docs/operations/takeover-and-recovery.md), [GSI](docs/integrations/cs2-gsi.md), [observer control](docs/integrations/observer-control.md), [OBS](docs/integrations/obs.md), [replay bridge](docs/integrations/replay-bridge.md), [MatchFrame bridge](docs/integrations/matchframe-bridge.md), [Companion/Stream Deck](docs/integrations/companion-streamdeck.md).
 
@@ -54,9 +56,9 @@ GSI carries telemetry only — it does not control the camera; observer control 
 | Real-integration tests | `MF_TEST_DEMOS=<demos> MATCHFRAME_PYTHON=<python> pnpm test:integration` (OBS tests also need `MF_OBS_URL`, `MF_OBS_PASSWORD`) |
 | Build all apps | `pnpm build` |
 | Windows packaging | `pnpm package:win` (unpacked folder via `pnpm package:dir`) — see BUILD_PROGRESS.md for the current result |
-| Demo batch import and validation | console **Demos**, or `POST /api/v1/demos/import {"paths":[…]}`; directly: `pnpm worker extract --input demo.dem --dataset-root DATA --validate` |
+| Demo batch import and validation | console **Demo Library**, or `POST /api/v1/demos/import {"paths":[…]}`; directly: `pnpm worker extract --input demo.dem --dataset-root DATA --validate` |
 | Feature building, dataset freezing | `pnpm worker build-features --dataset <dir>`, `pnpm worker freeze-dataset --datasets DATA --out frozen.json`, `pnpm worker audit-split --manifest frozen.json` |
-| Training, evaluation, export | console **Training**, or `POST /api/v1/training/runs`; directly: `pnpm worker train …`, `pnpm worker evaluate …`, `pnpm worker export-model …` ([docs/models](docs/models/README.md)) |
+| Training, evaluation, export | console **Training & Evaluation**, or `POST /api/v1/training/runs`; directly: `pnpm worker train …`, `pnpm worker evaluate …`, `pnpm worker export-model …` ([docs/models](docs/models/README.md)) |
 | Shadow-run comparison | `POST /api/v1/models/<id>/shadow`, then `GET /api/v1/models/shadow` |
 | Event export / restore | `GET /api/v1/export/event-package`; `POST /api/v1/import/event-package {"package":…, "mode":"preview"|"commit"}` |
 | Diagnostics | `GET /api/v1/diagnostics/bundle` (secrets redacted) |
@@ -64,7 +66,7 @@ GSI carries telemetry only — it does not control the camera; observer control 
 | Map coverage report | `pnpm coverage:maps` |
 | Simulated soak | `pnpm soak --minutes 20 --out soak.json` |
 
-API calls need `Authorization: Bearer <token>` (operator token from `operator-url.txt`, or a role token from **Settings → Tokens**).
+API calls need `Authorization: Bearer <token>` (operator token from `operator-url.txt`, or a role token from **Devices & Integrations → Tokens**).
 
 ## Repository layout
 

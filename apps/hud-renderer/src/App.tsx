@@ -23,29 +23,69 @@ function useStageScale(): number {
   return scale;
 }
 
+/** Composer position offsets (`settings.layout[id] = {dx, dy}`, design-stage pixels), clamped to the stage. */
+function layoutOffset(settings: Record<string, unknown>, id: string): React.CSSProperties | undefined {
+  const o = (settings.layout as Record<string, { dx?: unknown; dy?: unknown }> | undefined)?.[id];
+  const dx = typeof o?.dx === "number" && Number.isFinite(o.dx) ? Math.max(-1920, Math.min(1920, o.dx)) : 0;
+  const dy = typeof o?.dy === "number" && Number.isFinite(o.dy) ? Math.max(-1080, Math.min(1080, o.dy)) : 0;
+  return dx || dy ? { transform: `translate(${dx}px, ${dy}px)` } : undefined;
+}
+
+/** Full-stage layer so absolutely positioned widgets keep their place and move together. */
+function Placed({ id, settings, children }: { id: string; settings: Record<string, unknown>; children: React.ReactNode }) {
+  return (
+    <div className="mf-place" data-layout-id={id} style={layoutOffset(settings, id)}>
+      {children}
+    </div>
+  );
+}
+
 function LiveHud({ state, receivedAt, now, onSponsorShown }: { state: HudState; receivedAt: number; now: number; onSponsorShown: (id: string, zone: string) => void }) {
   const hidden = (k: string) => (state.settings[`hide.${k}`] as boolean | undefined) === true;
   const observedTeam = state.observed ? (state.left.players.some((p) => p.steamId === state.observed!.steamId) ? state.left : state.right) : null;
   const showHistory = state.match.phase === "freezetime" || state.match.phase === "over" || state.match.phase === "halftime";
+  const s = state.settings;
   return (
     <>
       {!hidden("scoreboard") && (
-        <div className="mf-top">
-          <Scoreboard state={state} receivedAt={receivedAt} now={now} />
-          <SeriesStrip state={state} />
-          {showHistory && !hidden("history") ? <RoundHistory state={state} /> : null}
-          <SponsorZone zone="top_bar" state={state} onShown={onSponsorShown} />
-        </div>
+        <Placed id="scoreboard" settings={s}>
+          <div className="mf-top">
+            <Scoreboard state={state} receivedAt={receivedAt} now={now} />
+            <SeriesStrip state={state} />
+            {showHistory && !hidden("history") ? (
+              <div style={layoutOffset(s, "history")}>
+                <RoundHistory state={state} />
+              </div>
+            ) : null}
+            <SponsorZone zone="top_bar" state={state} onShown={onSponsorShown} />
+          </div>
+        </Placed>
       )}
-      {!hidden("radar") && <Radar radar={state.radar} />}
-      {!hidden("killfeed") && <Killfeed state={state} />}
+      {!hidden("radar") && (
+        <Placed id="radar" settings={s}>
+          <Radar radar={state.radar} />
+        </Placed>
+      )}
+      {!hidden("killfeed") && (
+        <Placed id="killfeed" settings={s}>
+          <Killfeed state={state} />
+        </Placed>
+      )}
       {!hidden("players") && (
         <>
-          <TeamPanel team={state.left} align="left" />
-          <TeamPanel team={state.right} align="right" />
+          <Placed id="players-left" settings={s}>
+            <TeamPanel team={state.left} align="left" />
+          </Placed>
+          <Placed id="players-right" settings={s}>
+            <TeamPanel team={state.right} align="right" />
+          </Placed>
         </>
       )}
-      {!hidden("observed") && <ObservedPanel p={state.observed} team={observedTeam} />}
+      {!hidden("observed") && (
+        <Placed id="observed" settings={s}>
+          <ObservedPanel p={state.observed} team={observedTeam} />
+        </Placed>
+      )}
       <SponsorZone zone="bottom_right" state={state} onShown={onSponsorShown} />
       <SponsorZone zone="bottom_left" state={state} onShown={onSponsorShown} />
       <Cues state={state} />

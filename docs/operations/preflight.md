@@ -1,6 +1,6 @@
 # Preflight checklist (before going live)
 
-- [ ] Setup → Status: real GSI packets arriving (not SIMULATION), game build shown, source not stale.
+- [ ] **Setup** steps 4–5 (Wait for a real payload, Capability report): real GSI packets arriving (not SIMULATION), game build shown, source not stale.
 - [ ] Capability report reviewed: all-player state, positions, grenade entities; note which grenade types are verified.
 - [ ] Observer adapter configured; player-selection test **recorded** for this build (or automation will stay blocked).
 - [ ] Static cameras: only validated cameras for the current map revision; otherwise disable cinematics for the match.

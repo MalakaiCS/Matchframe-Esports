@@ -914,6 +914,16 @@ body,
   font-weight: 800;
 }
 
+/* Composer layers: full-stage wrappers that only carry a translate offset. */
+.mf-place {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.mf-place > * {
+  pointer-events: auto;
+}
+
 /* ---------------------------------------------------------------- standings / bracket */
 .mf-standings-table {
   border-collapse: collapse;

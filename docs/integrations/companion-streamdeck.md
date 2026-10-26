@@ -4,7 +4,7 @@ Matchframe exposes a control-surface API on the local engine (`services/local-en
 
 ## Tokens
 
-Issue one token per device with the narrowest role that covers its buttons: `observer` (camera and director actions) or `producer` (director, program and replay actions). Use `POST /api/v1/tokens` `{"role":"observer","label":"Deck A"}` (requires an owner token) or the operator console's token page. Revoke with `DELETE /api/v1/tokens/:id`.
+Issue one token per device with the narrowest role that covers its buttons: `observer` (camera and director actions) or `producer` (director, program and replay actions). Use `POST /api/v1/tokens` `{"role":"observer","label":"Deck A"}` (requires an owner token) or **Devices & Integrations → Tokens** in the console. Revoke with `DELETE /api/v1/tokens/:id`.
 
 ## Actions
 
@@ -38,7 +38,7 @@ Configure each button as an HTTP POST to `http://127.0.0.1:37211/api/v1/devices/
 
 ## Hotkeys
 
-The desktop app registers a global emergency-stop hotkey (default `Ctrl+Shift+F12`; set `MATCHFRAME_STOP_HOTKEY` to change). The operator console's stop shortcut is ignored while typing in a field.
+The desktop app registers a global emergency-stop hotkey (default `Ctrl+Shift+F12`; set `MATCHFRAME_STOP_HOTKEY` to change). In the operator console, `F8` or `Pause` triggers STOP AUTOMATION (ignored while typing in a field).
 
 ## Status
 

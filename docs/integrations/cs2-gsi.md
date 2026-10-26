@@ -4,7 +4,7 @@ GSI sends JSON over HTTP to a receiver configured in a `gamestate_integration_*.
 
 ## Setup
 
-1. Settings → Setup → **Detect CS2** (`POST /api/v1/setup/detect-cs2`). Matchframe reads Steam's `libraryfolders.vdf` and `appmanifest_730.acf`; you can enter the CS2 folder manually.
+1. **Setup** checklist step 2 → **Detect CS2** (`POST /api/v1/setup/detect-cs2`). Matchframe reads Steam's `libraryfolders.vdf` and `appmanifest_730.acf`; you can enter the CS2 folder manually.
 2. **Write GSI config** (`POST /api/v1/setup/write-gsi-config`). Matchframe writes its own file, `game/csgo/cfg/gamestate_integration_matchframe.cfg`, with the receiver URI `http://127.0.0.1:37210/gsi` and a random auth token. Other applications' GSI files are never touched; an earlier version of the Matchframe file is backed up.
 3. Restart the CS2 observer client (configs are read at startup) and join the match as a spectator/observer.
 4. Setup shows packet counts and the sampled capability report.
