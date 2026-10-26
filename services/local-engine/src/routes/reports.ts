@@ -81,6 +81,8 @@ export function registerReportRoutes(r: Router, e: Engine): void {
     }
     const durations = spans.map((sp) => (sp.toMs ?? now) - sp.fromMs).filter((d) => d > 0).sort((a, b) => a - b);
     const minutes = decisions.length > 1 ? (decisions[decisions.length - 1]!.decidedAtMonotonicMs - decisions[0]!.decidedAtMonotonicMs) / 60000 : 0;
+    // Continuity rates use the event window they are counted from (not the decision window).
+    const eventMinutes = events.length > 0 ? (now - events[0]!.receivedAtMonotonicMs) / 60000 : 0;
     const deaths = events.filter((ev) => ev.kind === "player_died");
     const onDeadPov = spans.filter((sp) => sp.shot && deaths.some((d) => d.data.steamId === sp.shot && d.receivedAtMonotonicMs < (sp.toMs ?? now) && d.receivedAtMonotonicMs > sp.fromMs)).length;
     const directorCmds = arbiter.filter((a) => a.kind === "command" && a.detail.owner === "director");
@@ -95,7 +97,7 @@ export function registerReportRoutes(r: Router, e: Engine): void {
       simulated: e.simulationRunning,
       sessionId: e.session.sessionId,
       policyVersion: e.session.director.config.policyVersion,
-      window: { decisions: decisions.length, minutes: Math.round(minutes * 100) / 100, note: "Bounded in-memory window (last 1,000 decisions / 2,000 events) for the current session." },
+      window: { decisions: decisions.length, minutes: Math.round(minutes * 100) / 100, note: "Bounded in-memory windows for the current session: director figures cover the last 1,000 decisions, continuity figures the last 2,000 events (see continuity.windowMinutes)." },
       director: {
         modeNow: e.session.director.currentMode,
         actions: decisions.reduce<Record<string, number>>((acc, d) => ((acc[d.action] = (acc[d.action] ?? 0) + 1), acc), {}),
@@ -107,8 +109,9 @@ export function registerReportRoutes(r: Router, e: Engine): void {
         automatedFailed: failed,
       },
       continuity: {
+        windowMinutes: Math.round(eventMinutes * 100) / 100,
         shotChanges: spans.length,
-        cutsPerMinute: minutes > 0 ? Math.round((spans.length / minutes) * 100) / 100 : null,
+        cutsPerMinute: eventMinutes > 0 ? Math.round((spans.length / eventMinutes) * 100) / 100 : null,
         medianShotMs: durations.length ? durations[Math.floor(durations.length / 2)] : null,
         p10ShotMs: durations.length ? durations[Math.floor(durations.length * 0.1)] : null,
         shotsThatOutlivedTheirPlayer: onDeadPov,
