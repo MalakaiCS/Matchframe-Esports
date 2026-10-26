@@ -422,6 +422,11 @@ export class DemoJobRepo {
     return r ? this.toJob(r) : undefined;
   }
 
+  findByDataset(datasetDir: string): DemoJob | undefined {
+    const r = this.db.get<DemoJobRow>("SELECT * FROM demo_jobs WHERE dataset_dir = ? LIMIT 1", datasetDir);
+    return r ? this.toJob(r) : undefined;
+  }
+
   transitions(id: string): { from: string | null; to: string; at: string; detail: unknown }[] {
     return this.db
       .all<{ from_state: string | null; to_state: string; at: string; detail: string | null }>("SELECT from_state, to_state, at, detail FROM demo_job_transitions WHERE job_id = ? ORDER BY seq", id)

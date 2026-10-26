@@ -1,4 +1,8 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import type { LgbDump } from "../src/model/gbdt.ts";
 import { GbdtModel, ModelLoadError } from "../src/model/gbdt.ts";
 
 const dump = {
@@ -41,5 +45,34 @@ describe("GbdtModel", () => {
     expect(() => new GbdtModel({ tree_info: [] })).toThrow(ModelLoadError);
     expect(() => new GbdtModel({ objective: "multiclass", num_class: 3, tree_info: dump.tree_info })).toThrow(ModelLoadError);
     expect(() => new GbdtModel({ tree_info: [{ tree_structure: { split_feature: 0, threshold: 1, decision_type: "==", left_child: { leaf_value: 1 }, right_child: { leaf_value: 0 } } }] })).toThrow(/categorical/);
+  });
+});
+
+describe("GbdtModel parity with LightGBM (exported fixture)", () => {
+  // Fixture produced by `python -m mf_common.cli make-parity-fixture` (LightGBM 4.7.0, synthetic data, no demo content).
+  const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "fixtures", "models", "contact_2s_parity");
+  const model = JSON.parse(readFileSync(join(dir, "model.json"), "utf8")) as LgbDump;
+  const parity = JSON.parse(readFileSync(join(dir, "parity_vectors.json"), "utf8")) as {
+    feature_names: string[];
+    tolerance: number;
+    vectors: { features: (number | null)[]; raw_score: number; probability: number }[];
+  };
+
+  it("loads the exported dump with the expected feature order", () => {
+    const m = new GbdtModel(model);
+    expect(m.featureNames).toEqual(parity.feature_names);
+    expect(parity.vectors.length).toBeGreaterThanOrEqual(32);
+  });
+
+  it("matches LightGBM raw scores and probabilities, including missing (NaN) features", () => {
+    const m = new GbdtModel(model);
+    let withMissing = 0;
+    for (const v of parity.vectors) {
+      const x = v.features.map((f) => (f === null ? Number.NaN : f));
+      if (v.features.includes(null)) withMissing++;
+      expect(Math.abs(m.raw(x) - v.raw_score)).toBeLessThanOrEqual(parity.tolerance);
+      expect(Math.abs(m.predict(x) - v.probability)).toBeLessThanOrEqual(parity.tolerance);
+    }
+    expect(withMissing).toBeGreaterThan(0);
   });
 });

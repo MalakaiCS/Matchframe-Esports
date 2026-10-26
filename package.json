@@ -2,7 +2,7 @@
   "name": "matchframe-esports",
   "version": "0.1.0",
   "private": true,
-  "description": "Matchframe Esports \u2014 Windows-first CS2 broadcast production manager, HUD system and intelligent observer/director.",
+  "description": "Matchframe Esports — Windows-first CS2 broadcast production manager, HUD system and intelligent observer/director.",
   "license": "UNLICENSED",
   "type": "module",
   "packageManager": "pnpm@10.28.0",
@@ -22,7 +22,9 @@
     "schemas": "tsx packages/contracts/scripts/generate-json-schema.ts",
     "package:win": "pnpm build && pnpm --filter @matchframe/desktop run package:win",
     "package:dir": "pnpm build && pnpm --filter @matchframe/desktop run package:dir",
-    "openapi": "tsx services/local-engine/scripts/generate-openapi.ts"
+    "openapi": "tsx services/local-engine/scripts/generate-openapi.ts",
+    "worker": "node scripts/run-python.mjs -m mf_common.cli",
+    "test:integration": "vitest run services/local-engine/test/demo-pipeline.integration.test.ts packages/obs-adapter"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

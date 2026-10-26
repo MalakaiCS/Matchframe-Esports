@@ -175,6 +175,9 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | GET | `/api/v1/training/runs` | training.manage |
 | GET | `/api/v1/models` | state.read |
 | POST | `/api/v1/models/:id/promote` | models.promote |
+| POST | `/api/v1/models/:id/shadow` | models.promote |
+| DELETE | `/api/v1/models/shadow` | models.promote |
+| GET | `/api/v1/models/shadow` | state.read |
 | GET | `/api/v1/stats/current` | state.read |
 | GET | `/api/v1/stats/current.csv` | state.read |
 | GET | `/api/v1/reports/broadcast` | state.read |
@@ -188,8 +191,6 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/integrations/matchframe/discover` | settings.manage |
 | POST | `/api/v1/integrations/matchframe/push-result` | metadata.write |
 | GET | `/api/v1/openapi.json` | public |
-
-`POST /api/v1/devices/actions/:action` needs `state.read` to reach the dispatcher; each action then checks its own permission (listed by `GET /api/v1/devices/actions`).
 
 ## WebSockets
 

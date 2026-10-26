@@ -8,6 +8,8 @@ import type { ArbiterEvent, ControlCapabilities, DirectorOutput, ObserverControl
 import { cameraShot, ControlArbiter, Director, parseShot, povShot } from "@matchframe/director-policy";
 import type { MapRegistry } from "@matchframe/map-runtime";
 import type { Logger } from "../logger.ts";
+import type { LiveContactModel } from "./model-runtime.ts";
+import { ShadowComparison } from "./model-runtime.ts";
 
 export interface SessionEvents {
   state: [MatchState];
@@ -65,6 +67,10 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   private stats = { packets: 0, rejected: 0, invalid: 0, cuts: 0, recommendations: 0, ingestMsTotal: 0, evalMsTotal: 0, evals: 0, maxIngestMs: 0, maxEvalMs: 0 };
   private ingestSamples: number[] = [];
   private evalSamples: number[] = [];
+  /** Optional learned model, evaluated in shadow only (never drives the camera). */
+  private shadowModel: LiveContactModel | null = null;
+  shadow = new ShadowComparison();
+  private lastShadowAt = -Infinity;
 
   constructor(private readonly opts: LiveSessionOptions) {
     super();
@@ -213,6 +219,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     const prev = this.lastState;
     const state = this.store.snapshot(receivedAtMonotonicMs);
     this.lastState = state;
+    this.shadowModel?.observe(state);
     if (result.epochChanged) this.arbiter.setTimeline(this.sessionId, state.epoch);
     // Observer feedback: confirms commands, detects human POV changes vs game auto-switch.
     const prevObserved = prev?.observer.observedSteamId ?? null;
@@ -278,6 +285,10 @@ export class LiveSession extends EventEmitter<SessionEvents> {
       this.emit("decision", output.decision);
     }
     this.lastEvaluatedSequence = s.sequence;
+    if (this.shadowModel && now - this.lastShadowAt >= 250) {
+      this.lastShadowAt = now;
+      this.shadow.record(now, s.roundNumber, this.shadowModel.predict(s, output.interactions));
+    }
     const intent = output.intent;
     if (!intent || this.director.currentMode === "shadow") return;
     if (intent.kind === "select_player") {
@@ -411,6 +422,15 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     const best = this.lastOutput?.candidates.find((c) => c.valid && parseShot(c.shotKey).kind === "pov");
     if (!best?.targetSteamId) return null;
     return this.manualSelectPlayer(best.targetSteamId, holder);
+  }
+
+  setShadowModel(model: LiveContactModel | null): void {
+    this.shadowModel = model;
+    this.shadow = new ShadowComparison();
+  }
+
+  get shadowModelId(): string | null {
+    return this.shadowModel?.id ?? null;
   }
 
   takeover(holder: string): void {

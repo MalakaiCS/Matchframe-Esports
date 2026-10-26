@@ -40,6 +40,13 @@
               "exclusiveMinimum": 0,
               "maximum": 9007199254740991
             },
+            "imageAssetId": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "source": {
               "type": "string",
               "enum": [
@@ -114,6 +121,13 @@
                     "type": "integer",
                     "exclusiveMinimum": 0,
                     "maximum": 9007199254740991
+                  },
+                  "imageAssetId": {
+                    "default": null,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "source": {
                     "type": "string",
@@ -700,6 +714,46 @@
         },
         "additionalProperties": {}
       }
+    },
+    "floorGrid": {
+      "default": null,
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "cellSize": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "cells": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              }
+            },
+            "source": {
+              "type": "string"
+            },
+            "sampleCount": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "cellSize",
+            "cells",
+            "source",
+            "sampleCount"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "coverage": {
       "default": [],

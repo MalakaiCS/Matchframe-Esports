@@ -31,6 +31,7 @@ import { LiveSession } from "./live/session.ts";
 import { TeamSideTracker } from "./live/team-sides.ts";
 import { Logger } from "./logger.ts";
 import { ProgramArbiter } from "./production/program.ts";
+import { TrainingService } from "./demos/training.ts";
 import { DemoLibrary, PythonWorkerRunner } from "./demos/library.ts";
 import { RoundSimulator } from "./sim/simulator.ts";
 
@@ -97,6 +98,7 @@ export class Engine {
   readonly outputs: OutputService;
   readonly demos: DemoLibrary;
   readonly workers: PythonWorkerRunner;
+  readonly training: TrainingService;
   readonly sponsorRotation = new SponsorRotation();
   readonly startedAt = new Date().toISOString();
   readonly now = () => performance.now();
@@ -174,6 +176,7 @@ export class Engine {
     this.registerBuiltinHud();
 
     this.workers = new PythonWorkerRunner(cfg.pythonPath, cfg.workersDir);
+    this.training = new TrainingService({ workers: this.workers, dataDir: cfg.dataDir, demoJobs: this.demoJobs, settings: this.settings, session: this.session, logger: this.logger });
     this.demos = new DemoLibrary(this.demoJobs, this.settings, this.workers, this.logger, cfg.dataDir, () => {
       const st = this.session.state();
       return !!st && !st.simulated && !st.sources[0]?.stale;
@@ -567,6 +570,8 @@ export class Engine {
     await this.applyObserverAdapter();
     this.session.start();
     this.demos.start();
+    const shadowIssue = this.training.restore();
+    if (shadowIssue) this.audit.record("system", "model.shadow_rejected", this.settings.get("models.shadowModelId", null), { reason: shadowIssue });
     // Restart always resumes in manual/disarmed mode until sources and ownership are validated.
     this.session.setMode("advisory");
     this.audit.record("system", "engine.start", null, { version: "0.1.0", migration: this.migration });

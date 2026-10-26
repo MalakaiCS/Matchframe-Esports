@@ -65,18 +65,7 @@
       },
       "additionalProperties": {
         "type": "string"
-      },
-      "required": [
-        "live",
-        "compact",
-        "replay",
-        "veto",
-        "pre-match",
-        "break",
-        "post-map",
-        "post-series",
-        "studio"
-      ]
+      }
     },
     "preview": {
       "default": null,

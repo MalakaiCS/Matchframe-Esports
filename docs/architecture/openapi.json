@@ -7723,7 +7723,9 @@
                   "task": {
                     "default": "contact_2s",
                     "type": "string",
-                    "pattern": "^[a-z0-9_]+$"
+                    "enum": [
+                      "contact_2s"
+                    ]
                   },
                   "datasets": {
                     "minItems": 1,
@@ -7736,10 +7738,7 @@
                     "default": false,
                     "type": "boolean"
                   }
-                },
-                "required": [
-                  "datasets"
-                ]
+                }
               }
             }
           }
@@ -7849,7 +7848,7 @@
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "object",
                 "properties": {
-                  "status": {
+                  "to": {
                     "type": "string",
                     "enum": [
                       "shadow",
@@ -7858,13 +7857,116 @@
                       "retired",
                       "rolled_back"
                     ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 500
                   }
                 },
                 "required": [
-                  "status"
+                  "to",
+                  "reason"
                 ]
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/models/{id}/shadow": {
+      "post": {
+        "operationId": "post_api_v1_models_id_shadow",
+        "summary": "POST /api/v1/models/:id/shadow",
+        "description": "Requires permission `models.promote`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/models/shadow": {
+      "delete": {
+        "operationId": "delete_api_v1_models_shadow",
+        "summary": "DELETE /api/v1/models/shadow",
+        "description": "Requires permission `models.promote`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      },
+      "get": {
+        "operationId": "get_api_v1_models_shadow",
+        "summary": "GET /api/v1/models/shadow",
+        "description": "Requires permission `state.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
           }
         }
       }
