@@ -227,7 +227,7 @@ export function DirectorScreen() {
   return (
     <div className="page">
       <div className="page-head">
-        <h1 className="page-title">Director</h1>
+        <h1 className="page-title">Auto Director</h1>
         <Link to="/live" className="btn btn-primary btn-md">
           Operate in Live Control
         </Link>

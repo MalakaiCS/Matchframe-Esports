@@ -2,17 +2,15 @@ import type { ReactNode } from "react";
 import { api } from "../api/index.ts";
 import { CONTROL_HEALTH_TEXT, ownershipView } from "../lib/ownership.ts";
 import { MODE_INFO, OBSERVER_MODE_INFO } from "../lib/director.ts";
-import { fmtHours, fmtMs } from "../lib/format.ts";
-import { gateView } from "../lib/cloud.ts";
+import { fmtMs } from "../lib/format.ts";
 import { liveStore, reconnectLive, useLive, useNow } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
-import { Link } from "../router.tsx";
-import { Logo, Icon } from "./icons.tsx";
-import { ActionButton, Badge, Button, StatusDot } from "./ui.tsx";
+import { Icon } from "./icons.tsx";
+import { ActionButton, Button, StatusDot } from "./ui.tsx";
 import type { Tone } from "./ui.tsx";
 
 /** One compact status pill: a coloured dot plus a few words; the detail lives in the tooltip. */
-function Pill({ dot, tone = "neutral", title, children, className = "", ...data }: { dot: Tone; tone?: Tone; title?: string; children: ReactNode; className?: string; [data: `data-${string}`]: string }) {
+export function Pill({ dot, tone = "neutral", title, children, className = "", ...data }: { dot: Tone; tone?: Tone; title?: string; children: ReactNode; className?: string; [data: `data-${string}`]: string }) {
   return (
     <div className={`chip tone-${tone} ${className}`} title={title} {...data}>
       <StatusDot tone={dot} />
@@ -21,15 +19,41 @@ function Pill({ dot, tone = "neutral", title, children, className = "", ...data 
   );
 }
 
-const sentence = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
-
 export const STOP_SHORTCUT_LABEL = "F8";
 
 export async function emergencyStop(): Promise<unknown> {
   return api.post("/api/v1/observer/emergency-stop");
 }
 
-export function TopBar({ onToggleNav }: { onToggleNav: () => void }) {
+/** Games in the selector: CS2 today; the others are listed so operators can see what is coming. */
+export const GAMES: { id: string; label: string; available: boolean }[] = [
+  { id: "cs2", label: "Counter-Strike 2", available: true },
+  { id: "valorant", label: "Valorant", available: false },
+  { id: "dota2", label: "Dota 2", available: false },
+  { id: "lol", label: "League of Legends", available: false },
+  { id: "rl", label: "Rocket League", available: false },
+];
+
+function GameSelect() {
+  return (
+    <label className="toolbar-game" title="Matchframe supports Counter-Strike 2. Other games are listed but not available yet.">
+      <span className="sr-only">Game</span>
+      <select value="cs2" onChange={() => undefined} aria-label="Game">
+        {GAMES.map((g) => (
+          <option key={g.id} value={g.id} disabled={!g.available}>
+            {g.available ? g.label : `${g.label} (not available yet)`}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/**
+ * Top toolbar: the current page, the game, the game-data connection, which data is active (live,
+ * the labelled test simulation, or none), the Observer state and Stop automation.
+ */
+export function TopBar({ crumbs = [] }: { crumbs?: string[] }) {
   const status = useLive((s) => s.status);
   const info = useLive((s) => s.info);
   const snap = useLive((s) => s.snapshot);
@@ -43,7 +67,7 @@ export function TopBar({ onToggleNav }: { onToggleNav: () => void }) {
   const age = state ? liveStore.clock.ageOf(state.time.receivedAtMonotonicMs, now) : null;
   const feedStale = status === "open" && snapshotAt > 0 && now - snapshotAt > 3000;
 
-  // Console link first; once it is up, the pill reports the game data instead.
+  // Console link first; once it is up, the pill reports the game-data connection instead.
   const [linkTone, linkText]: [Tone, string] =
     status === "connecting"
       ? ["info", "Connecting…"]
@@ -55,46 +79,38 @@ export function TopBar({ onToggleNav }: { onToggleNav: () => void }) {
             ? ["danger", "Offline"]
             : feedStale
               ? ["warn", "Console feed stale"]
-              : !src
-                ? ["neutral", "Waiting for CS2"]
-                : src.stale
-                  ? ["danger", "CS2 data stale"]
-                  : ["ok", "Live data"];
+              : snap?.simulated
+                ? ["sim", "Simulation feed"]
+                : !src
+                  ? ["neutral", "Waiting for CS2"]
+                  : src.stale
+                    ? ["danger", "CS2 data stale"]
+                    : ["ok", "CS2 connected"];
   const linkTitle = [
     status === "open" ? "Console connected to the engine." : (info.lastError ?? "Console not connected to the engine."),
     src ? `Telemetry ${src.stale ? "stale" : "fresh"}: ${src.packetsReceived} packets, build ${src.gameBuild ?? "?"}, age ${age === null ? "?" : fmtMs(age)}; ${src.packetsRejected} rejected, ${src.sequenceGaps} gaps.` : "No CS2 game state received yet.",
   ].join(" ");
+
+  const dataMode: "test" | "live" | "none" = snap?.simulated ? "test" : src && !src.stale ? "live" : "none";
 
   const health = snap?.director?.controlHealth ?? null;
   const healthInfo = health ? CONTROL_HEALTH_TEXT[health] : null;
   const own = ownershipView(snap?.ownership, snap?.resumeInMs);
   const modeLabel = !snap ? "Observer" : snap.mode === "advisory" || snap.mode === "automatic" || snap.mode === "assisted" ? (snap.observerMode === "off" ? "Observer off" : OBSERVER_MODE_INFO[snap.observerMode].label) : MODE_INFO[snap.mode].label;
   const ownTone: Tone = own.kind === "manual" || own.kind === "unknown" ? "neutral" : own.tone;
-  const obs = snap?.obs;
-  const program = snap?.program;
-  const gate = snap?.cloud ? gateView(snap.cloud.gate, snap.cloud.enforcement) : null;
 
   return (
     <header className="topbar">
-      <div className="topbar-brand">
-        <button className="icon-btn nav-toggle" aria-label="Toggle navigation" onClick={onToggleNav}>
-          <Icon name="menu" />
-        </button>
-        <Link to="/" className="brand-link" aria-label="Matchframe Operator — Overview">
-          <Logo />
-          <span className="brand-text">
-            <span className="brand-name">Matchframe</span>
-            <span className="brand-sub">Operator</span>
+      <div className="topbar-page" aria-label="Current page">
+        {crumbs.map((c, i) => (
+          <span key={i} className={i === crumbs.length - 1 ? "crumb crumb-current" : "crumb"}>
+            {c}
           </span>
-        </Link>
+        ))}
       </div>
 
       <div className="topbar-status">
-        {snap?.simulated ? (
-          <Badge tone="sim" icon="◆" title="The labelled simulation is running: synthetic data on a synthetic map. It does not certify any real integration." className="badge-lg">
-            SIMULATION
-          </Badge>
-        ) : null}
+        <GameSelect />
         <Pill dot={linkTone} tone={linkTone === "danger" || linkTone === "warn" ? linkTone : "neutral"} title={linkTitle} data-link={status}>
           {linkText}
           {status === "reconnecting" || status === "closed" ? (
@@ -103,6 +119,23 @@ export function TopBar({ onToggleNav }: { onToggleNav: () => void }) {
             </button>
           ) : null}
         </Pill>
+        {dataMode === "test" ? (
+          <Pill dot="sim" tone="sim" title="Test data: the labelled simulation is running (synthetic data on a synthetic map). It does not certify any real integration." className="chip-data" data-data="test">
+            <span className="chip-strong">Test data</span>
+            <span className="chip-meta">SIMULATION</span>
+          </Pill>
+        ) : dataMode === "live" ? (
+          <Pill dot="ok" title="Live data from CS2 game state integration." className="chip-data" data-data="live">
+            <span className="chip-strong">Live data</span>
+          </Pill>
+        ) : (
+          <Pill dot="neutral" title="No game data is arriving. Connect CS2 in Settings → Setup, or run test data from the HUD Library." className="chip-data" data-data="none">
+            <span className="chip-meta">No data</span>
+          </Pill>
+        )}
+      </div>
+
+      <div className="topbar-stop">
         <Pill dot={ownTone} tone={own.kind === "emergency" || own.kind === "resuming" ? own.tone : "neutral"} title={`${own.detail}${healthInfo ? ` Control: ${healthInfo.text.toLowerCase()}. ${healthInfo.hint}` : ""}`} className="chip-ownership">
           <span className="chip-strong">{modeLabel}</span>
           <span className="chip-meta">{own.badge}</span>
@@ -127,31 +160,6 @@ export function TopBar({ onToggleNav }: { onToggleNav: () => void }) {
             </ActionButton>
           ) : null}
         </Pill>
-        {snap?.cloud && gate ? (
-          <Link to="/account" className="chip-link" aria-label="Auto-director hours — open Account">
-            <Pill dot={gate.tone === "sim" ? "info" : gate.tone} tone={gate.tone === "danger" ? "danger" : "neutral"} title={snap.cloud.gate.ok ? (snap.cloud.metering ? "The Observer is directing and using hours" : `Automatic direction: ${gate.text.toLowerCase()}`) : snap.cloud.gate.reason}>
-              {snap.cloud.gate.ok && snap.cloud.remainingSeconds !== null ? (
-                <>
-                  <span className="chip-strong">{fmtHours(Math.max(0, snap.cloud.remainingSeconds))}</span>
-                  <span className="chip-meta">left{snap.cloud.metering ? " · in use" : ""}</span>
-                </>
-              ) : (
-                gate.text
-              )}
-            </Pill>
-          </Link>
-        ) : null}
-        <Pill
-          dot={!obs ? "neutral" : !obs.connected ? "warn" : program?.mode === "DEGRADED" ? "danger" : "ok"}
-          tone={program?.mode === "DEGRADED" ? "danger" : "neutral"}
-          title={[obs ? (obs.connected ? `OBS connected · program scene ${obs.programScene ?? "none"}` : `OBS not connected${obs.lastError ? `: ${obs.lastError}` : ""}`) : "OBS status unknown", program ? `Program mode ${program.mode.replace("_", " ").toLowerCase()} (owner ${program.owner.kind}, ${program.owner.holder})` : ""].filter(Boolean).join(". ")}
-        >
-          <span className="chip-strong">OBS</span>
-          <span className="chip-meta">{!obs ? "—" : obs.connected ? (program ? sentence(program.mode.replace("_", " ")) : "Connected") : "Offline"}</span>
-        </Pill>
-      </div>
-
-      <div className="topbar-stop">
         <ActionButton
           variant="danger"
           className="btn-stop"

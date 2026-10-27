@@ -412,7 +412,7 @@ function ProductionPanel({ snap }: { snap: OperatorSnapshot }) {
       <KV
         items={[
           ["Program", <span key="p" title={`Owner: ${snap.program.owner.kind}`}>{titleCase(snap.program.mode.replace("_", " ").toLowerCase())}</span>],
-          ["OBS", snap.obs.connected ? `${snap.obs.programScene ?? MISSING} (preview ${snap.obs.previewScene ?? MISSING})${snap.obs.studioMode ? " · studio mode" : ""}` : <Link key="o" to="/devices">Not connected — connect in Devices</Link>],
+          ["OBS", snap.obs.connected ? `${snap.obs.programScene ?? MISSING} (preview ${snap.obs.previewScene ?? MISSING})${snap.obs.studioMode ? " · studio mode" : ""}` : <Link key="o" to="/settings/devices">Not connected — connect in Settings → Devices</Link>],
           ["Replays", prov ? <span key="r" title={prov.health.detail}>{prov.health.ok ? "Ready" : `Not ready — ${prov.health.detail}`} · {approved} approved</span> : replays.data ? <Link key="r" to="/replays">No replay provider set up</Link> : MISSING],
           ["Outputs", `Recording ${onOff(snap.obs.recording)} · streaming ${onOff(snap.obs.streaming)} · replay buffer ${onOff(snap.obs.replayBuffer)}`],
         ]}
@@ -518,7 +518,7 @@ export function LiveControlScreen() {
           title="No game data yet"
           action={
             <>
-              <Link to="/setup" className="btn btn-primary btn-md">
+              <Link to="/settings/setup" className="btn btn-primary btn-md">
                 Open Setup
               </Link>{" "}
               <ActionButton action={() => api.post("/api/v1/simulation/start", { startOffsetSec: 25 })} success="Simulation started (labelled synthetic data)">
@@ -565,7 +565,7 @@ export function LiveControlScreen() {
       <MatchHeader snap={snap} />
       {cardReason ? (
         <Note tone="warn" title="POV control unavailable">
-          {cardReason}. Cards still show telemetry. <Link to="/setup">Open Setup</Link>
+          {cardReason}. Cards still show telemetry. <Link to="/settings/setup">Open Setup</Link>
         </Note>
       ) : null}
       <div className="live-grid">

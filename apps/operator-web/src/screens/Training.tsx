@@ -102,7 +102,7 @@ function Runs() {
           </fieldset>
         ) : (
           <p className="small muted">
-            No committed datasets yet{jobs.error ? ` (${jobs.error})` : ""}. Import and process demos in the <Link to="/demos">Demo Library</Link> first.
+            No committed datasets yet{jobs.error ? ` (${jobs.error})` : ""}. Import and process demos in the <Link to="/director/demos">Demo Library</Link> first.
           </p>
         )}
         <Checkbox checked={allowLive} onChange={setAllowLive} label="Allow while a live broadcast is running" />

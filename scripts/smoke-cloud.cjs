@@ -1,5 +1,5 @@
 // Helpers for the program smoke tests: a local Matchframe website (cloud API from source, in-memory
-// database) with verified accounts, and signing in through the program's sign-in screen.
+// database) with verified accounts, and signing in under the program's Settings → Account.
 const { spawn } = require("node:child_process");
 const { join } = require("node:path");
 
@@ -50,13 +50,18 @@ async function startCloud({ repo, port }) {
   return { base, keys, account, stop: () => child.kill("SIGTERM"), log: () => log };
 }
 
-/** Fills in the program's sign-in screen and waits for the console. */
-async function signInThroughGate(win, email, password) {
-  await waitFor(() => win.evaluate(() => document.body.innerText.includes("Sign in to Matchframe")), 90000);
+/**
+ * Signs in under Settings → Account (signing in is optional: the program opens into the HUD
+ * Library) and waits until this computer is signed in.
+ */
+async function signInThroughAccount(win, email, password) {
+  await win.click('a[data-nav="settings"]');
+  await win.click('.section-link:has-text("Account")');
+  await waitFor(() => win.evaluate(() => !!document.querySelector('input[type="email"]')), 30000);
   await win.fill('input[type="email"]', email);
   await win.fill('input[type="password"]', password);
-  await win.click('button[type="submit"]');
-  await waitFor(() => win.evaluate(() => document.querySelectorAll("nav a").length > 5), 60000);
+  await win.click('button[type="submit"]:has-text("Sign in")');
+  await waitFor(() => win.evaluate(() => [...document.querySelectorAll("button")].some((b) => b.textContent.trim() === "Sign out")), 60000);
 }
 
-module.exports = { startCloud, signInThroughGate, waitFor };
+module.exports = { startCloud, signInThroughAccount, waitFor };

@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
-import { api, ApiError, describeError, NetworkError } from "../api/index.ts";
+import { api, ApiError, describeError } from "../api/index.ts";
 import type { CloudLoginOrg, CloudLoginResult, CloudStatus } from "../api/types.ts";
 import { fmtTime } from "../lib/format.ts";
 import { can } from "../lib/permissions.ts";
-import { BrandBadge } from "./icons.tsx";
-import { Button, Field, Loading, Note } from "./ui.tsx";
+import { Link } from "../router.tsx";
+import { Button, Field, Note } from "./ui.tsx";
 
 /** Messages from the website arrive as sentences; network and engine problems get the usual explanation. */
 function signInError(e: unknown): string {
@@ -212,162 +211,67 @@ export function SignInForm({ status, onSignedIn, onChange, autoFocus = false }: 
         <a href={websiteLink(status, "/signup")} target="_blank" rel="noreferrer">
           Create one on the website
         </a>{" "}
-        · <button type="button" className="link-button" onClick={() => setUseCode(true)} title="Approve this computer on the website with a short code instead of a password">Sign in with a code</button>
+        · <button type="button" className="link-btn" onClick={() => setUseCode(true)} title="Approve this computer on the website with a short code instead of a password">Sign in with a code</button>
       </p>
     </form>
   );
 }
 
-function GateCard({ children }: { children: ReactNode }) {
-  return (
-    <div className="gate">
-      <div className="gate-card signin-card">
-        <div className="gate-brand gate-brand-badge">
-          <BrandBadge />
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
+/** States in which this computer counts as signed in (or does not need to be). */
 const PASSES = new Set(["not_required", "signed_in"]);
+/** States that mean the sign-in was lost after it had worked in this session. */
+const LOST = new Set(["signed_out", "revoked", "offline_expired", "invalid"]);
 
 /**
- * The program asks to sign in to a Matchframe account when it opens (release builds). Once past
- * this screen it is never locked again while open: being signed out on the website mid-broadcast
- * only shows a notice (the camera and HUDs keep running), and the next start asks to sign in again.
+ * Sign-in is optional: the program opens straight into the HUD Library, and the library and HUD
+ * runtime work offline without an account. Only the Auto Director needs one (the engine's arming gate
+ * enforces it; the sidebar marks it). Sign in under Settings → Account. When this computer is signed
+ * out on the website mid-session, a non-blocking notice says so; nothing is ever locked.
  */
-export function SignInGate({ role, children }: { role: string | null; children: (notice: ReactNode) => ReactNode }) {
+export function SignInNotice({ role }: { role: string | null }) {
   const [status, setStatus] = useState<CloudStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [unlocked, setUnlocked] = useState(false);
+  const [wasSignedIn, setWasSignedIn] = useState(false);
   const refreshed = useRef(false);
 
   const load = useCallback(async () => {
     try {
       const st = await api.get<CloudStatus>("/api/v1/cloud/status");
       setStatus(st);
-      setError(null);
-      if (PASSES.has(st.signIn.state)) setUnlocked(true);
       return st;
-    } catch (e) {
-      setError(describeError(e));
+    } catch {
       return null;
-    }
-  }, []);
-
-  const refresh = useCallback(async () => {
-    try {
-      const st = await api.post<CloudStatus>("/api/v1/cloud/refresh");
-      setStatus(st);
-      if (PASSES.has(st.signIn.state)) setUnlocked(true);
-    } catch (e) {
-      setError(e instanceof NetworkError ? describeError(e) : signInError(e));
     }
   }, []);
 
   useEffect(() => {
     void load().then((st) => {
-      // Signed in but no licence yet (e.g. first start after an update): check online once.
+      // Signed in but no licence check yet (e.g. first start after an update): check online once, in the background.
       if (st && st.signIn.state === "unchecked" && !refreshed.current && can(role, "settings.manage")) {
         refreshed.current = true;
-        void refresh();
+        api
+          .post<CloudStatus>("/api/v1/cloud/refresh")
+          .then(setStatus)
+          .catch(() => undefined);
       }
     });
-  }, [load, refresh, role]);
+  }, [load, role]);
 
-  // Poll while the gate is shown (a code approved on the website); slowly afterwards for the notice.
   useEffect(() => {
-    const t = setInterval(() => void load(), unlocked ? 30_000 : 3000);
+    const t = setInterval(() => void load(), 30_000);
     return () => clearInterval(t);
-  }, [load, unlocked]);
+  }, [load]);
 
-  if (unlocked) {
-    const st = status?.signIn.state;
-    const notice =
-      status && st && !PASSES.has(st) ? (
-        <Note tone="warn" title={st === "offline_expired" ? "Matchframe needs to go online" : "Signed out of Matchframe"}>
-          {st === "offline_expired"
-            ? "Everything keeps running until you close the program. Connect to the internet so the next start does not ask you to sign in."
-            : `${status.lastError ? `${status.lastError.charAt(0).toUpperCase()}${status.lastError.slice(1)}. ` : ""}Everything keeps running until you close the program. Sign in again under Account.`}
-        </Note>
-      ) : null;
-    return <>{children(notice)}</>;
-  }
+  const st = status?.signIn.state;
+  useEffect(() => {
+    if (st && PASSES.has(st) && st !== "not_required") setWasSignedIn(true);
+  }, [st]);
 
-  if (!status)
-    return (
-      <GateCard>
-        {error ? (
-          <>
-            <Note tone="danger" title="Cannot read the sign-in state">
-              {error}
-            </Note>
-            <div>
-              <Button variant="primary" onClick={() => void load()}>
-                Try again
-              </Button>
-            </div>
-          </>
-        ) : (
-          <Loading label="Checking your Matchframe sign-in…" />
-        )}
-      </GateCard>
-    );
-
-  const st = status.signIn.state;
-  if (!can(role, "settings.manage"))
-    return (
-      <GateCard>
-        <h1 className="signin-title">The production computer is not signed in</h1>
-        <p>Sign in to Matchframe on the production computer first; this program is connected to it.</p>
-        <div className="row">
-          <Button variant="primary" onClick={() => void load()}>
-            Check again
-          </Button>
-          {window.matchframe?.openConnection ? <Button onClick={() => void window.matchframe!.openConnection!()}>Connection settings</Button> : null}
-        </div>
-      </GateCard>
-    );
-
-  const user = status.signIn.user;
-  if (st === "offline_expired" || st === "unchecked" || st === "invalid")
-    return (
-      <GateCard>
-        <h1 className="signin-title">{st === "offline_expired" ? "Matchframe needs to go online" : "Checking your sign-in"}</h1>
-        <p>
-          {st === "offline_expired"
-            ? `Matchframe works offline for ${status.entitlement ? `up to ${Math.round((Date.parse(status.entitlement.graceUntil) - Date.parse(status.entitlement.issuedAt)) / 86_400_000)} days` : "a limited time"} after its last check. Connect this computer to the internet and try again.`
-            : "Your sign-in has to be confirmed by the Matchframe website once. Make sure this computer is online."}
-        </p>
-        {user ? (
-          <p className="muted">
-            Signed in as <strong>{user.displayName}</strong> ({user.email}){status.device ? ` · ${status.device.orgName}` : ""}
-          </p>
-        ) : null}
-        {status.lastError ? <Note tone="warn">{status.lastError}</Note> : null}
-        {error ? <Note tone="danger">{error}</Note> : null}
-        <div className="row">
-          <Button variant="primary" onClick={() => void refresh()}>
-            Try again
-          </Button>
-          <Button onClick={() => void api.post("/api/v1/cloud/unlink").then(load)}>Sign in as someone else</Button>
-        </div>
-      </GateCard>
-    );
-
+  if (!status || !st || !wasSignedIn || !LOST.has(st)) return null;
+  const lastError = status.lastError ? `${status.lastError.charAt(0).toUpperCase()}${status.lastError.slice(1)}. ` : "";
   return (
-    <GateCard>
-      <h1 className="signin-title">Sign in to Matchframe</h1>
-      <p className="muted">Use your Matchframe website account.</p>
-      {st === "revoked" ? (
-        <Note tone="warn" title="You were signed out">
-          {status.lastError ? `${status.lastError.charAt(0).toUpperCase()}${status.lastError.slice(1)}.` : "This computer was signed out on the website."} Sign in again to continue.
-        </Note>
-      ) : null}
-      <SignInForm status={status} onSignedIn={() => void load()} onChange={() => void load()} autoFocus />
-      <p className="gate-foot">Your password is never stored on this computer. Matchframe works offline for up to 7 days after each check.</p>
-    </GateCard>
+    <Note tone="warn" title={st === "offline_expired" ? "Matchframe needs to go online" : "Signed out of Matchframe"}>
+      {st === "offline_expired" ? "Connect to the internet to keep using the Auto Director. " : lastError}
+      The HUD Library, HUDs and manual control keep working. {st === "offline_expired" ? null : <>The Auto Director needs you to sign in again under <Link to="/settings/account">Settings → Account</Link>.</>}
+    </Note>
   );
 }

@@ -105,12 +105,12 @@ export function EventsScreen() {
   return (
     <div className="page">
       <div className="page-head">
-        <h1 className="page-title">Events</h1>
+        <h1 className="page-title">Tournaments</h1>
         <Button variant={creating ? "secondary" : "primary"} onClick={() => setCreating(!creating)}>
           {creating ? "Cancel" : "New event"}
         </Button>
       </div>
-      <p className="page-intro">An event sets the branding and default map pool that its matches and HUDs use.</p>
+      <p className="page-intro">Tournaments and other events. An event sets the branding and default map pool that its matches and HUDs use.</p>
       {creating ? (
         <Panel title="New event">
           <EventForm

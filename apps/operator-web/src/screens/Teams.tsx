@@ -607,25 +607,34 @@ function ImportTab() {
 }
 
 export function TeamsScreen() {
-  const [tab, setTab] = usePersistentState<"teams" | "players" | "import">("teamsTab", "teams");
+  const [stored, setTab] = usePersistentState<"teams" | "players" | "import">("teamsTab", "teams");
+  const tab = stored === "import" ? "import" : "teams";
   return (
     <div className="page">
       <div className="page-head">
-        <h1 className="page-title">Teams &amp; Players</h1>
+        <h1 className="page-title">Teams</h1>
       </div>
       <Tabs
-        label="Teams and players"
+        label="Teams"
         value={tab}
         onChange={setTab}
         tabs={[
           { id: "teams", label: "Teams" },
-          { id: "players", label: "Players" },
-          { id: "import", label: "Import" },
+          { id: "import", label: "Import roster" },
         ]}
       />
-      {tab === "teams" ? <TeamsTab /> : null}
-      {tab === "players" ? <PlayersTab /> : null}
-      {tab === "import" ? <ImportTab /> : null}
+      {tab === "teams" ? <TeamsTab /> : <ImportTab />}
+    </div>
+  );
+}
+
+export function PlayersScreen() {
+  return (
+    <div className="page">
+      <div className="page-head">
+        <h1 className="page-title">Players</h1>
+      </div>
+      <PlayersTab />
     </div>
   );
 }

@@ -26,6 +26,7 @@ import { Database } from "./db/database.ts";
 import { AuditRepo, DemoJobRepo, DocumentRepo, MapInstanceRepo, RosterRepo, SettingsRepo, SteamIndexRepo, VetoRepo } from "./db/store.ts";
 import { SponsorRotation, zoneAllowed } from "./domain/sponsors.ts";
 import { VetoService } from "./domain/veto.ts";
+import { HudLibraryService, libraryHudId, libraryOutputId } from "./hud/library.ts";
 import { HudPackageManager } from "./hud/packages.ts";
 import { OutputService } from "./hud/outputs.ts";
 import { DelayBuffer } from "./live/delay.ts";
@@ -103,6 +104,8 @@ export class Engine {
   readonly ruleEngine: RuleEngine;
   readonly hudPackages: HudPackageManager;
   readonly outputs: OutputService;
+  /** HUD Library (ADR-020): installed HUDs, per-HUD settings and runtime control. */
+  readonly hudLibrary: HudLibraryService;
   readonly demos: DemoLibrary;
   readonly workers: PythonWorkerRunner;
   readonly training: TrainingService;
@@ -207,6 +210,11 @@ export class Engine {
     this.hudPackages = new HudPackageManager(this.db, join(cfg.dataDir, "huds"));
     this.outputs = new OutputService(this.db, this.settings);
     this.registerBuiltinHud();
+    this.hudLibrary = new HudLibraryService({ db: this.db, settings: this.settings, packages: this.hudPackages, outputs: this.outputs, logger: this.logger, hudsDir: join(cfg.dataDir, "huds"), hudRendererDir: cfg.hudRendererDir, overlayPort: cfg.overlayPort });
+    // Settings (and installed version) changes push a new snapshot to every output of that HUD.
+    this.hudLibrary.onChange((ev) => {
+      if (ev.type === "settings") for (const fn of this.hudListeners) fn(libraryOutputId(ev.hudId));
+    });
 
     this.workers = new PythonWorkerRunner(cfg.pythonPath, cfg.workersDir);
     this.training = new TrainingService({ workers: this.workers, dataDir: cfg.dataDir, demoJobs: this.demoJobs, settings: this.settings, session: this.session, logger: this.logger });
@@ -304,7 +312,15 @@ export class Engine {
         { id: "minimal", name: "Matchframe Minimal" },
         { id: "arena", name: "Matchframe Arena" },
       ],
-      settingsSchema: {},
+      settingsSchema: {
+        "hide.scoreboard": { type: "boolean", label: "Hide scoreboard", default: false, group: "Elements" },
+        "hide.radar": { type: "boolean", label: "Hide radar", default: false, group: "Elements" },
+        "hide.killfeed": { type: "boolean", label: "Hide kill feed", default: false, group: "Elements" },
+        "hide.players": { type: "boolean", label: "Hide player panels", default: false, group: "Elements" },
+        "hide.observed": { type: "boolean", label: "Hide observed player", default: false, group: "Elements" },
+        "hide.history": { type: "boolean", label: "Hide round history", default: false, group: "Elements" },
+        reducedMotion: { type: "boolean", label: "Reduced motion", description: "Fewer animations and transitions.", default: false, group: "Display" },
+      },
       resolutions: ["1920x1080", "2560x1440", "3840x2160"],
       classification: "builtin",
     };
@@ -415,20 +431,33 @@ export class Engine {
     return `/assets/${encodeURIComponent(assetId)}`;
   }
 
-  /** Public HUD state for a published output on its presentation timeline. */
+  /**
+   * Public HUD state for a published output on its presentation timeline. Library outputs
+   * (`hud:<id>`) use the live timeline (no delay), the HUD's own settings and preset, and the
+   * program profile.
+   */
   hudState(outputId: string, variantOverride?: string): HudState | null {
-    const pub = this.outputs.published(outputId);
-    if (!pub) return null;
-    const d = pub.data;
     const now = this.now();
     let state: MatchState | null = this.session.state() ? this.session.stateAt(now) : null;
-    if (d.timelineProfile === "delayed" && d.delayMs > 0) {
-      const buf = this.delayBuffers.get(outputId);
-      const hit = buf?.at(now, d.delayMs) ?? null;
-      // Until the delay buffer has filled, show nothing rather than ahead-of-program data.
-      state = hit ? hit.value : null;
+    let ctx: HudContext;
+    const hudId = libraryHudId(outputId);
+    if (hudId !== null) {
+      const lib = this.hudLibrary.runtimeConfig(hudId);
+      if (!lib) return null;
+      const variant = variantOverride && (lib.variants as string[]).includes(variantOverride) ? variantOverride : lib.variants.includes("live") ? "live" : (lib.variants[0] ?? "live");
+      ctx = this.hudContext(outputId, variant, lib.presetId, { profile: "live", delayMs: 0 }, lib.settings, "program");
+    } else {
+      const pub = this.outputs.published(outputId);
+      if (!pub) return null;
+      const d = pub.data;
+      if (d.timelineProfile === "delayed" && d.delayMs > 0) {
+        const buf = this.delayBuffers.get(outputId);
+        const hit = buf?.at(now, d.delayMs) ?? null;
+        // Until the delay buffer has filled, show nothing rather than ahead-of-program data.
+        state = hit ? hit.value : null;
+      }
+      ctx = this.hudContext(outputId, variantOverride ?? d.variant, d.presetId, { profile: d.timelineProfile, delayMs: d.delayMs }, d.settings, d.profile);
     }
-    const ctx = this.hudContext(outputId, variantOverride ?? d.variant, d.presetId, { profile: d.timelineProfile, delayMs: d.delayMs }, d.settings, d.profile);
     const hud = buildHudState(state, ctx, this.sides, now);
     // Round history winners recorded at round end with the side assignment at that time.
     for (const r of hud.roundHistory) if (r.winner === null) r.winner = this.roundWinnersLR.get(r.roundNumber) ?? null;
@@ -691,6 +720,7 @@ export class Engine {
   // ---------------------------------------------------------------------------- lifecycle
 
   async init(): Promise<void> {
+    this.hudLibrary.installSamples(this.cfg.sampleHudsDirs);
     this.configureReplay();
     await this.applyObserverAdapter();
     this.session.start();

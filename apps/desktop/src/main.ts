@@ -1,9 +1,15 @@
 import { fork, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { extname, join, resolve, sep } from "node:path";
+import { delimiter, extname, join, resolve, sep } from "node:path";
 import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, net, protocol, safeStorage, shell } from "electron";
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron";
+import { HotkeyManager } from "./hud/hotkeys.ts";
+import { registerHudIpc } from "./hud/ipc.ts";
+import { OverlayManager } from "./hud/overlays.ts";
+import { OverlayStore } from "./hud/store.ts";
+import type { Library } from "./hud/types.ts";
+import { createTray, type ProgramTray } from "./tray.ts";
 
 /**
  * Matchframe Esports program (Windows desktop app). The operator console is bundled into the
@@ -12,6 +18,10 @@ import type { IpcMainEvent, IpcMainInvokeEvent } from "electron";
  * (local mode) or the one on the production computer (remote mode, for multi-PC productions). The
  * renderer never gets Node access; a narrow preload bridge exposes a few calls. A restarted engine
  * never issues scene or camera commands (it starts in manual/disarmed mode by design).
+ *
+ * Desktop HUDs (hud/overlays.ts) are separate transparent windows over the game; they keep running
+ * while the manager window is minimised or closed to the tray. Quitting closes them all and waits
+ * for the engine (and so the HUD server) to stop.
  */
 
 const isDev = !app.isPackaged;
@@ -23,6 +33,13 @@ const EMERGENCY_HOTKEY = process.env.MATCHFRAME_STOP_HOTKEY ?? "CommandOrControl
 /** Engine data folder; the program's own settings (credential key, connection, browser storage) live in its `program` subfolder. */
 const dataDir = () => process.env.MATCHFRAME_DATA_DIR ?? join(app.getPath("appData"), "Matchframe Esports");
 app.setPath("userData", join(dataDir(), "program"));
+
+// HUD outputs must keep animating and receiving data while the manager is minimised or covered by
+// the game: no background throttling of timers, renderers or occluded windows.
+app.commandLine.appendSwitch("disable-renderer-backgrounding");
+app.commandLine.appendSwitch("disable-background-timer-throttling");
+app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
+app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion");
 
 // Must run before the app is ready: a standard, secure scheme with fetch support for the console.
 protocol.registerSchemesAsPrivileged([{ scheme: "app", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
@@ -36,12 +53,19 @@ let connection: Connection = { mode: "local" };
 let win: BrowserWindow | null = null;
 let restarts = 0;
 let quitting = false;
+let engineStopped = false;
+let overlays: OverlayManager | null = null;
+let hotkeys: HotkeyManager | null = null;
+let tray: ProgramTray | null = null;
 
 function resourcesPath(...p: string[]): string {
   return isDev ? join(app.getAppPath(), "..", "..", ...p) : join(process.resourcesPath, ...p);
 }
 
 const consoleDir = () => resourcesPath(isDev ? "apps/operator-web/dist" : "operator-web");
+const iconFile = () => (isDev ? join(app.getAppPath(), "build", "icon.png") : resourcesPath("icon.png"));
+/** HUD packages installed into the library on first start (each folder holds package folders). */
+const sampleHudDirs = () => (isDev ? [resourcesPath("assets", "hud-packages"), resourcesPath("apps", "hud-template", "dist")] : [resourcesPath("sample-huds")]);
 const connectDir = () => resourcesPath(isDev ? "apps/desktop/connect" : "connect");
 
 /** Master key for encrypting stored credentials, protected by the OS credential store. */
@@ -126,7 +150,10 @@ const MIME: Record<string, string> = {
 };
 
 function consoleCsp(): string {
-  const overlays = `http://127.0.0.1:${PORTS.overlay} http://localhost:${PORTS.overlay}`;
+  // HUD thumbnails and previews come from the HUD server: this computer's, or in remote mode the
+  // production computer's (its HUD port is its own setting, hence any port on that host).
+  const remote = connection.mode === "remote" ? new URL(connection.url) : null;
+  const overlays = `http://127.0.0.1:${PORTS.overlay} http://localhost:${PORTS.overlay}${remote ? ` ${remote.protocol}//${remote.hostname}:*` : ""}`;
   const ws = engineOrigin().replace(/^http/, "ws");
   return `default-src 'self'; img-src 'self' data: blob: ${overlays}; style-src 'self' 'unsafe-inline'; connect-src 'self' ${ws}; frame-src ${overlays}; object-src 'none'; base-uri 'none'; form-action 'none'`;
 }
@@ -205,6 +232,7 @@ function startEngine(): void {
     MATCHFRAME_DATA_DIR: dataDir(),
     MATCHFRAME_CAPTAIN_UI_DIR: resourcesPath(isDev ? "apps/operator-web/dist-captain" : "captain-web"),
     MATCHFRAME_HUD_DIR: resourcesPath(isDev ? "apps/hud-renderer/dist" : "hud-renderer"),
+    MATCHFRAME_SAMPLE_HUDS_DIR: sampleHudDirs().join(delimiter),
     MATCHFRAME_MAP_PACK_DIR: resourcesPath(isDev ? "assets/map-packs" : "map-packs"),
     MATCHFRAME_UTILITY_PROFILES: resourcesPath(isDev ? "assets/utility-profiles/measured.json" : "utility-profiles/measured.json"),
     MATCHFRAME_WORKERS_DIR: resourcesPath("workers"),
@@ -229,6 +257,7 @@ function startEngine(): void {
   });
   child.on("exit", (code) => {
     if (engine === child) engine = null;
+    // The HUD server stopped with the engine: desktop HUD windows reconnect when it is back.
     if (quitting || !engineWanted) return;
     restarts++;
     const delay = Math.min(15000, 500 * 2 ** Math.min(restarts, 5));
@@ -266,6 +295,8 @@ function createWindow(): BrowserWindow {
       nodeIntegration: false,
       webSecurity: true,
       spellcheck: false,
+      // Live data (status bar, HUD previews) keeps updating while the manager is in the background.
+      backgroundThrottling: false,
     },
   });
   // Only the program's own pages may be shown in the window; links to websites open in the browser.
@@ -277,6 +308,12 @@ function createWindow(): BrowserWindow {
     return { action: "deny" };
   });
   w.on("page-title-updated", (e) => e.preventDefault());
+  // Closing the manager while desktop HUDs run keeps them running: the program stays in the tray.
+  w.on("close", (e) => {
+    if (quitting || !tray || !overlays?.hasOutputs()) return;
+    e.preventDefault();
+    w.hide();
+  });
   w.on("closed", () => (win = null));
   return w;
 }
@@ -289,6 +326,18 @@ function showConsole(): void {
   win ??= createWindow();
   win.setTitle(windowTitle());
   void win.loadURL(`${APP_ORIGIN}/`);
+}
+
+/** Tray, second start and the HUD windows' "show manager": bring the manager window back. */
+function showManager(): void {
+  if (!win) {
+    if (connection.mode === "remote" || operatorToken) showConsole();
+    else showConnectionSettings();
+    return;
+  }
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
 }
 
 function showConnectionSettings(): void {
@@ -307,6 +356,114 @@ async function emergencyStop(): Promise<void> {
   }
 }
 
+// ------------------------------------------------------------------ desktop HUDs
+
+/** Operator API call on the local engine from the main process (desktop HUD outputs only). */
+async function engineRequest<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+  if (connection.mode !== "local") throw new Error("Desktop HUDs run on the production computer.");
+  if (!operatorToken) throw new Error("The Matchframe engine is still starting. Try again in a moment.");
+  let res: Response;
+  try {
+    res = await net.fetch(LOCAL_ENGINE + path, {
+      method,
+      headers: { authorization: `Bearer ${operatorToken}`, ...(body === undefined ? {} : { "content-type": "application/json" }) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch (e) {
+    throw new Error(`Cannot reach the Matchframe engine on this computer: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+  }
+  const data = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+  if (!res.ok) throw new Error(data?.message ?? data?.error ?? `The engine answered HTTP ${res.status}.`);
+  return data as T;
+}
+
+const REMOTE_REASON = "Desktop HUDs are unavailable in remote mode: the HUD belongs over the game on the production computer";
+
+/** Desktop HUDs and their hotkeys work only when this computer runs the production. */
+function applyConnectionToHuds(): void {
+  if (!overlays || !hotkeys) return;
+  if (connection.mode === "remote") {
+    overlays.setDisabled(REMOTE_REASON);
+    hotkeys.unregister();
+  } else {
+    overlays.setDisabled(null);
+    hotkeys.register();
+  }
+  tray?.refresh();
+}
+
+let emergencyShown: string[] | null = null;
+
+/**
+ * Emergency hide (hotkey): hides every HUD graphic, desktop windows and OBS sources alike; pressing it
+ * again shows them. The desktop windows are hidden here first so they disappear even if the engine
+ * does not answer.
+ */
+async function toggleEmergencyHide(): Promise<void> {
+  if (!overlays || !hotkeys) return;
+  const hide = !hotkeys.emergencyHidden;
+  hotkeys.emergencyHidden = hide;
+  if (hide) emergencyShown = overlays.hideAll();
+  else {
+    overlays.showAll(emergencyShown ?? undefined);
+    emergencyShown = null;
+  }
+  try {
+    await engineRequest("POST", "/api/v1/hud/library/visibility", { hidden: hide });
+  } catch (e) {
+    console.error("emergency hide: the HUD server did not answer", e);
+  }
+}
+
+function setUpDesktopHuds(): void {
+  const store = new OverlayStore(join(app.getPath("userData"), "hud-overlays.json"), (e) => console.error("could not save desktop HUD settings", e));
+  const om = new OverlayManager({
+    library: () => engineRequest<Library>("GET", "/api/v1/hud/library"),
+    start: async (hudId) => {
+      await engineRequest("POST", `/api/v1/hud/library/${encodeURIComponent(hudId)}/start`);
+    },
+    store,
+    push: (states) => {
+      if (win && !win.isDestroyed()) win.webContents.send("mf:hud-overlays", states);
+    },
+    onChange: () => tray?.refresh(),
+    ...(isDev ? { icon: iconFile() } : {}),
+    devTools: isDev,
+    log: (msg) => console.log(`[hud] ${msg}`),
+  });
+  overlays = om;
+  om.init();
+  const hk = new HotkeyManager({ store, reserved: [EMERGENCY_HOTKEY], onToggle: () => om.toggleAll(), onEmergencyHide: () => void toggleEmergencyHide(), log: (msg) => console.error(`[hud] ${msg}`) });
+  hotkeys = hk;
+  registerHudIpc({
+    overlays: om,
+    hotkeys: hk,
+    allowed: (e) => fromApp(e) && !fromApp(e, "/connect"),
+    window: () => win,
+    dataDir,
+    unavailableReason: () => (connection.mode === "remote" ? REMOTE_REASON : null),
+    library: () => engineRequest<Library>("GET", "/api/v1/hud/library"),
+    hideAll: () => void om.hideAll(),
+    showAll: () => {
+      hk.emergencyHidden = false;
+      emergencyShown = null;
+      om.showAll();
+    },
+    stopAll: () => om.stopAll(),
+  });
+  tray = createTray({
+    iconPath: iconFile(),
+    showManager,
+    toggleHud: () => om.toggleAll(),
+    stopHud: () => om.stopAll(),
+    quit: () => app.quit(),
+    state: () => ({ open: om.hasOpenOverlays(), visible: om.anyVisible(), outputs: om.hasOutputs() }),
+    log: (msg) => console.error(`[tray] ${msg}`),
+  });
+  applyConnectionToHuds();
+}
+
 // ------------------------------------------------------------------ IPC
 
 ipcMain.on("mf:bootstrap", (event) => {
@@ -314,10 +471,18 @@ ipcMain.on("mf:bootstrap", (event) => {
 });
 ipcMain.handle("mf:token", (event) => (fromApp(event) && !fromApp(event, "/connect") ? accessToken() : null));
 ipcMain.handle("mf:info", () => ({ version: app.getVersion(), dataDir: dataDir(), emergencyHotkey: EMERGENCY_HOTKEY, ports: PORTS, packaged: app.isPackaged, connection: connection.mode === "remote" ? { mode: "remote", url: connection.url } : { mode: "local" } }));
+// Read by the preload script when the console loads (remote mode disables desktop HUDs).
+ipcMain.on("mf:hud-availability", (event) => {
+  event.returnValue = fromApp(event) && !fromApp(event, "/connect") ? { available: connection.mode === "local", reason: connection.mode === "remote" ? REMOTE_REASON : null } : { available: false, reason: "not allowed" };
+});
 ipcMain.handle("mf:open-data-dir", () => shell.openPath(dataDir()));
 ipcMain.handle("mf:restart-engine", () => {
-  if (connection.mode !== "local") return false;
-  engine?.send({ type: "shutdown" });
+  if (connection.mode !== "local" || !engine) return false;
+  const child = engine;
+  child.send({ type: "shutdown" });
+  // The supervisor restarts it on exit; an engine that does not stop is ended.
+  const kill = setTimeout(() => child.exitCode === null && child.kill(), 8000);
+  child.once("exit", () => clearTimeout(kill));
   return true;
 });
 ipcMain.handle("mf:open-connection", (event) => {
@@ -358,10 +523,12 @@ ipcMain.handle("mf:connection-save", (event, args: { mode: "local" } | { mode: "
     connection = { mode: "remote", url, token };
     saveConnection(connection);
     stopEngine();
+    applyConnectionToHuds();
     showConsole();
   } else {
     connection = { mode: "local" };
     saveConnection(connection);
+    applyConnectionToHuds();
     if (operatorToken && engine) showConsole();
     else startEngine(); // the console is shown when the engine reports ready
   }
@@ -377,12 +544,7 @@ ipcMain.handle("mf:connection-cancel", (event) => {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on("second-instance", () => {
-    if (win) {
-      if (win.isMinimized()) win.restore();
-      win.focus();
-    }
-  });
+  app.on("second-instance", () => showManager());
   app.whenReady().then(() => {
     registerAppProtocol();
     connection = loadConnection();
@@ -402,13 +564,47 @@ if (!app.requestSingleInstanceLock()) {
       ]),
     );
     if (!globalShortcut.register(EMERGENCY_HOTKEY, () => void emergencyStop())) console.error(`could not register emergency-stop hotkey ${EMERGENCY_HOTKEY}`);
+    setUpDesktopHuds();
     if (connection.mode === "remote") showConsole();
     else startEngine();
   });
+  // HUD windows count too, and the manager only closes (rather than hiding to the tray) when no HUD
+  // output is open, so this runs once nothing is left on screen.
   app.on("window-all-closed", () => app.quit());
-  app.on("before-quit", () => {
-    quitting = true;
-    globalShortcut.unregisterAll();
-    engine?.send({ type: "shutdown" });
+  // Quit closes every HUD window, then waits (up to 5 s) for the engine and its HUD server to stop.
+  app.on("before-quit", (e) => {
+    if (!quitting) {
+      quitting = true;
+      overlays?.dispose();
+      hotkeys?.unregister();
+      tray?.destroy();
+      tray = null;
+      globalShortcut.unregisterAll();
+    }
+    const child = engine;
+    if (!child || engineStopped || child.exitCode !== null) return;
+    e.preventDefault();
+    engineWanted = false;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      engineStopped = true;
+      app.quit();
+    };
+    const kill = setTimeout(() => {
+      console.error("the engine did not stop within 5 s; ending it");
+      child.kill();
+      finish();
+    }, 5000);
+    child.once("exit", () => {
+      clearTimeout(kill);
+      finish();
+    });
+    try {
+      child.send({ type: "shutdown" });
+    } catch {
+      child.kill();
+    }
   });
 }

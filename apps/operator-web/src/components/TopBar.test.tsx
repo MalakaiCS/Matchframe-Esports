@@ -36,7 +36,7 @@ function renderBar(role = "owner") {
   return render(
     <ToastProvider>
       <SessionContext.Provider value={{ me: { role } }}>
-        <TopBar onToggleNav={() => undefined} />
+        <TopBar crumbs={["HUD Library"]} />
       </SessionContext.Provider>
     </ToastProvider>,
   );
@@ -109,6 +109,6 @@ describe("top bar ownership banner", () => {
     renderBar();
     expect(screen.getByText("Waiting for CS2")).toBeTruthy();
     expect(document.querySelector('[data-link="open"]')).toBeTruthy();
-    expect(screen.getByText("Offline")).toBeTruthy();
+    expect(document.querySelector('[data-data="none"]')?.textContent).toContain("No data");
   });
 });

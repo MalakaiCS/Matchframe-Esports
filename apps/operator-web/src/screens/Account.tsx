@@ -119,8 +119,8 @@ function AccountPanel({ st, onChange }: { st: CloudStatus; onChange: () => void 
           Development build: automatic direction can be armed without an account.
         </p>
       ) : !st.signIn.required ? (
-        <p className="small muted" style={{ margin: "14px 0 0" }} title="MATCHFRAME_SIGN_IN=off (development only). Release builds ask to sign in when the program opens.">
-          Development build: the program opens without signing in.
+        <p className="small muted" style={{ margin: "14px 0 0" }} title="MATCHFRAME_SIGN_IN=off (development only).">
+          Development build: signing in is not required for the Auto Director.
         </p>
       ) : null}
     </Panel>

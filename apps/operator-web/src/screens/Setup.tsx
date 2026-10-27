@@ -651,7 +651,7 @@ export function SetupScreen() {
   const caps = useApi<CapabilitiesResponse>("/api/v1/capabilities", { refreshMs: 5000 });
   const hasData = status.data !== undefined;
   useEffect(() => {
-    // Deep links from the Overview checklist (/setup#step-…) scroll once the steps are rendered.
+    // Deep links (/settings/setup#step-…, also via the old /setup path) scroll once the steps are rendered.
     const id = window.location.hash.slice(1);
     if (!id || !hasData) return;
     document.getElementById(id)?.scrollIntoView({ block: "start" });

@@ -1,0 +1,24 @@
+{
+  "name": "@matchframe/hud-template",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pro CS2 HUD package (matchframe.pro-cs2), adapted from Lexogrine's CS2 React HUD (MIT). A starter kit for building your own HUD.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/finish-package.mjs",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@matchframe/hud-sdk": "workspace:*",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "sass": "1.105.1",
+    "vite": "8.3.5"
+  }
+}

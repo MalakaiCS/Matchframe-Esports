@@ -1,0 +1,33 @@
+{
+  "manifestVersion": 1,
+  "id": "matchframe.pro-cs2",
+  "name": "Pro CS2 HUD",
+  "version": "1.0.0",
+  "author": "Lexogrine & Matchframe",
+  "licence": "MIT (code, Lexogrine and Matchframe); fonts: SIL OFL 1.1",
+  "description": "A full broadcast HUD: match bar with bomb timer, both teams' players with weapons, utility and money, the observed player, killfeed, radar, utility and economy boxes in freeze time, and the series maps. Built with React; a starter kit for your own HUD.",
+  "game": "cs2",
+  "category": "Broadcast",
+  "tags": ["broadcast", "radar", "killfeed", "economy", "react", "lexogrine"],
+  "schemaVersions": [1],
+  "entryPoints": { "live": "index.html", "compact": "index.html" },
+  "thumbnail": "thumbnail.webp",
+  "designResolution": { "width": 1920, "height": 1080 },
+  "resolutions": ["1920x1080"],
+  "permissions": ["match.public", "players.public", "radar.public", "series", "event"],
+  "settingsSchema": {
+    "teamNames": { "type": "select", "label": "Team names", "default": "full", "options": [{ "value": "full", "label": "Full name" }, { "value": "short", "label": "Short (tag)" }], "group": "Look" },
+    "ctColor": { "type": "color", "label": "CT colour", "default": "#5ab8f4", "group": "Look" },
+    "tColor": { "type": "color", "label": "T colour", "default": "#f0c941", "group": "Look" },
+    "panelOpacity": { "type": "number", "label": "Panel opacity", "default": 0.83, "min": 0.4, "max": 1, "step": 0.01, "group": "Look" },
+    "showPlayers": { "type": "boolean", "label": "Player lists", "default": true, "group": "Elements" },
+    "showObserved": { "type": "boolean", "label": "Observed player", "default": true, "group": "Elements" },
+    "showKillfeed": { "type": "boolean", "label": "Killfeed", "default": true, "group": "Elements" },
+    "showPlayersAlive": { "type": "boolean", "label": "Players alive", "default": true, "group": "Elements" },
+    "showRadar": { "type": "boolean", "label": "Radar", "default": true, "group": "Elements" },
+    "radarSize": { "type": "number", "label": "Radar size (px)", "default": 340, "min": 240, "max": 480, "step": 10, "group": "Elements" },
+    "showSideBoxes": { "type": "boolean", "label": "Utility and economy in freeze time", "default": true, "group": "Elements" },
+    "showMapSeries": { "type": "boolean", "label": "Series maps in freeze time", "default": true, "group": "Elements" },
+    "showMoney": { "type": "boolean", "label": "Player money", "default": true, "group": "Elements" }
+  }
+}

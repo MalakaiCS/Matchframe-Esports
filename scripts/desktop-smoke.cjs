@@ -1,18 +1,21 @@
 // Desktop smoke test: launches the Matchframe program (Electron, dev mode) with Playwright.
 //  0. A local Matchframe website (cloud API from source) with two verified accounts.
-//  1. Local mode: the program opens on the sign-in screen and signs in with the website account's
-//     email and password; supervised engine healthy; console shown from app://matchframe (not from the
-//     engine's HTTP address); API forwarding and the live WebSocket work; hardened window settings;
-//     the engine's HTTP address serves no console to browsers, only the captain page.
+//  1. Local mode: the program opens straight into the HUD Library (no sign-in); bundled HUDs are
+//     installed; a desktop HUD window opens transparent, click-through and on top; signing in with
+//     the website account's email and password works under Settings → Account; supervised engine
+//     healthy; console shown from app://matchframe (not from the engine's HTTP address); API
+//     forwarding and the live WebSocket work; hardened window settings; the engine's HTTP address
+//     serves no console to browsers, only the captain page.
 //  2. Remote mode: the program connects to an engine on "another computer" (a second engine on
-//     other ports, signed in through its API) with a role token, without starting its own engine.
+//     other ports, signed in through its API) with a role token, without starting its own engine;
+//     desktop HUDs are marked unavailable there.
 // Needs a display (on Linux: xvfb-run -a node scripts/desktop-smoke.cjs [screenshot-prefix]).
 const { _electron } = require("playwright");
 const { spawn } = require("node:child_process");
 const { mkdtempSync, readFileSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
-const { startCloud, signInThroughGate } = require("./smoke-cloud.cjs");
+const { startCloud, signInThroughAccount } = require("./smoke-cloud.cjs");
 
 const repo = join(__dirname, "..");
 const out = process.argv[2] ?? null;
@@ -63,11 +66,23 @@ const PASSWORD = "correct horse battery";
 async function run(cloud) {
   // ---------------------------------------------------------------- 1. local mode
   const local = await launch({ MATCHFRAME_DATA_DIR: mkdtempSync(join(tmpdir(), "mf-electron-")), MATCHFRAME_GSI_PORT: "39410", MATCHFRAME_API_PORT: "39411", MATCHFRAME_OVERLAY_PORT: "39412", MATCHFRAME_CLOUD_URL: cloud.base });
-  await waitFor(() => local.win.evaluate(() => document.body.innerText.includes("Sign in to Matchframe")), 90000);
-  assert(!(await local.win.evaluate(() => document.querySelectorAll("nav a").length)), "the console stays closed until signed in");
-  if (out) await local.win.screenshot({ path: `${out}-signin.png` });
-  await signInThroughGate(local.win, "producer@example.com", PASSWORD);
+  await waitFor(() => local.win.evaluate(() => !!document.querySelector('[data-testid="hud-library"]')), 90000);
+  assert(await local.win.evaluate(() => document.querySelectorAll("nav a").length >= 10), "the console opens without signing in, with the full sidebar");
   await waitFor(() => local.win.evaluate(() => !!document.querySelector('[data-link="open"]')));
+  const huds = await waitFor(() => local.win.evaluate(() => [...document.querySelectorAll(".hud-card")].map((c) => c.getAttribute("data-hud"))).then((l) => (l.length >= 3 ? l : null)));
+  assert(huds.includes("matchframe.sample-cs2") && huds.includes("matchframe.pro-cs2"), `bundled HUDs installed (${huds.join(", ")})`);
+  if (out) await local.win.screenshot({ path: `${out}-library.png` });
+  // Launch Transparent HUD from the card.
+  await local.win.click('.hud-card[data-hud="matchframe.sample-cs2"] .hud-launch');
+  await waitFor(async () => (await local.win.evaluate(() => window.matchframe.hud.overlays())).some((o) => o.hudId === "matchframe.sample-cs2" && o.status === "running"), 30000);
+  const overlay = await local.app.evaluate(({ BrowserWindow }) => {
+    const w = BrowserWindow.getAllWindows().find((x) => x[Symbol.for("matchframe.hud-window")]?.kind === "overlay");
+    const t = w[Symbol.for("matchframe.hud-window")];
+    return { alwaysOnTop: w.isAlwaysOnTop(), focusable: w.isFocusable(), ignoringMouse: t.ignoringMouse, transparent: t.transparent, url: w.webContents.getURL() };
+  });
+  assert(overlay.alwaysOnTop && !overlay.focusable && overlay.ignoringMouse && overlay.transparent && overlay.url.includes("mode=desktop"), `desktop HUD window settings (${JSON.stringify(overlay)})`);
+  await local.win.evaluate(() => window.matchframe.hud.stopAll());
+  await signInThroughAccount(local.win, "producer@example.com", PASSWORD);
   const info = await local.win.evaluate(async () => ({
     url: location.href,
     title: document.title,
@@ -124,7 +139,8 @@ async function run(cloud) {
     const remote = await launch({ MATCHFRAME_DATA_DIR: mkdtempSync(join(tmpdir(), "mf-electron-remote-")), MATCHFRAME_GSI_PORT: "39430", MATCHFRAME_API_PORT: "39431", MATCHFRAME_OVERLAY_PORT: "39432", MATCHFRAME_REMOTE_URL: "http://127.0.0.1:39421", MATCHFRAME_REMOTE_TOKEN: issued.token });
     await waitFor(() => remote.win.evaluate(() => document.querySelectorAll("nav a").length > 5), 60000);
     await waitFor(() => remote.win.evaluate(() => !!document.querySelector('[data-link="open"]')));
-    const r = await remote.win.evaluate(async () => ({ mode: window.matchframe?.connectionMode, engineOrigin: window.matchframe?.engineOrigin, me: await fetch("/api/v1/me", { headers: { authorization: `Bearer ${await window.matchframe.getOperatorToken()}` } }).then((x) => x.json()) }));
+    const r = await remote.win.evaluate(async () => ({ mode: window.matchframe?.connectionMode, engineOrigin: window.matchframe?.engineOrigin, hudAvailable: window.matchframe?.hud?.available, me: await fetch("/api/v1/me", { headers: { authorization: `Bearer ${await window.matchframe.getOperatorToken()}` } }).then((x) => x.json()) }));
+    assert(r.hudAvailable === false, "desktop HUDs are unavailable in remote mode");
     const title = await remote.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getTitle());
     const ownEngine = await fetch("http://127.0.0.1:39431/api/v1/health").then(() => true, () => false);
     assert(r.mode === "remote" && r.engineOrigin === "http://127.0.0.1:39421", "bridge reports the remote engine");

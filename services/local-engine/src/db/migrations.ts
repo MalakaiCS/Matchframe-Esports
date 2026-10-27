@@ -173,4 +173,22 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX cloud_usage_pending ON cloud_usage(uploaded_at);
     `,
   },
+  {
+    version: 3,
+    name: "hud library",
+    sql: `
+      -- Library metadata per installed HUD (files and versions stay in hud_packages).
+      CREATE TABLE hud_library (
+        id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        settings TEXT NOT NULL DEFAULT '{}',
+        preset_id TEXT,
+        token TEXT NOT NULL,
+        stopped INTEGER NOT NULL DEFAULT 0,
+        reload_seq INTEGER NOT NULL DEFAULT 0,
+        added_at TEXT NOT NULL,
+        last_used_at TEXT
+      );
+    `,
+  },
 ];

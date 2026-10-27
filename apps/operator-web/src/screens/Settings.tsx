@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { api, seg } from "../api/index.ts";
 import type { AuditEntry, BroadcastReport, EngineMetrics, LogEntry, StatsResponse } from "../api/types.ts";
-import { ActionButton, Async, Badge, Button, Details, EmptyState, Field, JsonEditor, KV, Note, Panel, parseJsonOr, Tabs } from "../components/ui.tsx";
+import { ActionButton, Async, Badge, Button, Details, EmptyState, Field, JsonEditor, KV, Note, Panel, parseJsonOr } from "../components/ui.tsx";
 import { fmtMs, fmtTime, MISSING, saveBlob } from "../lib/format.ts";
-import { useApi, usePersistentState } from "../lib/hooks.ts";
+import { useApi } from "../lib/hooks.ts";
 import { reasonInfo } from "../lib/reasons.ts";
 import { Link } from "../router.tsx";
 import { useSnapshot } from "../state/live.ts";
@@ -289,7 +289,7 @@ function GeneralTab() {
             <ActionButton variant="ghost" action={() => api.post<{ note: string }>("/api/v1/setup/rotate-gsi-token")} success={(r) => `GSI token rotated. ${r.note}`} disabledReason={settingsReason} confirm={{ title: "Rotate the GSI token?", body: "Telemetry stops until the GSI config is rewritten and CS2 restarted.", danger: true, confirmLabel: "Rotate" }}>
               Rotate GSI token
             </ActionButton>
-            <Link to="/setup#step-gsi" className="btn btn-ghost btn-md">
+            <Link to="/settings/setup#step-gsi" className="btn btn-ghost btn-md">
               Rewrite GSI config
             </Link>
           </div>
@@ -517,25 +517,23 @@ function StatsTab() {
   );
 }
 
-type SettingsTabId = "general" | "stats" | "diagnostics" | "logs" | "audit" | "settings";
-const SETTINGS_TABS: { id: SettingsTabId; label: string }[] = [
-  { id: "general", label: "General" },
-  { id: "stats", label: "Stats & reports" },
-  { id: "diagnostics", label: "Diagnostics" },
-  { id: "logs", label: "Logs" },
-  { id: "audit", label: "Audit log" },
-  { id: "settings", label: "Advanced" },
-];
+export type SettingsTabId = "general" | "stats" | "diagnostics" | "logs" | "audit" | "settings";
+const SETTINGS_TITLES: Record<SettingsTabId, { title: string }> = {
+  general: { title: "General settings" },
+  stats: { title: "Stats & reports" },
+  diagnostics: { title: "Diagnostics" },
+  logs: { title: "Logs" },
+  audit: { title: "Audit log" },
+  settings: { title: "Advanced settings" },
+};
 
-export function SettingsScreen() {
-  const [stored, setTab] = usePersistentState<SettingsTabId | "backup">("settingsTab", "general");
-  const tab: SettingsTabId = SETTINGS_TABS.some((t) => t.id === stored) ? (stored as SettingsTabId) : "general";
+/** One Settings section; the section bar above the page (Shell) switches between them by URL. */
+export function SettingsScreen({ tab = "general" }: { tab?: SettingsTabId }) {
   return (
     <div className="page">
       <div className="page-head">
-        <h1 className="page-title">Settings &amp; Diagnostics</h1>
+        <h1 className="page-title">{SETTINGS_TITLES[tab].title}</h1>
       </div>
-      <Tabs label="Settings sections" value={tab} onChange={setTab} tabs={SETTINGS_TABS} />
       {tab === "general" ? <GeneralTab /> : null}
       {tab === "stats" ? <StatsTab /> : null}
       {tab === "diagnostics" ? <DiagnosticsTab /> : null}

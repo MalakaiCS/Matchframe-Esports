@@ -556,7 +556,7 @@ function IntegrationsTab() {
   return (
     <div className="stack">
       <div className="grid-2">
-        <Panel title="Observer adapter" actions={<Link to="/setup#step-adapter">Configure in Setup</Link>}>
+        <Panel title="Observer adapter" actions={<Link to="/settings/setup#step-adapter">Configure in Setup</Link>}>
           <Async state={adapter}>
             {(a) => (
               <>

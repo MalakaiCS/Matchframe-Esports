@@ -523,7 +523,7 @@ export function MatchesScreen() {
         {showCreate ? (
           <Panel title="New match">
             {teams.data === undefined ? null : teams.data.length < 2 ? (
-              <EmptyState title="Two teams needed">Create teams in Teams &amp; Players first.</EmptyState>
+              <EmptyState title="Two teams needed">Create teams in Teams first.</EmptyState>
             ) : (
               <CreateMatch
                 teams={teams.data}

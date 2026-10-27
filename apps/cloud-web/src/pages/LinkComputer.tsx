@@ -45,7 +45,7 @@ function CodeEntry({ initial = "", autoFocus = false }: { initial?: string; auto
         maxLength={9}
         className="code-input"
         error={error}
-        hint="On the program's sign-in screen choose Sign in with a code from the website to see it. Codes expire after 10 minutes."
+        hint="In the program, open Settings → Account and choose Sign in with a code to see it. Codes expire after 10 minutes."
         autoFocus={autoFocus}
       />
       <Button type="submit" variant="primary">
@@ -276,7 +276,7 @@ export function LinkComputer() {
         <Card title="Enter the code">
           <ol className="plain-steps">
             <li>
-              On the Matchframe program's sign-in screen choose <strong>Sign in with a code from the website</strong>.
+              In the Matchframe program open <strong>Settings → Account</strong> and choose <strong>Sign in with a code</strong>.
             </li>
             <li>Type the code it shows below (or click the link the program opens, which fills it in).</li>
           </ol>

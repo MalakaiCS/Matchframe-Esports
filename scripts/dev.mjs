@@ -3,7 +3,7 @@
 // (or with --build), then launches the Matchframe program (Electron), which runs the engine from
 // source. --sim starts the labelled simulation once the engine is ready. --engine-only runs the
 // engine without the program (API, HUD outputs and captain page only; no console). The program
-// opens without signing in during development; --sign-in shows the sign-in screen as release
+// reports sign-in as not required during development; --sign-in reports it as required, as release
 // builds do (set MATCHFRAME_CLOUD_URL to a website, e.g. a local `pnpm cloud`).
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";

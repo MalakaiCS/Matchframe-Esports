@@ -1,7 +1,8 @@
 // Smoke test for a PACKAGED Matchframe program (installed .exe on Windows, or an unpacked build):
 // starts a local Matchframe website from this repository, starts the program against it, checks
-// that it opens on the sign-in screen and signs in with a website account's email and password,
-// waits for the bundled engine and the console shown from app://matchframe, checks API forwarding,
+// that it opens straight into the HUD Library with the bundled HUDs installed, signs in with a
+// website account's email and password under Settings → Account, checks the bundled engine and the
+// console shown from app://matchframe, API forwarding,
 // the live connection, that the engine's HTTP address serves no console, that the captain page and
 // HUD outputs are served, reports the website the build is pinned to (cloud.json), and saves
 // screenshots.
@@ -17,7 +18,7 @@ try {
 const { existsSync, mkdtempSync, readFileSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
-const { startCloud, signInThroughGate } = require("./smoke-cloud.cjs");
+const { startCloud, signInThroughAccount } = require("./smoke-cloud.cjs");
 
 const exe = process.argv[2];
 const shot = process.argv[3] ?? null;
@@ -70,10 +71,13 @@ async function run(cloud) {
   const errors = [];
   win.on("pageerror", (e) => errors.push(String(e)));
   win.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-  await waitFor(() => win.evaluate(() => document.body.innerText.includes("Sign in to Matchframe")), 120000);
-  assert(!(await win.evaluate(() => document.querySelectorAll("nav a").length)), "the console stays closed until signed in");
-  if (shot) await win.screenshot({ path: shot.replace(/(\.png)?$/, "-signin.png") });
-  await signInThroughGate(win, "producer@example.com", PASSWORD);
+  await waitFor(() => win.evaluate(() => !!document.querySelector('[data-testid="hud-library"]')), 120000);
+  assert(await win.evaluate(() => document.querySelectorAll("nav a").length >= 10), "the program opens into the HUD Library without signing in");
+  const huds = await waitFor(() => win.evaluate(() => [...document.querySelectorAll(".hud-card")].map((c) => c.getAttribute("data-hud"))).then((l) => (l.length >= 3 ? l : null)), 30000);
+  assert(huds.includes("matchframe.sample-cs2") && huds.includes("matchframe.pro-cs2"), `bundled HUDs installed (${huds.join(", ")})`);
+  await waitFor(() => win.evaluate(() => [...document.querySelectorAll(".hud-card img")].every((i) => i.complete && i.naturalWidth > 0)), 15000);
+  if (shot) await win.screenshot({ path: shot.replace(/(\.png)?$/, "-library.png") });
+  await signInThroughAccount(win, "producer@example.com", PASSWORD);
   await waitFor(() => win.evaluate(() => !!document.querySelector('[data-link="open"]')), 30000);
   const info = await win.evaluate(async () => ({
     url: location.href,
@@ -107,6 +111,6 @@ async function run(cloud) {
   assert(!overlay || overlay.status === 200, "HUD output served for OBS");
   assert(meta.contextIsolation && meta.sandbox && !meta.nodeIntegration, "hardened window");
   if (shot) await win.screenshot({ path: shot });
-  console.log(JSON.stringify({ ok: true, platform: process.platform, meta, url: info.url, navItems: info.nav.length, role: info.me.role, signIn: info.signIn, website, health: { ok: health.ok, version: health.version, schemaVersion: health.schemaVersion }, engineRoot: root.status, captain: captain.status, hudOutput: overlay?.status ?? null, errors }, null, 1));
+  console.log(JSON.stringify({ ok: true, platform: process.platform, meta, url: info.url, navItems: info.nav.length, huds, role: info.me.role, signIn: info.signIn, website, health: { ok: health.ok, version: health.version, schemaVersion: health.schemaVersion }, engineRoot: root.status, captain: captain.status, hudOutput: overlay?.status ?? null, errors }, null, 1));
   await app.close();
 }

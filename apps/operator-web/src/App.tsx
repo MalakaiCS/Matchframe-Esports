@@ -1,135 +1,60 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
-import type { ComponentType, ReactNode } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { api, describeError, NetworkError } from "./api/index.ts";
 import { resolveOperatorToken, setOperatorToken } from "./api/auth.ts";
 import type { Me } from "./api/types.ts";
-import { BrandBadge, Icon } from "./components/icons.tsx";
-import { SignInGate } from "./components/SignIn.tsx";
+import { BrandBadge } from "./components/icons.tsx";
+import { Sidebar, useModuleAvailability } from "./components/Sidebar.tsx";
+import { SignInNotice } from "./components/SignIn.tsx";
+import { StatusBar } from "./components/StatusBar.tsx";
 import { emergencyStop, OfflineBanner, STOP_SHORTCUT_LABEL, TopBar } from "./components/TopBar.tsx";
 import { ToastProvider, useToast } from "./components/toasts.tsx";
 import { Button, Field, Loading, Note } from "./components/ui.tsx";
 import { isTypingTarget, usePersistentState } from "./lib/hooks.ts";
-import { Link, useLocation } from "./router.tsx";
+import { Link, navigate, useLocation } from "./router.tsx";
+import type { NavId, NavItem } from "./routes.tsx";
+import { crumbsFor, navItem, redirectFor, routeFor } from "./routes.tsx";
 import { startLive, stopLive } from "./state/live.ts";
 import { SessionContext } from "./state/session.tsx";
 
-// Screens are code-split: each loads on first visit.
-const AccountScreen = lazy(() => import("./screens/Account.tsx").then((m) => ({ default: m.AccountScreen })));
-const DemosScreen = lazy(() => import("./screens/Demos.tsx").then((m) => ({ default: m.DemosScreen })));
-const DevicesScreen = lazy(() => import("./screens/Devices.tsx").then((m) => ({ default: m.DevicesScreen })));
-const DirectorScreen = lazy(() => import("./screens/Director.tsx").then((m) => ({ default: m.DirectorScreen })));
-const EventsScreen = lazy(() => import("./screens/Events.tsx").then((m) => ({ default: m.EventsScreen })));
-const HudsScreen = lazy(() => import("./screens/Huds.tsx").then((m) => ({ default: m.HudsScreen })));
-const LiveControlScreen = lazy(() => import("./screens/LiveControl.tsx").then((m) => ({ default: m.LiveControlScreen })));
-const MapsScreen = lazy(() => import("./screens/Maps.tsx").then((m) => ({ default: m.MapsScreen })));
-const MatchesScreen = lazy(() => import("./screens/Matches.tsx").then((m) => ({ default: m.MatchesScreen })));
-const OverviewScreen = lazy(() => import("./screens/Overview.tsx").then((m) => ({ default: m.OverviewScreen })));
-const PlayerCamerasScreen = lazy(() => import("./screens/PlayerCameras.tsx").then((m) => ({ default: m.PlayerCamerasScreen })));
-const ReplaysScreen = lazy(() => import("./screens/Replays.tsx").then((m) => ({ default: m.ReplaysScreen })));
-const SettingsScreen = lazy(() => import("./screens/Settings.tsx").then((m) => ({ default: m.SettingsScreen })));
-const SetupScreen = lazy(() => import("./screens/Setup.tsx").then((m) => ({ default: m.SetupScreen })));
-const SponsorsScreen = lazy(() => import("./screens/Sponsors.tsx").then((m) => ({ default: m.SponsorsScreen })));
-const StudioScreen = lazy(() => import("./screens/Studio.tsx").then((m) => ({ default: m.StudioScreen })));
-const TeamsScreen = lazy(() => import("./screens/Teams.tsx").then((m) => ({ default: m.TeamsScreen })));
-const TrainingScreen = lazy(() => import("./screens/Training.tsx").then((m) => ({ default: m.TrainingScreen })));
-
-export interface NavItem {
-  path: string;
-  label: string;
-  icon: string;
-  component: ComponentType;
-  /** Page name in the window title, when it differs from the short sidebar label. */
-  title?: string;
-}
-
-export interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
-
-/** Sidebar, grouped by what the operator is doing. */
-export const NAV_GROUPS: NavGroup[] = [
-  {
-    label: "Broadcast",
-    items: [
-      { path: "/", label: "Overview", icon: "overview", component: OverviewScreen },
-      { path: "/live", label: "Live Control", icon: "live", component: LiveControlScreen },
-      { path: "/director", label: "Director", icon: "director", component: DirectorScreen },
-      { path: "/replays", label: "Replays", icon: "replays", component: ReplaysScreen, title: "Replays & Highlights" },
-      { path: "/studio", label: "Studio", icon: "studio", component: StudioScreen, title: "Studio & Rundown" },
-    ],
-  },
-  {
-    label: "Event",
-    items: [
-      { path: "/events", label: "Events", icon: "events", component: EventsScreen },
-      { path: "/teams", label: "Teams", icon: "teams", component: TeamsScreen, title: "Teams & Players" },
-      { path: "/matches", label: "Matches", icon: "matches", component: MatchesScreen, title: "Matches & Veto" },
-    ],
-  },
-  {
-    label: "Graphics & cameras",
-    items: [
-      { path: "/huds", label: "HUDs", icon: "huds", component: HudsScreen, title: "HUDs & Composer" },
-      { path: "/sponsors", label: "Sponsors", icon: "sponsors", component: SponsorsScreen, title: "Sponsors & Automation" },
-      { path: "/maps", label: "Maps & Cameras", icon: "maps", component: MapsScreen },
-      { path: "/player-cameras", label: "Player Cameras", icon: "playercams", component: PlayerCamerasScreen },
-    ],
-  },
-  {
-    label: "Analysis",
-    items: [
-      { path: "/demos", label: "Demos", icon: "demos", component: DemosScreen, title: "Demo Library" },
-      { path: "/training", label: "Training", icon: "training", component: TrainingScreen, title: "Training & Evaluation" },
-    ],
-  },
-  {
-    label: "System",
-    items: [
-      { path: "/setup", label: "Setup", icon: "setup", component: SetupScreen },
-      { path: "/devices", label: "Devices", icon: "devices", component: DevicesScreen, title: "Devices & Integrations" },
-      { path: "/account", label: "Account", icon: "account", component: AccountScreen, title: "Account & Hours" },
-      { path: "/settings", label: "Settings", icon: "settings", component: SettingsScreen, title: "Settings & Diagnostics" },
-    ],
-  },
-];
-
-export const NAV: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
-
-function Nav({ collapsed, path }: { collapsed: boolean; path: string }) {
-  return (
-    <nav className={`nav ${collapsed ? "is-collapsed" : ""}`} aria-label="Primary">
-      {NAV_GROUPS.map((g) => (
-        <div className="nav-group" key={g.label}>
-          <div className="nav-group-label" aria-hidden>
-            {g.label}
-          </div>
-          <ul aria-label={g.label}>
-            {g.items.map((n) => {
-              const active = n.path === "/" ? path === "/" : path === n.path || path.startsWith(`${n.path}/`);
-              return (
-                <li key={n.path}>
-                  <Link to={n.path} className={`nav-link ${active ? "is-active" : ""}`} aria-current={active ? "page" : undefined} title={collapsed ? n.label : undefined}>
-                    <Icon name={n.icon} />
-                    <span className="nav-label">{n.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
-    </nav>
-  );
-}
+export { NAV, ROUTES, REDIRECTS } from "./routes.tsx";
 
 function NotFound({ path }: { path: string }) {
   return (
     <div className="page">
       <h1 className="page-title">Page not found</h1>
       <p>
-        There is no console page at <code>{path}</code>. <Link to="/">Go to the Overview.</Link>
+        There is no console page at <code>{path}</code>. <Link to="/">Go to the HUD Library.</Link>
       </p>
+    </div>
+  );
+}
+
+/** Section bar: the pages of the current module, as links (each page has its own URL). */
+function SectionBar({ item, path }: { item: NavItem; path: string }) {
+  if (!item.sub) return null;
+  return (
+    <div className="section-bar" role="navigation" aria-label={`${item.label} pages`}>
+      {item.sub.map((p) => {
+        const active = p.path === path;
+        return (
+          <Link key={p.path} to={p.path} className={`section-link ${active ? "is-active" : ""}`} aria-current={active ? "page" : undefined}>
+            {p.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Explains on the page why a module (or part of it) is unavailable; the sidebar shows the same as a badge. */
+function ModuleNotice({ id }: { id: NavId }) {
+  const availability = useModuleAvailability()[id];
+  if (!availability) return null;
+  return (
+    <div className="module-notice" data-module-notice={id}>
+      <Note tone={availability.level === "unavailable" ? "warn" : "neutral"} title={availability.level === "unavailable" ? `${navItem(id).label} unavailable` : "Desktop HUDs unavailable"}>
+        {availability.reason} {id === "director" ? <Link to="/settings/account">Open Settings → Account</Link> : null}
+      </Note>
     </div>
   );
 }
@@ -161,7 +86,11 @@ function useDesktopEvents() {
   }, [toast]);
 }
 
-function Shell({ me, notice }: { me: Me; notice?: ReactNode }) {
+/**
+ * The console layout: sidebar (modules), top toolbar, the page, and the bottom status bar. Opens
+ * straight into the HUD Library; signing in is optional (Settings → Account).
+ */
+export function Shell({ me }: { me: Me }) {
   const { path } = useLocation();
   useDesktopEvents();
   const [navCollapsed, setNavCollapsed] = usePersistentState("navCollapsed", typeof window !== "undefined" && window.innerWidth < 1440);
@@ -170,23 +99,31 @@ function Shell({ me, notice }: { me: Me; notice?: ReactNode }) {
     startLive();
     return () => stopLive();
   }, []);
-  const item = NAV.find((n) => n.path === path);
-  const Screen = item?.component ?? null;
+  const redirect = redirectFor(path);
+  useLayoutEffect(() => {
+    if (redirect) navigate(`${redirect}${window.location.search}${window.location.hash}`, true);
+  }, [redirect]);
+  const route = redirect ? null : routeFor(path);
+  const item = route ? navItem(route.nav) : null;
+  const Screen = route?.component ?? null;
+  const crumbs = redirect ? [] : crumbsFor(path);
   useEffect(() => {
-    document.title = `${item ? (item.title ?? item.label) : "Matchframe"} · Matchframe Operator`;
-  }, [item]);
+    document.title = `${route ? route.title : "Matchframe"} · Matchframe Esports`;
+  }, [route]);
   return (
     <SessionContext.Provider value={{ me }}>
       <a href="#main" className="skip-link">
         Skip to content
       </a>
       <div className={`shell ${navCollapsed ? "nav-collapsed" : ""}`}>
-        <TopBar onToggleNav={() => setNavCollapsed(!navCollapsed)} />
-        <Nav collapsed={navCollapsed} path={path} />
+        <Sidebar collapsed={navCollapsed} onToggle={() => setNavCollapsed(!navCollapsed)} activeId={route?.nav ?? null} />
+        <TopBar crumbs={crumbs} />
         <main id="main" className="main" tabIndex={-1}>
           <OfflineBanner />
-          {notice ? <div className="signin-notice">{notice}</div> : null}
-          {Screen ? (
+          <SignInNotice role={me.role} />
+          {item ? <SectionBar item={item} path={path} /> : null}
+          {item ? <ModuleNotice id={item.id} /> : null}
+          {redirect ? null : Screen ? (
             <Suspense fallback={<div className="page"><Loading label="Loading page…" /></div>}>
               <Screen />
             </Suspense>
@@ -194,6 +131,7 @@ function Shell({ me, notice }: { me: Me; notice?: ReactNode }) {
             <NotFound path={path} />
           )}
         </main>
+        <StatusBar />
       </div>
     </SessionContext.Provider>
   );
@@ -223,10 +161,7 @@ function TokenGate() {
     void verify();
   }, [verify]);
 
-  if (gate.kind === "ready") {
-    const me = gate.me;
-    return <SignInGate role={me.role}>{(notice) => <Shell me={me} notice={notice} />}</SignInGate>;
-  }
+  if (gate.kind === "ready") return <Shell me={gate.me} />;
   return (
     <div className="gate">
       <div className="gate-card">

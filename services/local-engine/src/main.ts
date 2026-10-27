@@ -2,7 +2,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Engine } from "./app.ts";
-import { loadConfig } from "./config.ts";
+import { loadConfig, pathList } from "./config.ts";
 import { startServers } from "./servers.ts";
 
 function repoPath(...parts: string[]): string | null {
@@ -19,6 +19,7 @@ export async function main(): Promise<void> {
   const cfg = loadConfig({
     captainUiDir: process.env.MATCHFRAME_CAPTAIN_UI_DIR ?? repoPath("apps", "operator-web", "dist-captain"),
     hudRendererDir: process.env.MATCHFRAME_HUD_DIR ?? repoPath("apps", "hud-renderer", "dist"),
+    sampleHudsDirs: process.env.MATCHFRAME_SAMPLE_HUDS_DIR ? pathList(process.env.MATCHFRAME_SAMPLE_HUDS_DIR) : [repoPath("assets", "hud-packages"), repoPath("apps", "hud-template", "dist")].filter((p): p is string => p !== null),
     mapPackDir: process.env.MATCHFRAME_MAP_PACK_DIR ?? repoPath("assets", "map-packs"),
     utilityProfilesFile: process.env.MATCHFRAME_UTILITY_PROFILES ?? repoPath("assets", "utility-profiles", "measured.json"),
     workersDir: process.env.MATCHFRAME_WORKERS_DIR ?? repoPath("workers"),
@@ -48,6 +49,11 @@ export async function main(): Promise<void> {
     if (stopping) return;
     stopping = true;
     engine.logger.info("engine shutting down");
+    // A shutdown never hangs: the program restarts the engine only once this process has exited.
+    setTimeout(() => {
+      engine.logger.warn("shutdown took longer than 5 s; exiting");
+      process.exit(0);
+    }, 5000).unref();
     await servers.close();
     await engine.shutdown();
     process.exit(0);
@@ -57,6 +63,15 @@ export async function main(): Promise<void> {
   process.on("message", (m) => {
     if ((m as { type?: string })?.type === "shutdown") void stop();
   });
+  if (process.send) {
+    // Started by the program over IPC: when the program disappears (quit, crash, killed), the IPC
+    // channel closes and the engine shuts down too, so no engine process is left behind.
+    process.on("disconnect", () => {
+      engine.logger.warn("program disconnected; engine shutting down");
+      setTimeout(() => process.exit(0), 5000).unref();
+      void stop();
+    });
+  }
   process.on("uncaughtException", (err) => engine.logger.error("uncaught exception", { error: err.stack ?? String(err) }));
   process.on("unhandledRejection", (err) => engine.logger.error("unhandled rejection", { error: String(err) }));
 }

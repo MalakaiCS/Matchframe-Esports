@@ -16,17 +16,20 @@ export function registerHudRoutes(r: Router, e: Engine): void {
     if (req.rawBody.length === 0) throw new HttpError(400, "send the package archive as the request body", "empty");
     const files = readArchive(new Uint8Array(req.rawBody));
     const pkg = e.hudPackages.install(files);
+    e.hudLibrary.packageChanged(pkg.id, { userImport: true });
     e.audit.record(req.principal!.label, "hud.package.import", pkg.id, { version: pkg.manifest.version, files: Object.keys(pkg.checksums).length });
     return pkg;
   });
   r.post("/api/v1/hud/packages/import-directory", { permission: "hud.publish", body: z.object({ path: z.string() }) }, (req) => {
     if (!existsSync(req.body.path) || !statSync(req.body.path).isDirectory()) throw new HttpError(400, "directory not found", "not_found");
     const pkg = e.hudPackages.install(readDirectory(req.body.path));
+    e.hudLibrary.packageChanged(pkg.id, { userImport: true });
     e.audit.record(req.principal!.label, "hud.package.import", pkg.id, { version: pkg.manifest.version });
     return pkg;
   });
   r.post("/api/v1/hud/packages/:id/rollback", { permission: "hud.publish" }, (req) => {
     const pkg = e.hudPackages.rollback(req.params.id!);
+    e.hudLibrary.packageChanged(pkg.id);
     e.audit.record(req.principal!.label, "hud.package.rollback", pkg.id, { version: pkg.manifest.version });
     return pkg;
   });
@@ -34,6 +37,7 @@ export function registerHudRoutes(r: Router, e: Engine): void {
     const inUse = e.outputs.list().filter((o) => o.published?.data.packageId === req.params.id);
     if (inUse.length > 0) throw new HttpError(409, `package is used by published outputs: ${inUse.map((o) => o.draft.outputId).join(", ")}`, "in_use");
     e.hudPackages.remove(req.params.id!);
+    e.hudLibrary.packageRemoved(req.params.id!);
     e.audit.record(req.principal!.label, "hud.package.remove", req.params.id!);
     return { removed: true };
   });

@@ -3,13 +3,17 @@ import { APP_VERSION } from "./config.ts";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { join } from "node:path";
 import { GSI_MAX_BODY_BYTES } from "@matchframe/cs2-state";
-import type { EventEnvelope } from "@matchframe/contracts";
+import type { EventEnvelope, HudOutputMode } from "@matchframe/contracts";
+import { HUD_OUTPUT_MODES, RESERVED_HUD_IDS } from "@matchframe/contracts";
 import type { Engine } from "./app.ts";
 import { can } from "./auth.ts";
 import { isLoopback } from "./config.ts";
 import { assetDir, registerDomainRoutes } from "./routes/domain.ts";
 import { registerCoreRoutes } from "./routes/core.ts";
 import { registerHudRoutes } from "./routes/hud.ts";
+import { registerHudLibraryRoutes } from "./routes/hud-library.ts";
+import { libraryHudId, libraryOutputId } from "./hud/library.ts";
+import { WRAPPER_JS, wrapperPage } from "./hud/wrapper.ts";
 import { registerLiveRoutes } from "./routes/live.ts";
 import { registerDemoRoutes } from "./routes/demos.ts";
 import { registerDeviceRoutes, tally } from "./routes/devices.ts";
@@ -27,6 +31,8 @@ export interface RunningServers {
   overlay: Server;
   operatorHub: WsHub;
   overlayHub: WsHub;
+  /** Control channel of library output pages (/hud-runtime-ws). */
+  runtimeHub: WsHub;
   router: Router;
   close(): Promise<void>;
 }
@@ -56,6 +62,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerDomainRoutes(router, e);
   registerLiveRoutes(router, e);
   registerHudRoutes(router, e);
+  registerHudLibraryRoutes(router, e);
   registerDemoRoutes(router, e);
   registerReportRoutes(router, e);
   registerDeviceRoutes(router, e);
@@ -204,7 +211,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
 
   // ------------------------------------------------------------------ overlay server
   const overlayOrigin = `http://127.0.0.1:${cfg.overlayPort}`;
-  const csp = overlayCsp(overlayOrigin).replace("frame-ancestors 'none'", `frame-ancestors http://127.0.0.1:${cfg.apiPort} http://localhost:${cfg.apiPort} app://matchframe file:`);
+  // 'self': the library output page frames its HUD; the console (and its preview panels) frames outputs.
+  const csp = overlayCsp(overlayOrigin, ["'self'", `http://127.0.0.1:${cfg.apiPort}`, `http://localhost:${cfg.apiPort}`, "app://matchframe", "file:"]);
   let rejectedOverlayMessages = 0;
   const overlayHub = new WsHub({
     onConnect: (c) => sendHud(c, true),
@@ -246,7 +254,37 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     for (const c of overlayHub.clients) sendHud(c, c.needsSnapshot);
   };
   e.onHudUpdate(() => pushHud());
-  const hudTimer = setInterval(pushHud, 500);
+
+  // Library output pages (/hud/<id>/<variant>) keep a read-only control socket: the server sends
+  // a HudRuntimeControl on connect and whenever stopped, hidden or reloadSeq change.
+  const runtimeHub = new WsHub();
+  const sendControl = (c: HubClient) => {
+    const ctl = e.hudLibrary.control(String(c.meta.hudId));
+    if (ctl) runtimeHub.sendTo(c, ctl, { snapshot: true });
+  };
+  e.hudLibrary.attachRuntime({
+    outputs: (hudId) => {
+      const counts: Record<HudOutputMode, number> = { obs: 0, desktop: 0, preview: 0 };
+      // The manager's own embedded preview (details panel) is not an output.
+      for (const c of runtimeHub.clients) if (c.meta.hudId === hudId && !c.meta.embedded) counts[c.meta.mode as HudOutputMode]++;
+      return counts;
+    },
+  });
+  const offLibrary = e.hudLibrary.onChange((ev) => {
+    if (ev.type === "control") {
+      for (const c of runtimeHub.clients) if (ev.hudId === null || c.meta.hudId === ev.hudId) sendControl(c);
+    } else if (ev.type === "closed") {
+      // Removed HUD or rotated token: its outputs are disconnected (and cannot reconnect with the old token).
+      const code = ev.reason === "removed" ? 4404 : 4401;
+      for (const c of runtimeHub.clients) if (c.meta.hudId === ev.hudId) c.ws.close(code, ev.reason);
+      for (const c of overlayHub.clients) if (c.meta.outputId === libraryOutputId(ev.hudId)) c.ws.close(code, ev.reason);
+    }
+  });
+  const hudTimer = setInterval(() => {
+    pushHud();
+    // Control messages dropped for a slow client are resent once it drains.
+    for (const c of runtimeHub.clients) if (c.needsSnapshot) sendControl(c);
+  }, 500);
 
   const serveOverlay = (req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? "/", "http://local");
@@ -279,6 +317,31 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       }
       return json(res, 404, { error: "not_found" });
     }
+    if (p === "/hud-runtime/wrapper.js") {
+      res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache", "x-content-type-options": "nosniff", ...headers });
+      res.end(WRAPPER_JS);
+      return;
+    }
+    // Library output page. Reserved ids (assets, sdk, ...) are the built-in renderer's own files below.
+    const libPage = /^\/hud\/([^/]+)\/([^/]+)\/?$/.exec(p);
+    if (libPage && !(RESERVED_HUD_IDS as readonly string[]).includes(libPage[1]!)) {
+      const [, hudId, variant] = libPage as unknown as [string, string, string];
+      const rt = e.hudLibrary.runtimeConfig(hudId);
+      if (!rt) return json(res, 404, { error: "not_found", message: "unknown HUD" });
+      const token = url.searchParams.get("t");
+      if (!e.hudLibrary.checkToken(hudId, token)) return json(res, 401, { error: "unauthorized", message: "invalid or missing HUD token" });
+      const entry = rt.entryPoints[variant as keyof typeof rt.entryPoints];
+      if (!entry) return json(res, 404, { error: "not_found", message: `this HUD has no ${variant} variant` });
+      const m = url.searchParams.get("mode") ?? "obs";
+      const mode: HudOutputMode = (HUD_OUTPUT_MODES as readonly string[]).includes(m) ? (m as HudOutputMode) : "obs";
+      const q = `output=${libraryOutputId(hudId)}&variant=${variant}&t=${encodeURIComponent(token!)}`;
+      const frameUrl = rt.builtin ? `/hud/index.html?${q}` : `/huds/${encodeURIComponent(hudId)}/${entry.split("/").map(encodeURIComponent).join("/")}?${q}`;
+      const embed = mode === "preview" && url.searchParams.get("embed") === "1" ? "&embed=1" : "";
+      const html = wrapperPage({ hudId, name: rt.name, variant, mode, checker: url.searchParams.get("checker") === "1", frameUrl, controlPath: `/hud-runtime-ws?hud=${encodeURIComponent(hudId)}&variant=${variant}&mode=${mode}${embed}&t=${encodeURIComponent(token!)}`, ...rt.designResolution });
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers });
+      res.end(html);
+      return;
+    }
     const radar = /^\/overlay-api\/radar\/([a-z0-9_]+)$/.exec(p);
     if (radar) {
       const rt = e.maps.get(radar[1]!);
@@ -307,11 +370,21 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   });
   overlay.on("upgrade", (req, socket, head) => {
     const url = new URL(req.url ?? "/", "http://local");
-    const outputId = url.searchParams.get("output") ?? "";
-    if (url.pathname !== "/overlay-ws" || !e.outputs.checkToken(outputId, url.searchParams.get("t"))) {
+    const token = url.searchParams.get("t");
+    const unauthorized = () => {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
-      return socket.destroy();
+      socket.destroy();
+    };
+    if (url.pathname === "/hud-runtime-ws") {
+      const hudId = url.searchParams.get("hud") ?? "";
+      if (!e.hudLibrary.checkToken(hudId, token)) return unauthorized();
+      const m = url.searchParams.get("mode") ?? "obs";
+      const mode = (HUD_OUTPUT_MODES as readonly string[]).includes(m) ? m : "obs";
+      return runtimeHub.upgrade(req, socket, head, { hudId, variant: url.searchParams.get("variant"), mode, embedded: mode === "preview" && url.searchParams.get("embed") === "1" });
     }
+    const outputId = url.searchParams.get("output") ?? "";
+    const hudId = libraryHudId(outputId);
+    if (url.pathname !== "/overlay-ws" || !(hudId !== null ? e.hudLibrary.checkToken(hudId, token) : e.outputs.checkToken(outputId, token))) return unauthorized();
     overlayHub.upgrade(req, socket, head, { outputId, variant: url.searchParams.get("variant") });
   });
 
@@ -327,14 +400,27 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     overlay,
     operatorHub,
     overlayHub,
+    runtimeHub,
     router,
     async close() {
       clearInterval(operatorTimer);
       clearInterval(hudTimer);
       if (hudPending) clearTimeout(hudPending);
+      offLibrary();
+      e.hudLibrary.attachRuntime(null);
       operatorHub.closeAll();
       overlayHub.closeAll();
-      await Promise.all([gsi, api, overlay].map((s) => new Promise<void>((r) => s.close(() => r()))));
+      runtimeHub.closeAll();
+      // Open keep-alive and streaming connections would hold close() open: drop them.
+      await Promise.all(
+        [gsi, api, overlay].map(
+          (s) =>
+            new Promise<void>((r) => {
+              s.close(() => r());
+              s.closeAllConnections();
+            }),
+        ),
+      );
     },
     get rejectedOverlayMessages() {
       return rejectedOverlayMessages;
