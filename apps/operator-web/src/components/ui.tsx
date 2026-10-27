@@ -22,7 +22,7 @@ export function Badge({ tone = "neutral", icon, children, title, className = "" 
 }
 
 export function SupportBadge({ support, title }: { support: Support | "unknown"; title?: string }) {
-  if (support === "unknown") return <Badge title={title}>UNKNOWN</Badge>;
+  if (support === "unknown") return <Badge title={title}>Unknown</Badge>;
   const s = SUPPORT_TEXT[support];
   return (
     <Badge tone={s.tone} icon={s.icon} title={title}>
@@ -45,12 +45,12 @@ type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "warn";
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: "sm" | "md" | "lg";
-  /** When set the button is disabled and the reason is shown next to it (and announced). */
+  /** When set the button is disabled; the reason is announced and shown on hover (or next to it with reasonPlacement="inline"). */
   disabledReason?: string | null;
   reasonPlacement?: "inline" | "tooltip";
 }
 
-export function Button({ variant = "secondary", size = "md", disabledReason, reasonPlacement = "inline", className = "", children, disabled, title, ...rest }: ButtonProps) {
+export function Button({ variant = "secondary", size = "md", disabledReason, reasonPlacement = "tooltip", className = "", children, disabled, title, ...rest }: ButtonProps) {
   const id = useId();
   const reason = disabledReason ?? null;
   const btn = (
@@ -231,7 +231,7 @@ export function ErrorBox({ error, onRetry }: { error: string; onRetry?: () => vo
   return (
     <div className="error-box" role="alert">
       <Badge tone="danger" icon="!">
-        ERROR
+        Error
       </Badge>
       <span className="error-text">{error}</span>
       {onRetry ? (
@@ -357,12 +357,22 @@ export function Mono({ children }: { children: ReactNode }) {
 }
 
 export function Note({ tone = "info", children, title }: { tone?: Tone; children: ReactNode; title?: string }) {
-  const tag = { neutral: "NOTE", info: "NOTE", ok: "OK", warn: "CAUTION", danger: "WARNING", sim: "SIMULATION", accent: "TIP" }[tone];
+  const tag = title ?? (tone === "sim" ? "Simulation" : null);
   return (
     <div className={`note tone-${tone}`}>
-      <span className="note-tag">{title ?? tag}</span>
+      {tag ? <span className="note-tag">{tag}</span> : null}
       <div className="note-body">{children}</div>
     </div>
+  );
+}
+
+/** Collapsed-by-default disclosure for technical detail that most operators never need. */
+export function Details({ summary = "Details", children, open, className = "" }: { summary?: ReactNode; children: ReactNode; open?: boolean; className?: string }) {
+  return (
+    <details className={`details ${className}`} open={open}>
+      <summary>{summary}</summary>
+      <div className="details-body">{children}</div>
+    </details>
   );
 }
 

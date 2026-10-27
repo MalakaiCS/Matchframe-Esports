@@ -74,7 +74,7 @@ async function run(cloud) {
   assert(!(await win.evaluate(() => document.querySelectorAll("nav a").length)), "the console stays closed until signed in");
   if (shot) await win.screenshot({ path: shot.replace(/(\.png)?$/, "-signin.png") });
   await signInThroughGate(win, "producer@example.com", PASSWORD);
-  await waitFor(() => win.evaluate(() => document.body.innerText.includes("CONNECTED")), 30000);
+  await waitFor(() => win.evaluate(() => !!document.querySelector('[data-link="open"]')), 30000);
   const info = await win.evaluate(async () => ({
     url: location.href,
     nav: [...document.querySelectorAll("nav a")].map((a) => a.textContent.trim()),

@@ -46,10 +46,11 @@ beforeEach(() => liveStore.reset());
 afterEach(cleanup);
 
 describe("top bar ownership banner", () => {
-  it("shows sticky MANUAL with Resume automation", () => {
+  it("shows sticky manual control with Resume automation", () => {
     act(() => liveStore.set({ status: "open", snapshot: snapshot(), snapshotAt: Date.now() }));
     renderBar();
-    expect(screen.getByText("MANUAL")).toBeTruthy();
+    expect(screen.getByText("Manual")).toBeTruthy();
+    expect(screen.getByText("Observer off")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Resume automation" })).toBeTruthy();
     expect(screen.queryByText("SIMULATION")).toBeNull();
   });
@@ -67,31 +68,31 @@ describe("top bar ownership banner", () => {
   it("shows the resume countdown with Cancel", () => {
     act(() => liveStore.set({ status: "open", snapshot: snapshot({ resumeInMs: 1800 }), snapshotAt: Date.now() }));
     renderBar();
-    expect(screen.getByText("RESUMING IN 1.8 s")).toBeTruthy();
+    expect(screen.getByText("Resuming in 1.8 s")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Resume automation" })).toBeNull();
   });
 
-  it("shows EMERGENCY STOP with Clear stop and never offers resume", () => {
+  it("shows the emergency stop with Clear stop and never offers resume", () => {
     act(() => liveStore.set({ status: "open", snapshot: snapshot({ ownership: { ...own, emergencyStopped: true } }), snapshotAt: Date.now() }));
     renderBar();
-    expect(screen.getByText("EMERGENCY STOP")).toBeTruthy();
+    expect(screen.getByText("Emergency stop")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Clear stop" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Resume automation" })).toBeNull();
   });
 
-  it("shows AUTOMATION with Take over and the SIMULATION badge when simulated", () => {
+  it("shows automatic control with Take over and the SIMULATION badge when simulated", () => {
     act(() => liveStore.set({ status: "open", snapshot: snapshot({ simulated: true, ownership: { ...own, owner: "director", manualSticky: false } }), snapshotAt: Date.now() }));
     renderBar();
-    expect(screen.getByText("AUTOMATION")).toBeTruthy();
+    expect(screen.getByText("Automatic")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Take over" })).toBeTruthy();
     expect(screen.getByText("SIMULATION")).toBeTruthy();
   });
 
-  it("explains a disabled STOP AUTOMATION for roles without camera control", () => {
+  it("explains a disabled Stop automation for roles without camera control", () => {
     act(() => liveStore.set({ status: "open", snapshot: snapshot(), snapshotAt: Date.now() }));
     renderBar("viewer");
-    const stop = screen.getByRole("button", { name: /STOP AUTOMATION/ }) as HTMLButtonElement;
+    const stop = screen.getByRole("button", { name: /Stop automation/ }) as HTMLButtonElement;
     expect(stop.disabled).toBe(true);
     expect(stop.title).toBe("Your role (viewer) lacks camera.control");
   });
@@ -99,7 +100,15 @@ describe("top bar ownership banner", () => {
   it("reports an offline console link", () => {
     act(() => liveStore.set({ status: "reconnecting", info: { attempt: 2, nextRetryInMs: 2000, lastError: "closed (1006)" } }));
     renderBar();
-    expect(screen.getByText("RETRY IN 2 s")).toBeTruthy();
-    expect(screen.getByText("NO DATA")).toBeTruthy();
+    expect(screen.getByText("Reconnecting in 2 s")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry now" })).toBeTruthy();
+  });
+
+  it("reports the game data once the console is connected", () => {
+    act(() => liveStore.set({ status: "open", snapshot: snapshot(), snapshotAt: Date.now() }));
+    renderBar();
+    expect(screen.getByText("Waiting for CS2")).toBeTruthy();
+    expect(document.querySelector('[data-link="open"]')).toBeTruthy();
+    expect(screen.getByText("Offline")).toBeTruthy();
   });
 });
