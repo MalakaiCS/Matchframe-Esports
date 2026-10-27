@@ -68,7 +68,7 @@ function LiveHud({ state, receivedAt, now, onSponsorShown }: { state: HudState; 
       )}
       {!hidden("killfeed") && (
         <Placed id="killfeed" settings={s}>
-          <Killfeed state={state} />
+          <Killfeed state={state} now={now} />
         </Placed>
       )}
       {!hidden("players") && (

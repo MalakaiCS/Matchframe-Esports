@@ -54,6 +54,10 @@ client.ackSponsor(sponsorId, zone); // proof of delivery for sponsor reporting
 
 Honour the flags in the state: show a SIMULATION marker when `state.simulated` is true, dim or freeze when `state.stale` is true, and render `null` values as unknown (not zero).
 
+**Minimap** (`state.radar`, permission `radar.public`): `players`, `bomb` and `utility` carry 0–1 coordinates on the background. In mode `"image"`, `backgroundUrl` is a radar image (the built-in one for the map, served at `/overlay-api/radar-image/<map>`, or an operator-calibrated image); in mode `"schematic"` it is a JSON outline (`cells`, `polygons`, `regions`) at `/overlay-api/radar/<map>`; in mode `"none"` draw nothing. Player markers have `side`, `alive`, `observed`, `flashed`, `hasBomb`, `label` (observer slot) and `yawDeg`; utility has `type`, `side` (thrower) and `radius`.
+
+**Killfeed** (`state.killfeed.entries`, the current round): `killer`, `victim`, `weapon` (e.g. `"weapon_ak47"`), `headshot`, `assister` and `attackerBlind`. Game state integration reports no kill events, so `kind: "probable"` entries are paired from counter changes (the weapon is the killer's weapon in hand) and `kind: "elimination"` has no killer; any field can be `null`. Keep each row on screen for a few seconds after it first arrives (the bundled HUDs use 5–7 s). The Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2/app.js`) shows both in plain JavaScript.
+
 ## 2. Local API
 
 OpenAPI 3.1: [`docs/architecture/openapi.json`](architecture/openapi.json) (regenerate with `pnpm openapi`); route table with permissions: [`docs/architecture/api-routes.md`](architecture/api-routes.md). Issue a role-scoped token (`POST /api/v1/tokens`) per integration. Mutations are refused from foreign browser origins. Operator WebSocket topics are listed in the route table.

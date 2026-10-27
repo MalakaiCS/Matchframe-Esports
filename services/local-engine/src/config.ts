@@ -19,6 +19,8 @@ export interface EngineConfig {
   sampleHudsDirs: string[];
   /** Directory holding map packs shipped with the app. */
   mapPackDir: string | null;
+  /** Built-in radar images with their calibration (assets/radars: radars.json and the images). */
+  radarDir: string | null;
   /** Measured utility profiles (workers `measure-utility` output); defaults are used when absent. */
   utilityProfilesFile: string | null;
   /** Python interpreter for workers (demo parsing, training). */
@@ -63,6 +65,7 @@ export function loadConfig(overrides: Partial<EngineConfig> = {}): EngineConfig 
     hudRendererDir: process.env.MATCHFRAME_HUD_DIR ?? null,
     sampleHudsDirs: pathList(process.env.MATCHFRAME_SAMPLE_HUDS_DIR),
     mapPackDir: process.env.MATCHFRAME_MAP_PACK_DIR ?? null,
+    radarDir: process.env.MATCHFRAME_RADAR_DIR ?? null,
     utilityProfilesFile: process.env.MATCHFRAME_UTILITY_PROFILES ?? null,
     pythonPath: process.env.MATCHFRAME_PYTHON ?? null,
     workersDir: process.env.MATCHFRAME_WORKERS_DIR ?? null,

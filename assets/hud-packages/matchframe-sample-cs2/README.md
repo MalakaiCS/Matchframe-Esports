@@ -9,8 +9,10 @@ A complete HUD package for the Matchframe HUD Library, kept small enough to read
 | `app.js` | Connects to the HUD server with the read-only SDK (`/sdk/hud-sdk.js`) and renders each state snapshot |
 | `styles.css` | Layout for 1920×1080; outputs scale it uniformly |
 | `fonts/` | Inter (SIL Open Font License 1.1, see `fonts/OFL.txt`) |
-| `images/` | Artwork used by the HUD |
+| `images/` | Artwork used by the HUD; `images/weapons/` holds the killfeed's weapon icons (from Lexogrine's MIT CS2 HUD template, see `images/weapons/LICENSE-lexogrine.txt`) |
 | `thumbnail.webp` | The library card image |
+
+The minimap (`renderMinimap`) and killfeed (`renderKillfeed`) in `app.js` show how to use `state.radar` and `state.killfeed`: draw the background from `radar.backgroundUrl` (an image, or a JSON outline in the schematic mode), place markers with their 0–1 coordinates, and keep each kill on screen for a few seconds after it first arrives.
 
 Rules for any HUD package:
 

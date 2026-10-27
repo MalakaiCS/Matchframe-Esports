@@ -115,3 +115,25 @@ export function EyeIcon({ size = 16, className }: P) {
     </svg>
   );
 }
+
+/** Headshot: a target with a centre dot. */
+export function HeadshotIcon({ size = 16, className }: P) {
+  return (
+    <svg {...box(size)} className={`mf-icon ${className ?? ""}`} role="img" aria-label="headshot">
+      <circle cx="12" cy="12" r="7.5" stroke="currentColor" strokeWidth="2.2" fill="none" />
+      <circle cx="12" cy="12" r="2.6" fill="currentColor" />
+      <path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" stroke="currentColor" strokeWidth="2.2" />
+    </svg>
+  );
+}
+
+/** The killer was blind: an eye with rays. */
+export function BlindIcon({ size = 16, className }: P) {
+  return (
+    <svg {...box(size)} className={`mf-icon ${className ?? ""}`} role="img" aria-label="killer was flashed">
+      <path d="M3 13s3.5-5 9-5 9 5 9 5-3.5 5-9 5-9-5-9-5z" fill="currentColor" />
+      <circle cx="12" cy="13" r="2.4" fill="var(--mf-ink-inverse)" />
+      <path d="M12 2v3.5M5 4.5l2 2.6M19 4.5l-2 2.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}

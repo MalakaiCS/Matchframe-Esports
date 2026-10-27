@@ -71,6 +71,8 @@ async function run(cloud) {
   await waitFor(() => local.win.evaluate(() => !!document.querySelector('[data-link="open"]')));
   const huds = await waitFor(() => local.win.evaluate(() => [...document.querySelectorAll("article[data-hud]")].map((c) => c.getAttribute("data-hud"))).then((l) => (l.length >= 3 ? l : null)));
   assert(huds.includes("matchframe.sample-cs2") && huds.includes("matchframe.pro-cs2"), `bundled HUDs installed (${huds.join(", ")})`);
+  const radarImage = await fetch("http://127.0.0.1:39412/overlay-api/radar-image/de_dust2");
+  assert(radarImage.status === 200 && (radarImage.headers.get("content-type") ?? "").startsWith("image/png"), `built-in radar images served (${radarImage.status})`);
   if (out) await local.win.screenshot({ path: `${out}-library.png` });
   // Launch Transparent HUD with the desktop switch on its row.
   await local.win.click('[data-hud="matchframe.sample-cs2"] .hud-launch');

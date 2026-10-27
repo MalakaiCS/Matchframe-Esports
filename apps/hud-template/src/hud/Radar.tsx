@@ -34,16 +34,18 @@ const UTILITY: Record<string, string> = { smoke: "u-smoke", molotov: "u-fire", i
 const S = 1000;
 
 /**
- * Radar (top left) from Matchframe's radar data: the calibrated radar image or the schematic outline
- * generated from map geometry, with players, the bomb and confirmed utility. Nothing is drawn without
- * a trustworthy transform (mode "none").
+ * Radar (top left) from Matchframe's radar data: the built-in radar image for the map (or an
+ * operator-calibrated one), or the schematic outline generated from map geometry. Players with their
+ * slot number (bigger when observed, lighter while flashed, orange when carrying the bomb, faded
+ * when dead), the bomb when dropped or planted, and confirmed utility (smokes outlined in the
+ * thrower's team colour). Nothing is drawn without a trustworthy transform (mode "none").
  */
 export default function Radar({ state, size }: { state: HudState; size: number }) {
   const r = state.radar;
   const outline = useOutline(r.mode === "schematic" ? r.backgroundUrl : null);
   if (!r.available || r.mode === "none") return null;
   return (
-    <div id="radar_maps_container" style={{ width: size, height: size }}>
+    <div id="radar_maps_container" className={`mode-${r.mode}`} style={{ width: size, height: size }}>
       <svg viewBox={`0 0 ${S} ${S}`} className="mf-radar" aria-hidden>
         {r.mode === "image" && r.backgroundUrl ? <image href={r.backgroundUrl} x="0" y="0" width={S} height={S} preserveAspectRatio="none" /> : null}
         {outline?.cells.map(([u, v, w, ri], i) => (
@@ -53,20 +55,27 @@ export default function Radar({ state, size }: { state: HudState; size: number }
           <polygon key={`p${i}`} points={p.points.map(([u, v]) => `${u * S},${v * S}`).join(" ")} className={`mf-radar-cell k-${outline.regions[p.regionIndex]?.kind ?? "other"}`} />
         ))}
         {r.utility.map((u) => (
-          <circle key={u.id} cx={u.u * S} cy={u.v * S} r={Math.max(u.type === "decoy" ? 14 : 26, (u.radius ?? 0.02) * S)} className={`mf-radar-util ${UTILITY[u.type] ?? "u-other"}`} />
+          <circle key={u.id} cx={u.u * S} cy={u.v * S} r={Math.max(u.type === "decoy" ? 12 : 22, (u.radius ?? 0.02) * S)} className={`mf-radar-util ${UTILITY[u.type] ?? "u-other"} ${u.side ?? ""}`} />
         ))}
-        {r.bomb && r.bomb.state !== "carried" ? <rect x={r.bomb.u * S - 16} y={r.bomb.v * S - 11} width="32" height="22" rx="3" className={`mf-radar-bomb s-${r.bomb.state}`} /> : null}
-        {r.players.map((p) => (
-          <g key={p.id} transform={`translate(${p.u * S} ${p.v * S})`} className={`mf-radar-player ${p.side ?? ""} ${p.alive ? "" : "dead"} ${p.observed ? "active" : ""}`}>
-            {p.alive && p.yawDeg !== null ? <path d="M0,-44 L14,-20 L-14,-20 Z" transform={`rotate(${90 - p.yawDeg})`} className="mf-radar-facing" /> : null}
-            <circle r={p.alive ? (p.observed ? 28 : 23) : 11} className="mf-radar-dot" />
-            {p.alive && p.label ? (
-              <text y="9" textAnchor="middle" className="mf-radar-label">
-                {p.label}
-              </text>
-            ) : null}
+        {r.bomb && r.bomb.state !== "carried" ? (
+          <g transform={`translate(${r.bomb.u * S} ${r.bomb.v * S})`} className={`mf-radar-bomb s-${r.bomb.state}`}>
+            <circle r="30" className="mf-radar-bomb-ping" />
+            <rect x="-17" y="-12" width="34" height="24" rx="4" className="mf-radar-bomb-body" />
           </g>
-        ))}
+        ) : null}
+        {[...r.players]
+          .sort((a, b) => Number(a.alive) - Number(b.alive) || Number(a.observed) - Number(b.observed))
+          .map((p) => (
+            <g key={p.id} transform={`translate(${p.u * S} ${p.v * S})`} className={`mf-radar-player ${p.side ?? ""} ${p.alive ? "" : "dead"} ${p.observed ? "active" : ""} ${p.flashed ? "flashed" : ""} ${p.hasBomb ? "hasBomb" : ""}`}>
+              {p.alive && p.yawDeg !== null ? <path d="M0,-44 L14,-20 L-14,-20 Z" transform={`rotate(${90 - p.yawDeg})`} className="mf-radar-facing" /> : null}
+              <circle r={p.alive ? (p.observed ? 30 : 24) : 11} className="mf-radar-dot" />
+              {p.alive && p.label ? (
+                <text y="9" textAnchor="middle" className="mf-radar-label">
+                  {p.label}
+                </text>
+              ) : null}
+            </g>
+          ))}
       </svg>
     </div>
   );

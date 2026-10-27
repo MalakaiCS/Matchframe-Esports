@@ -160,6 +160,52 @@ describe("MatchStateStore", () => {
     expect(r.events.some((e) => e.evidence === "measured" && e.kind === "player_died")).toBe(false);
   });
 
+  it("pairs a kill with the killer's weapon in hand, headshot, a single assister and a blind killer, as estimates", () => {
+    const store = new MatchStateStore({ sessionId: "s1" });
+    store.ingest(obs({ players: roster }, { at: 100 }));
+    const [k, mate] = [roster[0]!, roster[1]!];
+    const v = roster[5]!;
+    const after = roster.map((p) =>
+      p.steamId === k.steamId
+        ? { ...p, kills: 1, roundKills: 1, roundKillsHs: 1, flashed: 120 }
+        : p.steamId === mate.steamId
+          ? { ...p, assists: 1 }
+          : p.steamId === v.steamId
+            ? { ...p, health: 0, deaths: 1 }
+            : p,
+    );
+    const r = store.ingest(obs({ players: after, timestamp: 1_700_000_001 }, { at: 200 }));
+    const link = r.events.find((e) => e.kind === "probable_kill_link")!;
+    expect(link.evidence).toBe("estimated");
+    expect(link.data).toMatchObject({ killer: k.steamId, victim: v.steamId, headshot: "probable", weapon: "weapon_ak47", assister: mate.steamId, attackerBlind: true });
+  });
+
+  it("pairs a multi-kill by one player, and leaves several killers or a grenade in hand unknown", () => {
+    const store = new MatchStateStore({ sessionId: "s1" });
+    store.ingest(obs({ players: roster }, { at: 100 }));
+    const k = roster[0]!;
+    const [v1, v2] = [roster[5]!, roster[6]!];
+    const double = roster.map((p) => (p.steamId === k.steamId ? { ...p, kills: 2, roundKills: 2, weapons: [{ name: "weapon_hegrenade", type: "Grenade", state: "active" as const }] } : p.steamId === v1.steamId || p.steamId === v2.steamId ? { ...p, health: 0, deaths: 1 } : p));
+    const r = store.ingest(obs({ players: double, timestamp: 1_700_000_001 }, { at: 200 }));
+    const links = r.events.filter((e) => e.kind === "probable_kill_link");
+    expect(links.map((l) => l.data.victim).sort()).toEqual([v1.steamId, v2.steamId].sort());
+    // The roster's previous packet had a rifle in hand: that is the estimate, not the grenade now held.
+    expect(links.every((l) => l.data.weapon === "weapon_ak47" && l.data.headshot === null && l.data.assister === null)).toBe(true);
+
+    const store2 = new MatchStateStore({ sessionId: "s2" });
+    const nade = roster.map((p) => (p.steamId === k.steamId ? { ...p, weapons: [{ name: "weapon_molotov", type: "Grenade", state: "active" as const }] } : p));
+    store2.ingest(obs({ players: nade }, { at: 100 }));
+    const burned = nade.map((p) => (p.steamId === k.steamId ? { ...p, kills: 1, roundKills: 1 } : p.steamId === v1.steamId ? { ...p, health: 0, deaths: 1 } : p));
+    const r2 = store2.ingest(obs({ players: burned, timestamp: 1_700_000_001 }, { at: 200 }));
+    expect(r2.events.find((e) => e.kind === "probable_kill_link")!.data.weapon).toBeNull();
+
+    const store3 = new MatchStateStore({ sessionId: "s3" });
+    store3.ingest(obs({ players: roster }, { at: 100 }));
+    const trade = roster.map((p) => (p.steamId === roster[0]!.steamId || p.steamId === roster[5]!.steamId ? { ...p, kills: 1, roundKills: 1 } : p.steamId === roster[1]!.steamId || p.steamId === roster[6]!.steamId ? { ...p, health: 0, deaths: 1 } : p));
+    const r3 = store3.ingest(obs({ players: trade, timestamp: 1_700_000_001 }, { at: 200 }));
+    expect(r3.events.some((e) => e.kind === "probable_kill_link")).toBe(false);
+  });
+
   it("keeps a player missing from the all-player list as unknown, not dead", () => {
     const store = new MatchStateStore({ sessionId: "s1" });
     store.ingest(obs({ players: roster }, { at: 100 }));

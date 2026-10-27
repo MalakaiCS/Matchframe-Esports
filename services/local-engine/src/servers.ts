@@ -368,6 +368,12 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       if (!outline) return json(res, 404, { error: "not_found", message: "no schematic geometry for this map" });
       return json(res, 200, { mapName: rt!.mapName, ...outline }, { "cache-control": "public, max-age=600" });
     }
+    const radarImage = /^\/overlay-api\/radar-image\/([a-z0-9_]+)$/.exec(p);
+    if (radarImage) {
+      const r = e.radars.get(radarImage[1]!);
+      if (!r) return json(res, 404, { error: "not_found", message: "no built-in radar image for this map" });
+      return serveFile(res, r.file, { ...headers, "cache-control": "public, max-age=3600" });
+    }
     if (p.startsWith("/assets/")) {
       const f = safeResolve(assetDir(e), p.slice("/assets/".length));
       if (f) return serveFile(res, f, headers);

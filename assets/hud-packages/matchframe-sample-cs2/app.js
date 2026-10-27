@@ -66,6 +66,149 @@ function renderObserved(state) {
   $(".observed-kda", el).textContent = p.kills !== null ? `K ${p.kills} · A ${p.assists ?? "–"} · D ${p.deaths ?? "–"}` : "";
 }
 
+// ---------------------------------------------------------------- minimap
+//
+// state.radar holds 0–1 coordinates on its background: the built-in radar image for the map (or an
+// operator-calibrated one) in mode "image", or Matchframe's outline generated from map geometry in
+// mode "schematic" (fetched as JSON). Mode "none": no trustworthy transform, nothing is drawn.
+const SVG = "http://www.w3.org/2000/svg";
+const S = 1000;
+const outlines = new Map();
+const svgEl = (tag, attrs) => {
+  const el = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v !== null && v !== undefined) el.setAttribute(k, String(v));
+  return el;
+};
+
+function outline(url) {
+  if (!outlines.has(url)) {
+    outlines.set(url, null);
+    fetch(url)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((o) => {
+        outlines.set(url, o);
+        if (last) renderMinimap(last.state);
+      })
+      .catch(() => undefined);
+  }
+  return outlines.get(url);
+}
+
+const UTILITY = { smoke: "smoke", molotov: "fire", incendiary: "fire", fire_unknown: "fire", he: "he", flashbang: "flash", decoy: "decoy" };
+
+function renderMinimap(state) {
+  const box = $(".minimap");
+  const r = state.radar;
+  box.hidden = setting(state, "showMinimap", true) === false || !r.available || r.mode === "none";
+  if (box.hidden) return;
+  box.dataset.mode = r.mode;
+  const svg = $("svg", box);
+  const parts = [];
+  if (r.mode === "image" && r.backgroundUrl) parts.push(svgEl("image", { href: r.backgroundUrl, x: 0, y: 0, width: S, height: S, preserveAspectRatio: "none" }));
+  const o = r.mode === "schematic" && r.backgroundUrl ? outline(r.backgroundUrl) : null;
+  if (o) {
+    for (const [u, v, w, ri] of o.cells) parts.push(svgEl("rect", { x: u * S, y: v * S, width: w * S + 0.6, height: w * S + 0.6, class: `cell k-${o.regions[ri]?.kind ?? "other"}` }));
+    for (const p of o.polygons) parts.push(svgEl("polygon", { points: p.points.map(([u, v]) => `${u * S},${v * S}`).join(" "), class: `cell k-${o.regions[p.regionIndex]?.kind ?? "other"}` }));
+  }
+  for (const u of r.utility) parts.push(svgEl("circle", { cx: u.u * S, cy: u.v * S, r: Math.max(u.type === "decoy" ? 12 : 22, (u.radius ?? 0.02) * S), class: `util ${UTILITY[u.type] ?? "other"}${u.side ? ` side-${u.side}` : ""}` }));
+  if (r.bomb && r.bomb.state !== "carried") {
+    const g = svgEl("g", { transform: `translate(${r.bomb.u * S} ${r.bomb.v * S})`, class: `bomb s-${r.bomb.state}` });
+    g.append(svgEl("circle", { r: 30, class: "ping" }), svgEl("rect", { x: -17, y: -12, width: 34, height: 24, rx: 5, class: "body" }));
+    parts.push(g);
+  }
+  // Dead players first, the observed player last (on top).
+  const players = [...r.players].sort((a, b) => Number(a.alive) - Number(b.alive) || Number(a.observed) - Number(b.observed));
+  for (const p of players) {
+    const g = svgEl("g", { transform: `translate(${p.u * S} ${p.v * S})`, class: `dot${p.side ? ` side-${p.side}` : ""}${p.alive ? "" : " dead"}${p.observed ? " observed" : ""}${p.flashed ? " flashed" : ""}${p.hasBomb ? " carrier" : ""}` });
+    if (p.alive) {
+      if (p.yawDeg !== null) g.append(svgEl("path", { d: "M0,-42 L14,-18 L-14,-18 Z", transform: `rotate(${90 - p.yawDeg})`, class: "facing" }));
+      g.append(svgEl("circle", { r: p.observed ? 27 : 22, class: "disc" }));
+      if (p.label) {
+        const t = svgEl("text", { y: 9, "text-anchor": "middle", class: "slot" });
+        t.textContent = p.label;
+        g.append(t);
+      }
+    } else g.append(svgEl("path", { d: "M-10,-10 L10,10 M10,-10 L-10,10", class: "cross" }));
+    parts.push(g);
+  }
+  svg.replaceChildren(...parts);
+}
+
+// ---------------------------------------------------------------- killfeed
+//
+// Game data (GSI) reports no kill events: Matchframe pairs kills from counter changes (kind
+// "probable"; the weapon is the killer's weapon in hand). A death without a pairing shows the victim
+// only. Each kill stays on screen for KILL_MS after it first arrives.
+const KILL_MS = 6000;
+const firstSeen = new Map();
+const killRows = new Map();
+
+const WEAPONS = new Set(["ak47", "aug", "awp", "bizon", "c4", "cz75a", "deagle", "decoy", "elite", "famas", "fiveseven", "flashbang", "g3sg1", "galilar", "glock", "hegrenade", "hkp2000", "incgrenade", "inferno", "knife", "m249", "m4a1", "m4a1_silencer", "m4a1_silencer_off", "mac10", "mag7", "molotov", "mp5sd", "mp7", "mp9", "negev", "nova", "p250", "p90", "revolver", "sawedoff", "scar20", "sg556", "smokegrenade", "ssg08", "taser", "tec9", "ump45", "usp_silencer", "usp_silencer_off", "world", "xm1014"]);
+
+function weaponIcon(name) {
+  let id = String(name).replace(/^weapon_/, "");
+  if (id.startsWith("knife") || id === "bayonet") id = "knife";
+  if (WEAPONS.has(id)) {
+    const img = document.createElement("img");
+    img.className = "kill-weapon";
+    img.alt = id;
+    img.src = `images/weapons/${id}.svg`;
+    return img;
+  }
+  const span = document.createElement("span");
+  span.className = "kill-weapon-text";
+  span.textContent = id.replace(/_/g, " ");
+  return span;
+}
+
+function nameEl(cls, who) {
+  const s = document.createElement("span");
+  s.className = `${cls}${who.side ? ` side-${who.side}` : ""}`;
+  s.textContent = who.name;
+  return s;
+}
+
+function renderKillfeed(state, now) {
+  const el = $(".killfeed");
+  if (setting(state, "showKillfeed", true) === false) return el.replaceChildren();
+  const entries = state.killfeed.entries;
+  for (const e of entries) if (!firstSeen.has(e.id)) firstSeen.set(e.id, now);
+  for (const id of [...firstSeen.keys()]) if (!entries.some((e) => e.id === id)) firstSeen.delete(id);
+  const rows = entries.filter((e) => now - firstSeen.get(e.id) < KILL_MS).slice(-5);
+  const keep = new Set(rows.map((e) => e.id));
+  for (const [id, row] of killRows) {
+    if (!keep.has(id)) {
+      row.remove();
+      killRows.delete(id);
+    }
+  }
+  for (const e of rows) {
+    let row = killRows.get(e.id);
+    if (!row) {
+      row = document.createElement("div");
+      killRows.set(e.id, row);
+      const suicide = e.killer && e.killer.steamId === e.victim.steamId;
+      row.className = `kill${e.killer && !suicide && e.killer.side ? ` by-${e.killer.side}` : ""}`;
+      if (e.killer && !suicide) {
+        row.append(nameEl("kill-name", e.killer));
+        if (e.assister) {
+          const plus = document.createElement("span");
+          plus.className = "kill-plus";
+          plus.textContent = "+";
+          row.append(plus, nameEl("kill-assist", e.assister));
+        }
+      }
+      if (e.attackerBlind) row.append(Object.assign(document.createElement("span"), { className: "kill-mark blind", title: "Killer was flashed" }));
+      if (e.weapon && !suicide) row.append(weaponIcon(e.weapon));
+      else row.append(Object.assign(document.createElement("span"), { className: "kill-mark skull", title: suicide ? "Suicide" : "Eliminated" }));
+      if (e.headshot) row.append(Object.assign(document.createElement("span"), { className: "kill-mark headshot", title: "Headshot" }));
+      row.append(nameEl("kill-name victim", e.victim));
+      el.append(row);
+    }
+    row.classList.toggle("leaving", now - firstSeen.get(e.id) > KILL_MS - 500);
+  }
+}
+
 function render(state) {
   hud.hidden = false;
   applySettings(state);
@@ -77,6 +220,8 @@ function render(state) {
   renderPlayers($(".players-left"), state.left, state, "left");
   renderPlayers($(".players-right"), state.right, state, "right");
   renderObserved(state);
+  renderMinimap(state);
+  renderKillfeed(state, performance.now());
   // Honest labelling: test data and paused data are always shown.
   $(".chip.test").hidden = !state.simulated;
   $(".chip.paused").hidden = !state.stale;
@@ -86,6 +231,7 @@ function render(state) {
 function tick() {
   if (!last) return;
   const { state, receivedAt } = last;
+  renderKillfeed(state, performance.now());
   const bomb = state.bomb && (state.bomb.state === "planted" || state.bomb.state === "defusing") ? state.bomb : null;
   const banner = $(".banner.bomb");
   banner.hidden = !bomb;

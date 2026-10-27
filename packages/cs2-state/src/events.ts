@@ -6,8 +6,8 @@ import { hash53 } from "./hash.ts";
  * - "measured": a state value reported by the source (e.g. bomb state string)
  * - "derived": deterministic from measured deltas (e.g. a kill counter increased)
  * - "estimated": inference that may be wrong (e.g. pairing a killer with a victim)
- * Snapshot-derived events never carry weapon, headshot-victim or assist detail that the
- * source did not report.
+ * Snapshot-derived events never present weapon, headshot or assist detail as reported: kill
+ * pairings carry them as estimates (the killer's weapon in hand, counter changes in the same packet).
  */
 export type DerivedEventKind =
   | "round_phase"
@@ -85,7 +85,8 @@ export function derivePlayerEvents(
 ): DerivedEvent[] {
   const events: DerivedEvent[] = [];
   const deaths: { steamId: string; side: Side | null; position: Vec3 | null }[] = [];
-  const killers: { steamId: string; side: Side | null; delta: number; hsDelta: number | null }[] = [];
+  const killers: { steamId: string; side: Side | null; delta: number; hsDelta: number | null; weapon: string | null; blind: boolean | null }[] = [];
+  const assisters: { steamId: string; side: Side | null; delta: number }[] = [];
 
   for (const [sid, n] of next) {
     const p = prev.get(sid);
@@ -113,7 +114,12 @@ export function derivePlayerEvents(
       const prk = p.roundKillsHeadshot;
       const nrk = n.roundKillsHeadshot;
       const hsDelta = prk !== null && nrk !== null && nrk >= prk ? nrk - prk : null;
-      killers.push({ steamId: sid, side: n.side, delta: nk - pk, hsDelta });
+      // The weapon in hand just before the kill (or after, when that is all there is). Grenades in
+      // hand say nothing about what killed (thrown earlier, or fire): left unknown.
+      const inHand = p.activeWeapon ?? n.activeWeapon;
+      const grenade = !!inHand && (inHand.type === "Grenade" || /grenade|flashbang|molotov|decoy/.test(inHand.name));
+      const weapon = inHand && !grenade ? inHand.name : null;
+      killers.push({ steamId: sid, side: n.side, delta: nk - pk, hsDelta, weapon, blind: n.flashed === null ? null : n.flashed > 0 });
       events.push(
         makeEvent(scope, "kills_increased", sid, nk, "derived", 0.95, {
           steamId: sid,
@@ -126,6 +132,9 @@ export function derivePlayerEvents(
         }),
       );
     }
+    const pa = p.matchStats.assists;
+    const na = n.matchStats.assists;
+    if (pa !== null && na !== null && na > pa) assisters.push({ steamId: sid, side: n.side, delta: na - pa });
     if (p.health !== null && n.health !== null && n.health < p.health && n.lifeState !== "unknown") {
       events.push(
         makeEvent(scope, "damage_taken", sid, `${scope.sequence}`, "derived", 0.9, {
@@ -139,20 +148,29 @@ export function derivePlayerEvents(
     }
   }
 
-  // A single kill increase and a single opposite-side death in the same packet is a plausible
-  // pairing, but only an estimate (team kills, bomb deaths, world damage and batching exist).
-  if (killers.length === 1 && deaths.length === 1) {
+  // One killer whose kill counter rose by N and N opposite-side deaths in the same packet is a
+  // plausible pairing (N > 1: a multi-kill, e.g. a wallbang or grenade), but only an estimate: team
+  // kills, bomb deaths, world damage and batching exist. Several killers in one packet are ambiguous
+  // and stay unpaired.
+  if (killers.length === 1 && deaths.length > 0) {
     const k = killers[0]!;
-    const d = deaths[0]!;
-    if (k.delta === 1 && k.side !== null && d.side !== null && k.side !== d.side) {
-      events.push(
-        makeEvent(scope, "probable_kill_link", `${k.steamId}>${d.steamId}`, scope.sequence, "estimated", 0.7, {
-          killer: k.steamId,
-          victim: d.steamId,
-          headshot: k.hsDelta === 1 ? "probable" : k.hsDelta === 0 ? "probably_not" : null,
-          note: "estimated pairing from simultaneous counter changes; not an exact kill event",
-        }),
-      );
+    if (k.delta === deaths.length && k.side !== null && deaths.every((d) => d.side !== null && d.side !== k.side)) {
+      // An assist is attributed only for a single kill with exactly one same-side assister.
+      const sameSide = assisters.filter((a) => a.side === k.side && a.steamId !== k.steamId);
+      const assister = deaths.length === 1 && sameSide.length === 1 && sameSide[0]!.delta === 1 ? sameSide[0]!.steamId : null;
+      for (const d of deaths) {
+        events.push(
+          makeEvent(scope, "probable_kill_link", `${k.steamId}>${d.steamId}`, scope.sequence, "estimated", deaths.length === 1 ? 0.7 : 0.6, {
+            killer: k.steamId,
+            victim: d.steamId,
+            headshot: deaths.length !== 1 ? null : k.hsDelta === 1 ? "probable" : k.hsDelta === 0 ? "probably_not" : null,
+            weapon: k.weapon,
+            assister,
+            attackerBlind: k.blind,
+            note: "estimated pairing from simultaneous counter changes; weapon is the killer's weapon in hand; not an exact kill event",
+          }),
+        );
+      }
     }
   }
   return events;

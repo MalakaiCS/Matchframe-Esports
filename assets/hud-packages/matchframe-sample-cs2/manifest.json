@@ -2,25 +2,103 @@
   "manifestVersion": 1,
   "id": "matchframe.sample-cs2",
   "name": "Matchframe Sample CS2 HUD",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Matchframe Esports",
-  "licence": "MIT (code); fonts: SIL OFL 1.1",
-  "description": "A complete CS2 HUD package to learn from and build on: scorebug, round clock, bomb timer, both teams' players and the observed player. Plain HTML, CSS and JavaScript.",
+  "licence": "MIT (code, weapon icons: Lexogrine MIT); fonts: SIL OFL 1.1",
+  "description": "A complete CS2 HUD package to learn from and build on: scorebug, round clock, bomb timer, minimap, killfeed, both teams' players and the observed player. Plain HTML, CSS and JavaScript.",
   "game": "cs2",
   "category": "Sample",
-  "tags": ["sample", "scorebug", "players", "bomb"],
-  "schemaVersions": [1],
-  "entryPoints": { "live": "index.html", "compact": "index.html" },
+  "tags": [
+    "sample",
+    "scorebug",
+    "players",
+    "bomb",
+    "minimap",
+    "killfeed"
+  ],
+  "schemaVersions": [
+    1
+  ],
+  "entryPoints": {
+    "live": "index.html",
+    "compact": "index.html"
+  },
   "thumbnail": "thumbnail.webp",
-  "designResolution": { "width": 1920, "height": 1080 },
-  "resolutions": ["1920x1080"],
-  "permissions": ["match.public", "players.public", "series", "event"],
+  "designResolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "resolutions": [
+    "1920x1080"
+  ],
+  "permissions": [
+    "event",
+    "match.public",
+    "players.public",
+    "radar.public",
+    "series"
+  ],
   "settingsSchema": {
-    "accentColor": { "type": "color", "label": "Accent colour", "default": "#2f7cf6", "group": "Look" },
-    "teamNames": { "type": "select", "label": "Team names", "default": "short", "options": [{ "value": "short", "label": "Short (tag)" }, { "value": "full", "label": "Full name" }], "group": "Look" },
-    "showPlayers": { "type": "boolean", "label": "Show player lists", "default": true, "group": "Elements" },
-    "showObserved": { "type": "boolean", "label": "Show the observed player", "default": true, "group": "Elements" },
-    "showMoney": { "type": "boolean", "label": "Show money", "default": true, "group": "Elements" },
-    "panelOpacity": { "type": "number", "label": "Panel opacity", "default": 0.86, "min": 0.4, "max": 1, "step": 0.02, "group": "Look" }
+    "accentColor": {
+      "type": "color",
+      "label": "Accent colour",
+      "default": "#2f7cf6",
+      "group": "Look"
+    },
+    "teamNames": {
+      "type": "select",
+      "label": "Team names",
+      "default": "short",
+      "options": [
+        {
+          "value": "short",
+          "label": "Short (tag)"
+        },
+        {
+          "value": "full",
+          "label": "Full name"
+        }
+      ],
+      "group": "Look"
+    },
+    "showPlayers": {
+      "type": "boolean",
+      "label": "Show player lists",
+      "default": true,
+      "group": "Elements"
+    },
+    "showObserved": {
+      "type": "boolean",
+      "label": "Show the observed player",
+      "default": true,
+      "group": "Elements"
+    },
+    "showMinimap": {
+      "type": "boolean",
+      "label": "Show the minimap",
+      "default": true,
+      "group": "Elements"
+    },
+    "showKillfeed": {
+      "type": "boolean",
+      "label": "Show the killfeed",
+      "default": true,
+      "group": "Elements"
+    },
+    "showMoney": {
+      "type": "boolean",
+      "label": "Show money",
+      "default": true,
+      "group": "Elements"
+    },
+    "panelOpacity": {
+      "type": "number",
+      "label": "Panel opacity",
+      "default": 0.86,
+      "min": 0.4,
+      "max": 1,
+      "step": 0.02,
+      "group": "Look"
+    }
   }
 }

@@ -17,7 +17,7 @@ Test files: `packages/cs2-state/test/reconciler.test.ts` (R), `packages/cs2-stat
 | A07 | Round restart/restore | pass (fixture) | R: new epoch + round attempt, no duplicated results; C: stale-epoch commands cancelled. |
 | A08 | Out-of-order/duplicate input | pass (fixture) | R: duplicates rejected without duplicate events; older packets rejected. |
 | A09 | GSI disconnect | pass (fixture) | R: source marked stale after silence; D: no commands on stale input; session forces manual on stale telemetry. |
-| A10 | Missing exact kill events | pass (fixture) | R: killer/weapon/headshot never fabricated from counters; killfeed degraded mode. |
+| A10 | Missing exact kill events | pass (fixture) | R: killer/weapon/headshot never presented as exact: pairings from counters are labelled estimates (`probable_kill_link`, HUD kind "probable"), several killers in one update stay unpaired, unpaired deaths show no killer; killfeed degraded mode (ADR-022). |
 | A11 | Acknowledged player cut | partial | C: transport ack ≠ confirmation, observed feedback confirms; E: confirmed automatic cuts in labelled simulation. Real CS2 cut blocked. |
 | A12 | Failed player cut | pass (fixture) | C: failure visible, one bounded retry, never falsely confirmed. |
 | A13 | Human takes control | pass (fixture) | C: takeover cancels pending, automation stays disarmed; unexplained POV change treated as takeover. |

@@ -2,6 +2,7 @@ import type { EventRecord, MapInstance, Match, MatchState, Player, PlayerState, 
 import { projectCountdown } from "@matchframe/cs2-state";
 import type { HudKillfeedEntry, HudPhase, HudPlayer, HudRadar, HudSeriesMap, HudState, HudTeam } from "@matchframe/hud-sdk";
 import type { MapRuntime } from "@matchframe/map-runtime";
+import { builtinRadarScale, builtinRadarUv, type BuiltinRadar } from "./builtin-radars.ts";
 import type { TeamSideTracker } from "./team-sides.ts";
 import { toHudWeapon } from "./weapons.ts";
 
@@ -17,6 +18,8 @@ export interface HudContext {
   event: EventRecord | null;
   assetUrl: (assetId: string | null) => string | null;
   map: MapRuntime | undefined;
+  /** The built-in radar image for this map (assets/radars), when there is one. */
+  builtinRadar?: BuiltinRadar | undefined;
   killfeed: { mode: "exact" | "degraded"; entries: HudKillfeedEntry[] };
   sponsors: HudState["sponsors"];
   cues: HudState["cues"];
@@ -111,8 +114,11 @@ function hudTeam(state: MatchState, side: Side, key: "left" | "right", ctx: HudC
   };
 }
 
+type Uv = { u: number; v: number };
+
 function radar(state: MatchState, ctx: HudContext, observed: string | null): HudRadar {
   const map = ctx.map && ctx.map.mapName === state.mapName ? ctx.map : undefined;
+  const builtin = ctx.builtinRadar && ctx.builtinRadar.mapName === state.mapName ? ctx.builtinRadar : undefined;
   const none = (reason: string): HudRadar => ({
     available: false,
     reason,
@@ -124,26 +130,62 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
     bomb: null,
     utility: [],
   });
-  if (!map) return none("no map pack for this map");
-  const cal = map.radarCalibrationFor(null);
-  // Image mode needs both a calibrated transform and the radar image it was calibrated for.
-  const useImage = !!cal && !!cal.imageAssetId && (cal.verified || ctx.allowUnverifiedRadar);
-  const transform = useImage
-    ? (p: { x: number; y: number; z: number }) => {
-        const r = map.worldToRadar(p, { requireVerified: !ctx.allowUnverifiedRadar });
-        return r ? { u: r.u, v: r.v } : null;
-      }
-    : map.schematicTransform()
-      ? (p: { x: number; y: number; z: number }) => map.worldToSchematic(p)
-      : null;
-  if (!transform) return none("map pack has no calibrated radar or sampled geometry");
+  // 1. An operator-calibrated radar image in the map pack (needs the image it was calibrated for).
+  const cal = map?.radarCalibrationFor(null) ?? null;
+  const operatorImage = !!map && !!cal && !!cal.imageAssetId && (cal.verified || ctx.allowUnverifiedRadar);
+  let mode: HudRadar["mode"];
+  let backgroundUrl: string | null;
+  let verified: boolean;
+  let transform: (p: { x: number; y: number; z: number }) => Uv | null;
+  let radiusScale: (z: number) => number | null;
+  if (operatorImage) {
+    mode = "image";
+    backgroundUrl = ctx.assetUrl(cal!.imageAssetId);
+    verified = !!cal!.verified;
+    transform = (p) => {
+      const r = map!.worldToRadar(p, { requireVerified: !ctx.allowUnverifiedRadar });
+      return r ? { u: r.u, v: r.v } : null;
+    };
+    radiusScale = () => 1 / (cal!.scale * cal!.imageSizePx);
+  } else if (builtin) {
+    // 2. The built-in radar image and its calibration (assets/radars).
+    mode = "image";
+    backgroundUrl = `/overlay-api/radar-image/${encodeURIComponent(builtin.mapName)}`;
+    verified = true;
+    transform = (p) => builtinRadarUv(builtin, p);
+    radiusScale = (z) => builtinRadarScale(builtin, z);
+  } else if (map?.schematicTransform()) {
+    // 3. Matchframe's outline generated from map-pack geometry.
+    const t = map.schematicTransform()!;
+    mode = "schematic";
+    backgroundUrl = `/overlay-api/radar/${encodeURIComponent(state.mapName ?? "")}`;
+    verified = true;
+    transform = (p) => map.worldToSchematic(p);
+    radiusScale = () => 1 / t.size;
+  } else {
+    return none(map ? "map pack has no calibrated radar or sampled geometry" : "no radar for this map");
+  }
+  const carrier = state.bomb?.state === "carried" ? state.bomb.carrierSteamId : null;
   const players = state.players
     .filter((p) => p.position && p.side)
     .map((p) => {
       const uv = transform(p.position!);
       const yaw = p.forward ? (Math.atan2(p.forward.y, p.forward.x) * 180) / Math.PI : null;
+      const levelId = map ? map.levelAt(p.position!) : builtin && builtin.layers.length > 1 ? (builtinRadarUv(builtin, p.position!)?.layerId ?? null) : null;
       return uv
-        ? { id: p.steamId, u: uv.u, v: uv.v, side: p.side, alive: p.lifeState === "alive", observed: observed === p.steamId, levelId: map.levelAt(p.position!), label: p.observerSlot !== null ? String(p.observerSlot) : null, yawDeg: yaw }
+        ? {
+            id: p.steamId,
+            u: uv.u,
+            v: uv.v,
+            side: p.side,
+            alive: p.lifeState === "alive",
+            observed: observed === p.steamId,
+            levelId,
+            label: p.observerSlot !== null ? String(p.observerSlot) : null,
+            yawDeg: yaw,
+            flashed: (p.flashed ?? 0) > 0,
+            hasBomb: carrier === p.steamId || p.weapons.some((w) => w.name === "weapon_c4"),
+          }
         : null;
     })
     .filter((x): x is NonNullable<typeof x> => x !== null);
@@ -152,9 +194,10 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
     ? state.utility
         .filter((u) => u.cleanupReason === null && u.phase === "active" && u.effect?.centroid)
         .map((u) => {
-          const uv = transform(u.effect!.centroid!);
+          const c = u.effect!.centroid!;
+          const uv = transform(c);
           if (!uv) return null;
-          const t = map.schematicTransform();
+          const scale = radiusScale(c.z);
           return {
             id: u.utilityId,
             type: u.type,
@@ -163,7 +206,7 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
             phase: u.phase,
             side: u.throwerSide,
             evidence: u.effect!.extentEvidence,
-            radius: u.effect!.radiusUnits && t ? u.effect!.radiusUnits / t.size : null,
+            radius: u.effect!.radiusUnits && scale ? u.effect!.radiusUnits * scale : null,
           };
         })
         .filter((x): x is NonNullable<typeof x> => x !== null)
@@ -172,9 +215,9 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
     available: true,
     reason: null,
     mapName: state.mapName,
-    mode: useImage ? "image" : "schematic",
-    calibrationVerified: useImage ? !!cal?.verified : true,
-    backgroundUrl: useImage ? ctx.assetUrl(cal!.imageAssetId) : `/overlay-api/radar/${encodeURIComponent(state.mapName ?? "")}`,
+    mode,
+    calibrationVerified: verified,
+    backgroundUrl,
     players,
     bomb: bombUv ? { ...bombUv, state: state.bomb!.state } : null,
     utility,

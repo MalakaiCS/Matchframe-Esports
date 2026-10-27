@@ -76,8 +76,8 @@ export function demoState(): HudState {
     killfeed: {
       mode: "exact",
       entries: [
-        { id: "k1", kind: "exact", killer: { steamId: ct[0]!.steamId, name: "nova", side: "CT" }, victim: { steamId: t[2]!.steamId, name: "saber", side: "T" }, weapon: "m4a1_silencer", headshot: true, atMs: 0 },
-        { id: "k2", kind: "exact", killer: { steamId: t[1]!.steamId, name: "riot", side: "T" }, victim: { steamId: ct[3]!.steamId, name: "orbit", side: "CT" }, weapon: "ak47", headshot: false, atMs: 0 },
+        { id: "k1", kind: "exact", killer: { steamId: ct[0]!.steamId, name: "nova", side: "CT" }, victim: { steamId: t[2]!.steamId, name: "saber", side: "T" }, weapon: "m4a1_silencer", headshot: true, assister: null, attackerBlind: false, atMs: 0 },
+        { id: "k2", kind: "probable", killer: { steamId: t[1]!.steamId, name: "riot", side: "T" }, victim: { steamId: ct[3]!.steamId, name: "orbit", side: "CT" }, weapon: "ak47", headshot: false, assister: { steamId: t[0]!.steamId, name: "ember", side: "T" }, attackerBlind: true, atMs: 0 },
       ],
     },
     radar: { available: false, reason: "demo", mapName: "de_mirage", mode: "none", calibrationVerified: false, backgroundUrl: null, players: [], bomb: null, utility: [] },

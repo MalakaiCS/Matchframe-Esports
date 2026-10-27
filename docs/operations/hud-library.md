@@ -28,6 +28,13 @@ The program updates itself from the Matchframe Esports releases on GitHub, so yo
 - Below: search, category, status and sort, list or grid, and **Add HUD**. HUDs are grouped by category; click a group's name to fold it.
 - Each HUD's row shows its picture, name and version, author, status and active outputs, then **Settings** (gear), **Preview** (eye), **Copy OBS Browser URL**, **⋯** (more actions), the **Desktop** switch and the arrow that opens its details under the row.
 
+## Minimap and killfeed
+
+Every bundled HUD shows a minimap (top left) and a killfeed (top right), each in its own style: the Matchframe Broadcast HUD (Classic, Minimal and Arena presets), the Pro CS2 HUD and the Sample CS2 HUD. Turn either off in the HUD's details → **Appearance**.
+
+- **Minimap:** the map drawing for Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo (Nuke and Vertigo show both levels), and Matchframe's generated outline for Anubis. Players show their slot number in the team colour: bigger with a ring when observed, lighter while flashed, marked when carrying the bomb, a faded cross when dead. Smokes are outlined in the thrower's team colour; fires, flashes and HE grenades show briefly; the bomb shows when dropped or planted (pulsing) and when defused. **Utility on the radar** in the library turns the utility off. A radar image you calibrate in Maps & Cameras replaces the built-in one.
+- **Killfeed:** killer (+ assister), weapon, headshot and blind-killer marks, victim; each kill stays for a few seconds. CS2's game data does not report kills, so Matchframe pairs them from the score changes in the same update, like every game-data HUD: the weapon is the one the killer was holding (a grenade or fire kill can show their gun), and when two players get kills in the same instant the victims are shown without a killer. Wallbang, no-scope, through-smoke and flash-assist marks are not available from game data.
+
 ## Start CS2
 
 **Start CS2** on the Counter-Strike 2 card writes the game data (GSI) config into the CS2 folder and starts CS2 in the launch mode chosen next to it. Change the console port, add launch options (for example `-novid`) and choose HLAE in **Settings → Setup → Start CS2**.

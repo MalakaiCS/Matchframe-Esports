@@ -31,6 +31,8 @@ extraResources:
     to: icon.png
   - from: ../../assets/map-packs
     to: map-packs
+  - from: ../../assets/radars
+    to: radars
   - from: ../../assets/utility-profiles
     to: utility-profiles
   - from: ../../workers

@@ -28,10 +28,14 @@ Operator UI dependencies are listed in `apps/operator-web/package.json` and incl
 
 | Package | Contents and origin | Licence |
 |---|---|---|
-| Matchframe Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2`) | Original code and artwork; Inter font files | Code MIT; Inter SIL OFL 1.1 (`fonts/OFL.txt`) |
+| Matchframe Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2`) | Original code and artwork; weapon icons from Lexogrine's CS2 React HUD (`images/weapons`); Inter font files | Code MIT; weapon icons MIT (`images/weapons/LICENSE-lexogrine.txt`, see the note below); Inter SIL OFL 1.1 (`fonts/OFL.txt`) |
 | Matchframe Pro CS2 HUD (`apps/hud-template`) | Adapted from Lexogrine's CS2 React HUD (https://github.com/lexogrine/cs2-react-hud, © 2021 Lexogrine); Montserrat font files | Lexogrine code MIT (`LICENSE-lexogrine.txt`); Montserrat SIL OFL 1.1 (© 2011 The Montserrat Project Authors) |
 
-The weapon and equipment icons in the Pro CS2 HUD come with Lexogrine's template and originate from Counter-Strike 2 game files (© Valve Corporation). Lexogrine's MIT licence covers their code, not Valve's artwork. Counter-Strike broadcast HUDs commonly use these icons; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons.
+The weapon and equipment icons in the Pro CS2 HUD (also used by the Matchframe Broadcast HUD's killfeed and the Sample CS2 HUD) come with Lexogrine's template and originate from Counter-Strike 2 game files (© Valve Corporation). Lexogrine's MIT licence covers their code, not Valve's artwork. Counter-Strike broadcast HUDs commonly use these icons; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons.
+
+## Built-in radar images (minimaps)
+
+`assets/radars`: flat radar drawings of eight CS2 maps (Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train, Vertigo) with their world-to-image calibration, from Lexogrine's CS2 React HUD (https://github.com/lexogrine/cs2-react-hud, commit `4ec8eea`, © 2021 Lexogrine), MIT licence (`assets/radars/LICENSE-lexogrine.txt`). They are Lexogrine's own drawings of the map layouts; the maps themselves are Valve's. Every HUD's minimap shows them.
 
 ## Python worker dependencies (installed into a local virtual environment; not bundled)
 

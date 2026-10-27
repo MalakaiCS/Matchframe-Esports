@@ -91,13 +91,6 @@ body {
   color: #f29318;
 }
 
-.killfeed .single_kill_container.kind-probable .single_kill {
-  opacity: 0.8;
-}
-.killfeed .probable {
-  font-weight: 700;
-  margin-right: 4px;
-}
 .killfeed svg.weapon.icon-skull,
 .killfeed .way > svg.weapon {
   max-height: 22px;
@@ -106,6 +99,9 @@ body {
 #radar_maps_container {
   overflow: hidden;
   background: var(--sub-panel-color);
+}
+#radar_maps_container.mode-image {
+  background: rgba(0, 0, 0, 0.45);
 }
 .mf-radar {
   display: block;
@@ -139,6 +135,15 @@ body {
   stroke: white;
   stroke-width: 6;
 }
+.mf-radar-player.flashed.CT .mf-radar-dot {
+  fill: #c5e6fc;
+}
+.mf-radar-player.flashed.T .mf-radar-dot {
+  fill: #fbeab0;
+}
+.mf-radar-player.T.hasBomb .mf-radar-dot {
+  fill: orange;
+}
 .mf-radar-player.dead {
   opacity: 0.35;
 }
@@ -156,21 +161,53 @@ body {
   font-weight: 700;
   fill: black;
 }
-.mf-radar-bomb {
+.mf-radar-bomb-body {
   fill: #f2f2f2;
   stroke: black;
-  stroke-width: 2;
+  stroke-width: 3;
 }
-.mf-radar-bomb.s-planted,
-.mf-radar-bomb.s-defusing {
+.mf-radar-bomb-ping {
+  fill: none;
+}
+.mf-radar-bomb.s-planted .mf-radar-bomb-body,
+.mf-radar-bomb.s-defusing .mf-radar-bomb-body {
   fill: var(--color-bomb);
+}
+.mf-radar-bomb.s-planted .mf-radar-bomb-ping,
+.mf-radar-bomb.s-defusing .mf-radar-bomb-ping {
+  stroke: var(--color-bomb);
+  stroke-width: 4;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: RadarBombPing 1.2s ease-out infinite;
+}
+.mf-radar-bomb.s-defused .mf-radar-bomb-body {
+  fill: #3ccf7a;
+}
+@keyframes RadarBombPing {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
 }
 .mf-radar-util {
   stroke-width: 2;
 }
 .mf-radar-util.u-smoke {
-  fill: rgba(220, 225, 235, 0.55);
+  fill: rgba(255, 255, 255, 0.5);
   stroke: rgba(255, 255, 255, 0.7);
+}
+.mf-radar-util.u-smoke.CT {
+  stroke: var(--color-new-ct);
+  stroke-width: 6;
+}
+.mf-radar-util.u-smoke.T {
+  stroke: var(--color-new-t);
+  stroke-width: 6;
 }
 .mf-radar-util.u-fire {
   fill: rgba(240, 120, 40, 0.45);

@@ -101,6 +101,7 @@ async function run(cloud) {
   const outputs = await win.evaluate(async () => fetch("/api/v1/hud/outputs", { headers: { authorization: `Bearer ${await window.matchframe.getOperatorToken()}` } }).then((r) => r.json()));
   const mainUrl = (Array.isArray(outputs) ? outputs : (outputs.outputs ?? [])).find((o) => o.url)?.url ?? null;
   const overlay = mainUrl ? await fetch(mainUrl) : null;
+  const radarImage = await fetch(`http://127.0.0.1:${ports.overlay}/overlay-api/radar-image/de_dust2`);
 
   // Automatic updates: the updater runs in the packaged program and reads the GitHub releases. The
   // result depends on the latest release (up to date, a newer version, or an error while the latest
@@ -119,6 +120,7 @@ async function run(cloud) {
   assert(root.status === 404, "the engine's HTTP address serves no console");
   assert(captain.status === 200, "captain page served");
   assert(!overlay || overlay.status === 200, "HUD output served for OBS");
+  assert(radarImage.status === 200, `built-in radar images are in the program (${radarImage.status})`);
   assert(meta.contextIsolation && meta.sandbox && !meta.nodeIntegration, "hardened window");
   assert(existsSync(join(meta.resources, "app-update.yml")), "update settings (app-update.yml) are in the program");
   assert(update && update.status !== "disabled" && update.status !== "idle" && update.currentVersion === meta.version && update.autoDownload === false, `the updater checked for updates (${JSON.stringify(update)})`);

@@ -257,6 +257,7 @@ function startEngine(): void {
     MATCHFRAME_HUD_DIR: resourcesPath(isDev ? "apps/hud-renderer/dist" : "hud-renderer"),
     MATCHFRAME_SAMPLE_HUDS_DIR: sampleHudDirs().join(delimiter),
     MATCHFRAME_MAP_PACK_DIR: resourcesPath(isDev ? "assets/map-packs" : "map-packs"),
+    MATCHFRAME_RADAR_DIR: resourcesPath(isDev ? "assets/radars" : "radars"),
     MATCHFRAME_UTILITY_PROFILES: resourcesPath(isDev ? "assets/utility-profiles/measured.json" : "utility-profiles/measured.json"),
     MATCHFRAME_WORKERS_DIR: resourcesPath("workers"),
     MATCHFRAME_GSI_PORT: String(PORTS.gsi),

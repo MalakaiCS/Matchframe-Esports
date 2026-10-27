@@ -1,0 +1,128 @@
+{
+  "_source": "Radar images and calibrations from lexogrine/cs2-react-hud (MIT, see LICENSE-lexogrine.txt), commit 4ec8eea6f0935193b44ec5a000f230fccdaa1c15, src/HUD/Radar/LexoRadar/maps.",
+  "_transform": "Image pixel = origin + world * pxPerU (1024 x 1024 image). A map with two layers shows both levels on one image: a player uses the layer whose zMin <= z < zMax.",
+  "maps": {
+    "de_ancient": {
+      "file": "de_ancient.png",
+      "size": 1024,
+      "layers": [
+        {
+          "id": "main",
+          "originX": 583.2590342775677,
+          "originY": 428.92222042149115,
+          "pxPerUX": 0.1983512056034216,
+          "pxPerUY": -0.20108163914549304
+        }
+      ]
+    },
+    "de_dust2": {
+      "file": "de_dust2.png",
+      "size": 1024,
+      "layers": [
+        {
+          "id": "main",
+          "originX": 563.1339320329055,
+          "originY": 736.9535330430065,
+          "pxPerUX": 0.2278315639654376,
+          "pxPerUY": -0.22776482548619972
+        }
+      ]
+    },
+    "de_inferno": {
+      "file": "de_inferno.png",
+      "size": 1024,
+      "layers": [
+        {
+          "id": "main",
+          "originX": 426.51386123945593,
+          "originY": 790.7266981544722,
+          "pxPerUX": 0.2041685571162696,
+          "pxPerUY": -0.20465735943851654
+        }
+      ]
+    },
+    "de_mirage": {
+      "file": "de_mirage.png",
+      "size": 1024,
+      "layers": [
+        {
+          "id": "main",
+          "originX": 645.7196725473384,
+          "originY": 340.2921393569175,
+          "pxPerUX": 0.20118507589946494,
+          "pxPerUY": -0.20138282875746794
+        }
+      ]
+    },
+    "de_nuke": {
+      "file": "de_nuke.png",
+      "size": 1024,
+      "layers": [
+        {
+          "originX": 473.1284773048749,
+          "originY": 165.7329003801045,
+          "pxPerUX": 0.14376095926926907,
+          "pxPerUY": -0.14736670935219626,
+          "id": "upper",
+          "zMin": -450
+        },
+        {
+          "originX": 473.66746071612374,
+          "originY": 638.302101754172,
+          "pxPerUX": 0.1436068746398272,
+          "pxPerUY": -0.14533406508526941,
+          "id": "lower",
+          "zMax": -450
+        }
+      ]
+    },
+    "de_overpass": {
+      "file": "de_overpass.png",
+      "size": 1024,
+      "layers": [
+        {
+          "id": "main",
+          "originX": 927.3988878244819,
+          "originY": 343.8221009185496,
+          "pxPerUX": 0.1923720959212443,
+          "pxPerUY": -0.19427507725530338
+        }
+      ]
+    },
+    "de_train": {
+      "file": "de_train.png",
+      "size": 1024,
+      "layers": [
+        {
+          "id": "main",
+          "originX": 557.7279495268139,
+          "originY": 507.83243734804853,
+          "pxPerUX": 0.22712933753943218,
+          "pxPerUY": -0.23013108811174968
+        }
+      ]
+    },
+    "de_vertigo": {
+      "file": "de_vertigo.png",
+      "size": 1024,
+      "layers": [
+        {
+          "originX": 784.4793452283254,
+          "originY": 255.42597837029027,
+          "pxPerUX": 0.19856123172015677,
+          "pxPerUY": -0.19820052722907044,
+          "id": "upper",
+          "zMin": 11700
+        },
+        {
+          "originX": 780.5145858437052,
+          "originY": 695.4259783702903,
+          "pxPerUX": 0.1989615567841087,
+          "pxPerUY": -0.19820052722907044,
+          "id": "lower",
+          "zMax": 11700
+        }
+      ]
+    }
+  }
+}

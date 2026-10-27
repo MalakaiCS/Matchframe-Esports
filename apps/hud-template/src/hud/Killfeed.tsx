@@ -1,12 +1,13 @@
 import type { HudKillfeedEntry, HudState } from "@matchframe/hud-sdk";
-import { Headshot, Skull, Suicide } from "../icons.tsx";
+import { FlashedKill, Headshot, Skull, Suicide } from "../icons.tsx";
 import { sideClass } from "../util.ts";
 import "../styles/killfeed.scss";
 import Weapon from "./Weapon.tsx";
 
 /**
- * One kill. "exact": the kill as the game reported it. "elimination": the player died but the game
- * did not say who killed them (skull only). "probable": an estimated pairing, marked with "≈".
+ * One kill: killer (+ assister), weapon, headshot and blind-killer marks, victim. Game data (GSI)
+ * reports no kill events, so kills are paired from counter changes ("probable") and the weapon is the
+ * killer's weapon in hand. "elimination": the player died but no killer could be paired (skull only).
  */
 function Kill({ e }: { e: HudKillfeedEntry }) {
   const suicide = !!e.killer && e.killer.steamId === e.victim.steamId;
@@ -18,10 +19,16 @@ function Kill({ e }: { e: HudKillfeedEntry }) {
     <div className={`single_kill_container kind-${e.kind}`}>
       <div className="single_kill">
         {e.killer && !suicide ? <div className={`killer_name ${sideClass(e.killer.side)}`}>{e.killer.name}</div> : null}
+        {e.assister && !suicide ? (
+          <>
+            <div className="plus">+</div>
+            <div className={`assister_name ${sideClass(e.assister.side)}`}>{e.assister.name}</div>
+          </>
+        ) : null}
         <div className="way">
-          {e.kind === "probable" ? <span className="probable" title="Estimated">≈</span> : null}
+          {e.attackerBlind ? <FlashedKill className="flash_kill" /> : null}
           {way}
-          {e.headshot ? <Headshot /> : null}
+          {e.headshot ? <Headshot className="headshot" /> : null}
         </div>
         <div className={`victim_name ${sideClass(e.victim.side)}`}>{e.victim.name}</div>
       </div>

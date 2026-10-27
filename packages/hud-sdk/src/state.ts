@@ -78,12 +78,22 @@ export interface HudTeam {
 
 export interface HudKillfeedEntry {
   id: string;
-  /** "exact": source-reported kill event. "elimination": a player died (killer unknown). "probable": estimated pairing. */
+  /**
+   * "exact": source-reported kill event. "elimination": a player died (killer unknown).
+   * "probable": paired from game-data counter changes (CS2 game state integration reports no kill
+   * events, so this is how every GSI killfeed works); weapon, headshot, assister and blind are then
+   * estimates too.
+   */
   kind: "exact" | "elimination" | "probable";
   killer: { steamId: string; name: string; side: HudSide | null } | null;
   victim: { steamId: string; name: string; side: HudSide | null };
+  /** Weapon id, e.g. "weapon_ak47" or "ak47" (the killer's weapon in hand for "probable"); null when unknown. */
   weapon: string | null;
   headshot: boolean | null;
+  /** The player credited with the assist in the same update, when exactly one was. */
+  assister: { steamId: string; name: string; side: HudSide | null } | null;
+  /** The killer was flashed when the kill happened. */
+  attackerBlind: boolean | null;
   atMs: number;
 }
 
@@ -97,6 +107,9 @@ export interface HudRadarMarker {
   levelId: string | null;
   label: string | null;
   yawDeg: number | null;
+  /** Currently flashed (any amount). */
+  flashed: boolean;
+  hasBomb: boolean;
 }
 
 export interface HudRadar {
@@ -105,8 +118,9 @@ export interface HudRadar {
   mapName: string | null;
   /**
    * "schematic": Matchframe outline generated from map-pack geometry sampled from real positions,
-   * using the same world transform as the markers. "image": a game radar image with a verified
-   * calibration. "none": no trustworthy transform — markers are not drawn.
+   * using the same world transform as the markers. "image": a radar image with its calibration (the
+   * built-in radar for the map, or an operator-calibrated image). "none": no trustworthy transform —
+   * markers are not drawn.
    */
   mode: "schematic" | "image" | "none";
   calibrationVerified: boolean;

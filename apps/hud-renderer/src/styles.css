@@ -491,23 +491,29 @@ body,
   grid-column: 2 / span 2;
 }
 
-/* ---------------------------------------------------------------- radar */
+/* ---------------------------------------------------------------- radar (minimap) */
 .mf-radar {
   position: absolute;
   top: 22px;
   left: 32px;
-  width: 300px;
-  height: 300px;
+  width: 320px;
+  height: 320px;
+  padding: 6px;
   background: rgba(10, 12, 18, 0.72);
   box-shadow: var(--mf-shadow);
   border: 1px solid var(--mf-line);
+  border-radius: var(--mf-radius);
 }
 .mf-radar-svg {
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 .mf-radar-bg {
   fill: transparent;
+}
+.mf-radar-image {
+  opacity: 0.94;
 }
 .mf-radar-cell {
   fill: rgba(255, 255, 255, 0.13);
@@ -522,14 +528,17 @@ body,
   fill: var(--mf-side);
   stroke: #0b0d12;
   stroke-width: 4;
+  transition: fill 0.3s;
 }
-.mf-radar-player.is-dead .mf-radar-dot {
-  fill: rgba(255, 255, 255, 0.25);
-  stroke: none;
+.mf-radar-player.is-flashed.mf-side-CT .mf-radar-dot {
+  fill: #cfe2fb;
+}
+.mf-radar-player.is-flashed.mf-side-T .mf-radar-dot {
+  fill: #ffe4b8;
 }
 .mf-radar-facing {
   fill: var(--mf-side);
-  opacity: 0.75;
+  opacity: 0.8;
 }
 .mf-radar-ring {
   fill: none;
@@ -541,33 +550,69 @@ body,
   font-weight: 800;
   fill: #0b0d12;
 }
-.mf-radar-bomb {
+.mf-radar-carrier {
+  fill: #ff9f1c;
+  stroke: #0b0d12;
+  stroke-width: 3;
+}
+.mf-radar-dead {
+  stroke: var(--mf-side);
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+.mf-radar-bomb-body {
   fill: var(--mf-t);
   stroke: #0b0d12;
-  stroke-width: 2;
+  stroke-width: 3;
 }
-.mf-radar-bomb.s-planted,
-.mf-radar-bomb.s-defusing {
+.mf-radar-bomb-face {
+  fill: #0b0d12;
+}
+.mf-radar-bomb-pulse {
+  fill: none;
+  stroke: none;
+}
+.mf-radar-bomb.s-planted .mf-radar-bomb-body,
+.mf-radar-bomb.s-defusing .mf-radar-bomb-body {
   fill: var(--mf-hp-low);
-  animation: mf-pulse 1s ease-in-out infinite;
+}
+.mf-radar-bomb.s-planted .mf-radar-bomb-pulse,
+.mf-radar-bomb.s-defusing .mf-radar-bomb-pulse {
+  stroke: var(--mf-hp-low);
+  stroke-width: 4;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mf-radar-ping 1.2s ease-out infinite;
+}
+.mf-radar-bomb.s-defused .mf-radar-bomb-body {
+  fill: #3ccf7a;
+}
+.mf-radar-bomb.s-exploded .mf-radar-bomb-body {
+  fill: #ff7a1a;
 }
 .mf-radar-util {
-  stroke-width: 2;
+  stroke-width: 4;
 }
 .mf-radar-util.u-smoke {
-  fill: rgba(220, 225, 235, 0.55);
-  stroke: rgba(255, 255, 255, 0.7);
+  fill: rgba(225, 230, 240, 0.5);
+  stroke: rgba(255, 255, 255, 0.75);
+}
+.mf-radar-util.u-smoke.mf-side-CT,
+.mf-radar-util.u-smoke.mf-side-T {
+  stroke: var(--mf-side);
+  stroke-width: 6;
 }
 .mf-radar-util.u-fire {
-  fill: rgba(240, 120, 40, 0.45);
-  stroke: rgba(255, 150, 60, 0.9);
+  fill: rgba(240, 70, 30, 0.45);
+  stroke: rgba(255, 160, 60, 0.95);
 }
 .mf-radar-util.u-he {
-  fill: none;
+  fill: rgba(239, 91, 76, 0.18);
   stroke: var(--mf-hp-low);
 }
 .mf-radar-util.u-flash {
-  fill: rgba(255, 255, 255, 0.35);
+  fill: rgba(255, 255, 255, 0.45);
   stroke: #fff;
 }
 .mf-radar-util.u-decoy {
@@ -577,6 +622,16 @@ body,
 }
 .mf-radar-util.is-estimated {
   stroke-dasharray: 8 6;
+}
+@keyframes mf-radar-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
 }
 
 /* ---------------------------------------------------------------- killfeed */
@@ -591,27 +646,77 @@ body,
 }
 .mf-kill {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
+  height: 36px;
+  padding: 0 14px;
   background: var(--mf-panel);
-  padding: 5px 12px;
+  border-left: 3px solid var(--mf-kill-accent, transparent);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 650;
   animation: mf-slide-in 220ms ease-out;
+  transition: opacity 0.45s, transform 0.45s;
+}
+.mf-kill.by-CT {
+  --mf-kill-accent: var(--mf-ct);
+}
+.mf-kill.by-T {
+  --mf-kill-accent: var(--mf-t);
+}
+.mf-kill.is-leaving {
+  opacity: 0;
+  transform: translateX(16px);
+}
+.mf-kill-killer {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
 }
 .mf-kill-name {
   color: var(--mf-side);
-  max-width: 200px;
+  max-width: 190px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.mf-kill-sep,
-.mf-kill-weapon {
+.mf-kill-assist {
+  display: inline-flex;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mf-side);
+  opacity: 0.85;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mf-kill-assist > span {
   color: var(--mf-ink-dim);
 }
-.mf-kill-probable {
-  opacity: 0.88;
+.mf-kill-way {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mf-ink);
+}
+.mf-kill-weapon {
+  height: 22px;
+  width: auto;
+  max-width: 76px;
+}
+.mf-weapon-text {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mf-ink-dim);
+}
+.mf-kill-mod {
+  color: var(--mf-ink);
+}
+.mf-kill-skull {
+  color: var(--mf-ink-dim);
 }
 
 /* ---------------------------------------------------------------- sponsors / cues / badges */
@@ -1078,8 +1183,31 @@ body,
   font-size: 16px;
 }
 .mf-preset-minimal .mf-radar {
-  width: 236px;
-  height: 236px;
+  width: 250px;
+  height: 250px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.mf-preset-minimal .mf-radar-image {
+  opacity: 0.82;
+}
+.mf-preset-minimal .mf-radar-player .mf-radar-dot {
+  stroke-width: 3;
+}
+.mf-preset-minimal .mf-kill {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 13px;
+  border-left: none;
+  border-radius: 3px;
+}
+.mf-preset-minimal .mf-kill-weapon {
+  height: 18px;
+}
+.mf-preset-minimal .mf-kill-assist {
+  font-size: 12px;
 }
 .mf-preset-minimal .mf-observed {
   width: 480px;
@@ -1151,9 +1279,32 @@ body,
   font-size: 20px;
 }
 .mf-preset-arena .mf-radar {
-  width: 340px;
-  height: 340px;
+  width: 350px;
+  height: 350px;
   border: 2px solid rgba(79, 143, 240, 0.35);
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+  background: linear-gradient(160deg, rgba(14, 20, 34, 0.92), rgba(9, 11, 16, 0.86));
+}
+.mf-preset-arena .mf-radar-label {
+  font-family: var(--mf-font-display);
+  font-size: 30px;
+}
+.mf-preset-arena .mf-kill {
+  height: 38px;
+  padding: 0 20px 0 18px;
+  border-left: none;
+  clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+  background: var(--mf-panel);
+  box-shadow: inset 4px 0 0 var(--mf-kill-accent, transparent);
+  font-family: var(--mf-font-display);
+  font-size: 19px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.mf-preset-arena .mf-kill-assist {
+  font-size: 15px;
 }
 .mf-preset-arena .mf-observed {
   width: 620px;

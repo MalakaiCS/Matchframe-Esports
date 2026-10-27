@@ -42,6 +42,7 @@ import { buildBracket, computeStandings } from "./domain/standings.ts";
 import { DemoLibrary, PythonWorkerRunner } from "./demos/library.ts";
 import { RoundSimulator } from "./sim/simulator.ts";
 import { GameConsoleService } from "./game/console.ts";
+import { BuiltinRadars } from "./live/builtin-radars.ts";
 
 export const SetupProfile = z.object({
   id: z.string(),
@@ -98,6 +99,8 @@ export class Engine {
   readonly veto: VetoService;
   readonly demoJobs: DemoJobRepo;
   readonly maps = new MapRegistry();
+  /** Built-in radar images (minimaps) for the active-duty maps. */
+  readonly radars: BuiltinRadars;
   readonly session: LiveSession;
   readonly obs: ObsManager;
   readonly program: ProgramArbiter;
@@ -227,6 +230,7 @@ export class Engine {
     });
 
     this.gameConsole = new GameConsoleService({ settings: this.settings, teams: this.teams, logger: this.logger });
+    this.radars = BuiltinRadars.load(cfg.radarDir, (msg, data) => this.logger.warn(msg, data));
 
     this.session.on("events", (evs) => this.onDerivedEvents(evs));
     this.session.on("state", (s) => this.onState(s));
@@ -418,6 +422,7 @@ export class Engine {
       })(),
       assetUrl: (id) => this.assetUrl(id),
       map: state?.mapName ? this.maps.get(state.mapName) : undefined,
+      builtinRadar: this.radars.get(state?.mapName ?? null),
       killfeed: { mode: this.killfeed.mode, entries: this.killfeed.list() },
       sponsors: sponsorMap,
       cues: profile === "clean" ? [] : cues,
