@@ -161,7 +161,12 @@ invitation links can be recovered by staff if delivery fails.
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | for billing | — | Without them plans are shown but not purchasable |
 | `STRIPE_PRICE_PRO`, `STRIPE_PRICE_STUDIO`, `STRIPE_PRICE_PACK_10`, `STRIPE_PRICE_PACK_50` | for billing | — | Stripe price ids for the default catalogue |
 | `SMTP_URL`, `MF_MAIL_FROM` | recommended | outbox only | Email delivery |
-| `MF_STAFF_EMAILS` | no | — | Comma-separated accounts that become staff when they sign up or log in |
+| `MF_STAFF_EMAILS` | no | — | Comma-separated bootstrap admins: these accounts get the admin staff role when they sign up or log in and cannot be demoted, disabled or have their email changed from the website (section 8) |
+| `MF_COMPANY_NAME`, `MF_WEBSITE_NAME` | no | `Matchframe Esports`, `Matchframe` | Business and site name used on the legal, about and contact pages |
+| `MF_SUPPORT_EMAIL` | recommended | — | Support address shown on the website; contact form messages are also emailed there |
+| `MF_COMPANY_ADDRESS` | no | — | Postal address shown in the legal pages and on the contact page |
+| `MF_LEGAL_JURISDICTION` | no | generic wording | Governing law named in the terms (e.g. `England and Wales`) |
+| `MF_LEGAL_EFFECTIVE_DATE` | no | `2026-10-27` | "Last updated" date of the terms and policies (`YYYY-MM-DD`) |
 | `MF_ENTITLEMENT_TTL_HOURS` | no | `24` | Licence validity before the desktop must refresh |
 | `MF_OFFLINE_GRACE_DAYS` | no | `7` | How long a computer keeps working offline after its last successful licence refresh |
 | `MF_DOWNLOAD_DIR` | recommended | — | Directory with `MatchframeEsports-Setup-<version>.exe` installers served at `/downloads/` (newest shown with its SHA-256) |
@@ -182,5 +187,31 @@ arm automatic direction without an account.
   credits (verified on Postgres 16 with six concurrent computers). Rate limits are per instance.
 - **Monitoring:** `/v1/health` reports database kind, billing and email configuration and the
   signing key id; the staff pages show organisations, usage, credits, audit and Stripe events.
-- **Support credits:** staff can grant auto-director hours to an organisation (trial extensions,
+- **Support credits:** admins can grant auto-director hours to an organisation (trial extensions,
   outage compensation); grants are audited.
+
+## 8. Staff and user management
+
+Open **Admin** on the website (shown to staff only). Staff roles:
+
+| | Support | Admin |
+|---|---|---|
+| Overview, users, organisations (read), audit log, plan catalogue (read) | yes | yes |
+| Verify a user's email, resend verification, send a password reset link, sign a user out everywhere | yes | yes |
+| Support inbox (contact form messages: mark handled / reopen) and email log | yes | yes |
+| Give or remove staff roles, disable and enable accounts, edit a user's name or email | no | yes |
+| Grant hours, edit plans and hour packs, Stripe events, resend emails | no | yes |
+
+- The first admin comes from `MF_STAFF_EMAILS` (sign up or log in with that address). Bootstrap
+  admins cannot be demoted, disabled or have their email changed from the website; remove the
+  address from `MF_STAFF_EMAILS` and redeploy first. Nobody can change their own staff role or
+  disable themselves.
+- **Disabling** an account signs it out everywhere and refuses sign-in ("this account has been
+  disabled") until an admin enables it again; organisations, computers and subscriptions are
+  untouched. The reason is shown to staff only.
+- **Changing a user's email** makes the new address unverified, sends it a verification link and
+  tells the old address.
+- Every staff action is recorded in the audit log and shown on the user's page.
+- Legal pages (terms, privacy, cookies, refunds, acceptable use, program EULA) are generic
+  templates filled with the `MF_COMPANY_*`, `MF_SUPPORT_EMAIL` and `MF_LEGAL_*` values. Have them
+  reviewed for your business and jurisdiction before taking payments.

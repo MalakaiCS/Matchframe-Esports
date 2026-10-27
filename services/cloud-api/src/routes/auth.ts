@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ChangeEmailRequest, Email, LoginRequest, Password, SignupRequest, UpdateProfileRequest } from "@matchframe/cloud-contracts";
 import type { OrgView } from "@matchframe/cloud-contracts";
 import type { CloudApp } from "../app.ts";
+import { sessionPublicId } from "../app.ts";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "../auth/passwords.ts";
 import type { Queryable } from "../db/sql.ts";
 import { audit } from "../domain/audit.ts";
@@ -44,7 +45,7 @@ export async function orgsFor(app: CloudApp, userId: string): Promise<OrgView[]>
   return out;
 }
 
-async function sendVerification(app: CloudApp, userId: string, email: string): Promise<void> {
+export async function sendVerification(app: CloudApp, userId: string, email: string): Promise<void> {
   const token = await issueEmailToken(app.sql, userId, "verify", VERIFY_HOURS * 3_600_000, app.now());
   await app.mailer.send({
     to: email,
@@ -53,6 +54,30 @@ async function sendVerification(app: CloudApp, userId: string, email: string): P
   });
 }
 
+export async function sendPasswordReset(app: CloudApp, userId: string, email: string): Promise<void> {
+  const token = await issueEmailToken(app.sql, userId, "reset", RESET_MINUTES * 60_000, app.now());
+  await app.mailer.send({
+    to: email,
+    subject: "Reset your Matchframe password",
+    text: `Someone asked to reset the password for this Matchframe account. To choose a new password open:\n\n${app.cfg.publicUrl}/reset-password?token=${token}\n\nThe link expires in ${RESET_MINUTES} minutes. If this was not you, ignore this email.`,
+  });
+}
+
+export interface SessionRow {
+  id_hash: string;
+  created_at: Date;
+  last_seen_at: Date | null;
+  user_agent: string | null;
+  ip: string | null;
+}
+
+export async function sessionsFor(app: CloudApp, userId: string): Promise<SessionRow[]> {
+  const { rows } = await app.sql.query<SessionRow>("SELECT id_hash, created_at, last_seen_at, user_agent, ip FROM sessions WHERE user_id = $1 AND expires_at > $2 ORDER BY COALESCE(last_seen_at, created_at) DESC", [userId, app.now()]);
+  return rows;
+}
+
+export const sessionView = (s: SessionRow) => ({ id: sessionPublicId(s.id_hash), createdAt: s.created_at.toISOString(), lastSeenAt: s.last_seen_at?.toISOString() ?? null, userAgent: s.user_agent || null, ip: s.ip || null });
+
 export function registerAuthRoutes(r: Router, app: CloudApp): void {
   r.add("POST", "/v1/auth/signup", { body: SignupRequest, summary: "Create an account and organisation (signs in; sends a verification email)" }, async (ctx) => {
     app.rateLimit(app.limits.auth, `signup:${ctx.ip}`);
@@ -60,10 +85,10 @@ export function registerAuthRoutes(r: Router, app: CloudApp): void {
     const passwordHash = await hashPassword(b.password);
     const userId = newId("usr");
     const orgId = newId("org");
-    const staff = app.cfg.staffEmails.includes(b.email);
+    const staffRole = app.isBootstrapAdmin(b.email) ? "admin" : null;
     try {
       await app.sql.transaction(async (tx) => {
-        await tx.query("INSERT INTO users (id, email, display_name, password_hash, staff) VALUES ($1, $2, $3, $4, $5)", [userId, b.email, b.displayName, passwordHash, staff]);
+        await tx.query("INSERT INTO users (id, email, display_name, password_hash, staff_role) VALUES ($1, $2, $3, $4, $5)", [userId, b.email, b.displayName, passwordHash, staffRole]);
         await tx.query("INSERT INTO orgs (id, name) VALUES ($1, $2)", [orgId, b.orgName]);
         await tx.query("INSERT INTO memberships (org_id, user_id, role) VALUES ($1, $2, 'owner')", [orgId, userId]);
         await audit(tx, userId, orgId, "account.signup", { email: b.email });
@@ -80,11 +105,14 @@ export function registerAuthRoutes(r: Router, app: CloudApp): void {
   r.add("POST", "/v1/auth/login", { body: LoginRequest, summary: "Sign in" }, async (ctx) => {
     app.rateLimit(app.limits.auth, `login:${ctx.ip}`);
     app.rateLimit(app.limits.auth, `login-email:${ctx.body.email}`);
-    const { rows } = await app.sql.query<{ id: string; password_hash: string; staff: boolean }>("SELECT id, password_hash, staff FROM users WHERE email = $1", [ctx.body.email]);
+    const { rows } = await app.sql.query<{ id: string; password_hash: string; staff_role: string | null; disabled_at: Date | null }>("SELECT id, password_hash, staff_role, disabled_at FROM users WHERE email = $1", [ctx.body.email]);
     const u = rows[0];
     const ok = await verifyPassword(ctx.body.password, u?.password_hash ?? DUMMY_HASH);
     if (!u || !ok) throw new HttpError(401, "invalid_credentials", "email or password is incorrect");
-    if (!u.staff && app.cfg.staffEmails.includes(ctx.body.email)) await app.sql.query("UPDATE users SET staff = true WHERE id = $1", [u.id]);
+    // Only after the password is checked, so this does not reveal which addresses have accounts.
+    if (u.disabled_at) throw new HttpError(403, "account_disabled", "this account has been disabled; contact Matchframe support");
+    if (u.staff_role !== "admin" && app.isBootstrapAdmin(ctx.body.email)) await app.sql.query("UPDATE users SET staff_role = 'admin' WHERE id = $1", [u.id]);
+    await app.sql.query("UPDATE users SET last_login_at = $2 WHERE id = $1", [u.id, app.now()]);
     const c = await app.createSession(u.id, ctx);
     await audit(app.sql, u.id, null, "account.login", { ip: ctx.ip });
     return reply({ json: { userId: u.id }, cookies: [c] });
@@ -162,15 +190,8 @@ export function registerAuthRoutes(r: Router, app: CloudApp): void {
 
   r.add("POST", "/v1/auth/request-password-reset", { body: z.object({ email: Email }), summary: "Email a password reset link (always answers OK)" }, async (ctx) => {
     app.rateLimit(app.limits.email, `reset:${ctx.ip}`);
-    const { rows } = await app.sql.query<{ id: string }>("SELECT id FROM users WHERE email = $1", [ctx.body.email]);
-    if (rows[0]) {
-      const token = await issueEmailToken(app.sql, rows[0].id, "reset", RESET_MINUTES * 60_000, app.now());
-      await app.mailer.send({
-        to: ctx.body.email,
-        subject: "Reset your Matchframe password",
-        text: `Someone asked to reset the password for this Matchframe account. To choose a new password open:\n\n${app.cfg.publicUrl}/reset-password?token=${token}\n\nThe link expires in ${RESET_MINUTES} minutes. If this was not you, ignore this email.`,
-      });
-    }
+    const { rows } = await app.sql.query<{ id: string }>("SELECT id FROM users WHERE email = $1 AND disabled_at IS NULL", [ctx.body.email]);
+    if (rows[0]) await sendPasswordReset(app, rows[0].id, ctx.body.email);
     return { ok: true };
   });
 
@@ -190,5 +211,48 @@ export function registerAuthRoutes(r: Router, app: CloudApp): void {
     await app.sql.query("DELETE FROM sessions WHERE user_id = $1 AND id_hash <> $2", [u.id, u.sessionHash]);
     await audit(app.sql, u.id, null, "account.password_changed");
     return { ok: true };
+  });
+  r.add("GET", "/v1/auth/sessions", { summary: "Browsers signed in to your account" }, async (ctx) => {
+    const u = await app.requireUser(ctx);
+    const current = sessionPublicId(u.sessionHash);
+    return { sessions: (await sessionsFor(app, u.id)).map((s) => ({ ...sessionView(s), current: sessionPublicId(s.id_hash) === current })) };
+  });
+
+  r.add("DELETE", "/v1/auth/sessions/:id", { summary: "Sign out one browser" }, async (ctx) => {
+    const u = await app.requireUser(ctx);
+    const s = (await sessionsFor(app, u.id)).find((x) => sessionPublicId(x.id_hash) === ctx.params.id);
+    if (!s) throw new HttpError(404, "not_found", "no such session");
+    await app.sql.query("DELETE FROM sessions WHERE id_hash = $1 AND user_id = $2", [s.id_hash, u.id]);
+    await audit(app.sql, u.id, null, "account.session_revoked", { session: ctx.params.id });
+    const cookies = s.id_hash === u.sessionHash ? [app.clearSessionCookie()] : [];
+    return reply({ json: { ok: true }, cookies });
+  });
+
+  r.add("POST", "/v1/auth/sessions/revoke-others", { summary: "Sign out every other browser" }, async (ctx) => {
+    const u = await app.requireUser(ctx);
+    const { rows } = await app.sql.query<{ id_hash: string }>("DELETE FROM sessions WHERE user_id = $1 AND id_hash <> $2 RETURNING id_hash", [u.id, u.sessionHash]);
+    await audit(app.sql, u.id, null, "account.sessions_revoked", { revoked: rows.length });
+    return { revoked: rows.length };
+  });
+
+  r.add("GET", "/v1/auth/export", { summary: "Download a copy of your account data (JSON)" }, async (ctx) => {
+    const u = await app.requireUser(ctx);
+    const user = (await app.sql.query<{ last_login_at: Date | null }>("SELECT last_login_at FROM users WHERE id = $1", [u.id])).rows[0];
+    const memberships = await app.sql.query<{ org_id: string; name: string; role: string; created_at: Date }>("SELECT m.org_id, o.name, m.role, m.created_at FROM memberships m JOIN orgs o ON o.id = m.org_id WHERE m.user_id = $1 ORDER BY m.created_at", [u.id]);
+    const devices = await app.sql.query<{ id: string; org_id: string; name: string; platform: string; created_at: Date; revoked_at: Date | null }>("SELECT id, org_id, name, platform, created_at, revoked_at FROM devices WHERE approved_by = $1 ORDER BY created_at", [u.id]);
+    const activity = await app.sql.query<{ at: Date; org_id: string | null; action: string; detail: unknown }>("SELECT at, org_id, action, detail FROM audit_log WHERE actor = $1 ORDER BY id DESC LIMIT 1000", [u.id]);
+    const messages = await app.sql.query<{ topic: string; message: string; created_at: Date }>("SELECT topic, message, created_at FROM contact_messages WHERE user_id = $1 OR email = $2 ORDER BY id", [u.id, u.email]);
+    const data = {
+      exportedAt: app.now().toISOString(),
+      account: { id: u.id, email: u.email, displayName: u.displayName, emailVerified: u.emailVerified, staffRole: u.staffRole ?? null, createdAt: u.createdAt, lastLoginAt: user?.last_login_at?.toISOString() ?? null },
+      organisations: memberships.rows.map((m) => ({ id: m.org_id, name: m.name, role: m.role, joinedAt: m.created_at.toISOString() })),
+      sessions: (await sessionsFor(app, u.id)).map(sessionView),
+      computersLinked: devices.rows.map((d) => ({ id: d.id, orgId: d.org_id, name: d.name, platform: d.platform, linkedAt: d.created_at.toISOString(), unlinkedAt: d.revoked_at?.toISOString() ?? null })),
+      activity: activity.rows.map((a) => ({ at: a.at.toISOString(), orgId: a.org_id, action: a.action, detail: a.detail })),
+      contactMessages: messages.rows.map((m) => ({ topic: m.topic, message: m.message, sentAt: m.created_at.toISOString() })),
+    };
+    await audit(app.sql, u.id, null, "account.data_exported");
+    const day = app.now().toISOString().slice(0, 10);
+    return reply({ body: JSON.stringify(data, null, 2), contentType: "application/json; charset=utf-8", headers: { "content-disposition": `attachment; filename="matchframe-account-${day}.json"`, "cache-control": "no-store" } });
   });
 }

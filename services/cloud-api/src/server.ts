@@ -10,6 +10,7 @@ import { registerAuthRoutes } from "./routes/auth.ts";
 import { registerBillingRoutes } from "./routes/billing.ts";
 import { registerDeviceRoutes } from "./routes/devices.ts";
 import { registerOrgRoutes } from "./routes/orgs.ts";
+import { registerSiteRoutes } from "./routes/site.ts";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -49,6 +50,7 @@ export function buildRouter(app: CloudApp): Router {
         : null;
     return { windows, notesUrl: app.cfg.downloads.notesUrl, version: windows?.version ?? app.cfg.downloads.version };
   });
+  registerSiteRoutes(router, app);
   registerAuthRoutes(router, app);
   registerOrgRoutes(router, app);
   registerBillingRoutes(router, app);

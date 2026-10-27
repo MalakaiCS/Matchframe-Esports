@@ -27,6 +27,84 @@
         }
       }
     },
+    "/v1/site": {
+      "get": {
+        "summary": "Business details shown on the website (company name, support email, legal effective date)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/contact": {
+      "post": {
+        "summary": "Contact form: stored for the staff support inbox (and emailed to MF_SUPPORT_EMAIL when set)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "topic": {
+                    "type": "string",
+                    "enum": [
+                      "sales",
+                      "support",
+                      "billing",
+                      "legal",
+                      "other"
+                    ]
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 5000
+                  },
+                  "orgId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "email",
+                  "topic",
+                  "message"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/signup": {
       "post": {
         "summary": "Create an account and organisation (signs in; sends a verification email)",
@@ -388,6 +466,59 @@
                 ]
               }
             }
+          }
+        }
+      }
+    },
+    "/v1/auth/sessions": {
+      "get": {
+        "summary": "Browsers signed in to your account",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/auth/sessions/{id}": {
+      "delete": {
+        "summary": "Sign out one browser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/auth/sessions/revoke-others": {
+      "post": {
+        "summary": "Sign out every other browser",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/auth/export": {
+      "get": {
+        "summary": "Download a copy of your account data (JSON)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -1194,6 +1325,281 @@
         }
       }
     },
+    "/v1/admin/overview": {
+      "get": {
+        "summary": "Staff: headline numbers (accounts, organisations, computers, usage, revenue) and recent sign-ups",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/users": {
+      "get": {
+        "summary": "Staff: search accounts (q = email, name or id; filter = all | unverified | staff | disabled)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/users/{userId}": {
+      "get": {
+        "summary": "Staff: one account with organisations, signed-in browsers and recent activity",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Admin: edit an account's name or email (a new email must be verified again)",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/users/{userId}/verify-email": {
+      "post": {
+        "summary": "Staff: mark an account's email address as verified",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/users/{userId}/resend-verification": {
+      "post": {
+        "summary": "Staff: send an account's verification email again",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/users/{userId}/password-reset": {
+      "post": {
+        "summary": "Staff: email a password reset link to an account",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/users/{userId}/sign-out": {
+      "post": {
+        "summary": "Staff: sign an account out of every browser",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/users/{userId}/staff-role": {
+      "put": {
+        "summary": "Admin: set an account's staff role (support, admin or none)",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "support",
+                          "admin"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/users/{userId}/disable": {
+      "post": {
+        "summary": "Admin: disable an account (signs it out; it cannot sign in until enabled)",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/users/{userId}/enable": {
+      "post": {
+        "summary": "Admin: enable a disabled account",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/admin/orgs": {
       "get": {
         "summary": "Staff: organisations with plan, status, members, computers and this period's usage",
@@ -1205,9 +1611,29 @@
         }
       }
     },
+    "/v1/admin/orgs/{orgId}": {
+      "get": {
+        "summary": "Staff: one organisation with subscription, allowance, members, computers and hour credits",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/admin/orgs/{orgId}/credits": {
       "post": {
-        "summary": "Staff: grant auto-director hours (support credit, trial extension)",
+        "summary": "Admin: grant auto-director hours (support credit, trial extension)",
         "parameters": [
           {
             "name": "orgId",
@@ -1278,7 +1704,7 @@
     },
     "/v1/admin/plans/{planId}": {
       "put": {
-        "summary": "Staff: create or edit a plan",
+        "summary": "Admin: create or edit a plan",
         "parameters": [
           {
             "name": "planId",
@@ -1398,7 +1824,7 @@
     },
     "/v1/admin/hour-packs/{packId}": {
       "put": {
-        "summary": "Staff: create or edit an hour pack",
+        "summary": "Admin: create or edit an hour pack",
         "parameters": [
           {
             "name": "packId",
@@ -1496,8 +1922,89 @@
     },
     "/v1/admin/stripe-events": {
       "get": {
-        "summary": "Staff: recent Stripe webhook events and processing errors",
+        "summary": "Admin: recent Stripe webhook events and processing errors",
         "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/messages": {
+      "get": {
+        "summary": "Staff: contact form messages (status = open | handled | all)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/messages/{messageId}/handled": {
+      "post": {
+        "summary": "Staff: mark a contact message handled (or reopen it)",
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "handled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "handled"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/emails": {
+      "get": {
+        "summary": "Staff: recent emails sent by the website (recipient, subject, delivery state; no bodies)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/emails/{emailId}/resend": {
+      "post": {
+        "summary": "Admin: send an email again (after an SMTP outage)",
+        "parameters": [
+          {
+            "name": "emailId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"

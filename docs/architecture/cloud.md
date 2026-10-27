@@ -11,10 +11,12 @@ Matchframe is two products that work together:
   (Stripe Checkout, invoices, hour packs), **subscription management** (plans, customer portal),
   **auto-director hours usage** (allowance, daily and per-computer usage, CSV), **account
   management** (sign-up, verification, password, name and email changes, organisations,
-  linked computers) and **staff management** (team members, invitations and roles for customers;
-  the Matchframe staff admin for organisations, hour grants, the plan catalogue, Stripe events and
-  the audit log). Signed-in accounts can download the program installer there. The website has no
-  HUD, director, camera or match features.
+  linked computers, signed-in browsers, data export) and **staff management** (team members,
+  invitations and roles for customers; the Matchframe staff admin with support and admin roles for
+  user management — verify emails, staff roles, disable accounts — organisations, hour grants, the
+  plan catalogue, the support inbox, the email log, Stripe events and the audit log). It also has
+  the public pages (product, pricing, help, contact, legal). Signed-in accounts can download the
+  program installer there. The website has no HUD, director, camera or match features.
 
 ```
  Browser ──HTTPS (session cookie, same-origin)──▶ website + cloud API ──▶ Postgres
@@ -101,7 +103,7 @@ also installs and smoke-tests it on Windows.
 | Browser ↔ website | HttpOnly SameSite=Lax session cookie (Secure on https), Origin check on every cookie-authenticated mutation, rate limits on signup/login/email/linking, enumeration-safe login and reset, single-use hashed email tokens, role checks per organisation, CSP and security headers on the website. |
 | Desktop ↔ API | Device token (random, stored hashed server-side, encrypted at rest on the desktop), revocable from the website; licences signed with Ed25519 and verified offline against pinned keys; usage validated and idempotent server-side. |
 | Stripe ↔ API | Webhook signatures verified with the endpoint secret; events stored once; billing state only changes from verified events or direct reads from Stripe; customer creation is idempotent per organisation. |
-| Staff | Staff accounts come only from `MF_STAFF_EMAILS`; staff can view organisations, grant credits and edit the catalogue; every change is audited. |
+| Staff | Two staff roles. Support can view accounts and organisations, verify emails, send reset links, sign users out and work the support inbox; admin can also give staff roles, disable accounts, edit users, grant hours and edit the catalogue. The first admins come from `MF_STAFF_EMAILS` and cannot be demoted or disabled from the website; nobody can change their own role. Disabled accounts cannot sign in. Every staff action is audited. |
 
 **What the licence does not do.** The gate runs on the customer's computer. It stops honest
 mistakes and casual misuse, and pinned keys stop a build from trusting a fake server, but anyone who

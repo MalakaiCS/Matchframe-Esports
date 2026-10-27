@@ -2,7 +2,6 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createServer } from "node:net";
 import Stripe from "stripe";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { EntitlementPayload } from "@matchframe/cloud-contracts";
@@ -11,47 +10,11 @@ import { CloudApp } from "../src/app.ts";
 import { loadCloudConfig } from "../src/config.ts";
 import { PgliteSql } from "../src/db/sql.ts";
 import { startCloudServer } from "../src/server.ts";
+import { Client, freePort } from "./http.ts";
 import { StripeStub } from "./stripe-stub.ts";
 
 const WEBHOOK_SECRET = "whsec_test_matchframe";
 const signer = new Stripe("sk_test_signer");
-
-async function freePort(): Promise<number> {
-  return new Promise((resolve) => {
-    const s = createServer();
-    s.listen(0, "127.0.0.1", () => {
-      const p = (s.address() as { port: number }).port;
-      s.close(() => resolve(p));
-    });
-  });
-}
-
-class Client {
-  cookie = "";
-  constructor(
-    private readonly base: string,
-    private readonly origin: string | null = base,
-  ) {}
-  async req<T = Record<string, unknown>>(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<{ status: number; data: T; headers: Headers }> {
-    const res = await fetch(this.base + path, {
-      method,
-      headers: { "content-type": "application/json", ...(this.cookie ? { cookie: this.cookie } : {}), ...(this.origin ? { origin: this.origin } : {}), ...headers },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    for (const c of res.headers.getSetCookie()) {
-      const [pair] = c.split(";");
-      this.cookie = pair!.endsWith("=") ? "" : pair!;
-    }
-    const text = await res.text();
-    let data: unknown = text;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      // non-JSON (CSV)
-    }
-    return { status: res.status, data: data as T, headers: res.headers };
-  }
-}
 
 describe("cloud API end to end (HTTP server, PGlite Postgres, Stripe SDK against a local stub)", () => {
   let app: CloudApp;
