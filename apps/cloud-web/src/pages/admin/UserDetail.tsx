@@ -261,8 +261,8 @@ export function AdminUserDetail({ userId }: { userId: string }) {
                 <tbody>
                   {d.audit.slice(0, 50).map((a, i) => (
                     <tr key={`${a.at}-${i}`}>
-                      <td data-label="Time">{formatDateTime(a.at)}</td>
-                      <td data-label="Action" className="mono small">
+                      <td data-label="Time" className="nowrap">{formatDateTime(a.at)}</td>
+                      <td data-label="Action" className="mono small nowrap">
                         {a.action}
                       </td>
                       <td data-label="Organisation">{a.orgId ? <Link to={`/admin/orgs/${encodeURIComponent(a.orgId)}`} className="mono small">{a.orgId}</Link> : "—"}</td>

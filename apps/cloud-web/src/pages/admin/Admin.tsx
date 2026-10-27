@@ -132,8 +132,8 @@ export function AdminAudit() {
             <tbody>
               {shown.map((a) => (
                 <tr key={a.id}>
-                  <td data-label="Time">{formatDateTime(a.at)}</td>
-                  <td data-label="Action" className="mono small">
+                  <td data-label="Time" className="nowrap">{formatDateTime(a.at)}</td>
+                  <td data-label="Action" className="mono small nowrap">
                     {a.action}
                   </td>
                   <td data-label="Actor" className="mono small">

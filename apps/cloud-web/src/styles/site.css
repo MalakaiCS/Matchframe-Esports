@@ -1137,6 +1137,7 @@ kbd {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   font-size: 14.5px;
+  table-layout: fixed;
 }
 
 .cmp-table th,

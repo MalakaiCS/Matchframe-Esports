@@ -400,6 +400,13 @@
   background: color-mix(in srgb, var(--surface-2) 70%, transparent);
 }
 
+@media (min-width: 761px) {
+  .rtable td.nowrap {
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+}
+
 @media (max-width: 760px) {
   .table-card {
     background: none;
