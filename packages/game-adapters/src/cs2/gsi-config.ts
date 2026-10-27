@@ -39,6 +39,15 @@ export interface GsiConfigOptions {
   components?: readonly string[];
 }
 
+/**
+ * How often CS2 sends game data. CS2 sends one update at a time and waits for the answer, so the
+ * engine's speed paces it; `throttle` caps it at 50 updates a second (a POV switch reaches the
+ * engine within 20 ms instead of up to 100 ms), and a late answer stalls it for at most `timeout`.
+ */
+export const GSI_TIMING = { timeout: 0.5, buffer: 0, throttle: 0.02, heartbeat: 10 } as const;
+
+const num = (n: number) => String(Math.round(n * 1000) / 1000);
+
 export function renderGsiConfig(o: GsiConfigOptions): string {
   if (!/^[0-9a-f]{8,64}$/i.test(o.token)) throw new Error("GSI token must be hex");
   if (!/^https?:\/\/[^\s"]+$/.test(o.uri)) throw new Error("invalid GSI uri");
@@ -46,10 +55,10 @@ export function renderGsiConfig(o: GsiConfigOptions): string {
   return `"Matchframe Esports"
 {
   "uri" "${o.uri}"
-  "timeout" "${(o.timeout ?? 1.1).toFixed(1)}"
-  "buffer" "${(o.buffer ?? 0).toFixed(1)}"
-  "throttle" "${(o.throttle ?? 0.1).toFixed(1)}"
-  "heartbeat" "${(o.heartbeat ?? 10).toFixed(1)}"
+  "timeout" "${num(o.timeout ?? GSI_TIMING.timeout)}"
+  "buffer" "${num(o.buffer ?? GSI_TIMING.buffer)}"
+  "throttle" "${num(o.throttle ?? GSI_TIMING.throttle)}"
+  "heartbeat" "${num(o.heartbeat ?? GSI_TIMING.heartbeat)}"
   "auth"
   {
     "token" "${o.token}"
@@ -85,4 +94,19 @@ export function writeGsiConfig(cfgDir: string, content: string): WriteResult {
   writeFileSync(tmp, content);
   renameSync(tmp, path);
   return { path, written: true, backup, unchanged: false };
+}
+
+/**
+ * Brings Matchframe's existing config file up to date (e.g. new timing) with the address and token
+ * it already has. Only touches a file that is there and carries this computer's token; CS2 reads it
+ * the next time it starts.
+ */
+export function refreshGsiConfig(cfgDir: string, token: string): WriteResult | null {
+  const path = join(cfgDir, GSI_CONFIG_FILE);
+  if (!existsSync(path)) return null;
+  const root = parseVdf(readFileSync(path, "utf8"))["Matchframe Esports"] as Record<string, unknown> | undefined;
+  const uri = typeof root?.uri === "string" ? root.uri : null;
+  const fileToken = (root?.auth as Record<string, unknown> | undefined)?.token;
+  if (!uri || fileToken !== token) return null;
+  return writeGsiConfig(cfgDir, renderGsiConfig({ uri, token }));
 }

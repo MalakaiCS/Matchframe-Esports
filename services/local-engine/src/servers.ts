@@ -4,6 +4,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { join } from "node:path";
 import { GSI_MAX_BODY_BYTES } from "@matchframe/cs2-state";
 import type { EventEnvelope, HudOutputMode } from "@matchframe/contracts";
+import type { HudState } from "@matchframe/hud-sdk";
 import { HUD_OUTPUT_MODES, RESERVED_HUD_IDS } from "@matchframe/contracts";
 import type { Engine } from "./app.ts";
 import { can } from "./auth.ts";
@@ -126,8 +127,9 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     }
     const provider = (payload as { provider?: { steamid?: unknown } })?.provider?.steamid;
     const sourceId = `gsi:${typeof provider === "string" && /^\d+$/.test(provider) ? provider : "unknown"}`;
+    // LHM-format HUDs get the packet as CS2 sent it before Matchframe's own processing.
+    e.emitRawGsi(payload, false);
     const outcome = e.session.ingestGsi(payload, sourceId, receivedAt, text);
-    if (outcome.reason !== "invalid") e.emitRawGsi(payload, false);
     res.writeHead(outcome.reason === "invalid" ? 400 : 200, { "content-type": "text/plain" }).end();
   });
 
@@ -169,16 +171,29 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       if ((msg as { type?: string })?.type === "ping") operatorHub.sendTo(c, { type: "pong", at: Date.now() });
     },
   });
+  // Console snapshots: at most every 150 ms with a trailing push, straight away when the spectated player changes.
   let lastOperatorPush = 0;
+  let operatorPending: ReturnType<typeof setTimeout> | null = null;
+  let operatorObserved: string | null = null;
   const pushOperator = (force = false) => {
     const now = Date.now();
-    if (!force && now - lastOperatorPush < 200) return;
+    const wait = 150 - (now - lastOperatorPush);
+    if (!force && wait > 0) {
+      operatorPending ??= setTimeout(() => ((operatorPending = null), pushOperator()), wait);
+      return;
+    }
+    if (operatorPending) clearTimeout(operatorPending);
+    operatorPending = null;
     lastOperatorPush = now;
     if (operatorHub.clients.size === 0) return;
     const msg = env("state.snapshot", operatorSnapshot());
     for (const c of operatorHub.clients) operatorHub.sendTo(c, msg, { snapshot: true });
   };
-  e.session.on("state", () => pushOperator());
+  e.session.on("state", (s) => {
+    const observedChanged = s.observer.observedSteamId !== operatorObserved;
+    operatorObserved = s.observer.observedSteamId;
+    pushOperator(observedChanged);
+  });
   e.session.on("decision", (d) => operatorHub.broadcast("director.decision", env("director.decision", d)));
   e.session.on("arbiter", (a) => {
     operatorHub.broadcast("observer.command", env("observer.command", a));
@@ -264,19 +279,35 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     if (!state) return;
     overlayHub.sendTo(c, { topic: "hud.snapshot", sequence: ++hudSeq, sentAt: Date.now(), payload: state }, { snapshot: force });
   };
+  /**
+   * HUD pushes: a change the audience sees at once (the spectated player, round phase, bomb) goes out
+   * immediately; everything else at most every HUD_PUSH_MS, with a trailing push so the last state
+   * always arrives. Each output's state is built once per push, however many windows show it.
+   */
+  const HUD_PUSH_MS = 33;
   let lastHudPush = 0;
   let hudPending: ReturnType<typeof setTimeout> | null = null;
-  const pushHud = () => {
+  const pushHud = (urgent = false) => {
     const now = Date.now();
-    const wait = 100 - (now - lastHudPush);
-    if (wait > 0) {
-      if (!hudPending) hudPending = setTimeout(() => ((hudPending = null), pushHud()), wait);
+    const wait = HUD_PUSH_MS - (now - lastHudPush);
+    if (wait > 0 && !urgent) {
+      hudPending ??= setTimeout(() => ((hudPending = null), pushHud()), wait);
       return;
     }
+    if (hudPending) clearTimeout(hudPending);
+    hudPending = null;
     lastHudPush = now;
-    for (const c of overlayHub.clients) sendHud(c, c.needsSnapshot);
+    const built = new Map<string, HudState | null>();
+    for (const c of overlayHub.clients) {
+      const outputId = String(c.meta.outputId);
+      const variant = c.meta.variant ? String(c.meta.variant) : undefined;
+      const key = `${outputId}\u0000${variant ?? ""}`;
+      if (!built.has(key)) built.set(key, e.hudState(outputId, variant));
+      const state = built.get(key);
+      if (state) overlayHub.sendTo(c, { topic: "hud.snapshot", sequence: ++hudSeq, sentAt: Date.now(), payload: state }, { snapshot: c.needsSnapshot });
+    }
   };
-  e.onHudUpdate(() => pushHud());
+  e.onHudUpdate((_outputId, urgent) => pushHud(urgent));
 
   // LHM compatibility layer for LHM-format HUDs (socket.io at /socket.io, GET /api/...): attached
   // to the HUD server below.
@@ -453,6 +484,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       clearInterval(operatorTimer);
       clearInterval(hudTimer);
       if (hudPending) clearTimeout(hudPending);
+      if (operatorPending) clearTimeout(operatorPending);
       offLibrary();
       await lhm.close();
       e.hudLibrary.attachRuntime(null);

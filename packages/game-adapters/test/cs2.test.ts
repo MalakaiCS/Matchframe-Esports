@@ -2,7 +2,7 @@ import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { discoverCs2, GSI_CONFIG_FILE, parseVdf, renderGsiConfig, writeGsiConfig } from "../src/index.ts";
+import { discoverCs2, GSI_CONFIG_FILE, parseVdf, refreshGsiConfig, renderGsiConfig, writeGsiConfig } from "../src/index.ts";
 
 describe("VDF", () => {
   it("parses nested KeyValues with comments and escapes", () => {
@@ -37,6 +37,22 @@ describe("GSI config", () => {
     const root = v["Matchframe Esports"] as Record<string, Record<string, string>>;
     expect(root.auth!.token).toBe("abcdef0123456789");
     expect(root.data!.allgrenades).toBe("1");
+    // Low latency: at most 20 ms between updates, no batching, a stalled answer blocks for 0.5 s at most.
+    expect([root.throttle, root.buffer, root.timeout, root.heartbeat]).toEqual(["0.02", "0", "0.5", "10"]);
+  });
+
+  it("refreshes its own existing file to the current timing, keeping the address, and leaves others alone", () => {
+    const dir = mkdtempSync(join(tmpdir(), "mf-gsi-"));
+    expect(refreshGsiConfig(dir, "abcdef01")).toBe(null);
+    const old = renderGsiConfig({ uri: "http://192.168.1.20:37210/gsi", token: "abcdef01", throttle: 0.1, timeout: 1.1 });
+    writeFileSync(join(dir, GSI_CONFIG_FILE), old);
+    // Another computer's token: not ours to rewrite.
+    expect(refreshGsiConfig(dir, "12345678")).toBe(null);
+    const r = refreshGsiConfig(dir, "abcdef01")!;
+    expect(r.written).toBe(true);
+    const root = parseVdf(readFileSync(join(dir, GSI_CONFIG_FILE), "utf8"))["Matchframe Esports"] as Record<string, string>;
+    expect([root.uri, root.throttle, root.timeout]).toEqual(["http://192.168.1.20:37210/gsi", "0.02", "0.5"]);
+    expect(refreshGsiConfig(dir, "abcdef01")!.unchanged).toBe(true);
   });
 
   it("writes its own file only, backs up a changed version, and leaves other configs untouched", () => {

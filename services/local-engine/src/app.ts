@@ -33,6 +33,7 @@ import { DelayBuffer } from "./live/delay.ts";
 import { KillfeedBuilder } from "./live/killfeed.ts";
 import type { HudContext } from "./live/projection.ts";
 import { buildHudState } from "./live/projection.ts";
+import { refreshGsiConfig } from "@matchframe/game-adapters";
 import { AutoDirector } from "./live/auto-director.ts";
 import { LiveSession } from "./live/session.ts";
 import { TeamSideTracker } from "./live/team-sides.ts";
@@ -151,7 +152,9 @@ export class Engine {
   private roundWinnersLR = new Map<number, "left" | "right">();
   private sim: { simulator: RoundSimulator; adapter: SimulationObserverAdapter; timer: ReturnType<typeof setInterval> } | null = null;
   private replayProvider: ReplayProvider | null = null;
-  private hudListeners = new Set<(outputId: string) => void>();
+  private hudListeners = new Set<(outputId: string, urgent?: boolean) => void>();
+  /** What the audience notices at once (spectated player, round phase, bomb): pushed to HUDs without waiting. */
+  private hudUrgentKey = "";
 
   constructor(readonly cfg: EngineConfig) {
     this.logger = new Logger(cfg.logLevel, join(cfg.dataDir, "logs"));
@@ -358,7 +361,7 @@ export class Engine {
   }
 
   /** Called by the overlay server to subscribe to HUD pushes. */
-  onHudUpdate(fn: (outputId: string) => void): () => void {
+  onHudUpdate(fn: (outputId: string, urgent?: boolean) => void): () => void {
     this.hudListeners.add(fn);
     return () => this.hudListeners.delete(fn);
   }
@@ -512,7 +515,10 @@ export class Engine {
     const map = s.mapName ? this.maps.get(s.mapName) : undefined;
     this.session.director.setMap(map);
     this.enforceAllowanceAtMapChange(s);
-    for (const fn of this.hudListeners) fn("*");
+    const urgentKey = `${s.observer.observedSteamId}|${s.roundPhase}|${s.gamePhase}|${s.bomb?.state ?? ""}|${s.players.filter((p) => p.lifeState === "dead").length}`;
+    const urgent = urgentKey !== this.hudUrgentKey;
+    this.hudUrgentKey = urgentKey;
+    for (const fn of this.hudListeners) fn("*", urgent);
   }
 
   // ---------------------------------------------------------------------------- cloud metering
@@ -826,6 +832,7 @@ export class Engine {
   // ---------------------------------------------------------------------------- lifecycle
 
   async init(): Promise<void> {
+    this.refreshGsiConfig();
     this.hudLibrary.installSamples(this.cfg.sampleHudsDirs);
     this.configureReplay();
     this.gameConsole.sync();
@@ -840,6 +847,18 @@ export class Engine {
     // Restart always resumes in manual/disarmed mode until sources and ownership are validated.
     this.session.setMode("advisory");
     this.audit.record("system", "engine.start", null, { version: APP_VERSION, migration: this.migration });
+  }
+
+  /** Keeps Matchframe's game-data config in CS2's folder on the current timing (CS2 reads it when it starts). */
+  private refreshGsiConfig(): void {
+    const install = this.settings.get<{ cfgDir?: string } | null>("cs2.install", null);
+    if (!install?.cfgDir) return;
+    try {
+      const r = refreshGsiConfig(install.cfgDir, this.secrets.gsiToken);
+      if (r?.written) this.logger.info("updated the CS2 game-data config; it applies the next time CS2 starts", { path: r.path });
+    } catch (err) {
+      this.logger.warn("could not update the CS2 game-data config", { error: err instanceof Error ? err.message : String(err) });
+    }
   }
 
   async shutdown(): Promise<void> {
