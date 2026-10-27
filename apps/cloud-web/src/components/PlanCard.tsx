@@ -14,7 +14,17 @@ export function planPrice(p: Pick<PublicPlan, "priceMonthlyCents" | "currency">)
   );
 }
 
-/** Plan cards list only what is billed: price, included auto-director hours, computers and members. */
+/**
+ * Observer and Observer & Cinematics come with every plan that has auto-director hours. Full Action
+ * Observer (nade cameras) is a plan feature on top of that, using the same hours.
+ */
+export const hasObserver = (f: Pick<PlanLike["features"], "autoDirector">): boolean => f.autoDirector;
+export const hasFullActionObserver = (f: Pick<PlanLike["features"], "autoDirector" | "fullActionObserver">): boolean => f.autoDirector && f.fullActionObserver === true;
+
+/** Names of the plans that include Full Action Observer, in catalogue order. */
+export const fullActionPlanNames = (plans: Pick<PublicPlan, "name" | "features">[]): string[] => plans.filter((p) => hasFullActionObserver(p.features)).map((p) => p.name);
+
+/** Plan cards list what differs between plans: price, auto-director hours, Observer modes, computers and members. */
 export function PlanFeatures({ plan }: { plan: PlanLike }) {
   const f = plan.features;
   return (
@@ -27,6 +37,14 @@ export function PlanFeatures({ plan }: { plan: PlanLike }) {
         ) : (
           "No auto-director hours"
         )}
+      </li>
+      <li className={hasObserver(f) ? "" : "is-off"}>
+        {!hasObserver(f) && <span className="visually-hidden">Not included: </span>}
+        <strong>Observer</strong> and <strong>Observer &amp; Cinematics</strong>
+      </li>
+      <li className={hasFullActionObserver(f) ? "" : "is-off"}>
+        {!hasFullActionObserver(f) && <span className="visually-hidden">Not included: </span>}
+        <strong>Full Action Observer</strong> with nade cameras
       </li>
       <li>
         Up to <strong>{f.maxDevices}</strong> linked {f.maxDevices === 1 ? "computer" : "computers"}

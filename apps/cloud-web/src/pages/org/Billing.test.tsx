@@ -7,7 +7,7 @@ import { external } from "../../lib/storage.ts";
 import { at, fakeFetch, makeMe, renderWithSession } from "../../test/helpers.tsx";
 import { Billing, billingGate, CHECKOUT_REFETCH_MS } from "./Billing.tsx";
 
-const features = (maxDevices: number, maxMembers: number) => ({ autoDirector: true, learnedDirectorShadow: maxDevices > 1, maxDevices, maxMembers });
+const features = (maxDevices: number, maxMembers: number) => ({ autoDirector: true, learnedDirectorShadow: maxDevices > 1, fullActionObserver: maxDevices > 2, maxDevices, maxMembers });
 const freePlan = { id: "free", name: "Free", description: "", priceMonthlyCents: 0, currency: "usd", includedAutoDirectorHours: 2, features: features(1, 2), public: true, sortOrder: 0 };
 const proPlan = { id: "pro", name: "Pro", description: "", priceMonthlyCents: 4900, currency: "usd", includedAutoDirectorHours: 40, features: features(2, 5), public: true, sortOrder: 1 };
 const studioPlan = { id: "studio", name: "Studio", description: "", priceMonthlyCents: 14900, currency: "usd", includedAutoDirectorHours: 150, features: features(6, 20), public: true, sortOrder: 2 };

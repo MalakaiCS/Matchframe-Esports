@@ -37,10 +37,18 @@ describe("team rules", () => {
 });
 
 describe("catalogue forms produce bodies the API accepts", () => {
-  const pro: Plan = { id: "pro", name: "Pro", description: "For regular productions.", priceMonthlyCents: 4900, currency: "usd", includedAutoDirectorHours: 40, features: { autoDirector: true, learnedDirectorShadow: true, maxDevices: 2, maxMembers: 5 }, stripePriceId: "price_pro", public: true, sortOrder: 1 };
+  const pro: Plan = { id: "pro", name: "Pro", description: "For regular productions.", priceMonthlyCents: 4900, currency: "usd", includedAutoDirectorHours: 40, features: { autoDirector: true, learnedDirectorShadow: true, fullActionObserver: false, maxDevices: 2, maxMembers: 5 }, stripePriceId: "price_pro", public: true, sortOrder: 1 };
 
   it("round-trips a plan", () => {
     expect(Plan.parse(formToPlan(planToForm(pro)))).toEqual(pro);
+  });
+
+  it("round-trips Full Action Observer and leaves it off for new plans", () => {
+    const studio: Plan = { ...pro, id: "studio", name: "Studio", features: { ...pro.features, fullActionObserver: true, maxDevices: 6, maxMembers: 20 } };
+    expect(planToForm(studio).fullActionObserver).toBe(true);
+    expect(Plan.parse(formToPlan(planToForm(studio)))).toEqual(studio);
+    expect(planToForm(null).fullActionObserver).toBe(false);
+    expect((formToPlan({ ...planToForm(pro), fullActionObserver: true }) as Plan).features.fullActionObserver).toBe(true);
   });
 
   it("maps empty fields to null (price on request, not purchasable)", () => {

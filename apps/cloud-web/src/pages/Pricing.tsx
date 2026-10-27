@@ -1,11 +1,10 @@
 import type { ReactNode } from "react";
 import { api } from "../api/index.ts";
 import type { PublicPlan } from "../api/types.ts";
-import { Icon } from "../components/icons.tsx";
-import { CtaBand, PageHero, SectionHead } from "../components/marketing.tsx";
-import { PackCard, PlanCard, purchaseBlocker } from "../components/PlanCard.tsx";
+import { CtaBand, Included, NotIncluded, PageHero, SectionHead } from "../components/marketing.tsx";
+import { PackCard, PlanCard, fullActionPlanNames, hasFullActionObserver, hasObserver, purchaseBlocker } from "../components/PlanCard.tsx";
 import { Alert, Button, ErrorState, Loading } from "../components/ui.tsx";
-import { FaqList, faqById } from "../content/faq.tsx";
+import { FaqList, faqById, fullActionObserverFaq } from "../content/faq.tsx";
 import type { FaqItem } from "../content/faq.tsx";
 import { formatHours, formatMoney } from "../lib/format.ts";
 import { useResource, useTitle } from "../lib/hooks.ts";
@@ -13,38 +12,31 @@ import { pickOrg } from "../lib/storage.ts";
 import { Link } from "../router.tsx";
 import { useSession } from "../state/session.tsx";
 
-/** Pricing FAQ: how hours are counted, the limit, packs, cancellation and payments. */
-export const PRICING_FAQ = ["what-is-an-hour", "limit", "overage", "packs", "reset", "cancel", "payments", "refunds"];
+/** Pricing FAQ: how hours are counted, Full Action Observer, the limit, packs, cancellation and payments. */
+export const PRICING_FAQ = ["what-is-an-hour", "full-action-observer", "limit", "overage", "packs", "reset", "cancel", "payments", "refunds"];
 
-function Yes({ label = "Included" }: { label?: string }) {
-  return (
-    <span className="cmp-yes">
-      <Icon name="check" size={18} />
-      <span className="visually-hidden">{label}</span>
-    </span>
-  );
+/** The pricing FAQ, with the plans that include Full Action Observer taken from the live catalogue (undefined while it loads). */
+export function pricingFaq(plans: PublicPlan[] | undefined): FaqItem[] {
+  const names = plans ? fullActionPlanNames(plans) : undefined;
+  return PRICING_FAQ.map((id) => (id === "full-action-observer" ? fullActionObserverFaq(names) : faqById(id))).filter((f): f is FaqItem => !!f);
 }
 
-function No() {
-  return (
-    <span className="cmp-no">
-      <span aria-hidden="true">—</span>
-      <span className="visually-hidden">Not included</span>
-    </span>
-  );
-}
+const mark = (on: boolean) => (on ? <Included /> : <NotIncluded />);
 
 /** Feature-by-plan comparison built from the live catalogue. */
 export function PlanComparison({ plans }: { plans: PublicPlan[] }) {
   const rows: { label: string; hint?: string; cell: (p: PublicPlan) => ReactNode }[] = [
     { label: "Monthly price", cell: (p) => (p.priceMonthlyCents === null ? "On request" : formatMoney(p.priceMonthlyCents, p.currency)) },
-    { label: "Auto-director hours each period", hint: "Time the director controls the camera on live matches.", cell: (p) => (p.features.autoDirector ? formatHours(p.includedAutoDirectorHours * 3600) : <No />) },
+    { label: "Auto-director hours each period", hint: "Time the Observer controls the camera on live matches. Every Observer mode uses hours at the same rate.", cell: (p) => (p.features.autoDirector ? formatHours(p.includedAutoDirectorHours * 3600) : <NotIncluded />) },
     { label: "Linked computers", cell: (p) => p.features.maxDevices },
     { label: "Team members", hint: "Pending invitations count too.", cell: (p) => p.features.maxMembers },
-    { label: "Automatic direction on live matches", cell: (p) => (p.features.autoDirector ? <Yes /> : <No />) },
-    { label: "Learned-director shadow mode", hint: "Compare demo-trained models with the director without moving the camera.", cell: (p) => (p.features.learnedDirectorShadow ? <Yes /> : <No />) },
-    { label: "HUDs, manual and advisory direction, replays, administration", cell: () => <Yes /> },
-    { label: "Hour packs available", cell: () => <Yes /> },
+    { label: "Off: shot suggestions only", hint: "Suggestions in Live Control; Matchframe never moves the camera. Uses no hours.", cell: () => <Included /> },
+    { label: "Observer", hint: "Switches between player POVs automatically on live matches.", cell: (p) => mark(hasObserver(p.features)) },
+    { label: "Observer & Cinematics", hint: "Adds an establishing shot in freeze time, bomb plant and defuse shots and big-fight overviews from your static cameras.", cell: (p) => mark(hasObserver(p.features)) },
+    { label: "Full Action Observer", hint: "Adds nade cameras: static cameras that catch smokes, flashes, molotovs and HE grenades as they land.", cell: (p) => mark(hasFullActionObserver(p.features)) },
+    { label: "Learned-director shadow mode", hint: "Compare demo-trained models with the director without moving the camera.", cell: (p) => mark(p.features.learnedDirectorShadow) },
+    { label: "HUDs, manual direction, replays, administration", hint: "The simulation is free in every Observer mode.", cell: () => <Included /> },
+    { label: "Hour packs available", cell: () => <Included /> },
     { label: "Billing", cell: (p) => (p.priceMonthlyCents === 0 ? "Free" : "Monthly, cancel any time") },
   ];
   return (
@@ -82,7 +74,7 @@ export function PlanComparison({ plans }: { plans: PublicPlan[] }) {
 }
 
 export function Pricing() {
-  useTitle("Pricing", "Matchframe plans and hour packs: start free, pay monthly for more auto-director hours, computers and team members. No overage charges; cancel any time.");
+  useTitle("Pricing", "Matchframe plans and hour packs: start free, pay monthly for more auto-director hours, computers, team members and the Full Action Observer. No overage charges; cancel any time.");
   const { me } = useSession();
   const plans = useResource("plans", api.plans);
   const orgId = me ? pickOrg(me.orgs) : null;
@@ -112,11 +104,11 @@ export function Pricing() {
     );
   };
 
-  const billingFaq = PRICING_FAQ.map(faqById).filter((f): f is FaqItem => !!f);
+  const billingFaq = pricingFaq(plans.data?.plans);
 
   return (
     <>
-      <PageHero eyebrow="Plans and hour packs" title="Pricing" lead="Every plan includes the full program. Plans differ in auto-director hours, linked computers and team size, and extra hours come as one-off packs. No overage charges, no surprise bills." />
+      <PageHero eyebrow="Plans and hour packs" title="Pricing" lead="Every plan includes the full program. Plans differ in auto-director hours, Observer modes, linked computers and team size, and extra hours come as one-off packs. No overage charges, no surprise bills." />
       <div className="wrap section-top">
         {plans.loading && !plans.data && <Loading label="Loading plans…" />}
         {plans.error && <ErrorState error={plans.error} onRetry={plans.reload} />}
@@ -136,7 +128,7 @@ export function Pricing() {
 
             {plans.data.plans.length > 0 && (
               <section className="section-tight" aria-labelledby="compare-title">
-                <SectionHead id="compare-title" title="Compare plans" />
+                <SectionHead id="compare-title" title="Compare plans" lead={<>Every Observer mode is explained on the <Link to="/features/auto-director">Observer page</Link>.</>} />
                 <PlanComparison plans={plans.data.plans} />
               </section>
             )}
@@ -175,7 +167,7 @@ export function Pricing() {
 
         <section className="section-tight" aria-labelledby="hours-faq">
           <div className="faq-teaser">
-            <SectionHead id="hours-faq" eyebrow="Billing FAQ" title="How hours and billing work" lead={<>Still unsure? <Link to="/contact?topic=billing">Ask our team</Link> or read the <Link to="/help/plans-and-hours">plans and hours guide</Link>.</>} />
+            <SectionHead id="hours-faq" eyebrow="Billing FAQ" title="How plans, hours and billing work" lead={<>Still unsure? <Link to="/contact?topic=billing">Ask our team</Link> or read the <Link to="/help/plans-and-hours">plans and hours guide</Link>.</>} />
             <FaqList items={billingFaq} />
           </div>
         </section>

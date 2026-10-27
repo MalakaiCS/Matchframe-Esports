@@ -1564,6 +1564,35 @@ kbd {
   margin-bottom: 12px;
 }
 
+/* Observer modes: cards and the mode-by-mode comparison on the Observer page. */
+.mode-grid {
+  margin-top: 0;
+}
+
+.mode-note {
+  margin: 10px 0 0;
+  font-size: var(--fs-xs);
+  font-weight: 620;
+  color: var(--brand-text);
+}
+
+.cmp-modes {
+  font-size: 14px;
+}
+
+.cmp-modes th,
+.cmp-modes td {
+  padding: 10px 12px;
+}
+
+.cmp-modes tbody th {
+  width: 30%;
+}
+
+.mode-foot {
+  margin-top: 12px;
+}
+
 .num-steps {
   margin: 0;
   padding: 0;

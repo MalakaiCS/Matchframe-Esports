@@ -64,6 +64,11 @@ export function formatMoney(minor: number, currency: string, locale?: string): s
   }
 }
 
+/** Names as a sentence list: "Studio", "Pro and Studio", "Free, Pro and Studio". */
+export function listNames(names: string[]): string {
+  return new Intl.ListFormat("en-GB", { style: "long", type: "conjunction" }).format(names);
+}
+
 export function formatDate(iso: string | null | undefined, locale?: string): string {
   if (!iso) return "—";
   const d = new Date(iso);

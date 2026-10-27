@@ -29,6 +29,7 @@ export const REQUIREMENT_GROUPS: RequirementGroup[] = [
       ["Client", "A CS2 observer or spectator client (including GOTV)."],
       ["Game State Integration", "The program writes the config file for you (gamestate_integration_matchframe.cfg) with a secret token. Restart CS2 afterwards."],
       ["Camera control", <>For the direct console adapter, add the launch option <code>-netconport 2121</code>. The keyboard adapter needs the CS2 window to be focused.</>],
+      ["Static cameras", <>Observer &amp; Cinematics and Full Action Observer need static cameras captured with <code>getpos</code> in Maps &amp; Cameras, validated by an operator, and a passed static camera test.</>],
     ],
   },
   {
@@ -58,7 +59,7 @@ export const REQUIREMENT_GROUPS: RequirementGroup[] = [
     title: "Optional",
     icon: "layers",
     rows: [
-      ["Account", "Not needed for HUDs, manual and advisory direction, replays, administration or the simulation. Needed for automatic direction on live matches (the Free plan is enough to start)."],
+      ["Auto-director hours", "Not needed for HUDs, manual direction, the Observer's Off mode, replays, administration or the simulation. Needed for Observer, Observer & Cinematics and Full Action Observer on live matches (the Free plan includes a few hours; Full Action Observer needs the top plan)."],
       ["Demo pipeline", "Python 3.11 or later with the worker dependencies, and disk space for demos."],
       ["Control surfaces", "Stream Deck or Companion through the program's control-surface API."],
     ],

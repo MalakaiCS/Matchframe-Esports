@@ -18,6 +18,7 @@ interface PlanForm {
   includedAutoDirectorHours: string;
   autoDirector: boolean;
   learnedDirectorShadow: boolean;
+  fullActionObserver: boolean;
   maxDevices: string;
   maxMembers: string;
   stripePriceId: string;
@@ -48,6 +49,7 @@ export function planToForm(p: Plan | null): PlanForm {
     includedAutoDirectorHours: String(p?.includedAutoDirectorHours ?? 0),
     autoDirector: p?.features.autoDirector ?? true,
     learnedDirectorShadow: p?.features.learnedDirectorShadow ?? false,
+    fullActionObserver: p?.features.fullActionObserver ?? false,
     maxDevices: String(p?.features.maxDevices ?? 1),
     maxMembers: String(p?.features.maxMembers ?? 2),
     stripePriceId: p?.stripePriceId ?? "",
@@ -65,7 +67,7 @@ export function formToPlan(f: PlanForm): unknown {
     priceMonthlyCents: f.priceMonthlyCents.trim() === "" ? null : num(f.priceMonthlyCents),
     currency: f.currency.trim().toLowerCase(),
     includedAutoDirectorHours: num(f.includedAutoDirectorHours),
-    features: { autoDirector: f.autoDirector, learnedDirectorShadow: f.learnedDirectorShadow, maxDevices: num(f.maxDevices), maxMembers: num(f.maxMembers) },
+    features: { autoDirector: f.autoDirector, learnedDirectorShadow: f.learnedDirectorShadow, fullActionObserver: f.fullActionObserver, maxDevices: num(f.maxDevices), maxMembers: num(f.maxMembers) },
     stripePriceId: f.stripePriceId.trim() || null,
     public: f.public,
     sortOrder: num(f.sortOrder),
@@ -144,7 +146,7 @@ function PlanEditor({ plan, onSaved, onCancel }: { plan: Plan | null; onSaved: (
       <div className="editor-grid">
         <TextField label="Plan id" value={f.id} onValue={set("id")} disabled={!!plan} error={errors.id} hint={plan ? "Ids can't change; create a new plan instead." : "Lowercase letters, digits and dashes, 2–40 characters."} />
         <TextField label="Name" value={f.name} onValue={set("name")} error={errors.name} maxLength={60} />
-        <FieldShell label="Description" error={errors.description} hint="Up to 500 characters, for staff reference. Plan cards show only price, hours, computers and members.">
+        <FieldShell label="Description" error={errors.description} hint="Up to 500 characters, for staff reference. Plan cards show only price, hours, Observer modes, computers and members.">
           {({ id, describedBy, invalid }) => <textarea id={id} aria-describedby={describedBy} aria-invalid={invalid || undefined} rows={3} maxLength={500} value={f.description} onChange={(e) => set("description")(e.target.value)} />}
         </FieldShell>
         <TextField label="Display price per month (minor units, e.g. cents)" type="number" inputMode="numeric" min={0} step={1} value={f.priceMonthlyCents} onValue={set("priceMonthlyCents")} error={errors.priceMonthlyCents} hint={f.priceMonthlyCents.trim() === "" ? "Empty = “Price on request”. The amount charged is the Stripe price." : `${money(f.priceMonthlyCents, f.currency)} · the amount charged is the Stripe price.`} />
@@ -156,7 +158,8 @@ function PlanEditor({ plan, onSaved, onCancel }: { plan: Plan | null; onSaved: (
         <TextField label="Sort order" type="number" inputMode="numeric" step={1} value={f.sortOrder} onValue={set("sortOrder")} error={errors.sortOrder} hint="Lower numbers are listed first." />
       </div>
       <div className="editor-checks">
-        <CheckField label="Automatic direction" checked={f.autoDirector} onValue={set("autoDirector")} hint="Off = the plan includes no auto-director hours (credits are not usable either)." />
+        <CheckField label="Automatic direction" checked={f.autoDirector} onValue={set("autoDirector")} hint="Observer and Observer & Cinematics. Off = the plan includes no auto-director hours (credits are not usable either)." />
+        <CheckField label="Full Action Observer (nade cameras)" checked={f.fullActionObserver} onValue={set("fullActionObserver")} hint={f.autoDirector ? "Adds nade cameras on top of Observer & Cinematics, at the same hourly rate. Applies in the program the next time automation is armed." : "Has no effect without automatic direction: it uses the same auto-director hours."} />
         <CheckField label="Learned-director shadow mode" checked={f.learnedDirectorShadow} onValue={set("learnedDirectorShadow")} />
         <CheckField label="Public (shown on the pricing page and purchasable)" checked={f.public} onValue={set("public")} />
       </div>
@@ -276,6 +279,7 @@ export function CatalogEditor({ readOnly = false }: { readOnly?: boolean }) {
                 <td data-label="Limits">
                   {p.features.maxDevices} {p.features.maxDevices === 1 ? "computer" : "computers"} · {p.features.maxMembers} {p.features.maxMembers === 1 ? "member" : "members"}
                   {p.features.learnedDirectorShadow ? " · shadow" : ""}
+                  {p.features.fullActionObserver ? " · Full Action Observer" : ""}
                 </td>
                 <td data-label="Stripe price" className="mono small">
                   {p.stripePriceId ?? <Badge tone="warn">none</Badge>}

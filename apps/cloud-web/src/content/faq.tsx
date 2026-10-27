@@ -1,5 +1,6 @@
 import { Children, isValidElement } from "react";
 import type { ReactNode } from "react";
+import { listNames } from "../lib/format.ts";
 import { Link } from "../router.tsx";
 
 export type FaqCategory = "general" | "program" | "director" | "huds" | "account" | "billing" | "privacy" | "troubleshooting";
@@ -14,13 +15,45 @@ export interface FaqItem {
 export const FAQ_CATEGORIES: { id: FaqCategory; title: string }[] = [
   { id: "general", title: "General" },
   { id: "program", title: "Program and installation" },
-  { id: "director", title: "Auto director and hours" },
+  { id: "director", title: "Observer and hours" },
   { id: "huds", title: "HUDs and OBS" },
   { id: "account", title: "Accounts and teams" },
   { id: "billing", title: "Billing and subscriptions" },
   { id: "privacy", title: "Privacy and security" },
   { id: "troubleshooting", title: "Troubleshooting" },
 ];
+
+/**
+ * What Full Action Observer adds and which plan has it. Pass the names of the plans that include it
+ * (from the live catalogue) to name them; without them the answer refers to the top plan.
+ */
+export function fullActionObserverFaq(planNames?: string[]): FaqItem {
+  const where =
+    planNames === undefined ? (
+      <>
+        It's available on the top plan only; see <Link to="/pricing">pricing</Link>.
+      </>
+    ) : planNames.length === 0 ? (
+      "None of the plans listed right now includes it."
+    ) : (
+      `It's included in the ${listNames(planNames)} ${planNames.length === 1 ? "plan" : "plans"}.`
+    );
+  return {
+    id: "full-action-observer",
+    category: "director",
+    q: "What does Full Action Observer add, and which plan has it?",
+    a: (
+      <>
+        <p>
+          Full Action Observer does everything Observer &amp; Cinematics does and adds nade cameras: static cameras that catch smokes, flashes, molotovs and incendiaries, and HE grenades as they land. Like cinematic cameras, they're captured with <code>getpos</code> in Maps &amp; Cameras, validated by an operator and need a passed static camera test. It uses auto-director hours at the same rate as the other Observer modes.
+        </p>
+        <p>
+          {where} A plan change applies the next time automation is armed; automation is never cut mid-map.
+        </p>
+      </>
+    ),
+  };
+}
 
 export const FAQ: FaqItem[] = [
   // ------------------------------------------------------------------ general
@@ -30,7 +63,7 @@ export const FAQ: FaqItem[] = [
     q: "What is Matchframe?",
     a: (
       <p>
-        Matchframe is a Windows program for producing Counter-Strike 2 broadcasts. It runs the HUDs you add to OBS, an automatic director that can drive the observer camera, OBS and replay control, and the administration of matches, vetoes and sponsors. This website manages the account behind it: plans, auto-director hours, invoices, your team and linked computers.
+        Matchframe is a Windows program for producing Counter-Strike 2 broadcasts. It runs the HUDs you add to OBS, the Observer (an auto director that can drive the observer camera), OBS and replay control, and the administration of matches, vetoes and sponsors. This website manages the account behind it: plans, auto-director hours, invoices, your team and linked computers.
       </p>
     ),
   },
@@ -59,7 +92,7 @@ export const FAQ: FaqItem[] = [
     q: "Do I need an account or an internet connection to use the program?",
     a: (
       <p>
-        You need a free account: the program opens with a sign-in screen, and you sign in with the same email and password as this website. After that it works offline for up to seven days after each check, so a LAN without internet is fine. The Free plan covers HUDs, manual and advisory direction, replays, match administration and the simulation; automatic direction on live matches uses auto-director hours. See <Link to="/how-it-works#offline">what works offline</Link>.
+        You need a free account: the program opens with a sign-in screen, and you sign in with the same email and password as this website. After that it works offline for up to seven days after each check, so a LAN without internet is fine. Every plan covers HUDs, manual direction, the Observer's Off mode with its shot suggestions, replays, match administration and the simulation; the Observer's camera-moving modes on live matches use auto-director hours. See <Link to="/how-it-works#offline">what works offline</Link>.
       </p>
     ),
   },
@@ -131,7 +164,7 @@ export const FAQ: FaqItem[] = [
     id: "simulation",
     category: "program",
     q: "Can we rehearse without a live match?",
-    a: <p>Yes. The built-in simulation plays a synthetic match so you can practise with HUDs, replays and the director. Simulated data is labelled SIMULATION everywhere and never uses hours.</p>,
+    a: <p>Yes. The built-in simulation plays a synthetic match so you can practise with HUDs, replays and the Observer. Simulated data is labelled SIMULATION everywhere and never uses hours, whichever Observer mode you rehearse.</p>,
   },
 
   // ------------------------------------------------------------------ director
@@ -141,7 +174,7 @@ export const FAQ: FaqItem[] = [
     q: "What counts as an auto-director hour?",
     a: (
       <p>
-        Only time in which the auto director actually controls the camera on a live match: automation armed, the director in automatic or assisted mode, a real observer client connected and live telemetry arriving. The program measures it per second and uploads it to your organisation, where you can see it on the Usage page. Manual and advisory direction, simulations and demo playback don't count, and a computer that is asleep is never billed.
+        Only time in which automation actually controls the camera on a live match: automation armed, the Observer in Observer, Observer &amp; Cinematics or Full Action Observer mode (all three use hours at the same rate), a real observer client connected and live telemetry arriving. The program measures it per second and uploads it to your organisation, where you can see it on the Usage page. Manual direction, the Off mode, simulations and demo playback don't count, and a computer that is asleep is never billed.
       </p>
     ),
   },
@@ -154,15 +187,37 @@ export const FAQ: FaqItem[] = [
   {
     id: "replace-observer",
     category: "director",
-    q: "Does the auto director replace a human observer?",
-    a: <p>It's designed to work with one. The director explains every shot it picks, the operator can take the camera back at any moment (manual takeover sticks until automation is resumed), and an emergency stop is always one key away. It also starts disarmed every time the program starts.</p>,
+    q: "Does the Observer replace a human observer?",
+    a: <p>It's designed to work with one. The Observer explains every shot it picks, the operator can take the camera back at any moment (manual takeover sticks until automation is resumed), and an emergency stop is always one key away. It also starts disarmed every time the program starts.</p>,
   },
   {
     id: "modes",
     category: "director",
-    q: "What's the difference between advisory, assisted and automatic?",
-    a: <p>Advisory only recommends shots and never moves the camera. Assisted lets the director make player cuts. Automatic also allows cinematic shots from validated static cameras. Assisted and automatic use auto-director hours on live matches.</p>,
+    q: "What are the Observer modes?",
+    a: (
+      <>
+        <p>The Observer is Matchframe's auto director, and it has four modes:</p>
+        <ul>
+          <li>
+            <strong>Off:</strong> Matchframe never moves the camera; shot suggestions stay visible in Live Control. Uses no hours.
+          </li>
+          <li>
+            <strong>Observer:</strong> switches between player POVs automatically.
+          </li>
+          <li>
+            <strong>Observer &amp; Cinematics:</strong> observing plus cinematic shots from static cameras you capture in the program: an establishing shot during freeze time, bomb plant and defuse shots, and overviews of big fights.
+          </li>
+          <li>
+            <strong>Full Action Observer:</strong> everything above plus nade cameras that catch smokes, flashes, molotovs and HE grenades as they land. Top plan only.
+          </li>
+        </ul>
+        <p>
+          The three camera-moving modes use auto-director hours at the same rate on live matches. See <Link to="/features/auto-director">the Observer</Link> for a full comparison.
+        </p>
+      </>
+    ),
   },
+  fullActionObserverFaq(),
   {
     id: "emergency-stop",
     category: "director",
@@ -179,7 +234,7 @@ export const FAQ: FaqItem[] = [
     q: "Why won't the director move the camera yet?",
     a: (
       <p>
-        Automatic camera control stays blocked until the in-program setup tests pass on your observer client: the player-selection test for player cuts, and the static camera test plus operator-validated cameras for cinematic shots. Until then the director works in advisory mode. See <Link to="/features/cameras">observer camera control</Link>.
+        Automatic camera control stays blocked until the in-program setup tests pass on your observer client: the player-selection test for player cuts, and the static camera test plus operator-validated cameras for cinematics and nade cameras. Until then the Observer stays in Off: it suggests shots in Live Control but never moves the camera. See <Link to="/features/cameras">observer camera control</Link>.
       </p>
     ),
   },
@@ -187,7 +242,7 @@ export const FAQ: FaqItem[] = [
     id: "ai",
     category: "director",
     q: "Does the director use AI?",
-    a: <p>Live decisions come from a rule-based director with explainable scoring; no language model is involved in the cut loop. Models trained from demos only run in shadow mode for comparison and never move the camera.</p>,
+    a: <p>Live decisions come from the Observer, a rule-based director with explainable scoring; no language model is involved in the cut loop. Models trained from demos only run in shadow mode for comparison and never move the camera.</p>,
   },
 
   // ------------------------------------------------------------------ huds
@@ -277,7 +332,7 @@ export const FAQ: FaqItem[] = [
     id: "cancel",
     category: "billing",
     q: "How do I cancel or change my plan?",
-    a: <p>Owners and billing members can change or cancel the subscription at any time in the customer portal (Billing &amp; Subscription → Manage subscription). A cancelled plan stays active until the end of the period you've paid for, then the organisation moves to the Free plan.</p>,
+    a: <p>Owners and billing members can change or cancel the subscription at any time in the customer portal (Billing &amp; Subscription → Manage subscription). A cancelled plan stays active until the end of the period you've paid for, then the organisation moves to the Free plan. In the program, a plan change applies the next time automation is armed, so a map in progress is never interrupted.</p>,
   },
   {
     id: "payments",
@@ -313,7 +368,7 @@ export const FAQ: FaqItem[] = [
     q: "What data do you keep about my broadcasts?",
     a: (
       <p>
-        Only what billing needs: the linked computer, and when and for how long the auto director ran (with the map and match label you gave it). Telemetry, HUD content and recordings stay on your computers. See the <Link to="/security">security overview</Link> and the <Link to="/legal/privacy">privacy policy</Link>.
+        Only what billing needs: the linked computer, and when and for how long the Observer controlled the camera (with the map and match label you gave it). Telemetry, HUD content and recordings stay on your computers. See the <Link to="/security">security overview</Link> and the <Link to="/legal/privacy">privacy policy</Link>.
       </p>
     ),
   },
@@ -363,7 +418,7 @@ export const FAQ: FaqItem[] = [
     q: "Automation won't arm.",
     a: (
       <p>
-        The program says why. Common reasons: the program was signed out on the website, the organisation has no hours left, the plan doesn't include automatic direction, the player-selection test hasn't passed for this game build, or the data is simulated. Check Account &amp; Hours in the program and your <Link to="/dashboard">dashboard</Link>.
+        The program says why. Common reasons: the program was signed out on the website, the organisation has no hours left, the plan doesn't include the chosen Observer mode (Full Action Observer is on the top plan only), the player-selection test hasn't passed for this game build, static cameras aren't validated for this map, or the data is simulated. Check Account &amp; Hours in the program and your <Link to="/dashboard">dashboard</Link>.
       </p>
     ),
   },
