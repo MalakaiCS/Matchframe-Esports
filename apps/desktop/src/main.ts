@@ -150,7 +150,10 @@ const MIME: Record<string, string> = {
 };
 
 function consoleCsp(): string {
-  const overlays = `http://127.0.0.1:${PORTS.overlay} http://localhost:${PORTS.overlay}`;
+  // HUD thumbnails and previews come from the HUD server: this computer's, or in remote mode the
+  // production computer's (its HUD port is its own setting, hence any port on that host).
+  const remote = connection.mode === "remote" ? new URL(connection.url) : null;
+  const overlays = `http://127.0.0.1:${PORTS.overlay} http://localhost:${PORTS.overlay}${remote ? ` ${remote.protocol}//${remote.hostname}:*` : ""}`;
   const ws = engineOrigin().replace(/^http/, "ws");
   return `default-src 'self'; img-src 'self' data: blob: ${overlays}; style-src 'self' 'unsafe-inline'; connect-src 'self' ${ws}; frame-src ${overlays}; object-src 'none'; base-uri 'none'; form-action 'none'`;
 }

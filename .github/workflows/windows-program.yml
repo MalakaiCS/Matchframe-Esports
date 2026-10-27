@@ -1,8 +1,10 @@
 # Builds the Matchframe program for Windows (.exe installer + portable zip) on a real Windows
-# machine, installs it silently, smoke-tests the INSTALLED program (sign-in screen and a real
-# sign-in against a local Matchframe website, bundled engine, console from app://matchframe, HUD
-# outputs, no console from the engine's HTTP address), uninstalls it, and uploads the installer
-# with SHA-256 checksums as a workflow artifact.
+# machine, installs it silently, smoke-tests the INSTALLED program (opens into the HUD Library with
+# the bundled HUDs, a real sign-in against a local Matchframe website under Settings → Account,
+# bundled engine, console from app://matchframe, HUD outputs, no console from the engine's HTTP
+# address), checks the transparent desktop HUD on the real desktop (screen pixels over another
+# window, click-through, focus, OBS output, recovery, clean quit; scripts/overlay-check.cjs),
+# uninstalls it, and uploads the installer with SHA-256 checksums as a workflow artifact.
 #
 # Website: the build is pinned to the live website (address + licence keys in cloud.json, read from
 # it at build time). Set the repository variable MATCHFRAME_WEBSITE_URL to change it.
@@ -23,6 +25,7 @@ on:
       - "apps/desktop/**"
       - "apps/operator-web/**"
       - "apps/hud-renderer/**"
+      - "apps/hud-template/**"
       - "services/local-engine/**"
       - "services/observer-agent/**"
       - "services/replay-agent/**"
@@ -30,6 +33,7 @@ on:
       - "assets/**"
       - "config/**"
       - "scripts/packaged-smoke.cjs"
+      - "scripts/overlay-check.cjs"
       - "scripts/smoke-cloud.cjs"
       - "scripts/write-cloud-config.mjs"
       - "services/cloud-api/**"
@@ -91,9 +95,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build the console, captain page, HUD renderer and program bundles
+      - name: Build the console, captain page, HUD renderer, bundled HUD packages and program bundles
         run: |
           pnpm --filter @matchframe/hud-renderer build
+          pnpm --filter @matchframe/hud-template build
           pnpm --filter @matchframe/operator-web build
           pnpm --filter @matchframe/desktop build
 
@@ -128,6 +133,12 @@ jobs:
         env:
           MATCHFRAME_EXPECT_WEBSITE: ${{ steps.pin.outcome == 'success' && env.MATCHFRAME_WEBSITE_URL || '' }}
 
+      - name: Check the transparent desktop HUD (pixels, click-through, focus, OBS output, quit)
+        shell: pwsh
+        run: |
+          $env:NODE_PATH = "$env:RUNNER_TEMP\pw\node_modules"
+          node scripts/overlay-check.cjs "$env:INSTALLED_EXE" "$env:RUNNER_TEMP\overlay-check.json"
+
       - name: Uninstall
         if: always()
         shell: pwsh
@@ -156,7 +167,9 @@ jobs:
         if: always()
         with:
           name: installed-program-screenshot-${{ github.sha }}
-          path: ${{ runner.temp }}/installed-program*.png
+          path: |
+            ${{ runner.temp }}/installed-program*.png
+            ${{ runner.temp }}/overlay-check*
           if-no-files-found: ignore
           retention-days: 30
 
