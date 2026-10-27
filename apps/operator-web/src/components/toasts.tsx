@@ -16,7 +16,7 @@ interface ToastApi {
 
 const Ctx = createContext<ToastApi>({ push: () => undefined });
 
-const TONE_LABEL: Record<ToastTone, string> = { ok: "DONE", info: "INFO", warn: "WARNING", danger: "FAILED" };
+const TONE_LABEL: Record<ToastTone, string> = { ok: "Done", info: "Info", warn: "Warning", danger: "Failed" };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -38,7 +38,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div key={t.id} className={`toast tone-${t.tone}`}>
             <div className="toast-head">
-              <span className="toast-tag">{TONE_LABEL[t.tone]}</span>
+              <span className="sr-only">{TONE_LABEL[t.tone]}: </span>
               <strong>{t.title}</strong>
               <button className="toast-close" aria-label="Dismiss notification" onClick={() => dismiss(t.id)}>
                 ×

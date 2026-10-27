@@ -1138,11 +1138,6 @@ legend {
   align-items: center;
   gap: 8px;
 }
-.toast-tag {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-dim);
-}
 .toast-close {
   margin-left: auto;
   background: none;

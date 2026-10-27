@@ -80,7 +80,7 @@ export function CaptainPage() {
     return (
       <div className="captain-shell">
         {header}
-        <Note tone="warn" title="LINK INCOMPLETE">
+        <Note tone="warn" title="Link incomplete">
           Open the full captain link you received from the production team (it contains a token).
         </Note>
       </div>
@@ -94,7 +94,7 @@ export function CaptainPage() {
     <div className="captain-shell">
       {header}
       {error ? (
-        <Note tone="danger" title="ERROR">
+        <Note tone="danger" title="Something went wrong">
           {error}
         </Note>
       ) : null}

@@ -13,39 +13,26 @@ export function CapabilityTable({ caps, group }: { caps: SourceCapabilities | nu
           <tr>
             <th>Capability</th>
             <th>Support</th>
-            <th>Source</th>
-            <th>Tested build</th>
-            <th>Verified</th>
-            <th>Limitations / precision</th>
+            <th>Notes</th>
           </tr>
         </thead>
         <tbody>
           {rows.map(([k, c]) => {
             const meta = capabilityMeta(k);
+            const provenance = [c.sourceId, c.testedGameBuild ? `build ${c.testedGameBuild}` : null, c.lastVerifiedAt ? `verified ${fmtTime(c.lastVerifiedAt)}` : null].filter(Boolean).join(" · ");
             return (
               <tr key={k}>
-                <td>
-                  <strong>{meta.label}</strong>
-                  <div className="muted small mono">{k}</div>
+                <td title={k}>
+                  {meta.label}
+                  {provenance ? <div className="muted small">{provenance}</div> : null}
                 </td>
                 <td>
                   <SupportBadge support={c.support} />
                 </td>
-                <td>{c.sourceId ?? MISSING}</td>
-                <td>{c.testedGameBuild ?? MISSING}</td>
-                <td>{c.lastVerifiedAt ? fmtTime(c.lastVerifiedAt) : MISSING}</td>
-                <td>
-                  {c.limitations.length ? (
-                    <ul className="small" style={{ margin: 0, paddingLeft: 16 }}>
-                      {c.limitations.map((l, i) => (
-                        <li key={i}>{l}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <span className="muted small">none reported</span>
-                  )}
-                  {c.precision ? <div className="small muted">Precision: {c.precision}</div> : null}
-                  {c.support !== "supported" ? <div className="small text-warn">To verify: {meta.setupHint}</div> : null}
+                <td className="small">
+                  {c.limitations.length ? c.limitations.join(" ") : c.support === "supported" ? <span className="muted">{MISSING}</span> : null}
+                  {c.precision ? <div className="muted">Precision: {c.precision}</div> : null}
+                  {c.support !== "supported" ? <div className="muted">To verify: {meta.setupHint}</div> : null}
                 </td>
               </tr>
             );
