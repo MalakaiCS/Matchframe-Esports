@@ -3,7 +3,7 @@ import type { ComponentType, ReactNode } from "react";
 import { api, describeError, NetworkError } from "./api/index.ts";
 import { resolveOperatorToken, setOperatorToken } from "./api/auth.ts";
 import type { Me } from "./api/types.ts";
-import { Icon, Logo } from "./components/icons.tsx";
+import { BrandBadge, Icon } from "./components/icons.tsx";
 import { SignInGate } from "./components/SignIn.tsx";
 import { emergencyStop, OfflineBanner, STOP_SHORTCUT_LABEL, TopBar } from "./components/TopBar.tsx";
 import { ToastProvider, useToast } from "./components/toasts.tsx";
@@ -230,13 +230,13 @@ function TokenGate() {
   return (
     <div className="gate">
       <div className="gate-card">
-        <div className="gate-brand">
-          <Logo /> <span>Matchframe Operator</span>
+        <div className="gate-brand gate-brand-badge">
+          <BrandBadge />
         </div>
         {gate.kind === "resolving" ? <p>{window.matchframe?.connectionMode === "remote" ? "Connecting to the production computer…" : "Connecting to the Matchframe engine…"}</p> : null}
         {gate.kind === "unreachable" ? (
           <>
-            <Note tone="danger" title="ENGINE UNREACHABLE">
+            <Note tone="danger" title="Engine unreachable">
               {gate.message}
             </Note>
             <div className="row">
@@ -250,7 +250,7 @@ function TokenGate() {
         {gate.kind === "no_token" || gate.kind === "invalid" ? (
           <>
             {gate.kind === "invalid" ? (
-              <Note tone="danger" title="TOKEN NOT ACCEPTED">
+              <Note tone="danger" title="Token not accepted">
                 {gate.message}
               </Note>
             ) : (

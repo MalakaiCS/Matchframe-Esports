@@ -4,7 +4,7 @@ import { api, ApiError, describeError, NetworkError } from "../api/index.ts";
 import type { CloudLoginOrg, CloudLoginResult, CloudStatus } from "../api/types.ts";
 import { fmtTime } from "../lib/format.ts";
 import { can } from "../lib/permissions.ts";
-import { Logo } from "./icons.tsx";
+import { BrandBadge } from "./icons.tsx";
 import { Button, Field, Loading, Note } from "./ui.tsx";
 
 /** Messages from the website arrive as sentences; network and engine problems get the usual explanation. */
@@ -222,8 +222,8 @@ function GateCard({ children }: { children: ReactNode }) {
   return (
     <div className="gate">
       <div className="gate-card signin-card">
-        <div className="gate-brand">
-          <Logo /> <span>Matchframe</span>
+        <div className="gate-brand gate-brand-badge">
+          <BrandBadge />
         </div>
         {children}
       </div>

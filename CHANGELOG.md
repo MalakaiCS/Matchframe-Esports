@@ -34,6 +34,7 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
 
 ### Changed
 - **A cleaner program** (version 0.1.3): sentence-case headings and labels, fewer boxes and badges, disabled-button reasons on hover, a compact top bar (connection, Observer, hours, OBS) and a grouped sidebar with short names. Every screen was tidied, with technical detail and rarely used options folded under disclosures (nothing removed). Live Control has one Camera and one Observer panel; its duplicate Stop automation button is gone (the top bar's stays).
+- **The Matchframe Esports logo** (`assets/brand`): program top bar and sign-in screen, Windows program and installer icon (`apps/desktop/build/icon.ico`), website header, footer, favicons and social preview image (`og:image`, filled with `MF_CLOUD_PUBLIC_URL` when the website is served). Website colours retuned from violet to the logo's blues; website product screenshots retaken from the 0.1.3 program.
 
 ### Fixed
 - Oversize uploads now get a 413 response instead of a connection reset; per-route upload limits.

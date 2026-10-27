@@ -24,7 +24,7 @@ Last updated: 2026-10-26. Branch: `claude/inspiring-newton-it4omx`. For a resume
 |---|---|
 | `pnpm typecheck` | pass |
 | `pnpm lint` | pass |
-| `pnpm test` (unit, fixture, e2e with real HTTP/WS servers, console and website component tests, staff/admin and program sign-in API suites, Observer-mode director tests, engine ↔ website e2e incl. password sign-in and the Full Action Observer plan feature) | 491 passed, 10 skipped (the opt-in real-integration files) |
+| `pnpm test` (unit, fixture, e2e with real HTTP/WS servers, console and website component tests, staff/admin and program sign-in API suites, Observer-mode director tests, engine ↔ website e2e incl. password sign-in and the Full Action Observer plan feature) | 493 passed, 10 skipped (the opt-in real-integration files) |
 | `pnpm test:py` without demos / with `MF_TEST_DEMOS` | 56 passed, 9 skipped / 65 passed (unchanged since the last run) |
 | `pnpm test:integration` (real demos + Python workers; real OBS 30.0.2) | 8 passed (last run before the cloud work; not affected by it) |
 | Cloud API on a real Postgres 16 server (`MF_TEST_DATABASE_URL`) | 2 passed: migrations v1→v4, rollback, catalogue price fill-in, six concurrent computers debit credits exactly once; the staff/admin suite (6 tests) also passed against the same server |

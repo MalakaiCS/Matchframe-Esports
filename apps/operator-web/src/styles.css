@@ -1239,6 +1239,16 @@ legend {
   font-weight: 700;
   font-size: 17px;
 }
+.gate-brand-badge {
+  justify-content: center;
+  margin-bottom: 6px;
+}
+.logo,
+.brand-badge {
+  display: block;
+  flex: none;
+  user-select: none;
+}
 .gate-foot {
   color: var(--text-faint);
   font-size: 12px;

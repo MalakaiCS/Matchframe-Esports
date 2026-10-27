@@ -13,7 +13,7 @@ const RELEASES: Release[] = [
   {
     version: "0.1.3",
     title: "A cleaner program",
-    summary: "Every screen in the program has been tidied up, with less on screen at once and nothing taken away.",
+    summary: "Every screen in the program has been tidied up, with less on screen at once and nothing taken away, and the new Matchframe Esports logo.",
     sections: [
       {
         heading: "The program",
@@ -23,7 +23,12 @@ const RELEASES: Release[] = [
           "Calmer headings, labels and badges, fewer boxes, and disabled buttons explain why when you hover them.",
           "Live Control shows what's on air in one Camera panel and puts the Observer modes and controls together in one Observer panel.",
           "Rarely used settings and technical detail are folded under Details, Options and Advanced on every screen.",
+          "The new Matchframe Esports logo in the top bar, on the sign-in screen and as the program's icon.",
         ],
+      },
+      {
+        heading: "The website",
+        items: ["The new logo, favicons and a preview image for shared links.", "Colours that match the logo, and screenshots of the cleaner program."],
       },
     ],
   },

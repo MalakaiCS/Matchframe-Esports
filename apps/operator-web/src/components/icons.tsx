@@ -1,3 +1,6 @@
+import badgeUrl from "../assets/badge.webp";
+import markUrl from "../assets/mark.webp";
+
 /** Minimal line icons (original, 20×20 grid). Decorative only: every use is paired with text. */
 const PATHS: Record<string, string> = {
   overview: "M3 3h6v6H3zM11 3h6v4h-6zM11 9h6v8h-6zM3 11h6v6H3z",
@@ -30,11 +33,12 @@ export function Icon({ name, size = 18 }: { name: string; size?: number }) {
   );
 }
 
-export function Logo() {
-  return (
-    <svg className="logo" width="28" height="28" viewBox="0 0 28 28" aria-hidden focusable="false">
-      <rect x="1" y="1" width="26" height="26" rx="6" fill="var(--accent)" />
-      <path d="M7 19V9l4 5 3-4 3 4 4-5v10" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+/** Matchframe Esports mark (assets/brand). Decorative: the name is always written next to it. */
+export function Logo({ size = 28 }: { size?: number }) {
+  return <img className="logo" src={markUrl} width={size} height={size} alt="" aria-hidden="true" draggable={false} />;
+}
+
+/** The Matchframe Esports badge (mark and name) for the sign-in and connection screens. */
+export function BrandBadge({ size = 132 }: { size?: number }) {
+  return <img className="brand-badge" src={badgeUrl} width={size} height={size} alt="Matchframe Esports" draggable={false} />;
 }

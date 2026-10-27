@@ -157,7 +157,7 @@ export const FEATURES: Feature[] = [
     tagline: "Automatic observing that explains itself, with the operator always in charge.",
     summary: "The Observer is Matchframe's auto director. It switches player POVs, adds cinematic shots from your static cameras and, on the top plan, catches the utility with nade cameras. Choose one of four modes, take the camera back at any moment and stop everything with one key.",
     highlights: ["Off, Observer, Observer & Cinematics and Full Action Observer", "Sticky manual takeover and emergency stop", "Starts disarmed every time"],
-    shot: { name: "live-control", alt: "Live Control: player cards for both teams, operator actions, the Observer mode selector (Off, Observer, Observer & Cinematics, Full Action Observer) and the reasons for the current shot.", caption: "Live Control with the Observer armed in Observer & Cinematics: the mode selector, the reasons for the current shot and operator actions. Simulated match data." },
+    shot: { name: "live-control", alt: "Live Control: player cards for both teams, the Observer mode selector (Off, Observer, Observer & Cinematics, Full Action Observer), operator controls and the reasons for the current shot.", caption: "Live Control with the Observer armed in Observer & Cinematics: the mode selector, the reasons for the current shot and operator actions. Simulated match data." },
     what: (
       <>
         <p>The Observer drives the camera of your CS2 observer client. It reads the live game state and scores possible shots on anticipation (where action is likely next), readiness and information value. It looks at interaction clusters, crossfires, isolated aggressors and utility, and a planner with hysteresis avoids jittery cuts. Every shot it picks shows its reasons, confidence and the best alternatives.</p>
@@ -296,7 +296,7 @@ export const FEATURES: Feature[] = [
     tagline: "Scenes, sources, audio and replays without leaving the production desk.",
     summary: "The program controls OBS over its WebSocket API: scenes, sources, audio, recording, streaming and the replay buffer. Bookmark moments, approve them in a queue, play them out and return live.",
     highlights: ["Programme scene mapping", "Replay approval queue and confirmed playout", "Reconnects safely after an OBS disconnect"],
-    shot: { name: "setup", alt: "The Setup checklist in the program, with steps for the source, detecting CS2, writing the GSI config and waiting for a real payload.", caption: "The setup checklist connects CS2, OBS and your HUD step by step." },
+    shot: { name: "setup", alt: "Setup in the program: numbered steps for choosing the source, detecting CS2, writing the GSI config and waiting for a real payload.", caption: "The setup checklist connects CS2, OBS and your HUD step by step." },
     what: (
       <>
         <ul>
