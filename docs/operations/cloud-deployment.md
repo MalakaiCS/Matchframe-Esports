@@ -133,10 +133,11 @@ invitation links can be recovered by staff if delivery fails.
 1. Build it: on GitHub, **Releases → Draft a new release**, create the tag (e.g. `v0.1.0`) and
    **Publish**. The **Windows program (.exe)** workflow then builds that tag on Windows, installs
    and smoke-tests it, and attaches `MatchframeEsports-Setup-<version>.exe`, the portable zip and
-   `SHA256SUMS.txt` to the release (a few minutes after publishing). Alternatively push a tag and run the workflow manually (Actions → Windows program (.exe) →
-   Run workflow) with that tag: it creates and publishes the release (notes from
-   `docs/release-notes/<version>-dev.md`) if there is none, and attaches the files; for a release
-   that already exists it only attaches them. A pushed tag alone does not attach anything. You can also download the
+   `SHA256SUMS.txt` to the release (a few minutes after publishing). Alternatively run the workflow manually (Actions → Windows program (.exe) → Run workflow) on
+   `main` with a new tag such as `v0.1.3`: it builds `main`'s latest commit and creates the tag
+   and the published release on it (notes from `docs/release-notes/<version>-dev.md`), then
+   attaches the files. For a tag or release that already exists it builds that tag and only
+   attaches the files. A pushed tag alone does not attach anything. You can also download the
    `matchframe-windows-<commit>` artifact from any workflow run, or run `pnpm package:win`.
    Configure `CSC_LINK`/`CSC_KEY_PASSWORD` repository secrets to sign it; unsigned builds trigger
    SmartScreen warnings.
