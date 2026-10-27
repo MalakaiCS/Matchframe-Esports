@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 
 export const APP_VERSION = "0.1.3";
 
@@ -15,6 +15,8 @@ export interface EngineConfig {
   captainUiDir: string | null;
   /** Static HUD renderer build directory (served by the overlay server). */
   hudRendererDir: string | null;
+  /** Bundled sample HUD folders, installed into the HUD Library once. Each folder is a package (has manifest.json) or holds package folders. */
+  sampleHudsDirs: string[];
   /** Directory holding map packs shipped with the app. */
   mapPackDir: string | null;
   /** Measured utility profiles (workers `measure-utility` output); defaults are used when absent. */
@@ -59,6 +61,7 @@ export function loadConfig(overrides: Partial<EngineConfig> = {}): EngineConfig 
     dataDir: defaultDataDir(),
     captainUiDir: process.env.MATCHFRAME_CAPTAIN_UI_DIR ?? null,
     hudRendererDir: process.env.MATCHFRAME_HUD_DIR ?? null,
+    sampleHudsDirs: pathList(process.env.MATCHFRAME_SAMPLE_HUDS_DIR),
     mapPackDir: process.env.MATCHFRAME_MAP_PACK_DIR ?? null,
     utilityProfilesFile: process.env.MATCHFRAME_UTILITY_PROFILES ?? null,
     pythonPath: process.env.MATCHFRAME_PYTHON ?? null,
@@ -74,6 +77,11 @@ export function loadConfig(overrides: Partial<EngineConfig> = {}): EngineConfig 
   const ports = [cfg.gsiPort, cfg.apiPort, cfg.overlayPort];
   if (new Set(ports).size !== ports.length) throw new Error(`GSI, API and overlay ports must differ (got ${ports.join(", ")})`);
   return cfg;
+}
+
+/** A list of folders separated by the platform path delimiter (";" on Windows, ":" elsewhere). */
+export function pathList(value: string | undefined): string[] {
+  return (value ?? "").split(delimiter).map((s) => s.trim()).filter(Boolean);
 }
 
 /** MATCHFRAME_CLOUD_PUBLIC_KEYS (JSON) or MATCHFRAME_CLOUD_KEYS_FILE (path to the same JSON). */

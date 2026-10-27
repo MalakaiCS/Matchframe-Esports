@@ -125,6 +125,8 @@ export interface HudLibraryEntry {
   settings: Record<string, unknown>;
   settingsSchema: Record<string, HudSettingField>;
   presets: { id: string; name: string }[];
+  /** Selected preset (PUT .../settings `presetId`); the first preset when none was chosen, null without presets. */
+  presetId: string | null;
 }
 
 export interface HudLibrary {

@@ -3,7 +3,7 @@ import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, re
 import { extname, join, normalize, relative, sep } from "node:path";
 import { unzipSync } from "fflate";
 import type { HudManifest } from "@matchframe/contracts";
-import { HudManifest as HudManifestSchema } from "@matchframe/contracts";
+import { HudManifest as HudManifestSchema, RESERVED_HUD_IDS } from "@matchframe/contracts";
 import type { Database } from "../db/database.ts";
 
 export const PACKAGE_LIMITS = {
@@ -117,6 +117,7 @@ export function validateManifest(files: Map<string, Uint8Array>): HudManifest {
   const r = HudManifestSchema.safeParse(json);
   if (!r.success) throw new PackageError(`invalid manifest: ${r.error.issues.slice(0, 3).map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`);
   const m = r.data;
+  if ((RESERVED_HUD_IDS as readonly string[]).includes(m.id)) throw new PackageError(`HUD id "${m.id}" is reserved; choose another id in manifest.json`);
   if (!m.schemaVersions.includes(1)) throw new PackageError("package does not support HUD state schema version 1");
   for (const [variant, entry] of Object.entries(m.entryPoints)) {
     const p = safeEntryPath(entry);
@@ -181,7 +182,9 @@ export class HudPackageManager {
       rmSync(staging, { recursive: true, force: true });
       throw e;
     }
-    const previous = existing ? { version: existing.manifest.version, installDir: existing.installDir } : null;
+    // Reinstalling the same version overwrites its folder, so the earlier rollback target stays.
+    const previous = existing && existing.installDir !== target ? { version: existing.manifest.version, installDir: existing.installDir } : (existing?.previous ?? null);
+    this.pruneVersions(manifest.id, [target, previous?.installDir ?? target]);
     this.db.run(
       "INSERT INTO hud_packages (id, manifest, classification, install_dir, checksums, installed_at, previous) VALUES (?, ?, 'imported', ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET manifest = excluded.manifest, install_dir = excluded.install_dir, checksums = excluded.checksums, installed_at = excluded.installed_at, previous = excluded.previous",
       manifest.id,
@@ -192,6 +195,16 @@ export class HudPackageManager {
       previous ? JSON.stringify(previous) : null,
     );
     return this.get(manifest.id)!;
+  }
+
+  /** Keeps only the active and the rollback version folders of a package. */
+  private pruneVersions(id: string, keep: string[]): void {
+    const dir = join(this.rootDir, id);
+    if (!existsSync(dir)) return;
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      if (!keep.includes(full) && !name.includes(".staging-")) rmSync(full, { recursive: true, force: true });
+    }
   }
 
   /** Re-activates the previously installed version (instant rollback). */

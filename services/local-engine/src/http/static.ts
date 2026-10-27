@@ -79,8 +79,12 @@ export function serveStatic(res: ServerResponse, root: string | null, urlPath: s
   return false;
 }
 
-/** CSP for browser-source overlays: no remote code, no remote connections beyond this engine. */
-export function overlayCsp(selfOrigin: string): string {
+/**
+ * CSP for browser-source overlays: no remote code, no remote connections beyond this engine.
+ * Overlay pages may frame same-origin pages only (the library output page frames its HUD), and
+ * may be framed only by `frameAncestors` (none by default).
+ */
+export function overlayCsp(selfOrigin: string, frameAncestors: string[] = []): string {
   const ws = selfOrigin.replace(/^http/, "ws");
   return [
     "default-src 'self'",
@@ -90,9 +94,10 @@ export function overlayCsp(selfOrigin: string): string {
     "font-src 'self' data:",
     "media-src 'self' blob:",
     `connect-src 'self' ${ws}`,
+    "frame-src 'self'",
     "object-src 'none'",
     "base-uri 'none'",
-    "frame-ancestors 'none'",
+    `frame-ancestors ${frameAncestors.length ? frameAncestors.join(" ") : "'none'"}`,
     "form-action 'none'",
   ].join("; ");
 }
