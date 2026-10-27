@@ -4,7 +4,7 @@ Extension points that exist today: HUD packages, the read-only HUD SDK, the loca
 
 ## 1. HUD packages
 
-A HUD package is a folder or zip with a `manifest.json` at its root (or inside one top-level folder) plus static web files. A complete working example is in [`examples/hud-minimal/`](../examples/hud-minimal) — a score bug in ~40 lines — and the engine test suite installs and publishes it.
+A HUD package is a folder or zip with a `manifest.json` at its root (or inside one top-level folder) plus static web files: HTML, compiled JavaScript, CSS, fonts, images. Two working examples: [`assets/hud-packages/matchframe-sample-cs2/`](../assets/hud-packages/matchframe-sample-cs2) (the sample HUD bundled with the program: scorebug, players, bomb, observed player, a settings form) and [`examples/hud-minimal/`](../examples/hud-minimal) (a score bug in ~40 lines). Packages are installed in the **HUD Library** (`docs/operations/hud-library.md`) and run as a transparent desktop HUD, a preview or an OBS browser source; the design is ADR-020 (`docs/architecture/hud-library.md`).
 
 ### Manifest (`HudManifest`, `packages/contracts/src/hud.ts`; JSON Schema in `packages/contracts/schema/HudManifest.schema.json`)
 
@@ -18,17 +18,23 @@ A HUD package is a folder or zip with a `manifest.json` at its root (or inside o
 | `schemaVersions` | public HUD state versions you support (currently `[1]`) |
 | `entryPoints` | HTML file per variant you implement: `live`, `compact`, `replay`, `veto`, `pre-match`, `break`, `post-map`, `post-series`, `studio` (at least one) |
 | `permissions` | data you need: `match.public`, `players.public`, `radar.public`, `utility.public`, `sponsors`, `series`, `event`, `veto.public`, `annotations` |
-| `presets`, `settingsSchema`, `resolutions`, `preview` | optional |
+| `description`, `category`, `tags` | optional; shown, searched and filtered in the HUD Library |
+| `thumbnail` | optional package-relative image for the library card (falls back to `preview`) |
+| `designResolution` | optional `{ "width": 1920, "height": 1080 }`: the size the HUD is laid out for. Outputs scale it uniformly (letterboxed, never stretched). Defaults to the first of `resolutions` |
+| `settingsSchema` | optional settings form for the library: `{ "key": { "type": "boolean" \| "number" \| "string" \| "color" \| "select", "label", "default", "options": [{ "value", "label" }], "min", "max", "step", "group" } }`. Values arrive in `state.settings` and update live |
+| `presets`, `resolutions`, `preview` | optional |
+
+Ids `assets` and `sdk` are reserved.
 
 ### What the engine enforces on import
 
 - Allowed file types only (`.html .js .mjs .css .json` images, fonts, `.webm .mp4 .txt .md .ico`); no executables, no symlinks, no absolute paths or `..`; ≤ 2,000 files, ≤ 25 MB per file, ≤ 60 MB total.
 - The manifest must validate; every entry point must exist.
-- Installing never overwrites what is on air: outputs reference a package and are published explicitly, with rollback.
+- Installing never overwrites what is on air: broadcast outputs reference a package and are published explicitly, with rollback. In the HUD Library, importing an id that is already installed asks to replace it (the old version stays available for rollback) or keep both (a copy with a new id).
 
 ### Runtime environment
 
-- The page is served from the overlay origin (`http://127.0.0.1:37212/huds/<id>/<entry>?output=…&variant=…&t=…`) with a strict CSP: scripts and styles from the package only (inline styles allowed), images/fonts/media from the package or `data:`/`blob:`, network access only to the overlay origin and its WebSocket. No remote fonts, CDNs or analytics.
+- Library outputs open `http://127.0.0.1:37212/hud/<id>/<variant>?t=…`, a transparent page that loads your entry file in a frame at the design resolution and scales it. Your page itself is served from the overlay origin (`http://127.0.0.1:37212/huds/<id>/<entry>?output=…&variant=…&t=…`); keep its `html` and `body` backgrounds transparent. It runs with a strict CSP: scripts and styles from the package only (inline styles allowed), images/fonts/media from the package or `data:`/`blob:`, network access only to the overlay origin and its WebSocket. No remote fonts, CDNs or analytics.
 - Data arrives over the read-only overlay socket as `HudState` (`packages/hud-sdk/src/state.ts`) — the public projection for that output's timeline (live or delayed). It never contains director candidates, predictions or operator data.
 - The only message a HUD may send is a sponsor display acknowledgement.
 
