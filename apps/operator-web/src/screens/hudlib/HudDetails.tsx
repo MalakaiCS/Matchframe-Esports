@@ -9,7 +9,7 @@ import { fmtAgo, fmtTime } from "../../lib/format.ts";
 import type { HudDisplayStatus } from "../../lib/hudLibrary.ts";
 import { compareVersions, defaultVariant, formFields, KIND_LABEL, resolutionLabel, VARIANT_LABEL, variantUrl, withQuery } from "../../lib/hudLibrary.ts";
 import type { HudActionReasons, HudActions } from "./HudCard.tsx";
-import { MenuButton, OutputIndicators, StatusBadge } from "./HudCard.tsx";
+import { OutputIndicators } from "./HudCard.tsx";
 import { hudPath, useRun } from "./actions.ts";
 
 export type DetailsTab = "overview" | "appearance" | "outputs";
@@ -32,52 +32,36 @@ interface Props {
   reasons: HudActionReasons;
 }
 
-/** Details panel beside the library: a larger preview, package information, variants, appearance settings and output controls. */
+/**
+ * A HUD's details, opened under its row in the library: a larger preview, package information,
+ * variants, appearance settings and output controls.
+ */
 export function HudDetails(p: Props) {
   const { entry } = p;
   return (
-    <aside className="hud-details" aria-label={`${entry.name} details`} data-testid="hud-details">
-      <header className="hud-details-head">
-        <div className="hud-details-title">
-          <h2>{entry.name}</h2>
-          <span className="muted small">
-            v{entry.version} · {entry.author || "Unknown author"}
-          </span>
-        </div>
-        <div className="row">
-          <StatusBadge status={p.status} detail={p.statusDetail} />
-          <MenuButton
-            label={`More actions for ${entry.name}`}
-            items={[
-              { label: "Reload", onClick: p.actions.reload, reason: p.reasons.reload },
-              { label: "Stop", onClick: p.actions.stop, reason: p.reasons.stop },
-              { label: "Duplicate", onClick: p.actions.duplicate, reason: p.reasons.duplicate },
-              { label: "Export ZIP", onClick: p.actions.exportZip, reason: p.reasons.exportZip },
-              { label: "Open Folder", onClick: p.actions.openFolder, reason: p.reasons.openFolder },
-              { label: "Remove…", onClick: p.actions.remove, reason: p.reasons.remove, danger: true },
-            ]}
-          />
-          <button type="button" className="icon-btn" aria-label="Close details" title="Close details" onClick={p.onClose}>
-            <Icon name="close" size={16} />
-          </button>
-        </div>
-      </header>
-      <Tabs<DetailsTab>
-        label="HUD details"
-        value={p.tab}
-        onChange={p.onTab}
-        tabs={[
-          { id: "overview", label: "Overview" },
-          { id: "appearance", label: "Appearance" },
-          { id: "outputs", label: "Outputs" },
-        ]}
-      />
+    <section className="hud-details" aria-label={`${entry.name} details`} data-testid="hud-details">
+      <div className="hud-details-tabs">
+        <Tabs<DetailsTab>
+          label="HUD details"
+          value={p.tab}
+          onChange={p.onTab}
+          tabs={[
+            { id: "overview", label: "Overview" },
+            { id: "appearance", label: "Appearance" },
+            { id: "outputs", label: "Outputs" },
+          ]}
+        />
+        <span className="hud-details-name">{entry.name}</span>
+        <button type="button" className="icon-btn" aria-label="Close details" title="Close details" onClick={p.onClose}>
+          <Icon name="close" size={16} />
+        </button>
+      </div>
       <div className="hud-details-body">
         {p.tab === "overview" ? <Overview {...p} /> : null}
         {p.tab === "appearance" ? <Appearance key={entry.id} entry={entry} editReason={p.editReason} onChanged={p.onChanged} /> : null}
         {p.tab === "outputs" ? <Outputs {...p} /> : null}
       </div>
-    </aside>
+    </section>
   );
 }
 
@@ -110,9 +94,12 @@ function Overview(p: Props) {
   const run = useRun();
   const canRollback = !!entry.previousVersion && entry.kind !== "builtin";
   return (
-    <div className="stack">
-      <LivePreview entry={entry} variant={variant} />
-      {entry.description ? <p className="hud-details-desc">{entry.description}</p> : null}
+    <div className="hud-overview">
+      <div className="hud-overview-media stack">
+        <LivePreview entry={entry} variant={variant} />
+        {entry.description ? <p className="hud-details-desc">{entry.description}</p> : null}
+      </div>
+      <div className="hud-overview-info stack">
       <section>
         <h3 className="hud-section-title">Package</h3>
         <KV
@@ -164,6 +151,7 @@ function Overview(p: Props) {
           ))}
         </ul>
       </section>
+      </div>
     </div>
   );
 }

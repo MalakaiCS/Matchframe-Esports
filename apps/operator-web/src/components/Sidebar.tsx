@@ -1,4 +1,5 @@
-import { desktopHud } from "../api/desktop.ts";
+import { useEffect, useState } from "react";
+import { desktopHud, desktopInfo } from "../api/desktop.ts";
 import { Link } from "../router.tsx";
 import type { NavId, NavItem } from "../routes.tsx";
 import { NAV } from "../routes.tsx";
@@ -55,6 +56,14 @@ function NavLink({ item, active, collapsed, availability }: { item: NavItem; act
 /** Persistent left sidebar: branding, the modules in order, Settings at the bottom, and the collapse toggle. */
 export function Sidebar({ collapsed, onToggle, activeId }: { collapsed: boolean; onToggle: () => void; activeId: NavId | null }) {
   const availability = useModuleAvailability();
+  const [version, setVersion] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void desktopInfo().then((i) => alive && setVersion(i?.version ?? null));
+    return () => {
+      alive = false;
+    };
+  }, []);
   const main = NAV.filter((n) => n.id !== "settings");
   const settings = NAV.find((n) => n.id === "settings")!;
   return (
@@ -63,7 +72,7 @@ export function Sidebar({ collapsed, onToggle, activeId }: { collapsed: boolean;
         <Logo size={30} />
         <span className="brand-text">
           <span className="brand-name">Matchframe</span>
-          <span className="brand-sub">Esports</span>
+          <span className="brand-sub">{version ? `Esports ${version}` : "Esports"}</span>
         </span>
       </Link>
       <nav className="nav" aria-label="Primary">
@@ -76,9 +85,9 @@ export function Sidebar({ collapsed, onToggle, activeId }: { collapsed: boolean;
           <NavLink item={settings} active={activeId === "settings"} collapsed={collapsed} availability={availability.settings} />
         </ul>
       </nav>
+      {/* Tab on the sidebar's edge: icons only, or icons with labels. */}
       <button className="sidebar-toggle" onClick={onToggle} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} aria-expanded={!collapsed} title={collapsed ? "Show labels" : "Icons only"}>
-        <Icon name={collapsed ? "chevronRight" : "chevronLeft"} size={16} />
-        <span className="nav-label">Collapse</span>
+        <Icon name={collapsed ? "chevronRight" : "chevronLeft"} size={14} />
       </button>
     </aside>
   );

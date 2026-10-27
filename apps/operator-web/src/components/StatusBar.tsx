@@ -6,6 +6,7 @@ import { gateView } from "../lib/cloud.ts";
 import { fmtAgo, fmtHours, fmtMs } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
 import { OUTPUT_LABEL, OUTPUT_MODES, totalOutputs, useDesktopOverlays } from "../lib/hudLibrary.ts";
+import { updates, updateSummary, useUpdates } from "../lib/updates.ts";
 import { Link } from "../router.tsx";
 import { liveStore, useLive, useNow } from "../state/live.ts";
 import { Icon } from "./icons.tsx";
@@ -89,6 +90,27 @@ function AlertsPopover() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** A new version downloading or ready to install (shown only then). */
+function UpdateItem() {
+  const st = useUpdates();
+  if (!st || (st.status !== "downloading" && st.status !== "ready" && st.status !== "available")) return null;
+  if (st.status === "ready")
+    return (
+      <button className="sb-item sb-button sb-update" onClick={() => void updates.installNow()} title={`${updateSummary(st)}. Restarting closes the program and every HUD output for a moment.`} data-sb="update">
+        <Icon name="reload" size={14} />
+        <span>Update {st.version} ready</span>
+        <span className="sb-meta">Restart now</span>
+      </button>
+    );
+  return (
+    <Link to="/settings" className="sb-item sb-link" title={updateSummary(st)} data-sb="update">
+      <Icon name="upload" size={14} />
+      <span>{st.status === "available" ? `Update ${st.version} available` : `Downloading ${st.version}`}</span>
+      {st.percent !== null && st.status === "downloading" ? <span className="sb-meta">{st.percent} %</span> : null}
+    </Link>
   );
 }
 
@@ -192,6 +214,7 @@ export function StatusBar() {
       </Link>
 
       <span className="sb-spacer" />
+      <UpdateItem />
       <AlertsPopover />
       <Link to="/settings/logs" className="sb-item sb-link" title="Settings → Logs" data-sb="logs">
         <Icon name="logs" size={14} />

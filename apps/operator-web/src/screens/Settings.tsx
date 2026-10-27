@@ -6,6 +6,7 @@ import { fmtMs, fmtTime, MISSING, saveBlob } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
 import { reasonInfo } from "../lib/reasons.ts";
 import { Link } from "../router.tsx";
+import { updates, updateSummary, useUpdates } from "../lib/updates.ts";
 import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
 import "../styles/group-c.css";
@@ -258,6 +259,55 @@ function DiagnosticsTab() {
   );
 }
 
+/**
+ * The program itself: version and automatic updates, plus what used to be in the window's File
+ * menu (the window has no menu bar): connection settings and the data folder.
+ */
+function ProgramPanel() {
+  const st = useUpdates();
+  const mf = window.matchframe;
+  if (!mf?.updates && !mf?.openConnection) return null;
+  const busy = st?.status === "checking" || st?.status === "downloading";
+  return (
+    <Panel title="Program" subtitle={st ? `Matchframe Esports ${st.currentVersion}` : undefined}>
+      {st ? (
+        <div className="stack" data-updates={st.status}>
+          <p className={st.status === "error" ? "text-warn" : st.status === "ready" ? "text-ok" : "muted"}>{updateSummary(st)}</p>
+          <div className="row">
+            {st.status === "ready" ? (
+              <Button variant="primary" onClick={() => void updates.installNow()} title="Closes the program and every HUD output for a moment, installs the update and starts the new version">
+                Restart and update
+              </Button>
+            ) : st.status === "available" ? (
+              <Button variant="primary" onClick={() => void updates.download()}>
+                Download {st.version}
+              </Button>
+            ) : (
+              <Button onClick={() => void updates.check()} disabledReason={st.status === "disabled" ? st.disabledReason : busy ? "Busy…" : null}>
+                Check for updates
+              </Button>
+            )}
+            {st.releaseNotesUrl ? (
+              <a href={st.releaseNotesUrl} target="_blank" rel="noreferrer">
+                What's new
+              </a>
+            ) : null}
+          </div>
+          <label className="check">
+            <input type="checkbox" checked={st.autoDownload} disabled={st.status === "disabled"} onChange={(e) => void updates.setAutoDownload(e.target.checked)} />
+            <span>Download updates automatically</span>
+          </label>
+          <p className="small muted">Updates come from the Matchframe Esports releases on GitHub. A downloaded update installs when you quit the program; it never restarts on its own during a broadcast.</p>
+        </div>
+      ) : null}
+      <div className="row" style={{ marginTop: 10 }}>
+        {mf.openConnection ? <Button onClick={() => void mf.openConnection!()}>Connection settings…</Button> : null}
+        {mf.openDataDir ? <Button onClick={() => void mf.openDataDir!()}>Open data folder</Button> : null}
+      </div>
+    </Panel>
+  );
+}
+
 function GeneralTab() {
   const settingsReason = usePermission("settings.manage");
   const directorReason = usePermission("director.control");
@@ -267,6 +317,7 @@ function GeneralTab() {
   const [fileError, setFileError] = useState<string | null>(null);
   return (
     <div className="grid-2">
+      <ProgramPanel />
       <Panel title="Live session">
         <div className="row">
           {snap?.simulated ? (

@@ -1,6 +1,6 @@
 :root { color-scheme: dark; --bg: #11141b; --panel: #181c25; --line: #2a3140; --text: #e6e9ef; --muted: #9aa3b5; --accent: #2f7cf6; --ok: #35c27d; --bad: #f05656; }
 * { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--text); font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 72px 0 24px; background: var(--bg); color: var(--text); font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
 .card { width: min(640px, calc(100vw - 32px)); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 28px 32px; }
 h1 { font-size: 22px; margin: 0 0 6px; }
 .muted { color: var(--muted); }
@@ -19,3 +19,5 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .status.ok { color: var(--ok); }
 .status.bad { color: var(--bad); }
 code { font-family: Consolas, monospace; }
+/* The window has no system title bar: this strip is the drag region, and the window buttons are drawn over its right end. */
+.titlebar { position: fixed; inset: 0 0 auto 0; height: 56px; display: flex; align-items: center; padding: 0 160px 0 20px; background: #161719; color: var(--muted); font-size: 13px; font-weight: 600; -webkit-app-region: drag; user-select: none; }

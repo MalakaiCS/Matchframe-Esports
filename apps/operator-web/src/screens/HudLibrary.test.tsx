@@ -92,9 +92,12 @@ describe("HUD Library screen", () => {
     expect(within(card).getByText("Running")).toBeTruthy();
     expect(card.querySelector('[data-output="obs"]')?.className).toContain("is-on");
     expect(card.querySelector('[data-output="desktop"]')?.className).not.toContain("is-on");
-    expect(screen.getAllByRole("article").map((a) => a.getAttribute("aria-label"))).toEqual(["Matchframe Broadcast HUD", "Matchframe Sample CS2 HUD", "Pro CS2 HUD"]);
+    // Grouped by category (A–Z), each group sorted by the chosen order (name).
+    expect(screen.getAllByRole("button", { expanded: true, name: /^(Broadcast|Sample)/ }).map((b) => b.textContent)).toEqual(["Broadcast2", "Sample1"]);
+    expect(screen.getAllByRole("article").map((a) => a.getAttribute("aria-label"))).toEqual(["Matchframe Broadcast HUD", "Pro CS2 HUD", "Matchframe Sample CS2 HUD"]);
     // In a browser (no program bridge) the desktop window cannot be launched; the reason is given.
-    const launch = within(card).getByRole("button", { name: /Launch Transparent HUD/ }) as HTMLButtonElement;
+    const launch = within(card).getByRole("switch", { name: /Launch Transparent HUD/ }) as HTMLButtonElement;
+    expect(launch.getAttribute("aria-checked")).toBe("false");
     expect(launch.disabled).toBe(true);
     expect(launch.title).toMatch(/need the Matchframe program/);
     expect(screen.getByText("3 HUDs on this computer")).toBeTruthy();
@@ -119,14 +122,40 @@ describe("HUD Library screen", () => {
     expect(screen.getAllByRole("article")).toHaveLength(3);
   });
 
-  it("switches between grid and list", async () => {
+  it("shows a list by default, switches to a grid and collapses a group", async () => {
     serve((m, p) => (m === "GET" && p === "/api/v1/hud/library" ? { status: 200, json: library([SAMPLE, PRO]) } : undefined));
     renderScreen();
     await screen.findByRole("article", { name: "Pro CS2 HUD" });
-    fireEvent.click(screen.getByRole("button", { name: "List" }));
-    expect(screen.queryAllByRole("article")).toHaveLength(0);
-    expect(screen.getByRole("table", { name: "HUDs" })).toBeTruthy();
     expect(document.querySelectorAll(".hud-row[data-hud]")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Grid" }));
+    expect(document.querySelectorAll(".hud-card[data-hud]")).toHaveLength(2);
+    expect(document.querySelectorAll(".hud-row[data-hud]")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "List" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Sample/, expanded: true }));
+    expect(screen.getAllByRole("article").map((a) => a.getAttribute("aria-label"))).toEqual(["Pro CS2 HUD"]);
+    expect(JSON.parse(window.localStorage.getItem("matchframe.ui.hudlibCollapsedGroups") ?? "[]")).toEqual(["Sample"]);
+  });
+
+  it("opens the details under the row and closes them with the arrow", async () => {
+    serve((m, p) => (m === "GET" && p === "/api/v1/hud/library" ? { status: 200, json: library([SAMPLE, PRO]) } : undefined));
+    renderScreen();
+    const row = await screen.findByRole("article", { name: SAMPLE.name });
+    fireEvent.click(within(row).getByRole("button", { name: "Show details" }));
+    const details = await screen.findByTestId("hud-details");
+    expect(row.parentElement?.contains(details)).toBe(true);
+    expect(row.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(within(row).getByRole("button", { name: "Hide details" }));
+    expect(screen.queryByTestId("hud-details")).toBeNull();
+  });
+
+  it("offers ZIP and folder import from the Add HUD menu", async () => {
+    serve((m, p) => (m === "GET" && p === "/api/v1/hud/library" ? { status: 200, json: library([SAMPLE]) } : undefined));
+    renderScreen();
+    await screen.findByRole("article", { name: SAMPLE.name });
+    fireEvent.click(screen.getByRole("button", { name: "Add HUD" }));
+    expect(screen.getAllByRole("menuitem").map((m) => m.textContent?.replace(/ \(.*\)$/, ""))).toEqual(["Import HUD ZIP…", "Import HUD folder…", "Open HUDs folder"]);
+    // Folders need the program on the production computer.
+    expect((screen.getByRole("menuitem", { name: /Import HUD folder/ }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("imports a ZIP and asks what to do when the HUD id is already installed", async () => {
@@ -200,10 +229,11 @@ describe("HUD Library screen", () => {
     });
     renderScreen();
     const card = await screen.findByRole("article", { name: SAMPLE.name });
-    fireEvent.click(within(card).getByRole("button", { name: /Launch Transparent HUD/ }));
+    fireEvent.click(within(card).getByRole("switch", { name: /Launch Transparent HUD/ }));
     await waitFor(() => expect(launched).toEqual([SAMPLE.id]));
     expect(calls.some((c) => c.method === "POST" && c.path === `/api/v1/hud/library/${SAMPLE.id}/start`)).toBe(true);
-    expect(await within(card).findByRole("button", { name: "Close Desktop HUD" })).toBeTruthy();
+    await waitFor(() => expect(within(card).getByRole("switch").getAttribute("aria-checked")).toBe("true"));
+    expect(within(card).getByRole("switch", { name: /Close the desktop HUD/ })).toBeTruthy();
     expect(card.querySelector('[data-output="desktop"]')?.className).toContain("is-on");
   });
 

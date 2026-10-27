@@ -69,11 +69,11 @@ async function run(cloud) {
   await waitFor(() => local.win.evaluate(() => !!document.querySelector('[data-testid="hud-library"]')), 90000);
   assert(await local.win.evaluate(() => document.querySelectorAll("nav a").length >= 10), "the console opens without signing in, with the full sidebar");
   await waitFor(() => local.win.evaluate(() => !!document.querySelector('[data-link="open"]')));
-  const huds = await waitFor(() => local.win.evaluate(() => [...document.querySelectorAll(".hud-card")].map((c) => c.getAttribute("data-hud"))).then((l) => (l.length >= 3 ? l : null)));
+  const huds = await waitFor(() => local.win.evaluate(() => [...document.querySelectorAll("article[data-hud]")].map((c) => c.getAttribute("data-hud"))).then((l) => (l.length >= 3 ? l : null)));
   assert(huds.includes("matchframe.sample-cs2") && huds.includes("matchframe.pro-cs2"), `bundled HUDs installed (${huds.join(", ")})`);
   if (out) await local.win.screenshot({ path: `${out}-library.png` });
-  // Launch Transparent HUD from the card.
-  await local.win.click('.hud-card[data-hud="matchframe.sample-cs2"] .hud-launch');
+  // Launch Transparent HUD with the desktop switch on its row.
+  await local.win.click('[data-hud="matchframe.sample-cs2"] .hud-launch');
   await waitFor(async () => (await local.win.evaluate(() => window.matchframe.hud.overlays())).some((o) => o.hudId === "matchframe.sample-cs2" && o.status === "running"), 30000);
   const overlay = await local.app.evaluate(({ BrowserWindow }) => {
     const w = BrowserWindow.getAllWindows().find((x) => x[Symbol.for("matchframe.hud-window")]?.kind === "overlay");
@@ -114,7 +114,8 @@ async function run(cloud) {
   assert((await local.win.evaluate(() => location.href)).startsWith("app://matchframe/"), "navigation to the engine's HTTP address is blocked");
   if (out) await local.win.screenshot({ path: `${out}-local.png` });
   // Connection settings page renders inside the program.
-  await local.win.evaluate(() => window.matchframe.openConnection());
+  // Deferred a tick: the page navigates away, which would otherwise race the evaluate call returning.
+  await local.win.evaluate(() => void setTimeout(() => window.matchframe.openConnection(), 0));
   await waitFor(() => local.win.evaluate(() => location.pathname === "/connect" && !!document.getElementById("form")));
   if (out) await local.win.screenshot({ path: `${out}-connect.png` });
   const localErrors = local.errors.slice();

@@ -126,7 +126,7 @@ const data = mkdtempSync(join(tmpdir(), "mf-overlay-"));
   const app = await pw._electron.launch({
     executablePath: resolve(exe),
     args: [...(process.platform === "linux" ? ["--no-sandbox"] : []), ...(appDir ? [resolve(appDir)] : [])],
-    env: { ...process.env, MATCHFRAME_DATA_DIR: data, MATCHFRAME_GSI_PORT: PORTS.gsi, MATCHFRAME_API_PORT: PORTS.api, MATCHFRAME_OVERLAY_PORT: PORTS.overlay, MATCHFRAME_LOG_STDOUT: "0", MATCHFRAME_SIGN_IN: "" },
+    env: { ...process.env, MATCHFRAME_DATA_DIR: data, MATCHFRAME_GSI_PORT: PORTS.gsi, MATCHFRAME_API_PORT: PORTS.api, MATCHFRAME_OVERLAY_PORT: PORTS.overlay, MATCHFRAME_LOG_STDOUT: "0", MATCHFRAME_SIGN_IN: "", MATCHFRAME_DISABLE_UPDATES: "1" },
     timeout: 120000,
   });
   const proc = app.process();

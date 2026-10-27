@@ -68,4 +68,11 @@ linux:
   icon: build/icon.png
   target: [dir]
   executableName: matchframe-esports
-publish: null
+# Automatic updates: the build writes latest.yml (and the installer's .blockmap), which the release
+# workflow attaches to the GitHub release; the program (electron-updater) reads them from there.
+# Nothing is uploaded by electron-builder itself (--publish never in the package scripts).
+publish:
+  provider: github
+  owner: MalakaiCS
+  repo: Matchframe-Esports
+  releaseType: release

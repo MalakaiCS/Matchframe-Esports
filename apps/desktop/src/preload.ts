@@ -18,6 +18,24 @@ async function hudCall<T>(channel: string, ...args: unknown[]): Promise<T> {
 contextBridge.exposeInMainWorld("matchframe", {
   engineOrigin: boot?.engineOrigin,
   connectionMode: boot?.connectionMode,
+  platform: process.platform,
+  /** The window has no system title bar: the console's header is the drag region (window buttons drawn over its right end). */
+  customTitleBar: true,
+  /** Starts CS2 through Steam. */
+  launchCs2: (): Promise<boolean> => ipcRenderer.invoke("mf:launch-cs2"),
+  /** Automatic updates (apps/desktop/src/updater.ts). */
+  updates: {
+    state: (): Promise<unknown> => ipcRenderer.invoke("mf:update-state"),
+    check: (): Promise<unknown> => ipcRenderer.invoke("mf:update-check"),
+    download: (): Promise<unknown> => ipcRenderer.invoke("mf:update-download"),
+    installNow: (): Promise<void> => ipcRenderer.invoke("mf:update-install"),
+    setAutoDownload: (on: boolean): Promise<unknown> => ipcRenderer.invoke("mf:update-auto", on),
+    onChange: (fn: (s: unknown) => void) => {
+      const h = (_: unknown, s: unknown) => fn(s);
+      ipcRenderer.on("mf:update", h);
+      return () => ipcRenderer.removeListener("mf:update", h);
+    },
+  },
   getOperatorToken: (): Promise<string | null> => ipcRenderer.invoke("mf:token"),
   info: (): Promise<unknown> => ipcRenderer.invoke("mf:info"),
   openDataDir: (): Promise<string> => ipcRenderer.invoke("mf:open-data-dir"),

@@ -8,12 +8,13 @@
     "typecheck": "tsc -p tsconfig.json",
     "build": "node scripts-build.mjs",
     "start": "electron .",
-    "package:win": "electron-builder --win --config electron-builder.yml",
-    "package:dir": "electron-builder --dir --config electron-builder.yml"
+    "package:win": "electron-builder --win --config electron-builder.yml --publish never",
+    "package:dir": "electron-builder --dir --config electron-builder.yml --publish never"
   },
   "devDependencies": {
     "electron": "44.9.3",
     "electron-builder": "26.18.0",
+    "electron-updater": "6.8.10",
     "esbuild": "0.28.2",
     "tsx": "4.23.15"
   }

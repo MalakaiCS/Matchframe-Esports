@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import type { HudLibrary, HudLibraryEntry } from "@matchframe/contracts";
 import { api, ApiError, describeError } from "../api/index.ts";
 import { desktopHud } from "../api/desktop.ts";
@@ -8,11 +9,11 @@ import { Button, ConfirmDialog, EmptyState, ErrorBox, Loading, Modal, Note } fro
 import { useApi, usePersistentState } from "../lib/hooks.ts";
 import type { HudDisplayStatus, HudSort } from "../lib/hudLibrary.ts";
 import { copyText, defaultVariant, desktopReason as desktopReasonOf, filterHuds, hudStatus, NO_CATEGORY, outputCounts, resolutionLabel, SORT_LABEL, sortHuds, STATUS_INFO, STATUS_ORDER, toArrayBuffer, useDesktopOverlays, variantUrl } from "../lib/hudLibrary.ts";
-import { useLive } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
 import { BUILTIN_REASON, exportHud, hudPath, launchHud, LIBRARY_PATH, reloadHud, stopHud, useRun } from "./hudlib/actions.ts";
 import type { HudActionReasons, HudActions } from "./hudlib/HudCard.tsx";
-import { HudCard, HudRow } from "./hudlib/HudCard.tsx";
+import { HudCard, HudRow, MenuButton } from "./hudlib/HudCard.tsx";
+import { GameCard, HudOptions } from "./hudlib/HudOptions.tsx";
 import type { DetailsTab } from "./hudlib/HudDetails.tsx";
 import { HudDetails } from "./hudlib/HudDetails.tsx";
 import "../styles/hud-library.css";
@@ -92,6 +93,8 @@ function Toolbar(p: {
   setSort: (v: HudSort) => void;
   view: View;
   setView: (v: View) => void;
+  count: string;
+  add: ReactNode;
 }) {
   return (
     <div className="hudlib-toolbar" role="search">
@@ -99,12 +102,6 @@ function Toolbar(p: {
         <Icon name="search" size={16} />
         <span className="sr-only">Search HUDs</span>
         <input type="search" placeholder="Search by name, author or tag" value={p.q} onChange={(e) => p.setQ(e.target.value)} />
-      </label>
-      <label className="hudlib-filter">
-        <span>Game</span>
-        <select value="cs2" onChange={() => undefined} aria-label="Game">
-          <option value="cs2">Counter-Strike 2</option>
-        </select>
       </label>
       <label className="hudlib-filter">
         <span>Category</span>
@@ -149,8 +146,22 @@ function Toolbar(p: {
           <span className="sr-only">List</span>
         </button>
       </div>
+      <span className="hudlib-count muted small">{p.count}</span>
+      {p.add}
     </div>
   );
+}
+
+/** HUDs grouped by their category (as their manifests declare it); HUDs without one come last. */
+function groupByCategory(list: HudLibraryEntry[]): { key: string; title: string; items: HudLibraryEntry[] }[] {
+  const map = new Map<string, HudLibraryEntry[]>();
+  for (const e of list) {
+    const key = e.category ?? NO_CATEGORY;
+    map.set(key, [...(map.get(key) ?? []), e]);
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => (a === NO_CATEGORY ? 1 : b === NO_CATEGORY ? -1 : a.localeCompare(b)))
+    .map(([key, items]) => ({ key, title: key === NO_CATEGORY ? "Ungrouped" : key, items }));
 }
 
 /**
@@ -161,11 +172,9 @@ export function HudLibraryScreen() {
   const lib = useApi<HudLibrary>(LIBRARY_PATH, { refreshMs: 3000 });
   const bridge = desktopHud();
   const overlays = useDesktopOverlays(bridge);
-  const simulated = useLive((s) => s.snapshot?.simulated ?? false);
   const toast = useToast();
   const run = useRun();
   const editReason = usePermission("hud.publish");
-  const simReason = usePermission("settings.manage");
   const desktopReason = desktopReasonOf(bridge);
   const local = !!bridge?.available;
 
@@ -173,7 +182,8 @@ export function HudLibraryScreen() {
   const [category, setCategory] = usePersistentState("hudlibCategory", "all");
   const [status, setStatus] = usePersistentState("hudlibStatus", "all");
   const [sort, setSort] = usePersistentState<HudSort>("hudlibSort", "name");
-  const [view, setView] = usePersistentState<View>("hudlibView", "grid");
+  const [view, setView] = usePersistentState<View>("hudlibView", "list");
+  const [collapsed, setCollapsed] = usePersistentState<string[]>("hudlibCollapsedGroups", []);
   const [selectedId, setSelectedId] = usePersistentState<string | null>("hudlibSelected", null);
   const [tab, setTab] = useState<DetailsTab>("overview");
   const [pending, setPending] = useState<PendingImport | null>(null);
@@ -282,12 +292,6 @@ export function HudLibraryScreen() {
     };
   };
 
-  const hideAll = async (hidden: boolean) => {
-    await api.post(`${LIBRARY_PATH}/visibility`, { hidden });
-    if (bridge && local) await (hidden ? bridge.hideAll() : bridge.showAll()).catch(() => undefined);
-    await lib.reload();
-  };
-
   // ---------------------------------------------------------------- render
 
   const itemProps = (e: HudLibraryEntry) => {
@@ -306,121 +310,119 @@ export function HudLibraryScreen() {
     };
   };
 
+  const addItems = [
+    { label: "Import HUD ZIP…", onClick: () => void importZip(), reason: editReason ?? (busyImport ? "Importing…" : null) },
+    { label: "Import HUD folder…", onClick: () => void importFolder(), reason: editReason ?? (!bridge ? "Importing a folder needs the Matchframe program" : !local ? "Folders can be imported only on the production computer; import a ZIP instead" : busyImport ? "Importing…" : null) },
+    { label: "Open HUDs folder", onClick: () => bridge && void run("Open HUDs Folder", () => bridge.openHudsFolder()), reason: !bridge ? "Opening folders needs the Matchframe program" : !local ? "The HUD folder is on the production computer" : null },
+  ];
+  const groups = groupByCategory(shown);
+  const details = (e: HudLibraryEntry) => (
+    <HudDetails {...itemProps(e)} bridge={bridge} desktopReason={desktopReason} editReason={editReason} tab={tab} onTab={setTab} onClose={() => setSelectedId(null)} onChanged={() => void lib.reload()} />
+  );
+
   return (
-    <div className={`page hudlib ${selected ? "has-details" : ""}`} data-testid="hud-library">
-      <div className="hudlib-head">
-        <div>
-          <h1 className="page-title">HUD Library</h1>
-          <p className="muted small">{lib.data ? `${huds.length} HUD${huds.length === 1 ? "" : "s"} ${local || !bridge ? "on this computer" : "on the production computer"}` : " "}</p>
-        </div>
-        <div className="hudlib-actions">
-          <Button variant="primary" onClick={() => void importZip()} disabledReason={editReason ?? (busyImport ? "Importing…" : null)}>
-            <Icon name="upload" size={14} /> Import HUD ZIP
-          </Button>
-          <Button onClick={() => void importFolder()} disabledReason={editReason ?? (!bridge ? "Importing a folder needs the Matchframe program" : !local ? "Folders can be imported only on the production computer; import a ZIP instead" : busyImport ? "Importing…" : null)}>
-            <Icon name="folder" size={14} /> Import HUD Folder
-          </Button>
-          <Button onClick={() => bridge && void run("Open HUDs Folder", () => bridge.openHudsFolder())} disabledReason={!bridge ? "Opening folders needs the Matchframe program" : !local ? "The HUD folder is on the production computer" : null}>
-            Open HUDs Folder
-          </Button>
-          {simulated ? (
-            <Button variant="warn" onClick={() => void run("Stop Test Data", () => api.post("/api/v1/simulation/stop"), "Test data stopped")} disabledReason={simReason}>
-              Stop Test Data
-            </Button>
-          ) : (
-            <Button onClick={() => void run("Run Test Data", () => api.post("/api/v1/simulation/start", { startOffsetSec: 25 }), "Test data running: a labelled simulation feeds every HUD output")} disabledReason={simReason} title="Feeds every HUD with labelled test data (a synthetic match), without CS2">
-              <Icon name="play" size={14} /> Run Test Data
-            </Button>
-          )}
-          <Button variant={lib.data?.hiddenAll ? "warn" : "ghost"} onClick={() => void run(lib.data?.hiddenAll ? "Show HUD graphics" : "Hide all HUD graphics", () => hideAll(!lib.data?.hiddenAll))} disabledReason={editReason ?? (lib.data ? null : "Loading…")} aria-pressed={!!lib.data?.hiddenAll} title="Hides every HUD graphic at once: desktop HUDs, previews and OBS sources (Emergency hide)">
-            <Icon name={lib.data?.hiddenAll ? "eye" : "eyeOff"} size={14} /> {lib.data?.hiddenAll ? "Show all HUDs" : "Hide all"}
-          </Button>
-        </div>
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".zip,application/zip"
-          hidden
-          aria-label="HUD package ZIP"
-          onChange={(ev) => {
-            const f = ev.target.files?.[0];
-            ev.target.value = "";
-            if (f) void f.arrayBuffer().then((b) => uploadZip(f.name, b));
-          }}
-        />
-      </div>
+    <div className="page hudlib" data-testid="hud-library">
+      <h1 className="page-title">HUD Library</h1>
       {lib.data?.hiddenAll ? (
         <Note tone="warn" title="All HUD graphics are hidden">
-          Desktop HUDs, previews and OBS sources show nothing until you click Show all HUDs (or press the emergency hide hotkey again).
+          Desktop HUDs, previews and OBS sources show nothing until you turn Show HUD graphics back on (or press the emergency hide hotkey again).
         </Note>
       ) : null}
       {desktopReason && bridge ? <Note tone="neutral">{desktopReason}. The library, OBS browser sources and previews still work.</Note> : null}
-      <Toolbar q={q} setQ={setQ} category={category} setCategory={setCategory} categories={categories} hasUncategorised={huds.some((h) => !h.category)} status={status} setStatus={setStatus} sort={sort} setSort={setSort} view={view} setView={setView} />
-      <div className="hudlib-body">
-        <div className="hudlib-items">
-          {!lib.data ? (
-            lib.error ? (
-              <ErrorBox error={lib.error} onRetry={() => void lib.reload()} />
-            ) : (
-              <Loading label="Loading HUDs…" />
-            )
-          ) : huds.length === 0 ? (
-            <EmptyState title="No HUDs yet" action={<Button onClick={() => void importZip()}>Import HUD ZIP</Button>}>
-              Import a HUD package (a ZIP with a manifest.json) to get started.
-            </EmptyState>
-          ) : shown.length === 0 ? (
-            <EmptyState
-              title="No HUDs match"
-              action={
-                <Button
-                  onClick={() => {
-                    setQ("");
-                    setCategory("all");
-                    setStatus("all");
-                  }}
-                >
-                  Clear filters
-                </Button>
-              }
-            >
-              Nothing matches the search and filters.
-            </EmptyState>
-          ) : view === "grid" ? (
-            <div className="hud-grid">
-              {shown.map((e) => (
-                <HudCard key={e.id} {...itemProps(e)} />
-              ))}
-            </div>
+      <div className="hudlib-cards">
+        <HudOptions library={lib.data} onChanged={() => void lib.reload()} />
+        <GameCard />
+      </div>
+      <Toolbar
+        q={q}
+        setQ={setQ}
+        category={category}
+        setCategory={setCategory}
+        categories={categories}
+        hasUncategorised={huds.some((h) => !h.category)}
+        status={status}
+        setStatus={setStatus}
+        sort={sort}
+        setSort={setSort}
+        view={view}
+        setView={setView}
+        count={lib.data ? `${huds.length} HUD${huds.length === 1 ? "" : "s"} ${local || !bridge ? "on this computer" : "on the production computer"}` : ""}
+        add={<MenuButton label="Add HUD" buttonLabel="Add HUD" icon="plus" items={addItems} />}
+      />
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".zip,application/zip"
+        hidden
+        aria-label="HUD package ZIP"
+        onChange={(ev) => {
+          const f = ev.target.files?.[0];
+          ev.target.value = "";
+          if (f) void f.arrayBuffer().then((b) => uploadZip(f.name, b));
+        }}
+      />
+      <div className="hudlib-items">
+        {!lib.data ? (
+          lib.error ? (
+            <ErrorBox error={lib.error} onRetry={() => void lib.reload()} />
           ) : (
-            <div className="hud-list" role="table" aria-label="HUDs">
-              <div className="hud-row hud-row-head" role="row">
-                <span />
-                <span role="columnheader">Name</span>
-                <span role="columnheader">Category</span>
-                <span role="columnheader">Status</span>
-                <span role="columnheader">Outputs</span>
-                <span role="columnheader" className="sr-only">
-                  Actions
-                </span>
-              </div>
-              {shown.map((e) => (
-                <HudRow key={e.id} {...itemProps(e)} />
-              ))}
-            </div>
-          )}
-        </div>
-        {selected ? (
-          <HudDetails
-            {...itemProps(selected)}
-            bridge={bridge}
-            desktopReason={desktopReason}
-            editReason={editReason}
-            tab={tab}
-            onTab={setTab}
-            onClose={() => setSelectedId(null)}
-            onChanged={() => void lib.reload()}
-          />
-        ) : null}
+            <Loading label="Loading HUDs…" />
+          )
+        ) : huds.length === 0 ? (
+          <EmptyState title="No HUDs yet" action={<Button onClick={() => void importZip()}>Import HUD ZIP</Button>}>
+            Import a HUD package (a ZIP with a manifest.json) to get started.
+          </EmptyState>
+        ) : shown.length === 0 ? (
+          <EmptyState
+            title="No HUDs match"
+            action={
+              <Button
+                onClick={() => {
+                  setQ("");
+                  setCategory("all");
+                  setStatus("all");
+                }}
+              >
+                Clear filters
+              </Button>
+            }
+          >
+            Nothing matches the search and filters.
+          </EmptyState>
+        ) : (
+          groups.map((g) => {
+            const open = !collapsed.includes(g.key);
+            const selectedHere = selected && g.items.includes(selected) ? selected : null;
+            return (
+              <section key={g.key} className="hud-group" aria-label={g.title}>
+                <button type="button" className={`hud-group-head ${open ? "is-open" : ""}`} aria-expanded={open} onClick={() => setCollapsed(open ? [...collapsed, g.key] : collapsed.filter((k) => k !== g.key))}>
+                  <Icon name="chevronDown" size={14} />
+                  <span>{g.title}</span>
+                  <span className="hud-group-count">{g.items.length}</span>
+                </button>
+                {!open ? null : view === "grid" ? (
+                  <>
+                    <div className="hud-grid">
+                      {g.items.map((e) => (
+                        <HudCard key={e.id} {...itemProps(e)} />
+                      ))}
+                    </div>
+                    {selectedHere ? details(selectedHere) : null}
+                  </>
+                ) : (
+                  <div className="hud-list" aria-label={`${g.title} HUDs`}>
+                    {g.items.map((e) => (
+                      <div key={e.id} className={`hud-list-item ${e === selectedHere ? "is-open" : ""}`}>
+                        <HudRow {...itemProps(e)} />
+                        {e === selectedHere ? details(e) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })
+        )}
       </div>
       {pending ? <ConflictDialog pending={pending} onDone={imported} onCancel={() => setPending(null)} /> : null}
       {removing ? (

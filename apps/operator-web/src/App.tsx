@@ -99,6 +99,15 @@ export function Shell({ me }: { me: Me }) {
     startLive();
     return () => stopLive();
   }, []);
+  // In the program the window has no system title bar: the header becomes one (drag region,
+  // room for the window buttons).
+  useEffect(() => {
+    const mf = window.matchframe;
+    if (!mf?.customTitleBar) return;
+    const cls = ["mf-custom-titlebar", `mf-platform-${mf.platform ?? "unknown"}`];
+    document.documentElement.classList.add(...cls);
+    return () => document.documentElement.classList.remove(...cls);
+  }, []);
   const redirect = redirectFor(path);
   useLayoutEffect(() => {
     if (redirect) navigate(`${redirect}${window.location.search}${window.location.hash}`, true);

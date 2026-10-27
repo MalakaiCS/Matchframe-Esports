@@ -15,7 +15,7 @@ try {
 } catch {
   pw = require("playwright-core");
 }
-const { existsSync, mkdtempSync, readFileSync } = require("node:fs");
+const { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 const { startCloud, signInThroughAccount } = require("./smoke-cloud.cjs");
@@ -60,11 +60,16 @@ const PASSWORD = "correct horse battery";
 
 async function run(cloud) {
   const ports = { gsi: "39510", api: "39511", overlay: "39512" };
+  const dataDir = mkdtempSync(join(tmpdir(), "mf-packaged-"));
+  // Updates are checked for real but never downloaded here: an older build (a branch behind the
+  // latest release) would otherwise download it and run its installer when the test quits.
+  mkdirSync(join(dataDir, "program"), { recursive: true });
+  writeFileSync(join(dataDir, "program", "program-settings.json"), JSON.stringify({ autoDownloadUpdates: false }));
   const app = await pw._electron.launch({
     executablePath: exe,
     args: process.platform === "linux" ? ["--no-sandbox"] : [],
     // The local website and its key replace the website pinned into the build (cloud.json) for this test.
-    env: { ...process.env, MATCHFRAME_DATA_DIR: mkdtempSync(join(tmpdir(), "mf-packaged-")), MATCHFRAME_GSI_PORT: ports.gsi, MATCHFRAME_API_PORT: ports.api, MATCHFRAME_OVERLAY_PORT: ports.overlay, MATCHFRAME_LOG_STDOUT: "0", MATCHFRAME_CLOUD_URL: cloud.base, MATCHFRAME_CLOUD_PUBLIC_KEYS: JSON.stringify(cloud.keys), MATCHFRAME_SIGN_IN: "" },
+    env: { ...process.env, MATCHFRAME_DATA_DIR: dataDir, MATCHFRAME_GSI_PORT: ports.gsi, MATCHFRAME_API_PORT: ports.api, MATCHFRAME_OVERLAY_PORT: ports.overlay, MATCHFRAME_LOG_STDOUT: "0", MATCHFRAME_CLOUD_URL: cloud.base, MATCHFRAME_CLOUD_PUBLIC_KEYS: JSON.stringify(cloud.keys), MATCHFRAME_SIGN_IN: "" },
     timeout: 120000,
   });
   const win = await app.firstWindow({ timeout: 120000 });
@@ -73,9 +78,9 @@ async function run(cloud) {
   win.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   await waitFor(() => win.evaluate(() => !!document.querySelector('[data-testid="hud-library"]')), 120000);
   assert(await win.evaluate(() => document.querySelectorAll("nav a").length >= 10), "the program opens into the HUD Library without signing in");
-  const huds = await waitFor(() => win.evaluate(() => [...document.querySelectorAll(".hud-card")].map((c) => c.getAttribute("data-hud"))).then((l) => (l.length >= 3 ? l : null)), 30000);
+  const huds = await waitFor(() => win.evaluate(() => [...document.querySelectorAll("article[data-hud]")].map((c) => c.getAttribute("data-hud"))).then((l) => (l.length >= 3 ? l : null)), 30000);
   assert(huds.includes("matchframe.sample-cs2") && huds.includes("matchframe.pro-cs2"), `bundled HUDs installed (${huds.join(", ")})`);
-  await waitFor(() => win.evaluate(() => [...document.querySelectorAll(".hud-card img")].every((i) => i.complete && i.naturalWidth > 0)), 15000);
+  await waitFor(() => win.evaluate(() => [...document.querySelectorAll("article[data-hud] img")].every((i) => i.complete && i.naturalWidth > 0)), 15000);
   if (shot) await win.screenshot({ path: shot.replace(/(\.png)?$/, "-library.png") });
   await signInThroughAccount(win, "producer@example.com", PASSWORD);
   await waitFor(() => win.evaluate(() => !!document.querySelector('[data-link="open"]')), 30000);
@@ -97,6 +102,11 @@ async function run(cloud) {
   const mainUrl = (Array.isArray(outputs) ? outputs : (outputs.outputs ?? [])).find((o) => o.url)?.url ?? null;
   const overlay = mainUrl ? await fetch(mainUrl) : null;
 
+  // Automatic updates: the updater runs in the packaged program and reads the GitHub releases. The
+  // result depends on the latest release (up to date, a newer version, or an error while the latest
+  // release has no latest.yml); only that the check ran is asserted.
+  const update = await win.evaluate(() => window.matchframe.updates.check());
+
   const pinnedFile = join(meta.resources, "cloud.json");
   const pinned = existsSync(pinnedFile) ? JSON.parse(readFileSync(pinnedFile, "utf8")) : null;
   const website = pinned ? { url: pinned.url, keys: Object.keys(pinned.publicKeys ?? {}) } : null;
@@ -110,7 +120,9 @@ async function run(cloud) {
   assert(captain.status === 200, "captain page served");
   assert(!overlay || overlay.status === 200, "HUD output served for OBS");
   assert(meta.contextIsolation && meta.sandbox && !meta.nodeIntegration, "hardened window");
+  assert(existsSync(join(meta.resources, "app-update.yml")), "update settings (app-update.yml) are in the program");
+  assert(update && update.status !== "disabled" && update.status !== "idle" && update.currentVersion === meta.version && update.autoDownload === false, `the updater checked for updates (${JSON.stringify(update)})`);
   if (shot) await win.screenshot({ path: shot });
-  console.log(JSON.stringify({ ok: true, platform: process.platform, meta, url: info.url, navItems: info.nav.length, huds, role: info.me.role, signIn: info.signIn, website, health: { ok: health.ok, version: health.version, schemaVersion: health.schemaVersion }, engineRoot: root.status, captain: captain.status, hudOutput: overlay?.status ?? null, errors }, null, 1));
+  console.log(JSON.stringify({ ok: true, platform: process.platform, meta, url: info.url, navItems: info.nav.length, huds, role: info.me.role, signIn: info.signIn, website, health: { ok: health.ok, version: health.version, schemaVersion: health.schemaVersion }, engineRoot: root.status, captain: captain.status, hudOutput: overlay?.status ?? null, update, errors }, null, 1));
   await app.close();
 }

@@ -31,7 +31,7 @@
   --radius-sm: 5px;
   --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-hi);
   --nav-w: 216px;
-  --topbar-h: 50px;
+  --topbar-h: 56px;
   --statusbar-h: 28px;
   --font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --mono: "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, monospace;
@@ -155,6 +155,7 @@ kbd {
 .shell.nav-collapsed {
   --nav-w: 60px;
 }
+/* The header is the program's title bar: the page title, then the controls. */
 .topbar {
   grid-area: top;
   z-index: 40;
@@ -162,20 +163,74 @@ kbd {
   align-items: center;
   gap: 12px;
   min-width: 0;
-  padding: 0 14px;
-  background: var(--bg-chrome);
-  border-bottom: 1px solid var(--line);
+  padding: 0 16px 0 22px;
+  background: var(--bg);
 }
 .topbar-page {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
   flex: none;
   max-width: 34%;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+.topbar-title {
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: 0.005em;
+  color: var(--text);
+}
+.topbar-subtitle {
+  font-size: 14px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar-subtitle::before {
+  content: "/";
+  margin-right: 10px;
+  color: var(--line-strong);
+}
+.topbar-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px 0 12px;
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.topbar-account:hover {
+  background: var(--bg-hover);
+  text-decoration: none;
+}
+.topbar-account .icon:last-child {
+  color: var(--text-faint);
+}
+/* In the program (no system title bar): empty parts of the header and the sidebar's brand drag
+   the window; controls stay clickable; the window buttons sit over the header's right end. */
+.mf-custom-titlebar .topbar,
+.mf-custom-titlebar .sidebar-brand {
+  -webkit-app-region: drag;
+  app-region: drag;
+  user-select: none;
+}
+.mf-custom-titlebar .topbar :is(a, button, select, input, label, .chip, .btn-wrap, .action),
+.mf-custom-titlebar .sidebar-brand :is(a, img) {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.mf-custom-titlebar:not(.mf-platform-darwin) .topbar {
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, calc(100vw - 146px)) + 10px);
+}
+.mf-custom-titlebar.mf-platform-darwin .sidebar-brand {
+  padding-top: 18px;
 }
 .crumb {
   color: var(--text-faint);
@@ -226,11 +281,17 @@ kbd {
 .toolbar-game select {
   /* The widest option ("… (not available yet)") would set the width otherwise. */
   width: 170px;
-  height: 32px;
-  padding: 0 28px 0 10px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  background-color: var(--bg-raised);
+  color: #fff;
+  font-weight: 650;
+  border-color: transparent;
+  background-color: var(--accent);
+  height: 34px;
+  padding: 0 28px 0 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+.toolbar-game select:hover {
+  background-color: var(--accent-hi);
 }
 .icon-btn {
   display: inline-grid;
@@ -317,23 +378,22 @@ kbd {
 
 /* Sidebar: branding at the top, modules, Settings at the bottom, collapse toggle. */
 .sidebar {
+  position: relative;
   grid-area: nav;
   display: flex;
   flex-direction: column;
   min-height: 0;
   background: var(--bg-chrome);
   border-right: 1px solid var(--line);
-  overflow: hidden;
 }
 .sidebar-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: var(--topbar-h);
+  height: calc(var(--topbar-h) + 18px);
   flex: none;
-  padding: 0 14px;
+  padding: 0 16px;
   color: var(--text);
-  border-bottom: 1px solid var(--line);
   overflow: hidden;
 }
 .sidebar-brand:hover {
@@ -365,8 +425,8 @@ kbd {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 36px;
+  gap: 12px;
+  height: 40px;
   padding: 0 10px;
   margin: 1px 0;
   color: var(--text-dim);
@@ -380,18 +440,9 @@ kbd {
   text-decoration: none;
 }
 .nav-link.is-active {
-  background: var(--accent-bg);
-  color: #fff;
-}
-.nav-link.is-active::before {
-  content: "";
-  position: absolute;
-  left: -8px;
-  top: 7px;
-  bottom: 7px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
   background: var(--accent);
+  color: #fff;
+  font-weight: 600;
 }
 .nav-icon {
   position: relative;
@@ -438,21 +489,23 @@ kbd {
   border-color: rgba(243, 178, 62, 0.4);
   background: var(--warn-bg);
 }
+/* Collapse tab on the sidebar's right edge. */
 .sidebar-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: none;
-  height: 34px;
-  margin: 0 8px 8px;
-  padding: 0 12px;
-  font: inherit;
-  font-size: 12.5px;
+  position: absolute;
+  top: 50%;
+  right: -14px;
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 44px;
+  margin-top: -22px;
+  padding: 0;
   color: var(--text-faint);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  text-align: left;
+  background: var(--bg-chrome);
+  border: 1px solid var(--line);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
   cursor: pointer;
 }
 .sidebar-toggle:hover {
@@ -468,13 +521,9 @@ kbd {
   justify-content: center;
   padding: 0;
 }
-.sidebar.is-collapsed .nav-link,
-.sidebar.is-collapsed .sidebar-toggle {
+.sidebar.is-collapsed .nav-link {
   justify-content: center;
   padding: 0;
-}
-.sidebar.is-collapsed .nav-link.is-active::before {
-  left: -8px;
 }
 
 /* Section bar: the pages of the current module. */
@@ -530,6 +579,16 @@ kbd {
   border-right: 1px solid var(--line);
   color: inherit;
   min-width: 0;
+  /* Clipped, never drawn over the next item, when the window is narrow. */
+  overflow: hidden;
+}
+/* The engine's ports give way first. */
+.sb-item[data-sb="engine"] {
+  flex-shrink: 4;
+}
+.sb-item[data-sb="engine"] .sb-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .sb-link:hover,
 .sb-button:hover {
@@ -598,6 +657,9 @@ kbd {
 }
 .main {
   grid-area: main;
+  /* Contains absolutely positioned descendants (screen-reader text), so nothing below the fold
+     makes the whole window scroll. */
+  position: relative;
   min-width: 0;
   min-height: 0;
   overflow: auto;
@@ -640,6 +702,75 @@ kbd {
   font-size: 21px;
   font-weight: 700;
   margin-right: auto;
+}
+/* The header shows the page's title in large type; pages keep their heading for screen readers. */
+.main .page-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.main .page-head {
+  justify-content: flex-end;
+}
+.main .page-head:not(:has(> :not(.page-title))) {
+  display: none;
+}
+
+/* On/off switch (role="switch"). */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.switch-track {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--line-strong);
+  transition: background 0.15s, border-color 0.15s;
+  flex: none;
+}
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #d7d9de;
+  transition: transform 0.15s;
+}
+.switch.is-on .switch-track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.switch.is-on .switch-thumb {
+  transform: translateX(18px);
+  background: #fff;
+}
+.switch.is-on .switch-label {
+  color: var(--text);
+}
+.switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.switch:focus-visible .switch-track {
+  box-shadow: var(--focus);
 }
 .page-intro {
   color: var(--text-dim);
@@ -1108,6 +1239,7 @@ legend {
 }
 .dot {
   display: inline-block;
+  flex: none;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -2391,6 +2523,24 @@ legend {
   }
   .grid-1-2 {
     grid-template-columns: minmax(260px, 1fr) minmax(0, 2.4fr);
+  }
+}
+
+/* Narrower windows: a compact header, so the game picker and Stop automation always fit. The
+   connection pill, unless it warns (the status bar shows it too), and secondary labels go. */
+@media (max-width: 1440px) {
+  .topbar-title {
+    font-size: 20px;
+  }
+  .topbar-status .chip[data-link].tone-neutral,
+  .btn-stop kbd,
+  .chip-ownership .chip-meta,
+  .topbar-account-label,
+  .topbar-account .icon:last-child {
+    display: none;
+  }
+  .topbar-account {
+    padding: 0 8px;
   }
 }
 

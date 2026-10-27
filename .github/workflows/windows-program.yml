@@ -10,7 +10,8 @@
 # it at build time). Set the repository variable MATCHFRAME_WEBSITE_URL to change it.
 #
 # Releases: publishing a release on GitHub (Releases → Draft a new release → Publish) builds that
-# release's tag and attaches the installer, the portable zip and SHA256SUMS.txt to it. Running this
+# release's tag and attaches the installer, the portable zip, SHA256SUMS.txt and the update files
+# (latest.yml and the installer's .blockmap, read by installed programs to update themselves). Running this
 # workflow manually with a tag builds that tag and attaches the files to its release, creating and
 # publishing the release first (notes from docs/release-notes/<version>-dev.md) when there is none.
 # A tag that does not exist yet is created by the release, on the commit of the branch the run was
@@ -115,6 +116,17 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
+      - name: Check the update metadata (automatic updates)
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem apps/desktop/release/MatchframeEsports-Setup-*.exe | Select-Object -First 1).Name
+          $yml = Get-Content apps/desktop/release/latest.yml -Raw
+          if ($yml -notmatch [regex]::Escape($setup)) { throw "latest.yml does not name $setup" }
+          if (-not (Test-Path "apps/desktop/release/$setup.blockmap")) { throw "missing $setup.blockmap" }
+          if (-not (Test-Path apps/desktop/release/win-unpacked/resources/app-update.yml)) { throw "the program has no app-update.yml" }
+          Get-Content apps/desktop/release/win-unpacked/resources/app-update.yml
+          $yml
+
       - name: Install the program silently (per user)
         shell: pwsh
         run: |
@@ -157,8 +169,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: matchframe-windows-${{ github.sha }}
+          # latest.yml and the .blockmap are what installed programs read to update themselves.
           path: |
             apps/desktop/release/MatchframeEsports-Setup-*.exe
+            apps/desktop/release/MatchframeEsports-Setup-*.exe.blockmap
+            apps/desktop/release/latest.yml
             apps/desktop/release/*.zip
             apps/desktop/release/SHA256SUMS.txt
           retention-days: 30
@@ -202,7 +217,7 @@ jobs:
         with:
           name: matchframe-windows-${{ github.sha }}
           path: release
-      - name: Upload the installer, zip and checksums to the release
+      - name: Upload the installer, zip, checksums and update files to the release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name || inputs.tag }}

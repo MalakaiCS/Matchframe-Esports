@@ -17,8 +17,24 @@ declare global {
       connectionMode?: "local" | "remote";
       getOperatorToken?: () => Promise<string | null>;
       openConnection?: () => Promise<void>;
+      openDataDir?: () => Promise<string>;
       onEmergencyStop?: (fn: (s: unknown) => void) => () => void;
       onEngineStatus?: (fn: (s: unknown) => void) => () => void;
+      /** "win32", "darwin", "linux". */
+      platform?: string;
+      /** The window has no system title bar: the console's header is the drag region. */
+      customTitleBar?: boolean;
+      /** Starts CS2 through Steam. */
+      launchCs2?: () => Promise<boolean>;
+      /** Automatic updates (see lib/updates.ts). */
+      updates?: {
+        state(): Promise<unknown>;
+        check(): Promise<unknown>;
+        download(): Promise<unknown>;
+        installNow(): Promise<void>;
+        setAutoDownload(on: boolean): Promise<unknown>;
+        onChange(fn: (s: unknown) => void): () => void;
+      };
     };
   }
 }

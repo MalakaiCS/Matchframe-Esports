@@ -10,6 +10,7 @@ import { OverlayManager } from "./hud/overlays.ts";
 import { OverlayStore } from "./hud/store.ts";
 import type { Library } from "./hud/types.ts";
 import { createTray, type ProgramTray } from "./tray.ts";
+import { createUpdater, type Updater } from "./updater.ts";
 
 /**
  * Matchframe Esports program (Windows desktop app). The operator console is bundled into the
@@ -57,6 +58,25 @@ let engineStopped = false;
 let overlays: OverlayManager | null = null;
 let hotkeys: HotkeyManager | null = null;
 let tray: ProgramTray | null = null;
+let updater: Updater | null = null;
+
+/** Small program preferences (not engine settings): `<userData>/program-settings.json`. */
+interface ProgramSettings {
+  autoDownloadUpdates: boolean;
+}
+const programSettingsFile = () => join(app.getPath("userData"), "program-settings.json");
+function readProgramSettings(): ProgramSettings {
+  try {
+    const raw = JSON.parse(readFileSync(programSettingsFile(), "utf8")) as Partial<ProgramSettings>;
+    return { autoDownloadUpdates: raw.autoDownloadUpdates !== false };
+  } catch {
+    return { autoDownloadUpdates: true };
+  }
+}
+function writeProgramSettings(patch: Partial<ProgramSettings>): void {
+  mkdirSync(app.getPath("userData"), { recursive: true });
+  writeFileSync(programSettingsFile(), JSON.stringify({ ...readProgramSettings(), ...patch }, null, 2));
+}
 
 function resourcesPath(...p: string[]): string {
   return isDev ? join(app.getAppPath(), "..", "..", ...p) : join(process.resourcesPath, ...p);
@@ -278,14 +298,22 @@ function stopEngine(): void {
 
 // ------------------------------------------------------------------ window
 
+/** Height of the console's header, where the window buttons sit (title bar drawn by the console). */
+const TITLE_BAR_HEIGHT = 56;
+
 function createWindow(): BrowserWindow {
   const w = new BrowserWindow({
     width: 1600,
     height: 980,
     minWidth: 1280,
     minHeight: 720,
-    backgroundColor: "#11141b",
+    backgroundColor: "#161719",
     title: windowTitle(),
+    // No system title bar or menu bar: the console's header is the title bar (drag region) and the
+    // system window buttons are drawn over its right end in the program's colours.
+    titleBarStyle: "hidden",
+    ...(process.platform === "darwin" ? {} : { titleBarOverlay: { color: "#161719", symbolColor: "#a8abb2", height: TITLE_BAR_HEIGHT } }),
+    autoHideMenuBar: true,
     // Packaged Windows builds take the icon from the .exe (build/icon.ico); development runs need it set.
     ...(isDev ? { icon: join(app.getAppPath(), "build", "icon.png") } : {}),
     webPreferences: {
@@ -307,6 +335,7 @@ function createWindow(): BrowserWindow {
     if (/^https:\/\//.test(url) || (isDev && /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(url))) void shell.openExternal(url);
     return { action: "deny" };
   });
+  w.setMenuBarVisibility(false);
   w.on("page-title-updated", (e) => e.preventDefault());
   // Closing the manager while desktop HUDs run keeps them running: the program stays in the tray.
   w.on("close", (e) => {
@@ -471,6 +500,19 @@ ipcMain.on("mf:bootstrap", (event) => {
 });
 ipcMain.handle("mf:token", (event) => (fromApp(event) && !fromApp(event, "/connect") ? accessToken() : null));
 ipcMain.handle("mf:info", () => ({ version: app.getVersion(), dataDir: dataDir(), emergencyHotkey: EMERGENCY_HOTKEY, ports: PORTS, packaged: app.isPackaged, connection: connection.mode === "remote" ? { mode: "remote", url: connection.url } : { mode: "local" } }));
+ipcMain.handle("mf:update-state", (event) => (fromApp(event) && updater ? updater.state() : null));
+ipcMain.handle("mf:update-check", (event) => (fromApp(event) && updater ? updater.check() : null));
+ipcMain.handle("mf:update-download", (event) => (fromApp(event) && updater ? updater.download() : null));
+ipcMain.handle("mf:update-install", (event) => {
+  if (fromApp(event)) updater?.installNow();
+});
+ipcMain.handle("mf:update-auto", (event, on: unknown) => (fromApp(event) && updater && typeof on === "boolean" ? updater.setAutoDownload(on) : null));
+// Starts CS2 through Steam (Steam asks before anything runs; nothing else can be launched).
+ipcMain.handle("mf:launch-cs2", async (event) => {
+  if (!fromApp(event)) return false;
+  await shell.openExternal("steam://rungameid/730");
+  return true;
+});
 // Read by the preload script when the console loads (remote mode disables desktop HUDs).
 ipcMain.on("mf:hud-availability", (event) => {
   event.returnValue = fromApp(event) && !fromApp(event, "/connect") ? { available: connection.mode === "local", reason: connection.mode === "remote" ? REMOTE_REASON : null } : { available: false, reason: "not allowed" };
@@ -565,6 +607,15 @@ if (!app.requestSingleInstanceLock()) {
     );
     if (!globalShortcut.register(EMERGENCY_HOTKEY, () => void emergencyStop())) console.error(`could not register emergency-stop hotkey ${EMERGENCY_HOTKEY}`);
     setUpDesktopHuds();
+    updater = createUpdater({
+      autoDownload: readProgramSettings().autoDownloadUpdates,
+      saveAutoDownload: (on) => writeProgramSettings({ autoDownloadUpdates: on }),
+      onChange: (st) => {
+        if (win && !win.isDestroyed()) win.webContents.send("mf:update", st);
+      },
+      beforeInstall: () => console.log("installing the downloaded update"),
+      log: (msg) => console.log(msg),
+    });
     if (connection.mode === "remote") showConsole();
     else startEngine();
   });
@@ -576,6 +627,7 @@ if (!app.requestSingleInstanceLock()) {
     if (!quitting) {
       quitting = true;
       overlays?.dispose();
+      updater?.dispose();
       hotkeys?.unregister();
       tray?.destroy();
       tray = null;

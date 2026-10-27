@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 import { api } from "../api/index.ts";
+import type { CloudStatus } from "../api/types.ts";
+import { useApi } from "../lib/hooks.ts";
+import { Link } from "../router.tsx";
 import { CONTROL_HEALTH_TEXT, ownershipView } from "../lib/ownership.ts";
 import { MODE_INFO, OBSERVER_MODE_INFO } from "../lib/director.ts";
 import { fmtMs } from "../lib/format.ts";
@@ -36,7 +39,7 @@ export const GAMES: { id: string; label: string; available: boolean }[] = [
 
 function GameSelect() {
   return (
-    <label className="toolbar-game" title="Matchframe supports Counter-Strike 2. Other games are listed but not available yet.">
+    <label className="toolbar-game" title="Game: Matchframe supports Counter-Strike 2. Other games are listed but not available yet.">
       <span className="sr-only">Game</span>
       <select value="cs2" onChange={() => undefined} aria-label="Game">
         {GAMES.map((g) => (
@@ -49,9 +52,25 @@ function GameSelect() {
   );
 }
 
+/** Who this computer is signed in as (optional sign-in), linking to Settings → Account. */
+function AccountChip() {
+  const st = useApi<CloudStatus>("/api/v1/cloud/status", { refreshMs: 60_000 });
+  const user = st.data?.signIn.user ?? null;
+  const signedIn = st.data?.signIn.state === "signed_in" && !!user;
+  return (
+    <Link to="/settings/account" className="topbar-account" title={signedIn ? `Signed in as ${user!.email}${st.data?.device?.orgName ? ` (${st.data.device.orgName})` : ""}` : "Not signed in. Signing in is optional; the Auto Director needs it on live matches."} data-account={signedIn ? "signed-in" : "signed-out"}>
+      <Icon name="account" size={16} />
+      <span className="topbar-account-label">{signedIn ? `Hi, ${user!.displayName || user!.email.split("@")[0]}` : "Sign in"}</span>
+      <Icon name="chevronRight" size={14} />
+    </Link>
+  );
+}
+
 /**
- * Top toolbar: the current page, the game, the game-data connection, which data is active (live,
- * the labelled test simulation, or none), the Observer state and Stop automation.
+ * The program's title bar (the window has no system one): the page title, then the game, the
+ * game-data connection, which data is active (live, the labelled test simulation, or none), the
+ * Observer, Stop automation and the account. Empty parts of the bar drag the window; the window
+ * buttons are drawn over its right end.
  */
 export function TopBar({ crumbs = [] }: { crumbs?: string[] }) {
   const status = useLive((s) => s.status);
@@ -102,11 +121,8 @@ export function TopBar({ crumbs = [] }: { crumbs?: string[] }) {
   return (
     <header className="topbar">
       <div className="topbar-page" aria-label="Current page">
-        {crumbs.map((c, i) => (
-          <span key={i} className={i === crumbs.length - 1 ? "crumb crumb-current" : "crumb"}>
-            {c}
-          </span>
-        ))}
+        <span className="topbar-title">{crumbs[0] ?? ""}</span>
+        {crumbs.length > 1 ? <span className="topbar-subtitle">{crumbs.at(-1)}</span> : null}
       </div>
 
       <div className="topbar-status">
@@ -172,6 +188,7 @@ export function TopBar({ crumbs = [] }: { crumbs?: string[] }) {
         >
           <Icon name="stop" /> Stop automation <kbd>{STOP_SHORTCUT_LABEL}</kbd>
         </ActionButton>
+        <AccountChip />
       </div>
     </header>
   );
