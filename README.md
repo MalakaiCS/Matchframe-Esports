@@ -27,7 +27,7 @@ Follow the **Setup** checklist in the program (**Settings → Setup**):
 
 1. Steps 2–3 — **Detect CS2** and **Write the GSI config** (`gamestate_integration_matchframe.cfg`, with a token), then restart CS2.
 2. Steps 4–5 — start CS2 as an observer/spectator; **Wait for a real payload** and read the **Capability report** (what the feed actually delivers).
-3. Steps 6–8 — choose the **Observer control adapter**: direct console (`-netconport <port>` launch option) or keyboard (focused window only). Run the **Player-selection test**; automatic POV cuts stay blocked until it passes from observed feedback. Static cinematics additionally need the **Static camera test** and operator-validated cameras captured with `getpos` (**Maps & Cameras**).
+3. Steps 6–8 — choose the **Observer control adapter**: direct console (`-tools -netconport <port>`; **Start CS2** in the Observer tools mode sets it up, and needs the free CS2 Workshop Tools) or keyboard (focused window only). Run the **Player-selection test**; automatic POV cuts stay blocked until it passes from observed feedback. Static cinematics additionally need the **Static camera test** and operator-validated cameras captured with `getpos` (**Maps & Cameras**).
 4. Steps 9–11 — **Connect OBS**, set the **Program scene mapping** and add the main HUD browser source.
 5. Choose the **Observer** mode in **Live Control** and arm it with **Resume automation** (the engine always starts and restarts disarmed, with the Observer Off):
    - **Off**: never moves the camera; shot suggestions only.

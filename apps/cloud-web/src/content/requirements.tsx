@@ -28,7 +28,7 @@ export const REQUIREMENT_GROUPS: RequirementGroup[] = [
     rows: [
       ["Client", "A CS2 observer or spectator client (including GOTV)."],
       ["Game State Integration", "The program writes the config file for you (gamestate_integration_matchframe.cfg) with a secret token. Restart CS2 afterwards."],
-      ["Camera control", <>For the direct console adapter, add the launch option <code>-netconport 2121</code>. The keyboard adapter needs the CS2 window to be focused.</>],
+      ["Camera control", <>For the direct console adapter, start CS2 from the program in the Observer tools mode (<code>-tools -netconport 2121</code>; needs the free CS2 Workshop Tools). The keyboard adapter needs the CS2 window to be focused.</>],
       ["Static cameras", <>Observer &amp; Cinematics and Full Action Observer need static cameras captured with <code>getpos</code> in Maps &amp; Cameras, validated by an operator, and a passed static camera test.</>],
     ],
   },

@@ -12,6 +12,7 @@ import { useApi } from "../lib/hooks.ts";
 import { checklistProgress, setupChecklist } from "../lib/setup.ts";
 import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
+import { LaunchSettings } from "./game/LaunchSettings.tsx";
 import "../styles/group-a.css";
 
 function Step({ n, id, title, children, done }: { n: number; id: string; title: string; children: ReactNode; done?: boolean }) {
@@ -267,7 +268,7 @@ function AdapterConfig() {
             </div>
             <p className="small muted">
               {s.kind === "none" && "Matchframe will recommend shots but never move the observer camera."}
-              {s.kind === "netcon" && "Sends console commands over CS2's -netconport on this PC. Capabilities stay unverified until the tests below confirm them."}
+              {s.kind === "netcon" && "Sends console commands over CS2's console on this PC (CS2 started with -tools -netconport: Start CS2 in the Observer tools mode does this). Capabilities stay unverified until the tests below confirm them."}
               {s.kind === "keyboard" && "Sends spectator number keys to the CS2 window (Windows only). The observer window must stay focused; confirmation still comes from telemetry."}
             </p>
             {s.kind === "netcon" ? (
@@ -280,7 +281,7 @@ function AdapterConfig() {
                       <option value="::1">::1</option>
                     </select>
                   </Field>
-                  <Field label="Port" hint="Launch CS2 with -netconport <port>">
+                  <Field label="Port" hint="CS2 started with -tools -netconport <port> (Start CS2 → Observer tools)">
                     <input type="number" value={s.port} onChange={(e) => set({ port: Number(e.target.value) })} />
                   </Field>
                 </div>
@@ -673,6 +674,9 @@ export function SetupScreen() {
           const reload = () => void status.reload();
           return (
             <div className="stack">
+              <Panel title="Start CS2" className="ga-group" id="start-cs2">
+                <LaunchSettings />
+              </Panel>
               <Panel title="Game data" className="ga-group">
                 <Step n={1} id="step-source" title="Choose the source">
                   <SourceMode status={s} reload={reload} />

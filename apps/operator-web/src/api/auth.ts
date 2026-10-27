@@ -7,6 +7,12 @@
 export const OPERATOR_TOKEN_KEY = "matchframe.operatorToken";
 export const CAPTAIN_TOKEN_KEY = "matchframe.captainToken";
 
+export interface HlaeInfo {
+  path: string | null;
+  ok: boolean;
+  problem: string | null;
+}
+
 declare global {
   interface Window {
     /** Electron preload bridge (apps/desktop/src/preload.ts); absent in a plain browser. */
@@ -24,8 +30,13 @@ declare global {
       platform?: string;
       /** The window has no system title bar: the console's header is the drag region. */
       customTitleBar?: boolean;
-      /** Starts CS2 through Steam. */
-      launchCs2?: () => Promise<boolean>;
+      /** Start CS2 with the launch mode set in the engine (see lib/game.ts). */
+      launchCs2?: () => Promise<{ ok: boolean; message: string }>;
+      /** HLAE.exe for the HLAE launch mode (chosen with a file dialog on this computer). */
+      hlae?: {
+        info(): Promise<HlaeInfo | null>;
+        choose(): Promise<HlaeInfo | null>;
+      };
       /** Automatic updates (see lib/updates.ts). */
       updates?: {
         state(): Promise<unknown>;

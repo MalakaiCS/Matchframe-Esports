@@ -1,8 +1,8 @@
-import { Socket } from "node:net";
 import type { CameraMode, CameraPath, CameraRecord, CommandContext, CommandResult, ObservedCameraState } from "@matchframe/contracts";
 import type { ControlCapabilities, ObserverControlAdapter } from "@matchframe/director-policy";
 import { failedResult, transportResult } from "@matchframe/director-policy";
 import { accountIdOf, cap } from "./common.ts";
+import { NetconConnection } from "./netcon-connection.ts";
 
 /**
  * Console command templates for the direct channel. These are CANDIDATE mappings from semantic
@@ -38,6 +38,8 @@ export interface NetconOptions {
   /** Capability evidence recorded by the setup checklist (persisted by the engine). */
   verified?: Partial<Record<keyof ControlCapabilities, { build: string | null; at: string; support: "supported" | "partial" }>>;
   onLine?: (line: string) => void;
+  /** The engine's shared console connection (also used for game options); otherwise the adapter opens its own. */
+  connection?: NetconConnection;
 }
 
 function fill(template: string, values: Record<string, string | number>): string {
@@ -59,7 +61,8 @@ function safeValue(v: string | number): string | number {
 }
 
 /**
- * Direct observer channel over the game's TCP console (launch option `-netconport <port>`).
+ * Direct observer channel over the game's TCP console (launch options `-tools -netconport <port>`;
+ * in CS2 the console only opens with `-tools`, which needs the free CS2 Workshop Tools).
  * This is a documented Valve launch option, not memory reading or injection. It is loopback-only
  * by default because the console accepts arbitrary commands. Writes are transport acknowledgements;
  * confirmation must come from telemetry feedback.
@@ -68,22 +71,24 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   readonly id: string;
   readonly kind = "direct" as const;
   readonly simulated = false;
-  private socket: Socket | null = null;
-  private connecting: Promise<void> | null = null;
+  private readonly conn: NetconConnection;
+  private readonly ownsConnection: boolean;
+  private readonly offLine: () => void;
   private readonly templates: NetconTemplates;
-  private buffer = "";
   private lastPose: ObservedCameraState["pose"] = null;
   private lastPoseAt: number | null = null;
-  private queue: { line: string; resolve: (ok: boolean, err?: string) => void }[] = [];
 
   constructor(private readonly opts: NetconOptions) {
     this.id = `netcon:${opts.host}:${opts.port}`;
     this.templates = { ...DEFAULT_NETCON_TEMPLATES, ...(opts.templates ?? {}) };
+    this.ownsConnection = !opts.connection;
+    this.conn = opts.connection ?? new NetconConnection({ host: opts.host, port: opts.port, connectTimeoutMs: opts.connectTimeoutMs ?? 1500 });
+    this.offLine = this.conn.onLine((line) => this.onLine(line));
   }
 
   async getCapabilities(): Promise<ControlCapabilities> {
     const v = this.opts.verified ?? {};
-    const lim = (what: string) => [`Command template for ${what} is a candidate mapping; verify with the setup checklist on the target CS2 build.`, "Requires the observer client launched with -netconport (loopback only)."];
+    const lim = (what: string) => [`Command template for ${what} is a candidate mapping; verify with the setup checklist on the target CS2 build.`, "Requires the observer client launched with -tools -netconport (CS2 Workshop Tools; loopback only)."];
     const c = (key: keyof ControlCapabilities, what: string) =>
       v[key] ? cap(key, v[key]!.support, [], this.id, { build: v[key]!.build, at: v[key]!.at }) : cap(key, "unverified", lim(what), this.id);
     return {
@@ -95,69 +100,28 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     };
   }
 
-  private connect(): Promise<void> {
-    if (this.socket && !this.socket.destroyed) return Promise.resolve();
-    if (this.connecting) return this.connecting;
-    this.connecting = new Promise<void>((resolve, reject) => {
-      const s = new Socket();
-      const timer = setTimeout(() => {
-        s.destroy();
-        reject(new Error("netcon connect timeout"));
-      }, this.opts.connectTimeoutMs ?? 1500);
-      s.once("connect", () => {
-        clearTimeout(timer);
-        this.socket = s;
-        resolve();
-      });
-      s.once("error", (e) => {
-        clearTimeout(timer);
-        reject(e);
-      });
-      s.on("data", (d: Buffer) => this.onData(d.toString("utf8")));
-      s.on("close", () => {
-        this.socket = null;
-      });
-      s.connect(this.opts.port, this.opts.host);
-    }).finally(() => {
-      this.connecting = null;
-    });
-    return this.connecting;
-  }
-
-  private onData(text: string): void {
-    this.buffer += text;
-    const lines = this.buffer.split(/\r?\n/);
-    this.buffer = lines.pop() ?? "";
-    for (const line of lines) {
-      this.opts.onLine?.(line);
-      const m = /setpos(?:_exact)?\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s*;\s*setang\s+(-?[\d.]+)\s+(-?[\d.]+)/.exec(line);
-      if (m) {
-        this.lastPose = { position: { x: Number(m[1]), y: Number(m[2]), z: Number(m[3]) }, pitch: Number(m[4]), yaw: Number(m[5]), fov: null };
-        this.lastPoseAt = this.opts.now();
-      }
+  private onLine(line: string): void {
+    this.opts.onLine?.(line);
+    const m = /setpos(?:_exact)?\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s*;\s*setang\s+(-?[\d.]+)\s+(-?[\d.]+)/.exec(line);
+    if (m) {
+      this.lastPose = { position: { x: Number(m[1]), y: Number(m[2]), z: Number(m[3]) }, pitch: Number(m[4]), yaw: Number(m[5]), fov: null };
+      this.lastPoseAt = this.opts.now();
     }
   }
 
   private async send(ctx: CommandContext, command: string): Promise<CommandResult> {
     if (this.opts.now() > ctx.expiresAtMonotonicMs) return failedResult(ctx, "expired", "command expired before transport");
     try {
-      await this.connect();
+      await this.conn.ensure();
     } catch (e) {
       return failedResult(ctx, "transport_error", `netcon unavailable: ${e instanceof Error ? e.message : String(e)}`);
     }
-    const s = this.socket;
-    if (!s) return failedResult(ctx, "transport_error", "netcon socket closed");
-    return new Promise<CommandResult>((resolve) => {
-      const entry = {
-        line: command,
-        resolve: (ok: boolean, err?: string) => resolve(ok ? transportResult(ctx, true, command, this.opts.now()) : failedResult(ctx, "transport_error", err ?? "write failed")),
-      };
-      this.queue.push(entry);
-      s.write(`${command}\n`, (err) => {
-        this.queue = this.queue.filter((q) => q !== entry);
-        entry.resolve(!err, err?.message);
-      });
-    });
+    try {
+      await this.conn.write(command);
+      return transportResult(ctx, true, command, this.opts.now());
+    } catch (e) {
+      return failedResult(ctx, "transport_error", e instanceof Error ? e.message : "write failed");
+    }
   }
 
   async selectPlayer(steamId: string, observerSlot: number | null, ctx: CommandContext): Promise<CommandResult> {
@@ -211,7 +175,6 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
 
   cancelPending(): void {
     // Writes are immediate; nothing is queued beyond the in-flight socket write.
-    this.queue = [];
   }
 
   async stopAutomation(): Promise<void> {
@@ -219,7 +182,8 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   }
 
   async dispose(): Promise<void> {
-    this.socket?.destroy();
-    this.socket = null;
+    this.offLine();
+    // A shared connection belongs to the engine (game options use it too).
+    if (this.ownsConnection) this.conn.stop();
   }
 }

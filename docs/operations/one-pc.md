@@ -7,7 +7,7 @@ Everything on one Windows machine: CS2 observer client, Matchframe, OBS.
 3. **Detect CS2** and **write the GSI config** (Setup). Restart CS2.
 4. Launch CS2 as an observer (spectator/GOTV). Setup should show packets arriving and the capability report.
 5. **Observer control (optional but required for automation).** Either:
-   - add the launch option `-netconport 2121` to the observer client and choose *Direct (console)* with host `127.0.0.1`, port `2121`; or
+   - start CS2 with **Start CS2** in the *Observer tools* mode (`-tools -netconport 2121`; needs the free CS2 Workshop Tools), which selects *Direct (console)* on `127.0.0.1:2121`; or
    - choose *Keyboard* and keep the CS2 window focused.
    Run the **player selection test**. Automatic POV cuts stay blocked until it passes.
 6. **OBS:** enable the WebSocket server, connect from **Settings → Devices**, map program scenes (LIVE/REPLAY/STUDIO/BREAK). Add a *Game Capture* of CS2 and the Matchframe HUD browser source (or use *Provision HUD source*), 1920×1080.

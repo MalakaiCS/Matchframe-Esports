@@ -79,3 +79,40 @@
 .ga-group > .panel-body {
   padding-top: 16px;
 }
+
+/* Setup → Start CS2 */
+.launch-modes {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+.launch-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.launch-mode.is-selected {
+  border-color: var(--accent);
+  background: var(--bg-raised-2);
+}
+.launch-mode > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.launch-mode input {
+  margin-top: 3px;
+}
+.hlae-warning {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.hlae-warning li + li {
+  margin-top: 4px;
+}

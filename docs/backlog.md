@@ -11,7 +11,7 @@ Numbered work items in dependency order. Status: **done**, **open**, **blocked (
 | B002 | node:sqlite under Node and Electron runtime | done |
 | B003 | Demo parser feasibility on real demos (demoparser2) | done (5 demos, 2023 builds) |
 | B004 | OBS websocket feasibility | done (OBS 30.0.2 Linux) |
-| B005 | Observer control mechanism on a real CS2 client (console `-netconport` vs keyboard) | **blocked (input: CS2 observer environment)** |
+| B005 | Observer control mechanism on a real CS2 client (console `-tools -netconport` vs keyboard) | **blocked (input: CS2 observer environment)** |
 | B006 | Real GSI capture on the current CS2 build; confirm field names and per-type grenade data | **blocked (input: CS2 environment)** |
 | B007 | Current-build SourceTV demos (20–50) through the pipeline | **blocked (input: demos)** |
 

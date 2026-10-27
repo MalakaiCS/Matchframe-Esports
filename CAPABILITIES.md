@@ -22,7 +22,7 @@ Evidence levels attached to derived data: `measured` (directly reported), `deriv
 | Capability | Mechanism | Status |
 |---|---|---|
 | Read the observed player and camera mode | GSI `player` block | implemented (unverified on real CS2) |
-| Select a player (POV cut) | Direct console (`-netconport`, loopback, configurable command templates) or Windows keyboard (SendInput of slot keys, only to the focused CS2 window) | **unverified** — no CS2 client; automatic cuts stay blocked until the setup test confirms a cut from observed feedback |
+| Select a player (POV cut) | Direct console (`-tools -netconport`, set by Start CS2 → Observer tools; needs the CS2 Workshop Tools; loopback, configurable command templates) or Windows keyboard (SendInput of slot keys, only to the focused CS2 window) | **unverified** — no CS2 client; automatic cuts stay blocked until the setup test confirms a cut from observed feedback |
 | Free/static camera positions (cinematics) | console `spec_goto`-style templates | **unverified / blocked** for this environment — automatic cinematics require verified static-camera control and operator-validated cameras; neither exists yet |
 | Simulation adapter | moves the simulated observer | implemented, labelled SIMULATION, never counted as evidence |
 

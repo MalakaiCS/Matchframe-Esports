@@ -24,9 +24,35 @@ The program updates itself from the Matchframe Esports releases on GitHub, so yo
 ## The library page
 
 - **Switches** at the top: **Test data** (the labelled simulation, below), **Show HUD graphics** (off hides every HUD graphic at once, the same as the emergency hide) and **Utility on the radar** (smokes, fires and flashes the game reports, on HUD radars). Hover the **?** for details.
-- **Counter-Strike 2** card: whether CS2 was found and its data arrives, the console command `cl_draw_only_deathnotices 1` with **Copy** (paste it into the CS2 console while spectating so only your HUD and the kill notices show), **Launch CS2** (through Steam) and **Setup** (the game state integration config).
+- **Counter-Strike 2** card: whether CS2 was found and its data arrives, the launch mode, **Start CS2** and **Setup** (below). In the standard mode it shows the console command `cl_draw_only_deathnotices 1` with **Copy** (paste it into the CS2 console while spectating so only your HUD and the kill notices show); in the console modes it shows the game options instead.
 - Below: search, category, status and sort, list or grid, and **Add HUD**. HUDs are grouped by category; click a group's name to fold it.
 - Each HUD's row shows its picture, name and version, author, status and active outputs, then **Settings** (gear), **Preview** (eye), **Copy OBS Browser URL**, **⋯** (more actions), the **Desktop** switch and the arrow that opens its details under the row.
+
+## Start CS2
+
+**Start CS2** on the Counter-Strike 2 card writes the game data (GSI) config into the CS2 folder and starts CS2 in the launch mode chosen next to it. Change the console port, add launch options (for example `-novid`) and choose HLAE in **Settings → Setup → Start CS2**.
+
+| Mode | Starts CS2 with | What you get | Needs |
+|---|---|---|---|
+| **Standard** | Steam, your launch options | Game data for the HUDs. Works on any server. | CS2 |
+| **Observer tools** | Steam, `-tools -netconport 2121` | Matchframe connects to CS2's console on this computer: camera control for the Observer (the *Direct (console)* adapter is selected if none was) and the game options below. | The free **CS2 Workshop Tools** (Steam → Counter-Strike 2 → DLC) |
+| **Observer tools + HLAE** | HLAE, `-steam -insecure -tools -netconport 2121` | Also HLAE's options: no flash, team colours in the kill feed, no end-of-match screen. | CS2 Workshop Tools, [HLAE](https://www.advancedfx.org/) (choose `HLAE.exe`), Steam running |
+
+Game options (console modes; sent every time the console connects, and straight away when changed):
+
+- **Hide game HUD**: `cl_draw_only_deathnotices 1`, the game shows only its kill feed and your HUD shows the rest.
+- **X-ray**: `spec_show_xray`, players visible through walls on the observer's screen.
+- HLAE only: **No flash** (`mirv_noflash 1`), **Team colours in kill feed** (`mirv_deathmsg colors`, using each team's colour from Teams, swapped at half time), **Hide end-of-match screen** (`mirv_endofmatch 0`).
+
+The card shows **Console connected** once CS2 is up. If it keeps showing *Console: waiting for CS2* after CS2 has started, the CS2 Workshop Tools are usually not installed, or CS2 was already running (close it and click Start CS2 again).
+
+**HLAE runs CS2 insecure.** Matchframe asks you to accept this before the HLAE mode is used:
+
+- Insecure CS2 cannot join VAC-secured servers. The match server must allow insecure observers (`tv_secure_bypass 1`), or use LAN or demos.
+- Never join matchmaking or a VAC-secured server while HLAE is loaded: HLAE's developers warn that this can get the account VAC banned.
+- CS2 updates often break HLAE until HLAE ships an update. Standard and Observer tools keep working; install the latest HLAE when HLAE fails to start CS2.
+
+HLAE is a separate download (MIT licence) and is not included with Matchframe. Matchframe never changes server settings and sends only the fixed console lines listed above.
 
 ## Add a HUD
 
@@ -92,6 +118,8 @@ The header shows the game-data state. If CS2 stops sending data (game closed, ma
 | OBS source shows a black background | Custom CSS in the source settings; clear it |
 | HUD shows Error | The package's files changed on disk or its entry file is missing: re-import it |
 | Hotkey not working | Registration failure in the HUD's details; choose another combination |
+| Console never connects | CS2 Workshop Tools installed; CS2 started with Start CS2 (not already running); the same console port in Setup and in CS2's launch options |
+| HLAE could not start CS2 | Latest HLAE installed (CS2 updates break older versions); Steam running; the HLAE folder still has `x64\AfxHookSource2.dll` |
 | Update stuck or failing | **Settings → General → Program** shows the error; **Check for updates** again, or download the installer from the website and install over the current version (HUDs and settings are kept) |
 
 ## What is verified automatically, and what needs a manual check

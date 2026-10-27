@@ -9,6 +9,7 @@ import { registerHudIpc } from "./hud/ipc.ts";
 import { OverlayManager } from "./hud/overlays.ts";
 import { OverlayStore } from "./hud/store.ts";
 import type { Library } from "./hud/types.ts";
+import { hlaeInfo, startCs2, type PreparedLaunch } from "./game-launch.ts";
 import { createTray, type ProgramTray } from "./tray.ts";
 import { createUpdater, type Updater } from "./updater.ts";
 
@@ -63,14 +64,16 @@ let updater: Updater | null = null;
 /** Small program preferences (not engine settings): `<userData>/program-settings.json`. */
 interface ProgramSettings {
   autoDownloadUpdates: boolean;
+  /** HLAE.exe for the Start CS2 HLAE mode (chosen by the operator on this computer). */
+  hlaePath: string | null;
 }
 const programSettingsFile = () => join(app.getPath("userData"), "program-settings.json");
 function readProgramSettings(): ProgramSettings {
   try {
     const raw = JSON.parse(readFileSync(programSettingsFile(), "utf8")) as Partial<ProgramSettings>;
-    return { autoDownloadUpdates: raw.autoDownloadUpdates !== false };
+    return { autoDownloadUpdates: raw.autoDownloadUpdates !== false, hlaePath: typeof raw.hlaePath === "string" ? raw.hlaePath : null };
   } catch {
-    return { autoDownloadUpdates: true };
+    return { autoDownloadUpdates: true, hlaePath: null };
   }
 }
 function writeProgramSettings(patch: Partial<ProgramSettings>): void {
@@ -507,11 +510,26 @@ ipcMain.handle("mf:update-install", (event) => {
   if (fromApp(event)) updater?.installNow();
 });
 ipcMain.handle("mf:update-auto", (event, on: unknown) => (fromApp(event) && updater && typeof on === "boolean" ? updater.setAutoDownload(on) : null));
-// Starts CS2 through Steam (Steam asks before anything runs; nothing else can be launched).
+// Start CS2: the engine prepares it (GSI config, launch options, console); this process starts
+// Steam, or HLAE (a program the operator chose on this computer). Nothing else can be started.
 ipcMain.handle("mf:launch-cs2", async (event) => {
-  if (!fromApp(event)) return false;
-  await shell.openExternal("steam://rungameid/730");
-  return true;
+  if (!fromApp(event)) return { ok: false, message: "not allowed" };
+  if (connection.mode !== "local") return { ok: false, message: "CS2 starts on the production computer: use Start CS2 there." };
+  try {
+    const prepared = await engineRequest<PreparedLaunch>("POST", "/api/v1/game/prepare-launch");
+    return await startCs2(prepared, { hlaePath: readProgramSettings().hlaePath, openExternal: (url) => shell.openExternal(url) });
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+});
+ipcMain.handle("mf:hlae-info", (event) => (fromApp(event) ? hlaeInfo(readProgramSettings().hlaePath) : null));
+ipcMain.handle("mf:hlae-choose", async (event) => {
+  if (!fromApp(event) || !win) return null;
+  const r = await dialog.showOpenDialog(win, { title: "Choose HLAE.exe", properties: ["openFile"], filters: [{ name: "HLAE", extensions: ["exe"] }] });
+  if (r.canceled || !r.filePaths[0]) return hlaeInfo(readProgramSettings().hlaePath);
+  const info = hlaeInfo(r.filePaths[0]);
+  if (info.ok) writeProgramSettings({ hlaePath: info.path });
+  return info;
 });
 // Read by the preload script when the console loads (remote mode disables desktop HUDs).
 ipcMain.on("mf:hud-availability", (event) => {

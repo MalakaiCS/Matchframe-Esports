@@ -230,7 +230,7 @@ export const FEATURES: Feature[] = [
         <p>Game State Integration carries telemetry only; it can't move the camera. Matchframe uses a separate control channel:</p>
         <ul>
           <li>
-            <strong>Direct console:</strong> the observer client is started with a <code>-netconport</code> launch option and the program connects on this computer.
+            <strong>Direct console:</strong> the program starts CS2 with the <code>-tools -netconport</code> launch options (Start CS2, Observer tools mode; needs the free CS2 Workshop Tools) and connects to its console on this computer.
           </li>
           <li>
             <strong>Keyboard:</strong> player-slot key presses are sent only to the focused CS2 window; nothing is sent if another window has focus.
@@ -248,7 +248,7 @@ export const FEATURES: Feature[] = [
         <p>No memory reading, code injection or anti-cheat evasion is used.</p>
       </>
     ),
-    how: ["Add -netconport to the observer client's launch options and choose Direct (console), or choose Keyboard.", "Run the player-selection test; automatic player cuts stay blocked until it passes.", "For cinematics and nade cameras, author cameras in Maps & Cameras, run the static camera test and validate each camera.", "Choose an Observer mode and arm automation from Live Control."],
+    how: ["Start CS2 from the program in the Observer tools mode (needs the free CS2 Workshop Tools), or choose Keyboard.", "Run the player-selection test; automatic player cuts stay blocked until it passes.", "For cinematics and nade cameras, author cameras in Maps & Cameras, run the static camera test and validate each camera.", "Choose an Observer mode and arm automation from Live Control."],
     needs: ["A CS2 observer or spectator client on the same computer as the control adapter", "A passed player-selection test for this game build", "Validated cameras for the current map revision for cinematics and nade cameras"],
     status: <>Both adapters are built against the public documentation and tested with a simulated observer. Real camera control hasn't yet been verified on a real CS2 client, which is exactly why the setup tests gate automation.</>,
     faqs: [

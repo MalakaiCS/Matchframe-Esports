@@ -21,8 +21,13 @@ contextBridge.exposeInMainWorld("matchframe", {
   platform: process.platform,
   /** The window has no system title bar: the console's header is the drag region (window buttons drawn over its right end). */
   customTitleBar: true,
-  /** Starts CS2 through Steam. */
-  launchCs2: (): Promise<boolean> => ipcRenderer.invoke("mf:launch-cs2"),
+  /** Start CS2 with the launch mode set in the engine (Steam, or HLAE). */
+  launchCs2: (): Promise<{ ok: boolean; message: string }> => ipcRenderer.invoke("mf:launch-cs2"),
+  /** HLAE.exe for the HLAE launch mode, chosen with a file dialog on this computer. */
+  hlae: {
+    info: (): Promise<{ path: string | null; ok: boolean; problem: string | null } | null> => ipcRenderer.invoke("mf:hlae-info"),
+    choose: (): Promise<{ path: string | null; ok: boolean; problem: string | null } | null> => ipcRenderer.invoke("mf:hlae-choose"),
+  },
   /** Automatic updates (apps/desktop/src/updater.ts). */
   updates: {
     state: (): Promise<unknown> => ipcRenderer.invoke("mf:update-state"),

@@ -1122,6 +1122,197 @@
         }
       }
     },
+    "/api/v1/game/console": {
+      "get": {
+        "operationId": "get_api_v1_game_console",
+        "summary": "GET /api/v1/game/console",
+        "description": "Requires permission `state.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/game/launch-profile": {
+      "put": {
+        "operationId": "put_api_v1_game_launch_profile",
+        "summary": "PUT /api/v1/game/launch-profile",
+        "description": "Requires permission `settings.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "standard",
+                      "tools",
+                      "hlae"
+                    ]
+                  },
+                  "netconPort": {
+                    "default": 2121,
+                    "type": "integer",
+                    "minimum": 1024,
+                    "maximum": 65535
+                  },
+                  "extraArgs": {
+                    "default": "",
+                    "type": "string",
+                    "maxLength": 400
+                  },
+                  "acknowledgeInsecure": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/game/console-options": {
+      "put": {
+        "operationId": "put_api_v1_game_console_options",
+        "summary": "PUT /api/v1/game/console-options",
+        "description": "Requires permission `camera.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "hideGameHud": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "xray": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "noFlash": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "killfeedTeamColours": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "hideEndOfMatch": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/game/prepare-launch": {
+      "post": {
+        "operationId": "post_api_v1_game_prepare_launch",
+        "summary": "POST /api/v1/game/prepare-launch",
+        "description": "Requires permission `settings.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
     "/api/v1/assets": {
       "post": {
         "operationId": "post_api_v1_assets",
@@ -7894,6 +8085,597 @@
       "get": {
         "operationId": "get_api_v1_hud_outputs_id_state",
         "summary": "GET /api/v1/hud/outputs/:id/state",
+        "description": "Requires permission `state.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library": {
+      "get": {
+        "operationId": "get_api_v1_hud_library",
+        "summary": "GET /api/v1/hud/library",
+        "description": "Requires permission `metadata.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/import": {
+      "post": {
+        "operationId": "post_api_v1_hud_library_import",
+        "summary": "POST /api/v1/hud/library/import",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/import-folder": {
+      "post": {
+        "operationId": "post_api_v1_hud_library_import_folder",
+        "summary": "POST /api/v1/hud/library/import-folder",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "onConflict": {
+                    "type": "string",
+                    "enum": [
+                      "fail",
+                      "replace",
+                      "copy"
+                    ]
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/visibility": {
+      "post": {
+        "operationId": "post_api_v1_hud_library_visibility",
+        "summary": "POST /api/v1/hud/library/visibility",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "hidden": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "hidden"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/{id}/duplicate": {
+      "post": {
+        "operationId": "post_api_v1_hud_library_id_duplicate",
+        "summary": "POST /api/v1/hud/library/:id/duplicate",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/{id}/export": {
+      "get": {
+        "operationId": "get_api_v1_hud_library_id_export",
+        "summary": "GET /api/v1/hud/library/:id/export",
+        "description": "Requires permission `metadata.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/{id}": {
+      "delete": {
+        "operationId": "delete_api_v1_hud_library_id",
+        "summary": "DELETE /api/v1/hud/library/:id",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/{id}/settings": {
+      "put": {
+        "operationId": "put_api_v1_hud_library_id_settings",
+        "summary": "PUT /api/v1/hud/library/:id/settings",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "settings": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  },
+                  "presetId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "settings"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/{id}/start": {
+      "post": {
+        "operationId": "post_api_v1_hud_library_id_start",
+        "summary": "POST /api/v1/hud/library/:id/start",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/{id}/stop": {
+      "post": {
+        "operationId": "post_api_v1_hud_library_id_stop",
+        "summary": "POST /api/v1/hud/library/:id/stop",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/{id}/reload": {
+      "post": {
+        "operationId": "post_api_v1_hud_library_id_reload",
+        "summary": "POST /api/v1/hud/library/:id/reload",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/{id}/rollback": {
+      "post": {
+        "operationId": "post_api_v1_hud_library_id_rollback",
+        "summary": "POST /api/v1/hud/library/:id/rollback",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/{id}/rotate-token": {
+      "post": {
+        "operationId": "post_api_v1_hud_library_id_rotate_token",
+        "summary": "POST /api/v1/hud/library/:id/rotate-token",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/library/{id}/state": {
+      "get": {
+        "operationId": "get_api_v1_hud_library_id_state",
+        "summary": "GET /api/v1/hud/library/:id/state",
         "description": "Requires permission `state.read`.",
         "security": [
           {

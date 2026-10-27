@@ -10,6 +10,7 @@ import { can } from "./auth.ts";
 import { isLoopback } from "./config.ts";
 import { assetDir, registerDomainRoutes } from "./routes/domain.ts";
 import { registerCoreRoutes } from "./routes/core.ts";
+import { registerGameRoutes } from "./routes/game.ts";
 import { registerHudRoutes } from "./routes/hud.ts";
 import { registerHudLibraryRoutes } from "./routes/hud-library.ts";
 import { libraryHudId, libraryOutputId } from "./hud/library.ts";
@@ -76,6 +77,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     onError: (err, req) => e.logger.error("request failed", { ...req, error: err instanceof Error ? err.stack : String(err) }),
   });
   registerCoreRoutes(router, e);
+  registerGameRoutes(router, e);
   registerDomainRoutes(router, e);
   registerLiveRoutes(router, e);
   registerHudRoutes(router, e);

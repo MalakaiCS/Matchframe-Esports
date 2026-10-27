@@ -41,6 +41,7 @@ import { TrainingService } from "./demos/training.ts";
 import { buildBracket, computeStandings } from "./domain/standings.ts";
 import { DemoLibrary, PythonWorkerRunner } from "./demos/library.ts";
 import { RoundSimulator } from "./sim/simulator.ts";
+import { GameConsoleService } from "./game/console.ts";
 
 export const SetupProfile = z.object({
   id: z.string(),
@@ -119,6 +120,8 @@ export class Engine {
   readonly cloud: CloudLink;
   readonly usageLedger: UsageLedger;
   readonly meter: AutoDirectorMeter;
+  /** Start CS2 (launch profile) and the game's console while it runs (console options). */
+  readonly gameConsole: GameConsoleService;
   private meterTimer: ReturnType<typeof setInterval> | null = null;
   private cloudMap: string | null = null;
 
@@ -222,6 +225,8 @@ export class Engine {
       const st = this.session.state();
       return !!st && !st.simulated && !st.sources[0]?.stale;
     });
+
+    this.gameConsole = new GameConsoleService({ settings: this.settings, teams: this.teams, logger: this.logger });
 
     this.session.on("events", (evs) => this.onDerivedEvents(evs));
     this.session.on("state", (s) => this.onState(s));
@@ -465,6 +470,7 @@ export class Engine {
   }
 
   private onState(s: MatchState): void {
+    if (!s.simulated) this.gameConsole.onState(s);
     for (const o of this.outputs.list()) {
       const pub = o.published?.data;
       if (pub && pub.timelineProfile === "delayed" && pub.delayMs > 0) {
@@ -658,7 +664,10 @@ export class Engine {
     const s = this.observerSettings();
     const verified = this.settings.get<Record<string, { support: "supported" | "partial"; build: string | null; at: string }>>("observer.verifiedControl", {});
     if (s.kind === "netcon") {
-      await this.session.setAdapter(new NetconObserverAdapter({ host: s.host, port: s.port, templates: s.templates, now: this.now, verified }));
+      // Shares the console connection Start CS2 opened when it is the same game console.
+      const shared = this.gameConsole.connection;
+      const connection = shared && shared.port === s.port && ["127.0.0.1", "localhost"].includes(s.host) ? shared : undefined;
+      await this.session.setAdapter(new NetconObserverAdapter({ host: s.host, port: s.port, templates: s.templates, now: this.now, verified, connection }));
     } else if (s.kind === "keyboard") {
       const backend = await loadWindowsInputBackend();
       await this.session.setAdapter(new KeyboardObserverAdapter(backend, { windowTitle: new RegExp(s.windowTitle), now: this.now, verified: verified.playerSelectionControl ?? null }));
@@ -722,6 +731,8 @@ export class Engine {
   async init(): Promise<void> {
     this.hudLibrary.installSamples(this.cfg.sampleHudsDirs);
     this.configureReplay();
+    this.gameConsole.sync();
+    this.gameConsole.onConnectionChange(() => void this.applyObserverAdapter());
     await this.applyObserverAdapter();
     this.session.start();
     this.meterTimer = setInterval(() => this.meter.tick(this.meterInput()), 1000);
@@ -743,6 +754,7 @@ export class Engine {
     await this.cloud.stop().catch(() => undefined);
     await this.obs.disconnect().catch(() => undefined);
     await this.session.setAdapter(null);
+    this.gameConsole.stop();
     this.db.close();
   }
 

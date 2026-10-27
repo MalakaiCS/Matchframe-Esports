@@ -246,4 +246,44 @@ describe("HUD Library screen", () => {
     expect(remove.disabled).toBe(true);
     expect(remove.title).toMatch(/part of the program/);
   });
+
+  it("starts CS2 and sends game options through the console; asks before the HLAE mode", async () => {
+    const launches: number[] = [];
+    (window as { matchframe?: unknown }).matchframe = {
+      launchCs2: async () => (launches.push(1), { ok: true, message: "Starting CS2 through Steam with the console on port 2121." }),
+      hlae: { info: async () => ({ path: null, ok: false, problem: "Choose HLAE.exe" }), choose: async () => null },
+    };
+    const consoleStatus = (mode: string) => ({
+      profile: { mode, netconPort: 2121, extraArgs: "", insecureAcknowledgedAt: null },
+      options: { hideGameHud: true, xray: true, noFlash: false, killfeedTeamColours: false, hideEndOfMatch: false },
+      console: "connected",
+      port: 2121,
+      connectedAt: "2026-10-27T10:00:00.000Z",
+      lastError: null,
+      lastApplyError: null,
+      lastAppliedAt: null,
+    });
+    const calls = serve((m, p) => {
+      if (m === "GET" && p === "/api/v1/hud/library") return { status: 200, json: library([SAMPLE]) };
+      if (m === "GET" && p === "/api/v1/game/console") return { status: 200, json: consoleStatus("tools") };
+      if (m === "PUT" && p.startsWith("/api/v1/game/")) return { status: 200, json: consoleStatus("tools") };
+      return undefined;
+    });
+    renderScreen();
+    const card = await screen.findByRole("region", { name: "Game" });
+    expect(await within(card).findByText("Console connected")).toBeTruthy();
+    expect(within(card).queryByRole("switch", { name: "No flash" })).toBeNull();
+    fireEvent.click(within(card).getByRole("switch", { name: "X-ray" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "PUT" && c.path === "/api/v1/game/console-options" && c.body === JSON.stringify({ xray: false }))).toBe(true));
+
+    fireEvent.click(within(card).getByRole("button", { name: /Start CS2/ }));
+    await waitFor(() => expect(launches).toHaveLength(1));
+    expect(await screen.findByText(/Starting CS2 through Steam/)).toBeTruthy();
+
+    fireEvent.change(within(card).getByLabelText("Launch mode"), { target: { value: "hlae" } });
+    const dialog = await screen.findByRole("dialog", { name: "Start CS2 with HLAE?" });
+    expect(within(dialog).getByText(/VAC banned/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "I understand, use HLAE" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "PUT" && c.path === "/api/v1/game/launch-profile" && JSON.parse(String(c.body)).acknowledgeInsecure === true && JSON.parse(String(c.body)).mode === "hlae")).toBe(true));
+  });
 });
