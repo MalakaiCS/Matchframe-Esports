@@ -30,7 +30,8 @@ function FeatureSection({ f, reverse }: { f: Feature; reverse: boolean }) {
         <CheckList items={f.highlights} />
         <p>
           <Link to={`/features/${f.slug}`} className="link-arrow">
-            Learn more<span className="visually-hidden"> about {f.title}</span> <Icon name="arrow" size={18} />
+            Learn more <span className="visually-hidden">about {f.title}</span>
+            <Icon name="arrow" size={18} />
           </Link>
         </p>
       </div>

@@ -25,7 +25,7 @@ function SessionRow({ s, onRevoked }: { s: AuthSession; onRevoked: () => void })
       </div>
       {!s.current && (
         <Button size="sm" variant="ghost" className="btn-danger-text" onClick={() => setAsking(true)}>
-          Sign out<span className="visually-hidden"> {dev.label}</span>
+          Sign out <span className="visually-hidden">{dev.label}</span>
         </Button>
       )}
       {asking && (

@@ -110,7 +110,7 @@ export function AdminEmails() {
                             void log.reload();
                           }}
                         >
-                          Resend<span className="visually-hidden"> to {e.to}</span>
+                          Resend <span className="visually-hidden">to {e.to}</span>
                         </ActionButton>
                       </td>
                     )}

@@ -283,7 +283,7 @@ export function CatalogEditor({ readOnly = false }: { readOnly?: boolean }) {
                 <td data-label="Actions" className="cell-actions">
                   {!readOnly && (
                     <Button size="sm" onClick={() => setEditing({ kind: "plan", item: p })}>
-                      Edit<span className="visually-hidden"> {p.name}</span>
+                      Edit <span className="visually-hidden">{p.name}</span>
                     </Button>
                   )}
                 </td>
@@ -332,7 +332,7 @@ export function CatalogEditor({ readOnly = false }: { readOnly?: boolean }) {
                 <td data-label="Actions" className="cell-actions">
                   {!readOnly && (
                     <Button size="sm" onClick={() => setEditing({ kind: "pack", item: h })}>
-                      Edit<span className="visually-hidden"> {h.name}</span>
+                      Edit <span className="visually-hidden">{h.name}</span>
                     </Button>
                   )}
                 </td>
