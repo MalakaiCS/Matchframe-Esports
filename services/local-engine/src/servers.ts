@@ -37,17 +37,34 @@ export interface RunningServers {
   close(): Promise<void>;
 }
 
-function listen(server: Server, port: number, host: string): Promise<void> {
+function listenOnce(server: Server, port: number, host: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const onError = (e: NodeJS.ErrnoException) => {
-      reject(e.code === "EADDRINUSE" ? new Error(`Port ${port} on ${host} is already in use. Change the port in Settings (or MATCHFRAME_*_PORT) and update the GSI config.`) : e);
-    };
+    const onError = (e: NodeJS.ErrnoException) => reject(e);
     server.once("error", onError);
     server.listen(port, host, () => {
       server.off("error", onError);
       resolve();
     });
   });
+}
+
+/**
+ * Listens on the port, retrying for a while when it is busy: when the program restarts the engine,
+ * the previous engine may still be releasing its ports.
+ */
+async function listen(server: Server, port: number, host: string, log: (msg: string) => void, waitMs = 20_000): Promise<void> {
+  const until = Date.now() + waitMs;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await listenOnce(server, port, host);
+    } catch (e) {
+      const err = e as NodeJS.ErrnoException;
+      if (err.code !== "EADDRINUSE") throw err;
+      if (Date.now() >= until) throw new Error(`Port ${port} on ${host} is already in use. Change the port in Settings (or MATCHFRAME_*_PORT) and update the GSI config.`, { cause: e });
+      if (attempt === 0) log(`port ${port} is busy; waiting up to ${Math.round(waitMs / 1000)} s for it`);
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
 }
 
 export async function startServers(e: Engine): Promise<RunningServers> {
@@ -389,9 +406,10 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   });
 
   if (!isLoopback(cfg.host)) e.logger.warn("engine is bound to a non-loopback address; LAN clients need tokens and should use a firewall", { host: cfg.host });
-  await listen(gsi, cfg.gsiPort, cfg.host);
-  await listen(api, cfg.apiPort, cfg.host);
-  await listen(overlay, cfg.overlayPort, cfg.host);
+  const portLog = (msg: string) => e.logger.warn(msg);
+  await listen(gsi, cfg.gsiPort, cfg.host, portLog);
+  await listen(api, cfg.apiPort, cfg.host, portLog);
+  await listen(overlay, cfg.overlayPort, cfg.host, portLog);
   e.logger.info("engine listening", { host: cfg.host, gsiPort: cfg.gsiPort, apiPort: cfg.apiPort, overlayPort: cfg.overlayPort });
 
   return {
