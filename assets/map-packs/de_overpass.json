@@ -2889,17 +2889,17 @@
   ],
   "cameras": [
     {
-      "id": "nav-overpass-bombsite_a-1",
-      "displayName": "A site from Lower Park",
+      "id": "cs2-overpass-bombsite_a-1",
+      "displayName": "A site #1",
       "mapName": "de_overpass",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -2480.0,
-        "y": 80.0,
-        "z": 567.6
+        "x": -1750.0,
+        "y": 696.6,
+        "z": 748.0
       },
-      "pitch": 4.17,
-      "yaw": 84.06,
+      "pitch": 16.83,
+      "yaw": 177.61,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2907,13 +2907,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -2412.5,
-          "y": 728.8,
-          "z": 520.0
+          "x": -2400.0,
+          "y": 736.0,
+          "z": 528.0
         },
-        "radiusUnits": 911.5,
-        "zMin": 372.0,
-        "zMax": 764.1,
+        "radiusUnits": 804.0,
+        "zMin": 249.2,
+        "zMax": 826.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2931,26 +2931,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (LowerPark, 652 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 651 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-overpass-bombsite_a-2",
-      "displayName": "A site from Lobby",
+      "id": "cs2-overpass-bombsite_a-2",
+      "displayName": "A site #2",
       "mapName": "de_overpass",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -2544.0,
-        "y": 1296.0,
-        "z": 620.0
+        "x": -2894.2,
+        "y": 911.7,
+        "z": 742.0
       },
-      "pitch": 9.74,
-      "yaw": -76.94,
+      "pitch": 23.02,
+      "yaw": -24.51,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2958,13 +2958,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -2412.5,
-          "y": 728.8,
-          "z": 520.0
+          "x": -2400.0,
+          "y": 736.0,
+          "z": 528.0
         },
-        "radiusUnits": 911.5,
-        "zMin": 372.0,
-        "zMax": 764.1,
+        "radiusUnits": 804.0,
+        "zMin": 249.2,
+        "zMax": 826.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2982,26 +2982,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Lobby, 582 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 525 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-overpass-bombsite_a-3",
+      "id": "cs2-overpass-bombsite_a-3",
       "displayName": "A site #3",
       "mapName": "de_overpass",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -1840.0,
-        "y": 720.0,
-        "z": 620.0
+        "x": -2389.8,
+        "y": 1039.4,
+        "z": 799.5
       },
-      "pitch": 9.91,
-      "yaw": 179.12,
+      "pitch": 38.29,
+      "yaw": -99.57,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3009,13 +3009,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -2412.5,
-          "y": 728.8,
-          "z": 520.0
+          "x": -2400.0,
+          "y": 736.0,
+          "z": 528.0
         },
-        "radiusUnits": 911.5,
-        "zMin": 372.0,
-        "zMax": 764.1,
+        "radiusUnits": 804.0,
+        "zMin": 249.2,
+        "zMax": 826.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3033,26 +3033,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BombsiteA, 573 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 304 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-overpass-bombsite_b-1",
-      "displayName": "B site from Water",
+      "id": "cs2-overpass-bombsite_b-1",
+      "displayName": "B site #1",
       "mapName": "de_overpass",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -1520.0,
-        "y": 400.0,
-        "z": 140.3
+        "x": -1633.8,
+        "y": 104.5,
+        "z": 361.5
       },
-      "pitch": -0.33,
-      "yaw": -25.06,
+      "pitch": 18.52,
+      "yaw": 4.19,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3060,13 +3060,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -931.4,
-          "y": 124.8,
-          "z": 144.0
+          "x": -992.0,
+          "y": 160.0,
+          "z": 150.8
         },
-        "radiusUnits": 500.0,
-        "zMin": -54.2,
-        "zMax": 348.0,
+        "radiusUnits": 576.9,
+        "zMin": -83.1,
+        "zMax": 440.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3084,26 +3084,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Water, 650 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 644 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 86% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-overpass-bombsite_b-2",
+      "id": "cs2-overpass-bombsite_b-2",
       "displayName": "B site from Canal",
       "mapName": "de_overpass",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -304.0,
-        "y": 272.0,
-        "z": 156.7
+        "x": -360.0,
+        "y": 24.0,
+        "z": 280.3
       },
-      "pitch": 1.12,
-      "yaw": -166.79,
+      "pitch": 14.11,
+      "yaw": 168.95,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3111,13 +3111,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -931.4,
-          "y": 124.8,
-          "z": 144.0
+          "x": -992.0,
+          "y": 160.0,
+          "z": 150.8
         },
-        "radiusUnits": 500.0,
-        "zMin": -54.2,
-        "zMax": 348.0,
+        "radiusUnits": 576.9,
+        "zMin": -83.1,
+        "zMax": 440.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3135,26 +3135,127 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Canal, 644 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Canal), 260 units up, 646 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 83% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-overpass-t_spawn-1",
+      "id": "cs2-overpass-bombsite_b-3",
+      "displayName": "B site #3",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1072.0,
+        "y": 470.5,
+        "z": 340.5
+      },
+      "pitch": 31.38,
+      "yaw": -68.88,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": 160.0,
+          "z": 150.8
+        },
+        "radiusUnits": 576.9,
+        "zMin": -83.1,
+        "zMax": 440.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 321 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-connector-1",
+      "displayName": "Connector #1",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -2129.5,
+        "y": -912.5,
+        "z": 276.0
+      },
+      "pitch": 17.76,
+      "yaw": -16.18,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "connector"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1824.0,
+          "y": -992.0,
+          "z": 167.7
+        },
+        "radiusUnits": 500.0,
+        "zMin": 4.0,
+        "zMax": 452.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 316 units from the Connector centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 84% of the area, and 53% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-t_spawn-1",
       "displayName": "T spawn #1",
       "mapName": "de_overpass",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -1456.0,
-        "y": -3248.0,
-        "z": 429.9
+        "x": -1003.8,
+        "y": -2925.9,
+        "z": 455.0
       },
-      "pitch": 16.38,
-      "yaw": 45.29,
+      "pitch": 22.44,
+      "yaw": 54.97,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3162,13 +3263,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -998.5,
-          "y": -2785.8,
-          "z": 238.7
+          "x": -672.0,
+          "y": -2400.0,
+          "z": 200.5
         },
-        "radiusUnits": 1034.6,
-        "zMin": 44.5,
-        "zMax": 554.6,
+        "radiusUnits": 500.0,
+        "zMin": 52.0,
+        "zMax": 416.5,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3181,26 +3282,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (TSpawn, 650 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 622 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-overpass-t_spawn-2",
-      "displayName": "T spawn #2",
+      "id": "cs2-overpass-t_spawn-2",
+      "displayName": "T spawn from Side Alley",
       "mapName": "de_overpass",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -560.0,
-        "y": -2288.0,
-        "z": 284.8
+        "x": -298.0,
+        "y": -1879.5,
+        "z": 425.3
       },
-      "pitch": 3.97,
-      "yaw": -131.38,
+      "pitch": 18.57,
+      "yaw": -123.05,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3208,13 +3309,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -998.5,
-          "y": -2785.8,
-          "z": 238.7
+          "x": -672.0,
+          "y": -2400.0,
+          "z": 200.5
         },
-        "radiusUnits": 1034.6,
-        "zMin": 44.5,
-        "zMax": 554.6,
+        "radiusUnits": 500.0,
+        "zMin": 52.0,
+        "zMax": 416.5,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3227,46 +3328,56 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (TSpawn, 663 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Side Alley), 260 units up, 641 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
     {
-      "id": "nav-overpass-bombsite_a-push",
-      "displayName": "A site push-in",
+      "id": "cs2-overpass-bombsite_a-orbit",
+      "displayName": "A site orbit",
       "mapName": "de_overpass",
       "mapRevision": "observed_builds:13914",
       "keyframes": [
         {
           "tMs": 0,
           "position": {
-            "x": -2480.0,
-            "y": 80.0,
-            "z": 567.6
+            "x": -2712.0,
+            "y": 360.0,
+            "z": 762.0
           },
-          "pitch": 4.17,
-          "yaw": 84.06
+          "pitch": 25.59,
+          "yaw": 50.31
         },
         {
-          "tMs": 6000,
+          "tMs": 2707,
           "position": {
-            "x": -2449.6,
-            "y": 372.0,
-            "z": 574.1
+            "x": -2449.4,
+            "y": 219.6,
+            "z": 760.0
           },
-          "pitch": 8.57,
-          "yaw": 84.06
+          "pitch": 24.1,
+          "yaw": 84.54
+        },
+        {
+          "tMs": 3749,
+          "position": {
+            "x": -2400.0,
+            "y": 133.5,
+            "z": 702.7
+          },
+          "pitch": 16.17,
+          "yaw": 90.0
         }
       ],
-      "maxDurationMs": 7000,
+      "maxDurationMs": 4749,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_a"
@@ -3274,7 +3385,109 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-overpass-bombsite_b-push",
+      "id": "cs2-overpass-bombsite_a-push",
+      "displayName": "A site push-in",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -1750.0,
+            "y": 696.6,
+            "z": 748.0
+          },
+          "pitch": 18.67,
+          "yaw": 176.53
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -2042.5,
+            "y": 714.3,
+            "z": 734.5
+          },
+          "pitch": 29.97,
+          "yaw": 176.53
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-overpass-bombsite_b-orbit",
+      "displayName": "B site orbit",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -1533.6,
+            "y": 495.2,
+            "z": 285.0
+          },
+          "pitch": 11.9,
+          "yaw": -31.76
+        },
+        {
+          "tMs": 2476,
+          "position": {
+            "x": -1608.0,
+            "y": 168.0,
+            "z": 338.8
+          },
+          "pitch": 16.97,
+          "yaw": -0.74
+        },
+        {
+          "tMs": 4260,
+          "position": {
+            "x": -1680.0,
+            "y": -59.0,
+            "z": 396.0
+          },
+          "pitch": 18.76,
+          "yaw": 17.66
+        },
+        {
+          "tMs": 6695,
+          "position": {
+            "x": -1416.0,
+            "y": -264.0,
+            "z": 390.6
+          },
+          "pitch": 21.8,
+          "yaw": 45.0
+        },
+        {
+          "tMs": 10000,
+          "position": {
+            "x": -1032.0,
+            "y": -504.0,
+            "z": 364.0
+          },
+          "pitch": 17.77,
+          "yaw": 86.55
+        }
+      ],
+      "maxDurationMs": 11000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-overpass-bombsite_b-push",
       "displayName": "B site push-in",
       "mapName": "de_overpass",
       "mapRevision": "observed_builds:13914",
@@ -3282,30 +3495,148 @@
         {
           "tMs": 0,
           "position": {
-            "x": -1520.0,
-            "y": 400.0,
-            "z": 140.3
+            "x": -1633.8,
+            "y": 104.5,
+            "z": 361.5
           },
-          "pitch": -0.33,
-          "yaw": -25.06
+          "pitch": 18.11,
+          "yaw": 4.94
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -1255.1,
-            "y": 276.1,
-            "z": 169.9
+            "x": -1345.0,
+            "y": 129.5,
+            "z": 348.0
           },
-          "pitch": 4.14,
-          "yaw": -25.06
+          "pitch": 29.1,
+          "yaw": 4.94
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_b"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-overpass-connector-push",
+      "displayName": "Connector push-in",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -2129.5,
+            "y": -912.5,
+            "z": 276.0
+          },
+          "pitch": 18.93,
+          "yaw": -14.59
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -2053.1,
+            "y": -932.4,
+            "z": 268.5
+          },
+          "pitch": 23.06,
+          "yaw": -14.59
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "connector"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-overpass-t_spawn-orbit",
+      "displayName": "T spawn orbit",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -1089.3,
+            "y": -2636.4,
+            "z": 451.5
+          },
+          "pitch": 27.62,
+          "yaw": 29.53
+        },
+        {
+          "tMs": 2744,
+          "position": {
+            "x": -1003.8,
+            "y": -2925.9,
+            "z": 455.0
+          },
+          "pitch": 22.26,
+          "yaw": 57.75
+        },
+        {
+          "tMs": 3245,
+          "position": {
+            "x": -954.0,
+            "y": -2903.5,
+            "z": 447.3
+          },
+          "pitch": 23.15,
+          "yaw": 60.75
+        }
+      ],
+      "maxDurationMs": 4245,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-overpass-t_spawn-push",
+      "displayName": "T spawn push-in",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -1003.8,
+            "y": -2925.9,
+            "z": 455.0
+          },
+          "pitch": 22.26,
+          "yaw": 57.75
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -854.5,
+            "y": -2689.2,
+            "z": 441.5
+          },
+          "pitch": 35.17,
+          "yaw": 57.75
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "t_spawn"
       ],
       "source": "derived_navmesh"
     }
@@ -3972,7 +4303,8 @@
     "createdAt": "2026-10-26T14:04:33.614838Z",
     "sources": [
       "dataset:de_overpass-13914-d7f8405454bafcc9",
-      "awpy 1.3.1 nav_info.csv (MIT, (c) Peter Xenopoulos): CS:GO navigation meshes: regions for places the demo didn't cover (BackofA, BombsiteA, Fountain, Lobby, LowerPark, Pit, Playground, Restroom, SideAlley, Stairs, StorageRoom, UpperPark)"
+      "awpy 1.3.1 nav_info.csv (MIT, (c) Peter Xenopoulos): CS:GO navigation meshes: regions for places the demo didn't cover (BackofA, BombsiteA, Fountain, Lobby, LowerPark, Pit, Playground, Restroom, SideAlley, Stairs, StorageRoom, UpperPark)",
+      "CS2 navigation and collision meshes from awpy-data (build 26144732, read with awpy 3.1.1, MIT): built-in cameras and paths placed on walkable floor and checked for line of sight and clearance"
     ]
   }
 }

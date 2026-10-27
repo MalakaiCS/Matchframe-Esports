@@ -2569,17 +2569,17 @@
   ],
   "cameras": [
     {
-      "id": "nav-ancient-bombsite_a-1",
+      "id": "cs2-ancient-bombsite_a-1",
       "displayName": "A site #1",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": -2096.0,
-        "y": 336.0,
-        "z": 227.6
+        "x": -2124.5,
+        "y": 949.9,
+        "z": 379.0
       },
-      "pitch": 10.96,
-      "yaw": 45.06,
+      "pitch": 29.09,
+      "yaw": -19.97,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2587,13 +2587,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1634.0,
-          "y": 798.9,
-          "z": 100.9
+          "x": -1504.0,
+          "y": 864.0,
+          "z": 104.1
         },
-        "radiusUnits": 899.3,
-        "zMin": -48.2,
-        "zMax": 338.0,
+        "radiusUnits": 1717.7,
+        "zMin": -75.1,
+        "zMax": 381.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2611,26 +2611,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BombsiteA, 654 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 626 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 73% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-ancient-bombsite_a-2",
-      "displayName": "A site from Side Hall",
+      "id": "cs2-ancient-bombsite_a-2",
+      "displayName": "A site #2",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": -1328.0,
-        "y": 336.0,
-        "z": 227.4
+        "x": -1879.5,
+        "y": 462.1,
+        "z": 431.0
       },
-      "pitch": 12.84,
-      "yaw": 123.47,
+      "pitch": 37.96,
+      "yaw": 60.36,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2638,13 +2638,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1634.0,
-          "y": 798.9,
-          "z": 100.9
+          "x": -1504.0,
+          "y": 864.0,
+          "z": 104.1
         },
-        "radiusUnits": 899.3,
-        "zMin": -48.2,
-        "zMax": 338.0,
+        "radiusUnits": 1717.7,
+        "zMin": -75.1,
+        "zMax": 381.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2662,26 +2662,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (SideHall, 555 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 550 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 66% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-ancient-bombsite_a-3",
+      "id": "cs2-ancient-bombsite_a-3",
       "displayName": "A site #3",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": -1904.0,
-        "y": 1168.0,
-        "z": 193.7
+        "x": -1080.0,
+        "y": 648.0,
+        "z": 372.8
       },
-      "pitch": 11.46,
-      "yaw": -53.82,
+      "pitch": 24.39,
+      "yaw": 164.3,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2689,13 +2689,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1634.0,
-          "y": 798.9,
-          "z": 100.9
+          "x": -1504.0,
+          "y": 864.0,
+          "z": 104.1
         },
-        "radiusUnits": 899.3,
-        "zMin": -48.2,
-        "zMax": 338.0,
+        "radiusUnits": 1717.7,
+        "zMin": -75.1,
+        "zMax": 381.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2713,26 +2713,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BombsiteA, 457 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 476 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 62% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-ancient-bombsite_b-1",
-      "displayName": "B site from Side Entrance",
+      "id": "cs2-ancient-bombsite_b-1",
+      "displayName": "B site #1",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": 400.0,
-        "y": 144.0,
-        "z": 294.1
+        "x": 1128.0,
+        "y": -168.0,
+        "z": 385.5
       },
-      "pitch": 10.79,
-      "yaw": 4.99,
+      "pitch": 29.86,
+      "yaw": 107.24,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2740,13 +2740,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 1001.7,
-          "y": 196.5,
-          "z": 179.0
+          "x": 864.0,
+          "y": 352.0,
+          "z": 177.5
         },
-        "radiusUnits": 758.5,
-        "zMin": 18.7,
-        "zMax": 398.0,
+        "radiusUnits": 2320.0,
+        "zMin": -76.5,
+        "zMax": 408.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2764,26 +2764,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (SideEntrance, 604 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 583 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 75% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-ancient-bombsite_b-2",
-      "displayName": "B site from Ramp",
+      "id": "cs2-ancient-bombsite_b-2",
+      "displayName": "B site #2",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": 1232.0,
-        "y": -432.0,
-        "z": 197.6
+        "x": 1224.0,
+        "y": 264.0,
+        "z": 390.6
       },
-      "pitch": 1.59,
-      "yaw": 110.12,
+      "pitch": 41.72,
+      "yaw": -155.87,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2791,13 +2791,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 1001.7,
-          "y": 196.5,
-          "z": 179.0
+          "x": 864.0,
+          "y": 352.0,
+          "z": 177.5
         },
-        "radiusUnits": 758.5,
-        "zMin": 18.7,
-        "zMax": 398.0,
+        "radiusUnits": 2320.0,
+        "zMin": -76.5,
+        "zMax": 408.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2815,26 +2815,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Ramp, 669 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 371 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 81% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-ancient-bombsite_b-3",
+      "id": "cs2-ancient-bombsite_b-3",
       "displayName": "B site #3",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": 720.0,
-        "y": -240.0,
-        "z": 273.3
+        "x": 708.7,
+        "y": 92.8,
+        "z": 394.0
       },
-      "pitch": 10.28,
-      "yaw": 57.16,
+      "pitch": 43.57,
+      "yaw": 46.26,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2842,13 +2842,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 1001.7,
-          "y": 196.5,
-          "z": 179.0
+          "x": 864.0,
+          "y": 352.0,
+          "z": 177.5
         },
-        "radiusUnits": 758.5,
-        "zMin": 18.7,
-        "zMax": 398.0,
+        "radiusUnits": 2320.0,
+        "zMin": -76.5,
+        "zMax": 408.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2866,26 +2866,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BombsiteB, 520 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 302 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 55% of the area, and 71% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-ancient-middle-1",
-      "displayName": "Mid from Top of mid",
+      "id": "cs2-ancient-middle-1",
+      "displayName": "Mid #1",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": -496.0,
-        "y": 208.0,
-        "z": 304.1
+        "x": -264.0,
+        "y": -840.0,
+        "z": 427.0
       },
-      "pitch": 18.49,
-      "yaw": -92.5,
+      "pitch": 37.52,
+      "yaw": 133.28,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2893,13 +2893,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -524.1,
-          "y": -434.8,
-          "z": 89.0
+          "x": -544.0,
+          "y": -224.0,
+          "z": 107.5
         },
-        "radiusUnits": 619.2,
-        "zMin": -68.0,
-        "zMax": 342.4,
+        "radiusUnits": 2421.2,
+        "zMin": -76.5,
+        "zMax": 417.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2916,26 +2916,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (TopofMid, 643 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 677 units from the Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 75% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-ancient-middle-2",
-      "displayName": "Mid from TSide Upper",
+      "id": "cs2-ancient-middle-2",
+      "displayName": "Mid #2",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": -176.0,
-        "y": -816.0,
-        "z": 299.8
+        "x": -216.0,
+        "y": -120.0,
+        "z": 330.9
       },
-      "pitch": 22.21,
-      "yaw": 132.4,
+      "pitch": 24.09,
+      "yaw": -132.43,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2943,13 +2943,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -524.1,
-          "y": -434.8,
-          "z": 89.0
+          "x": -544.0,
+          "y": -224.0,
+          "z": 107.5
         },
-        "radiusUnits": 619.2,
-        "zMin": -68.0,
-        "zMax": 342.4,
+        "radiusUnits": 2421.2,
+        "zMin": -76.5,
+        "zMax": 417.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2966,26 +2966,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (TSideUpper, 516 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 344 units from the Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 77% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-ancient-ct_spawn-1",
-      "displayName": "CT spawn from House",
+      "id": "cs2-ancient-ct_spawn-1",
+      "displayName": "CT spawn #1",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": -112.0,
-        "y": 784.0,
-        "z": 222.1
+        "x": -72.0,
+        "y": 1176.0,
+        "z": 333.0
       },
-      "pitch": 12.77,
-      "yaw": 115.65,
+      "pitch": 35.13,
+      "yaw": 164.57,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2993,13 +2993,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -394.8,
-          "y": 1372.7,
-          "z": 74.1
+          "x": -608.0,
+          "y": 1312.0,
+          "z": 79.0
         },
-        "radiusUnits": 747.6,
-        "zMin": -76.1,
-        "zMax": 320.0,
+        "radiusUnits": 963.3,
+        "zMin": -75.1,
+        "zMax": 367.6,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3012,26 +3012,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (House, 653 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 553 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 73% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-ancient-ct_spawn-2",
-      "displayName": "CT spawn from Back Hall",
+      "id": "cs2-ancient-ct_spawn-2",
+      "displayName": "CT spawn from Outside",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": -1072.0,
-        "y": 1360.0,
-        "z": 215.6
+        "x": -360.0,
+        "y": 1757.4,
+        "z": 291.5
       },
-      "pitch": 11.8,
-      "yaw": 1.08,
+      "pitch": 22.15,
+      "yaw": -91.12,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3039,13 +3039,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -394.8,
-          "y": 1372.7,
-          "z": 74.1
+          "x": -608.0,
+          "y": 1312.0,
+          "z": 79.0
         },
-        "radiusUnits": 747.6,
-        "zMin": -76.1,
-        "zMax": 320.0,
+        "radiusUnits": 963.3,
+        "zMin": -75.1,
+        "zMax": 367.6,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3058,26 +3058,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BackHall, 677 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Outside), 260 units up, 510 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 69% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-ancient-t_spawn-1",
+      "id": "cs2-ancient-t_spawn-1",
       "displayName": "T spawn from Outside",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": -944.0,
-        "y": -1584.0,
-        "z": 97.1
+        "x": -888.0,
+        "y": -1512.0,
+        "z": 126.0
       },
-      "pitch": 17.63,
-      "yaw": -45.22,
+      "pitch": 22.07,
+      "yaw": -51.73,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3085,13 +3085,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -488.9,
-          "y": -2042.6,
-          "z": -108.2
+          "x": -480.0,
+          "y": -1888.0,
+          "z": -124.8
         },
-        "radiusUnits": 733.4,
-        "zMin": -275.4,
-        "zMax": 138.0,
+        "radiusUnits": 4406.5,
+        "zMin": -273.0,
+        "zMax": 276.3,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3104,26 +3104,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Outside, 646 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Outside), 200 units up, 555 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 80% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-ancient-t_spawn-2",
+      "id": "cs2-ancient-t_spawn-2",
       "displayName": "T spawn #2",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": -304.0,
-        "y": -1712.0,
-        "z": -29.2
+        "x": -241.5,
+        "y": -2190.6,
+        "z": 99.0
       },
-      "pitch": 11.77,
-      "yaw": -119.22,
+      "pitch": 35.59,
+      "yaw": 144.67,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3131,13 +3131,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -488.9,
-          "y": -2042.6,
-          "z": -108.2
+          "x": -480.0,
+          "y": -1888.0,
+          "z": -124.8
         },
-        "radiusUnits": 733.4,
-        "zMin": -275.4,
-        "zMax": 138.0,
+        "radiusUnits": 4406.5,
+        "zMin": -273.0,
+        "zMax": 276.3,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3150,18 +3150,18 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (TSpawn, 379 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 385 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 91% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
     {
-      "id": "nav-ancient-bombsite_a-orbit",
+      "id": "cs2-ancient-bombsite_a-orbit",
       "displayName": "A site orbit",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
@@ -3169,37 +3169,57 @@
         {
           "tMs": 0,
           "position": {
-            "x": -2096.0,
-            "y": 720.0,
-            "z": 193.9
+            "x": -2040.0,
+            "y": 1224.0,
+            "z": 379.0
           },
-          "pitch": 11.22,
-          "yaw": 9.69
+          "pitch": 23.06,
+          "yaw": -33.89
         },
         {
-          "tMs": 2918,
+          "tMs": 2608,
           "position": {
-            "x": -2096.0,
-            "y": 400.0,
-            "z": 218.3
+            "x": -2124.5,
+            "y": 949.9,
+            "z": 379.0
           },
-          "pitch": 10.89,
-          "yaw": 40.81
+          "pitch": 23.7,
+          "yaw": -7.88
         },
         {
-          "tMs": 3505,
+          "tMs": 5931,
           "position": {
-            "x": -2096.0,
-            "y": 336.0,
-            "z": 227.6
+            "x": -2040.0,
+            "y": 600.0,
+            "z": 315.2
           },
-          "pitch": 10.96,
-          "yaw": 45.06
+          "pitch": 19.46,
+          "yaw": 26.22
+        },
+        {
+          "tMs": 8123,
+          "position": {
+            "x": -1879.5,
+            "y": 462.1,
+            "z": 431.0
+          },
+          "pitch": 30.73,
+          "yaw": 46.94
+        },
+        {
+          "tMs": 9366,
+          "position": {
+            "x": -1746.5,
+            "y": 438.4,
+            "z": 451.7
+          },
+          "pitch": 35.36,
+          "yaw": 60.33
         }
       ],
-      "maxDurationMs": 4505,
+      "maxDurationMs": 10366,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_a"
@@ -3207,7 +3227,7 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-ancient-bombsite_a-push",
+      "id": "cs2-ancient-bombsite_a-push",
       "displayName": "A site push-in",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
@@ -3215,27 +3235,27 @@
         {
           "tMs": 0,
           "position": {
-            "x": -2096.0,
-            "y": 336.0,
-            "z": 227.6
+            "x": -2124.5,
+            "y": 949.9,
+            "z": 379.0
           },
-          "pitch": 10.96,
-          "yaw": 45.06
+          "pitch": 23.7,
+          "yaw": -7.88
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -1888.1,
-            "y": 544.3,
-            "z": 198.5
+            "x": -1845.3,
+            "y": 911.2,
+            "z": 365.5
           },
-          "pitch": 15.18,
-          "yaw": 45.06
+          "pitch": 37.19,
+          "yaw": -7.88
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_a"
@@ -3243,35 +3263,35 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-ancient-bombsite_b-push",
-      "displayName": "B site push-in",
+      "id": "cs2-ancient-bombsite_b-drift",
+      "displayName": "B site drift",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "keyframes": [
         {
           "tMs": 0,
           "position": {
-            "x": 400.0,
-            "y": 144.0,
-            "z": 294.1
+            "x": 1128.0,
+            "y": -168.0,
+            "z": 385.5
           },
-          "pitch": 10.79,
-          "yaw": 4.99
+          "pitch": 19.63,
+          "yaw": 116.92
         },
         {
           "tMs": 6000,
           "position": {
-            "x": 670.8,
-            "y": 167.6,
-            "z": 270.2
+            "x": 931.8,
+            "y": -267.6,
+            "z": 385.5
           },
-          "pitch": 15.35,
-          "yaw": 4.99
+          "pitch": 18.45,
+          "yaw": 96.25
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_b"
@@ -3279,7 +3299,99 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-ancient-middle-push",
+      "id": "cs2-ancient-bombsite_b-push",
+      "displayName": "B site push-in",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 1128.0,
+            "y": -168.0,
+            "z": 385.5
+          },
+          "pitch": 19.63,
+          "yaw": 116.92
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 1009.2,
+            "y": 66.0,
+            "z": 372.0
+          },
+          "pitch": 31.23,
+          "yaw": 116.92
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-ancient-middle-orbit",
+      "displayName": "Mid orbit",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -888.0,
+            "y": -792.0,
+            "z": 298.3
+          },
+          "pitch": 16.02,
+          "yaw": 58.8
+        },
+        {
+          "tMs": 2591,
+          "position": {
+            "x": -609.0,
+            "y": -850.1,
+            "z": 296.3
+          },
+          "pitch": 16.69,
+          "yaw": 84.07
+        },
+        {
+          "tMs": 5946,
+          "position": {
+            "x": -264.0,
+            "y": -840.0,
+            "z": 427.0
+          },
+          "pitch": 25.27,
+          "yaw": 114.44
+        },
+        {
+          "tMs": 7435,
+          "position": {
+            "x": -281.3,
+            "y": -677.1,
+            "z": 427.0
+          },
+          "pitch": 31.38,
+          "yaw": 120.11
+        }
+      ],
+      "maxDurationMs": 8435,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "middle"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-ancient-middle-push",
       "displayName": "Mid push-in",
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
@@ -3287,30 +3399,204 @@
         {
           "tMs": 0,
           "position": {
-            "x": -496.0,
-            "y": 208.0,
-            "z": 304.1
+            "x": -264.0,
+            "y": -840.0,
+            "z": 427.0
           },
-          "pitch": 18.49,
-          "yaw": -92.5
+          "pitch": 25.27,
+          "yaw": 114.44
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -508.6,
-            "y": -81.3,
-            "z": 235.2
+            "x": -390.0,
+            "y": -562.8,
+            "z": 413.5
           },
-          "pitch": 22.45,
-          "yaw": -92.5
+          "pitch": 39.42,
+          "yaw": 114.44
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "middle"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-ancient-ct_spawn-orbit",
+      "displayName": "CT spawn orbit",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -168.0,
+            "y": 1032.0,
+            "z": 328.0
+          },
+          "pitch": 25.53,
+          "yaw": 147.53
+        },
+        {
+          "tMs": 1574,
+          "position": {
+            "x": -72.0,
+            "y": 1176.0,
+            "z": 333.0
+          },
+          "pitch": 24.67,
+          "yaw": 165.76
+        },
+        {
+          "tMs": 5087,
+          "position": {
+            "x": -72.0,
+            "y": 1560.0,
+            "z": 289.6
+          },
+          "pitch": 19.63,
+          "yaw": -155.17
+        },
+        {
+          "tMs": 7308,
+          "position": {
+            "x": -216.0,
+            "y": 1757.4,
+            "z": 290.0
+          },
+          "pitch": 19.58,
+          "yaw": -131.35
+        },
+        {
+          "tMs": 8618,
+          "position": {
+            "x": -360.0,
+            "y": 1757.4,
+            "z": 291.5
+          },
+          "pitch": 22.63,
+          "yaw": -119.11
+        }
+      ],
+      "maxDurationMs": 9618,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-ancient-ct_spawn-push",
+      "displayName": "CT spawn push-in",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -72.0,
+            "y": 1176.0,
+            "z": 333.0
+          },
+          "pitch": 24.67,
+          "yaw": 165.76
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -313.2,
+            "y": 1237.2,
+            "z": 319.5
+          },
+          "pitch": 38.34,
+          "yaw": 165.76
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-ancient-t_spawn-drift",
+      "displayName": "T spawn drift",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -888.0,
+            "y": -1512.0,
+            "z": 126.0
+          },
+          "pitch": 24.33,
+          "yaw": -42.66
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -1037.1,
+            "y": -1673.8,
+            "z": 126.0
+          },
+          "pitch": 22.79,
+          "yaw": -21.03
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-ancient-t_spawn-push",
+      "displayName": "T spawn push-in",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -888.0,
+            "y": -1512.0,
+            "z": 126.0
+          },
+          "pitch": 24.33,
+          "yaw": -42.66
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -704.4,
+            "y": -1681.2,
+            "z": 112.5
+          },
+          "pitch": 37.87,
+          "yaw": -42.66
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "t_spawn"
       ],
       "source": "derived_navmesh"
     }
@@ -4827,7 +5113,8 @@
     "createdAt": "2026-10-26T14:04:32.455466Z",
     "sources": [
       "dataset:de_ancient-13916-9051f4690a8a2f1a",
-      "awpy 1.3.1 nav_info.csv (MIT, (c) Peter Xenopoulos): CS:GO navigation meshes: regions for places the demo didn't cover (BackHall)"
+      "awpy 1.3.1 nav_info.csv (MIT, (c) Peter Xenopoulos): CS:GO navigation meshes: regions for places the demo didn't cover (BackHall)",
+      "CS2 navigation and collision meshes from awpy-data (build 26144732, read with awpy 3.1.1, MIT): built-in cameras and paths placed on walkable floor and checked for line of sight and clearance"
     ]
   }
 }

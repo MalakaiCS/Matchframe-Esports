@@ -1,6 +1,6 @@
 {
   "name": "@matchframe/desktop",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": true,
   "description": "Matchframe Esports desktop shell (Electron)",
   "main": "dist/main.cjs",

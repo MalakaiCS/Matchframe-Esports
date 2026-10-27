@@ -2690,17 +2690,119 @@
   ],
   "cameras": [
     {
-      "id": "nav-mirage-bombsite_a-1",
+      "id": "cs2-mirage-bombsite_a-1",
+      "displayName": "A site #1",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -792.0,
+        "y": -2472.0,
+        "z": 93.8
+      },
+      "pitch": 17.98,
+      "yaw": 53.4,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": -416.0,
+          "y": -1952.0,
+          "z": -126.8
+        },
+        "radiusUnits": 905.1,
+        "zMin": -276.0,
+        "zMax": 144.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 642 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 91% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-bombsite_a-2",
+      "displayName": "A site #2",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -132.0,
+        "y": -1518.5,
+        "z": 210.0
+      },
+      "pitch": 32.02,
+      "yaw": -120.82,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": -416.0,
+          "y": -1952.0,
+          "z": -126.8
+        },
+        "radiusUnits": 905.1,
+        "zMin": -276.0,
+        "zMax": 144.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 518 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-bombsite_a-3",
       "displayName": "A site from Scaffolding",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": 80.0,
-        "y": -2032.0,
-        "z": 100.8
+        "x": -55.0,
+        "y": -2114.5,
+        "z": 164.0
       },
-      "pitch": 26.92,
-      "yaw": 169.22,
+      "pitch": 35.26,
+      "yaw": 156.39,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2708,13 +2810,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -364.7,
-          "y": -1947.3,
-          "z": -129.1
+          "x": -416.0,
+          "y": -1952.0,
+          "z": -126.8
         },
-        "radiusUnits": 855.0,
-        "zMin": -280.0,
-        "zMax": 84.0,
+        "radiusUnits": 905.1,
+        "zMin": -276.0,
+        "zMax": 144.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2732,128 +2834,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Scaffolding, 453 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Scaffolding), 200 units up, 396 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-mirage-bombsite_a-2",
-      "displayName": "A site from Stairs",
+      "id": "cs2-mirage-bombsite_b-1",
+      "displayName": "B site from Truck",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -496.0,
-        "y": -1520.0,
-        "z": 100.0
+        "x": -2231.0,
+        "y": 724.5,
+        "z": 224.0
       },
-      "pitch": 27.13,
-      "yaw": -72.93,
-      "fov": null,
-      "observerMode": "roaming_static",
-      "targetRegionIds": [
-        "bombsite_a"
-      ],
-      "coverage": {
-        "center": {
-          "x": -364.7,
-          "y": -1947.3,
-          "z": -129.1
-        },
-        "radiusUnits": 855.0,
-        "zMin": -280.0,
-        "zMax": 84.0,
-        "levelId": "ground"
-      },
-      "allowedPhases": [
-        "freezetime",
-        "live",
-        "over"
-      ],
-      "actionClasses": [
-        "bomb",
-        "tactical",
-        "establishing",
-        "utility"
-      ],
-      "grenadeTypes": [],
-      "minAcquisitionMs": 150,
-      "normalDurationMs": 4000,
-      "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
-      "validation": "unvalidated",
-      "exitStrategy": "most_relevant_player",
-      "lastTestedGameBuild": null,
-      "lastTestedMapVersion": null,
-      "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Stairs, 447 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
-    },
-    {
-      "id": "nav-mirage-bombsite_a-3",
-      "displayName": "A site from Ticket Booth",
-      "mapName": "de_mirage",
-      "mapRevision": "navmesh:awpy-1.3.1",
-      "position": {
-        "x": -816.0,
-        "y": -2416.0,
-        "z": -33.4
-      },
-      "pitch": 8.36,
-      "yaw": 46.08,
-      "fov": null,
-      "observerMode": "roaming_static",
-      "targetRegionIds": [
-        "bombsite_a"
-      ],
-      "coverage": {
-        "center": {
-          "x": -364.7,
-          "y": -1947.3,
-          "z": -129.1
-        },
-        "radiusUnits": 855.0,
-        "zMin": -280.0,
-        "zMax": 84.0,
-        "levelId": "ground"
-      },
-      "allowedPhases": [
-        "freezetime",
-        "live",
-        "over"
-      ],
-      "actionClasses": [
-        "bomb",
-        "tactical",
-        "establishing",
-        "utility"
-      ],
-      "grenadeTypes": [],
-      "minAcquisitionMs": 150,
-      "normalDurationMs": 4000,
-      "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
-      "validation": "unvalidated",
-      "exitStrategy": "most_relevant_player",
-      "lastTestedGameBuild": null,
-      "lastTestedMapVersion": null,
-      "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (TicketBooth, 651 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
-    },
-    {
-      "id": "nav-mirage-bombsite_b-1",
-      "displayName": "B site from Balcony",
-      "mapName": "de_mirage",
-      "mapRevision": "navmesh:awpy-1.3.1",
-      "position": {
-        "x": -2032.0,
-        "y": 784.0,
-        "z": 92.0
-      },
-      "pitch": 19.82,
-      "yaw": -80.83,
+      "pitch": 32.54,
+      "yaw": -61.04,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2861,13 +2861,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1939.1,
-          "y": 208.8,
-          "z": -118.0
+          "x": -2016.0,
+          "y": 160.0,
+          "z": -108.0
         },
-        "radiusUnits": 908.4,
-        "zMin": -269.0,
-        "zMax": 103.5,
+        "radiusUnits": 1052.2,
+        "zMin": -266.9,
+        "zMax": 164.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2885,26 +2885,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Balcony, 583 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Truck), 260 units up, 604 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 73% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-mirage-bombsite_b-2",
+      "id": "cs2-mirage-bombsite_b-2",
       "displayName": "B site #2",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -1648.0,
-        "y": 528.0,
-        "z": -28.0
+        "x": -2318.0,
+        "y": -185.0,
+        "z": 96.0
       },
-      "pitch": 11.77,
-      "yaw": -132.37,
+      "pitch": 22.7,
+      "yaw": 39.89,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2912,13 +2912,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1939.1,
-          "y": 208.8,
-          "z": -118.0
+          "x": -2016.0,
+          "y": 160.0,
+          "z": -108.0
         },
-        "radiusUnits": 908.4,
-        "zMin": -269.0,
-        "zMax": 103.5,
+        "radiusUnits": 1052.2,
+        "zMin": -266.9,
+        "zMax": 164.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2936,26 +2936,77 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BombsiteB, 432 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 459 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 59% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-mirage-middle-1",
-      "displayName": "Mid from Top of mid",
+      "id": "cs2-mirage-bombsite_b-3",
+      "displayName": "B site #3",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": 208.0,
-        "y": -816.0,
-        "z": -28.0
+        "x": -2376.0,
+        "y": 264.0,
+        "z": 96.2
       },
-      "pitch": 16.36,
-      "yaw": 169.85,
+      "pitch": 38.71,
+      "yaw": -3.96,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2016.0,
+          "y": 160.0,
+          "z": -108.0
+        },
+        "radiusUnits": 1052.2,
+        "zMin": -266.9,
+        "zMax": 164.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 375 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-middle-1",
+      "displayName": "Mid #1",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 233.0,
+        "y": -642.0,
+        "z": 176.7
+      },
+      "pitch": 28.73,
+      "yaw": -175.79,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2963,13 +3014,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -431.6,
-          "y": -701.6,
-          "z": -218.6
+          "x": -416.0,
+          "y": -672.0,
+          "z": -220.1
         },
-        "radiusUnits": 757.6,
-        "zMin": -388.0,
-        "zMax": 95.5,
+        "radiusUnits": 737.6,
+        "zMin": -384.0,
+        "zMax": 87.1,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2986,26 +3037,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (TopofMid, 650 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 650 units from the Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-mirage-middle-2",
-      "displayName": "Mid from Catwalk",
+      "id": "cs2-mirage-middle-2",
+      "displayName": "Mid #2",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -880.0,
-        "y": -240.0,
-        "z": -28.1
+        "x": -923.1,
+        "y": -483.2,
+        "z": 214.0
       },
-      "pitch": 16.5,
-      "yaw": -45.83,
+      "pitch": 37.98,
+      "yaw": -22.1,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3013,13 +3064,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -431.6,
-          "y": -701.6,
-          "z": -218.6
+          "x": -416.0,
+          "y": -672.0,
+          "z": -220.1
         },
-        "radiusUnits": 757.6,
-        "zMin": -388.0,
-        "zMax": 95.5,
+        "radiusUnits": 737.6,
+        "zMin": -384.0,
+        "zMax": 87.1,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3036,26 +3087,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Catwalk, 644 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 541 units from the Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-mirage-ct_spawn-1",
+      "id": "cs2-mirage-ct_spawn-1",
       "displayName": "CT spawn #1",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -1456.0,
-        "y": -1008.0,
-        "z": -28.0
+        "x": -1560.0,
+        "y": -2376.0,
+        "z": 18.5
       },
-      "pitch": 15.18,
-      "yaw": -101.25,
+      "pitch": 18.61,
+      "yaw": 91.67,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3063,13 +3114,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1591.3,
-          "y": -1687.8,
-          "z": -216.0
+          "x": -1568.0,
+          "y": -1760.0,
+          "z": -215.7
         },
-        "radiusUnits": 1129.7,
-        "zMin": -402.9,
-        "zMax": 82.0,
+        "radiusUnits": 1210.6,
+        "zMin": -397.6,
+        "zMax": 86.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3082,26 +3133,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (CTSpawn, 693 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 616 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-mirage-ct_spawn-2",
+      "id": "cs2-mirage-ct_spawn-2",
       "displayName": "CT spawn #2",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -1392.0,
-        "y": -2288.0,
-        "z": -92.0
+        "x": -1686.6,
+        "y": -1147.7,
+        "z": 76.0
       },
-      "pitch": 11.1,
-      "yaw": 108.37,
+      "pitch": 27.18,
+      "yaw": -79.87,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3109,13 +3160,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1591.3,
-          "y": -1687.8,
-          "z": -216.0
+          "x": -1568.0,
+          "y": -1760.0,
+          "z": -215.7
         },
-        "radiusUnits": 1129.7,
-        "zMin": -402.9,
-        "zMax": 82.0,
+        "radiusUnits": 1210.6,
+        "zMin": -397.6,
+        "zMax": 86.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3128,26 +3179,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (CTSpawn, 632 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 624 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 84% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-mirage-t_spawn-1",
+      "id": "cs2-mirage-t_spawn-1",
       "displayName": "T spawn #1",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": 1232.0,
-        "y": 400.0,
-        "z": -122.5
+        "x": 1257.5,
+        "y": -1070.5,
+        "z": 218.0
       },
-      "pitch": -0.22,
-      "yaw": -87.26,
+      "pitch": 24.05,
+      "yaw": 89.64,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3155,13 +3206,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 1263.3,
-          "y": -252.4,
-          "z": -120.0
+          "x": 1248.0,
+          "y": -288.0,
+          "z": -115.2
         },
-        "radiusUnits": 1125.8,
-        "zMin": -361.8,
-        "zMax": 85.6,
+        "radiusUnits": 1202.7,
+        "zMin": -360.0,
+        "zMax": 91.9,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3174,26 +3225,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (TSpawn, 653 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 783 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-mirage-t_spawn-2",
-      "displayName": "T spawn from Palace Alley",
+      "id": "cs2-mirage-t_spawn-2",
+      "displayName": "T spawn #2",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": 1168.0,
-        "y": -880.0,
-        "z": -120.8
+        "x": 1222.5,
+        "y": 143.5,
+        "z": 100.0
       },
-      "pitch": -0.07,
-      "yaw": 81.37,
+      "pitch": 29.52,
+      "yaw": -85.35,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3201,13 +3252,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 1263.3,
-          "y": -252.4,
-          "z": -120.0
+          "x": 1248.0,
+          "y": -288.0,
+          "z": -115.2
         },
-        "radiusUnits": 1125.8,
-        "zMin": -361.8,
-        "zMax": 85.6,
+        "radiusUnits": 1202.7,
+        "zMin": -360.0,
+        "zMax": 91.9,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3220,18 +3271,64 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (PalaceAlley, 635 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 432 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
     {
-      "id": "nav-mirage-bombsite_a-push",
+      "id": "cs2-mirage-bombsite_a-orbit",
+      "displayName": "A site orbit",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 72.0,
+            "y": -2040.0,
+            "z": 225.2
+          },
+          "pitch": 35.37,
+          "yaw": 169.78
+        },
+        {
+          "tMs": 2363,
+          "position": {
+            "x": 29.4,
+            "y": -1784.9,
+            "z": 200.0
+          },
+          "pitch": 34.49,
+          "yaw": -159.43
+        },
+        {
+          "tMs": 5195,
+          "position": {
+            "x": -132.0,
+            "y": -1518.5,
+            "z": 210.0
+          },
+          "pitch": 33.02,
+          "yaw": -123.23
+        }
+      ],
+      "maxDurationMs": 6195,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-mirage-bombsite_a-push",
       "displayName": "A site push-in",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
@@ -3239,27 +3336,27 @@
         {
           "tMs": 0,
           "position": {
-            "x": 80.0,
-            "y": -2032.0,
-            "z": 100.8
+            "x": -792.0,
+            "y": -2472.0,
+            "z": 93.8
           },
-          "pitch": 26.92,
-          "yaw": 169.22
+          "pitch": 18.98,
+          "yaw": 54.13
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -120.1,
-            "y": -1993.9,
-            "z": 25.2
+            "x": -622.8,
+            "y": -2238.0,
+            "z": 80.3
           },
-          "pitch": 31.79,
-          "yaw": 169.22
+          "pitch": 30.41,
+          "yaw": 54.13
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_a"
@@ -3267,35 +3364,35 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-mirage-bombsite_b-push",
-      "displayName": "B site push-in",
+      "id": "cs2-mirage-bombsite_b-drift",
+      "displayName": "B site drift",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "keyframes": [
         {
           "tMs": 0,
           "position": {
-            "x": -2032.0,
-            "y": 784.0,
-            "z": 92.0
+            "x": -2231.0,
+            "y": 724.5,
+            "z": 224.0
           },
-          "pitch": 19.82,
-          "yaw": -80.83
+          "pitch": 28.79,
+          "yaw": -69.15
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -1990.2,
-            "y": 525.2,
-            "z": 25.4
+            "x": -2025.4,
+            "y": 802.8,
+            "z": 224.0
           },
-          "pitch": 24.11,
-          "yaw": -80.83
+          "pitch": 27.31,
+          "yaw": -89.16
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_b"
@@ -3303,7 +3400,43 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-mirage-middle-orbit",
+      "id": "cs2-mirage-bombsite_b-push",
+      "displayName": "B site push-in",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -2231.0,
+            "y": 724.5,
+            "z": 224.0
+          },
+          "pitch": 28.79,
+          "yaw": -69.15
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -2134.3,
+            "y": 470.5,
+            "z": 210.5
+          },
+          "pitch": 43.79,
+          "yaw": -69.15
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-mirage-middle-orbit",
       "displayName": "Mid orbit",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
@@ -3311,37 +3444,37 @@
         {
           "tMs": 0,
           "position": {
-            "x": 208.0,
+            "x": 184.2,
             "y": -880.0,
-            "z": -26.9
+            "z": 97.0
           },
-          "pitch": 16.11,
-          "yaw": 164.41
+          "pitch": 26.52,
+          "yaw": 160.89
         },
         {
-          "tMs": 2909,
+          "tMs": 2324,
           "position": {
-            "x": 208.0,
-            "y": -560.0,
-            "z": -26.6
+            "x": 233.0,
+            "y": -642.0,
+            "z": 176.7
           },
-          "pitch": 16.34,
-          "yaw": -167.52
+          "pitch": 31.41,
+          "yaw": -177.35
         },
         {
-          "tMs": 4751,
+          "tMs": 5351,
           "position": {
-            "x": 144.0,
-            "y": -368.0,
-            "z": -35.6
+            "x": 140.5,
+            "y": -334.0,
+            "z": 90.7
           },
-          "pitch": 15.39,
-          "yaw": -149.91
+          "pitch": 25.51,
+          "yaw": -148.73
         }
       ],
-      "maxDurationMs": 5751,
+      "maxDurationMs": 6351,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "middle"
@@ -3349,7 +3482,7 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-mirage-middle-push",
+      "id": "cs2-mirage-middle-push",
       "displayName": "Mid push-in",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
@@ -3357,30 +3490,174 @@
         {
           "tMs": 0,
           "position": {
-            "x": 208.0,
-            "y": -816.0,
-            "z": -28.0
+            "x": 233.0,
+            "y": -642.0,
+            "z": 176.7
           },
-          "pitch": 16.36,
-          "yaw": 169.85
+          "pitch": 31.41,
+          "yaw": -177.35
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -79.8,
-            "y": -764.5,
-            "z": -85.9
+            "x": -59.1,
+            "y": -655.5,
+            "z": 163.2
           },
-          "pitch": 20.38,
-          "yaw": 169.85
+          "pitch": 47.0,
+          "yaw": -177.35
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "middle"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-mirage-ct_spawn-drift",
+      "displayName": "CT spawn drift",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -1560.0,
+            "y": -2376.0,
+            "z": 18.5
+          },
+          "pitch": 20.82,
+          "yaw": 90.74
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -1340.0,
+            "y": -2373.1,
+            "z": 18.5
+          },
+          "pitch": 19.7,
+          "yaw": 110.4
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-mirage-ct_spawn-push",
+      "displayName": "CT spawn push-in",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -1560.0,
+            "y": -2376.0,
+            "z": 18.5
+          },
+          "pitch": 20.82,
+          "yaw": 90.74
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -1563.6,
+            "y": -2098.8,
+            "z": 5.0
+          },
+          "pitch": 33.09,
+          "yaw": 90.74
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-mirage-t_spawn-drift",
+      "displayName": "T spawn drift",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 1257.5,
+            "y": -1070.5,
+            "z": 218.0
+          },
+          "pitch": 23.06,
+          "yaw": 90.7
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 1037.5,
+            "y": -1073.2,
+            "z": 218.0
+          },
+          "pitch": 22.29,
+          "yaw": 74.99
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-mirage-t_spawn-push",
+      "displayName": "T spawn push-in",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 1257.5,
+            "y": -1070.5,
+            "z": 218.0
+          },
+          "pitch": 23.06,
+          "yaw": 90.7
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 1253.2,
+            "y": -718.4,
+            "z": 204.5
+          },
+          "pitch": 36.6,
+          "yaw": 90.7
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "t_spawn"
       ],
       "source": "derived_navmesh"
     }
@@ -5355,7 +5632,8 @@
     "createdAt": "2026-10-27T00:00:00Z",
     "sources": [
       "awpy 1.3.1 nav_info.csv (MIT, (c) Peter Xenopoulos): CS:GO navigation meshes",
-      "checked against the CS2 radar calibration: 99.8% of navigation areas lie on the drawn CS2 radar; the rest were dropped"
+      "checked against the CS2 radar calibration: 99.8% of navigation areas lie on the drawn CS2 radar; the rest were dropped",
+      "CS2 navigation and collision meshes from awpy-data (build 26144732, read with awpy 3.1.1, MIT): built-in cameras and paths placed on walkable floor and checked for line of sight and clearance"
     ]
   }
 }

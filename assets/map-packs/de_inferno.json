@@ -2773,17 +2773,17 @@
   ],
   "cameras": [
     {
-      "id": "nav-inferno-bombsite_a-1",
-      "displayName": "A site from Graveyard",
+      "id": "cs2-inferno-bombsite_a-1",
+      "displayName": "A site from Balcony",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": 2576.0,
-        "y": 80.0,
-        "z": 352.3
+        "x": 2033.4,
+        "y": -120.5,
+        "z": 494.0
       },
-      "pitch": 14.22,
-      "yaw": 143.8,
+      "pitch": 32.85,
+      "yaw": 77.98,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2791,13 +2791,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 2116.7,
-          "y": 416.1,
-          "z": 208.0
+          "x": 2080.0,
+          "y": 352.0,
+          "z": 212.0
         },
-        "radiusUnits": 968.6,
-        "zMin": 24.9,
-        "zMax": 412.5,
+        "radiusUnits": 1114.3,
+        "zMin": 7.2,
+        "zMax": 526.3,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2815,26 +2815,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Graveyard, 569 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Balcony), 200 units up, 475 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 91% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-inferno-bombsite_a-2",
+      "id": "cs2-inferno-bombsite_a-2",
       "displayName": "A site #2",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": 2320.0,
-        "y": 1040.0,
-        "z": 300.7
+        "x": 2399.5,
+        "y": 600.5,
+        "z": 467.3
       },
-      "pitch": 8.04,
-      "yaw": -108.05,
+      "pitch": 40.58,
+      "yaw": -138.17,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2842,13 +2842,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 2116.7,
-          "y": 416.1,
-          "z": 208.0
+          "x": 2080.0,
+          "y": 352.0,
+          "z": 212.0
         },
-        "radiusUnits": 968.6,
-        "zMin": 24.9,
-        "zMax": 412.5,
+        "radiusUnits": 1114.3,
+        "zMin": 7.2,
+        "zMax": 526.3,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2866,26 +2866,77 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BombsiteA, 656 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 405 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-inferno-bombsite_b-1",
+      "id": "cs2-inferno-bombsite_a-3",
+      "displayName": "A site #3",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 1982.8,
+        "y": 640.0,
+        "z": 424.0
+      },
+      "pitch": 29.55,
+      "yaw": -59.28,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": 2080.0,
+          "y": 352.0,
+          "z": 212.0
+        },
+        "radiusUnits": 1114.3,
+        "zMin": 7.2,
+        "zMax": 526.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 304 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 56% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-bombsite_b-1",
       "displayName": "B site #1",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": 464.0,
-        "y": 3536.0,
-        "z": 300.0
+        "x": 552.0,
+        "y": 2472.0,
+        "z": 542.0
       },
-      "pitch": 7.75,
-      "yaw": -89.5,
+      "pitch": 42.25,
+      "yaw": 109.57,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2893,13 +2944,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 469.9,
-          "y": 2860.1,
-          "z": 208.0
+          "x": 480.0,
+          "y": 2784.0,
+          "z": 244.0
         },
-        "radiusUnits": 976.9,
-        "zMin": 28.2,
-        "zMax": 512.0,
+        "radiusUnits": 894.4,
+        "zMin": 29.6,
+        "zMax": 532.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2917,26 +2968,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BombsiteB, 676 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 320 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 84% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-inferno-bombsite_b-2",
+      "id": "cs2-inferno-bombsite_b-2",
       "displayName": "B site #2",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": 784.0,
-        "y": 2384.0,
-        "z": 278.9
+        "x": 357.0,
+        "y": 3140.0,
+        "z": 429.3
       },
-      "pitch": 7.08,
-      "yaw": 123.42,
+      "pitch": 30.72,
+      "yaw": -71.79,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2944,13 +2995,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 469.9,
-          "y": 2860.1,
-          "z": 208.0
+          "x": 480.0,
+          "y": 2784.0,
+          "z": 244.0
         },
-        "radiusUnits": 976.9,
-        "zMin": 28.2,
-        "zMax": 512.0,
+        "radiusUnits": 894.4,
+        "zMin": 29.6,
+        "zMax": 532.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2968,26 +3019,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BombsiteB, 570 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 377 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 86% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-inferno-bombsite_b-3",
+      "id": "cs2-inferno-bombsite_b-3",
       "displayName": "B site #3",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": 80.0,
-        "y": 2960.0,
-        "z": 300.0
+        "x": 174.5,
+        "y": 2641.5,
+        "z": 424.0
       },
-      "pitch": 12.87,
-      "yaw": -14.38,
+      "pitch": 32.04,
+      "yaw": 32.17,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2995,13 +3046,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 469.9,
-          "y": 2860.1,
-          "z": 208.0
+          "x": 480.0,
+          "y": 2784.0,
+          "z": 244.0
         },
-        "radiusUnits": 976.9,
-        "zMin": 28.2,
-        "zMax": 512.0,
+        "radiusUnits": 894.4,
+        "zMin": 29.6,
+        "zMax": 532.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3019,26 +3070,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BombsiteB, 403 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 337 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 72% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-inferno-middle-1",
+      "id": "cs2-inferno-middle-1",
       "displayName": "Mid #1",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": 1232.0,
-        "y": 528.0,
-        "z": 251.8
+        "x": 72.0,
+        "y": 600.0,
+        "z": 344.2
       },
-      "pitch": 10.33,
-      "yaw": 176.22,
+      "pitch": 20.85,
+      "yaw": -2.39,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3046,13 +3097,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 589.4,
-          "y": 570.5,
-          "z": 134.3
+          "x": 608.0,
+          "y": 544.0,
+          "z": 141.5
         },
-        "radiusUnits": 741.3,
-        "zMin": -31.9,
-        "zMax": 355.7,
+        "radiusUnits": 880.0,
+        "zMin": -106.0,
+        "zMax": 376.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3069,26 +3120,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Middle, 644 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 539 units from the Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-inferno-middle-2",
+      "id": "cs2-inferno-middle-2",
       "displayName": "Mid #2",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": 16.0,
-        "y": 784.0,
-        "z": 193.7
+        "x": 1032.0,
+        "y": 456.0,
+        "z": 363.7
       },
-      "pitch": 5.54,
-      "yaw": -20.43,
+      "pitch": 28.85,
+      "yaw": 165.9,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3096,13 +3147,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 589.4,
-          "y": 570.5,
-          "z": 134.3
+          "x": 608.0,
+          "y": 544.0,
+          "z": 141.5
         },
-        "radiusUnits": 741.3,
-        "zMin": -31.9,
-        "zMax": 355.7,
+        "radiusUnits": 880.0,
+        "zMin": -106.0,
+        "zMax": 376.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3119,26 +3170,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Middle, 612 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 433 units from the Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 91% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-inferno-ct_spawn-1",
+      "id": "cs2-inferno-ct_spawn-1",
       "displayName": "CT spawn #1",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": 1680.0,
-        "y": 2704.0,
-        "z": 300.0
+        "x": 2506.8,
+        "y": 1914.8,
+        "z": 428.0
       },
-      "pitch": 10.93,
-      "yaw": -49.79,
+      "pitch": 22.85,
+      "yaw": 136.48,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3146,13 +3197,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 2067.7,
-          "y": 2245.4,
-          "z": 184.0
+          "x": 2080.0,
+          "y": 2336.0,
+          "z": 180.8
         },
-        "radiusUnits": 883.8,
-        "zMin": 20.9,
-        "zMax": 414.1,
+        "radiusUnits": 1111.4,
+        "zMin": 28.0,
+        "zMax": 470.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3165,26 +3216,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (CTSpawn, 601 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 600 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 80% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-inferno-ct_spawn-2",
+      "id": "cs2-inferno-ct_spawn-2",
       "displayName": "CT spawn #2",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": 2448.0,
-        "y": 2320.0,
-        "z": 268.3
+        "x": 2232.0,
+        "y": 2904.0,
+        "z": 399.4
       },
-      "pitch": 12.27,
-      "yaw": -168.9,
+      "pitch": 24.06,
+      "yaw": -109.93,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3192,13 +3243,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 2067.7,
-          "y": 2245.4,
-          "z": 184.0
+          "x": 2080.0,
+          "y": 2336.0,
+          "z": 180.8
         },
-        "radiusUnits": 883.8,
-        "zMin": 20.9,
-        "zMax": 414.1,
+        "radiusUnits": 1111.4,
+        "zMin": 28.0,
+        "zMax": 470.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3211,26 +3262,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (CTSpawn, 388 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 588 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 81% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-inferno-t_spawn-1",
+      "id": "cs2-inferno-t_spawn-1",
       "displayName": "T spawn #1",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": -1648.0,
-        "y": 784.0,
-        "z": 88.4
+        "x": -1704.0,
+        "y": 648.0,
+        "z": 240.8
       },
-      "pitch": 10.13,
-      "yaw": -66.62,
+      "pitch": 35.9,
+      "yaw": -64.37,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3238,13 +3289,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1423.9,
-          "y": 265.8,
-          "z": -12.5
+          "x": -1376.0,
+          "y": 224.0,
+          "z": -12.0
         },
-        "radiusUnits": 1038.0,
-        "zMin": -164.0,
-        "zMax": 286.3,
+        "radiusUnits": 894.4,
+        "zMin": -163.9,
+        "zMax": 258.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3257,26 +3308,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (TSpawn, 565 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 536 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 53% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-inferno-t_spawn-2",
+      "id": "cs2-inferno-t_spawn-2",
       "displayName": "T spawn #2",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": -1520.0,
-        "y": -176.0,
-        "z": 76.0
+        "x": -1713.0,
+        "y": 63.5,
+        "z": 239.3
       },
-      "pitch": 11.08,
-      "yaw": 77.73,
+      "pitch": 34.9,
+      "yaw": 59.32,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3284,13 +3335,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1423.9,
-          "y": 265.8,
-          "z": -12.5
+          "x": -1376.0,
+          "y": 224.0,
+          "z": -12.0
         },
-        "radiusUnits": 1038.0,
-        "zMin": -164.0,
-        "zMax": 286.3,
+        "radiusUnits": 894.4,
+        "zMin": -163.9,
+        "zMax": 258.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3303,18 +3354,54 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (TSpawn, 452 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 373 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 52% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
     {
-      "id": "nav-inferno-bombsite_a-push",
+      "id": "cs2-inferno-bombsite_a-drift",
+      "displayName": "A site drift",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 2033.4,
+            "y": -120.5,
+            "z": 494.0
+          },
+          "pitch": 30.71,
+          "yaw": 84.36
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 1814.4,
+            "y": -98.9,
+            "z": 494.0
+          },
+          "pitch": 28.32,
+          "yaw": 59.5
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-inferno-bombsite_a-push",
       "displayName": "A site push-in",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
@@ -3322,27 +3409,27 @@
         {
           "tMs": 0,
           "position": {
-            "x": 2576.0,
-            "y": 80.0,
-            "z": 352.3
+            "x": 2033.4,
+            "y": -120.5,
+            "z": 494.0
           },
-          "pitch": 14.22,
-          "yaw": 143.8
+          "pitch": 30.71,
+          "yaw": 84.36
         },
         {
           "tMs": 6000,
           "position": {
-            "x": 2369.3,
-            "y": 231.3,
-            "z": 315.3
+            "x": 2054.4,
+            "y": 92.1,
+            "z": 480.5
           },
-          "pitch": 18.91,
-          "yaw": 143.8
+          "pitch": 45.8,
+          "yaw": 84.36
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_a"
@@ -3350,35 +3437,35 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-inferno-bombsite_b-push",
-      "displayName": "B site push-in",
+      "id": "cs2-inferno-bombsite_b-drift",
+      "displayName": "B site drift",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "keyframes": [
         {
           "tMs": 0,
           "position": {
-            "x": 464.0,
-            "y": 3536.0,
-            "z": 300.0
+            "x": 552.0,
+            "y": 2472.0,
+            "z": 542.0
           },
-          "pitch": 7.75,
-          "yaw": -89.5
+          "pitch": 42.94,
+          "yaw": 102.99
         },
         {
           "tMs": 6000,
           "position": {
-            "x": 466.7,
-            "y": 3231.8,
-            "z": 286.5
+            "x": 337.6,
+            "y": 2422.5,
+            "z": 542.0
           },
-          "pitch": 11.92,
-          "yaw": -89.5
+          "pitch": 37.49,
+          "yaw": 68.5
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_b"
@@ -3386,7 +3473,43 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-inferno-middle-push",
+      "id": "cs2-inferno-bombsite_b-push",
+      "displayName": "B site push-in",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 552.0,
+            "y": 2472.0,
+            "z": 542.0
+          },
+          "pitch": 42.94,
+          "yaw": 102.99
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 519.6,
+            "y": 2612.4,
+            "z": 528.5
+          },
+          "pitch": 58.24,
+          "yaw": 102.99
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-inferno-middle-push",
       "displayName": "Mid push-in",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
@@ -3394,30 +3517,184 @@
         {
           "tMs": 0,
           "position": {
-            "x": 1232.0,
-            "y": 528.0,
-            "z": 251.8
+            "x": 72.0,
+            "y": 600.0,
+            "z": 344.2
           },
-          "pitch": 10.33,
-          "yaw": 176.22
+          "pitch": 20.61,
+          "yaw": -5.96
         },
         {
           "tMs": 6000,
           "position": {
-            "x": 942.8,
-            "y": 547.1,
-            "z": 226.8
+            "x": 313.2,
+            "y": 574.8,
+            "z": 330.7
           },
-          "pitch": 14.63,
-          "yaw": 176.22
+          "pitch": 32.55,
+          "yaw": -5.96
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "middle"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-inferno-ct_spawn-orbit",
+      "displayName": "CT spawn orbit",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 2458.0,
+            "y": 1945.0,
+            "z": 402.0
+          },
+          "pitch": 22.14,
+          "yaw": 134.03
+        },
+        {
+          "tMs": 1826,
+          "position": {
+            "x": 2520.0,
+            "y": 2136.0,
+            "z": 398.9
+          },
+          "pitch": 24.29,
+          "yaw": 155.56
+        },
+        {
+          "tMs": 4673,
+          "position": {
+            "x": 2518.5,
+            "y": 2449.0,
+            "z": 388.0
+          },
+          "pitch": 24.59,
+          "yaw": -165.55
+        }
+      ],
+      "maxDurationMs": 5673,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-inferno-ct_spawn-push",
+      "displayName": "CT spawn push-in",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 2506.8,
+            "y": 1914.8,
+            "z": 428.0
+          },
+          "pitch": 22.41,
+          "yaw": 135.38
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 2314.7,
+            "y": 2104.4,
+            "z": 414.5
+          },
+          "pitch": 35.33,
+          "yaw": 135.38
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-inferno-t_spawn-drift",
+      "displayName": "T spawn drift",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -1704.0,
+            "y": 648.0,
+            "z": 240.8
+          },
+          "pitch": 25.25,
+          "yaw": -52.28
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -1878.0,
+            "y": 513.4,
+            "z": 240.8
+          },
+          "pitch": 23.57,
+          "yaw": -29.96
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-inferno-t_spawn-push",
+      "displayName": "T spawn push-in",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -1704.0,
+            "y": 648.0,
+            "z": 240.8
+          },
+          "pitch": 25.25,
+          "yaw": -52.28
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -1556.4,
+            "y": 457.2,
+            "z": 227.3
+          },
+          "pitch": 39.07,
+          "yaw": -52.28
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "t_spawn"
       ],
       "source": "derived_navmesh"
     }
@@ -5014,7 +5291,8 @@
     "createdBy": "matchframe-workers 0.1.0 mf_features.map_pack",
     "createdAt": "2026-10-26T14:04:31.849763Z",
     "sources": [
-      "dataset:de_inferno-13926-ee700e629d47c8ea"
+      "dataset:de_inferno-13926-ee700e629d47c8ea",
+      "CS2 navigation and collision meshes from awpy-data (build 26144732, read with awpy 3.1.1, MIT): built-in cameras and paths placed on walkable floor and checked for line of sight and clearance"
     ]
   }
 }

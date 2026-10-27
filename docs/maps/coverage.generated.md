@@ -4,15 +4,15 @@ Minimap: the built-in radar image (assets/radars) when there is one, otherwise t
 
 | Map | Pack | Regions (source) | Derived regions needing validation | Floor grid | Minimap | Operator radar calibration | Cameras validated / unvalidated | Scenario rules |
 |---|---|---|---|---|---|---|---|---|
-| Inferno (`de_inferno`) | yes | 26 (demo_place_names) | bottom_banana, top_banana | yes | built-in image | none | 0 / 11 | inferno-bottom-banana |
-| Mirage (`de_mirage`) | yes | 26 (imported) | – | yes | built-in image | none | 0 / 11 | – |
+| Inferno (`de_inferno`) | yes | 26 (demo_place_names) | bottom_banana, top_banana | yes | built-in image | none | 0 / 12 | inferno-bottom-banana |
+| Mirage (`de_mirage`) | yes | 26 (imported) | – | yes | built-in image | none | 0 / 12 | – |
 | Dust II (`de_dust2`) | yes | 26 (imported) | – | yes | built-in image | none | 0 / 12 | – |
-| Nuke (`de_nuke`) | yes | 29 (imported) | – | yes | built-in image (2 levels) | none | 0 / 10 | – |
+| Nuke (`de_nuke`) | yes | 29 (imported) | – | yes | built-in image (2 levels) | none | 0 / 12 | – |
 | Ancient (`de_ancient`) | yes | 19 (demo_place_names, imported) | – | yes | built-in image | none | 0 / 12 | – |
 | Anubis (`de_anubis`) | yes | 28 (demo_place_names) | – | yes | generated outline | none | 0 / 12 | – |
-| Overpass (`de_overpass`) | yes | 26 (demo_place_names, imported) | – | yes | built-in image | none | 0 / 7 | – |
-| Train (`de_train`) | yes | 24 (imported) | – | yes | built-in image | none | 0 / 8 | – |
-| Vertigo (`de_vertigo`) | yes | 23 (imported) | – | yes | built-in image (2 levels) | none | 0 / 9 | – |
+| Overpass (`de_overpass`) | yes | 26 (demo_place_names, imported) | – | yes | built-in image | none | 0 / 9 | – |
+| Train (`de_train`) | yes | 24 (imported) | – | yes | built-in image | none | 0 / 11 | – |
+| Vertigo (`de_vertigo`) | yes | 23 (imported) | – | yes | built-in image (2 levels) | none | 0 / 12 | – |
 
 ### Utility profiles in use
 

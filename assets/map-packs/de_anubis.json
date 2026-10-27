@@ -2951,17 +2951,17 @@
   ],
   "cameras": [
     {
-      "id": "nav-anubis-bombsite_a-1",
-      "displayName": "A site from Walkway",
+      "id": "cs2-anubis-bombsite_a-1",
+      "displayName": "A site #1",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": 976.0,
-        "y": 1296.0,
-        "z": 52.0
+        "x": 1486.0,
+        "y": 2249.0,
+        "z": 112.0
       },
-      "pitch": 17.02,
-      "yaw": 62.81,
+      "pitch": 22.2,
+      "yaw": -115.85,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2969,13 +2969,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 1268.6,
-          "y": 1865.7,
-          "z": -144.0
+          "x": 1248.0,
+          "y": 1824.0,
+          "z": -140.7
         },
-        "radiusUnits": 592.4,
-        "zMin": -292.0,
-        "zMax": 154.0,
+        "radiusUnits": 565.7,
+        "zMin": -290.0,
+        "zMax": 213.9,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -2993,26 +2993,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Walkway, 640 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 487 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-anubis-bombsite_a-2",
-      "displayName": "A site from Heaven",
+      "id": "cs2-anubis-bombsite_a-2",
+      "displayName": "A site #2",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": 784.0,
-        "y": 2000.0,
-        "z": 100.0
+        "x": 901.0,
+        "y": 1617.0,
+        "z": 194.7
       },
-      "pitch": 25.88,
-      "yaw": -15.49,
+      "pitch": 39.33,
+      "yaw": 25.39,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3020,13 +3020,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 1268.6,
-          "y": 1865.7,
-          "z": -144.0
+          "x": 1248.0,
+          "y": 1824.0,
+          "z": -140.7
         },
-        "radiusUnits": 592.4,
-        "zMin": -292.0,
-        "zMax": 154.0,
+        "radiusUnits": 565.7,
+        "zMin": -290.0,
+        "zMax": 213.9,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3044,26 +3044,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Heaven, 503 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 404 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-anubis-bombsite_a-3",
-      "displayName": "A site from Fountain",
+      "id": "cs2-anubis-bombsite_a-3",
+      "displayName": "A site #3",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": 1744.0,
-        "y": 1936.0,
-        "z": 69.0
+        "x": 1560.0,
+        "y": 1752.0,
+        "z": 112.0
       },
-      "pitch": 23.91,
-      "yaw": -171.59,
+      "pitch": 35.28,
+      "yaw": 174.89,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3071,13 +3071,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 1268.6,
-          "y": 1865.7,
-          "z": -144.0
+          "x": 1248.0,
+          "y": 1824.0,
+          "z": -140.7
         },
-        "radiusUnits": 592.4,
-        "zMin": -292.0,
-        "zMax": 154.0,
+        "radiusUnits": 565.7,
+        "zMin": -290.0,
+        "zMax": 213.9,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3095,26 +3095,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Fountain, 481 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 320 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-anubis-bombsite_b-1",
-      "displayName": "B site from Outside Long",
+      "id": "cs2-anubis-bombsite_b-1",
+      "displayName": "B site #1",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -1712.0,
-        "y": 208.0,
-        "z": 140.8
+        "x": -1560.0,
+        "y": 648.0,
+        "z": 300.0
       },
-      "pitch": 8.2,
-      "yaw": 33.95,
+      "pitch": 31.5,
+      "yaw": -11.72,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3122,13 +3122,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1170.7,
-          "y": 572.4,
-          "z": 46.7
+          "x": -1184.0,
+          "y": 544.0,
+          "z": 47.6
         },
-        "radiusUnits": 619.4,
-        "zMin": -156.0,
-        "zMax": 298.0,
+        "radiusUnits": 645.0,
+        "zMin": -152.0,
+        "zMax": 324.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3146,26 +3146,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (OutsideLong, 653 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 390 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 86% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-anubis-bombsite_b-2",
-      "displayName": "B site from Backof B",
+      "id": "cs2-anubis-bombsite_b-2",
+      "displayName": "B site #2",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -624.0,
-        "y": 656.0,
-        "z": 178.0
+        "x": -997.0,
+        "y": 973.5,
+        "z": 330.0
       },
-      "pitch": 13.35,
-      "yaw": -171.31,
+      "pitch": 33.05,
+      "yaw": -120.6,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3173,13 +3173,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1170.7,
-          "y": 572.4,
-          "z": 46.7
+          "x": -1184.0,
+          "y": 544.0,
+          "z": 47.6
         },
-        "radiusUnits": 619.4,
-        "zMin": -156.0,
-        "zMax": 298.0,
+        "radiusUnits": 645.0,
+        "zMin": -152.0,
+        "zMax": 324.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3197,26 +3197,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BackofB, 553 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 468 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 73% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-anubis-bombsite_b-3",
-      "displayName": "B site from Alley",
+      "id": "cs2-anubis-bombsite_b-3",
+      "displayName": "B site #3",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -1264.0,
-        "y": 1232.0,
-        "z": 115.0
+        "x": -888.0,
+        "y": 456.0,
+        "z": 252.6
       },
-      "pitch": 5.85,
-      "yaw": -81.95,
+      "pitch": 36.66,
+      "yaw": 162.68,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3224,13 +3224,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1170.7,
-          "y": 572.4,
-          "z": 46.7
+          "x": -1184.0,
+          "y": 544.0,
+          "z": 47.6
         },
-        "radiusUnits": 619.4,
-        "zMin": -156.0,
-        "zMax": 298.0,
+        "radiusUnits": 645.0,
+        "zMin": -152.0,
+        "zMax": 324.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3248,26 +3248,76 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Alley, 666 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 309 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 72% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-anubis-middle-1",
+      "id": "cs2-anubis-middle-1",
+      "displayName": "Mid #1",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 264.0,
+        "y": 1608.0,
+        "z": 234.8
+      },
+      "pitch": 27.71,
+      "yaw": -95.62,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "middle"
+      ],
+      "coverage": {
+        "center": {
+          "x": 224.0,
+          "y": 1120.0,
+          "z": 20.0
+        },
+        "radiusUnits": 835.2,
+        "zMin": -184.0,
+        "zMax": 306.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 490 units from the Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 73% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-middle-2",
       "displayName": "Mid from Mid Doors",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": 272.0,
-        "y": 464.0,
-        "z": 122.1
+        "x": 216.0,
+        "y": 744.0,
+        "z": 232.0
       },
-      "pitch": 9.82,
-      "yaw": 99.85,
+      "pitch": 24.27,
+      "yaw": 88.81,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3275,13 +3325,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 167.2,
-          "y": 1067.7,
-          "z": 16.0
+          "x": 224.0,
+          "y": 1120.0,
+          "z": 20.0
         },
-        "radiusUnits": 866.7,
-        "zMin": -156.8,
-        "zMax": 302.0,
+        "radiusUnits": 835.2,
+        "zMin": -184.0,
+        "zMax": 306.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3298,76 +3348,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (MidDoors, 613 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Mid Doors), 260 units up, 376 units from the Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 73% of the area, and 89% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-anubis-middle-2",
-      "displayName": "Mid #2",
+      "id": "cs2-anubis-ct_spawn-1",
+      "displayName": "CT spawn #1",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": 336.0,
-        "y": 1488.0,
-        "z": 134.4
+        "x": -863.7,
+        "y": 2441.8,
+        "z": 232.0
       },
-      "pitch": 14.64,
-      "yaw": -111.88,
-      "fov": null,
-      "observerMode": "roaming_static",
-      "targetRegionIds": [
-        "middle"
-      ],
-      "coverage": {
-        "center": {
-          "x": 167.2,
-          "y": 1067.7,
-          "z": 16.0
-        },
-        "radiusUnits": 866.7,
-        "zMin": -156.8,
-        "zMax": 302.0,
-        "levelId": "ground"
-      },
-      "allowedPhases": [
-        "freezetime",
-        "live",
-        "over"
-      ],
-      "actionClasses": [
-        "tactical",
-        "establishing",
-        "utility"
-      ],
-      "grenadeTypes": [],
-      "minAcquisitionMs": 150,
-      "normalDurationMs": 4000,
-      "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
-      "validation": "unvalidated",
-      "exitStrategy": "most_relevant_player",
-      "lastTestedGameBuild": null,
-      "lastTestedMapVersion": null,
-      "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Middle, 453 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
-    },
-    {
-      "id": "nav-anubis-ct_spawn-1",
-      "displayName": "CT spawn from CTSide Upper",
-      "mapName": "de_anubis",
-      "mapRevision": "observed_builds:13914",
-      "position": {
-        "x": -240.0,
-        "y": 1936.0,
-        "z": 165.8
-      },
-      "pitch": 18.02,
-      "yaw": 109.71,
+      "pitch": 24.07,
+      "yaw": 12.7,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3375,13 +3375,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -460.5,
-          "y": 2551.4,
-          "z": -46.9
+          "x": -224.0,
+          "y": 2592.0,
+          "z": -44.0
         },
-        "radiusUnits": 768.0,
-        "zMin": -256.8,
-        "zMax": 269.9,
+        "radiusUnits": 861.6,
+        "zMin": -257.6,
+        "zMax": 258.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3394,26 +3394,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (CTSideUpper, 654 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 657 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-anubis-ct_spawn-2",
+      "id": "cs2-anubis-ct_spawn-2",
       "displayName": "CT spawn #2",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -880.0,
-        "y": 2256.0,
-        "z": 145.5
+        "x": 360.0,
+        "y": 2856.0,
+        "z": 104.2
       },
-      "pitch": 20.56,
-      "yaw": 35.16,
+      "pitch": 13.63,
+      "yaw": -155.43,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3421,13 +3421,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -460.5,
-          "y": 2551.4,
-          "z": -46.9
+          "x": -224.0,
+          "y": 2592.0,
+          "z": -44.0
         },
-        "radiusUnits": 768.0,
-        "zMin": -256.8,
-        "zMax": 269.9,
+        "radiusUnits": 861.6,
+        "zMin": -257.6,
+        "zMax": 258.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3440,26 +3440,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (CTSpawn, 513 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 641 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-anubis-t_spawn-1",
+      "id": "cs2-anubis-t_spawn-1",
       "displayName": "T spawn #1",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": 656.0,
-        "y": -1264.0,
-        "z": 128.0
+        "x": 458.5,
+        "y": -1686.0,
+        "z": 266.0
       },
-      "pitch": 6.85,
-      "yaw": -168.78,
+      "pitch": 22.06,
+      "yaw": 150.78,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3467,13 +3467,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 18.5,
-          "y": -1390.5,
-          "z": 50.0
+          "x": -32.0,
+          "y": -1376.0,
+          "z": 54.0
         },
-        "radiusUnits": 1118.9,
-        "zMin": -112.0,
-        "zMax": 297.6,
+        "radiusUnits": 1052.2,
+        "zMin": -108.0,
+        "zMax": 289.8,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3486,26 +3486,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (TSpawn, 650 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 580 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-anubis-t_spawn-2",
+      "id": "cs2-anubis-t_spawn-2",
       "displayName": "T spawn #2",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -624.0,
-        "y": -1456.0,
-        "z": 142.0
+        "x": -642.0,
+        "y": -1602.5,
+        "z": 266.0
       },
-      "pitch": 8.11,
-      "yaw": 5.82,
+      "pitch": 21.13,
+      "yaw": 14.28,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3513,13 +3513,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 18.5,
-          "y": -1390.5,
-          "z": 50.0
+          "x": -32.0,
+          "y": -1376.0,
+          "z": 54.0
         },
-        "radiusUnits": 1118.9,
-        "zMin": -112.0,
-        "zMax": 297.6,
+        "radiusUnits": 1052.2,
+        "zMin": -108.0,
+        "zMax": 289.8,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3532,18 +3532,64 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (TSpawn, 646 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 651 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
     {
-      "id": "nav-anubis-bombsite_a-push",
+      "id": "cs2-anubis-bombsite_a-orbit",
+      "displayName": "A site orbit",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 840.0,
+            "y": 1608.0,
+            "z": 176.0
+          },
+          "pitch": 34.45,
+          "yaw": 27.9
+        },
+        {
+          "tMs": 2182,
+          "position": {
+            "x": 840.0,
+            "y": 1368.0,
+            "z": 176.0
+          },
+          "pitch": 27.37,
+          "yaw": 48.18
+        },
+        {
+          "tMs": 3416,
+          "position": {
+            "x": 936.0,
+            "y": 1272.0,
+            "z": 176.0
+          },
+          "pitch": 26.54,
+          "yaw": 60.52
+        }
+      ],
+      "maxDurationMs": 4416,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-anubis-bombsite_a-push",
       "displayName": "A site push-in",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
@@ -3551,27 +3597,27 @@
         {
           "tMs": 0,
           "position": {
-            "x": 976.0,
-            "y": 1296.0,
-            "z": 52.0
+            "x": 1486.0,
+            "y": 2249.0,
+            "z": 112.0
           },
-          "pitch": 17.02,
-          "yaw": 62.81
+          "pitch": 27.42,
+          "yaw": -119.25
         },
         {
           "tMs": 6000,
           "position": {
-            "x": 1107.7,
-            "y": 1552.4,
-            "z": -8.3
+            "x": 1378.9,
+            "y": 2057.7,
+            "z": 98.5
           },
-          "pitch": 21.07,
-          "yaw": 62.81
+          "pitch": 41.76,
+          "yaw": -119.25
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_a"
@@ -3579,35 +3625,35 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-anubis-bombsite_b-push",
-      "displayName": "B site push-in",
+      "id": "cs2-anubis-bombsite_b-drift",
+      "displayName": "B site drift",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "keyframes": [
         {
           "tMs": 0,
           "position": {
-            "x": -1712.0,
-            "y": 208.0,
-            "z": 140.8
+            "x": -997.0,
+            "y": 973.5,
+            "z": 330.0
           },
-          "pitch": 8.2,
-          "yaw": 33.95
+          "pitch": 31.08,
+          "yaw": -113.53
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -1468.4,
-            "y": 372.0,
-            "z": 126.4
+            "x": -1198.7,
+            "y": 1061.3,
+            "z": 330.0
           },
-          "pitch": 12.51,
-          "yaw": 33.95
+          "pitch": 28.62,
+          "yaw": -88.37
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_b"
@@ -3615,7 +3661,43 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-anubis-middle-push",
+      "id": "cs2-anubis-bombsite_b-push",
+      "displayName": "B site push-in",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -1560.0,
+            "y": 648.0,
+            "z": 300.0
+          },
+          "pitch": 32.91,
+          "yaw": -15.46
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -1390.8,
+            "y": 601.2,
+            "z": 286.5
+          },
+          "pitch": 48.08,
+          "yaw": -15.46
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-anubis-middle-push",
       "displayName": "Mid push-in",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
@@ -3623,30 +3705,254 @@
         {
           "tMs": 0,
           "position": {
-            "x": 272.0,
-            "y": 464.0,
-            "z": 122.1
+            "x": 264.0,
+            "y": 1608.0,
+            "z": 234.8
           },
-          "pitch": 9.82,
-          "yaw": 99.85
+          "pitch": 23.69,
+          "yaw": -94.69
         },
         {
           "tMs": 6000,
           "position": {
-            "x": 224.8,
-            "y": 735.7,
-            "z": 102.3
+            "x": 246.0,
+            "y": 1388.4,
+            "z": 221.3
           },
-          "pitch": 14.35,
-          "yaw": 99.85
+          "pitch": 36.78,
+          "yaw": -94.69
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "middle"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-anubis-ct_spawn-orbit",
+      "displayName": "CT spawn orbit",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 360.0,
+            "y": 2568.0,
+            "z": 114.0
+          },
+          "pitch": 15.13,
+          "yaw": 177.65
+        },
+        {
+          "tMs": 1345,
+          "position": {
+            "x": 360.0,
+            "y": 2856.0,
+            "z": 104.2
+          },
+          "pitch": 13.02,
+          "yaw": -155.67
+        },
+        {
+          "tMs": 2518,
+          "position": {
+            "x": 204.0,
+            "y": 3051.0,
+            "z": 76.7
+          },
+          "pitch": 10.88,
+          "yaw": -133.0
+        },
+        {
+          "tMs": 4092,
+          "position": {
+            "x": -120.0,
+            "y": 3144.0,
+            "z": 71.5
+          },
+          "pitch": 11.62,
+          "yaw": -100.67
+        },
+        {
+          "tMs": 5791,
+          "position": {
+            "x": -479.4,
+            "y": 3086.8,
+            "z": 73.5
+          },
+          "pitch": 11.92,
+          "yaw": -62.7
+        },
+        {
+          "tMs": 7293,
+          "position": {
+            "x": -744.0,
+            "y": 2904.0,
+            "z": 81.8
+          },
+          "pitch": 11.72,
+          "yaw": -30.96
+        },
+        {
+          "tMs": 8732,
+          "position": {
+            "x": -907.6,
+            "y": 2648.8,
+            "z": 138.0
+          },
+          "pitch": 14.86,
+          "yaw": -4.75
+        },
+        {
+          "tMs": 10000,
+          "position": {
+            "x": -872.4,
+            "y": 2396.4,
+            "z": 232.0
+          },
+          "pitch": 22.17,
+          "yaw": 16.79
+        }
+      ],
+      "maxDurationMs": 11000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-anubis-ct_spawn-push",
+      "displayName": "CT spawn push-in",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -863.7,
+            "y": 2441.8,
+            "z": 232.0
+          },
+          "pitch": 22.78,
+          "yaw": 13.22
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -575.9,
+            "y": 2509.4,
+            "z": 218.5
+          },
+          "pitch": 35.99,
+          "yaw": 13.22
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-anubis-t_spawn-orbit",
+      "displayName": "T spawn orbit",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 304.5,
+            "y": -1739.5,
+            "z": 266.0
+          },
+          "pitch": 23.17,
+          "yaw": 132.79
+        },
+        {
+          "tMs": 2153,
+          "position": {
+            "x": 514.5,
+            "y": -1630.0,
+            "z": 266.0
+          },
+          "pitch": 19.38,
+          "yaw": 155.07
+        },
+        {
+          "tMs": 5137,
+          "position": {
+            "x": 638.5,
+            "y": -1326.1,
+            "z": 263.0
+          },
+          "pitch": 17.27,
+          "yaw": -175.74
+        },
+        {
+          "tMs": 6858,
+          "position": {
+            "x": 728.5,
+            "y": -1163.5,
+            "z": 299.0
+          },
+          "pitch": 17.24,
+          "yaw": -164.39
+        }
+      ],
+      "maxDurationMs": 7858,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-anubis-t_spawn-push",
+      "displayName": "T spawn push-in",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 458.5,
+            "y": -1686.0,
+            "z": 266.0
+          },
+          "pitch": 20.07,
+          "yaw": 147.71
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 237.8,
+            "y": -1546.5,
+            "z": 252.5
+          },
+          "pitch": 31.88,
+          "yaw": 147.71
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "t_spawn"
       ],
       "source": "derived_navmesh"
     }
@@ -5398,7 +5704,8 @@
     "createdBy": "matchframe-workers 0.1.0 mf_features.map_pack",
     "createdAt": "2026-10-26T14:04:33.147597Z",
     "sources": [
-      "dataset:de_anubis-13914-fe6be1aceb1b8834"
+      "dataset:de_anubis-13914-fe6be1aceb1b8834",
+      "CS2 navigation and collision meshes from awpy-data (build 26144732, read with awpy 3.1.1, MIT): built-in cameras and paths placed on walkable floor and checked for line of sight and clearance"
     ]
   }
 }

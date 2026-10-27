@@ -43,9 +43,14 @@ The weapon and equipment icons in the Pro CS2 HUD (also used by the Matchframe B
 
 `assets/radars`: flat radar drawings of eight CS2 maps (Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train, Vertigo) with their world-to-image calibration, from Lexogrine's CS2 React HUD (https://github.com/lexogrine/cs2-react-hud, commit `4ec8eea`, © 2021 Lexogrine), MIT licence (`assets/radars/LICENSE-lexogrine.txt`). They are Lexogrine's own drawings of the map layouts; the maps themselves are Valve's. Every HUD's minimap shows them.
 
-## Built-in camera positions (map navigation data)
+## Built-in camera positions (map navigation and collision data)
 
-The built-in cameras and camera paths in `assets/map-packs` were computed by `scripts/generate-map-cameras.py` from the navigation-mesh areas in awpy 1.3.1 (`awpy/data/nav/nav_info.csv`, https://github.com/pnxenopoulos/awpy, © 2020-2023 Peter Xenopoulos), MIT licence. Only derived camera poses, paths and region cells are committed; the nav data itself is not redistributed. The maps are Valve's.
+- **Cameras and camera paths:** the built-in cameras and camera paths in `assets/map-packs` were computed by `scripts/generate-map-cameras.py`.
+  - **Data:** CS2's navigation meshes and collision meshes, as extracted from the game files by awpy-data (https://github.com/pnxenopoulos/awpy-data, release for CS2 build 26144732 / ClientVersion 2000935, scripts © 2025 Peter Xenopoulos, MIT licence).
+  - **Reader:** awpy 3.1.1 (https://github.com/pnxenopoulos/awpy, MIT licence).
+  - **Ownership:** the meshes are Valve's game assets. Neither the meshes nor the extracted files are committed or shipped; only the derived camera poses and paths are.
+- **Region cells and floor grids:** the region cells and floor grids of the Dust II, Mirage, Nuke, Train and Vertigo packs, and some regions in other packs, came from the navigation areas in awpy 1.3.1 (`awpy/data/nav/nav_info.csv`, © 2020-2023 Peter Xenopoulos, MIT licence), built by `scripts/generate-map-regions-csgo-nav.py`.
+- **The maps are Valve's.**
 
 ## Python worker dependencies (installed into a local virtual environment; not bundled)
 

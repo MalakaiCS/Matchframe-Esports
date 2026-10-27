@@ -200,7 +200,7 @@ function CameraRow({ map, cam, onChanged }: { map: string; cam: CameraRecord; on
       <td>
         {cam.displayName}
         {cam.capturedFrom === "derived_navmesh" && cam.validation === "unvalidated" ? (
-          <div className="small muted" title="Placed from the map's navigation data with a clear line of sight; not yet seen in game. Validate it after a look in CS2, or switch built-in cameras off.">
+          <div className="small muted" title="Placed on CS2's walkable floor and checked against CS2's collision geometry: clear space around it and a clear view of the area. Not yet seen in game: validate it after a look in CS2, or switch built-in cameras off.">
             Built-in · placed from map data
           </div>
         ) : (

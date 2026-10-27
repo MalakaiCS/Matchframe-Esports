@@ -11,6 +11,20 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.4.2",
+    title: "Cameras checked against CS2's own geometry",
+    summary: "The built-in cameras and camera paths are rebuilt from CS2's own map geometry, so they don't look through walls or sit inside them.",
+    sections: [
+      {
+        heading: "Cameras",
+        items: [
+          "104 cameras and 81 camera paths across the nine active-duty maps, placed on CS2's walkable floor and checked against the geometry players collide with: clear space around each camera, a clear view of its area, and paths that never cross a wall.",
+          "More areas are covered: Train CT spawn, Vertigo T spawn, and mid on Nuke, Train and Overpass.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.4.1",
     title: "Game options fixed, and no CS2 kill feed",
     summary: "The game options on the Counter-Strike 2 card no longer switch each other off, and with HLAE you can hide CS2's own kill feed while keeping the crosshair.",

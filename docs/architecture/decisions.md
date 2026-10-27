@@ -101,3 +101,38 @@ Each record states the decision, the evidence behind it and what would make us r
 **Decision.** (1) **Built-in cameras.** `scripts/generate-map-cameras.py` places cameras and freeze-time paths for the nine active-duty maps from the maps' navigation meshes (awpy 1.3.1 `nav_info.csv`, MIT, CS:GO geometry). Positions are kept only where they agree with CS2 data: on the CS2 radar's drawn area; on the CS2 demo-derived region cells where a pack has them (at least half of a place's cells); with a sight line over continuous walkable floor, no walkable surface within 35 units of the line, and headroom under upper floors. Cameras sit 140 units above the floor, 350 to 1000 units from the target (650 preferred), spread at least 70° apart around each site. Paths are orbits (15° sectors, up to 8 links, at least 3 s) and push-ins (6 s). Records carry `capturedFrom: "derived_navmesh"` (paths `source: "derived_navmesh"`). The map runtime uses them without validation while `builtInCameras` is on (setting `cameras.builtIn`, default on); an invalidated camera is never used. Existing packs keep their CS2 regions and floor grid; navmesh regions fill only the places they lack. (2) **Self-confirming console control.** The Direct adapter records evidence per CS2 build when the game itself confirms an action. Player selection is confirmed when the game data shows the requested player (any manual or automatic request). A static camera is confirmed when `getpos` returns the camera's pose; this also confirms readback, and observer mode as `partial`. If the CS:GO `spec_mode` numbering doesn't move the camera, the adapter tries CS2's enum numbering (2/3/4) and keeps whichever works. Camera paths stream `spec_goto` at 60 Hz and are `partial` once static cameras are confirmed, then `supported` when `getpos` confirms the end of the first path. Player selection sends the in-eye mode first when the camera is free; if the game data still shows the free camera afterwards, the adapter tries the other numbering's in-eye command once and keeps it when the player shows. (3) **Freeze-time paths.** Observer & Cinematics flies one path per round, rotating by round number, when it fits in the time left plus 1.5 s. Paths and establishing shots don't use the round's cinematic budget. (4) **Auto Director.** `AutoDirector` (engine) runs the checks in order and fixes what it can: console (switches the launch mode to Tools, selects the Direct adapter on Start CS2's console, sends `spec_autodirector 0`), game data, the account gate (at Start only, so a running match is never cut off; nade cams fall back to cinematic cameras without the plan), a real player switch, and a real camera (with a `cl_demo_freecam 0` retry for demo playback). It then arms the richest mode that works. It takes the camera back a set time after a person picks a shot (default 8 s), and right after data gaps or session restarts; after Take over it waits for Resume automation or Start. Emergency stop, Off, or the hours ending at a map change stop it. API: `GET /api/v1/director/auto`, `POST .../auto/start`, `POST .../auto/stop`, `PUT .../auto/settings`. (5) Manual player and camera requests are allowed while control is unverified, because the request itself is the check.
 **Consequences.** Cinematic cameras and paths work on every active-duty map without authoring, and a fresh install reaches automatic direction with one click once CS2 runs with its console. The built-in cameras were placed from map data and were not checked by eye in CS2. A camera can still clip a prop that the navigation mesh doesn't describe, so they can be switched off, and each can be invalidated. Train lacks a CT spawn camera, Vertigo a T spawn camera, and Overpass and Nuke a mid camera. Demo playback depends on the `cl_demo_freecam 0` workaround for Valve issue #4660. Supersedes "cinematics come only from validated cameras" in ADR-019.
 **Revisit if.** CS2 ships navigation data or an official observer camera API, or operators report built-in cameras that look bad on air.
+
+## ADR-025 — Built-in cameras placed on CS2's navigation meshes and checked against CS2's collision geometry (amends ADR-024 (1))
+**Context.** The 0.4.0 cameras came from CS:GO-era navigation data, checked only against the CS2 radar and demo positions. Tested against CS2's collision geometry, 30 of the 92 cameras either looked through a wall at their target or sat inside geometry, and 3 of the 32 paths crossed a wall. The owner supplied the awpy-data release for the current build (CS2 1.41.9.2, build 26144732): CS2's navigation meshes and collision meshes for every map.
+**Decision.** `scripts/generate-map-cameras.py` rebuilds the built-in cameras and paths from that data with awpy 3.1.1 (`NavMesh`, `VisibilityChecker`):
+- **Areas:** each bombsite, the mid area (or the map's equivalent: Nuke Outside, Train and Overpass Connector) and each spawn.
+- **Target points:** the region's cells dropped onto CS2's walkable floor at chest height.
+- **Camera spots:** walkable floor 300 to 1100 units away, with the camera 140, 200 or 260 units up. A spot is kept only when all of these hold in the collision geometry:
+  - the floor below it is clear;
+  - it has 24 units of clear space on every side;
+  - it sees the area's centre;
+  - it sees at least 50 % of the target points (45 % mid, 40 % spawns);
+  - at least 55 % of a 9 × 5 grid of view rays run 220 units without a hit (45 % for narrow areas).
+- **Aim and choice:** each camera aims at the middle of what it sees of the area. Two or three spots are chosen far apart in angle.
+- **Paths:** each area gets moving shots:
+  - an orbit through neighbouring spots, at most 10 s;
+  - a 6 s push-in;
+  - a 6 s sideways drift where there is no orbit.
+
+  The exact Catmull-Rom curve the console adapter flies is checked every 24 units for clearance and a view of the centre.
+- **Records:** cameras get ids `cs2-<map>-<region>-<n>` (new ids, so operator overrides made for the old positions don't apply to them) and `occlusionValidation: "validated"`. Paths get `collisionValidated: true`. `validation` stays `unvalidated` until someone looks.
+- **Old generator:** renamed `scripts/generate-map-regions-csgo-nav.py`. It still describes how the regions of the navmesh-built packs were made.
+- **Data:** the meshes are Valve's assets and are not committed; only derived poses and paths are.
+
+**Consequences.** All 104 cameras and 81 paths pass the geometry checks, against 62 of 92 before.
+
+The earlier gaps are filled:
+- Train CT spawn and Vertigo T spawn now have cameras.
+- Nuke, Train and Overpass now have a mid stand-in.
+
+What remains:
+- **Gaps:** Overpass CT spawn has no named area in any of the data, and Dust II CT spawn has no path.
+- **Not seen in game:** collision geometry leaves out see-through and non-solid props, and nothing was seen by eye.
+- **Regenerating:** needs the awpy-data release for the new build.
+
+**Revisit if.** A CS2 update changes a map: regenerate from the new awpy-data release and compare.

@@ -2344,17 +2344,17 @@
   ],
   "cameras": [
     {
-      "id": "nav-vertigo-bombsite_a-1",
-      "displayName": "A site from ARamp",
+      "id": "cs2-vertigo-bombsite_a-1",
+      "displayName": "A site #1",
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -368.0,
-        "y": -1328.0,
-        "z": 11844.8
+        "x": -168.0,
+        "y": -1320.0,
+        "z": 12102.0
       },
-      "pitch": 1.8,
-      "yaw": 83.33,
+      "pitch": 23.62,
+      "yaw": 97.3,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2362,13 +2362,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -291.1,
-          "y": -671.0,
-          "z": 11824.0
+          "x": -288.0,
+          "y": -672.0,
+          "z": 11878.0
         },
-        "radiusUnits": 971.6,
-        "zMin": 11674.5,
-        "zMax": 12036.3,
+        "radiusUnits": 912.1,
+        "zMin": 11678.0,
+        "zMax": 12132.0,
         "levelId": "upper"
       },
       "allowedPhases": [
@@ -2386,26 +2386,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (ARamp, 662 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 659 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 75% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-vertigo-bombsite_a-2",
-      "displayName": "A site from Side",
+      "id": "cs2-vertigo-bombsite_a-2",
+      "displayName": "A site #2",
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -880.0,
-        "y": -752.0,
-        "z": 11916.0
+        "x": -72.0,
+        "y": -456.0,
+        "z": 12168.0
       },
-      "pitch": 8.8,
-      "yaw": 7.84,
+      "pitch": 44.35,
+      "yaw": -135.38,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2413,13 +2413,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -291.1,
-          "y": -671.0,
-          "z": 11824.0
+          "x": -288.0,
+          "y": -672.0,
+          "z": 11878.0
         },
-        "radiusUnits": 971.6,
-        "zMin": 11674.5,
-        "zMax": 12036.3,
+        "radiusUnits": 912.1,
+        "zMin": 11678.0,
+        "zMax": 12132.0,
         "levelId": "upper"
       },
       "allowedPhases": [
@@ -2437,26 +2437,77 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Side, 594 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 305 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 94% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-vertigo-bombsite_b-1",
+      "id": "cs2-vertigo-bombsite_a-3",
+      "displayName": "A site #3",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -457.0,
+        "y": -346.0,
+        "z": 11980.0
+      },
+      "pitch": 20.45,
+      "yaw": -58.12,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": -288.0,
+          "y": -672.0,
+          "z": 11878.0
+        },
+        "radiusUnits": 912.1,
+        "zMin": 11678.0,
+        "zMax": 12132.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 200 units up, 367 units from the A site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 84% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-bombsite_b-1",
       "displayName": "B site #1",
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -2608.0,
-        "y": 208.0,
-        "z": 11890.5
+        "x": -2616.0,
+        "y": 840.0,
+        "z": 12014.4
       },
-      "pitch": 8.69,
-      "yaw": 48.83,
+      "pitch": 24.82,
+      "yaw": -12.62,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2464,13 +2515,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -2184.0,
-          "y": 692.8,
-          "z": 11792.0
+          "x": -2208.0,
+          "y": 736.0,
+          "z": 11796.0
         },
-        "radiusUnits": 783.7,
-        "zMin": 11644.0,
-        "zMax": 12031.0,
+        "radiusUnits": 800.0,
+        "zMin": 11648.0,
+        "zMax": 12048.1,
         "levelId": "upper"
       },
       "allowedPhases": [
@@ -2488,26 +2539,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BombsiteB, 644 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 421 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 84% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-vertigo-bombsite_b-2",
-      "displayName": "B site from Mid",
+      "id": "cs2-vertigo-bombsite_b-2",
+      "displayName": "B site #2",
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -1776.0,
-        "y": 336.0,
-        "z": 11916.0
+        "x": -1695.5,
+        "y": 1054.0,
+        "z": 12032.7
       },
-      "pitch": 12.89,
-      "yaw": 138.83,
+      "pitch": 22.75,
+      "yaw": -146.96,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2515,13 +2566,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -2184.0,
-          "y": 692.8,
-          "z": 11792.0
+          "x": -2208.0,
+          "y": 736.0,
+          "z": 11796.0
         },
-        "radiusUnits": 783.7,
-        "zMin": 11644.0,
-        "zMax": 12031.0,
+        "radiusUnits": 800.0,
+        "zMin": 11648.0,
+        "zMax": 12048.1,
         "levelId": "upper"
       },
       "allowedPhases": [
@@ -2539,26 +2590,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Mid, 542 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 603 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 75% of the area, and 87% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-vertigo-bombsite_b-3",
+      "id": "cs2-vertigo-bombsite_b-3",
       "displayName": "B site #3",
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -1904.0,
-        "y": 912.0,
-        "z": 11916.0
+        "x": -2262.6,
+        "y": 186.6,
+        "z": 12072.0
       },
-      "pitch": 19.22,
-      "yaw": -141.95,
+      "pitch": 28.15,
+      "yaw": 94.64,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2566,13 +2617,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -2184.0,
-          "y": 692.8,
-          "z": 11792.0
+          "x": -2208.0,
+          "y": 736.0,
+          "z": 11796.0
         },
-        "radiusUnits": 783.7,
-        "zMin": 11644.0,
-        "zMax": 12031.0,
+        "radiusUnits": 800.0,
+        "zMin": 11648.0,
+        "zMax": 12048.1,
         "levelId": "upper"
       },
       "allowedPhases": [
@@ -2590,26 +2641,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BombsiteB, 356 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 552 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 61% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-vertigo-mid-1",
-      "displayName": "Mid from BPlatform",
+      "id": "cs2-vertigo-mid-1",
+      "displayName": "Mid #1",
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -1456.0,
-        "y": 528.0,
-        "z": 12012.6
+        "x": -2013.2,
+        "y": 391.0,
+        "z": 12044.0
       },
-      "pitch": 21.62,
-      "yaw": -125.57,
+      "pitch": 28.97,
+      "yaw": -40.14,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2617,13 +2668,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1732.8,
-          "y": 140.9,
-          "z": 11824.0
+          "x": -1760.0,
+          "y": 160.0,
+          "z": 11828.0
         },
-        "radiusUnits": 600.4,
-        "zMin": 11676.0,
-        "zMax": 12044.9,
+        "radiusUnits": 645.0,
+        "zMin": 11680.0,
+        "zMax": 12160.0,
         "levelId": "upper"
       },
       "allowedPhases": [
@@ -2640,26 +2691,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (BPlatform, 476 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Mid), 260 units up, 343 units from the Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-vertigo-mid-2",
+      "id": "cs2-vertigo-mid-2",
       "displayName": "Mid #2",
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -1968.0,
-        "y": 464.0,
-        "z": 11924.0
+        "x": -1541.5,
+        "y": 380.5,
+        "z": 12053.3
       },
-      "pitch": 14.05,
-      "yaw": -53.95,
+      "pitch": 39.25,
+      "yaw": -128.83,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2667,13 +2718,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1732.8,
-          "y": 140.9,
-          "z": 11824.0
+          "x": -1760.0,
+          "y": 160.0,
+          "z": 11828.0
         },
-        "radiusUnits": 600.4,
-        "zMin": 11676.0,
-        "zMax": 12044.9,
+        "radiusUnits": 645.0,
+        "zMin": 11680.0,
+        "zMax": 12160.0,
         "levelId": "upper"
       },
       "allowedPhases": [
@@ -2690,26 +2741,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 4000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Mid, 400 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Mid), 260 units up, 310 units from the Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-vertigo-ct_spawn-1",
-      "displayName": "CT spawn from Mid",
+      "id": "cs2-vertigo-ct_spawn-1",
+      "displayName": "CT spawn #1",
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -1264.0,
-        "y": 144.0,
-        "z": 11916.0
+        "x": -707.0,
+        "y": 764.5,
+        "z": 12041.3
       },
-      "pitch": 8.12,
-      "yaw": 67.9,
+      "pitch": 33.21,
+      "yaw": -173.68,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2717,13 +2768,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1021.5,
-          "y": 741.3,
-          "z": 11824.0
+          "x": -1056.0,
+          "y": 736.0,
+          "z": 11828.0
         },
-        "radiusUnits": 576.5,
-        "zMin": 11676.0,
-        "zMax": 12028.6,
+        "radiusUnits": 565.7,
+        "zMin": 11680.0,
+        "zMax": 12126.0,
         "levelId": "upper"
       },
       "allowedPhases": [
@@ -2736,26 +2787,26 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (Mid, 645 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 350 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 98% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "nav-vertigo-ct_spawn-2",
+      "id": "cs2-vertigo-ct_spawn-2",
       "displayName": "CT spawn #2",
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -1392.0,
-        "y": 976.0,
-        "z": 11916.0
+        "x": -1196.5,
+        "y": 1014.3,
+        "z": 11981.0
       },
-      "pitch": 11.85,
-      "yaw": -32.35,
+      "pitch": 24.14,
+      "yaw": -60.84,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2763,13 +2814,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1021.5,
-          "y": 741.3,
-          "z": 11824.0
+          "x": -1056.0,
+          "y": 736.0,
+          "z": 11828.0
         },
-        "radiusUnits": 576.5,
-        "zMin": 11676.0,
-        "zMax": 12028.6,
+        "radiusUnits": 565.7,
+        "zMin": 11680.0,
+        "zMax": 12126.0,
         "levelId": "upper"
       },
       "allowedPhases": [
@@ -2782,18 +2833,186 @@
       "minAcquisitionMs": 150,
       "normalDurationMs": 5000,
       "maxDurationMs": 7000,
-      "occlusionValidation": "unvalidated",
+      "occlusionValidation": "validated",
       "validation": "unvalidated",
       "exitStrategy": "most_relevant_player",
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed from navigation-mesh data (CTSpawn, 439 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 140 units up, 312 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-t_spawn-1",
+      "displayName": "T spawn #1",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -2481.5,
+        "y": -1024.5,
+        "z": 11920.0
+      },
+      "pitch": 27.89,
+      "yaw": -10.95,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2080.0,
+          "y": -1248.0,
+          "z": 11667.7
+        },
+        "radiusUnits": 1052.2,
+        "zMin": 11392.0,
+        "zMax": 12031.5,
+        "levelId": "lower"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSpawn), 140 units up, 460 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-t_spawn-2",
+      "displayName": "T spawn #2",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -2342.9,
+        "y": -1498.3,
+        "z": 11980.0
+      },
+      "pitch": 29.16,
+      "yaw": 62.37,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2080.0,
+          "y": -1248.0,
+          "z": 11667.7
+        },
+        "radiusUnits": 1052.2,
+        "zMin": 11392.0,
+        "zMax": 12031.5,
+        "levelId": "lower"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSpawn), 200 units up, 363 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 72% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
     {
-      "id": "nav-vertigo-bombsite_a-push",
+      "id": "cs2-vertigo-bombsite_a-orbit",
+      "displayName": "A site orbit",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -747.0,
+            "y": -589.0,
+            "z": 12042.7
+          },
+          "pitch": 19.44,
+          "yaw": -10.25
+        },
+        {
+          "tMs": 1246,
+          "position": {
+            "x": -792.0,
+            "y": -744.0,
+            "z": 12040.2
+          },
+          "pitch": 17.67,
+          "yaw": 8.13
+        },
+        {
+          "tMs": 4551,
+          "position": {
+            "x": -543.3,
+            "y": -1092.5,
+            "z": 12040.0
+          },
+          "pitch": 18.23,
+          "yaw": 58.74
+        },
+        {
+          "tMs": 7059,
+          "position": {
+            "x": -312.0,
+            "y": -1320.0,
+            "z": 12021.6
+          },
+          "pitch": 12.48,
+          "yaw": 87.88
+        },
+        {
+          "tMs": 8593,
+          "position": {
+            "x": -120.0,
+            "y": -1272.0,
+            "z": 12040.0
+          },
+          "pitch": 14.57,
+          "yaw": 105.64
+        },
+        {
+          "tMs": 10000,
+          "position": {
+            "x": -13.4,
+            "y": -1136.0,
+            "z": 11982.0
+          },
+          "pitch": 10.92,
+          "yaw": 120.62
+        }
+      ],
+      "maxDurationMs": 11000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-vertigo-bombsite_a-push",
       "displayName": "A site push-in",
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
@@ -2801,27 +3020,27 @@
         {
           "tMs": 0,
           "position": {
-            "x": -368.0,
-            "y": -1328.0,
-            "z": 11844.8
+            "x": -168.0,
+            "y": -1320.0,
+            "z": 12102.0
           },
-          "pitch": 1.8,
-          "yaw": 83.33
+          "pitch": 18.77,
+          "yaw": 100.49
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -333.4,
-            "y": -1032.3,
-            "z": 11863.4
+            "x": -222.0,
+            "y": -1028.4,
+            "z": 12088.5
           },
-          "pitch": 6.17,
-          "yaw": 83.33
+          "pitch": 30.15,
+          "yaw": 100.49
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_a"
@@ -2829,35 +3048,35 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-vertigo-bombsite_b-push",
-      "displayName": "B site push-in",
+      "id": "cs2-vertigo-bombsite_b-drift",
+      "displayName": "B site drift",
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
       "keyframes": [
         {
           "tMs": 0,
           "position": {
-            "x": -2608.0,
-            "y": 208.0,
-            "z": 11890.5
+            "x": -1695.5,
+            "y": 1054.0,
+            "z": 12032.7
           },
-          "pitch": 8.69,
-          "yaw": 48.83
+          "pitch": 21.42,
+          "yaw": -148.18
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -2417.2,
-            "y": 426.2,
-            "z": 11874.1
+            "x": -1811.5,
+            "y": 1240.9,
+            "z": 12032.7
           },
-          "pitch": 13.04,
-          "yaw": 48.83
+          "pitch": 20.24,
+          "yaw": -128.14
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "bombsite_b"
@@ -2865,7 +3084,43 @@
       "source": "derived_navmesh"
     },
     {
-      "id": "nav-vertigo-mid-push",
+      "id": "cs2-vertigo-bombsite_b-push",
+      "displayName": "B site push-in",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -2616.0,
+            "y": 840.0,
+            "z": 12014.4
+          },
+          "pitch": 27.41,
+          "yaw": -14.3
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -2432.4,
+            "y": 793.2,
+            "z": 12000.9
+          },
+          "pitch": 41.5,
+          "yaw": -14.3
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-vertigo-mid-push",
       "displayName": "Mid push-in",
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
@@ -2873,30 +3128,194 @@
         {
           "tMs": 0,
           "position": {
-            "x": -1456.0,
-            "y": 528.0,
-            "z": 12012.6
+            "x": -2013.2,
+            "y": 391.0,
+            "z": 12044.0
           },
-          "pitch": 21.62,
-          "yaw": -125.57
+          "pitch": 32.22,
+          "yaw": -42.37
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -1580.6,
-            "y": 353.8,
-            "z": 11955.7
+            "x": -1899.3,
+            "y": 287.1,
+            "z": 12030.5
           },
-          "pitch": 26.7,
-          "yaw": -125.57
+          "pitch": 47.05,
+          "yaw": -42.37
         }
       ],
       "maxDurationMs": 7000,
       "maxSpeedUnitsPerSec": 300,
-      "collisionValidated": false,
+      "collisionValidated": true,
       "validation": "unvalidated",
       "targetRegionIds": [
         "mid"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-vertigo-ct_spawn-drift",
+      "displayName": "CT spawn drift",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -707.0,
+            "y": 764.5,
+            "z": 12041.3
+          },
+          "pitch": 31.35,
+          "yaw": -175.33
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -724.9,
+            "y": 983.8,
+            "z": 12041.3
+          },
+          "pitch": 27.29,
+          "yaw": -143.19
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-vertigo-ct_spawn-push",
+      "displayName": "CT spawn push-in",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -707.0,
+            "y": 764.5,
+            "z": 12041.3
+          },
+          "pitch": 31.35,
+          "yaw": -175.33
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -794.3,
+            "y": 757.4,
+            "z": 12033.8
+          },
+          "pitch": 38.09,
+          "yaw": -175.33
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-vertigo-t_spawn-orbit",
+      "displayName": "T spawn orbit",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -2050.8,
+            "y": -732.1,
+            "z": 11980.0
+          },
+          "pitch": 31.15,
+          "yaw": -93.25
+        },
+        {
+          "tMs": 2631,
+          "position": {
+            "x": -2329.4,
+            "y": -782.4,
+            "z": 11920.0
+          },
+          "pitch": 25.53,
+          "yaw": -61.83
+        },
+        {
+          "tMs": 4537,
+          "position": {
+            "x": -2472.0,
+            "y": -936.0,
+            "z": 11920.0
+          },
+          "pitch": 26.73,
+          "yaw": -38.52
+        },
+        {
+          "tMs": 5346,
+          "position": {
+            "x": -2481.5,
+            "y": -1024.5,
+            "z": 11920.0
+          },
+          "pitch": 28.77,
+          "yaw": -29.1
+        }
+      ],
+      "maxDurationMs": 6346,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "cs2-vertigo-t_spawn-push",
+      "displayName": "T spawn push-in",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -2481.5,
+            "y": -1024.5,
+            "z": 11920.0
+          },
+          "pitch": 28.77,
+          "yaw": -29.1
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -2300.8,
+            "y": -1125.1,
+            "z": 11906.5
+          },
+          "pitch": 43.38,
+          "yaw": -29.1
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": true,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "t_spawn"
       ],
       "source": "derived_navmesh"
     }
@@ -4302,7 +4721,8 @@
     "createdAt": "2026-10-27T00:00:00Z",
     "sources": [
       "awpy 1.3.1 nav_info.csv (MIT, (c) Peter Xenopoulos): CS:GO navigation meshes",
-      "checked against the CS2 radar calibration: 99.1% of navigation areas lie on the drawn CS2 radar; the rest were dropped"
+      "checked against the CS2 radar calibration: 99.1% of navigation areas lie on the drawn CS2 radar; the rest were dropped",
+      "CS2 navigation and collision meshes from awpy-data (build 26144732, read with awpy 3.1.1, MIT): built-in cameras and paths placed on walkable floor and checked for line of sight and clearance"
     ]
   }
 }

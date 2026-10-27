@@ -1,72 +1,76 @@
 #!/usr/bin/env python3
-"""Built-in cameras and camera paths for the active-duty maps, from navigation-mesh data.
+"""Built-in cameras and camera paths for the active-duty maps, checked against CS2's own geometry.
 
-Usage (stdlib + Pillow):
-    pip download --no-deps awpy==1.3.1 -d /tmp/awpy && tar -xzf /tmp/awpy/awpy-1.3.1.tar.gz -C /tmp/awpy
-    python3 scripts/generate-map-cameras.py /tmp/awpy/awpy-1.3.1/awpy/data/nav/nav_info.csv
+Usage:
+    python3 -m venv .venv && .venv/bin/pip install awpy==3.1.1
+    # navs.zip and geometry.zip from an awpy-data release (github.com/pnxenopoulos/awpy-data), unzipped
+    .venv/bin/python scripts/generate-map-cameras.py --navs navs/ --meshes geometry/ --manifest manifest.json
 
-Input: awpy 1.3.1's nav_info.csv (MIT, (c) Peter Xenopoulos): the navigation areas of each map
-(axis-aligned walkable rectangles with floor heights and place names such as BombsiteA). They are
-the CS:GO meshes; the CS2 versions of these maps kept the layout and coordinates, which this script
-checks against the CS2 radar calibration in assets/radars (areas that fall outside the drawn CS2
-radar are dropped, e.g. parts of Train that CS2 reworked) and, where a demo-derived pack exists,
-against real CS2 player positions.
+Input: the CS2 navigation meshes (walkable areas) and collision meshes that awpy-data extracts from
+the game files of one CS2 build (awpy 3.1.1 reads both: NavMesh, and VisibilityChecker for line-of-
+sight tests). The map packs in assets/map-packs give the areas to film (their regions).
 
-Output, in assets/map-packs:
-* maps without a demo-derived pack get a pack built from the navigation areas (regions, bombsites,
-  floor grid, levels from the radar layers);
-* every pack gets its built-in cameras and paths replaced (capturedFrom / source "derived_navmesh").
+For each bombsite, the mid area (or the map's equivalent) and each spawn:
+* target points: the area's region cells dropped onto CS2's walkable floor, at chest height;
+* camera spots: walkable floor 300-1100 units from the area's centre, with the camera 140, 200 or
+  260 units above it. A spot is kept only when, in CS2's collision geometry, the camera has clear
+  space around it and above its floor, it sees the area's centre, and it sees most of the area's
+  target points. Two or three spots far apart in angle are chosen, preferring the ones that see
+  the most, from a good distance and a little above;
+* paths: an orbit through neighbouring good spots and a slow push-in from the best one. The curve
+  the console adapter actually flies (Catmull-Rom through the keyframes, as samplePath in
+  services/observer-agent/src/netcon.ts) is sampled every few units: every step must be clear of
+  geometry and keep the centre in view.
 
-Cameras: for each bombsite, the mid area and each spawn, spots on walkable floor 350-1000 units from
-the area's centre, at floor + 140 units (above head height; lower where another floor is above, as
-on Nuke), looking at the centre. A spot is kept
-only when the line from it to the centre runs over continuous walkable floor drawn on the CS2 radar
-(no walls in between), with no walkable surface near the sight line itself (a train or crate stack
-in the way, or the slab between two levels), and, where CS2 demo data covers the area, when players have stood there in
-CS2. Two or three spots per area are chosen far apart in angle; elevated spots are preferred.
-Paths: an orbit through consecutive clear spots around each site and mid (when they link up), and a
-slow push-in along the clearest sight line, which is clear by construction. Nothing here has been seen in
-the game: the program checks each shot with getpos and operators can turn any camera off.
+Collision geometry is what players collide with: glass, fences, foliage and other see-through or
+non-solid props are not in it. So a camera can still look through a fence the tests treat as a
+wall (and is dropped), or past a non-solid prop the tests don't see. Nothing here has been seen in
+the game: the program confirms each shot with getpos, and operators can turn any camera off.
+
+Existing operator cameras and paths are kept; only the built-in ones (capturedFrom / source
+"derived_navmesh") are replaced.
 """
 
 from __future__ import annotations
 
-import csv
+import argparse
 import json
 import math
 import re
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 try:
-    from PIL import Image
-except ImportError:  # pragma: no cover - Pillow is needed for the CS2 radar check
-    sys.exit("Pillow is required: pip install pillow")
+    from awpy import NavMesh, VisibilityChecker
+except ImportError:  # pragma: no cover
+    sys.exit("awpy 3.1.1 is required: pip install awpy==3.1.1")
 
 REPO = Path(__file__).resolve().parent.parent
 PACKS = REPO / "assets" / "map-packs"
-RADARS = REPO / "assets" / "radars"
 MAPS = ["de_ancient", "de_anubis", "de_dust2", "de_inferno", "de_mirage", "de_nuke", "de_overpass", "de_train", "de_vertigo"]
-DISPLAY = {"de_ancient": "Ancient", "de_anubis": "Anubis", "de_dust2": "Dust II", "de_inferno": "Inferno", "de_mirage": "Mirage", "de_nuke": "Nuke", "de_overpass": "Overpass", "de_train": "Train", "de_vertigo": "Vertigo"}
-MID_NAMES = {"Mid", "Middle", "TopofMid"}
-NAV_REVISION = "navmesh:awpy-1.3.1"
-SOURCE = "awpy 1.3.1 nav_info.csv (MIT, (c) Peter Xenopoulos): CS:GO navigation meshes"
+# The area each map's mid camera films: its "mid" region, or the map's equivalent where it has none.
+MID_REGIONS = {"de_nuke": ["outside"], "de_overpass": ["connector", "fountain", "playground"], "de_train": ["connector"]}
 
-GRID = 32.0  # walkability grid
-CELL, ZCELL = 64.0, 128.0  # region cells, as in the demo-derived packs
-CAM_HEIGHT = 140.0  # camera above the floor at its spot
-PATH_HEIGHT = 150.0
-AIM_HEIGHT = 48.0  # look at chest height above the area's floor
-MIN_D, MAX_D, BEST_D = 350.0, 1000.0, 650.0
-LEVEL_TOL = 96.0  # walkable floor along a sight line must stay within this of the line's floor
-SURFACE_GAP = 35.0  # no walkable surface (train roof, slab between levels) within this of the sight line
-HEADROOM = 50.0  # camera at least this far below any floor above its spot
-MIN_CAM_HEIGHT = 90.0
+AIM = 48.0  # look at chest height above the floor
+HEIGHTS = (260.0, 200.0, 140.0)  # camera above its floor, highest first
+MIN_D, MAX_D, BEST_D = 300.0, 1100.0, 650.0
+CLEAR = 24.0  # free space around a camera in every direction
+SPOT_GRID = 64.0  # camera spots: one per cell of this size
+SAMPLE = 48.0  # walkable samples inside each navigation area
+MAX_TARGETS = 64
 PATH_SPEED = 110.0  # units per second
-PUSH_MS = 6000  # push-in duration
-PLACE_LABEL = {"BombsiteA": "A site", "BombsiteB": "B site", "CTSpawn": "CT spawn", "TSpawn": "T spawn", "Middle": "Mid", "Mid": "Mid", "TopofMid": "Top of mid"}
-
+MAX_PATH_SPEED = 220.0
+MAX_ORBIT_MS = 10000  # a path has to fit in freeze time
+PUSH_MS = 6000
+DRIFT = 220.0  # sideways move of a drift path
+PATH_STEP = 24.0  # path curve checked every this many units
+MIN_COVER = {"bombsite": 0.5, "mid": 0.45, "spawn": 0.4}
+# Framing: rays across the picture (16:9, CS2's default 90 degree spectator view) that run this far
+# without hitting anything; a wall or pillar right in front of the camera fills the frame.
+OPEN_RANGE = 220.0
+MIN_OPEN = 0.55
+MIN_OPEN_TIGHT = 0.45  # for narrow areas (a connector) where no spot does better
+LABEL = {"bombsite_a": "A site", "bombsite_b": "B site", "ct_spawn": "CT spawn", "t_spawn": "T spawn"}
 
 _NUMERIC_ARRAY = re.compile(r"\[\s*(-?\d[\d.eE+-]*(?:\s*,\s*-?\d[\d.eE+-]*)*)\s*\]")
 
@@ -77,169 +81,8 @@ def dumps_readable(obj: object) -> str:
     return _NUMERIC_ARRAY.sub(lambda m: "[" + ",".join(x.strip() for x in m.group(1).split(",")) + "]", text)
 
 
-def region_id(place: str) -> str:
-    s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", place)
-    s = re.sub(r"([a-z\d])([A-Z])", r"\1_\2", s)
-    return re.sub(r"[^a-z0-9_]+", "_", s.lower()).strip("_")
-
-
-def region_kind(place: str) -> str:
-    if place.startswith("Bombsite"):
-        return "bombsite"
-    if place.endswith("Spawn"):
-        return "spawn"
-    if place in MID_NAMES:
-        return "mid"
-    return "other"
-
-
-def human(place: str) -> str:
-    if place in PLACE_LABEL:
-        return PLACE_LABEL[place]
-    return re.sub(r"([a-z])([A-Z])", r"\1 \2", place) or "?"
-
-
-class Radar:
-    """CS2 radar drawing and calibration: whether a world point lies on the drawn map."""
-
-    def __init__(self, map_name: str):
-        cal = json.loads((RADARS / "radars.json").read_text())["maps"].get(map_name)
-        self.cal = cal
-        self.img = None
-        if cal:
-            self.img = Image.open(RADARS / cal["file"]).convert("RGBA")
-            self.px = self.img.load()
-            self.scale = self.img.size[0] / cal["size"]
-
-    def layers(self) -> list[dict]:
-        return self.cal["layers"] if self.cal else []
-
-    def drawn(self, x: float, y: float, z: float) -> bool:
-        if not self.img:
-            return True
-        lay = self.cal["layers"][0]
-        for layer in self.cal["layers"]:
-            lo, hi = layer.get("zMin"), layer.get("zMax")
-            if (lo is None or z >= lo) and (hi is None or z < hi):
-                lay = layer
-                break
-        u = (lay["originX"] + x * lay["pxPerUX"]) * self.scale
-        v = (lay["originY"] + y * lay["pxPerUY"]) * self.scale
-        w, h = self.img.size
-        if not (0 <= u < w and 0 <= v < h):
-            return False
-        r, g, b, a = self.px[int(u), int(v)]
-        return a > 40 and (r + g + b) > 60
-
-
-class Nav:
-    def __init__(self, areas: list[dict], radar: Radar, cs2_floor: dict | None):
-        self.radar = radar
-        self.cs2_floor = cs2_floor
-        kept = [a for a in areas if radar.drawn(a["cx"], a["cy"], a["cz"])]
-        self.dropped = len(areas) - len(kept)
-        self.areas = kept
-        self.floors: dict[tuple[int, int], list[float]] = defaultdict(list)
-        self.place_at: dict[tuple[int, int, int], str] = {}
-        for a in kept:
-            for gx in range(math.floor(a["x1"] / GRID), math.floor((a["x2"] - 1e-6) / GRID) + 1):
-                for gy in range(math.floor(a["y1"] / GRID), math.floor((a["y2"] - 1e-6) / GRID) + 1):
-                    x, y = (gx + 0.5) * GRID, (gy + 0.5) * GRID
-                    z = a["z_at"](x, y)
-                    self.floors[(gx, gy)].append(z)
-                    if a["place"]:
-                        self.place_at[(gx, gy, round(z / 64))] = a["place"]
-
-    def floor_near(self, x: float, y: float, z: float, tol: float = LEVEL_TOL) -> float | None:
-        best = None
-        for f in self.floors.get((math.floor(x / GRID), math.floor(y / GRID)), []):
-            if abs(f - z) <= tol and (best is None or abs(f - z) < abs(best - z)):
-                best = f
-        return best
-
-    def place_near(self, x: float, y: float, z: float) -> str:
-        g = (math.floor(x / GRID), math.floor(y / GRID))
-        for dz in (0, -1, 1):
-            p = self.place_at.get((g[0], g[1], round(z / 64) + dz))
-            if p:
-                return p
-        return ""
-
-    def covers(self, place: str) -> bool:
-        """CS2 demo data has player positions over most of this area (a wingman demo covers one site only)."""
-        if self.cs2_floor is None:
-            return False
-        size = self.cs2_floor["size"]
-        cells = {(math.floor(a["cx"] / size), math.floor(a["cy"] / size)) for a in self.areas if a["place"] == place}
-        hit = sum(1 for (fx, fy) in cells if any((fx + dx, fy + dy) in self.cs2_floor["cells"] for dx in (-1, 0, 1) for dy in (-1, 0, 1)))
-        return bool(cells) and hit / len(cells) >= 0.5
-
-    def in_cs2(self, x: float, y: float, z: float) -> bool:
-        """With CS2 demo data: players stood within a cell of this spot in CS2."""
-        if self.cs2_floor is None:
-            return True
-        size = self.cs2_floor["size"]
-        fx, fy = math.floor(x / size), math.floor(y / size)
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                for f in self.cs2_floor["cells"].get((fx + dx, fy + dy), []):
-                    if abs(f - z) <= 96:
-                        return True
-        return False
-
-    def headroom(self, x: float, y: float, f: float, min_gap: float = 40) -> float:
-        """Space above floor f at this spot before the next floor up (e.g. Nuke A above B); floors
-        less than min_gap up are steps or platforms, not ceilings."""
-        above = [g for g in self.floors.get((math.floor(x / GRID), math.floor(y / GRID)), []) if g > f + min_gap]
-        return min(above) - f if above else math.inf
-
-    def clear(self, a: tuple[float, float, float], b: tuple[float, float, float], eye_a: float, eye_b: float) -> bool:
-        """A sight line from eye height eye_a above floor point a to eye_b above b: continuous walkable
-        floor under it (drawn on the CS2 radar), and no walkable surface near the line itself, which
-        would be an obstacle top (a train, a crate stack) or the slab between two levels."""
-        dist = math.hypot(b[0] - a[0], b[1] - a[1])
-        steps = max(2, int(dist / 24))
-        for i in range(1, steps):
-            t = i / steps
-            x, y = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
-            zf = a[2] + (b[2] - a[2]) * t
-            sight = zf + eye_a + (eye_b - eye_a) * t
-            f = self.floor_near(x, y, zf)
-            if f is None or not self.radar.drawn(x, y, f):
-                return False
-            for g in self.floors.get((math.floor(x / GRID), math.floor(y / GRID)), []):
-                if g != f and sight - SURFACE_GAP < g < sight + SURFACE_GAP:
-                    return False
-        return True
-
-
-def load_nav(path: str) -> dict[str, list[dict]]:
-    out: dict[str, list[dict]] = defaultdict(list)
-    for r in csv.DictReader(open(path, newline="")):
-        if r["mapName"] not in MAPS:
-            continue
-        x1, y1, z1 = float(r["northWestX"]), float(r["northWestY"]), float(r["northWestZ"])
-        x2, y2, z2 = float(r["southEastX"]), float(r["southEastY"]), float(r["southEastZ"])
-        lx, hx, ly, hy = min(x1, x2), max(x1, x2), min(y1, y2), max(y1, y2)
-
-        def z_at(x: float, y: float, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2) -> float:
-            # Floor height from the two known corners: the mean of the x and y fractions along the diagonal.
-            tx = (x - x1) / (x2 - x1) if x2 != x1 else 0.5
-            ty = (y - y1) / (y2 - y1) if y2 != y1 else 0.5
-            t = min(1.0, max(0.0, (tx + ty) / 2))
-            return z1 + (z2 - z1) * t
-
-        out[r["mapName"]].append({"place": r["areaName"], "x1": lx, "x2": hx, "y1": ly, "y2": hy, "cx": (lx + hx) / 2, "cy": (ly + hy) / 2, "cz": (z1 + z2) / 2, "area": max(1.0, (hx - lx) * (hy - ly)), "z_at": z_at})
-    return out
-
-
-def cs2_floor_of(pack: dict | None) -> dict | None:
-    if not pack or not pack.get("floorGrid") or "demo" not in pack["floorGrid"].get("source", ""):
-        return None
-    cells: dict[tuple[int, int], list[float]] = {}
-    for c in pack["floorGrid"]["cells"]:
-        cells[(int(c[0]), int(c[1]))] = [float(z) for z in c[2:]]
-    return {"size": pack["floorGrid"]["cellSize"], "cells": cells}
+def human(name: str) -> str:
+    return re.sub(r"(?<=[a-z])(?=[A-Z])", " ", name).replace("_", " ").replace("Bombsite", "Site ").strip()
 
 
 def angles(cam: tuple[float, float, float], target: tuple[float, float, float]) -> tuple[float, float]:
@@ -249,324 +92,437 @@ def angles(cam: tuple[float, float, float], target: tuple[float, float, float]) 
     return round(pitch, 2), round(yaw, 2)
 
 
-def level_id(levels: list[dict], z: float) -> str | None:
-    if len(levels) <= 1:
-        return levels[0]["id"] if levels else None
-    for lv in levels:
-        if lv["zMin"] <= z < lv["zMax"]:
-            return lv["id"]
-    return None
+def plane(corners: list[tuple[float, float, float]]):
+    """z = a*x + b*y + c through an area's corners (least squares; flat when degenerate)."""
+    n = len(corners)
+    sx = sum(c[0] for c in corners); sy = sum(c[1] for c in corners); sz = sum(c[2] for c in corners)
+    sxx = sum(c[0] * c[0] for c in corners); syy = sum(c[1] * c[1] for c in corners); sxy = sum(c[0] * c[1] for c in corners)
+    sxz = sum(c[0] * c[2] for c in corners); syz = sum(c[1] * c[2] for c in corners)
+    m = [[sxx, sxy, sx], [sxy, syy, sy], [sx, sy, n]]
+    v = [sxz, syz, sz]
+    det = (m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]))
+    if abs(det) < 1e-6:
+        return lambda x, y: sz / n
+    def solve(col: int) -> float:
+        mm = [row[:] for row in m]
+        for r in range(3):
+            mm[r][col] = v[r]
+        return (mm[0][0] * (mm[1][1] * mm[2][2] - mm[1][2] * mm[2][1]) - mm[0][1] * (mm[1][0] * mm[2][2] - mm[1][2] * mm[2][0]) + mm[0][2] * (mm[1][0] * mm[2][1] - mm[1][1] * mm[2][0])) / det
+    a, b, c0 = solve(0), solve(1), solve(2)
+    lo, hi = min(p[2] for p in corners), max(p[2] for p in corners)
+    return lambda x, y: min(hi, max(lo, a * x + b * y + c0))
 
 
-def area_targets(nav: Nav, place: str) -> dict | None:
-    pts = [a for a in nav.areas if a["place"] == place]
-    if not pts:
+def inside(poly: list[tuple[float, float, float]], x: float, y: float) -> bool:
+    hit = False
+    j = len(poly) - 1
+    for i in range(len(poly)):
+        xi, yi = poly[i][0], poly[i][1]
+        xj, yj = poly[j][0], poly[j][1]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi + 1e-12) + xi:
+            hit = not hit
+        j = i
+    return hit
+
+
+class Map:
+    def __init__(self, name: str, nav_path: Path, mesh_path: Path):
+        self.name = name
+        self.nav = NavMesh(nav_path)
+        self.vc = VisibilityChecker(mesh_path)
+        self.planes: dict[int, object] = {}
+        self.walk: list[tuple[float, float, float]] = []
+        areas = self.nav.areas
+        for area_id in areas["area_id"].to_list():
+            a = self.nav.area(int(area_id))
+            corners = [tuple(map(float, c)) for c in a["corners"]]
+            z_at = plane(corners)
+            self.planes[int(area_id)] = z_at
+            xs = [c[0] for c in corners]; ys = [c[1] for c in corners]
+            cx, cy = float(a["centroid"][0]), float(a["centroid"][1])
+            self.walk.append((cx, cy, z_at(cx, cy)))
+            x = math.floor(min(xs) / SAMPLE) * SAMPLE + SAMPLE / 2
+            while x < max(xs):
+                y = math.floor(min(ys) / SAMPLE) * SAMPLE + SAMPLE / 2
+                while y < max(ys):
+                    if inside(corners, x, y):
+                        self.walk.append((x, y, z_at(x, y)))
+                    y += SAMPLE
+                x += SAMPLE
+
+    def floor_at(self, x: float, y: float, z: float) -> float | None:
+        area = self.nav.find_area((x, y, z))
+        if area is None:
+            return None
+        return self.planes[area](x, y)
+
+    def visible(self, a, b) -> bool:
+        return self.vc.is_visible(a, b)
+
+    def openness(self, cam: tuple[float, float, float], aim: tuple[float, float, float]) -> float:
+        """Share of a 9 x 5 grid of view rays with no geometry within OPEN_RANGE."""
+        dx, dy, dz = aim[0] - cam[0], aim[1] - cam[1], aim[2] - cam[2]
+        n = math.sqrt(dx * dx + dy * dy + dz * dz) or 1.0
+        f = (dx / n, dy / n, dz / n)
+        h = math.hypot(f[0], f[1]) or 1.0
+        r = (f[1] / h, -f[0] / h, 0.0)
+        u = (r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0])
+        tanh = 1.0  # tan(45 degrees)
+        tanv = tanh * 9 / 16
+        hits = total = 0
+        for i in range(9):
+            for j in range(5):
+                sx, sy = (i / 4 - 1) * tanh * 0.9, (j / 2 - 1) * tanv * 0.9
+                d = [f[k] + sx * r[k] + sy * u[k] for k in range(3)]
+                m = math.sqrt(sum(x * x for x in d))
+                end = tuple(cam[k] + d[k] / m * OPEN_RANGE for k in range(3))
+                total += 1
+                hits += not self.vc.is_visible(cam, end)
+        return 1 - hits / total
+
+    def clear_around(self, p: tuple[float, float, float], r: float = CLEAR) -> bool:
+        x, y, z = p
+        return all(self.vc.is_visible(p, (x + dx, y + dy, z + dz)) for dx, dy, dz in ((r, 0, 0), (-r, 0, 0), (0, r, 0), (0, -r, 0), (0, 0, r), (0, 0, -r)))
+
+
+def region_targets(m: Map, region: dict) -> dict | None:
+    """The region's cells dropped onto CS2's walkable floor, at chest height."""
+    pts = []
+    for shape in region["shapes"]:
+        if shape["kind"] != "cells":
+            continue
+        cs, zs = shape["cellSize"], shape["zCellSize"]
+        for ix, iy, iz in shape["cells"]:
+            x, y, z = (ix + 0.5) * cs, (iy + 0.5) * cs, (iz + 0.5) * zs
+            f = m.floor_at(x, y, z)
+            if f is not None and abs(f - z) <= zs:
+                pts.append((x, y, f + AIM))
+    if len(pts) < 3:
         return None
-    w = sum(a["area"] for a in pts)
-    cx = sum(a["cx"] * a["area"] for a in pts) / w
-    cy = sum(a["cy"] * a["area"] for a in pts) / w
-    zs = sorted(a["cz"] for a in pts)
-    floor = zs[len(zs) // 2]
-    centre_floor = nav.floor_near(cx, cy, floor, 200) or floor
-    radius = max(math.hypot(a["cx"] - cx, a["cy"] - cy) for a in pts)
-    return {"place": place, "x": cx, "y": cy, "floor": centre_floor, "zmin": zs[0], "zmax": zs[-1], "radius": radius}
+    pts.sort()
+    if len(pts) > MAX_TARGETS:
+        step = len(pts) / MAX_TARGETS
+        pts = [pts[int(i * step)] for i in range(MAX_TARGETS)]
+    mx = sum(p[0] for p in pts) / len(pts)
+    my = sum(p[1] for p in pts) / len(pts)
+    centre = min(pts, key=lambda p: (p[0] - mx) ** 2 + (p[1] - my) ** 2)
+    radius = max(math.hypot(p[0] - centre[0], p[1] - centre[1]) for p in pts)
+    zs_ = sorted(p[2] for p in pts)
+    return {"points": pts, "centre": centre, "radius": radius, "zmin": zs_[0] - AIM, "zmax": zs_[-1] - AIM}
 
 
-def candidates(nav: Nav, t: dict) -> list[dict]:
-    target_floor = (t["x"], t["y"], t["floor"])
-    check_cs2 = nav.covers(t["place"])
+def candidates(m: Map, t: dict, kind: str, min_open: float = MIN_OPEN) -> list[dict]:
+    cx, cy, cz = t["centre"]
+    seen: set[tuple[int, int, int]] = set()
     out = []
-    seen = set()
-    for (gx, gy), floors in nav.floors.items():
-        if gx % 2 or gy % 2:  # every other cell: 64-unit spacing is plenty
+    for x, y, z in m.walk:
+        d = math.hypot(x - cx, y - cy)
+        if not (MIN_D <= d <= MAX_D) or abs(z - (cz - AIM)) > 400:
             continue
-        x, y = (gx + 0.5) * GRID, (gy + 0.5) * GRID
-        d = math.hypot(x - t["x"], y - t["y"])
-        if not (MIN_D <= d <= MAX_D):
+        key = (math.floor(x / SPOT_GRID), math.floor(y / SPOT_GRID), math.floor(z / 96))
+        if key in seen:
             continue
-        for f in floors:
-            if abs(f - t["floor"]) > 220 or (gx, gy, round(f)) in seen:
+        seen.add(key)
+        best = None
+        for h in HEIGHTS:
+            cam = (x, y, z + h)
+            # Room above the floor and around the camera: not inside a wall, prop or ceiling.
+            if not m.visible((x, y, z + 16), (x, y, z + h + CLEAR)) or not m.clear_around(cam):
                 continue
-            seen.add((gx, gy, round(f)))
-            if not nav.radar.drawn(x, y, f) or (check_cs2 and not nav.in_cs2(x, y, f)):
+            if not m.visible(cam, t["centre"]):
                 continue
-            # Room around the spot: walkable floor on all sides, so the camera isn't against a wall.
-            if any(nav.floor_near(x + ox, y + oy, f, 48) is None for ox, oy in ((48, 0), (-48, 0), (0, 48), (0, -48))):
+            sees = [p for p in t["points"] if m.visible(cam, p)]
+            cover = len(sees) / len(t["points"])
+            # Frame what this camera sees of the area: its middle, not the region's centre.
+            aim = tuple(sum(p[k] for p in sees) / len(sees) for k in range(3)) if sees else t["centre"]
+            open_ = m.openness(cam, aim)
+            if open_ < min_open:
                 continue
-            height = min(CAM_HEIGHT, nav.headroom(x, y, f) - HEADROOM)
-            if height < MIN_CAM_HEIGHT or nav.headroom(t["x"], t["y"], t["floor"], 150) < AIM_HEIGHT + HEADROOM:
-                continue
-            if not nav.clear((x, y, f), target_floor, height, AIM_HEIGHT):
-                continue
-            elevation = max(0.0, min(1.0, (f - t["floor"]) / 160))
-            score = 1.0 - abs(d - BEST_D) / BEST_D + 0.6 * elevation
-            out.append({"x": x, "y": y, "floor": f, "height": height, "d": d, "angle": math.atan2(y - t["y"], x - t["x"]), "score": score})
+            pitch, _ = angles(cam, aim)
+            score = 1.2 * cover + 0.5 * open_ + 0.5 * (1 - abs(d - BEST_D) / BEST_D) + 0.4 * max(0.0, min(1.0, (cam[2] - cz) / 250)) - (0.6 if pitch > 50 else 0)
+            if best is None or score > best["score"]:
+                best = {"x": x, "y": y, "floor": z, "h": h, "pos": cam, "d": d, "cover": cover, "open": open_, "score": score, "aim": aim, "angle": math.atan2(y - cy, x - cx)}
+        if best and best["cover"] >= MIN_COVER[kind]:
+            out.append(best)
     return out
 
 
-def pick_spread(cands: list[dict], n: int, min_sep_deg: float) -> list[dict]:
-    chosen: list[dict] = []
-    for c in sorted(cands, key=lambda c: -c["score"]):
-        if all(abs(math.degrees(math.atan2(math.sin(c["angle"] - o["angle"]), math.cos(c["angle"] - o["angle"])))) >= min_sep_deg for o in chosen):
-            chosen.append(c)
-        if len(chosen) == n:
-            break
-    return chosen
+def pick_spread(cands: list[dict], n: int) -> list[dict]:
+    for sep in (70, 45, 30):
+        chosen: list[dict] = []
+        for c in sorted(cands, key=lambda c: (-c["score"], c["x"], c["y"])):
+            if all(abs(math.degrees(math.atan2(math.sin(c["angle"] - o["angle"]), math.cos(c["angle"] - o["angle"])))) >= sep for o in chosen):
+                chosen.append(c)
+            if len(chosen) == n:
+                return chosen
+        if len(chosen) == n or sep == 30:
+            return chosen
+    return []
 
 
-def orbit(nav: Nav, t: dict, cands: list[dict]) -> list[dict]:
-    """The longest chain of clear spots around the target, each linked to the next by a clear line."""
-    ring = [c for c in cands if 450 <= c["d"] <= 900]
-    if len(ring) < 3:
-        return []
-    by_angle: dict[int, dict] = {}
+def catmull(k: list[tuple[float, float, float]], i: int, u: float) -> tuple[float, float, float]:
+    """The point samplePath (netcon.ts) flies between keyframes i and i+1 at fraction u."""
+    p0, p1, p2, p3 = k[max(0, i - 1)], k[i], k[min(len(k) - 1, i + 1)], k[min(len(k) - 1, i + 2)]
+    return tuple(0.5 * (2 * p1[j] + (-p0[j] + p2[j]) * u + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * u * u + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * u * u * u) for j in range(3))
+
+
+def flyable(m: Map, keys: list[tuple[float, float, float]], aim: tuple[float, float, float]) -> int:
+    """How many keyframe-to-keyframe spans, from the start, the camera flies without touching geometry or losing the aim point."""
+    for i in range(len(keys) - 1):
+        span = math.dist(keys[i], keys[i + 1])
+        steps = max(2, math.ceil(span / PATH_STEP))
+        prev = keys[i]
+        lost = 0
+        for s in range(1, steps + 1):
+            p = catmull(keys, i, s / steps)
+            if not m.visible(prev, p) or not m.clear_around(p, 16):
+                return i
+            lost += not m.visible(p, aim)
+            prev = p
+        if lost > steps * 0.15:
+            return i
+    return len(keys) - 1
+
+
+def path_keys(points: list[tuple[float, float, float]], aim: tuple[float, float, float], durations: list[float] | None = None) -> list[dict]:
+    keys, tms = [], 0.0
+    for i, p in enumerate(points):
+        if i:
+            tms += durations[i - 1] if durations else math.dist(points[i - 1], p) / PATH_SPEED * 1000
+        pitch, yaw = angles(p, aim)
+        keys.append({"tMs": round(tms), "position": {"x": round(p[0], 1), "y": round(p[1], 1), "z": round(p[2], 1)}, "pitch": pitch, "yaw": yaw})
+    return keys
+
+
+def orbit(m: Map, t: dict, cands: list[dict]) -> list[dict]:
+    ring = [c for c in cands if 450 <= c["d"] <= 950]
+    by_sector: dict[int, dict] = {}
     for c in ring:  # best spot per 15-degree sector
-        k = int((math.degrees(c["angle"]) + 180) // 15)
-        if k not in by_angle or c["score"] > by_angle[k]["score"]:
-            by_angle[k] = c
-    sectors = sorted(by_angle)
+        k = int((math.degrees(c["angle"]) + 180) // 15) % 24
+        if k not in by_sector or c["score"] > by_sector[k]["score"]:
+            by_sector[k] = c
     best: list[dict] = []
-    for start in range(len(sectors)):
-        chain = [by_angle[sectors[start]]]
-        k = sectors[start]
+    for start in sorted(by_sector):
+        chain = [by_sector[start]]
+        k = start
         while len(chain) < 8:
             nxt = None
-            for step in (2, 3, 1):  # 30, 45 or 15 degrees on
+            for step in (2, 3, 1):
                 kk = (k + step) % 24
-                if kk in by_angle and by_angle[kk] not in chain:
-                    c = by_angle[kk]
-                    p = chain[-1]
-                    if nav.clear((p["x"], p["y"], p["floor"]), (c["x"], c["y"], c["floor"]), min(PATH_HEIGHT, p["height"]), min(PATH_HEIGHT, c["height"])):
-                        nxt, k = c, kk
-                        break
+                c = by_sector.get(kk)
+                if c and c not in chain and m.visible(chain[-1]["pos"], c["pos"]):
+                    nxt, k = c, kk
+                    break
             if not nxt:
                 break
             chain.append(nxt)
+        if len(chain) >= 3:
+            # Keep the part of the chain whose real flight curve is clear.
+            ok = flyable(m, [c["pos"] for c in chain], t["centre"])
+            chain = chain[: ok + 1]
         if len(chain) > len(best):
             best = chain
     if len(best) < 3:
         return []
-    target = (t["x"], t["y"], t["floor"] + AIM_HEIGHT)
-    keys, tms = [], 0.0
-    for i, c in enumerate(best):
-        if i:
-            p = best[i - 1]
-            tms += math.hypot(c["x"] - p["x"], c["y"] - p["y"], c["floor"] - p["floor"]) / PATH_SPEED * 1000
-        pos = (c["x"], c["y"], c["floor"] + min(PATH_HEIGHT, c["height"]))
-        pitch, yaw = angles(pos, target)
-        keys.append({"tMs": round(tms), "position": {"x": round(pos[0], 1), "y": round(pos[1], 1), "z": round(pos[2], 1)}, "pitch": pitch, "yaw": yaw})
-    return keys
+    pts = [c["pos"] for c in best]
+    # Long orbits fly faster, and are cut short when even that doesn't fit in freeze time.
+    while len(pts) >= 3:
+        total = sum(math.dist(a, b) for a, b in zip(pts, pts[1:]))
+        speed = max(PATH_SPEED, min(MAX_PATH_SPEED, total / (MAX_ORBIT_MS / 1000)))
+        if total / speed * 1000 <= MAX_ORBIT_MS:
+            break
+        pts = pts[:-1]
+    if len(pts) < 3:
+        return []
+    keys = path_keys(pts, t["centre"], [math.dist(a, b) / speed * 1000 for a, b in zip(pts, pts[1:])])
+    return keys if keys[-1]["tMs"] >= 3000 else []
 
 
-def push_in(t: dict, c: dict) -> list[dict]:
-    """A slow dolly from a clear spot toward the area's centre, along its (clear) sight line."""
-    target = (t["x"], t["y"], t["floor"] + AIM_HEIGHT)
-    keys = []
-    for i, frac in enumerate((0.0, 0.45)):
-        x = c["x"] + (t["x"] - c["x"]) * frac
-        y = c["y"] + (t["y"] - c["y"]) * frac
-        z = c["floor"] + (t["floor"] - c["floor"]) * frac + min(PATH_HEIGHT, c["height"]) - 30 * frac
-        pitch, yaw = angles((x, y, z), target)
-        keys.append({"tMs": i * PUSH_MS, "position": {"x": round(x, 1), "y": round(y, 1), "z": round(z, 1)}, "pitch": pitch, "yaw": yaw})
-    return keys
+def drift(m: Map, t: dict, c: dict) -> list[dict]:
+    """A slow sideways move past the area, for areas without an orbit."""
+    cx, cy, _ = t["centre"]
+    dx, dy = cx - c["pos"][0], cy - c["pos"][1]
+    n = math.hypot(dx, dy) or 1.0
+    side = (-dy / n, dx / n)
+    for sign in (1, -1):
+        end = (c["pos"][0] + side[0] * DRIFT * sign, c["pos"][1] + side[1] * DRIFT * sign, c["pos"][2])
+        pts = [c["pos"], end]
+        if flyable(m, pts, t["centre"]) == 1:
+            return path_keys(pts, t["centre"], [PUSH_MS])
+    return []
 
 
-def build_regions(nav: Nav, levels: list[dict]) -> tuple[list[dict], dict]:
-    by_place: dict[str, set] = defaultdict(set)
-    counts: dict[str, int] = defaultdict(int)
-    for a in nav.areas:
-        if not a["place"]:
+def push_in(m: Map, t: dict, c: dict) -> list[dict]:
+    """A slow dolly from the best spot toward the centre, stopping well short of it."""
+    cx, cy, cz = t["centre"]
+    for frac in (0.45, 0.35, 0.25):
+        end = (c["pos"][0] + (cx - c["pos"][0]) * frac, c["pos"][1] + (cy - c["pos"][1]) * frac, c["pos"][2] - 30 * frac)
+        if math.dist(end, t["centre"]) < 250:
             continue
-        counts[a["place"]] += 1
-        for gx in range(math.floor(a["x1"] / CELL), math.floor((a["x2"] - 1e-6) / CELL) + 1):
-            for gy in range(math.floor(a["y1"] / CELL), math.floor((a["y2"] - 1e-6) / CELL) + 1):
-                z = a["z_at"]((gx + 0.5) * CELL, (gy + 0.5) * CELL)
-                by_place[a["place"]].add((gx, gy, math.floor(z / ZCELL)))
-    regions = []
-    for place in sorted(by_place):
-        cells = sorted(by_place[place])
-        zs = [(c[2] + 0.5) * ZCELL for c in cells]
-        regions.append({
-            "id": region_id(place),
-            "name": place,
-            "kind": region_kind(place),
-            "levelId": level_id(levels, sorted(zs)[len(zs) // 2]),
-            "shapes": [{"kind": "cells", "cellSize": CELL, "zCellSize": ZCELL, "cells": [list(c) for c in cells]}],
-            "source": "imported",
-            "sampleCount": counts[place],
-            "validated": False,
-            "tags": ["navmesh"],
-        })
-    floor_cells: dict[tuple[int, int], list[float]] = defaultdict(list)
-    for (gx, gy), floors in nav.floors.items():
-        floor_cells[(math.floor(gx * GRID / CELL), math.floor(gy * GRID / CELL))].extend(floors)
-    grid = []
-    for (fx, fy) in sorted(floor_cells):
-        zs = sorted(floor_cells[(fx, fy)])
-        groups, cur = [], [zs[0]]
-        for z in zs[1:]:
-            if z - cur[-1] > 96:
-                groups.append(cur)
-                cur = [z]
-            else:
-                cur.append(z)
-        groups.append(cur)
-        grid.append([fx, fy, *[round(g[len(g) // 2], 1) for g in groups]])
-    return regions, {"cellSize": CELL, "cells": grid, "source": "navmesh_awpy_1.3.1", "sampleCount": len(nav.areas)}
+        pts = [c["pos"], end]
+        if flyable(m, pts, t["centre"]) == 1:
+            return path_keys(pts, t["centre"], [PUSH_MS])
+    return []
 
 
-def levels_for(radar: Radar, areas: list[dict]) -> list[dict]:
-    zs = [a["cz"] for a in areas]
-    lo, hi = math.floor(min(zs)) - 64, math.ceil(max(zs)) + 256
-    layers = radar.layers()
-    if len(layers) == 2 and any(l.get("zMin") is not None for l in layers):
-        split = next(l["zMin"] for l in layers if l.get("zMin") is not None)
-        return [
-            {"id": "upper", "name": "Upper", "zMin": split, "zMax": hi, "radar": None},
-            {"id": "lower", "name": "Lower", "zMin": lo, "zMax": split, "radar": None},
-        ]
-    return [{"id": "ground", "name": "Ground", "zMin": lo, "zMax": hi, "radar": None}]
+def place_of(pack: dict, p: tuple[float, float, float]) -> str | None:
+    x, y, z = p
+    for r in pack["regions"]:
+        for shape in r["shapes"]:
+            if shape["kind"] != "cells":
+                continue
+            cs, zs = shape["cellSize"], shape["zCellSize"]
+            cell = [math.floor(x / cs), math.floor(y / cs), math.floor(z / zs)]
+            if cell in shape["cells"]:
+                return r["name"]
+    return None
 
 
-def camera_record(map_name: str, revision: str, nav: Nav, t: dict, c: dict, kind: str, levels: list[dict], n: int) -> dict:
-    target = (t["x"], t["y"], t["floor"] + AIM_HEIGHT)
-    pos = (c["x"], c["y"], c["floor"] + c["height"])
-    pitch, yaw = angles(pos, target)
-    spot = nav.place_near(c["x"], c["y"], c["floor"])
-    label = human(t["place"]) + (f" from {human(spot)}" if spot and spot != t["place"] else f" #{n}")
-    classes = {"bombsite": ["bomb", "tactical", "establishing", "utility"], "mid": ["tactical", "establishing", "utility"], "spawn": ["establishing"]}[kind]
-    return {
-        "id": f"nav-{map_name.removeprefix('de_')}-{region_id(t['place'])}-{n}",
-        "displayName": label,
-        "mapName": map_name,
-        "mapRevision": revision,
-        "position": {"x": round(pos[0], 1), "y": round(pos[1], 1), "z": round(pos[2], 1)},
-        "pitch": pitch,
-        "yaw": yaw,
-        "fov": None,
-        "observerMode": "roaming_static",
-        "targetRegionIds": [region_id(t["place"])],
-        "coverage": {
-            "center": {"x": round(t["x"], 1), "y": round(t["y"], 1), "z": round(t["floor"] + AIM_HEIGHT, 1)},
-            "radiusUnits": round(max(500.0, t["radius"] * 1.25), 1),
-            "zMin": round(t["zmin"] - 100, 1),
-            "zMax": round(t["zmax"] + 250, 1),
-            "levelId": level_id(levels, t["floor"]),
-        },
-        "allowedPhases": ["freezetime", "live", "over"] if kind != "spawn" else ["freezetime"],
-        "actionClasses": classes,
-        "grenadeTypes": [],
-        "minAcquisitionMs": 150,
-        "normalDurationMs": 4000 if kind != "spawn" else 5000,
-        "maxDurationMs": 7000,
-        "occlusionValidation": "unvalidated",
-        "validation": "unvalidated",
-        "exitStrategy": "most_relevant_player",
-        "lastTestedGameBuild": None,
-        "lastTestedMapVersion": None,
-        "capturedFrom": "derived_navmesh",
-        "notes": f"Placed from navigation-mesh data ({spot or 'walkable floor'}, {round(c['d'])} units from the {human(t['place'])} centre); the sight line runs over walkable floor. Not seen in game yet.",
-    }
+def level_of(levels: list[dict], z: float) -> str | None:
+    if len(levels) <= 1:
+        return levels[0]["id"] if levels else None
+    return next((lv["id"] for lv in levels if lv["zMin"] <= z < lv["zMax"]), None)
 
 
-def generate(map_name: str, nav_areas: list[dict]) -> dict:
-    path = PACKS / f"{map_name}.json"
-    existing = json.loads(path.read_text()) if path.exists() else None
-    radar = Radar(map_name)
-    nav = Nav(nav_areas, radar, cs2_floor_of(existing))
-    if existing:
-        pack = existing
-        levels = pack["levels"]
-        # Add what the demo didn't cover (a wingman demo has one site): regions and bombsites.
-        regions, _ = build_regions(nav, levels)
-        have = {r["name"] for r in pack["regions"]}
-        added = [r for r in regions if r["name"] not in have]
-        pack["regions"] = [r for r in pack["regions"] if "navmesh" not in r.get("tags", [])] + [r for r in regions if r["name"] not in {x["name"] for x in pack["regions"] if "navmesh" not in x.get("tags", [])}]
-        names = {r["name"]: r["id"] for r in pack["regions"]}
-        sites = {b["site"] for b in pack["bombsites"]}
-        pack["bombsites"] += [{"site": s[-1], "regionId": names[s]} for s in ("BombsiteA", "BombsiteB") if s in names and s[-1] not in sites]
-        # The floor grid stays CS2 player positions only (it is the "players stood here in CS2" check).
-        if added and SOURCE not in pack["provenance"]["sources"]:
-            pack["provenance"]["sources"].append(SOURCE + f": regions for places the demo didn't cover ({', '.join(r['name'] for r in added)})")
+def targets_for(pack: dict) -> list[tuple[dict, str]]:
+    by_id = {r["id"]: r for r in pack["regions"]}
+    out = []
+    for b in sorted(pack["bombsites"], key=lambda b: b["site"]):
+        if b["regionId"] in by_id:
+            out.append((by_id[b["regionId"]], "bombsite"))
+    mids = [r for r in pack["regions"] if r["kind"] == "mid"]
+    mid = next((r for rid in ("middle", "mid", "topof_mid") for r in mids if r["id"] == rid), None)
+    if mid:
+        out.append((mid, "mid"))
     else:
-        levels = levels_for(radar, nav.areas)
-        regions, floor = build_regions(nav, levels)
-        share = 1 - nav.dropped / max(1, len(nav_areas))
-        pack = {
-            "schemaVersion": 1,
-            "mapName": map_name,
-            "displayName": DISPLAY[map_name],
-            "mapRevision": NAV_REVISION,
-            "radar": None,
-            "levels": levels,
-            "regions": regions,
-            "cameras": [],
-            "paths": [],
-            "bombsites": [{"site": s[-1], "regionId": region_id(s)} for s in ("BombsiteA", "BombsiteB") if any(r["name"] == s for r in regions)],
-            "scenarios": [],
-            "floorGrid": floor,
-            "coverage": [],
-            "provenance": {
-                "createdBy": "scripts/generate-map-cameras.py",
-                "createdAt": "2026-10-27T00:00:00Z",
-                "sources": [SOURCE, f"checked against the CS2 radar calibration: {share:.1%} of navigation areas lie on the drawn CS2 radar; the rest were dropped"],
-            },
-        }
+        # The map's equivalents, tried in order until one gets cameras.
+        out += [(by_id[i], "mid?") for i in MID_REGIONS.get(pack["mapName"], []) if i in by_id]
+    for rid in ("ct_spawn", "t_spawn"):
+        if rid in by_id:
+            out.append((by_id[rid], "spawn"))
+    return out
+
+
+def generate(map_name: str, navs: Path, meshes: Path, build: str) -> dict:
+    path = PACKS / f"{map_name}.json"
+    pack = json.loads(path.read_text())
+    m = Map(map_name, navs / f"{map_name}.nav", meshes / f"{map_name}.mesh")
     revision = pack["mapRevision"]
+    short = map_name.removeprefix("de_")
     cameras = [c for c in pack["cameras"] if c.get("capturedFrom") != "derived_navmesh"]
     paths = [p for p in pack["paths"] if p.get("source") != "derived_navmesh"]
-    places = ["BombsiteA", "BombsiteB"] + [p for p in ("Middle", "Mid", "TopofMid") if any(a["place"] == p for a in nav.areas)][:1] + ["CTSpawn", "TSpawn"]
     report = []
-    for place in places:
-        t = area_targets(nav, place)
+    mid_done = False
+    for region, kind in targets_for(pack):
+        if kind == "mid?":
+            if mid_done:
+                continue
+            kind = "mid"
+        t = region_targets(m, region)
         if not t:
+            report.append(f"{region['id']}: no walkable CS2 floor under the region")
             continue
-        kind = region_kind(place)
-        cands = candidates(nav, t)
         want = 3 if kind == "bombsite" else 2
-        chosen = pick_spread(cands, want, 70)
+        cands = candidates(m, t, kind)
+        chosen = pick_spread(cands, want)
         if len(chosen) < want:
-            chosen = pick_spread(cands, want, 45)
+            cands = candidates(m, t, kind, MIN_OPEN_TIGHT)
+            chosen = pick_spread(cands, want)
+        if kind == "mid":
+            if not chosen:
+                report.append(f"{region['id']}: no spot frames it well")
+                continue
+            mid_done = True
+        label = LABEL.get(region["id"]) or ("Mid" if kind == "mid" and region["id"] in ("middle", "mid") else human(region["name"]))
         for n, c in enumerate(chosen, 1):
-            cameras.append(camera_record(map_name, revision, nav, t, c, kind, levels, n))
+            pitch, yaw = angles(c["pos"], c["aim"])
+            spot = place_of(pack, (c["x"], c["y"], c["floor"]))
+            name = f"{label} from {human(spot)}" if spot and spot != region["name"] else f"{label} #{n}"
+            classes = {"bombsite": ["bomb", "tactical", "establishing", "utility"], "mid": ["tactical", "establishing", "utility"], "spawn": ["establishing"]}[kind]
+            cameras.append({
+                "id": f"cs2-{short}-{region['id']}-{n}",
+                "displayName": name,
+                "mapName": map_name,
+                "mapRevision": revision,
+                "position": {"x": round(c["pos"][0], 1), "y": round(c["pos"][1], 1), "z": round(c["pos"][2], 1)},
+                "pitch": pitch,
+                "yaw": yaw,
+                "fov": None,
+                "observerMode": "roaming_static",
+                "targetRegionIds": [region["id"]],
+                "coverage": {
+                    "center": {"x": round(t["centre"][0], 1), "y": round(t["centre"][1], 1), "z": round(t["centre"][2], 1)},
+                    "radiusUnits": round(max(500.0, t["radius"] * 1.25), 1),
+                    "zMin": round(t["zmin"] - 100, 1),
+                    "zMax": round(t["zmax"] + 250, 1),
+                    "levelId": level_of(pack["levels"], t["centre"][2] - AIM),
+                },
+                "allowedPhases": ["freezetime"] if kind == "spawn" else ["freezetime", "live", "over"],
+                "actionClasses": classes,
+                "grenadeTypes": [],
+                "minAcquisitionMs": 150,
+                "normalDurationMs": 5000 if kind == "spawn" else 4000,
+                "maxDurationMs": 7000,
+                # Line of sight checked against CS2's collision geometry; not yet seen by eye.
+                "occlusionValidation": "validated",
+                "validation": "unvalidated",
+                "exitStrategy": "most_relevant_player",
+                "lastTestedGameBuild": None,
+                "lastTestedMapVersion": None,
+                "capturedFrom": "derived_navmesh",
+                "notes": f"Placed on CS2's walkable floor ({human(spot) if spot else 'no named area'}), {round(c['h'])} units up, {round(c['d'])} units from the {label} centre. In CS2's collision geometry (build {build}) it has clear space around it, sees the centre and {round(c['cover'] * 100)}% of the area, and {round(c['open'] * 100)}% of its view is open for at least {round(OPEN_RANGE)} units. Not seen in game yet.",
+            })
         made = []
-        if kind in ("bombsite", "mid"):
-            keys = orbit(nav, t, cands)
-            if keys and keys[-1]["tMs"] >= 3000:
-                made.append(("orbit", "orbit", keys))
-            if chosen:
-                made.append(("push", "push-in", push_in(t, chosen[0])))
-        for suffix, label, keys in made:
+        orb = orbit(m, t, cands)
+        if orb:
+            made.append(("orbit", "orbit", orb))
+        elif chosen:
+            for c in chosen:
+                d = drift(m, t, c)
+                if d:
+                    made.append(("drift", "drift", d))
+                    break
+        if chosen:
+            push = push_in(m, t, chosen[0])
+            if push:
+                made.append(("push", "push-in", push))
+        for suffix, what, keys in made:
             paths.append({
-                "id": f"nav-{map_name.removeprefix('de_')}-{region_id(place)}-{suffix}",
-                "displayName": f"{human(place)} {label}",
+                "id": f"cs2-{short}-{region['id']}-{suffix}",
+                "displayName": f"{label} {what}",
                 "mapName": map_name,
                 "mapRevision": revision,
                 "keyframes": keys,
                 "maxDurationMs": round(keys[-1]["tMs"] + 1000),
                 "maxSpeedUnitsPerSec": 300,
-                "collisionValidated": False,
+                # The flight curve was checked against CS2's collision geometry.
+                "collisionValidated": True,
                 "validation": "unvalidated",
-                "targetRegionIds": [region_id(place)],
+                "targetRegionIds": [region["id"]],
                 "source": "derived_navmesh",
             })
-        report.append(f"{place}: {len(cands)} clear spots, {len(chosen)} cameras, paths: " + (", ".join(f"{l} {k[-1]['tMs'] / 1000:.1f} s" for _, l, k in made) or "none"))
+        seen = ", ".join(str(round(c["cover"] * 100)) + "%" for c in chosen)
+        flights = ", ".join(f"{w} {k[-1]['tMs'] / 1000:.1f} s" for _, w, k in made) or "none"
+        report.append(f"{region['id']}: {len(cands)} spots, {len(chosen)} cameras ({seen} seen), paths: {flights}")
     pack["cameras"] = cameras
     pack["paths"] = paths
+    source = f"CS2 navigation and collision meshes from awpy-data (build {build}, read with awpy 3.1.1, MIT): built-in cameras and paths placed on walkable floor and checked for line of sight and clearance"
+    pack["provenance"]["sources"] = [s for s in pack["provenance"]["sources"] if not s.startswith("CS2 navigation and collision meshes from awpy-data")] + [source]
     path.write_text(dumps_readable(pack) + "\n")
-    print(f"{map_name}: {'existing pack' if existing else 'new pack'}, {len(nav.areas)} areas ({nav.dropped} off the CS2 radar) — " + "; ".join(report))
+    print(f"{map_name}: {len(m.walk)} walkable samples, {m.vc.triangle_count} triangles\n  " + "\n  ".join(report))
     return pack
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
-        sys.exit(__doc__)
-    nav = load_nav(sys.argv[1])
-    for m in MAPS:
-        if not nav.get(m):
-            print(f"{m}: no navigation data")
-            continue
-        generate(m, nav[m])
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--navs", type=Path, required=True, help="folder with <map>.nav files")
+    ap.add_argument("--meshes", type=Path, required=True, help="folder with <map>.mesh files")
+    ap.add_argument("--manifest", type=Path, help="awpy-data manifest.json (for the CS2 build number)")
+    ap.add_argument("maps", nargs="*", default=MAPS)
+    args = ap.parse_args()
+    build = json.loads(args.manifest.read_text()).get("buildid", "unknown") if args.manifest else "unknown"
+    for name in args.maps:
+        generate(name, args.navs, args.meshes, build)
 
 
 if __name__ == "__main__":
