@@ -18,11 +18,11 @@ export const CAPABILITY_META: Record<string, CapabilityMeta> = {
   grenadeLifecycle: { label: "Grenade lifecycle", setupHint: "observe grenades on a real feed", group: "utility" },
   utilityEffects: { label: "Utility effects", setupHint: "observe smokes/fires on a real feed", group: "utility" },
   grenadeDamageAttribution: { label: "Grenade damage attribution", setupHint: "requires exact damage events", group: "utility" },
-  playerSelectionControl: { label: "Player selection", setupHint: "configure the observer adapter and run the player-selection test in Setup", group: "control" },
-  observerModeControl: { label: "Observer mode control", setupHint: "configure the observer adapter (direct channel) in Setup", group: "control" },
-  staticCameraControl: { label: "Static cameras", setupHint: "run the camera test in Setup", group: "control" },
-  cameraPathControl: { label: "Camera paths", setupHint: "camera paths are not available on the current adapter", group: "control" },
-  cameraReadback: { label: "Camera readback", setupHint: "requires the direct console channel (getpos readback)", group: "control" },
+  playerSelectionControl: { label: "Player selection", setupHint: "press Start Auto Director, or pick a player: it is confirmed when CS2 shows that player", group: "control" },
+  observerModeControl: { label: "Observer mode control", setupHint: "confirmed with the first camera (getpos); press Start Auto Director", group: "control" },
+  staticCameraControl: { label: "Static cameras", setupHint: "press Start Auto Director: it shows a camera and checks it with getpos", group: "control" },
+  cameraPathControl: { label: "Camera paths", setupHint: "confirmed with the first static camera (the same console command)", group: "control" },
+  cameraReadback: { label: "Camera readback", setupHint: "needs the CS2 console: Start CS2 in Tools mode", group: "control" },
   matchTimelineTime: { label: "Match timeline time", setupHint: "derived from ingest timing; no action needed", group: "time" },
 };
 
@@ -66,7 +66,7 @@ export interface Gate {
  * Maps a capability to an enable/disable decision with an operator-facing explanation, e.g.
  * "Static cameras: unverified — run the camera test in Setup".
  */
-export function capabilityGate(key: string, cap: Capability | null | undefined, opts: { allowPartial?: boolean; simulated?: boolean } = {}): Gate {
+export function capabilityGate(key: string, cap: Capability | null | undefined, opts: { allowPartial?: boolean; allowUnverified?: boolean; simulated?: boolean } = {}): Gate {
   const meta = capabilityMeta(key);
   if (!cap) return { enabled: false, reason: `${meta.label}: unknown — no capability report yet (waiting for the engine)`, support: "unknown" };
   const firstLimitation = cap.limitations[0];
@@ -77,6 +77,8 @@ export function capabilityGate(key: string, cap: Capability | null | undefined, 
       if (opts.allowPartial === false) return { enabled: false, reason: `${meta.label}: partial — ${firstLimitation ?? meta.setupHint}`, support: "partial" };
       return { enabled: true, reason: `${meta.label}: partial${firstLimitation ? ` — ${firstLimitation}` : ""}`, support: "partial" };
     case "unverified":
+      // A manual request is itself the check: the engine confirms it from the game's feedback.
+      if (opts.allowUnverified) return { enabled: true, reason: `${meta.label}: not confirmed on this CS2 build yet — your first request confirms it`, support: "unverified" };
       return { enabled: false, reason: `${meta.label}: unverified — ${meta.setupHint}`, support: "unverified" };
     case "unsupported":
       return { enabled: false, reason: `${meta.label}: unsupported — ${firstLimitation ?? meta.setupHint}`, support: "unsupported" };

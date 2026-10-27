@@ -2949,8 +2949,708 @@
       ]
     }
   ],
-  "cameras": [],
-  "paths": [],
+  "cameras": [
+    {
+      "id": "nav-anubis-bombsite_a-1",
+      "displayName": "A site from Walkway",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 976.0,
+        "y": 1296.0,
+        "z": 52.0
+      },
+      "pitch": 17.02,
+      "yaw": 62.81,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1268.6,
+          "y": 1865.7,
+          "z": -144.0
+        },
+        "radiusUnits": 592.4,
+        "zMin": -292.0,
+        "zMax": 154.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (Walkway, 640 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-anubis-bombsite_a-2",
+      "displayName": "A site from Heaven",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 784.0,
+        "y": 2000.0,
+        "z": 100.0
+      },
+      "pitch": 25.88,
+      "yaw": -15.49,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1268.6,
+          "y": 1865.7,
+          "z": -144.0
+        },
+        "radiusUnits": 592.4,
+        "zMin": -292.0,
+        "zMax": 154.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (Heaven, 503 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-anubis-bombsite_a-3",
+      "displayName": "A site from Fountain",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 1744.0,
+        "y": 1936.0,
+        "z": 69.0
+      },
+      "pitch": 23.91,
+      "yaw": -171.59,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1268.6,
+          "y": 1865.7,
+          "z": -144.0
+        },
+        "radiusUnits": 592.4,
+        "zMin": -292.0,
+        "zMax": 154.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (Fountain, 481 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-anubis-bombsite_b-1",
+      "displayName": "B site from Outside Long",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1712.0,
+        "y": 208.0,
+        "z": 140.8
+      },
+      "pitch": 8.2,
+      "yaw": 33.95,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1170.7,
+          "y": 572.4,
+          "z": 46.7
+        },
+        "radiusUnits": 619.4,
+        "zMin": -156.0,
+        "zMax": 298.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (OutsideLong, 653 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-anubis-bombsite_b-2",
+      "displayName": "B site from Backof B",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -624.0,
+        "y": 656.0,
+        "z": 178.0
+      },
+      "pitch": 13.35,
+      "yaw": -171.31,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1170.7,
+          "y": 572.4,
+          "z": 46.7
+        },
+        "radiusUnits": 619.4,
+        "zMin": -156.0,
+        "zMax": 298.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (BackofB, 553 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-anubis-bombsite_b-3",
+      "displayName": "B site from Alley",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1264.0,
+        "y": 1232.0,
+        "z": 115.0
+      },
+      "pitch": 5.85,
+      "yaw": -81.95,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1170.7,
+          "y": 572.4,
+          "z": 46.7
+        },
+        "radiusUnits": 619.4,
+        "zMin": -156.0,
+        "zMax": 298.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (Alley, 666 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-anubis-middle-1",
+      "displayName": "Mid from Mid Doors",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 272.0,
+        "y": 464.0,
+        "z": 122.1
+      },
+      "pitch": 9.82,
+      "yaw": 99.85,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "middle"
+      ],
+      "coverage": {
+        "center": {
+          "x": 167.2,
+          "y": 1067.7,
+          "z": 16.0
+        },
+        "radiusUnits": 866.7,
+        "zMin": -156.8,
+        "zMax": 302.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (MidDoors, 613 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-anubis-middle-2",
+      "displayName": "Mid #2",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 336.0,
+        "y": 1488.0,
+        "z": 134.4
+      },
+      "pitch": 14.64,
+      "yaw": -111.88,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "middle"
+      ],
+      "coverage": {
+        "center": {
+          "x": 167.2,
+          "y": 1067.7,
+          "z": 16.0
+        },
+        "radiusUnits": 866.7,
+        "zMin": -156.8,
+        "zMax": 302.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (Middle, 453 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-anubis-ct_spawn-1",
+      "displayName": "CT spawn from CTSide Upper",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -240.0,
+        "y": 1936.0,
+        "z": 165.8
+      },
+      "pitch": 18.02,
+      "yaw": 109.71,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": -460.5,
+          "y": 2551.4,
+          "z": -46.9
+        },
+        "radiusUnits": 768.0,
+        "zMin": -256.8,
+        "zMax": 269.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (CTSideUpper, 654 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-anubis-ct_spawn-2",
+      "displayName": "CT spawn #2",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -880.0,
+        "y": 2256.0,
+        "z": 145.5
+      },
+      "pitch": 20.56,
+      "yaw": 35.16,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": -460.5,
+          "y": 2551.4,
+          "z": -46.9
+        },
+        "radiusUnits": 768.0,
+        "zMin": -256.8,
+        "zMax": 269.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (CTSpawn, 513 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-anubis-t_spawn-1",
+      "displayName": "T spawn #1",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 656.0,
+        "y": -1264.0,
+        "z": 128.0
+      },
+      "pitch": 6.85,
+      "yaw": -168.78,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": 18.5,
+          "y": -1390.5,
+          "z": 50.0
+        },
+        "radiusUnits": 1118.9,
+        "zMin": -112.0,
+        "zMax": 297.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (TSpawn, 650 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-anubis-t_spawn-2",
+      "displayName": "T spawn #2",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -624.0,
+        "y": -1456.0,
+        "z": 142.0
+      },
+      "pitch": 8.11,
+      "yaw": 5.82,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": 18.5,
+          "y": -1390.5,
+          "z": 50.0
+        },
+        "radiusUnits": 1118.9,
+        "zMin": -112.0,
+        "zMax": 297.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (TSpawn, 646 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+    }
+  ],
+  "paths": [
+    {
+      "id": "nav-anubis-bombsite_a-push",
+      "displayName": "A site push-in",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 976.0,
+            "y": 1296.0,
+            "z": 52.0
+          },
+          "pitch": 17.02,
+          "yaw": 62.81
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 1107.7,
+            "y": 1552.4,
+            "z": -8.3
+          },
+          "pitch": 21.07,
+          "yaw": 62.81
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": false,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "nav-anubis-bombsite_b-push",
+      "displayName": "B site push-in",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -1712.0,
+            "y": 208.0,
+            "z": 140.8
+          },
+          "pitch": 8.2,
+          "yaw": 33.95
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -1468.4,
+            "y": 372.0,
+            "z": 126.4
+          },
+          "pitch": 12.51,
+          "yaw": 33.95
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": false,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "nav-anubis-middle-push",
+      "displayName": "Mid push-in",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 272.0,
+            "y": 464.0,
+            "z": 122.1
+          },
+          "pitch": 9.82,
+          "yaw": 99.85
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 224.8,
+            "y": 735.7,
+            "z": 102.3
+          },
+          "pitch": 14.35,
+          "yaw": 99.85
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": false,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "middle"
+      ],
+      "source": "derived_navmesh"
+    }
+  ],
   "bombsites": [
     {
       "site": "A",

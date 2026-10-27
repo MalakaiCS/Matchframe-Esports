@@ -35,8 +35,16 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
   modeInEye: "spec_mode 4",
   modeChase: "spec_mode 5",
   modeRoaming: "spec_mode 6",
-  staticCamera: "spec_mode 6; spec_goto {x} {y} {z} {pitch} {yaw}",
+  staticCamera: "{roaming}; spec_goto {x} {y} {z} {pitch} {yaw}",
+  pathFrame: "spec_goto {x} {y} {z} {pitch} {yaw}",
   readPose: "getpos",
+};
+
+const TEMPLATE_HINTS: Record<string, string> = {
+  selectPlayer: "Placeholders: {name} (in-game name), {slot} (number key), {steamId}, {accountId}. Leave empty for the default.",
+  modeRoaming: "The free camera. Matchframe checks the camera with getpos and switches to spec_mode 4 by itself if this build numbers the modes that way.",
+  staticCamera: "{roaming} is the free-camera command above; {x} {y} {z} {pitch} {yaw} is the camera pose.",
+  pathFrame: "Sent 60 times a second while a camera path flies.",
 };
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -288,7 +296,7 @@ function AdapterConfig() {
                 <Details summary="Command templates">
                   <div className="form-grid">
                     {Object.keys(DEFAULT_TEMPLATES).map((k) => (
-                      <Field key={k} label={k} hint={k === "selectPlayer" ? "Placeholders: {name} (in-game name), {slot} (number key), {steamId}, {accountId}. Leave empty for the default." : undefined}>
+                      <Field key={k} label={k} hint={TEMPLATE_HINTS[k]}>
                         <input className="mono" value={s.templates[k] ?? ""} placeholder={DEFAULT_TEMPLATES[k]} onChange={(e) => set({ templates: { ...s.templates, [k]: e.target.value } })} />
                       </Field>
                     ))}

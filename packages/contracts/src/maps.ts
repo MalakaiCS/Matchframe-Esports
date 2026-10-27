@@ -83,7 +83,11 @@ export type Region = z.infer<typeof Region>;
 export const CameraValidation = z.enum(["unvalidated", "preview_only", "validated", "invalidated"]);
 export type CameraValidation = z.infer<typeof CameraValidation>;
 
-/** Static camera record (spec §12.4). Coordinates must be captured in-game, never invented. */
+/**
+ * Static camera record (spec §12.4). Coordinates are captured in-game or derived from real map data
+ * (`derived_navmesh`: navigation-mesh floor positions with a walkable sight line, see
+ * scripts/generate-map-cameras.py); never invented.
+ */
 export const CameraRecord = z.object({
   id: z.string(),
   displayName: z.string(),
@@ -114,7 +118,7 @@ export const CameraRecord = z.object({
   exitStrategy: z.enum(["most_relevant_player", "previous_pov", "closest_alive_to_region"]),
   lastTestedGameBuild: z.string().nullable(),
   lastTestedMapVersion: z.string().nullable(),
-  capturedFrom: z.enum(["getpos_paste", "netcon_readback", "imported"]),
+  capturedFrom: z.enum(["getpos_paste", "netcon_readback", "imported", "derived_navmesh"]),
   notes: z.string().nullable().default(null),
 });
 export type CameraRecord = z.infer<typeof CameraRecord>;
@@ -137,6 +141,8 @@ export const CameraPath = z.object({
   collisionValidated: z.boolean(),
   validation: CameraValidation,
   targetRegionIds: z.array(z.string()),
+  /** Built in from navigation-mesh data; absent for operator-authored paths. */
+  source: z.enum(["authored", "derived_navmesh"]).optional(),
 });
 export type CameraPath = z.infer<typeof CameraPath>;
 

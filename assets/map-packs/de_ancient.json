@@ -2485,10 +2485,836 @@
       "tags": [
         "demo_place"
       ]
+    },
+    {
+      "id": "back_hall",
+      "name": "BackHall",
+      "kind": "other",
+      "levelId": "ground",
+      "shapes": [
+        {
+          "kind": "cells",
+          "cellSize": 64.0,
+          "zCellSize": 128.0,
+          "cells": [
+            [-25,17,0],
+            [-25,18,0],
+            [-24,16,0],
+            [-24,17,0],
+            [-24,18,0],
+            [-24,20,0],
+            [-24,21,0],
+            [-24,22,0],
+            [-23,16,0],
+            [-23,17,0],
+            [-23,18,0],
+            [-23,19,0],
+            [-23,20,0],
+            [-23,21,0],
+            [-23,22,0],
+            [-23,23,0],
+            [-22,16,0],
+            [-22,17,0],
+            [-22,18,0],
+            [-22,19,0],
+            [-22,20,0],
+            [-22,21,0],
+            [-22,22,0],
+            [-22,23,0],
+            [-21,16,0],
+            [-21,17,0],
+            [-21,18,0],
+            [-21,19,0],
+            [-21,20,0],
+            [-21,21,0],
+            [-21,22,0],
+            [-21,23,0],
+            [-20,17,0],
+            [-20,18,0],
+            [-20,19,0],
+            [-20,20,0],
+            [-20,21,0],
+            [-20,22,0],
+            [-19,20,0],
+            [-19,21,0],
+            [-19,22,0],
+            [-18,20,0],
+            [-18,21,0],
+            [-18,22,0],
+            [-17,20,0],
+            [-17,21,0],
+            [-17,22,0],
+            [-16,20,0],
+            [-16,21,0],
+            [-16,22,0],
+            [-15,20,0],
+            [-15,21,0],
+            [-15,22,0],
+            [-14,20,0],
+            [-14,21,0],
+            [-14,22,0],
+            [-13,20,0],
+            [-13,21,0],
+            [-13,22,0]
+          ]
+        }
+      ],
+      "source": "imported",
+      "sampleCount": 13,
+      "validated": false,
+      "tags": [
+        "navmesh"
+      ]
     }
   ],
-  "cameras": [],
-  "paths": [],
+  "cameras": [
+    {
+      "id": "nav-ancient-bombsite_a-1",
+      "displayName": "A site #1",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -2096.0,
+        "y": 336.0,
+        "z": 227.6
+      },
+      "pitch": 10.96,
+      "yaw": 45.06,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1634.0,
+          "y": 798.9,
+          "z": 100.9
+        },
+        "radiusUnits": 899.3,
+        "zMin": -48.2,
+        "zMax": 338.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (BombsiteA, 654 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-ancient-bombsite_a-2",
+      "displayName": "A site from Side Hall",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -1328.0,
+        "y": 336.0,
+        "z": 227.4
+      },
+      "pitch": 12.84,
+      "yaw": 123.47,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1634.0,
+          "y": 798.9,
+          "z": 100.9
+        },
+        "radiusUnits": 899.3,
+        "zMin": -48.2,
+        "zMax": 338.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (SideHall, 555 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-ancient-bombsite_a-3",
+      "displayName": "A site #3",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -1904.0,
+        "y": 1168.0,
+        "z": 193.7
+      },
+      "pitch": 11.46,
+      "yaw": -53.82,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1634.0,
+          "y": 798.9,
+          "z": 100.9
+        },
+        "radiusUnits": 899.3,
+        "zMin": -48.2,
+        "zMax": 338.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (BombsiteA, 457 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-ancient-bombsite_b-1",
+      "displayName": "B site from Side Entrance",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 400.0,
+        "y": 144.0,
+        "z": 294.1
+      },
+      "pitch": 10.79,
+      "yaw": 4.99,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1001.7,
+          "y": 196.5,
+          "z": 179.0
+        },
+        "radiusUnits": 758.5,
+        "zMin": 18.7,
+        "zMax": 398.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (SideEntrance, 604 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-ancient-bombsite_b-2",
+      "displayName": "B site from Ramp",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 1232.0,
+        "y": -432.0,
+        "z": 197.6
+      },
+      "pitch": 1.59,
+      "yaw": 110.12,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1001.7,
+          "y": 196.5,
+          "z": 179.0
+        },
+        "radiusUnits": 758.5,
+        "zMin": 18.7,
+        "zMax": 398.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (Ramp, 669 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-ancient-bombsite_b-3",
+      "displayName": "B site #3",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 720.0,
+        "y": -240.0,
+        "z": 273.3
+      },
+      "pitch": 10.28,
+      "yaw": 57.16,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1001.7,
+          "y": 196.5,
+          "z": 179.0
+        },
+        "radiusUnits": 758.5,
+        "zMin": 18.7,
+        "zMax": 398.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (BombsiteB, 520 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-ancient-middle-1",
+      "displayName": "Mid from Top of mid",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -496.0,
+        "y": 208.0,
+        "z": 304.1
+      },
+      "pitch": 18.49,
+      "yaw": -92.5,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "middle"
+      ],
+      "coverage": {
+        "center": {
+          "x": -524.1,
+          "y": -434.8,
+          "z": 89.0
+        },
+        "radiusUnits": 619.2,
+        "zMin": -68.0,
+        "zMax": 342.4,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (TopofMid, 643 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-ancient-middle-2",
+      "displayName": "Mid from TSide Upper",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -176.0,
+        "y": -816.0,
+        "z": 299.8
+      },
+      "pitch": 22.21,
+      "yaw": 132.4,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "middle"
+      ],
+      "coverage": {
+        "center": {
+          "x": -524.1,
+          "y": -434.8,
+          "z": 89.0
+        },
+        "radiusUnits": 619.2,
+        "zMin": -68.0,
+        "zMax": 342.4,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (TSideUpper, 516 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-ancient-ct_spawn-1",
+      "displayName": "CT spawn from House",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -112.0,
+        "y": 784.0,
+        "z": 222.1
+      },
+      "pitch": 12.77,
+      "yaw": 115.65,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": -394.8,
+          "y": 1372.7,
+          "z": 74.1
+        },
+        "radiusUnits": 747.6,
+        "zMin": -76.1,
+        "zMax": 320.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (House, 653 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-ancient-ct_spawn-2",
+      "displayName": "CT spawn from Back Hall",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -1072.0,
+        "y": 1360.0,
+        "z": 215.6
+      },
+      "pitch": 11.8,
+      "yaw": 1.08,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": -394.8,
+          "y": 1372.7,
+          "z": 74.1
+        },
+        "radiusUnits": 747.6,
+        "zMin": -76.1,
+        "zMax": 320.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (BackHall, 677 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-ancient-t_spawn-1",
+      "displayName": "T spawn from Outside",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -944.0,
+        "y": -1584.0,
+        "z": 97.1
+      },
+      "pitch": 17.63,
+      "yaw": -45.22,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": -488.9,
+          "y": -2042.6,
+          "z": -108.2
+        },
+        "radiusUnits": 733.4,
+        "zMin": -275.4,
+        "zMax": 138.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (Outside, 646 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-ancient-t_spawn-2",
+      "displayName": "T spawn #2",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -304.0,
+        "y": -1712.0,
+        "z": -29.2
+      },
+      "pitch": 11.77,
+      "yaw": -119.22,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": -488.9,
+          "y": -2042.6,
+          "z": -108.2
+        },
+        "radiusUnits": 733.4,
+        "zMin": -275.4,
+        "zMax": 138.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (TSpawn, 379 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+    }
+  ],
+  "paths": [
+    {
+      "id": "nav-ancient-bombsite_a-orbit",
+      "displayName": "A site orbit",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -2096.0,
+            "y": 720.0,
+            "z": 193.9
+          },
+          "pitch": 11.22,
+          "yaw": 9.69
+        },
+        {
+          "tMs": 2918,
+          "position": {
+            "x": -2096.0,
+            "y": 400.0,
+            "z": 218.3
+          },
+          "pitch": 10.89,
+          "yaw": 40.81
+        },
+        {
+          "tMs": 3505,
+          "position": {
+            "x": -2096.0,
+            "y": 336.0,
+            "z": 227.6
+          },
+          "pitch": 10.96,
+          "yaw": 45.06
+        }
+      ],
+      "maxDurationMs": 4505,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": false,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "nav-ancient-bombsite_a-push",
+      "displayName": "A site push-in",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -2096.0,
+            "y": 336.0,
+            "z": 227.6
+          },
+          "pitch": 10.96,
+          "yaw": 45.06
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -1888.1,
+            "y": 544.3,
+            "z": 198.5
+          },
+          "pitch": 15.18,
+          "yaw": 45.06
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": false,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "nav-ancient-bombsite_b-push",
+      "displayName": "B site push-in",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 400.0,
+            "y": 144.0,
+            "z": 294.1
+          },
+          "pitch": 10.79,
+          "yaw": 4.99
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 670.8,
+            "y": 167.6,
+            "z": 270.2
+          },
+          "pitch": 15.35,
+          "yaw": 4.99
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": false,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "nav-ancient-middle-push",
+      "displayName": "Mid push-in",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": -496.0,
+            "y": 208.0,
+            "z": 304.1
+          },
+          "pitch": 18.49,
+          "yaw": -92.5
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": -508.6,
+            "y": -81.3,
+            "z": 235.2
+          },
+          "pitch": 22.45,
+          "yaw": -92.5
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": false,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "middle"
+      ],
+      "source": "derived_navmesh"
+    }
+  ],
   "bombsites": [
     {
       "site": "A",
@@ -4000,7 +4826,8 @@
     "createdBy": "matchframe-workers 0.1.0 mf_features.map_pack",
     "createdAt": "2026-10-26T14:04:32.455466Z",
     "sources": [
-      "dataset:de_ancient-13916-9051f4690a8a2f1a"
+      "dataset:de_ancient-13916-9051f4690a8a2f1a",
+      "awpy 1.3.1 nav_info.csv (MIT, (c) Peter Xenopoulos): CS:GO navigation meshes: regions for places the demo didn't cover (BackHall)"
     ]
   }
 }

@@ -176,6 +176,25 @@ describe("Start CS2 and the game console (engine)", () => {
     }
   });
 
+  it("confirms player selection by itself once the game data shows the requested player", async () => {
+    const roster = syntheticRoster();
+    const post = (observed: string) =>
+      fetch(`http://127.0.0.1:${engine.cfg.gsiPort}/gsi`, { method: "POST", body: JSON.stringify(buildSyntheticGsiPayload({ mapName: "de_dust2", players: roster, observed, token: engine.secrets.gsiToken, timestamp: 1_700_000_200 })) });
+    const support = async () => ((await api("/api/v1/capabilities")).json.capabilities as { playerSelectionControl: { support: string } }).playerSelectionControl.support;
+    expect((await post(roster[0]!.steamId)).status).toBe(200);
+    expect(await support()).not.toBe("supported");
+
+    received.length = 0;
+    const cmd = await api("/api/v1/observer/commands", { method: "POST", body: { kind: "select_player", steamId: roster[5]!.steamId } });
+    expect(cmd.status).toBe(200);
+    await waitFor(() => received.includes(`spec_player "${roster[5]!.name}"`));
+    // The game moved to the player: no setup test needed.
+    expect((await post(roster[5]!.steamId)).status).toBe(200);
+    await waitFor(async () => (await support()) === "supported");
+    const verified = (await api("/api/v1/setup/status")).json.verifiedControl as Record<string, { support: string }>;
+    expect(verified.playerSelectionControl?.support).toBe("supported");
+  });
+
   it("adds -insecure and HLAE's commands in the HLAE mode once the warning is accepted", async () => {
     const set = await api("/api/v1/game/launch-profile", { method: "PUT", body: { mode: "hlae", netconPort: consolePort, acknowledgeInsecure: true } });
     expect(set.status).toBe(200);

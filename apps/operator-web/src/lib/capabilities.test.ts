@@ -9,7 +9,14 @@ describe("capabilityGate", () => {
   it("disables unverified static cameras with the setup hint", () => {
     const g = capabilityGate("staticCameraControl", cap("unverified"));
     expect(g.enabled).toBe(false);
-    expect(g.reason).toBe("Static cameras: unverified — run the camera test in Setup");
+    expect(g.reason).toBe("Static cameras: unverified — press Start Auto Director: it shows a camera and checks it with getpos");
+  });
+
+  it("lets a manual request through while unverified: the request is the check", () => {
+    const g = capabilityGate("playerSelectionControl", cap("unverified"), { allowUnverified: true });
+    expect(g).toMatchObject({ enabled: true, support: "unverified" });
+    expect(g.reason).toMatch(/your first request confirms it/);
+    expect(capabilityGate("playerSelectionControl", cap("unsupported"), { allowUnverified: true }).enabled).toBe(false);
   });
 
   it("disables unsupported capabilities using the first limitation", () => {

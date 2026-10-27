@@ -541,7 +541,8 @@
             "enum": [
               "getpos_paste",
               "netcon_readback",
-              "imported"
+              "imported",
+              "derived_navmesh"
             ]
           },
           "notes": {
@@ -665,6 +666,13 @@
             "items": {
               "type": "string"
             }
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "authored",
+              "derived_navmesh"
+            ]
           }
         },
         "required": [

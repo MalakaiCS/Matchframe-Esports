@@ -969,3 +969,21 @@ export interface GamesResponse {
   supported: { gameId: string; displayName: string; status: string }[];
   expansion: { gameId: string; displayName: string; status: string }[];
 }
+
+/** GET /api/v1/director/auto: the one-button Auto Director (AutoDirector.status in the engine). */
+export interface AutoDirectorCheck {
+  id: "console" | "data" | "account" | "pov" | "cameras" | "director";
+  label: string;
+  status: "ok" | "wait" | "warn" | "fail" | "skip";
+  detail: string;
+}
+export interface AutoDirectorStatus {
+  on: boolean;
+  phase: "off" | "starting" | "waiting" | "running" | "paused" | "error";
+  headline: string;
+  settings: { cinematic: boolean; nadeCams: boolean; returnAfterSec: number };
+  observerMode: ObserverMode;
+  checks: AutoDirectorCheck[];
+  resumesInMs: number | null;
+  startedAt: string | null;
+}

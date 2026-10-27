@@ -1,4 +1,4 @@
-import type { CameraRecord, GrenadeType, MatchState, ObservedGrenadeType, ReasonCode, Side, SourceCapabilities, UtilityItem, Vec3 } from "@matchframe/contracts";
+import type { CameraPath, CameraRecord, GrenadeType, MatchState, ObservedGrenadeType, ReasonCode, Side, SourceCapabilities, UtilityItem, Vec3 } from "@matchframe/contracts";
 import { GRENADE_TYPES } from "@matchframe/contracts";
 import type { ProfileSet } from "@matchframe/cs2-state";
 import { DEFAULT_PROFILES } from "@matchframe/cs2-state";
@@ -14,6 +14,8 @@ export interface UtilityDirectorMap {
   camerasCovering(p: Vec3, opts?: { includeUnvalidated?: boolean; grenadeType?: string; actionClass?: string }): CameraMatch[];
   /** Validated cameras with an action class and allowed phase, independent of a point (establishing shots). */
   camerasWith?(opts: { actionClass: string; phase: string }): CameraMatch[];
+  /** Usable camera paths (validated or built in), optionally for some regions. */
+  pathsFor?(opts?: { regionIds?: readonly string[] }): CameraPath[];
 }
 
 /**

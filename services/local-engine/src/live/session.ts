@@ -1,11 +1,11 @@
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
-import type { CameraRecord, DirectorDecision, DirectorMode, MatchState, ObserverMode, ReasonCode, Side, SourceCapabilities } from "@matchframe/contracts";
+import type { CameraPath, CameraRecord, DirectorDecision, DirectorMode, MatchState, ObserverMode, ReasonCode, Side, SourceCapabilities } from "@matchframe/contracts";
 import { emptySourceCapabilities } from "@matchframe/contracts";
 import type { DerivedEvent, GsiObservation, IngestResult, ProfileSet, UtilityTrackerEvent } from "@matchframe/cs2-state";
 import { CapabilitySampler, hash53, MatchStateStore, normalizeGsi, parseGsiPayload, stripAuth } from "@matchframe/cs2-state";
 import type { ArbiterEvent, ControlCapabilities, DirectorOutput, ObserverControlAdapter, Pin } from "@matchframe/director-policy";
-import { cameraShot, ControlArbiter, Director, parseShot, povShot } from "@matchframe/director-policy";
+import { cameraShot, ControlArbiter, Director, parseShot, pathShot, povShot } from "@matchframe/director-policy";
 import type { MapRegistry } from "@matchframe/map-runtime";
 import type { Logger } from "../logger.ts";
 import type { LiveContactModel } from "./model-runtime.ts";
@@ -32,6 +32,11 @@ export interface LiveSessionOptions {
   resolveRoster?: RosterResolver;
   /** Capability evidence recorded by real setup tests (e.g. confirmed player selection). */
   verifiedControl?: () => Partial<Record<keyof ControlCapabilities, { support: "supported" | "partial"; build: string | null; at: string }>>;
+  /**
+   * Evidence that a kind of control works, seen in live use (the game data showed the requested
+   * player after a switch). The engine records it per game build, like the setup tests.
+   */
+  recordEvidence?: (key: keyof ControlCapabilities, support: "supported" | "partial", detail: string) => void;
   simulated?: boolean;
   /** Per-type utility profiles (measured where available, defaults otherwise). */
   utilityProfiles?: ProfileSet;
@@ -71,6 +76,8 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   private lastEvaluatedSequence = -1;
   private tickTimer: ReturnType<typeof setInterval> | null = null;
   private pendingCinematic: { commandId: string; shot: string; plannedDurationMs: number; opportunityId: string | null; countsTowardBudget: boolean } | null = null;
+  /** Freeze-time establishing shots (static or a camera path) don't use the round's cinematic budget. */
+  private static readonly OFF_BUDGET = new Set(["establishing", "camera_path"]);
   private stats = { packets: 0, rejected: 0, invalid: 0, cuts: 0, recommendations: 0, ingestMsTotal: 0, evalMsTotal: 0, evals: 0, maxIngestMs: 0, maxEvalMs: 0 };
   private ingestSamples: number[] = [];
   private evalSamples: number[] = [];
@@ -229,6 +236,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     this.lastState = state;
     this.shadowModel?.observe(state);
     if (result.epochChanged) this.arbiter.setTimeline(this.sessionId, state.epoch);
+    this.arbiter.getAdapter()?.noteObserverState?.(state.observer);
     // Observer feedback: confirms commands, detects human POV changes vs game auto-switch.
     const prevObserved = prev?.observer.observedSteamId ?? null;
     const prevTargetDied = prevObserved !== null && state.players.find((p) => p.steamId === prevObserved)?.lifeState === "dead";
@@ -318,10 +326,29 @@ export class LiveSession extends EventEmitter<SessionEvents> {
         .submit({ kind: "activate_static_camera", camera: cam, plannedDurationMs: intent.plannedDurationMs ?? 2000 }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs })
         .then((r) => {
           if (r.status !== "failed" && r.status !== "cancelled") {
-            this.pendingCinematic = { commandId: r.commandId, shot: cameraShot(cam.id), plannedDurationMs: intent.plannedDurationMs ?? 2000, opportunityId: intent.opportunityId, countsTowardBudget: intent.shotClass !== "establishing" };
+            this.pendingCinematic = { commandId: r.commandId, shot: cameraShot(cam.id), plannedDurationMs: intent.plannedDurationMs ?? 2000, opportunityId: intent.opportunityId, countsTowardBudget: !LiveSession.OFF_BUDGET.has(intent.shotClass) };
+          }
+        });
+    } else if (intent.kind === "play_camera_path") {
+      const path = this.findPath(intent.pathId ?? "");
+      if (!path) return;
+      this.stats.cuts++;
+      void this.arbiter
+        .submit({ kind: "play_camera_path", path }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs, confirmationTimeoutMs: 2500 })
+        .then((r) => {
+          if (r.status !== "failed" && r.status !== "cancelled") {
+            this.pendingCinematic = { commandId: r.commandId, shot: pathShot(path.id), plannedDurationMs: intent.plannedDurationMs ?? 4000, opportunityId: null, countsTowardBudget: !LiveSession.OFF_BUDGET.has(intent.shotClass) };
           }
         });
     }
+  }
+
+  findPath(pathId: string): CameraPath | undefined {
+    for (const rt of this.opts.maps.list()) {
+      const p = rt.pack.paths.find((x) => x.id === pathId);
+      if (p) return p;
+    }
+    return undefined;
   }
 
   private alerted = new Map<string, number>();
@@ -342,6 +369,14 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   }
 
   private onArbiterEvent(e: ArbiterEvent): void {
+    if (e.kind === "result" && e.detail.status === "confirmed" && e.detail.precision === "observed_exact") {
+      // The game data showed the requested player: player selection works on this build.
+      const f = this.arbiter.pending();
+      const adapter = this.arbiter.getAdapter();
+      if (f && f.context.commandId === e.detail.commandId && f.request.kind === "select_player" && adapter && !adapter.simulated && this.caps.playerSelectionControl.support !== "supported") {
+        this.opts.recordEvidence?.("playerSelectionControl", "supported", `the game data showed the requested player (${f.request.steamId})`);
+      }
+    }
     if (e.kind === "result" && e.detail.status === "confirmed" && this.pendingCinematic && e.detail.commandId === this.pendingCinematic.commandId) {
       this.director.cinematicStarted(this.pendingCinematic.shot, this.opts.now(), this.pendingCinematic.plannedDurationMs, this.pendingCinematic.opportunityId, this.pendingCinematic.countsTowardBudget);
       this.pendingCinematic = null;
@@ -406,6 +441,18 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     }
     this.director.setObserverMode("off");
     this.director.setMode(mode);
+  }
+
+  /** Whether automatic direction may run in an Observer mode (account, plan, hours); see `armGate`. */
+  gateFor(mode: ObserverMode): { ok: true } | { ok: false; code: string; reason: string } {
+    return this.opts.armGate?.(this.simulated, mode) ?? { ok: true };
+  }
+
+  /** Arms automatic direction in an Observer mode: the director owns the camera from now on. Throws (HTTP 402) like `resume`. */
+  armAutomatic(mode: Exclude<ObserverMode, "off">): void {
+    this.checkArmGate(mode);
+    this.director.setObserverMode(mode);
+    this.arbiter.resumeAutomation(0);
   }
 
   /** Throws (HTTP 402) when automatic direction may not be armed; see `armGate`. */

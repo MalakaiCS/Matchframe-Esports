@@ -48,6 +48,8 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
   r.get("/api/v1/director/decisions", { permission: "state.read" }, (req) => s.decisionLog.slice(-Number(req.query.get("limit") ?? 100)));
   r.post("/api/v1/director/observer-mode", { permission: "director.control", body: z.object({ mode: ObserverMode }) }, (req) => {
     s.setObserverMode(req.body.mode);
+    // A mode chosen here while the Auto Director runs becomes what it films.
+    if (e.autoDirector.status().on && req.body.mode !== "off") e.autoDirector.setSettings({ cinematic: req.body.mode !== "observer", nadeCams: req.body.mode === "full_action" });
     e.audit.record(req.principal!.label, "director.observer_mode", req.body.mode);
     return { observerMode: s.observerMode, mode: s.director.currentMode };
   });
@@ -101,6 +103,23 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
     s.director.controls.autoReplaysDisabled = req.body.disabled;
     e.audit.record(req.principal!.label, "director.auto_replays", null, req.body);
     return { autoReplaysDisabled: req.body.disabled };
+  });
+
+  // ---- Auto Director (one button) --------------------------------------------------------
+  const AutoPatch = z.object({ cinematic: z.boolean().optional(), nadeCams: z.boolean().optional(), returnAfterSec: z.number().int().min(0).max(120).optional() });
+  r.get("/api/v1/director/auto", { permission: "state.read" }, () => e.autoDirector.status());
+  r.post("/api/v1/director/auto/start", { permission: "director.control", body: AutoPatch }, async (req) => {
+    e.audit.record(req.principal!.label, "director.auto_start_requested", null, req.body);
+    return e.autoDirector.start(req.body);
+  });
+  r.post("/api/v1/director/auto/stop", { permission: "director.control" }, (req) => {
+    e.audit.record(req.principal!.label, "director.auto_stop", null);
+    return e.autoDirector.stop();
+  });
+  r.put("/api/v1/director/auto/settings", { permission: "director.control", body: AutoPatch }, (req) => {
+    e.autoDirector.setSettings(req.body);
+    e.audit.record(req.principal!.label, "director.auto_settings", null, req.body);
+    return e.autoDirector.status();
   });
 
   // ---- observer ownership / commands ----------------------------------------------------
@@ -321,6 +340,18 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
   r.get("/api/v1/maps", { permission: "metadata.read" }, () =>
     e.maps.list().map((m) => ({ mapName: m.mapName, displayName: m.pack.displayName, revision: m.pack.mapRevision, regions: m.pack.regions.length, cameras: m.pack.cameras.map((c) => ({ id: c.id, displayName: c.displayName, validation: c.validation, mapRevision: c.mapRevision })), radar: m.pack.radar, floorGrid: !!m.pack.floorGrid, synthetic: m.mapName === "de_synthetic", provenance: m.pack.provenance })),
   );
+  /** Built-in cameras and paths (placed from map data, see scripts/generate-map-cameras.py): on or off for every map. */
+  const builtIn = () => ({
+    on: e.maps.builtInCameras,
+    maps: e.maps.list().map((m) => ({ mapName: m.mapName, cameras: m.pack.cameras.filter((c) => c.capturedFrom === "derived_navmesh").length, paths: m.pack.paths.filter((p) => p.source === "derived_navmesh").length })),
+  });
+  r.get("/api/v1/cameras/built-in", { permission: "metadata.read" }, () => builtIn());
+  r.put("/api/v1/cameras/built-in", { permission: "metadata.write", body: z.object({ on: z.boolean() }) }, (req) => {
+    e.settings.set("cameras.builtIn", req.body.on);
+    e.maps.setBuiltInCameras(req.body.on);
+    e.audit.record(req.principal!.label, "cameras.built_in", null, req.body);
+    return builtIn();
+  });
   r.get("/api/v1/maps/:map", { permission: "metadata.read" }, (req) => {
     const m = e.maps.get(req.params.map!);
     if (!m) throw new HttpError(404, "no map pack", "not_found");

@@ -196,7 +196,8 @@
       "enum": [
         "getpos_paste",
         "netcon_readback",
-        "imported"
+        "imported",
+        "derived_navmesh"
       ]
     },
     "notes": {

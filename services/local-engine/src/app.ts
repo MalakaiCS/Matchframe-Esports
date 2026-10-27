@@ -33,6 +33,7 @@ import { DelayBuffer } from "./live/delay.ts";
 import { KillfeedBuilder } from "./live/killfeed.ts";
 import type { HudContext } from "./live/projection.ts";
 import { buildHudState } from "./live/projection.ts";
+import { AutoDirector } from "./live/auto-director.ts";
 import { LiveSession } from "./live/session.ts";
 import { TeamSideTracker } from "./live/team-sides.ts";
 import { Logger } from "./logger.ts";
@@ -65,6 +66,17 @@ export const ObserverAdapterSettings = z.object({
   windowTitle: z.string().default("^Counter-Strike 2$"),
 });
 export type ObserverAdapterSettings = z.infer<typeof ObserverAdapterSettings>;
+
+/** Earlier built-in console commands that were saved into settings and are now wrong or outdated. */
+const STALE_TEMPLATES: Record<string, string[]> = {
+  selectPlayer: ["spec_player_by_accountid {accountId}"],
+  staticCamera: ["spec_mode 6; spec_goto {x} {y} {z} {pitch} {yaw}"],
+};
+
+/** Saved console commands: an empty field means the built-in command, and so does a stale earlier default. */
+export function consoleTemplates(saved: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(saved).filter(([k, v]) => v.trim() !== "" && !STALE_TEMPLATES[k]?.includes(v.trim())));
+}
 
 interface Cue {
   id: string;
@@ -125,6 +137,7 @@ export class Engine {
   readonly meter: AutoDirectorMeter;
   /** Start CS2 (launch profile) and the game's console while it runs (console options). */
   readonly gameConsole: GameConsoleService;
+  readonly autoDirector: AutoDirector;
   private meterTimer: ReturnType<typeof setInterval> | null = null;
   private readonly rawGsiListeners = new Set<(payload: Record<string, unknown>, simulated: boolean) => void>();
   private readonly killListeners = new Set<(entry: HudKillfeedEntry) => void>();
@@ -179,6 +192,8 @@ export class Engine {
       fixedUrl: cfg.cloudUrl,
     });
 
+    // Built-in cameras and paths (placed from map data) are on unless the operator switched them off.
+    this.maps.setBuiltInCameras(this.settings.get("cameras.builtIn", true));
     this.loadMapPacks();
     this.utilityProfiles = this.loadUtilityProfiles();
     this.session = new LiveSession({
@@ -193,6 +208,7 @@ export class Engine {
         return { playerId, teamId: this.roster.teamOf(playerId), displayName: p?.data.displayName ?? null };
       },
       verifiedControl: () => this.settings.get("observer.verifiedControl", {}),
+      recordEvidence: (key, support, detail) => this.recordControlEvidence(key, support, detail),
       armGate: (simulated, observerMode) => this.cloud.canArm(simulated || this.simulationRunning, observerMode),
     });
     this.refreshScenarios();
@@ -232,6 +248,7 @@ export class Engine {
     });
 
     this.gameConsole = new GameConsoleService({ settings: this.settings, teams: this.teams, logger: this.logger });
+    this.autoDirector = new AutoDirector(this);
     this.radars = BuiltinRadars.load(cfg.radarDir, (msg, data) => this.logger.warn(msg, data));
 
     this.session.on("events", (evs) => this.onDerivedEvents(evs));
@@ -677,13 +694,48 @@ export class Engine {
       // Shares the console connection Start CS2 opened when it is the same game console.
       const shared = this.gameConsole.connection;
       const connection = shared && shared.port === s.port && ["127.0.0.1", "localhost"].includes(s.host) ? shared : undefined;
-      await this.session.setAdapter(new NetconObserverAdapter({ host: s.host, port: s.port, templates: s.templates, now: this.now, verified, connection, playerName: (steamId) => this.playerNameFor(steamId) }));
+      await this.session.setAdapter(
+        new NetconObserverAdapter({
+          host: s.host,
+          port: s.port,
+          templates: consoleTemplates(s.templates),
+          now: this.now,
+          verified: () => this.settings.get("observer.verifiedControl", {}),
+          connection,
+          playerName: (steamId) => this.playerNameFor(steamId),
+          onEvidence: (key, support, detail) => this.recordControlEvidence(key, support, detail),
+          // Keep the spec_mode numbering that moved the camera on this build.
+          onModesLearned: (modes) => {
+            const cur = this.observerSettings();
+            this.settings.set("observer.adapter", { ...cur, templates: { ...cur.templates, ...modes } });
+            this.logger.info("console camera modes learned from getpos readback", modes);
+          },
+        }),
+      );
     } else if (s.kind === "keyboard") {
       const backend = await loadWindowsInputBackend();
       await this.session.setAdapter(new KeyboardObserverAdapter(backend, { windowTitle: new RegExp(s.windowTitle), now: this.now, verified: verified.playerSelectionControl ?? null }));
     } else {
       await this.session.setAdapter(new NoControlAdapter());
     }
+  }
+
+  /**
+   * Evidence that a kind of camera control works on this game build, seen in live use (the game data
+   * showed the requested player; getpos answered with the camera pose). Recorded like the setup
+   * tests; never from test data, never downgrading what was already confirmed.
+   */
+  recordControlEvidence(key: string, support: "supported" | "partial", detail: string): void {
+    if (this.simulationRunning) return;
+    const v = this.settings.get<Record<string, { support: "supported" | "partial"; build: string | null; at: string }>>("observer.verifiedControl", {});
+    const cur = v[key];
+    if (cur && (cur.support === "supported" || cur.support === support)) return;
+    const build = this.session.state()?.sources[0]?.gameBuild ?? null;
+    v[key] = { support, build, at: new Date().toISOString() };
+    this.settings.set("observer.verifiedControl", v);
+    this.audit.record("system", "observer.control_confirmed", key, { support, build, detail });
+    this.logger.info("camera control confirmed in live use", { key, support, detail });
+    void this.session.refreshControlCapabilities();
   }
 
   /** A player's in-game name from the latest game data, for `spec_player "<name>"`; null when unknown or shared by two players. */
@@ -791,6 +843,7 @@ export class Engine {
   }
 
   async shutdown(): Promise<void> {
+    this.autoDirector.dispose();
     await this.stopSimulation().catch(() => undefined);
     this.demos.stop();
     this.session.stop();

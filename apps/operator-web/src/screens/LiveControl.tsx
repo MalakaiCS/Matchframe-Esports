@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CommandResult, ObserverMode, PlayerState, Side } from "@matchframe/contracts";
 import { api, describeError, seg } from "../api/index.ts";
 import type { DirectorStatus, EventRecord, MapPackDetail, MatchRow, OperatorSnapshot, ReplaysResponse, TeamRow } from "../api/types.ts";
+import { AutoDirectorCard } from "../components/AutoDirectorCard.tsx";
 import { CandidateList, DecisionExplain, OpportunityList } from "../components/director.tsx";
 import { useToast } from "../components/toasts.tsx";
 import { ActionButton, Badge, Checkbox, Details, EmptyState, KV, Note, Panel } from "../components/ui.tsx";
@@ -180,7 +181,7 @@ function ActionsBar({ snap, cameras }: { snap: OperatorSnapshot; cameras: { id: 
   const [holdMs, setHoldMs] = useState<string>("10000");
   const [pinTarget, setPinTarget] = useState<string>("");
   const [cinematicCam, setCinematicCam] = useState<string>("");
-  const gate = capabilityGate("staticCameraControl", snap.capabilities.staticCameraControl, { simulated: snap.simulated });
+  const gate = capabilityGate("staticCameraControl", snap.capabilities.staticCameraControl, { simulated: snap.simulated, allowUnverified: true });
   const hold = snap.controls.hold;
   const holdLeft = hold && hold.until !== null && engineNow !== null ? Math.max(0, hold.until - engineNow) : null;
   const pin = snap.controls.pin;
@@ -485,7 +486,7 @@ export function LiveControlScreen() {
   const requestRef = useRef(request);
   requestRef.current = request;
 
-  const selGate = snap ? capabilityGate("playerSelectionControl", snap.capabilities.playerSelectionControl, { simulated: snap.simulated }) : null;
+  const selGate = snap ? capabilityGate("playerSelectionControl", snap.capabilities.playerSelectionControl, { simulated: snap.simulated, allowUnverified: true }) : null;
   const cardReason = cameraReason ?? (selGate && !selGate.enabled ? selGate.reason : null);
 
   // Observer number keys (GSI observer slots) request a POV, like the in-game spectator keys.
@@ -514,6 +515,7 @@ export function LiveControlScreen() {
     return (
       <div className="page">
         <h1 className="page-title">Live Control</h1>
+        <AutoDirectorCard compact />
         <EmptyState
           title="No game data yet"
           action={
@@ -571,6 +573,7 @@ export function LiveControlScreen() {
       <div className="live-grid">
         {column("CT")}
         <div className="live-center">
+          <AutoDirectorCard compact />
           <Panel title="Camera" subtitle="Click a player, or press their number key, to switch POV">
             <PovStatus snap={snap} />
           </Panel>

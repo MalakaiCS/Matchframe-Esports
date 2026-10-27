@@ -35,9 +35,21 @@ export interface LoadIssue {
 export class MapRegistry {
   private readonly runtimes = new Map<string, MapRuntime>();
   readonly issues: LoadIssue[] = [];
+  private builtIn = true;
+
+  /** Built-in cameras and paths on or off for every map (see MapRuntime.builtInCameras). */
+  setBuiltInCameras(on: boolean): void {
+    this.builtIn = on;
+    for (const rt of this.runtimes.values()) rt.builtInCameras = on;
+  }
+
+  get builtInCameras(): boolean {
+    return this.builtIn;
+  }
 
   register(pack: MapPack): MapRuntime {
     const rt = new MapRuntime(pack);
+    rt.builtInCameras = this.builtIn;
     this.runtimes.set(pack.mapName, rt);
     return rt;
   }

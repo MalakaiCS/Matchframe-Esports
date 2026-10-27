@@ -36,6 +36,8 @@ export interface ObserverControlAdapter {
   readState(): Promise<ObservedCameraState>;
   /** Cancel queued keypresses / pending transport work immediately. */
   cancelPending(): void;
+  /** Observer state from the game data (e.g. whether the camera is in the free camera). */
+  noteObserverState?(observer: { cameraMode: string; observedSteamId: string | null }): void;
   stopAutomation(): Promise<void>;
   dispose(): Promise<void>;
 }

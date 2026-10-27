@@ -32,12 +32,14 @@ import { findUtilityOpportunities, INFERNO_BOTTOM_BANANA_RULE } from "./utility/
 
 /** What the engine should do with a decision. The director never talks to the game directly. */
 export interface DirectorIntent {
-  kind: "select_player" | "activate_static_camera";
+  kind: "select_player" | "activate_static_camera" | "play_camera_path";
   /** Kind of shot (a static camera can be a nade camera, a fight overview, the bomb or an establishing shot). */
   shotClass: ShotClass;
   targetSteamId: string | null;
   observerSlot: number | null;
   cameraId: string | null;
+  /** The camera path for play_camera_path. */
+  pathId?: string | null;
   plannedDurationMs: number | null;
   opportunityId: string | null;
   decisionId: string;
@@ -392,18 +394,32 @@ export class Director {
               basedOnSequence: state.sequence,
               expiresInMs: 450,
             }
-          : {
-              kind: "activate_static_camera",
-              shotClass: desired.shotClass,
-              targetSteamId: null,
-              observerSlot: null,
-              cameraId: shot.id,
-              plannedDurationMs: desired.plannedDurationMs,
-              opportunityId: desired.opportunity?.id ?? null,
-              decisionId,
-              basedOnSequence: state.sequence,
-              expiresInMs: 450,
-            };
+          : shot.kind === "path"
+            ? {
+                kind: "play_camera_path",
+                shotClass: desired.shotClass,
+                targetSteamId: null,
+                observerSlot: null,
+                cameraId: null,
+                pathId: shot.id,
+                plannedDurationMs: desired.plannedDurationMs,
+                opportunityId: null,
+                decisionId,
+                basedOnSequence: state.sequence,
+                expiresInMs: 450,
+              }
+            : {
+                kind: "activate_static_camera",
+                shotClass: desired.shotClass,
+                targetSteamId: null,
+                observerSlot: null,
+                cameraId: shot.id,
+                plannedDurationMs: desired.plannedDurationMs,
+                opportunityId: desired.opportunity?.id ?? null,
+                decisionId,
+                basedOnSequence: state.sequence,
+                expiresInMs: 450,
+              };
       if (shot.kind !== "pov") this.controls.cinematicRequested = false;
     }
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, seg } from "../api/index.ts";
 import type { CameraRecord, CoverageCell, CoverageRow, MapOutline, MapPackDetail, MapSummary } from "../api/types.ts";
 import type { Support } from "@matchframe/contracts";
-import { ActionButton, Async, Badge, Button, Details, EmptyState, Field, KV, Panel, Tabs } from "../components/ui.tsx";
+import { ActionButton, Async, Badge, Button, Checkbox, Details, EmptyState, Field, KV, Panel, Tabs } from "../components/ui.tsx";
 import { SUPPORT_TEXT } from "../lib/capabilities.ts";
 import { fmtTime, GRENADE_TYPE_LABEL, MISSING } from "../lib/format.ts";
 import { useApi, usePersistentState } from "../lib/hooks.ts";
@@ -199,7 +199,13 @@ function CameraRow({ map, cam, onChanged }: { map: string; cam: CameraRecord; on
     <tr>
       <td>
         {cam.displayName}
-        <div className={`small ${TONE_TEXT[VALIDATION_TONE[cam.validation] ?? "neutral"]}`}>{VALIDATION_LABEL[cam.validation] ?? human(cam.validation)}</div>
+        {cam.capturedFrom === "derived_navmesh" && cam.validation === "unvalidated" ? (
+          <div className="small muted" title="Placed from the map's navigation data with a clear line of sight; not yet seen in game. Validate it after a look in CS2, or switch built-in cameras off.">
+            Built-in · placed from map data
+          </div>
+        ) : (
+          <div className={`small ${TONE_TEXT[VALIDATION_TONE[cam.validation] ?? "neutral"]}`}>{VALIDATION_LABEL[cam.validation] ?? human(cam.validation)}</div>
+        )}
       </td>
       <td className="small">
         <UsesPicker value={uses} onChange={setUses} disabled={!!reason} label={`Used for (${cam.displayName})`} />
@@ -231,6 +237,32 @@ function CameraRow({ map, cam, onChanged }: { map: string; cam: CameraRecord; on
         </ActionButton>
       </td>
     </tr>
+  );
+}
+
+/** Built-in cameras and paths (placed from map data) on or off for every map. */
+function BuiltInToggle({ onChanged }: { onChanged: () => void }) {
+  const state = useApi<{ on: boolean }>("/api/v1/cameras/built-in");
+  const reason = usePermission("metadata.write");
+  const [busy, setBusy] = useState(false);
+  if (!state.data) return null;
+  return (
+    <Checkbox
+      checked={state.data.on}
+      disabled={!!reason || busy}
+      label="Built-in cameras"
+      hint="Cameras and camera paths for every active-duty map, placed from the map's navigation data. Switch off to use only your own cameras."
+      onChange={(on) => {
+        setBusy(true);
+        void api
+          .put<{ on: boolean }>("/api/v1/cameras/built-in", { on })
+          .then((r) => state.setData(r))
+          .finally(() => {
+            setBusy(false);
+            onChanged();
+          });
+      }}
+    />
   );
 }
 
@@ -374,13 +406,16 @@ function MapDetail({ map, reloadList }: { map: string; reloadList: () => void })
           </Panel>
           <Panel
             title={`Cameras (${d.cameras.length})`}
-            subtitle="Only validated cameras are used for cinematics."
+            subtitle="Cinematics use validated cameras, and the built-in cameras unless they are switched off."
             actions={
-              d.cameras.length && !adding ? (
-                <Button size="sm" onClick={() => setAdding(true)}>
-                  Add camera
-                </Button>
-              ) : null
+              <>
+                <BuiltInToggle onChanged={reload} />
+                {d.cameras.length && !adding ? (
+                  <Button size="sm" onClick={() => setAdding(true)}>
+                    Add camera
+                  </Button>
+                ) : null}
+              </>
             }
           >
             {d.cameras.length === 0 ? null : (

@@ -1,4 +1,4 @@
-import type { CameraRecord, MapLevel, MapPack, RadarCalibration, Region, Vec3 } from "@matchframe/contracts";
+import type { CameraPath, CameraRecord, MapLevel, MapPack, RadarCalibration, Region, Vec3 } from "@matchframe/contracts";
 import { cellKey, cellOf, pointInPolygon } from "./geometry.ts";
 
 export interface RadarPoint {
@@ -27,6 +27,11 @@ export interface CameraMatch {
  */
 export class MapRuntime {
   readonly pack: MapPack;
+  /**
+   * Built-in cameras and paths (`derived_navmesh`, placed from map data and not yet seen in game)
+   * are usable alongside operator-validated ones, unless switched off. Invalidated ones never are.
+   */
+  builtInCameras = true;
   private readonly cellIndexes: CellIndex[] = [];
   private readonly polygonRegions: Region[] = [];
   private readonly floors = new Map<string, number[]>();
@@ -233,17 +238,32 @@ export class MapRuntime {
     return { u: px / cal.imageSizePx, v: py / cal.imageSizePx, levelId };
   }
 
+  /** Validated cameras of this revision, and built-in ones while they are switched on. */
+  cameraUsable(cam: CameraRecord, includeUnvalidated = false): boolean {
+    if (cam.validation === "invalidated" || cam.mapRevision !== this.pack.mapRevision) return false;
+    if (cam.validation === "validated" || includeUnvalidated) return true;
+    return this.builtInCameras && cam.capturedFrom === "derived_navmesh";
+  }
+
+  /** Usable camera paths (validated, or built in while switched on), optionally for some regions. */
+  pathsFor(opts: { regionIds?: readonly string[] } = {}): CameraPath[] {
+    return this.pack.paths.filter((p) => {
+      if (p.validation === "invalidated" || p.mapRevision !== this.pack.mapRevision) return false;
+      if (p.validation !== "validated" && !(this.builtInCameras && p.source === "derived_navmesh")) return false;
+      return !opts.regionIds || p.targetRegionIds.some((r) => opts.regionIds!.includes(r));
+    });
+  }
+
   /**
    * Cameras whose coverage volume includes the point on the correct level, sorted by centrality.
-   * By default only validated cameras are returned; unvalidated poses are preview/operator-only.
+   * By default only usable cameras (validated, or built in) are returned; other unvalidated poses
+   * are preview/operator-only.
    */
   camerasCovering(p: Vec3, opts: { includeUnvalidated?: boolean; grenadeType?: string; actionClass?: string } = {}): CameraMatch[] {
     const level = this.levelAt(p);
     const out: CameraMatch[] = [];
     for (const cam of this.pack.cameras) {
-      if (!opts.includeUnvalidated && cam.validation !== "validated") continue;
-      if (cam.validation === "invalidated") continue;
-      if (cam.mapRevision !== this.pack.mapRevision) continue;
+      if (!this.cameraUsable(cam, opts.includeUnvalidated)) continue;
       const cov = cam.coverage;
       if (cov.levelId !== null && level !== null && cov.levelId !== level) continue;
       if (p.z < cov.zMin || p.z > cov.zMax) continue;
@@ -256,10 +276,10 @@ export class MapRuntime {
     return out.sort((a, b) => a.centrality - b.centrality);
   }
 
-  /** Validated cameras of the current revision with the action class and allowed phase (e.g. establishing shots in freeze time). */
+  /** Usable cameras of the current revision with the action class and allowed phase (e.g. establishing shots in freeze time). */
   camerasWith(opts: { actionClass: string; phase: string }): CameraMatch[] {
     return this.pack.cameras
-      .filter((cam) => cam.validation === "validated" && cam.mapRevision === this.pack.mapRevision && cam.actionClasses.includes(opts.actionClass as never) && cam.allowedPhases.includes(opts.phase as never))
+      .filter((cam) => this.cameraUsable(cam) && cam.actionClasses.includes(opts.actionClass as never) && cam.allowedPhases.includes(opts.phase as never))
       .map((camera) => ({ camera, distanceUnits: 0, centrality: 0 }));
   }
 }

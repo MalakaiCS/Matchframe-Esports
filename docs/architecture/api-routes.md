@@ -115,6 +115,10 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/director/cinematics` | director.control |
 | POST | `/api/v1/director/assisted-actions` | director.control |
 | POST | `/api/v1/director/auto-replays` | director.control |
+| GET | `/api/v1/director/auto` | state.read |
+| POST | `/api/v1/director/auto/start` | director.control |
+| POST | `/api/v1/director/auto/stop` | director.control |
+| PUT | `/api/v1/director/auto/settings` | director.control |
 | POST | `/api/v1/observer/takeover` | camera.control |
 | POST | `/api/v1/observer/resume` | director.control |
 | POST | `/api/v1/observer/cancel-resume` | director.control |
@@ -152,6 +156,8 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | DELETE | `/api/v1/hud/cues/:id` | hud.publish |
 | PUT | `/api/v1/hud/annotations` | hud.publish |
 | GET | `/api/v1/maps` | metadata.read |
+| GET | `/api/v1/cameras/built-in` | metadata.read |
+| PUT | `/api/v1/cameras/built-in` | metadata.write |
 | GET | `/api/v1/maps/:map` | metadata.read |
 | GET | `/api/v1/maps/:map/outline` | metadata.read |
 | POST | `/api/v1/maps/:map/cameras/from-getpos` | metadata.write |

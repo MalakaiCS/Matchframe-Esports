@@ -1,4 +1,4 @@
-import type { CameraMode, CameraPath, CameraRecord, CommandContext, CommandResult, ObservedCameraState } from "@matchframe/contracts";
+import type { CameraMode, CameraPath, CameraRecord, CommandContext, CommandResult, ObservedCameraState, Vec3 } from "@matchframe/contracts";
 import type { ControlCapabilities, ObserverControlAdapter } from "@matchframe/director-policy";
 import { failedResult, transportResult } from "@matchframe/director-policy";
 import { accountIdOf, cap } from "./common.ts";
@@ -14,13 +14,22 @@ import { NetconConnection } from "./netcon-connection.ts";
  * Player selection uses `spec_player "<name>"`: CS2 has no `spec_player_by_accountid` (CS:GO
  * only), and operators report the name form works. Placeholders: {name} (in-game name, see
  * safeName), {accountId}, {steamId}, {slot} (observer slot / number key).
+ *
+ * Cameras: `spec_mode 6; spec_goto x y z pitch yaw` (free camera at a pose) works for a live
+ * spectator on current CS2 builds; `getpos` answers `setpos x y z;setang pitch yaw roll`, which
+ * confirms the pose. CS2 builds have used both the CS:GO spec_mode numbers (in-eye 4, free 6) and
+ * the CS2 ones (in-eye 2, free 4): when the readback shows the camera didn't move, the other
+ * numbering is tried once and kept. Paths stream interpolated spec_goto frames.
  */
 export interface NetconTemplates {
   selectPlayer: string;
   modeInEye: string;
   modeChase: string;
   modeRoaming: string;
+  /** {roaming} is the free-camera mode command (modeRoaming). */
   staticCamera: string;
+  /** One frame of a camera path (already in the free camera). */
+  pathFrame: string;
   readPose: string;
 }
 
@@ -29,9 +38,49 @@ export const DEFAULT_NETCON_TEMPLATES: NetconTemplates = {
   modeInEye: "spec_mode 4",
   modeChase: "spec_mode 5",
   modeRoaming: "spec_mode 6",
-  staticCamera: "spec_mode 6; spec_goto {x} {y} {z} {pitch} {yaw}",
+  staticCamera: "{roaming}; spec_goto {x} {y} {z} {pitch} {yaw}",
+  pathFrame: "spec_goto {x} {y} {z} {pitch} {yaw}",
   readPose: "getpos",
 };
+
+/** The CS2 ObserverMode_t numbering, tried when the CS:GO numbers don't move the camera. */
+export const CS2_ENUM_MODES = { modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" } as const;
+
+export interface PathPose {
+  position: Vec3;
+  pitch: number;
+  yaw: number;
+}
+
+const ease = (u: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, u)));
+const wrap180 = (a: number) => ((((a + 180) % 360) + 360) % 360) - 180;
+
+/**
+ * The camera pose `tMs` into a path: eased in and out over the whole path, Catmull-Rom between
+ * keyframes for position, shortest turn for yaw, linear pitch.
+ */
+export function samplePath(path: Pick<CameraPath, "keyframes">, tMs: number): PathPose {
+  const k = path.keyframes;
+  const dur = k[k.length - 1]!.tMs;
+  const t = dur > 0 ? ease(tMs / dur) * dur : 0;
+  let i = 0;
+  while (i < k.length - 2 && t > k[i + 1]!.tMs) i++;
+  const a = k[i]!;
+  const b = k[Math.min(i + 1, k.length - 1)]!;
+  const span = b.tMs - a.tMs;
+  const u = span > 0 ? Math.min(1, Math.max(0, (t - a.tMs) / span)) : 1;
+  const p0 = k[Math.max(0, i - 1)]!.position;
+  const p3 = k[Math.min(k.length - 1, i + 2)]!.position;
+  const cr = (q0: number, q1: number, q2: number, q3: number) => 0.5 * (2 * q1 + (-q0 + q2) * u + (2 * q0 - 5 * q1 + 4 * q2 - q3) * u * u + (-q0 + 3 * q1 - 3 * q2 + q3) * u * u * u);
+  return {
+    position: { x: cr(p0.x, a.position.x, b.position.x, p3.x), y: cr(p0.y, a.position.y, b.position.y, p3.y), z: cr(p0.z, a.position.z, b.position.z, p3.z) },
+    pitch: a.pitch + (b.pitch - a.pitch) * u,
+    yaw: wrap180(a.yaw + wrap180(b.yaw - a.yaw) * u),
+  };
+}
+
+/** Control evidence per capability, as recorded by the engine. */
+export type VerifiedControl = Partial<Record<keyof ControlCapabilities, { build: string | null; at: string; support: "supported" | "partial" }>>;
 
 export interface NetconOptions {
   host: string;
@@ -40,7 +89,8 @@ export interface NetconOptions {
   now: () => number;
   connectTimeoutMs?: number;
   /** Capability evidence recorded by the setup checklist (persisted by the engine). */
-  verified?: Partial<Record<keyof ControlCapabilities, { build: string | null; at: string; support: "supported" | "partial" }>>;
+  /** Evidence recorded so far (a function reads the latest, e.g. evidence this adapter reported). */
+  verified?: VerifiedControl | (() => VerifiedControl);
   onLine?: (line: string) => void;
   /** The engine's shared console connection (also used for game options); otherwise the adapter opens its own. */
   connection?: NetconConnection;
@@ -49,6 +99,14 @@ export interface NetconOptions {
    * is unknown or another player has the same name (the console could not tell them apart).
    */
   playerName?: (steamId: string) => string | null;
+  /** Evidence that a kind of control works, from getpos readback; the engine records it per game build. */
+  onEvidence?: (key: keyof ControlCapabilities, support: "supported" | "partial", detail: string) => void;
+  /** The spec_mode numbering that moved the camera (when it isn't the default); the engine keeps it. */
+  onModesLearned?: (modes: Pick<NetconTemplates, "modeInEye" | "modeChase" | "modeRoaming">) => void;
+  /** Camera path frames per second. */
+  pathHz?: number;
+  /** How long to wait for a getpos answer. */
+  readbackTimeoutMs?: number;
 }
 
 function fill(template: string, values: Record<string, string | number>): string {
@@ -100,6 +158,13 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   private readonly templates: NetconTemplates;
   private lastPose: ObservedCameraState["pose"] = null;
   private lastPoseAt: number | null = null;
+  private poseSeq = 0;
+  /** The camera is in the free camera (after a static camera or path, or as the game data shows). */
+  private freeCam = false;
+  private telemetryRoaming = false;
+  private pathTimer: ReturnType<typeof setInterval> | null = null;
+  private pathToken = 0;
+  private modesLearned = false;
 
   constructor(private readonly opts: NetconOptions) {
     this.id = `netcon:${opts.host}:${opts.port}`;
@@ -110,7 +175,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   }
 
   async getCapabilities(): Promise<ControlCapabilities> {
-    const v = this.opts.verified ?? {};
+    const v = (typeof this.opts.verified === "function" ? this.opts.verified() : this.opts.verified) ?? {};
     const lim = (what: string) => [`Command template for ${what} is a candidate mapping; verify with the setup checklist on the target CS2 build.`, "Requires the observer client launched with -tools -netconport (CS2 Workshop Tools; loopback only)."];
     const c = (key: keyof ControlCapabilities, what: string, also: string[] = []) =>
       v[key] ? cap(key, v[key]!.support, also, this.id, { build: v[key]!.build, at: v[key]!.at }) : cap(key, "unverified", [...lim(what), ...also], this.id);
@@ -118,8 +183,12 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     return {
       playerSelectionControl: c("playerSelectionControl", "player selection", byName),
       observerModeControl: c("observerModeControl", "observer mode"),
-      staticCameraControl: c("staticCameraControl", "static camera"),
-      cameraPathControl: cap("cameraPathControl", "unsupported", ["No verified camera path mechanism for this channel."], this.id),
+      staticCameraControl: c("staticCameraControl", "static camera", ["Confirmed by getpos readback the first time a camera is shown."]),
+      cameraPathControl:
+        !v.cameraPathControl && v.staticCameraControl?.support === "supported"
+          ? // Paths stream the spec_goto command the static camera test confirmed.
+            cap("cameraPathControl", "partial", ["Streams the spec_goto command getpos confirmed for static cameras; confirmed again at the end of the first path."], this.id, { build: v.staticCameraControl.build, at: v.staticCameraControl.at })
+          : c("cameraPathControl", "camera paths (spec_goto streamed)", ["Confirmed by getpos readback at the end of the first path."]),
       cameraReadback: c("cameraReadback", "pose readback (getpos)"),
     };
   }
@@ -130,7 +199,53 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     if (m) {
       this.lastPose = { position: { x: Number(m[1]), y: Number(m[2]), z: Number(m[3]) }, pitch: Number(m[4]), yaw: Number(m[5]), fov: null };
       this.lastPoseAt = this.opts.now();
+      this.poseSeq++;
     }
+  }
+
+  /** Observer state from the game data: lets player selection leave the free camera first. */
+  noteObserverState(observer: { cameraMode: string; observedSteamId: string | null }): void {
+    this.telemetryRoaming = observer.cameraMode === "roaming" && !observer.observedSteamId;
+    if (observer.observedSteamId && !this.pathTimer) this.freeCam = false;
+  }
+
+  private cameraCommand(pose: PathPose, template = this.templates.staticCamera, roaming = this.templates.modeRoaming): string {
+    return fill(template, { roaming, x: safeValue(pose.position.x), y: safeValue(pose.position.y), z: safeValue(pose.position.z), pitch: safeValue(pose.pitch), yaw: safeValue(pose.yaw) });
+  }
+
+  /** Asks getpos and compares the answer with where the camera was sent. */
+  private async readback(pose: PathPose): Promise<"match" | "mismatch" | "none"> {
+    const seq = this.poseSeq;
+    await new Promise((r) => setTimeout(r, 60));
+    try {
+      await this.conn.write(this.templates.readPose);
+    } catch {
+      return "none";
+    }
+    const deadline = Date.now() + (this.opts.readbackTimeoutMs ?? 800);
+    while (this.poseSeq === seq && Date.now() < deadline) await new Promise((r) => setTimeout(r, 20));
+    const p = this.lastPose;
+    if (this.poseSeq === seq || !p) return "none";
+    const dxy = Math.hypot(p.position.x - pose.position.x, p.position.y - pose.position.y);
+    const dz = Math.abs(p.position.z - pose.position.z);
+    const ok = dxy <= 16 && dz <= 72 && Math.abs(p.pitch - pose.pitch) <= 3 && Math.abs(wrap180(p.yaw - pose.yaw)) <= 3;
+    return ok ? "match" : "mismatch";
+  }
+
+  private confirmed(ctx: CommandContext, detail: string): CommandResult {
+    const now = this.opts.now();
+    return { commandId: ctx.commandId, status: "confirmed", precision: "observed_exact", failureReason: null, detail, transportAckAtMonotonicMs: now, confirmedAtMonotonicMs: now };
+  }
+
+  private usesDefaultModes(): boolean {
+    const d = DEFAULT_NETCON_TEMPLATES;
+    return this.templates.modeInEye === d.modeInEye && this.templates.modeChase === d.modeChase && this.templates.modeRoaming === d.modeRoaming;
+  }
+
+  private stopPath(): void {
+    this.pathToken++;
+    if (this.pathTimer) clearInterval(this.pathTimer);
+    this.pathTimer = null;
   }
 
   private async send(ctx: CommandContext, command: string): Promise<CommandResult> {
@@ -161,7 +276,12 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     } catch (e) {
       return failedResult(ctx, "target_invalid", e instanceof Error ? e.message : String(e));
     }
-    return this.send(ctx, cmd);
+    this.stopPath();
+    // spec_player in the free camera only moves the free camera: go back to in-eye first.
+    if (this.freeCam || this.telemetryRoaming) cmd = `${this.templates.modeInEye}; ${cmd}`;
+    const r = await this.send(ctx, cmd);
+    if (r.status !== "failed") this.freeCam = false;
+    return r;
   }
 
   async setObserverMode(mode: CameraMode, ctx: CommandContext): Promise<CommandResult> {
@@ -171,27 +291,81 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   }
 
   async activateStaticCamera(camera: CameraRecord, ctx: CommandContext): Promise<CommandResult> {
+    const pose: PathPose = { position: camera.position, pitch: camera.pitch, yaw: camera.yaw };
     let cmd: string;
     try {
-      cmd = fill(this.templates.staticCamera, {
-        x: safeValue(camera.position.x),
-        y: safeValue(camera.position.y),
-        z: safeValue(camera.position.z),
-        pitch: safeValue(camera.pitch),
-        yaw: safeValue(camera.yaw),
-      });
+      cmd = this.cameraCommand(pose);
     } catch (e) {
       return failedResult(ctx, "target_invalid", e instanceof Error ? e.message : String(e));
     }
-    return this.send(ctx, cmd);
+    this.stopPath();
+    const r = await this.send(ctx, cmd);
+    if (r.status === "failed") return r;
+    this.freeCam = true;
+    let check = await this.readback(pose);
+    if (check === "mismatch" && !this.modesLearned && this.usesDefaultModes()) {
+      // The camera didn't move: this build may use the CS2 spec_mode numbering.
+      const r2 = await this.send(ctx, this.cameraCommand(pose, this.templates.staticCamera, CS2_ENUM_MODES.modeRoaming));
+      if (r2.status !== "failed" && (await this.readback(pose)) === "match") {
+        this.templates.modeInEye = CS2_ENUM_MODES.modeInEye;
+        this.templates.modeChase = CS2_ENUM_MODES.modeChase;
+        this.templates.modeRoaming = CS2_ENUM_MODES.modeRoaming;
+        this.opts.onModesLearned?.({ ...CS2_ENUM_MODES });
+        check = "match";
+      }
+    }
+    if (check !== "match") return r;
+    this.modesLearned = true;
+    this.opts.onEvidence?.("staticCameraControl", "supported", `getpos confirmed camera ${camera.id}`);
+    this.opts.onEvidence?.("cameraReadback", "supported", "getpos answered with the camera pose");
+    this.opts.onEvidence?.("observerModeControl", "partial", `free camera with ${this.templates.modeRoaming}`);
+    return this.confirmed(ctx, `getpos confirmed the camera pose (${this.templates.modeRoaming})`);
   }
 
-  async playCameraPath(_path: CameraPath, ctx: CommandContext): Promise<CommandResult> {
-    return failedResult(ctx, "unsupported", "camera paths are not supported on this channel");
+  /** Streams the path as spec_goto frames; getpos at the end confirms where it finished. */
+  async playCameraPath(path: CameraPath, ctx: CommandContext): Promise<CommandResult> {
+    const first = samplePath(path, 0);
+    let cmd: string;
+    try {
+      cmd = this.cameraCommand(first);
+    } catch (e) {
+      return failedResult(ctx, "target_invalid", e instanceof Error ? e.message : String(e));
+    }
+    this.stopPath();
+    const r = await this.send(ctx, cmd);
+    if (r.status === "failed") return r;
+    this.freeCam = true;
+    const token = this.pathToken;
+    const dur = path.keyframes[path.keyframes.length - 1]!.tMs;
+    const start = Date.now();
+    const last = samplePath(path, dur);
+    this.pathTimer = setInterval(() => {
+      if (token !== this.pathToken) return;
+      const t = Math.min(dur, Date.now() - start);
+      try {
+        void this.conn.write(this.cameraCommand(samplePath(path, t), this.templates.pathFrame)).catch(() => this.stopPath());
+      } catch {
+        this.stopPath();
+        return;
+      }
+      if (t >= dur) {
+        this.stopPath();
+        void this.readback(last).then((res) => {
+          if (res === "match") this.opts.onEvidence?.("cameraPathControl", "supported", `getpos confirmed the end of path ${path.id}`);
+        });
+      }
+    }, 1000 / (this.opts.pathHz ?? 60));
+    return r;
   }
 
   async cancelPath(ctx: CommandContext): Promise<CommandResult> {
-    return failedResult(ctx, "unsupported", "camera paths are not supported on this channel");
+    this.stopPath();
+    return transportResult(ctx, true, "path stopped", this.opts.now());
+  }
+
+  /** True while a camera path is playing. */
+  get playingPath(): boolean {
+    return this.pathTimer !== null;
   }
 
   /** Requests a pose readback; the answer arrives asynchronously via console output. */
@@ -204,7 +378,8 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   }
 
   cancelPending(): void {
-    // Writes are immediate; nothing is queued beyond the in-flight socket write.
+    // Writes are immediate; a playing path is the only queued work.
+    this.stopPath();
   }
 
   async stopAutomation(): Promise<void> {
@@ -212,6 +387,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   }
 
   async dispose(): Promise<void> {
+    this.stopPath();
     this.offLine();
     // A shared connection belongs to the engine (game options use it too).
     if (this.ownsConnection) this.conn.stop();

@@ -77,16 +77,30 @@ describe("Inferno Bottom Banana on demo-derived geometry", () => {
     expect(opp!.timeToEffectMs).toBeLessThanOrEqual(2500);
   });
 
-  it("A61/A25: the real pack ships no validated camera, so no cinematic is planned and a POV fallback is used", () => {
+  it("A61/A25: with built-in cameras off the real pack has no validated camera, so no cinematic is planned and a POV fallback is used", () => {
+    inferno.builtInCameras = false;
+    try {
+      const { sim, director } = setup();
+      const players = stack();
+      settle(sim, director, players);
+      const out = director.evaluate(sim.push(players, { mapName: "de_inferno", grenades: [he()], observed: T(1) }), sim.now, control);
+      const opp = out.opportunities.find((o) => o.scenarioId === "inferno-bottom-banana")!;
+      expect(opp.camera).toBeNull();
+      expect(opp.cameraIssue).toBeTruthy();
+      expect(out.candidates.some((c) => c.shotClass === "static_utility" && c.valid)).toBe(false);
+      expect(out.intent?.kind).not.toBe("activate_static_camera");
+    } finally {
+      inferno.builtInCameras = true;
+    }
+  });
+
+  it("with built-in cameras on, the scenario may use one of the pack's built-in cameras (placed from map data), never an unvalidated operator pose", () => {
     const { sim, director } = setup();
     const players = stack();
     settle(sim, director, players);
     const out = director.evaluate(sim.push(players, { mapName: "de_inferno", grenades: [he()], observed: T(1) }), sim.now, control);
     const opp = out.opportunities.find((o) => o.scenarioId === "inferno-bottom-banana")!;
-    expect(opp.camera).toBeNull();
-    expect(opp.cameraIssue).toBeTruthy();
-    expect(out.candidates.some((c) => c.shotClass === "static_utility" && c.valid)).toBe(false);
-    expect(out.intent?.kind).not.toBe("activate_static_camera");
+    if (opp.camera) expect(opp.camera.camera.capturedFrom).toBe("derived_navmesh");
   });
 
   it("A23 (geometry level): the T stack alone, or a smoke/decoy into it, raises no scenario", () => {

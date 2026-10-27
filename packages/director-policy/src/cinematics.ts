@@ -1,4 +1,4 @@
-import type { CameraRecord, MatchState, ReasonCode, ScoreComponents, ShotClass, SourceCapabilities } from "@matchframe/contracts";
+import type { CameraPath, CameraRecord, MatchState, ReasonCode, ScoreComponents, ShotClass, SourceCapabilities } from "@matchframe/contracts";
 import { projectCountdown } from "@matchframe/cs2-state";
 import type { Pin, ScoredCandidate } from "./candidates.ts";
 import { utilityOf } from "./candidates.ts";
@@ -7,7 +7,7 @@ import type { InteractionFeatures } from "./features/interactions.ts";
 import type { RoundContext } from "./features/significance.ts";
 import type { CameraMatch } from "@matchframe/map-runtime";
 import type { ShotKey } from "./shots.ts";
-import { cameraShot } from "./shots.ts";
+import { cameraShot, pathShot } from "./shots.ts";
 import type { UtilityDirectorMap } from "./utility/opportunities.ts";
 
 export interface CinematicInput {
@@ -39,6 +39,14 @@ function cameraControlUsable(caps: SourceCapabilities | null): boolean {
   return s === "supported" || s === "partial";
 }
 
+function pathControlUsable(caps: SourceCapabilities | null): boolean {
+  const s = caps?.cameraPathControl.support;
+  return s === "supported" || s === "partial";
+}
+
+/** Path length in milliseconds (its last keyframe). */
+export const pathDurationMs = (p: CameraPath): number => p.keyframes[p.keyframes.length - 1]!.tMs;
+
 interface Trigger {
   shotClass: Extract<ShotClass, "establishing" | "bomb_resolution" | "static_tactical">;
   match: CameraMatch;
@@ -51,11 +59,12 @@ interface Trigger {
 }
 
 /**
- * Cinematic static-camera shots that are not about utility (Observer & Cinematics and Full Action
- * Observer): an establishing shot during freeze time, the bomb at plant/defuse resolution, and an
- * overview of a fight with several players from both sides. Cameras come only from the map pack
- * (operator-captured, validated, with the matching action class and phase). Nade cameras are the
- * utility candidates in candidates.ts.
+ * Cinematic shots that are not about utility (Observer & Cinematics and Full Action Observer): an
+ * establishing shot during freeze time (a camera path flying around a site, or a static camera),
+ * the bomb at plant/defuse resolution, and an overview of a fight with several players from both
+ * sides. Cameras and paths come only from the map pack: operator-validated ones and the built-in
+ * ones placed from map data (see MapRuntime.builtInCameras), with the matching action class and
+ * phase. Nade cameras are the utility candidates in candidates.ts.
  */
 export function cinematicCandidates(input: CinematicInput): ScoredCandidate[] {
   const { state, map, cfg } = input;
@@ -107,6 +116,68 @@ export function cinematicCandidates(input: CinematicInput): ScoredCandidate[] {
 
   const out: ScoredCandidate[] = [];
   const seen = new Set<string>();
+
+  // Freeze time: one camera path per round, taking turns through the map's paths, when it fits.
+  if (phase === "freezetime" && map.pathsFor) {
+    const paths = map.pathsFor();
+    const left = projectCountdown({ countdownSec: state.phaseEndsInSec, observedAtMonotonicMs: state.phaseObservedAtMonotonicMs, nowMonotonicMs: input.now, running: !state.paused }).remainingSec;
+    const path = paths.length ? paths[Math.abs(state.roundNumber ?? 0) % paths.length]! : null;
+    const dur = path ? pathDurationMs(path) : 0;
+    if (path && (left === null || left * 1000 > dur + 1500)) {
+      const key = pathShot(path.id);
+      const isCurrent = input.currentShot === key;
+      const reasons: ReasonCode[] = ["ESTABLISHING"];
+      let valid = true;
+      let invalidReason: string | null = null;
+      if (!input.cinematicsAllowed.allowed && !isCurrent) {
+        valid = false;
+        invalidReason = "cinematics not allowed";
+        if (input.cinematicsAllowed.reason) reasons.push(input.cinematicsAllowed.reason);
+      }
+      if (!pathControlUsable(input.capabilities)) {
+        valid = false;
+        invalidReason = "camera path control not verified for this environment";
+        reasons.push("CAMERA_UNVERIFIED");
+      }
+      if (input.oneSide || (input.pin && input.pin.kind !== "cluster")) {
+        valid = false;
+        invalidReason = "pinned/one-side profile active";
+      }
+      if (valid) reasons.push("CINEMATIC_ELIGIBLE");
+      const components: ScoreComponents = {
+        actionCoverage: 0.75,
+        imminence: 0.5,
+        readiness: 0.5,
+        significance: 0.5,
+        narrative: 0.7,
+        framing: 1,
+        continuity: isCurrent ? 1 : 0,
+        mainStory: 0,
+        switchCost: isCurrent ? 0 : cfg.baseSwitchCost + 0.02,
+        stalenessPenalty: 0,
+        cinematicOpportunityCost: 0.03,
+      };
+      seen.add(key);
+      out.push({
+        candidateId: `cand:${key}:camera_path`,
+        shotClass: "camera_path",
+        shotKey: key,
+        targetSteamId: null,
+        cameraId: null,
+        clusterId: null,
+        regionIds: path.targetRegionIds,
+        components,
+        utility: valid ? utilityOf(components, cfg.weights) : -1,
+        reasonCodes: reasons,
+        valid,
+        invalidReason,
+        evidenceType: "estimated",
+        opportunity: null,
+        plannedDurationMs: dur,
+        urgent: false,
+      });
+    }
+  }
   for (const t of triggers.sort((a, b) => b.value - a.value)) {
     const cam = t.match.camera;
     const key = cameraShot(cam.id);

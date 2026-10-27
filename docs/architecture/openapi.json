@@ -5366,6 +5366,174 @@
         }
       }
     },
+    "/api/v1/director/auto": {
+      "get": {
+        "operationId": "get_api_v1_director_auto",
+        "summary": "GET /api/v1/director/auto",
+        "description": "Requires permission `state.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/director/auto/start": {
+      "post": {
+        "operationId": "post_api_v1_director_auto_start",
+        "summary": "POST /api/v1/director/auto/start",
+        "description": "Requires permission `director.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "cinematic": {
+                    "type": "boolean"
+                  },
+                  "nadeCams": {
+                    "type": "boolean"
+                  },
+                  "returnAfterSec": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/director/auto/stop": {
+      "post": {
+        "operationId": "post_api_v1_director_auto_stop",
+        "summary": "POST /api/v1/director/auto/stop",
+        "description": "Requires permission `director.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/director/auto/settings": {
+      "put": {
+        "operationId": "put_api_v1_director_auto_settings",
+        "summary": "PUT /api/v1/director/auto/settings",
+        "description": "Requires permission `director.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "cinematic": {
+                    "type": "boolean"
+                  },
+                  "nadeCams": {
+                    "type": "boolean"
+                  },
+                  "returnAfterSec": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/observer/takeover": {
       "post": {
         "operationId": "post_api_v1_observer_takeover",
@@ -7070,6 +7238,83 @@
           },
           "409": {
             "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/built-in": {
+      "get": {
+        "operationId": "get_api_v1_cameras_built_in",
+        "summary": "GET /api/v1/cameras/built-in",
+        "description": "Requires permission `metadata.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put_api_v1_cameras_built_in",
+        "summary": "PUT /api/v1/cameras/built-in",
+        "description": "Requires permission `metadata.write`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "on": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "on"
+                ]
+              }
+            }
           }
         }
       }

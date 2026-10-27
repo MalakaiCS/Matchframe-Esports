@@ -1,6 +1,6 @@
 import type { CameraMode, CameraPath, CameraRecord, CommandContext, CommandResult, ObservedCameraState } from "@matchframe/contracts";
 import type { ControlCapabilities, ObserverControlAdapter } from "@matchframe/director-policy";
-import { failedResult, transportResult } from "@matchframe/director-policy";
+import { transportResult } from "@matchframe/director-policy";
 import { cap } from "./common.ts";
 
 /** The simulated observer the simulation source renders from. */
@@ -33,7 +33,7 @@ export class SimulationObserverAdapter implements ObserverControlAdapter {
       playerSelectionControl: cap("playerSelectionControl", "supported", lim, "simulation"),
       observerModeControl: cap("observerModeControl", "supported", lim, "simulation"),
       staticCameraControl: cap("staticCameraControl", "supported", lim, "simulation"),
-      cameraPathControl: cap("cameraPathControl", "unsupported", ["paths not simulated"], "simulation"),
+      cameraPathControl: cap("cameraPathControl", "supported", lim, "simulation"),
       cameraReadback: cap("cameraReadback", "partial", lim, "simulation"),
     };
   }
@@ -78,8 +78,16 @@ export class SimulationObserverAdapter implements ObserverControlAdapter {
     return transportResult(ctx, true, "simulated", this.now());
   }
 
-  async playCameraPath(_p: CameraPath, ctx: CommandContext): Promise<CommandResult> {
-    return failedResult(ctx, "unsupported", "camera paths are not simulated");
+  /** The simulated camera flies the path: a free camera until its last keyframe (or the next command). */
+  async playCameraPath(path: CameraPath, ctx: CommandContext): Promise<CommandResult> {
+    const f = this.maybeFail(ctx);
+    if (f) return f;
+    this.later(() => {
+      this.observer.observedSteamId = null;
+      this.observer.activeCameraId = path.id;
+      this.observer.mode = "camera_path";
+    });
+    return transportResult(ctx, true, "simulated", this.now());
   }
 
   async cancelPath(ctx: CommandContext): Promise<CommandResult> {

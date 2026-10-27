@@ -125,6 +125,48 @@ describe("Observer modes: what the auto director may do on its own", () => {
     expect(run(obs.sim, obs.director, steps).at(-1)!.candidates.some((c) => c.shotClass === "bomb_resolution")).toBe(false);
   });
 
+  it("Observer & Cinematics flies a built-in camera path in freeze time when it fits and path control is confirmed", () => {
+    const withPath = () => {
+      const p = pack();
+      p.paths.push({ id: "nav-synthetic-mid-orbit", displayName: "Mid orbit", mapName: MAP, mapRevision: p.mapRevision, keyframes: [{ tMs: 0, position: { x: -400, y: 1600, z: 150 }, pitch: 15, yaw: 45 }, { tMs: 6000, position: { x: 400, y: 1600, z: 150 }, pitch: 15, yaw: 135 }], maxDurationMs: 7000, maxSpeedUnitsPerSec: 300, collisionValidated: false, validation: "unvalidated", targetRegionIds: ["mid"], source: "derived_navmesh" });
+      return new MapRuntime(p);
+    };
+    const freeze = (left: number) => Array.from({ length: 30 }, () => ({ players: bananaStack(), roundPhase: "freezetime" as const, phase: "freezetime", phaseEndsIn: left }));
+    const caps = (path: "supported" | "unverified") => {
+      const c = capsWithCameraControl("supported");
+      c.cameraPathControl = { ...c.cameraPathControl, support: path };
+      return c;
+    };
+
+    const ok = setup("observer_cinematics");
+    ok.director.setMap(withPath());
+    ok.director.setCapabilities(caps("supported"));
+    const cut = run(ok.sim, ok.director, freeze(15)).find((o) => o.intent && o.intent.kind !== "select_player");
+    expect(cut?.intent).toMatchObject({ kind: "play_camera_path", shotClass: "camera_path", pathId: "nav-synthetic-mid-orbit", plannedDurationMs: 6000 });
+
+    // Not enough freeze time left for a 6 s path.
+    const late = setup("observer_cinematics");
+    late.director.setMap(withPath());
+    late.director.setCapabilities(caps("supported"));
+    expect(run(late.sim, late.director, freeze(5)).at(-1)!.candidates.some((c) => c.shotClass === "camera_path")).toBe(false);
+
+    // Path control not confirmed yet: offered, but not valid.
+    const unverified = setup("observer_cinematics");
+    unverified.director.setMap(withPath());
+    unverified.director.setCapabilities(caps("unverified"));
+    const cand = run(unverified.sim, unverified.director, freeze(15)).at(-1)!.candidates.find((c) => c.shotClass === "camera_path");
+    expect(cand).toMatchObject({ valid: false });
+    expect(cand?.reasonCodes).toContain("CAMERA_UNVERIFIED");
+
+    // Built-in cameras switched off: no path.
+    const off = setup("observer_cinematics");
+    const rt = withPath();
+    rt.builtInCameras = false;
+    off.director.setMap(rt);
+    off.director.setCapabilities(caps("supported"));
+    expect(run(off.sim, off.director, freeze(15)).at(-1)!.candidates.some((c) => c.shotClass === "camera_path")).toBe(false);
+  });
+
   it("cinematics stay subject to the camera-control capability", () => {
     const { sim, director } = setup("observer_cinematics");
     director.setCapabilities(capsWithCameraControl("unverified"));

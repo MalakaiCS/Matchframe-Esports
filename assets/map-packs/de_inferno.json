@@ -2771,8 +2771,657 @@
       ]
     }
   ],
-  "cameras": [],
-  "paths": [],
+  "cameras": [
+    {
+      "id": "nav-inferno-bombsite_a-1",
+      "displayName": "A site from Graveyard",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 2576.0,
+        "y": 80.0,
+        "z": 352.3
+      },
+      "pitch": 14.22,
+      "yaw": 143.8,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": 2116.7,
+          "y": 416.1,
+          "z": 208.0
+        },
+        "radiusUnits": 968.6,
+        "zMin": 24.9,
+        "zMax": 412.5,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (Graveyard, 569 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-inferno-bombsite_a-2",
+      "displayName": "A site #2",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 2320.0,
+        "y": 1040.0,
+        "z": 300.7
+      },
+      "pitch": 8.04,
+      "yaw": -108.05,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": 2116.7,
+          "y": 416.1,
+          "z": 208.0
+        },
+        "radiusUnits": 968.6,
+        "zMin": 24.9,
+        "zMax": 412.5,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (BombsiteA, 656 units from the A site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-inferno-bombsite_b-1",
+      "displayName": "B site #1",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 464.0,
+        "y": 3536.0,
+        "z": 300.0
+      },
+      "pitch": 7.75,
+      "yaw": -89.5,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": 469.9,
+          "y": 2860.1,
+          "z": 208.0
+        },
+        "radiusUnits": 976.9,
+        "zMin": 28.2,
+        "zMax": 512.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (BombsiteB, 676 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-inferno-bombsite_b-2",
+      "displayName": "B site #2",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 784.0,
+        "y": 2384.0,
+        "z": 278.9
+      },
+      "pitch": 7.08,
+      "yaw": 123.42,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": 469.9,
+          "y": 2860.1,
+          "z": 208.0
+        },
+        "radiusUnits": 976.9,
+        "zMin": 28.2,
+        "zMax": 512.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (BombsiteB, 570 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-inferno-bombsite_b-3",
+      "displayName": "B site #3",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 80.0,
+        "y": 2960.0,
+        "z": 300.0
+      },
+      "pitch": 12.87,
+      "yaw": -14.38,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": 469.9,
+          "y": 2860.1,
+          "z": 208.0
+        },
+        "radiusUnits": 976.9,
+        "zMin": 28.2,
+        "zMax": 512.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "bomb",
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (BombsiteB, 403 units from the B site centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-inferno-middle-1",
+      "displayName": "Mid #1",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 1232.0,
+        "y": 528.0,
+        "z": 251.8
+      },
+      "pitch": 10.33,
+      "yaw": 176.22,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "middle"
+      ],
+      "coverage": {
+        "center": {
+          "x": 589.4,
+          "y": 570.5,
+          "z": 134.3
+        },
+        "radiusUnits": 741.3,
+        "zMin": -31.9,
+        "zMax": 355.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (Middle, 644 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-inferno-middle-2",
+      "displayName": "Mid #2",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 16.0,
+        "y": 784.0,
+        "z": 193.7
+      },
+      "pitch": 5.54,
+      "yaw": -20.43,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "middle"
+      ],
+      "coverage": {
+        "center": {
+          "x": 589.4,
+          "y": 570.5,
+          "z": 134.3
+        },
+        "radiusUnits": 741.3,
+        "zMin": -31.9,
+        "zMax": 355.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime",
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "establishing",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 4000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (Middle, 612 units from the Mid centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-inferno-ct_spawn-1",
+      "displayName": "CT spawn #1",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 1680.0,
+        "y": 2704.0,
+        "z": 300.0
+      },
+      "pitch": 10.93,
+      "yaw": -49.79,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": 2067.7,
+          "y": 2245.4,
+          "z": 184.0
+        },
+        "radiusUnits": 883.8,
+        "zMin": 20.9,
+        "zMax": 414.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (CTSpawn, 601 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-inferno-ct_spawn-2",
+      "displayName": "CT spawn #2",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 2448.0,
+        "y": 2320.0,
+        "z": 268.3
+      },
+      "pitch": 12.27,
+      "yaw": -168.9,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ct_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": 2067.7,
+          "y": 2245.4,
+          "z": 184.0
+        },
+        "radiusUnits": 883.8,
+        "zMin": 20.9,
+        "zMax": 414.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (CTSpawn, 388 units from the CT spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-inferno-t_spawn-1",
+      "displayName": "T spawn #1",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": -1648.0,
+        "y": 784.0,
+        "z": 88.4
+      },
+      "pitch": 10.13,
+      "yaw": -66.62,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1423.9,
+          "y": 265.8,
+          "z": -12.5
+        },
+        "radiusUnits": 1038.0,
+        "zMin": -164.0,
+        "zMax": 286.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (TSpawn, 565 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+    },
+    {
+      "id": "nav-inferno-t_spawn-2",
+      "displayName": "T spawn #2",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": -1520.0,
+        "y": -176.0,
+        "z": 76.0
+      },
+      "pitch": 11.08,
+      "yaw": 77.73,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_spawn"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1423.9,
+          "y": 265.8,
+          "z": -12.5
+        },
+        "radiusUnits": 1038.0,
+        "zMin": -164.0,
+        "zMax": 286.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "freezetime"
+      ],
+      "actionClasses": [
+        "establishing"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 5000,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "unvalidated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed from navigation-mesh data (TSpawn, 452 units from the T spawn centre); the sight line runs over walkable floor. Not seen in game yet."
+    }
+  ],
+  "paths": [
+    {
+      "id": "nav-inferno-bombsite_a-push",
+      "displayName": "A site push-in",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 2576.0,
+            "y": 80.0,
+            "z": 352.3
+          },
+          "pitch": 14.22,
+          "yaw": 143.8
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 2369.3,
+            "y": 231.3,
+            "z": 315.3
+          },
+          "pitch": 18.91,
+          "yaw": 143.8
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": false,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_a"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "nav-inferno-bombsite_b-push",
+      "displayName": "B site push-in",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 464.0,
+            "y": 3536.0,
+            "z": 300.0
+          },
+          "pitch": 7.75,
+          "yaw": -89.5
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 466.7,
+            "y": 3231.8,
+            "z": 286.5
+          },
+          "pitch": 11.92,
+          "yaw": -89.5
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": false,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "bombsite_b"
+      ],
+      "source": "derived_navmesh"
+    },
+    {
+      "id": "nav-inferno-middle-push",
+      "displayName": "Mid push-in",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "keyframes": [
+        {
+          "tMs": 0,
+          "position": {
+            "x": 1232.0,
+            "y": 528.0,
+            "z": 251.8
+          },
+          "pitch": 10.33,
+          "yaw": 176.22
+        },
+        {
+          "tMs": 6000,
+          "position": {
+            "x": 942.8,
+            "y": 547.1,
+            "z": 226.8
+          },
+          "pitch": 14.63,
+          "yaw": 176.22
+        }
+      ],
+      "maxDurationMs": 7000,
+      "maxSpeedUnitsPerSec": 300,
+      "collisionValidated": false,
+      "validation": "unvalidated",
+      "targetRegionIds": [
+        "middle"
+      ],
+      "source": "derived_navmesh"
+    }
+  ],
   "bombsites": [
     {
       "site": "A",
