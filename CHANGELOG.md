@@ -32,6 +32,9 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
 - **Program sign-in** with the website account: the program opens on a sign-in screen (email and password, or a code approved on the website), required in release builds; organisation choice for accounts in several; works offline for 7 days after each check; never locks a program that is already open. Computers are signed out when the password is changed or reset, the account is disabled, staff sign the person out, or they leave the organisation. Windows builds are pinned to the live website's address and licence keys at build time. Version 0.1.1.
 - In the program: Account & Hours screen, auto-director meter, arming gate (no account → manual/advisory only; never cut mid-map), auto-director chip in the top bar.
 
+### Changed
+- **A cleaner program** (version 0.1.3): sentence-case headings and labels, fewer boxes and badges, disabled-button reasons on hover, a compact top bar (connection, Observer, hours, OBS) and a grouped sidebar with short names. Every screen was tidied, with technical detail and rarely used options folded under disclosures (nothing removed). Live Control has one Camera and one Observer panel; its duplicate Stop automation button is gone (the top bar's stays).
+
 ### Fixed
 - Oversize uploads now get a 413 response instead of a connection reset; per-route upload limits.
 - Replay queue state errors return 4xx; nested database transactions use savepoints.

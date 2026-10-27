@@ -40,7 +40,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to build and release (e.g. v0.1.2). A new tag and its release are created on the selected branch's latest commit. Leave empty for a test build of the selected branch."
+        description: "Tag to build and release (e.g. v0.1.3). A new tag and its release are created on the selected branch's latest commit. Leave empty for a test build of the selected branch."
         required: false
         default: ""
 

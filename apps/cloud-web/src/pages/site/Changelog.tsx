@@ -11,6 +11,23 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.1.3",
+    title: "A cleaner program",
+    summary: "Every screen in the program has been tidied up, with less on screen at once and nothing taken away.",
+    sections: [
+      {
+        heading: "The program",
+        items: [
+          "A compact top bar: connection and game data, the Observer and who owns the camera, auto-director hours and OBS. Hover for the detail. Stop automation (F8) stays on the right.",
+          "The sidebar is grouped into Broadcast, Event, Graphics & cameras, Analysis and System, with shorter names.",
+          "Calmer headings, labels and badges, fewer boxes, and disabled buttons explain why when you hover them.",
+          "Live Control shows what's on air in one Camera panel and puts the Observer modes and controls together in one Observer panel.",
+          "Rarely used settings and technical detail are folded under Details, Options and Advanced on every screen.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.1.2",
     title: "The Observer",
     summary: "The auto director is now the Observer: Off, Observer, Observer & Cinematics, and Full Action Observer with nade cameras on the top plan.",
