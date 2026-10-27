@@ -4,7 +4,7 @@ import { api, describeError, seg } from "../api/index.ts";
 import type { DirectorStatus, EventRecord, MapPackDetail, MatchRow, OperatorSnapshot, ReplaysResponse, TeamRow } from "../api/types.ts";
 import { CandidateList, DecisionExplain, OpportunityList } from "../components/director.tsx";
 import { useToast } from "../components/toasts.tsx";
-import { ActionButton, Badge, Button, Checkbox, EmptyState, KV, Note, Panel } from "../components/ui.tsx";
+import { ActionButton, Badge, Checkbox, Details, EmptyState, KV, Note, Panel } from "../components/ui.tsx";
 import { capabilityGate } from "../lib/capabilities.ts";
 import { phaseRemaining } from "../lib/clock.ts";
 import { MODE_INFO, OBSERVER_MODE_INFO, OBSERVER_MODES } from "../lib/director.ts";
@@ -15,7 +15,6 @@ import { makeNameOf, playersBySide, slotFromKey } from "../lib/players.ts";
 import { Link } from "../router.tsx";
 import { liveStore, useEngineNow, useLive, useNow, useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
-import { emergencyStop } from "../components/TopBar.tsx";
 import type { PovRole } from "./live/RosterCard.tsx";
 import { RosterCard } from "./live/RosterCard.tsx";
 import { Timeline } from "./live/Timeline.tsx";
@@ -89,52 +88,41 @@ function MatchHeader({ snap }: { snap: OperatorSnapshot }) {
   const nameOf = makeNameOf(s);
   return (
     <div className="match-header">
-      <div className="mh-block">
-        <span className="mh-label">Event / match</span>
+      <div className="mh-block mh-match">
+        <span className="mh-label">{am.event?.name ?? "Match"}</span>
         <span className="mh-value">
-          {am.event?.name ?? <span className="muted">No event</span>} ·{" "}
           {am.match ? (
-            `${am.teamA?.name ?? "Team A"} vs ${am.teamB?.name ?? "Team B"}`
+            <span title={`Series ${am.match.seriesScoreA} – ${am.match.seriesScoreB} (BO${am.match.format.bestOf})`}>
+              {am.teamA?.name ?? "Team A"} vs {am.teamB?.name ?? "Team B"} <span className="muted">· {am.match.seriesScoreA}–{am.match.seriesScoreB}</span>
+            </span>
           ) : (
             <Link to="/matches" title="Activate a match so HUDs show team names, logos and series">
-              No active match — activate one
+              Activate a match
             </Link>
           )}
         </span>
       </div>
-      <div className="mh-block">
+      <div className="mh-block" title={`${titleCase(s.mapPhase)} map phase`}>
         <span className="mh-label">Map</span>
-        <span className="mh-value">
-          {s.mapName ?? MISSING} {s.mapName === "de_synthetic" ? <Badge tone="sim">SYNTHETIC</Badge> : null}
-        </span>
-      </div>
-      <div className="mh-block">
-        <span className="mh-label">Series</span>
-        <span className="mh-value">{am.match ? `${am.match.seriesScoreA} – ${am.match.seriesScoreB} (BO${am.match.format.bestOf})` : MISSING}</span>
+        <span className="mh-value">{s.mapName ?? MISSING}</span>
       </div>
       <div className="mh-block mh-score">
         <span className="mh-label">Score</span>
         <span className="mh-value">
-          <span className="side-ct">CT {s.teams.CT.name ?? ""}</span> <strong>{s.teams.CT.score ?? MISSING}</strong> – <strong>{s.teams.T.score ?? MISSING}</strong> <span className="side-t">{s.teams.T.name ?? ""} T</span>
+          <span className="side-ct">CT</span> <strong>{s.teams.CT.score ?? MISSING}</strong> – <strong>{s.teams.T.score ?? MISSING}</strong> <span className="side-t">T</span>
         </span>
       </div>
       <div className="mh-block">
-        <span className="mh-label">Round</span>
-        <span className="mh-value">{s.roundNumber ?? MISSING}</span>
-      </div>
-      <div className="mh-block">
-        <span className="mh-label">Phase</span>
+        <span className="mh-label">Round {s.roundNumber ?? MISSING}</span>
         <span className="mh-value">
           {PHASE_LABEL[s.gamePhase] ?? s.gamePhase} <span className="mh-clock">{fmtClock(remaining)}</span>
           {s.paused ? <Badge tone="warn">PAUSED</Badge> : null}
           {s.bomb && (s.bomb.state === "planted" || s.bomb.state === "defusing") ? <Badge tone="danger">BOMB {s.bomb.state.toUpperCase()}{s.bomb.site ? ` ${s.bomb.site}` : ""}</Badge> : null}
         </span>
       </div>
-      <div className="mh-block">
-        <span className="mh-label">Observer</span>
-        <span className="mh-value">
-          {s.observer.observedSteamId ? nameOf(s.observer.observedSteamId) : "none"} <span className="muted">({s.observer.cameraMode.replace("_", " ")})</span>
-        </span>
+      <div className="mh-block" title={`Observer camera mode: ${s.observer.cameraMode.replace("_", " ")}`}>
+        <span className="mh-label">Observing</span>
+        <span className="mh-value">{s.observer.observedSteamId ? nameOf(s.observer.observedSteamId) : <span className="muted">Nobody</span>}</span>
       </div>
     </div>
   );
@@ -149,39 +137,42 @@ function PovStatus({ snap }: { snap: OperatorSnapshot }) {
   const inFlight = isInFlight(p?.status);
   const pendingTarget = p ? (p.request.kind === "select_player" ? `POV · ${nameOf(p.request.steamId)}` : p.request.kind === "activate_static_camera" ? `Camera · ${p.request.camera.displayName}` : p.request.kind.replace(/_/g, " ")) : null;
   return (
-    <div className="pov-grid">
-      <div className="pov-cell pov-confirmed">
-        <span className="pov-label">CONFIRMED on observer</span>
-        <span className="pov-value">{shotLabel(snap.currentShot, nameOf)}</span>
-        <span className="pov-meta">source feedback ({s.observer.evidence}) · {s.observer.cameraMode.replace("_", " ")}</span>
+    <>
+      <div className="pov">
+        <div className="pov-main">
+          <span className="pov-label">On air</span>
+          <span className="pov-value">{shotLabel(snap.currentShot, nameOf)}</span>
+        </div>
+        <div className="pov-side">
+          <div>
+            <span className="pov-label">Director wants</span> {shotLabel(snap.director?.desiredShot, nameOf)}
+            {snap.director ? <span className="muted"> · {snap.director.action}</span> : null}
+          </div>
+          <div className={inFlight ? "pov-inflight" : undefined}>
+            <span className="pov-label">{p && !inFlight ? "Last command" : "Pending"}</span> {pendingTarget ?? <span className="muted">Nothing</span>}
+            {p ? <span className="muted"> · {p.status.replace(/_/g, " ")}</span> : null}
+          </div>
+        </div>
       </div>
-      <div className={`pov-cell pov-pending ${inFlight ? "is-active" : ""}`}>
-        <span className="pov-label">{p && !inFlight ? "LAST command" : "PENDING command"}</span>
-        <span className="pov-value">{pendingTarget ?? "none"}</span>
-        <span className="pov-meta">{p ? `${p.status.replace(/_/g, " ")} · owner ${p.context.owner}${p.retries ? ` · retry ${p.retries}` : ""}` : "nothing in flight"}</span>
-      </div>
-      <div className="pov-cell pov-desired">
-        <span className="pov-label">DIRECTOR wants</span>
-        <span className="pov-value">{shotLabel(snap.director?.desiredShot, nameOf)}</span>
-        <span className="pov-meta">{snap.director ? `${snap.director.action.toUpperCase()} · ${snap.director.mode}` : "no decision"}</span>
-      </div>
-      <div className="pov-last small">
-        Last arbiter event:{" "}
-        {lastResult ? (
-          <>
-            <strong>{lastResult.kind.replace(/_/g, " ")}</strong> {String(lastResult.detail.status ?? lastResult.detail.reason ?? "")} {lastResult.detail.failureReason ? `— ${String(lastResult.detail.failureReason).replace(/_/g, " ")}` : ""}
-          </>
-        ) : (
-          <span className="muted">none since this console connected</span>
-        )}
-      </div>
-    </div>
+      <Details summary="Details">
+        <KV
+          items={[
+            ["On air", `confirmed by source feedback (${s.observer.evidence}) · camera ${s.observer.cameraMode.replace("_", " ")}`],
+            ["Command", p ? `${p.status.replace(/_/g, " ")} · owner ${p.context.owner}${p.retries ? ` · retry ${p.retries}` : ""}` : "nothing in flight"],
+            ["Director", snap.director ? `${snap.director.action} · ${snap.director.mode}` : "no decision"],
+            [
+              "Last arbiter event",
+              lastResult ? `${lastResult.kind.replace(/_/g, " ")} ${String(lastResult.detail.status ?? lastResult.detail.reason ?? "")}${lastResult.detail.failureReason ? ` — ${String(lastResult.detail.failureReason).replace(/_/g, " ")}` : ""}` : "none since this console connected",
+            ],
+          ]}
+        />
+      </Details>
+    </>
   );
 }
 
 function ActionsBar({ snap, cameras }: { snap: OperatorSnapshot; cameras: { id: string; displayName: string; validation: string }[] }) {
   const s = snap.state!;
-  const toast = useToast();
   const engineNow = useEngineNow(500);
   const directorReason = usePermission("director.control");
   const cameraReason = usePermission("camera.control");
@@ -211,12 +202,25 @@ function ActionsBar({ snap, cameras }: { snap: OperatorSnapshot; cameras: { id: 
   };
 
   return (
-    <div className="actions-bar">
-      <div className="action-group">
-        <span className="action-group-label">Hold</span>
+    <div className="live-actions">
+      <div className="row">
+        <ActionButton
+          variant="primary"
+          action={() => api.post<{ decision: { action: string; desiredShot: string | null } | null }>("/api/v1/director/follow-action")}
+          success={(r) => (r.decision ? `Follow action: ${r.decision.action} → ${shotLabel(r.decision.desiredShot, nameOf)}` : "Follow action requested")}
+          disabledReason={directorReason}
+        >
+          Follow action
+        </ActionButton>
+        <ActionButton action={returnLive} success={(m) => m} disabledReason={programReason ?? cameraReason} title="Program back to Live and the observer back on a player POV">
+          Return live
+        </ActionButton>
+      </div>
+      <div className="ctl-row">
+        <span className="ctl-label">Hold</span>
         {hold ? (
           <ActionButton variant="warn" action={() => api.post("/api/v1/director/release-hold")} success="Hold released" disabledReason={directorReason}>
-            RELEASE HOLD {holdLeft !== null ? `(${fmtMs(holdLeft)})` : "(until released)"}
+            Release hold {holdLeft !== null ? `(${fmtMs(holdLeft)})` : "(until released)"}
           </ActionButton>
         ) : (
           <>
@@ -225,18 +229,18 @@ function ActionsBar({ snap, cameras }: { snap: OperatorSnapshot; cameras: { id: 
               <option value="10000">10 s</option>
               <option value="30000">30 s</option>
               <option value="60000">60 s</option>
-              <option value="">until released</option>
+              <option value="">Until released</option>
             </select>
-            <ActionButton variant="primary" action={() => api.post("/api/v1/director/hold", { durationMs: holdMs ? Number(holdMs) : null })} success={`Holding ${holdMs ? `${Number(holdMs) / 1000} s` : "until released"}`} disabledReason={directorReason}>
-              HOLD
+            <ActionButton action={() => api.post("/api/v1/director/hold", { durationMs: holdMs ? Number(holdMs) : null })} success={`Holding ${holdMs ? `${Number(holdMs) / 1000} s` : "until released"}`} disabledReason={directorReason}>
+              Hold
             </ActionButton>
           </>
         )}
       </div>
-      <div className="action-group">
-        <span className="action-group-label">Pin</span>
+      <div className="ctl-row">
+        <span className="ctl-label">Pin</span>
         <select aria-label="Pin target" value={pinTarget} onChange={(e) => setPinTarget(e.target.value)}>
-          <option value="">choose…</option>
+          <option value="">Choose…</option>
           <optgroup label="Players">
             {s.players.map((p) => (
               <option key={p.steamId} value={`player:${p.steamId}`}>
@@ -257,72 +261,36 @@ function ActionsBar({ snap, cameras }: { snap: OperatorSnapshot; cameras: { id: 
           success="Pin set"
           disabledReason={directorReason ?? (pinTarget ? null : "Choose a player or side to pin")}
         >
-          PIN
+          Pin
         </ActionButton>
         {pin ? (
-          <ActionButton size="sm" action={() => api.post("/api/v1/director/pin", { kind: "none" })} success="Pin cleared" disabledReason={directorReason}>
+          <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/director/pin", { kind: "none" })} success="Pin cleared" disabledReason={directorReason}>
             Unpin {pinText}
           </ActionButton>
         ) : null}
       </div>
-      <div className="action-group">
-        <ActionButton
-          variant="primary"
-          action={() => api.post<{ decision: { action: string; desiredShot: string | null } | null }>("/api/v1/director/follow-action")}
-          success={(r) => (r.decision ? `Follow action: ${r.decision.action} → ${shotLabel(r.decision.desiredShot, nameOf)}` : "Follow action requested")}
-          disabledReason={directorReason}
-        >
-          FOLLOW ACTION
-        </ActionButton>
-      </div>
-      <div className="action-group">
+      <div className="ctl-row">
+        <span className="ctl-label">Cinematic</span>
         <select aria-label="Cinematic camera" value={cinematicCam} onChange={(e) => setCinematicCam(e.target.value)} disabled={!gate.enabled}>
-          <option value="">director picks camera</option>
+          <option value="">Director picks the camera</option>
           {cameras.map((c) => (
             <option key={c.id} value={c.id}>
               {c.displayName} ({c.validation})
             </option>
           ))}
         </select>
-        <ActionButton action={() => api.post("/api/v1/director/request-cinematic", cinematicCam ? { cameraId: cinematicCam } : {})} success="Cinematic requested" disabledReason={directorReason ?? (gate.enabled ? null : gate.reason)}>
-          REQUEST CINEMATIC
+        <ActionButton action={() => api.post("/api/v1/director/request-cinematic", cinematicCam ? { cameraId: cinematicCam } : {})} success="Cinematic requested" disabledReason={directorReason ?? (gate.enabled ? null : gate.reason)} title={gate.reason ?? undefined}>
+          Request
         </ActionButton>
       </div>
-      <div className="action-group">
-        <ActionButton variant="primary" action={returnLive} success={(m) => m} disabledReason={programReason ?? cameraReason}>
-          RETURN LIVE
-        </ActionButton>
-      </div>
-      <div className="action-group">
-        <Button
-          variant="danger"
-          disabledReason={cameraReason}
-          onClick={() =>
-            emergencyStop()
-              .then(() => toast.push("ok", "STOP AUTOMATION: emergency stop engaged"))
-              .catch((e) => toast.push("danger", "STOP AUTOMATION failed", describeError(e)))
-          }
-        >
-          STOP AUTOMATION
-        </Button>
-      </div>
-      {gate.enabled && gate.reason ? <p className="small text-muted actions-note">{gate.reason}</p> : null}
     </div>
   );
 }
 
-function DirectorPanel({ snap, threshold }: { snap: OperatorSnapshot; threshold: number | null }) {
-  const d = snap.director;
-  const now = useNow(500);
-  const sequenceChangedAt = useLive((s) => s.sequenceChangedAt);
+function ObserverModeSelect({ snap }: { snap: OperatorSnapshot }) {
   const directorReason = usePermission("director.control");
   const [busyMode, setBusyMode] = useState<ObserverMode | null>(null);
   const toast = useToast();
-  const nameOf = makeNameOf(snap.state);
-  const health = d ? CONTROL_HEALTH_TEXT[d.controlHealth] : null;
-  const ageEst = snap.state ? liveStore.clock.ageOf(snap.state.time.receivedAtMonotonicMs, now) : null;
-  const inputAge = d && typeof d.supportingFeatures.dataAgeMs === "number" ? d.supportingFeatures.dataAgeMs : null;
-  const stale = snap.state?.sources[0]?.stale ?? false;
   const fullActionAvailable = snap.simulated || snap.cloud?.fullActionObserver !== false;
   const setMode = async (m: ObserverMode) => {
     setBusyMode(m);
@@ -337,7 +305,7 @@ function DirectorPanel({ snap, threshold }: { snap: OperatorSnapshot; threshold:
   };
   const editorial = snap.mode !== "advisory" && snap.mode !== "automatic" && snap.mode !== "assisted" ? MODE_INFO[snap.mode] : null;
   return (
-    <div className="director-panel">
+    <>
       <div className="mode-select" role="radiogroup" aria-label="Observer mode">
         {OBSERVER_MODES.map((m) => {
           const locked = m === "full_action" && !fullActionAvailable;
@@ -352,38 +320,44 @@ function DirectorPanel({ snap, threshold }: { snap: OperatorSnapshot; threshold:
               onClick={() => void setMode(m)}
             >
               {OBSERVER_MODE_INFO[m].label}
-              {OBSERVER_MODE_INFO[m].topPlan ? <span className="mode-plan"> {locked ? "· TOP PLAN" : ""}</span> : null}
+              {OBSERVER_MODE_INFO[m].topPlan && locked ? <span className="mode-plan"> · Top plan</span> : null}
             </button>
           );
         })}
       </div>
-      <p className="small muted">
+      <p className="small muted mode-hint">
         {OBSERVER_MODE_INFO[snap.observerMode].hint}
-        {!fullActionAvailable ? " Full Action Observer (nade cameras) comes with the top plan." : ""}
-        {editorial ? ` Editorial mode: ${editorial.label} (${editorial.hint})` : ""}
+        {editorial ? ` Editorial mode: ${editorial.label}.` : ""}
         {directorReason ? ` (${directorReason})` : ""}
       </p>
-      <KV
-        items={[
-          ["Control health", health ? <Badge tone={health.tone} title={health.hint}>{health.text}</Badge> : <span className="muted">no decision yet</span>],
-          [
-            "Input freshness",
-            <span key="f">
-              {stale ? (
-                <Badge tone="danger" icon="!">
-                  STALE
-                </Badge>
-              ) : (
-                <Badge tone="ok">FRESH</Badge>
-              )}{" "}
-              decision input {fmtMs(inputAge)} · data age ≈ {fmtMs(ageEst)} · last packet seen {sequenceChangedAt ? fmtMs(Math.max(0, now - sequenceChangedAt)) : MISSING} ago
-            </span>,
-          ],
-          ["Policy / model", d ? `${d.policyVersion} · ${d.modelVersion ?? "no learned model (baseline policy)"}` : MISSING],
-        ]}
-      />
+    </>
+  );
+}
+
+function DirectorPanel({ snap, threshold, nameOf }: { snap: OperatorSnapshot; threshold: number | null; nameOf: (id: string) => string }) {
+  const d = snap.director;
+  const now = useNow(500);
+  const sequenceChangedAt = useLive((s) => s.sequenceChangedAt);
+  const health = d ? CONTROL_HEALTH_TEXT[d.controlHealth] : null;
+  const ageEst = snap.state ? liveStore.clock.ageOf(snap.state.time.receivedAtMonotonicMs, now) : null;
+  const inputAge = d && typeof d.supportingFeatures.dataAgeMs === "number" ? d.supportingFeatures.dataAgeMs : null;
+  const stale = snap.state?.sources[0]?.stale ?? false;
+  return (
+    <>
       <DecisionExplain decision={d} nameOf={nameOf} threshold={threshold} />
-    </div>
+      <Details summary="Top candidates">
+        <CandidateList candidates={snap.candidates} nameOf={nameOf} currentShot={snap.currentShot} />
+      </Details>
+      <Details summary="Decision details">
+        <KV
+          items={[
+            ["Control", health ? <span key="h" title={health.hint}>{health.text}</span> : <span className="muted">no decision yet</span>],
+            ["Input", `${stale ? "stale" : "fresh"} · decision input ${fmtMs(inputAge)} · data age ≈ ${fmtMs(ageEst)} · last packet ${sequenceChangedAt ? fmtMs(Math.max(0, now - sequenceChangedAt)) : MISSING} ago`],
+            ["Policy / model", d ? `${d.policyVersion} · ${d.modelVersion ?? "no learned model (baseline policy)"}` : MISSING],
+          ]}
+        />
+      </Details>
+    </>
   );
 }
 
@@ -408,7 +382,7 @@ function DirectorControls({ snap }: { snap: OperatorSnapshot }) {
         <Checkbox checked={c.cinematicsDisabled.match} disabled={!!reason} onChange={(v) => void call("/api/v1/director/cinematics", { scope: "match", disabled: v }, v ? "Cinematics disabled for the match" : "Cinematics re-enabled for the match")} label="Whole match" />
       </fieldset>
       <fieldset>
-        <legend>One-side profile</legend>
+        <legend title="Restrict POV choices to one side (e.g. a team-specific stream)">Follow one side</legend>
         <div className="seg" role="radiogroup" aria-label="One-side profile">
           {([null, "CT", "T"] as (Side | null)[]).map((sd) => (
             <button key={String(sd)} role="radio" aria-checked={c.oneSide === sd} className={`seg-btn ${c.oneSide === sd ? "is-on" : ""}`} disabled={!!reason} onClick={() => void call("/api/v1/director/one-side", { side: sd }, sd ? `Following ${sd} side only` : "One-side profile off")}>
@@ -416,16 +390,17 @@ function DirectorControls({ snap }: { snap: OperatorSnapshot }) {
             </button>
           ))}
         </div>
-        <span className="small muted">Restrict POV choices to one side (e.g. a team-specific stream).</span>
       </fieldset>
       <fieldset>
         <legend>Replays</legend>
         <Checkbox checked={c.autoReplaysDisabled} disabled={!!reason} onChange={(v) => void call("/api/v1/director/auto-replays", { disabled: v }, v ? "Automatic replay suggestions disabled" : "Automatic replay suggestions enabled")} label="Disable automatic replay suggestions" />
       </fieldset>
-      {reason ? <p className="small text-warn">{reason}</p> : null}
+      {reason ? <p className="small muted">{reason}</p> : null}
     </div>
   );
 }
+
+const onOff = (v: boolean | null) => (v === null ? "?" : v ? "on" : "off");
 
 function ProductionPanel({ snap }: { snap: OperatorSnapshot }) {
   const replays = useApi<ReplaysResponse>("/api/v1/replays", { refreshMs: 5000 });
@@ -433,61 +408,52 @@ function ProductionPanel({ snap }: { snap: OperatorSnapshot }) {
   const approved = replays.data?.items.filter((i) => i.state === "approved").length ?? 0;
   const src = snap.state?.sources ?? [];
   return (
-    <div className="production">
+    <>
       <KV
         items={[
-          ["Program", <span key="p">{snap.program.mode.replace("_", " ")} <span className="muted">(owner {snap.program.owner.kind})</span></span>],
-          ["OBS program / preview", snap.obs.connected ? `${snap.obs.programScene ?? MISSING} / ${snap.obs.previewScene ?? MISSING}${snap.obs.studioMode ? " (studio mode)" : ""}` : <Link key="o" to="/devices">OBS not connected — connect in Devices</Link>],
-          [
-            "Replay readiness",
-            prov ? (
-              <span key="r">
-                {prov.health.ok ? <Badge tone="ok">READY</Badge> : <Badge tone="warn">NOT READY</Badge>} {prov.health.detail} · {approved} approved clip(s)
-              </span>
-            ) : replays.data ? (
-              <Link key="r" to="/replays">No replay provider configured</Link>
-            ) : (
-              MISSING
-            ),
-          ],
-          ["Outputs", `REC ${snap.obs.recording === null ? "?" : snap.obs.recording ? "ON" : "off"} · STREAM ${snap.obs.streaming === null ? "?" : snap.obs.streaming ? "ON" : "off"} · REPLAY BUFFER ${snap.obs.replayBuffer === null ? "?" : snap.obs.replayBuffer ? "ON" : "off"}`],
+          ["Program", <span key="p" title={`Owner: ${snap.program.owner.kind}`}>{titleCase(snap.program.mode.replace("_", " ").toLowerCase())}</span>],
+          ["OBS", snap.obs.connected ? `${snap.obs.programScene ?? MISSING} (preview ${snap.obs.previewScene ?? MISSING})${snap.obs.studioMode ? " · studio mode" : ""}` : <Link key="o" to="/devices">Not connected — connect in Devices</Link>],
+          ["Replays", prov ? <span key="r" title={prov.health.detail}>{prov.health.ok ? "Ready" : `Not ready — ${prov.health.detail}`} · {approved} approved</span> : replays.data ? <Link key="r" to="/replays">No replay provider set up</Link> : MISSING],
+          ["Outputs", `Recording ${onOff(snap.obs.recording)} · streaming ${onOff(snap.obs.streaming)} · replay buffer ${onOff(snap.obs.replayBuffer)}`],
         ]}
       />
-      <table className="table table-compact">
-        <thead>
-          <tr>
-            <th>Source</th>
-            <th>Health</th>
-            <th>Packets</th>
-            <th>Rejected</th>
-            <th>Gaps</th>
-            <th>Interval</th>
-            <th>Build</th>
-          </tr>
-        </thead>
-        <tbody>
-          {src.length === 0 ? (
+      <Details summary={`Telemetry sources (${src.length})`}>
+        <table className="table table-compact">
+          <thead>
             <tr>
-              <td colSpan={7} className="muted">
-                No telemetry source yet.
-              </td>
+              <th>Source</th>
+              <th>Health</th>
+              <th>Packets</th>
+              <th>Rejected</th>
+              <th>Gaps</th>
+              <th>Interval</th>
+              <th>Build</th>
             </tr>
-          ) : (
-            src.map((x) => (
-              <tr key={x.sourceId}>
-                <td>{x.sourceId}</td>
-                <td>{x.stale ? <Badge tone="danger">STALE</Badge> : x.connected ? <Badge tone="ok">OK</Badge> : <Badge tone="warn">DISCONNECTED</Badge>}</td>
-                <td>{x.packetsReceived}</td>
-                <td>{x.packetsRejected}</td>
-                <td>{x.sequenceGaps}</td>
-                <td>{fmtMs(x.meanIntervalMs)}</td>
-                <td>{x.gameBuild ?? MISSING}</td>
+          </thead>
+          <tbody>
+            {src.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="muted">
+                  No telemetry source yet.
+                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+            ) : (
+              src.map((x) => (
+                <tr key={x.sourceId}>
+                  <td>{x.sourceId}</td>
+                  <td>{x.stale ? "Stale" : x.connected ? "OK" : "Disconnected"}</td>
+                  <td>{x.packetsReceived}</td>
+                  <td>{x.packetsRejected}</td>
+                  <td>{x.sequenceGaps}</td>
+                  <td>{fmtMs(x.meanIntervalMs)}</td>
+                  <td>{x.gameBuild ?? MISSING}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </Details>
+    </>
   );
 }
 
@@ -542,26 +508,26 @@ export function LiveControlScreen() {
     return () => window.removeEventListener("keydown", onKey);
   }, [cardReason, toast, requestRef]);
 
-  if (!snap) return <div className="page"><h1 className="page-title">Live Control</h1><EmptyState title="Waiting for the engine">The console is connecting to the engine's live feed.</EmptyState></div>;
+  if (!snap) return <div className="page"><h1 className="page-title">Live Control</h1><EmptyState title="Connecting to the engine…" /></div>;
 
   if (!snap.state) {
     return (
       <div className="page">
         <h1 className="page-title">Live Control</h1>
         <EmptyState
-          title="No telemetry yet"
+          title="No game data yet"
           action={
             <>
               <Link to="/setup" className="btn btn-primary btn-md">
                 Open Setup
               </Link>{" "}
               <ActionButton action={() => api.post("/api/v1/simulation/start", { startOffsetSec: 25 })} success="Simulation started (labelled synthetic data)">
-                Start labelled simulation
+                Start simulation
               </ActionButton>
             </>
           }
         >
-          Live Control fills in when the engine receives Game State Integration data from the CS2 observer client. Run Setup to write the GSI config and restart CS2 — or start the labelled simulation to rehearse.
+          Connect the CS2 observer client in Setup, or start the simulation to rehearse.
         </EmptyState>
       </div>
     );
@@ -584,7 +550,7 @@ export function LiveControlScreen() {
     <div className={`roster-col side-${side}`}>
       <h2 className="roster-head">
         <span className={`side-tag side-${side}`}>{side}</span> {s.teams[side].name ?? `${side} side`}
-        <span className="muted"> · score {s.teams[side].score ?? MISSING}</span>
+        <span className="roster-score">{s.teams[side].score ?? MISSING}</span>
       </h2>
       {sides[side].length === 0 ? <p className="muted small">No {side} players reported.</p> : null}
       {sides[side].map((p) => (
@@ -595,57 +561,46 @@ export function LiveControlScreen() {
 
   return (
     <div className="page page-live">
-      <div className="page-head">
-        <h1 className="page-title">Live Control</h1>
-        {snap.simulated ? (
-          <Note tone="sim" title="SIMULATION">
-            Synthetic 5v5 on a synthetic map. Nothing here certifies real CS2 telemetry or camera control.
-          </Note>
-        ) : null}
-      </div>
+      <h1 className="sr-only">Live Control</h1>
       <MatchHeader snap={snap} />
       {cardReason ? (
-        <Note tone="warn" title="POV CONTROL UNAVAILABLE">
+        <Note tone="warn" title="POV control unavailable">
           {cardReason}. Cards still show telemetry. <Link to="/setup">Open Setup</Link>
         </Note>
-      ) : (
-        <p className="small muted live-hint">Click a card (or press the observer number key) to request that player's POV on the observer client. Cards show telemetry only — they are not video feeds.</p>
-      )}
+      ) : null}
       <div className="live-grid">
         {column("CT")}
         <div className="live-center">
-          <Panel title="Point of view" subtitle="Confirmed (from source feedback) is shown separately from pending and desired shots.">
+          <Panel title="Camera" subtitle="Click a player, or press their number key, to switch POV">
             <PovStatus snap={snap} />
           </Panel>
-          <Panel title="Operator actions">
+          <Panel title="Observer">
+            <ObserverModeSelect snap={snap} />
             <ActionsBar snap={snap} cameras={cameras} />
+            <Details summary="Options">
+              <DirectorControls snap={snap} />
+            </Details>
           </Panel>
-          <Panel title="Director" subtitle={`Policy ${snap.director?.policyVersion ?? MISSING}`}>
-            <DirectorPanel snap={snap} threshold={threshold} />
-          </Panel>
-          <Panel title="Best candidates" subtitle="Top three valid shots with reasons">
-            <CandidateList candidates={snap.candidates} nameOf={nameOf} currentShot={snap.currentShot} />
+          <Panel title="Director">
+            <DirectorPanel snap={snap} threshold={threshold} nameOf={nameOf} />
           </Panel>
         </div>
         {column("T")}
       </div>
       <div className="live-lower">
-        <Panel title="Utility opportunities" subtitle="Confirmed vs predicted, time to effect, camera or fallback">
-          <OpportunityList opportunities={snap.opportunities} nameOf={nameOf} />
-        </Panel>
-        <Panel title="Production" subtitle="Program, OBS, replay readiness and source health">
-          <ProductionPanel snap={snap} />
-        </Panel>
-        <Panel title="Director controls">
-          <DirectorControls snap={snap} />
-        </Panel>
-        <Panel title="Match timeline" subtitle="Derived events with evidence labels" className="panel-timeline">
+        <Panel title="Match timeline" className="panel-timeline">
           <Timeline nameOf={nameOf} />
         </Panel>
+        <div className="stack">
+          <Panel title="Utility">
+            <OpportunityList opportunities={snap.opportunities} nameOf={nameOf} />
+          </Panel>
+          <Panel title="Production">
+            <ProductionPanel snap={snap} />
+          </Panel>
+        </div>
       </div>
       {s.players.length > 0 && sides.none.length > 0 ? <p className="small muted">{sides.none.length} player(s) without a side: {sides.none.map((p) => p.name).join(", ")}</p> : null}
-      <p className="small muted">Phase/series values come from telemetry and the active match record. {titleCase(s.mapPhase)} map phase.</p>
     </div>
   );
 }
-

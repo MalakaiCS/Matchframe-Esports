@@ -47,7 +47,7 @@ export function RosterCard({ p, roles, onRequest, disabledReason, busy }: { p: P
           {key ?? "·"}
         </span>
         <span className="pcard-name">{p.name}</span>
-        <Badge tone={life.tone}>{life.text}</Badge>
+        {p.lifeState !== "alive" ? <Badge tone={life.tone}>{life.text}</Badge> : null}
       </div>
       {missing ? (
         <div className="pcard-missing">
@@ -77,7 +77,7 @@ export function RosterCard({ p, roles, onRequest, disabledReason, busy }: { p: P
             <span className="pcard-money">{fmtMoney(p.money)}</span>
           </div>
           <div className="pcard-row pcard-util">
-            <span title="Grenades carried">{grenades.length ? grenades.map((g) => grenadeAbbr(g.name)).join(" ") : <span className="muted">no utility</span>}</span>
+            <span title="Grenades carried">{grenades.map((g) => grenadeAbbr(g.name)).join(" ")}</span>
             <span>
               {hasBomb ? <Badge tone="warn">C4</Badge> : null}
               {p.defuseKit ? <Badge tone="info">KIT</Badge> : null}

@@ -1293,20 +1293,19 @@ legend {
 .match-header {
   display: flex;
   flex-wrap: wrap;
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow: hidden;
-  margin-bottom: 8px;
+  gap: 4px 28px;
+  padding: 2px 2px 14px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--line);
 }
 .mh-block {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
-  padding: 6px 12px;
-  background: var(--bg-raised);
-  min-width: 120px;
+  min-width: 0;
+}
+.mh-match {
+  flex: 1 1 auto;
 }
 .mh-label {
   font-size: 11.5px;
@@ -1324,9 +1323,6 @@ legend {
   font-family: var(--mono);
   font-size: 15px;
   color: #fff;
-  background: var(--bg-sunken);
-  padding: 0 6px;
-  border-radius: 4px;
 }
 .mh-score .mh-value strong {
   font-size: 17px;
@@ -1336,9 +1332,6 @@ legend {
 }
 .side-t {
   color: var(--t);
-}
-.live-hint {
-  margin: 0 0 8px;
 }
 .live-grid {
   display: grid;
@@ -1357,6 +1350,12 @@ legend {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 12px;
+  align-items: start;
+}
+.roster-score {
+  margin-left: auto;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
 }
 .roster-col {
   display: flex;
@@ -1530,84 +1529,70 @@ legend {
   gap: 4px;
   flex-wrap: wrap;
 }
-.pov-grid {
+.pov {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 16px;
+  align-items: center;
 }
-.pov-cell {
+.pov-main {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--bg-sunken);
   min-width: 0;
 }
-.pov-confirmed {
-  border-top: 3px solid var(--ok);
-}
-.pov-pending {
-  border-top: 3px dashed var(--info);
-}
-.pov-pending.is-active {
-  background: var(--info-bg);
-}
-.pov-desired {
-  border-top: 3px solid var(--accent);
-}
 .pov-label {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--text-faint);
 }
 .pov-value {
   font-weight: 650;
-  font-size: 14.5px;
+  font-size: 18px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.pov-meta {
-  font-size: 11.5px;
-  color: var(--text-dim);
-}
-.pov-last {
-  grid-column: 1 / -1;
-  color: var(--text-dim);
-}
-.actions-bar {
+.pov-side {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  min-width: 0;
 }
-.action-group {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  flex-wrap: wrap;
+.pov-side .pov-label {
+  display: inline-block;
+  min-width: 98px;
 }
-.action-group-label {
-  font-size: 12px;
-  color: var(--text-faint);
-  align-self: center;
+.pov-inflight {
+  color: var(--info);
 }
-.actions-note {
-  width: 100%;
-  margin: 0;
+.mode-hint {
+  margin: 6px 0 14px;
 }
-.director-panel {
+.live-actions {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+.live-actions > .row {
+  margin-bottom: 4px;
+}
+.ctl-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+.ctl-label {
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+.ctl-row select {
+  width: 100%;
+}
 .decision {
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  background: var(--bg-sunken);
+  border-left: 2px solid var(--line-strong);
+  padding: 2px 0 2px 12px;
 }
 .decision.tone-ok {
   border-left-color: var(--ok);
@@ -1675,13 +1660,14 @@ legend {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--bg-sunken);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
 }
-.cand.is-current {
-  border-color: rgba(52, 194, 122, 0.5);
+.cand:last-child {
+  border-bottom: none;
+}
+.cand.is-current .cand-shot {
+  color: var(--ok);
 }
 .cand-head {
   display: flex;
@@ -2130,7 +2116,7 @@ legend {
   }
 }
 @media (max-width: 1440px) {
-  .pov-grid {
+  .pov {
     grid-template-columns: minmax(0, 1fr);
   }
   .grid-1-2 {
