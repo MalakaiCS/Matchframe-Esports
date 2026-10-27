@@ -33,9 +33,11 @@ export class CloudApp {
   readonly sql: Sql;
   readonly mailer: Mailer;
   readonly billing: BillingProvider;
-  readonly signingKeyPem: string;
-  readonly publicKeys: Record<string, string>;
-  readonly kid: string;
+  /** Licence signing key: MF_CLOUD_SIGNING_KEY when set, otherwise created once and kept in the database (see init). */
+  signingKeyPem: string;
+  publicKeys: Record<string, string>;
+  kid: string;
+  signingKeySource: "environment" | "database" = "environment";
   readonly limits: { auth: RateLimiter; email: RateLimiter; deviceAuthorize: RateLimiter; deviceLink: RateLimiter };
   readonly origin: string;
 
@@ -54,26 +56,49 @@ export class CloudApp {
     this.mailer = new Mailer(this.sql, cfg.smtpUrl, cfg.mailFrom, cfg.devLogEmails && !cfg.smtpUrl);
     this.billing = deps.billing ?? (cfg.stripeSecretKey ? new StripeBilling(cfg.stripeSecretKey, cfg.stripeWebhookSecret, cfg.stripeApiBase) : new UnconfiguredBilling());
     this.now = deps.now ?? (() => new Date());
-    if (cfg.signingKeyPem) {
-      this.signingKeyPem = cfg.signingKeyPem;
-    } else {
-      // Development only: an ephemeral key means desktops must re-fetch keys after each restart.
-      this.signingKeyPem = generateSigningKey().privateKeyPem;
-      this.ephemeralKey = true;
-    }
-    const pub = createPublicKey(this.signingKeyPem).export({ type: "spki", format: "pem" }).toString();
-    this.kid = keyId(pub);
-    this.publicKeys = { [this.kid]: pub };
-    for (const extra of cfg.extraPublicKeysPem) this.publicKeys[keyId(extra)] = extra;
+    // Provisional until init() loads (or creates) the database key when none is configured.
+    this.signingKeyPem = cfg.signingKeyPem ?? generateSigningKey().privateKeyPem;
+    this.kid = "";
+    this.publicKeys = {};
+    this.useSigningKey(this.signingKeyPem, []);
     this.origin = new URL(cfg.publicUrl).origin;
   }
 
   readonly now: () => Date;
+  /** True when the signing key will not survive a restart (in-memory development database without a configured key). */
   ephemeralKey = false;
 
   async init(): Promise<void> {
     await migrate(this.sql);
     await seedCatalog(this.sql);
+    if (!this.cfg.signingKeyPem) await this.loadDatabaseSigningKey();
+  }
+
+  private useSigningKey(privatePem: string, otherPublicPems: string[]): void {
+    const pub = createPublicKey(privatePem).export({ type: "spki", format: "pem" }).toString();
+    this.signingKeyPem = privatePem;
+    this.kid = keyId(pub);
+    this.publicKeys = { [this.kid]: pub };
+    for (const extra of [...otherPublicPems, ...this.cfg.extraPublicKeysPem]) this.publicKeys[keyId(extra)] = extra;
+  }
+
+  /**
+   * Without MF_CLOUD_SIGNING_KEY the server creates a key on first start and keeps it in the
+   * database, so it survives restarts and redeploys. Several instances starting at once agree on the
+   * oldest key. Other unretired keys stay published so licences they signed keep verifying.
+   */
+  private async loadDatabaseSigningKey(): Promise<void> {
+    const active = () => this.sql.query<{ kid: string; private_pem: string; public_pem: string }>("SELECT kid, private_pem, public_pem FROM signing_keys WHERE retired_at IS NULL ORDER BY created_at, kid");
+    let { rows } = await active();
+    if (rows.length === 0) {
+      const k = generateSigningKey();
+      await this.sql.query("INSERT INTO signing_keys (kid, private_pem, public_pem) VALUES ($1, $2, $3) ON CONFLICT (kid) DO NOTHING", [k.kid, k.privateKeyPem, k.publicKeyPem]);
+      ({ rows } = await active());
+    }
+    const [current, ...others] = rows;
+    this.useSigningKey(current!.private_pem, others.map((r) => r.public_pem));
+    this.signingKeySource = "database";
+    this.ephemeralKey = this.sql.kind === "pglite" && !this.cfg.pgliteDir;
   }
 
   async close(): Promise<void> {

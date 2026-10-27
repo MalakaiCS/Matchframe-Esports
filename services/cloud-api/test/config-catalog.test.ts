@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { generateSigningKey } from "@matchframe/cloud-contracts/token";
+import { CloudApp } from "../src/app.ts";
 import { loadCloudConfig, productionConfigProblems } from "../src/config.ts";
 import { migrate } from "../src/db/migrations.ts";
 import { PgliteSql } from "../src/db/sql.ts";
@@ -16,13 +18,31 @@ describe("deployment configuration", () => {
     expect(loadCloudConfig({}).port).toBe(8080);
   });
 
-  it("refuses to run in production without a database, a signing key and the public address", () => {
+  it("refuses to run in production without a database and the public address (the signing key is optional)", () => {
     const empty = { NODE_ENV: "production", DATABASE_URL: "", MF_CLOUD_SIGNING_KEY: "", MF_CLOUD_PUBLIC_URL: "" };
     const problems = productionConfigProblems(loadCloudConfig(empty), empty);
-    expect(problems.map((p) => p.split(" ")[0])).toEqual(["DATABASE_URL", "MF_CLOUD_SIGNING_KEY", "MF_CLOUD_PUBLIC_URL"]);
-    const ready = { NODE_ENV: "production", DATABASE_URL: "postgres://db/mf", MF_CLOUD_SIGNING_KEY: "-----BEGIN PRIVATE KEY-----\\nx\\n-----END PRIVATE KEY-----", MF_CLOUD_PUBLIC_URL: "https://app.example" };
+    expect(problems.map((p) => p.split(" ")[0])).toEqual(["DATABASE_URL", "MF_CLOUD_PUBLIC_URL"]);
+    const ready = { NODE_ENV: "production", DATABASE_URL: "postgres://db/mf", MF_CLOUD_PUBLIC_URL: "https://app.example" };
     expect(productionConfigProblems(loadCloudConfig(ready), ready)).toEqual([]);
     expect(productionConfigProblems(loadCloudConfig({}), {})).toEqual([]); // development and tests are unaffected
+  });
+
+  it("creates the licence signing key once, keeps it in the database across restarts, and prefers MF_CLOUD_SIGNING_KEY", async () => {
+    const sql = new PgliteSql();
+    const cfg = loadCloudConfig({});
+    const first = new CloudApp(cfg, { sql });
+    await first.init();
+    expect(first.signingKeySource).toBe("database");
+    const restarted = new CloudApp(cfg, { sql });
+    await restarted.init();
+    expect(restarted.kid).toBe(first.kid);
+    expect(restarted.signingKeyPem).toBe(first.signingKeyPem);
+    expect(Object.keys(restarted.publicKeys)).toEqual([first.kid]);
+    const env = generateSigningKey();
+    const configured = new CloudApp(loadCloudConfig({ MF_CLOUD_SIGNING_KEY: env.privateKeyPem.replace(/\n/g, "\\n") }), { sql });
+    await configured.init();
+    expect([configured.signingKeySource, configured.kid]).toEqual(["environment", env.kid]);
+    await sql.close();
   });
 
   it("fills Stripe price ids from the environment after the first start without overwriting staff edits", async () => {

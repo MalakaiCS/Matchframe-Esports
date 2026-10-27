@@ -7,21 +7,28 @@ desktop app keeps working without it: HUDs, manual and advisory direction, repla
 simulation never need an account. Automatic direction on live matches needs a linked computer
 with auto-director hours (see [cloud architecture](../architecture/cloud.md)).
 
-## 1. Generate the licence signing key
+## 1. The licence signing key
 
-```sh
-pnpm cloud:keygen
-```
+The website signs desktop licences with an Ed25519 key. **By default it creates the key on first
+start and stores it in the database** (table `signing_keys`), so nothing needs to be generated and
+it stays the same across restarts and redeploys. Back up the database: losing it (or the key)
+means every computer has to link again.
 
-It prints `MF_CLOUD_SIGNING_KEY` (private, goes only into the server's secret environment) and a
-`config/cloud.json` snippet with the public key. Put that file, with your website address, into
-the desktop release build (it is shipped with the installer and pins the key, so licences from any
-other server are refused). Without a signing key the server makes an ephemeral one on every start,
-which logs out every computer's licence on restart: never run production like that.
+To keep the private key outside the database instead (stronger separation if database backups
+leak), run `pnpm cloud:keygen` and set the private key it prints as `MF_CLOUD_SIGNING_KEY` (it then
+takes precedence).
 
-**Rotation:** generate a new key, move the old public key into `MF_CLOUD_EXTRA_PUBLIC_KEYS` (PEMs
-separated by `|||`) and keep both public keys in `config/cloud.json` until every installed desktop
-has updated, then remove the old one.
+**Pinning the key in desktop releases.** `config/cloud.json` (`{ "url": …, "publicKeys": { kid: PEM } }`)
+is shipped with the installer and makes the program refuse licences from any other server. Get the
+public key from the running website: `https://<website>/v1/keys` returns `{"keys": {kid: PEM}, …}`;
+copy `keys` into `publicKeys` together with the website address (or use the snippet printed by
+`pnpm cloud:keygen` when you set the key yourself). Commit the file, then publish a release.
+
+**Rotation:** with `MF_CLOUD_SIGNING_KEY`, generate a new key, move the old public key into
+`MF_CLOUD_EXTRA_PUBLIC_KEYS` (PEMs separated by `|||`) and keep both public keys in
+`config/cloud.json` until every installed program has updated. With a database key, set
+`retired_at` on the old row after inserting or configuring the new one; unretired keys stay
+published.
 
 ## 2. Run it
 
@@ -49,10 +56,10 @@ does not ship one.
    (check the branch, and remove any `RAILWAY_DOCKERFILE_PATH` variable pointing elsewhere).
 2. **New → Database → PostgreSQL**, then in the website service:
    `DATABASE_URL=${{Postgres.DATABASE_URL}}`.
-3. Set the required variables before the first deploy finishes: `MF_CLOUD_PUBLIC_URL`,
-   `MF_CLOUD_SIGNING_KEY` (step 1 above). In production the server refuses to start without
-   `DATABASE_URL`, `MF_CLOUD_SIGNING_KEY` and `MF_CLOUD_PUBLIC_URL` and says which is missing in
-   the deploy log, rather than running with an in-memory database or a throwaway key.
+3. Set `MF_CLOUD_PUBLIC_URL` (the `https://` domain from step 4). In production the server refuses
+   to start without `DATABASE_URL` and `MF_CLOUD_PUBLIC_URL` and says which is missing in the
+   deploy log, rather than running with an in-memory database. The licence signing key is created
+   and stored in the database automatically (section 1).
 4. Service **Settings → Networking → Generate Domain** (the server listens on the `PORT` Railway
    provides; if asked for a port, it is the value of `PORT`, 8080 by default). Add a custom domain
    there later; Railway issues the certificate.
@@ -60,7 +67,8 @@ does not ship one.
    `HEALTHCHECK`).
 6. Variables: `MF_STAFF_EMAILS`, and later the Stripe and SMTP variables (sections 3 and 4). After
    generating the domain, make sure `MF_CLOUD_PUBLIC_URL` is that `https://` address.
-7. Check `https://<domain>/v1/health`: `"database":"postgres"` and `"ephemeralSigningKey":false`.
+7. Check `https://<domain>/v1/health`: `"database":"postgres"`, `"signingKeySource":"database"`
+   (or `"environment"`) and `"ephemeralSigningKey":false`.
 
 Program download on Railway: a public GitHub release is the simplest host for the installer (see
 section 5): set `MF_DOWNLOAD_WINDOWS_URL`, `MF_DOWNLOAD_WINDOWS_SHA256` and `MF_DOWNLOAD_VERSION`.
@@ -146,7 +154,7 @@ invitation links can be recovered by staff if delivery fails.
 | `MF_CLOUD_PUBLIC_URL` | yes | `http://127.0.0.1:8080` | Public website address (emails, Stripe returns, desktop link page, Secure cookies when https) |
 | `DATABASE_URL` | yes (production) | — | Postgres connection string; without it an in-process PGlite database is used |
 | `MF_CLOUD_PGLITE_DIR` | no | in memory | PGlite data directory for trials |
-| `MF_CLOUD_SIGNING_KEY` | yes (production) | ephemeral | Ed25519 private key (PEM, `\n` escapes allowed) that signs desktop licences |
+| `MF_CLOUD_SIGNING_KEY` | no | created once and stored in the database | Ed25519 private key (PEM, `\n` escapes allowed) that signs desktop licences; overrides the database key |
 | `MF_CLOUD_EXTRA_PUBLIC_KEYS` | no | — | Older public keys still accepted during rotation (`|||`-separated PEMs) |
 | `MF_CLOUD_HOST`, `MF_CLOUD_PORT` / `PORT` | no | `127.0.0.1`, `8080` (image: host `0.0.0.0`; port from `PORT` when the platform sets it) | Listen address |
 | `MF_CLOUD_WEB_DIR` | no | `apps/cloud-web/dist` (image: `/app/web`) | Built website |

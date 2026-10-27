@@ -63,14 +63,14 @@ export function loadCloudConfig(env: NodeJS.ProcessEnv = process.env, overrides:
 
 /**
  * Settings a production server must not run without (NODE_ENV=production, as in the Docker image).
- * Without them it would keep accounts and payments in an in-memory database, sign licences with a
- * key that changes on every restart, or put wrong addresses in emails and payment redirects.
+ * Without them it would keep accounts, payments and its licence signing key in an in-memory
+ * database, or put wrong addresses in emails and payment redirects. (The signing key itself is
+ * optional: without MF_CLOUD_SIGNING_KEY it is created once and stored in the database.)
  */
 export function productionConfigProblems(cfg: CloudConfig, env: NodeJS.ProcessEnv = process.env): string[] {
   if (env.NODE_ENV !== "production") return [];
   const problems: string[] = [];
   if (!cfg.databaseUrl && !cfg.pgliteDir) problems.push("DATABASE_URL is not set: add a Postgres database and set DATABASE_URL (on Railway: ${{Postgres.DATABASE_URL}}).");
-  if (!cfg.signingKeyPem) problems.push("MF_CLOUD_SIGNING_KEY is not set: run `pnpm cloud:keygen` and set the private key it prints.");
   if (!env.MF_CLOUD_PUBLIC_URL?.trim()) problems.push("MF_CLOUD_PUBLIC_URL is not set: set the website's public https:// address.");
   return problems;
 }

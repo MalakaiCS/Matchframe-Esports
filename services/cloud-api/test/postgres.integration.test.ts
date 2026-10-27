@@ -25,8 +25,8 @@ describe.skipIf(!url)("cloud API storage on a real Postgres server", () => {
   });
 
   it("migrates idempotently, seeds the catalogue, and rolls back failed transactions", async () => {
-    expect(await migrate(sql)).toEqual({ from: 0, to: 2 });
-    expect(await migrate(sql)).toEqual({ from: 2, to: 2 });
+    expect(await migrate(sql)).toEqual({ from: 0, to: 3 });
+    expect(await migrate(sql)).toEqual({ from: 3, to: 3 });
     await seedCatalog(sql);
     const { rows } = await sql.query<{ n: string }>("SELECT count(*) AS n FROM plans");
     expect(Number(rows[0]!.n)).toBe(3);

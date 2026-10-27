@@ -22,7 +22,7 @@ console.log(
     `  database: ${app.sql.kind}${app.sql.kind === "pglite" ? ` (${cfg.pgliteDir ?? "in memory — data is lost on exit; set DATABASE_URL or MF_CLOUD_PGLITE_DIR"})` : ""}`,
     `  billing: ${app.billing.configured ? "Stripe" : "not configured (set STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET)"}`,
     `  email: ${app.mailer.kind === "smtp" ? "SMTP" : "outbox table only (set SMTP_URL)"}`,
-    `  entitlement signing key: ${app.kid}${app.ephemeralKey ? " (EPHEMERAL — set MF_CLOUD_SIGNING_KEY in production)" : ""}`,
+    `  entitlement signing key: ${app.kid} (${app.signingKeySource === "environment" ? "MF_CLOUD_SIGNING_KEY" : "stored in the database"})${app.ephemeralKey ? " — EPHEMERAL: in-memory database, lost on exit" : ""}`,
     `  website: ${cfg.webDir ?? "not built (pnpm --filter @matchframe/cloud-web build)"}`,
   ].join("\n"),
 );

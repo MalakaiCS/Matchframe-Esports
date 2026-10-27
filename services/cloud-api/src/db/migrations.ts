@@ -166,6 +166,19 @@ ALTER TABLE email_tokens ADD CONSTRAINT email_tokens_purpose_check CHECK (purpos
 ALTER TABLE email_tokens ADD COLUMN new_email text;
 `,
   },
+  {
+    version: 3,
+    name: "licence signing keys stored in the database",
+    sql: `
+CREATE TABLE signing_keys (
+  kid text PRIMARY KEY,
+  private_pem text NOT NULL,
+  public_pem text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  retired_at timestamptz
+);
+`,
+  },
 ];
 
 export async function migrate(sql: Sql): Promise<{ from: number; to: number }> {

@@ -62,7 +62,7 @@ Contents: Electron 44.9.3 program, bundled engine, operator console (`operator-w
 |---|---|---|
 | No CS2 client / observer environment | real GSI ingest, POV cut and static-camera verification, real Bottom Banana shot, real HUD tracking (A02/A03/A11/A22 real parts), live/demo feature parity | an observer PC with CS2 |
 | No Windows production desktop | OBS browser sources on Windows, keyboard adapter, a full production (B064) — installation itself passes on a Windows CI runner | a Windows 10/11 machine with CS2 and OBS |
-| Stripe, SMTP, hosting | live payments, email delivery, the public website | Stripe account (prices, webhook secret), SMTP credentials, a host with Postgres and TLS, the signing key (`pnpm cloud:keygen`) |
+| Stripe, SMTP, hosting | live payments, email delivery, the public website | Stripe account (prices, webhook secret), SMTP credentials, a host with Postgres and TLS |
 | Replay tool API not available | replay tool adapter (F19/F20) | its source or integration documentation |
 | MatchFrame service API not available | F33 bridge | API/assets documentation and credentials |
 | Training corpus not supplied | 1,000/map programme, beta, model promotion | demo corpus (current builds) |
@@ -70,7 +70,7 @@ Contents: Electron 44.9.3 program, bundled engine, operator console (`operator-w
 
 ## Next
 
-1. Owner setup for the website: Stripe products/prices and webhook, SMTP, Postgres host with TLS, `pnpm cloud:keygen` → `MF_CLOUD_SIGNING_KEY` and `config/cloud.json`, then publish a GitHub release (the workflow attaches the installer) and point the website at it (`MF_DOWNLOAD_WINDOWS_URL`) or place it in `MF_DOWNLOAD_DIR` (docs/operations/cloud-deployment.md).
+1. Owner setup for the website: Stripe products/prices and webhook, SMTP, Postgres host with TLS, `config/cloud.json` from `https://<website>/v1/keys` (the signing key is created and stored in the database), then publish a GitHub release (the workflow attaches the installer) and point the website at it (`MF_DOWNLOAD_WINDOWS_URL`) or place it in `MF_DOWNLOAD_DIR` (docs/operations/cloud-deployment.md).
 2. With a CS2 observer environment: run the Setup checklist (real payload → capability report; player-selection test; static-camera test), then `docs/operations/preflight.md`; record results in CAPABILITIES.md and docs/acceptance.md.
 3. Capture and validate cameras (Bottom Banana first) with `getpos`; enable automatic cinematics per map only after the static-camera test passes on that map.
 4. Build map packs for Mirage, Dust II, Nuke, Train and Vertigo from current-build demos; validate derived regions; author levels.

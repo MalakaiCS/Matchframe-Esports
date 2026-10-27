@@ -37,7 +37,7 @@ export function buildRouter(app: CloudApp): Router {
   const router = new Router({ allowedOrigins: [app.origin], onError: (e, where) => console.error(`[cloud-api] ${where.method} ${where.path}:`, e) });
   router.add("GET", "/v1/health", { summary: "Health" }, async () => {
     await app.sql.query("SELECT 1");
-    return { ok: true, version: "0.1.0", database: app.sql.kind, billingConfigured: app.billing.configured, email: app.mailer.kind, signingKeyId: app.kid, ephemeralSigningKey: app.ephemeralKey };
+    return { ok: true, version: "0.1.0", database: app.sql.kind, billingConfigured: app.billing.configured, email: app.mailer.kind, signingKeyId: app.kid, signingKeySource: app.signingKeySource, ephemeralSigningKey: app.ephemeralKey };
   });
   router.add("GET", "/v1/downloads", { summary: "Matchframe program for Windows (.exe installer): URL, version, SHA-256" }, async () => {
     // An installer placed in MF_DOWNLOAD_DIR is served by this server; otherwise an external URL may be configured.
