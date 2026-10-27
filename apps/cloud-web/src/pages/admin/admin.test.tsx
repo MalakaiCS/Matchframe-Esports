@@ -327,7 +327,7 @@ describe("email log", () => {
 
 describe("admin-only sections for support", () => {
   it("the catalogue is read-only", async () => {
-    fakeFetch({ "GET /v1/admin/catalog": { body: { plans: [{ id: "pro", name: "Pro", description: "", priceMonthlyCents: 4900, currency: "usd", includedAutoDirectorHours: 40, features: { autoDirector: true, learnedDirectorShadow: true, maxDevices: 2, maxMembers: 5 }, stripePriceId: null, public: true, sortOrder: 1 }], hourPacks: [] } } });
+    fakeFetch({ "GET /v1/admin/catalog": { body: { plans: [{ id: "pro", name: "Pro", description: "", priceMonthlyCents: 4900, currency: "usd", includedAutoDirectorHours: 40, features: { autoDirector: true, learnedDirectorShadow: true, fullActionObserver: false, maxDevices: 2, maxMembers: 5 }, stripePriceId: null, public: true, sortOrder: 1 }], hourPacks: [] } } });
     renderWithSession(<AdminCatalog />, makeStaff("support"));
     expect(await screen.findByText("Pro")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Edit/ })).toBeNull();
@@ -343,8 +343,32 @@ describe("admin-only sections for support", () => {
   });
 
   it("admins can edit the catalogue", async () => {
-    fakeFetch({ "GET /v1/admin/catalog": { body: { plans: [{ id: "pro", name: "Pro", description: "", priceMonthlyCents: 4900, currency: "usd", includedAutoDirectorHours: 40, features: { autoDirector: true, learnedDirectorShadow: true, maxDevices: 2, maxMembers: 5 }, stripePriceId: null, public: true, sortOrder: 1 }], hourPacks: [] } } });
+    fakeFetch({ "GET /v1/admin/catalog": { body: { plans: [{ id: "pro", name: "Pro", description: "", priceMonthlyCents: 4900, currency: "usd", includedAutoDirectorHours: 40, features: { autoDirector: true, learnedDirectorShadow: true, fullActionObserver: false, maxDevices: 2, maxMembers: 5 }, stripePriceId: null, public: true, sortOrder: 1 }], hourPacks: [] } } });
     renderWithSession(<AdminCatalog />, makeStaff("admin"));
     expect(await screen.findByRole("button", { name: "Edit Pro" })).toBeTruthy();
+  });
+
+  it("admins can turn on Full Action Observer for a plan", async () => {
+    const pro = { id: "pro", name: "Pro", description: "", priceMonthlyCents: 4900, currency: "usd", includedAutoDirectorHours: 40, features: { autoDirector: true, learnedDirectorShadow: true, fullActionObserver: false, maxDevices: 2, maxMembers: 5 }, stripePriceId: null, public: true, sortOrder: 1 };
+    const f = fakeFetch({ "GET /v1/admin/catalog": { body: { plans: [pro], hourPacks: [] } }, "PUT /v1/admin/plans/pro": (c) => ({ body: c.body }) });
+    renderWithSession(<AdminCatalog />, makeStaff("admin"));
+    fireEvent.click(await screen.findByRole("button", { name: "Edit Pro" }));
+    const box = screen.getByRole("checkbox", { name: "Full Action Observer (nade cameras)" }) as HTMLInputElement;
+    expect(box.checked).toBe(false);
+    fireEvent.click(box);
+    expect(box.checked).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
+    expect(await screen.findByText(/Plan “Pro” saved/)).toBeTruthy();
+    const body = f.calls.find((c) => c.method === "PUT")!.body as { features: Record<string, unknown> };
+    expect(body.features).toEqual({ ...pro.features, fullActionObserver: true });
+  });
+
+  it("shows Full Action Observer on the plans that have it", async () => {
+    const studio = { id: "studio", name: "Studio", description: "", priceMonthlyCents: 14900, currency: "usd", includedAutoDirectorHours: 150, features: { autoDirector: true, learnedDirectorShadow: true, fullActionObserver: true, maxDevices: 6, maxMembers: 20 }, stripePriceId: null, public: true, sortOrder: 2 };
+    fakeFetch({ "GET /v1/admin/catalog": { body: { plans: [studio], hourPacks: [] } } });
+    renderWithSession(<AdminCatalog />, makeStaff("admin"));
+    expect(await screen.findByText(/6 computers · 20 members · shadow · Full Action Observer/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Edit Studio" }));
+    expect((screen.getByRole("checkbox", { name: "Full Action Observer (nade cameras)" }) as HTMLInputElement).checked).toBe(true);
   });
 });

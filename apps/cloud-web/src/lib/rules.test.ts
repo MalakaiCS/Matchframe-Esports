@@ -43,6 +43,14 @@ describe("catalogue forms produce bodies the API accepts", () => {
     expect(Plan.parse(formToPlan(planToForm(pro)))).toEqual(pro);
   });
 
+  it("round-trips Full Action Observer and leaves it off for new plans", () => {
+    const studio: Plan = { ...pro, id: "studio", name: "Studio", features: { ...pro.features, fullActionObserver: true, maxDevices: 6, maxMembers: 20 } };
+    expect(planToForm(studio).fullActionObserver).toBe(true);
+    expect(Plan.parse(formToPlan(planToForm(studio)))).toEqual(studio);
+    expect(planToForm(null).fullActionObserver).toBe(false);
+    expect((formToPlan({ ...planToForm(pro), fullActionObserver: true }) as Plan).features.fullActionObserver).toBe(true);
+  });
+
   it("maps empty fields to null (price on request, not purchasable)", () => {
     const body = formToPlan({ ...planToForm(pro), priceMonthlyCents: "", stripePriceId: "  " }) as Plan;
     expect(body.priceMonthlyCents).toBeNull();

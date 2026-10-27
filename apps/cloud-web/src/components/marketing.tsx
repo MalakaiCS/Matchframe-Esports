@@ -126,6 +126,26 @@ export function CheckList({ items }: { items: ReactNode[] }) {
   );
 }
 
+/** Comparison-table mark for "included": a check, with its meaning for screen readers. */
+export function Included({ label = "Included" }: { label?: string }) {
+  return (
+    <span className="cmp-yes">
+      <Icon name="check" size={18} />
+      <span className="visually-hidden">{label}</span>
+    </span>
+  );
+}
+
+/** Comparison-table mark for "not included": a dash, with its meaning for screen readers. */
+export function NotIncluded({ label = "Not included" }: { label?: string }) {
+  return (
+    <span className="cmp-no">
+      <span aria-hidden="true">—</span>
+      <span className="visually-hidden">{label}</span>
+    </span>
+  );
+}
+
 export function Steps({ items }: { items: { title: string; text: ReactNode; icon?: IconName }[] }) {
   return (
     <ol className="steps">

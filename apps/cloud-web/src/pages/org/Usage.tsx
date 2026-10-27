@@ -162,7 +162,7 @@ export function Usage({ scope }: { scope: OrgScope }) {
     <>
       <PageHeader
         title="Usage"
-        subtitle="Auto-director hours used on live matches, as uploaded by your linked computers. Manual and advisory direction and simulations aren't counted."
+        subtitle="Auto-director hours used on live matches, as uploaded by your linked computers. Manual direction, the Observer's Off mode and simulations aren't counted."
         actions={
           <a className="btn btn-secondary" href={csv} download>
             Download CSV
