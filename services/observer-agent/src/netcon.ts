@@ -10,6 +10,10 @@ import { NetconConnection } from "./netcon-connection.ts";
  * project's test environment; every capability stays "unverified" until the setup checklist
  * confirms it with observed feedback (GSI spectated player) or operator confirmation.
  * Operators can edit them in Settings without recompiling.
+ *
+ * Player selection uses `spec_player "<name>"`: CS2 has no `spec_player_by_accountid` (CS:GO
+ * only), and operators report the name form works. Placeholders: {name} (in-game name, see
+ * safeName), {accountId}, {steamId}, {slot} (observer slot / number key).
  */
 export interface NetconTemplates {
   selectPlayer: string;
@@ -21,7 +25,7 @@ export interface NetconTemplates {
 }
 
 export const DEFAULT_NETCON_TEMPLATES: NetconTemplates = {
-  selectPlayer: "spec_player_by_accountid {accountId}",
+  selectPlayer: 'spec_player "{name}"',
   modeInEye: "spec_mode 4",
   modeChase: "spec_mode 5",
   modeRoaming: "spec_mode 6",
@@ -40,6 +44,11 @@ export interface NetconOptions {
   onLine?: (line: string) => void;
   /** The engine's shared console connection (also used for game options); otherwise the adapter opens its own. */
   connection?: NetconConnection;
+  /**
+   * The player's in-game name from the latest game data for the {name} placeholder; null when it
+   * is unknown or another player has the same name (the console could not tell them apart).
+   */
+  playerName?: (steamId: string) => string | null;
 }
 
 function fill(template: string, values: Record<string, string | number>): string {
@@ -58,6 +67,20 @@ function safeValue(v: string | number): string | number {
   }
   if (!/^[0-9A-Za-z_.-]+$/.test(v)) throw new Error("unsafe value for console command");
   return v;
+}
+
+/**
+ * A player name to put inside quotes in a console command. Refuses anything that could end the
+ * quoted string or start another command (quotes, semicolons, backslashes, line breaks and other
+ * control characters); such a name can't be selected through the console.
+ */
+export function safeName(name: string): string {
+  const n = name.trim();
+  if (!n) throw new Error("the player has no name in the game data");
+  if (n.length > 128) throw new Error("the player's name is too long to send to the console");
+  // eslint-disable-next-line no-control-regex
+  if (/[";\\\u0000-\u001f\u007f]/.test(n)) throw new Error(`the player's name (${JSON.stringify(n)}) has characters that can't be sent to the console safely; switch to them in CS2 by hand`);
+  return n;
 }
 
 /**
@@ -89,10 +112,11 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   async getCapabilities(): Promise<ControlCapabilities> {
     const v = this.opts.verified ?? {};
     const lim = (what: string) => [`Command template for ${what} is a candidate mapping; verify with the setup checklist on the target CS2 build.`, "Requires the observer client launched with -tools -netconport (CS2 Workshop Tools; loopback only)."];
-    const c = (key: keyof ControlCapabilities, what: string) =>
-      v[key] ? cap(key, v[key]!.support, [], this.id, { build: v[key]!.build, at: v[key]!.at }) : cap(key, "unverified", lim(what), this.id);
+    const c = (key: keyof ControlCapabilities, what: string, also: string[] = []) =>
+      v[key] ? cap(key, v[key]!.support, also, this.id, { build: v[key]!.build, at: v[key]!.at }) : cap(key, "unverified", [...lim(what), ...also], this.id);
+    const byName = this.templates.selectPlayer.includes("{name}") ? ["Selects players by in-game name: names with quotes, semicolons or backslashes, and two players with the same name, can't be selected."] : [];
     return {
-      playerSelectionControl: c("playerSelectionControl", "player selection"),
+      playerSelectionControl: c("playerSelectionControl", "player selection", byName),
       observerModeControl: c("observerModeControl", "observer mode"),
       staticCameraControl: c("staticCameraControl", "static camera"),
       cameraPathControl: cap("cameraPathControl", "unsupported", ["No verified camera path mechanism for this channel."], this.id),
@@ -127,7 +151,13 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   async selectPlayer(steamId: string, observerSlot: number | null, ctx: CommandContext): Promise<CommandResult> {
     let cmd: string;
     try {
-      cmd = fill(this.templates.selectPlayer, { accountId: safeValue(accountIdOf(steamId)), steamId: safeValue(steamId), slot: safeValue(observerSlot ?? -1) });
+      const values: Record<string, string | number> = { accountId: safeValue(accountIdOf(steamId)), steamId: safeValue(steamId), slot: safeValue(observerSlot ?? -1) };
+      if (this.templates.selectPlayer.includes("{name}")) {
+        const name = this.opts.playerName?.(steamId) ?? null;
+        if (name === null) throw new Error("the player's name isn't known from the game data, or two players share it");
+        values.name = safeName(name);
+      }
+      cmd = fill(this.templates.selectPlayer, values);
     } catch (e) {
       return failedResult(ctx, "target_invalid", e instanceof Error ? e.message : String(e));
     }

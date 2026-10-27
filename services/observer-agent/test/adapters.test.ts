@@ -1,7 +1,7 @@
 import { createServer } from "node:net";
 import { describe, expect, it } from "vitest";
 import type { CommandContext } from "@matchframe/contracts";
-import { accountIdOf, KeyboardObserverAdapter, NetconObserverAdapter, slotKey } from "../src/index.ts";
+import { accountIdOf, KeyboardObserverAdapter, NetconObserverAdapter, safeName, slotKey } from "../src/index.ts";
 
 const ctx = (over: Partial<CommandContext> = {}): CommandContext => ({
   commandId: "c1",
@@ -58,7 +58,7 @@ describe("NetconObserverAdapter", () => {
     const server = createServer((sock) => sock.on("data", (d) => received.push(...d.toString().split("\n").filter(Boolean))));
     await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
     const port = (server.address() as { port: number }).port;
-    const a = new NetconObserverAdapter({ host: "127.0.0.1", port, now: () => 0 });
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port, now: () => 0, playerName: () => "nova" });
     const r = await a.selectPlayer("76561198000000001", 1, ctx());
     expect(r.status).toBe("transport_acknowledged");
     expect(r.precision).toBe("transport_only");
@@ -68,7 +68,7 @@ describe("NetconObserverAdapter", () => {
     );
     expect(cam.status).toBe("transport_acknowledged");
     await new Promise((r) => setTimeout(r, 50));
-    expect(received[0]).toBe("spec_player_by_accountid 39734273");
+    expect(received[0]).toBe('spec_player "nova"');
     expect(received[1]).toContain("spec_goto 1.23 -5 10 12 90");
     const caps = await a.getCapabilities();
     expect(caps.playerSelectionControl.support).toBe("unverified");
@@ -81,8 +81,33 @@ describe("NetconObserverAdapter", () => {
     server.close();
   });
 
+  it("selects by in-game name only when the name is known and safe to quote", async () => {
+    const received: string[] = [];
+    const server = createServer((sock) => sock.on("data", (d) => received.push(...d.toString().split("\n").filter(Boolean))));
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
+    const port = (server.address() as { port: number }).port;
+    const id = (n: number) => `7656119800000000${n}`;
+    const names: Record<string, string | null> = { [id(1)]: "Sam O'Neil", [id(2)]: 'x"; quit', [id(3)]: "evil;quit", [id(4)]: "line\nbreak", [id(5)]: "back\\slash", [id(6)]: null };
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port, now: () => 0, playerName: (steamId) => names[steamId] ?? null });
+    expect((await a.selectPlayer(id(1), 1, ctx())).status).toBe("transport_acknowledged");
+    for (const n of [2, 3, 4, 5, 6]) {
+      const r = await a.selectPlayer(id(n), 2, ctx());
+      expect([n, r.status, r.failureReason]).toEqual([n, "failed", "target_invalid"]);
+    }
+    // The slot form still works for operators who change the template.
+    const bySlot = new NetconObserverAdapter({ host: "127.0.0.1", port, now: () => 0, templates: { selectPlayer: "spec_player {slot}" } });
+    expect((await bySlot.selectPlayer("76561198000000001", 7, ctx())).status).toBe("transport_acknowledged");
+    await new Promise((r) => setTimeout(r, 50));
+    expect(received).toEqual(['spec_player "Sam O\'Neil"', "spec_player 7"]);
+    expect((await a.getCapabilities()).playerSelectionControl.limitations.join(" ")).toMatch(/in-game name/);
+    expect(safeName("  nova  ")).toBe("nova");
+    await a.dispose();
+    await bySlot.dispose();
+    server.close();
+  });
+
   it("fails cleanly when the console port is closed", async () => {
-    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: 1, now: () => 0, connectTimeoutMs: 300 });
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: 1, now: () => 0, connectTimeoutMs: 300, playerName: () => "nova" });
     const r = await a.selectPlayer("76561198000000001", 1, ctx());
     expect(r.status).toBe("failed");
     expect(r.failureReason).toBe("transport_error");

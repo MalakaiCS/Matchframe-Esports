@@ -31,7 +31,7 @@ function Step({ n, id, title, children, done }: { n: number; id: string; title: 
 }
 
 const DEFAULT_TEMPLATES: Record<string, string> = {
-  selectPlayer: "spec_player_by_accountid {accountId}",
+  selectPlayer: 'spec_player "{name}"',
   modeInEye: "spec_mode 4",
   modeChase: "spec_mode 5",
   modeRoaming: "spec_mode 6",
@@ -288,7 +288,7 @@ function AdapterConfig() {
                 <Details summary="Command templates">
                   <div className="form-grid">
                     {Object.keys(DEFAULT_TEMPLATES).map((k) => (
-                      <Field key={k} label={k}>
+                      <Field key={k} label={k} hint={k === "selectPlayer" ? "Placeholders: {name} (in-game name), {slot} (number key), {steamId}, {accountId}. Leave empty for the default." : undefined}>
                         <input className="mono" value={s.templates[k] ?? ""} placeholder={DEFAULT_TEMPLATES[k]} onChange={(e) => set({ templates: { ...s.templates, [k]: e.target.value } })} />
                       </Field>
                     ))}

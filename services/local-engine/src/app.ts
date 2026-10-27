@@ -677,13 +677,21 @@ export class Engine {
       // Shares the console connection Start CS2 opened when it is the same game console.
       const shared = this.gameConsole.connection;
       const connection = shared && shared.port === s.port && ["127.0.0.1", "localhost"].includes(s.host) ? shared : undefined;
-      await this.session.setAdapter(new NetconObserverAdapter({ host: s.host, port: s.port, templates: s.templates, now: this.now, verified, connection }));
+      await this.session.setAdapter(new NetconObserverAdapter({ host: s.host, port: s.port, templates: s.templates, now: this.now, verified, connection, playerName: (steamId) => this.playerNameFor(steamId) }));
     } else if (s.kind === "keyboard") {
       const backend = await loadWindowsInputBackend();
       await this.session.setAdapter(new KeyboardObserverAdapter(backend, { windowTitle: new RegExp(s.windowTitle), now: this.now, verified: verified.playerSelectionControl ?? null }));
     } else {
       await this.session.setAdapter(new NoControlAdapter());
     }
+  }
+
+  /** A player's in-game name from the latest game data, for `spec_player "<name>"`; null when unknown or shared by two players. */
+  playerNameFor(steamId: string): string | null {
+    const players = this.session.state()?.players ?? [];
+    const name = players.find((p) => p.steamId === steamId)?.name.trim();
+    if (!name) return null;
+    return players.filter((p) => p.name.trim().toLowerCase() === name.toLowerCase()).length === 1 ? name : null;
   }
 
   // ---------------------------------------------------------------------------- raw game data

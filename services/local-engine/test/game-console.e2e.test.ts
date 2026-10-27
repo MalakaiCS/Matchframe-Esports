@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Engine } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
 import { consoleCommands, ConsoleOptions, killfeedColourCommands, launchPlan, parseExtraArgs, GameLaunchProfile } from "../src/game/console.ts";
+import { buildSyntheticGsiPayload, syntheticRoster } from "../../../packages/cs2-state/src/testing/gsi-builder.ts";
 import { startServers } from "../src/servers.ts";
 
 async function freePort(): Promise<number> {
@@ -149,6 +150,30 @@ describe("Start CS2 and the game console (engine)", () => {
     const opt = await api("/api/v1/game/console-options", { method: "PUT", body: { xray: false } });
     expect(opt.status).toBe(200);
     await waitFor(() => received.includes("spec_show_xray 0"));
+  });
+
+  it("selects players with spec_player and the player's in-game name (CS2 has no spec_player_by_accountid)", async () => {
+    const roster = syntheticRoster();
+    roster[2]!.name = 'bad"name; quit';
+    roster[3]!.name = "Twin";
+    roster[4]!.name = "twin";
+    const payload = buildSyntheticGsiPayload({ mapName: "de_dust2", players: roster, token: engine.secrets.gsiToken, timestamp: 1_700_000_100 });
+    expect((await fetch(`http://127.0.0.1:${engine.cfg.gsiPort}/gsi`, { method: "POST", body: JSON.stringify(payload) })).status).toBe(200);
+    const select = (steamId: string) => api("/api/v1/setup/test-player-selection", { method: "POST", body: { steamId } });
+
+    received.length = 0;
+    const ok = await select(roster[1]!.steamId);
+    expect(ok.json.transport).toBe("transport_acknowledged");
+    await waitFor(() => received.includes('spec_player "T-Player-2"'));
+    // The fake console doesn't move the camera, so nothing is recorded.
+    expect(ok.json.recorded).toBe(false);
+
+    // Names that could break out of the quotes, and names two players share, are never sent.
+    for (const p of [roster[2]!, roster[3]!]) {
+      received.length = 0;
+      expect((await select(p.steamId)).json.transport).toBe("failed");
+      expect(received.filter((l) => l.startsWith("spec_player"))).toEqual([]);
+    }
   });
 
   it("adds -insecure and HLAE's commands in the HLAE mode once the warning is accepted", async () => {
