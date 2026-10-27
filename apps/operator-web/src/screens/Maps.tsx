@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { api, seg } from "../api/index.ts";
 import type { CameraRecord, CoverageCell, CoverageRow, MapOutline, MapPackDetail, MapSummary } from "../api/types.ts";
-import { ActionButton, Async, Badge, EmptyState, Field, KV, Note, Panel, SupportBadge } from "../components/ui.tsx";
+import type { Support } from "@matchframe/contracts";
+import { ActionButton, Async, Badge, Button, Details, EmptyState, Field, KV, Panel, Tabs } from "../components/ui.tsx";
+import { SUPPORT_TEXT } from "../lib/capabilities.ts";
 import { fmtTime, GRENADE_TYPE_LABEL, MISSING } from "../lib/format.ts";
-import { useApi } from "../lib/hooks.ts";
+import { useApi, usePersistentState } from "../lib/hooks.ts";
 import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
+import "../styles/group-c.css";
 
 const KIND_COLOR: Record<string, string> = {
   bombsite: "#c2577a",
@@ -127,10 +130,9 @@ function CameraAuthoring({ map, regions, onCreated }: { map: string; regions: Ma
   const getposOk = /setpos(?:_exact)?\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s*;\s*setang\s+-?[\d.]+\s+-?[\d.]+/i.test(getpos);
   const missing = !/^[a-z0-9-]{3,64}$/.test(id) ? "Camera id: 3–64 chars a–z, 0–9, dash" : !name.trim() ? "Enter a display name" : !getposOk ? "Paste the camera's getpos output (setpos …; setang …)" : !parsedFocus ? "Enter the focus point as “x y z” or paste getpos taken at the focus point" : uses.length === 0 ? "Choose what the camera is used for" : null;
   return (
-    <>
-      <p className="small muted">In CS2, fly the free camera to the shot, run <code>getpos</code> in the console and paste the output. Then do the same standing at the point the camera should look at (or type its x y z). Coordinates are never invented.</p>
+    <div className="gc-form">
       <div className="form-grid">
-        <Field label="Camera id">
+        <Field label="Camera id" hint="a–z, 0–9 and dashes">
           <input value={id} onChange={(e) => setId(e.target.value.toLowerCase())} placeholder="banana-high" />
         </Field>
         <Field label="Display name">
@@ -140,10 +142,10 @@ function CameraAuthoring({ map, regions, onCreated }: { map: string; regions: Ma
           <input type="number" min={50} max={3000} value={radius} onChange={(e) => setRadius(Number(e.target.value))} />
         </Field>
       </div>
-      <Field label="Camera getpos output">
+      <Field label="Camera getpos output" hint="In CS2, fly the free camera to the shot, run getpos in the console and paste the output.">
         <textarea className="mono" rows={2} value={getpos} onChange={(e) => setGetpos(e.target.value)} placeholder="setpos 1234.5 -567.0 64.0;setang 12.3 45.6 0.0" />
       </Field>
-      <Field label="Focus point (x y z, or getpos at the focus point)" hint={parsedFocus ? `Parsed: ${parsedFocus.x}, ${parsedFocus.y}, ${parsedFocus.z}` : undefined}>
+      <Field label="Focus point" hint={parsedFocus ? `Parsed: ${parsedFocus.x}, ${parsedFocus.y}, ${parsedFocus.z}` : "Where the camera looks: type x y z, or paste getpos taken standing there."}>
         <input className="mono" value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="1500 -200 32" />
       </Field>
       <Field label="Used for" hint="Which Observer shots may use this camera. Establishing shots run in freeze time; the others during the round.">
@@ -162,11 +164,11 @@ function CameraAuthoring({ map, regions, onCreated }: { map: string; regions: Ma
           </div>
         </fieldset>
       ) : null}
-      <div className="form-actions">
+      <div className="form-actions" style={{ marginTop: 0 }}>
         <ActionButton
           variant="primary"
           action={() => api.post<CameraRecord>(`/api/v1/maps/${seg(map)}/cameras/from-getpos`, { id, displayName: name.trim(), getpos, focus: parsedFocus, coverageRadiusUnits: radius, targetRegionIds: targets, uses })}
-          success={(c) => `Camera ${c.id} captured (UNVALIDATED until tested in-game)`}
+          success={(c) => `Camera ${c.id} added — unvalidated until tested in-game`}
           onDone={() => {
             setId("");
             setName("");
@@ -179,9 +181,13 @@ function CameraAuthoring({ map, regions, onCreated }: { map: string; regions: Ma
           Create camera
         </ActionButton>
       </div>
-    </>
+    </div>
   );
 }
+
+const TONE_TEXT: Record<string, string> = { ok: "text-ok", warn: "text-warn", danger: "text-danger", info: "", neutral: "muted" };
+const VALIDATION_LABEL: Record<CameraRecord["validation"], string> = { unvalidated: "Unvalidated", preview_only: "Preview only", validated: "Validated", invalidated: "Invalidated" };
+const human = (s: string) => s.replace(/_/g, " ");
 
 function CameraRow({ map, cam, onChanged }: { map: string; cam: CameraRecord; onChanged: () => void }) {
   const reason = usePermission("metadata.write");
@@ -192,54 +198,121 @@ function CameraRow({ map, cam, onChanged }: { map: string; cam: CameraRecord; on
   return (
     <tr>
       <td>
-        <strong>{cam.displayName}</strong>
-        <div className="muted small mono">{cam.id}</div>
-        <div className="small muted">from {cam.capturedFrom.replace("_", " ")}</div>
-      </td>
-      <td>
-        <Badge tone={VALIDATION_TONE[cam.validation] ?? "neutral"}>{cam.validation.replace("_", " ")}</Badge>
-        <div className="small muted">occlusion: {cam.occlusionValidation.replace("_", " ")}</div>
-      </td>
-      <td className="small">
-        rev {cam.mapRevision}
-        <div className="muted">
-          tested build {cam.lastTestedGameBuild ?? MISSING} / map {cam.lastTestedMapVersion ?? MISSING}
-        </div>
+        {cam.displayName}
+        <div className={`small ${TONE_TEXT[VALIDATION_TONE[cam.validation] ?? "neutral"]}`}>{VALIDATION_LABEL[cam.validation] ?? human(cam.validation)}</div>
       </td>
       <td className="small">
         <UsesPicker value={uses} onChange={setUses} disabled={!!reason} label={`Used for (${cam.displayName})`} />
       </td>
-      <td className="small mono">
-        {cam.position.x.toFixed(0)}, {cam.position.y.toFixed(0)}, {cam.position.z.toFixed(0)}
-        <div className="muted">
-          pitch {cam.pitch.toFixed(1)} yaw {cam.yaw.toFixed(1)}
-        </div>
-      </td>
       <td>
         <div className="row">
           <select aria-label={`Validation for ${cam.displayName}`} value={validation} onChange={(e) => setValidation(e.target.value as CameraRecord["validation"])}>
-            <option value="unvalidated">unvalidated</option>
-            <option value="preview_only">preview only</option>
-            <option value="validated">validated</option>
-            <option value="invalidated">invalidated</option>
+            {(Object.keys(VALIDATION_LABEL) as CameraRecord["validation"][]).map((v) => (
+              <option key={v} value={v}>
+                {VALIDATION_LABEL[v]}
+              </option>
+            ))}
           </select>
-          <input aria-label="Notes" placeholder="notes" value={notes} onChange={(e) => setNotes(e.target.value)} style={{ width: 140 }} />
+          <input aria-label={`Notes for ${cam.displayName}`} placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} style={{ width: 140 }} />
           <ActionButton
             size="sm"
             action={() => api.post<CameraRecord>(`/api/v1/maps/${seg(map)}/cameras/${seg(cam.id)}/validation`, { validation, notes, uses })}
-            success={(c) => `${c.displayName}: ${c.validation}`}
+            success={(c) => `${c.displayName}: ${human(c.validation)}`}
             onDone={onChanged}
             disabledReason={reason ?? (uses.length === 0 ? "Choose what the camera is used for" : validation === "validated" && snap?.simulated ? "Cameras cannot be validated from simulation" : validation === cam.validation && notes === (cam.notes ?? "") && sameUses(uses, cam.actionClasses) ? "No change" : null)}
-            reasonPlacement="tooltip"
           >
             Save
           </ActionButton>
-          <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/maps/${seg(map)}/cameras/${seg(cam.id)}`)} success="Camera removed" onDone={onChanged} disabledReason={reason} reasonPlacement="tooltip" confirm={{ title: `Delete camera ${cam.displayName}?`, body: "Removes an operator-authored camera. Cameras shipped inside a map pack file stay in the pack.", danger: true, confirmLabel: "Delete" }}>
-            Delete
-          </ActionButton>
         </div>
       </td>
+      <td>
+        <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/maps/${seg(map)}/cameras/${seg(cam.id)}`)} success="Camera removed" onDone={onChanged} disabledReason={reason} confirm={{ title: `Delete camera ${cam.displayName}?`, body: "Removes an operator-authored camera. Cameras shipped inside a map pack file stay in the pack.", danger: true, confirmLabel: "Delete" }}>
+          Delete
+        </ActionButton>
+      </td>
     </tr>
+  );
+}
+
+function CameraTechDetails({ cameras }: { cameras: CameraRecord[] }) {
+  return (
+    <div className="table-wrap">
+      <table className="table table-compact small">
+        <thead>
+          <tr>
+            <th>Camera</th>
+            <th>Source</th>
+            <th>Occlusion</th>
+            <th>Revision</th>
+            <th>Last tested (build / map)</th>
+            <th>Position</th>
+            <th>Pitch / yaw</th>
+          </tr>
+        </thead>
+        <tbody>
+          {cameras.map((cam) => (
+            <tr key={cam.id}>
+              <td className="mono">{cam.id}</td>
+              <td>{human(cam.capturedFrom)}</td>
+              <td>{human(cam.occlusionValidation)}</td>
+              <td>{cam.mapRevision}</td>
+              <td>
+                {cam.lastTestedGameBuild ?? MISSING} / {cam.lastTestedMapVersion ?? MISSING}
+              </td>
+              <td className="mono">
+                {cam.position.x.toFixed(0)}, {cam.position.y.toFixed(0)}, {cam.position.z.toFixed(0)}
+              </td>
+              <td className="mono">
+                {cam.pitch.toFixed(1)} / {cam.yaw.toFixed(1)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function PackDetails({ d }: { d: MapPackDetail }) {
+  return (
+    <>
+      <KV
+        items={[
+          ["Map", `${d.mapName}${d.mapName === "de_synthetic" ? " (synthetic test map)" : ""}`],
+          ["Revision", d.mapRevision],
+          ["Radar calibration", d.radar ? <span key="r">{human(d.radar.source)} · {d.radar.verified ? "verified" : <span className="text-warn">unverified</span>}</span> : "none"],
+          ["Levels", d.levels.map((l) => `${l.name} (${l.zMin}…${l.zMax})`).join(", ") || MISSING],
+          ["Bombsites", d.bombsites.map((b) => `${b.site}: ${b.regionId}`).join(", ") || MISSING],
+          ["Provenance", `${d.provenance.createdBy} · ${fmtTime(d.provenance.createdAt)} · ${d.provenance.sources.join(", ")}`],
+        ]}
+      />
+      {d.regions.length ? (
+        <table className="table table-compact small" style={{ marginTop: 8 }}>
+          <thead>
+            <tr>
+              <th>Region</th>
+              <th>Kind</th>
+              <th>Source</th>
+              <th>Samples</th>
+              <th>Validated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {d.regions.map((r) => (
+              <tr key={r.id}>
+                <td>
+                  {r.name} <span className="muted mono">{r.id}</span>
+                </td>
+                <td>{human(r.kind)}</td>
+                <td>{human(r.source)}</td>
+                <td>{r.sampleCount ?? MISSING}</td>
+                <td>{r.validated ? "yes" : <span className="text-warn">no</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+    </>
   );
 }
 
@@ -249,6 +322,7 @@ function MapDetail({ map, reloadList }: { map: string; reloadList: () => void })
   const reason = usePermission("metadata.write");
   const [highlight, setHighlight] = useState<string | null>(null);
   const [revision, setRevision] = useState("");
+  const [adding, setAdding] = useState(false);
   const reload = () => {
     void detail.reload();
     reloadList();
@@ -257,85 +331,95 @@ function MapDetail({ map, reloadList }: { map: string; reloadList: () => void })
     <Async state={detail}>
       {(d) => (
         <div className="stack">
-          <div className="grid-2">
-            <Panel title={`${d.displayName} — schematic outline`} subtitle="Generated from map-pack regions (sampled from real positions), not a game radar image">
-              <Async state={outline}>{(o) => (o ? <OutlineCanvas outline={o} highlight={highlight} /> : <EmptyState title="No schematic geometry">This pack has no region geometry to draw an outline from.</EmptyState>)}</Async>
-            </Panel>
-            <div className="stack">
-              <Panel title="Map pack">
-                <KV
-                  items={[
-                    ["Map", <span key="m">{d.mapName} {d.mapName === "de_synthetic" ? <Badge tone="sim">SYNTHETIC</Badge> : null}</span>],
-                    ["Revision", d.mapRevision],
-                    ["Radar calibration", d.radar ? <span key="r">{d.radar.source.replace(/_/g, " ")} {d.radar.verified ? <Badge tone="ok">VERIFIED</Badge> : <Badge tone="warn">UNVERIFIED</Badge>}</span> : "none"],
-                    ["Levels", d.levels.map((l) => `${l.name} (${l.zMin}…${l.zMax})`).join(", ") || MISSING],
-                    ["Bombsites", d.bombsites.map((b) => `${b.site}: ${b.regionId}`).join(", ") || MISSING],
-                    ["Provenance", `${d.provenance.createdBy} · ${fmtTime(d.provenance.createdAt)} · ${d.provenance.sources.join(", ")}`],
-                  ]}
-                />
-              </Panel>
-              <Panel title={`Regions (${d.regions.length})`}>
-                <ul className="list-plain small" style={{ maxHeight: 240, overflowY: "auto" }}>
+          <Panel title={d.displayName} subtitle={`${d.mapName} · revision ${d.mapRevision}`}>
+            <div className="grid-2">
+              <div>
+                <Async state={outline}>{(o) => (o ? <OutlineCanvas outline={o} highlight={highlight} /> : <EmptyState title="No outline">This pack has no region geometry to draw an outline from.</EmptyState>)}</Async>
+                <p className="gc-caption">Schematic drawn from map-pack regions (sampled from real positions), not a game radar image.</p>
+              </div>
+              <div>
+                <h3 className="gc-section-title">Regions ({d.regions.length})</h3>
+                <ul className="list-plain small" style={{ maxHeight: 280, overflowY: "auto" }}>
                   {d.regions.map((r) => (
                     <li key={r.id} className="row" onMouseEnter={() => setHighlight(r.id)} onMouseLeave={() => setHighlight(null)}>
                       <span className="dot" style={{ background: KIND_COLOR[r.kind] ?? KIND_COLOR.other }} aria-hidden />
-                      <strong>{r.name}</strong> <span className="muted">{r.kind.replace("_", " ")}</span>
+                      <span>{r.name}</span>
+                      <span className="muted">{human(r.kind)}</span>
                       <span className="spacer" />
-                      {r.validated ? <Badge tone="ok">VALIDATED</Badge> : <Badge tone="warn">UNVALIDATED</Badge>}
-                      <span className="muted">
-                        {r.source.replace(/_/g, " ")}
-                        {r.sampleCount !== null ? ` · ${r.sampleCount} samples` : ""}
-                      </span>
+                      {r.validated ? null : <span className="text-warn">Unvalidated</span>}
                     </li>
                   ))}
                 </ul>
-              </Panel>
-              <Panel title="Map revision">
-                <p className="small muted">When the game updates this map, bump the revision: operator cameras from older revisions become INVALIDATED until re-tested.</p>
-                <div className="row-end">
-                  <Field label="New revision">
-                    <input value={revision} onChange={(e) => setRevision(e.target.value)} placeholder={d.mapRevision} />
-                  </Field>
-                  <ActionButton
-                    action={() => api.post<{ invalidated: string[] }>(`/api/v1/maps/${seg(map)}/revision`, { revision: revision.trim() })}
-                    success={(r) => `Revision set; ${r.invalidated.length} camera(s) invalidated`}
-                    onDone={reload}
-                    disabledReason={reason ?? (revision.trim() && revision.trim() !== d.mapRevision ? null : "Enter a different revision")}
-                    confirm={{ title: `Set ${d.displayName} revision to ${revision}?`, body: "Cameras authored for other revisions are marked invalidated.", confirmLabel: "Bump revision" }}
-                  >
-                    Bump revision
-                  </ActionButton>
-                </div>
-              </Panel>
-            </div>
-          </div>
-          <Panel title={`Cameras (${d.cameras.length})`} subtitle="Only validated cameras are used for cinematics">
-            {d.cameras.length === 0 ? (
-              <EmptyState title="No cameras on this map">Author one below from in-game getpos output; it starts UNVALIDATED.</EmptyState>
-            ) : (
-              <div className="table-wrap">
-                <table className="table table-compact">
-                  <thead>
-                    <tr>
-                      <th>Camera</th>
-                      <th>Validation</th>
-                      <th>Revision / tested</th>
-                      <th>Used for</th>
-                      <th>Pose</th>
-                      <th>Change validation</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {d.cameras.map((c) => (
-                      <CameraRow key={c.id} map={map} cam={c} onChanged={reload} />
-                    ))}
-                  </tbody>
-                </table>
+                <Details summary="Pack details">
+                  <PackDetails d={d} />
+                </Details>
+                <Details summary="Bump map revision">
+                  <div className="row-end">
+                    <Field label="New revision" hint="Do this when a game update changes the map. Operator cameras from older revisions become invalidated until re-tested.">
+                      <input value={revision} onChange={(e) => setRevision(e.target.value)} placeholder={d.mapRevision} />
+                    </Field>
+                    <ActionButton
+                      action={() => api.post<{ invalidated: string[] }>(`/api/v1/maps/${seg(map)}/revision`, { revision: revision.trim() })}
+                      success={(r) => `Revision set; ${r.invalidated.length} camera(s) invalidated`}
+                      onDone={reload}
+                      disabledReason={reason ?? (revision.trim() && revision.trim() !== d.mapRevision ? null : "Enter a different revision")}
+                      confirm={{ title: `Set ${d.displayName} revision to ${revision}?`, body: "Cameras authored for other revisions are marked invalidated.", confirmLabel: "Bump revision" }}
+                    >
+                      Bump revision
+                    </ActionButton>
+                  </div>
+                </Details>
               </div>
-            )}
+            </div>
           </Panel>
-          <Panel title="Author a camera from getpos">
-            <CameraAuthoring map={map} regions={d.regions} onCreated={reload} />
+          <Panel
+            title={`Cameras (${d.cameras.length})`}
+            subtitle="Only validated cameras are used for cinematics."
+            actions={
+              d.cameras.length && !adding ? (
+                <Button size="sm" onClick={() => setAdding(true)}>
+                  Add camera
+                </Button>
+              ) : null
+            }
+          >
+            {d.cameras.length === 0 ? null : (
+              <>
+                <div className="table-wrap">
+                  <table className="table table-compact">
+                    <thead>
+                      <tr>
+                        <th>Camera</th>
+                        <th>Used for</th>
+                        <th>Validation</th>
+                        <th aria-label="Delete" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {d.cameras.map((c) => (
+                        <CameraRow key={c.id} map={map} cam={c} onChanged={reload} />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Details summary="Pose and test details">
+                  <CameraTechDetails cameras={d.cameras} />
+                </Details>
+              </>
+            )}
+            {d.cameras.length === 0 || adding ? (
+              <div className={d.cameras.length ? "gc-section" : undefined}>
+                <div className="gc-split">
+                  <h3 className="gc-section-title">{d.cameras.length ? "Add a camera" : "No cameras yet — add one from getpos"}</h3>
+                  {d.cameras.length ? (
+                    <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>
+                      Cancel
+                    </Button>
+                  ) : null}
+                </div>
+                <CameraAuthoring map={map} regions={d.regions} onCreated={reload} />
+              </div>
+            ) : null}
           </Panel>
         </div>
       )}
@@ -343,66 +427,98 @@ function MapDetail({ map, reloadList }: { map: string; reloadList: () => void })
   );
 }
 
-function CovCell({ c, showFallback }: { c: CoverageCell; showFallback: boolean }) {
+function SupportText({ support }: { support: Support }) {
+  const s = SUPPORT_TEXT[support];
+  return <span className={TONE_TEXT[s.tone]}>{s.text.charAt(0) + s.text.slice(1).toLowerCase()}</span>;
+}
+
+function CovFacts({ c }: { c: CoverageCell }) {
   return (
-    <div className="cov-cell" title={c.evidence.length ? `Evidence: ${c.evidence.join(", ")}` : undefined}>
+    <>
       <span>
-        telemetry <SupportBadge support={c.telemetry} />
+        <span className="muted">Telemetry</span> <SupportText support={c.telemetry} />
       </span>
       <span>
-        effect <SupportBadge support={c.activationEffect} />
+        <span className="muted">Effect</span> <SupportText support={c.activationEffect} />
       </span>
       <span>
-        prediction {c.prediction} · camera{" "}
-        {c.cameraCoverage === "validated" ? <Badge tone="ok">VALIDATED</Badge> : c.cameraCoverage === "unvalidated" ? <Badge tone="warn">UNVALIDATED</Badge> : <Badge>NONE</Badge>}
+        <span className="muted">Prediction</span> {c.prediction}
       </span>
-      {showFallback ? <span className="muted">fallback: {c.fallback}</span> : null}
-    </div>
+      <span>
+        <span className="muted">Camera</span> <span className={c.cameraCoverage === "validated" ? "text-ok" : c.cameraCoverage === "unvalidated" ? "text-warn" : "muted"}>{c.cameraCoverage}</span>
+      </span>
+    </>
   );
 }
+
+const cellKey = (c: CoverageCell) => JSON.stringify([c.telemetry, c.activationEffect, c.prediction, c.cameraCoverage, c.fallback, c.evidence, c.testedRegions]);
+const rowFallback = (r: CoverageRow) => (r.cells.every((c) => c.fallback === r.cells[0]?.fallback) ? (r.cells[0]?.fallback ?? null) : null);
 
 function Coverage() {
   const cov = useApi<CoverageRow[]>("/api/v1/coverage/maps");
   return (
-    <Async state={cov}>
-      {(rows) => (
-        <div className="table-wrap">
-          <table className="table table-compact coverage">
-            <thead>
-              <tr>
-                <th>Map</th>
-                {(rows[0]?.cells ?? []).map((c) => (
-                  <th key={c.grenadeType}>{GRENADE_TYPE_LABEL[c.grenadeType] ?? c.grenadeType}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => {
-                const shared = r.cells.every((c) => c.fallback === r.cells[0]?.fallback) ? (r.cells[0]?.fallback ?? null) : null;
-                return (
-                <tr key={r.mapName}>
-                  <td>
-                    <strong>{r.displayName}</strong>
-                    <div className="small muted">{r.mapName}</div>
-                    <div className="small">{r.mapPackPresent ? <Badge tone="ok">PACK</Badge> : <Badge tone="warn">NO PACK</Badge>}</div>
-                    <div className="small muted">
-                      {r.regionCount} regions ({r.regionSource}) · floor grid {r.floorGrid ? "yes" : "no"} · radar {r.radarCalibration} · cams {r.validatedCameras} validated / {r.unvalidatedCameras} not
-                    </div>
-                    {shared ? <div className="small">Fallback (all types): {shared}</div> : null}
-                  </td>
-                  {r.cells.map((c) => (
-                    <td key={c.grenadeType}>
-                      <CovCell c={c} showFallback={!shared} />
-                    </td>
-                  ))}
-                </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </Async>
+    <Panel title="Utility coverage" subtitle="What the Observer can follow for each grenade type, per map.">
+      <Async state={cov}>
+        {(rows) => {
+          const everywhere = rows.length && rows.every((r) => rowFallback(r) === rowFallback(rows[0]!)) ? rowFallback(rows[0]!) : null;
+          return (
+            <>
+              {everywhere ? <p className="small muted">Fallback for every map and grenade type: {everywhere}.</p> : null}
+              <div className="table-wrap" style={{ marginTop: 8 }}>
+                <table className="table table-compact coverage">
+                  <thead>
+                    <tr>
+                      <th style={{ width: "26%" }}>Map</th>
+                      {(rows[0]?.cells ?? []).map((c) => (
+                        <th key={c.grenadeType}>{GRENADE_TYPE_LABEL[c.grenadeType] ?? c.grenadeType}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => {
+                      const shared = rowFallback(r);
+                      const same = r.cells.length > 1 && r.cells.every((c) => cellKey(c) === cellKey(r.cells[0]!));
+                      return (
+                        <tr key={r.mapName}>
+                          <td>
+                            {r.displayName} <span className="small muted">{r.mapName}</span>
+                            {r.mapPackPresent ? null : <div className="small text-warn">No map pack</div>}
+                            <div className="small muted">
+                              {r.regionCount} regions ({r.regionSource}) · floor grid {r.floorGrid ? "yes" : "no"} · radar {r.radarCalibration} · cameras {r.validatedCameras} validated / {r.unvalidatedCameras} not
+                            </div>
+                            {shared && !everywhere ? <div className="small muted">Fallback (all types): {shared}</div> : null}
+                          </td>
+                          {same ? (
+                            <td colSpan={r.cells.length}>
+                              <div className="gc-facts small" title={r.cells[0]!.evidence.length ? `Evidence: ${r.cells[0]!.evidence.join(", ")}` : undefined}>
+                                <span className="muted">All types:</span>
+                                <CovFacts c={r.cells[0]!} />
+                              </div>
+                            </td>
+                          ) : (
+                            r.cells.map((c) => (
+                              <td key={c.grenadeType}>
+                                <div className="cov-cell" title={c.evidence.length ? `Evidence: ${c.evidence.join(", ")}` : undefined}>
+                                  <CovFacts c={c} />
+                                  {shared ? null : <span className="muted">Fallback: {c.fallback}</span>}
+                                </div>
+                              </td>
+                            ))
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <Details summary="How to read this">
+                <p className="small muted">Telemetry columns come from the live source&apos;s capability report (unverified during simulation or without data). Camera coverage counts validated cameras only. Nothing is upgraded by default. Hover a cell for its evidence.</p>
+              </Details>
+            </>
+          );
+        }}
+      </Async>
+    </Panel>
   );
 }
 
@@ -410,50 +526,56 @@ export function MapsScreen() {
   const maps = useApi<MapSummary[]>("/api/v1/maps");
   const snap = useSnapshot();
   const [selected, setSelected] = useState<string | null>(null);
+  const [tab, setTab] = usePersistentState<"maps" | "coverage">("mapsTab", "maps");
   const current = snap?.state?.mapName ?? null;
   return (
     <div className="page">
       <div className="page-head">
         <h1 className="page-title">Maps &amp; Cameras</h1>
       </div>
-      <Async state={maps}>
-        {(list) => {
-          const sel = selected ?? (list.some((m) => m.mapName === current) ? current : (list[0]?.mapName ?? null));
-          return (
-            <div className="stack">
-              {list.length === 0 ? (
-                <EmptyState title="No map packs loaded">Map packs are JSON files in the app's assets/map-packs folder or the data folder's map-packs directory. The labelled simulation registers a synthetic test map when started.</EmptyState>
-              ) : (
-                <div className="grid-1-2">
-                  <Panel title="Map packs">
-                    <ul className="select-list">
-                      {list.map((m) => (
+      <Tabs
+        label="Maps sections"
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { id: "maps", label: "Maps & cameras" },
+          { id: "coverage", label: "Utility coverage" },
+        ]}
+      />
+      {tab === "coverage" ? (
+        <Coverage />
+      ) : (
+        <Async state={maps}>
+          {(list) => {
+            const sel = selected ?? (list.some((m) => m.mapName === current) ? current : (list[0]?.mapName ?? null));
+            return list.length === 0 ? (
+              <EmptyState title="No map packs loaded">Map packs are JSON files in the app&apos;s assets/map-packs folder or the data folder&apos;s map-packs directory. The labelled simulation adds a synthetic test map when started.</EmptyState>
+            ) : (
+              <div className="grid-1-2">
+                <Panel title="Maps">
+                  <ul className="select-list">
+                    {list.map((m) => {
+                      const validated = m.cameras.filter((c) => c.validation === "validated").length;
+                      return (
                         <li key={m.mapName}>
-                          <button className={m.mapName === sel ? "is-selected" : ""} onClick={() => setSelected(m.mapName)}>
+                          <button className={m.mapName === sel ? "is-selected" : ""} onClick={() => setSelected(m.mapName)} title={`${m.mapName} · revision ${m.revision} · ${m.regions} regions${m.synthetic ? " · synthetic test map" : ""}`}>
                             <span style={{ flex: 1 }}>
-                              <strong>{m.displayName}</strong> <span className="muted small">{m.mapName}</span>
-                              <div className="small muted">
-                                rev {m.revision} · {m.regions} regions · {m.cameras.length} cameras ({m.cameras.filter((c) => c.validation === "validated").length} validated)
-                              </div>
+                              <span className="gc-select-name">{m.displayName}</span>
+                              <div className="small muted">{m.cameras.length ? `${m.cameras.length} camera${m.cameras.length === 1 ? "" : "s"} · ${validated} validated` : "No cameras"}</div>
                             </span>
-                            {m.synthetic ? <Badge tone="sim">SYNTHETIC</Badge> : null}
-                            {m.mapName === current ? <Badge tone="ok">LIVE</Badge> : null}
+                            {m.mapName === current ? <Badge tone="ok">Live</Badge> : null}
                           </button>
                         </li>
-                      ))}
-                    </ul>
-                  </Panel>
-                  {sel ? <MapDetail key={sel} map={sel} reloadList={() => void maps.reload()} /> : null}
-                </div>
-              )}
-              <Panel title="Utility coverage matrix" subtitle="Map × grenade type: telemetry, effect, prediction, camera coverage and fallback">
-                <Note tone="neutral">Telemetry columns come from the live source's capability report (unverified during simulation or without data). Camera coverage counts validated cameras only. Nothing is upgraded by default.</Note>
-                <Coverage />
-              </Panel>
-            </div>
-          );
-        }}
-      </Async>
+                      );
+                    })}
+                  </ul>
+                </Panel>
+                {sel ? <MapDetail key={sel} map={sel} reloadList={() => void maps.reload()} /> : null}
+              </div>
+            );
+          }}
+        </Async>
+      )}
     </div>
   );
 }
