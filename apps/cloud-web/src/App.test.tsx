@@ -89,7 +89,7 @@ describe("app routing and sessions", () => {
     fakeFetch({});
     renderWithSession(<App />, makeMe());
     expect(screen.getByRole("heading", { name: "Staff only" })).toBeTruthy();
-    expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Admin console" })).toBeNull();
   });
 
   it("shows only account areas in the signed-in navigation", () => {
@@ -100,7 +100,7 @@ describe("app routing and sessions", () => {
     expect(orgNav.getAllByRole("link").map((a) => a.textContent)).toEqual(["Dashboard", "Usage", "Billing & Subscription", "Team", "Computers"]);
     expect(orgNav.getByRole("link", { name: "Billing & Subscription" }).getAttribute("href")).toBe("/orgs/org_1/billing");
     const accountNav = within(screen.getByRole("navigation", { name: "Account" }));
-    expect(accountNav.getAllByRole("link").map((a) => a.textContent)).toEqual(["Account", "Admin"]);
+    expect(accountNav.getAllByRole("link").map((a) => a.textContent)).toEqual(["Account", "Admin console"]);
   });
 
   it("requires sign-in for the download page", async () => {

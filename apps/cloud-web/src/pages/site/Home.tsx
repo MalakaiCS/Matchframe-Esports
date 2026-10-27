@@ -53,12 +53,12 @@ export function Home() {
         <div className="wrap hero-grid">
           <div className="hero-copy">
             <p className="hero-eyebrow">
-              <span className="tally-dot" aria-hidden="true" /> Broadcast production for Counter-Strike 2
+              <span className="tally-dot" aria-hidden="true" /> Early access · Broadcast production for Counter-Strike 2
             </p>
             <h1 tabIndex={-1} data-page-heading>
               Run your whole CS2 broadcast from one Windows program
             </h1>
-            <p className="hero-lead">HUDs for OBS, an automatic director that drives the observer camera, replays and match administration, together on your production PC. You stay in control of every shot.</p>
+            <p className="hero-lead">HUDs for OBS, an automatic director designed to drive the observer camera, replays and match administration, together on your production PC. You stay in control of every shot.</p>
             <div className="hero-cta">
               {me ? (
                 <Link to="/dashboard" className="btn btn-primary btn-lg">
@@ -69,7 +69,7 @@ export function Home() {
                   Create account
                 </Link>
               )}
-              <Link to="/product" className="btn btn-on-dark btn-lg">
+              <Link to="/features" className="btn btn-on-dark btn-lg">
                 Explore the program
               </Link>
             </div>
@@ -119,7 +119,7 @@ export function Home() {
             ]}
           />
           <p className="center-text section-foot">
-            <Link to="/getting-started" className="link-arrow">
+            <Link to="/how-it-works" className="link-arrow">
               Read the full getting-started guide <Icon name="arrow" size={18} />
             </Link>
           </p>
@@ -146,7 +146,7 @@ export function Home() {
               reverse
               shot={<Screenshot name="live-control" alt="The director panel in Live Control showing the recommended shot, the reasons for it and the best alternative candidates." caption="The director explains each shot it picks. Simulated match data." />}
             >
-              <p>The director anticipates fights and utility, picks the shot and tells you why. Take the camera back with one click; emergency stop works from anywhere in Windows.</p>
+              <p>The director is designed to anticipate fights and utility, pick the shot and show you why. Take the camera back with one click; emergency stop works from anywhere in Windows.</p>
               <CheckList items={["Advisory, assisted and automatic modes", "Starts disarmed every time", "Never cut off mid-map when hours run out"]} />
             </Spotlight>
             <Spotlight
@@ -161,16 +161,16 @@ export function Home() {
           <FeatureGrid
             columns={3}
             items={[
-              { icon: "camera", title: "Observer camera control", text: "Player cuts and validated cinematic cameras through a single, verified control channel." },
+              { icon: "camera", title: "Observer camera control", text: "Player cuts and validated cinematic cameras through one control channel, gated by setup tests on your client." },
               { icon: "replay", title: "Replays and OBS", text: "Bookmark moments, approve them in a queue and play them out through OBS, then return live." },
               { icon: "network", title: "Multi-PC positions", text: "Extra operators connect to the production computer with role-scoped tokens." },
-              { icon: "offline", title: "Offline-first", text: "Everything works without internet except automatic direction on live matches." },
+              { icon: "grenade", title: "Grenade tracking", text: "All six grenade types from both teams, with predictions kept apart from confirmed events." },
               { icon: "stop", title: "Safety built in", text: "Single writer for the camera, sticky manual takeover and a global emergency stop." },
               { icon: "model", title: "Demo-trained models", text: "Train models from CS2 demos and evaluate them in shadow mode, away from the live camera." },
             ]}
           />
           <p className="center-text section-foot">
-            <Link to="/product" className="link-arrow">
+            <Link to="/features" className="link-arrow">
               See everything the program does <Icon name="arrow" size={18} />
             </Link>
           </p>

@@ -1,6 +1,8 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { api } from "../api/index.ts";
+import { FOOTER_COLUMNS, HEADER_NAV, isMenu } from "../content/nav.ts";
+import type { NavMenu } from "../content/nav.ts";
 import { Link, navigate, useLocation } from "../router.tsx";
 import { ROLE_LABEL } from "../lib/roles.ts";
 import { STAFF_ROLE_LABEL, staffRoleOf } from "../lib/staff.ts";
@@ -57,24 +59,68 @@ function MenuToggle({ id, open, controls, onToggle }: { id: string; open: boolea
 
 // ---------------------------------------------------------------------------- public site
 
-export const SITE_NAV = [
-  { to: "/product", label: "Product" },
-  { to: "/getting-started", label: "How it works" },
-  { to: "/pricing", label: "Pricing" },
-  { to: "/help", label: "Help" },
-  { to: "/contact", label: "Contact" },
-];
+/** Disclosure-style dropdown (a button that shows a panel of links), also used inside the mobile menu. */
+function NavDropdown({ menu, path, open, onToggle }: { menu: NavMenu; path: string; open: boolean; onToggle: (open: boolean) => void }) {
+  const id = useId();
+  const active = menu.match.some((m) => isActive(path, m));
+  return (
+    <li className={`nav-dd${open ? " is-open" : ""}`}>
+      <button type="button" className={`nav-dd-toggle${active ? " is-active" : ""}`} aria-expanded={open} aria-controls={id} onClick={() => onToggle(!open)}>
+        {menu.label}
+        <span className="nav-caret" aria-hidden="true" />
+      </button>
+      <div id={id} className={`nav-dd-panel${menu.groups.length > 1 ? " is-wide" : ""}`} hidden={!open}>
+        {menu.groups.map((g) => (
+          <div key={g.title} className="nav-dd-group">
+            <p className="nav-dd-title">{g.title}</p>
+            <ul>
+              {g.links.map((l) => (
+                <li key={l.to}>
+                  <Link to={l.to} aria-current={path === l.to ? "page" : undefined}>
+                    <span className="nav-dd-label">{l.label}</span>
+                    {l.description && <span className="nav-dd-desc">{l.description}</span>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </li>
+  );
+}
 
 export function SiteHeader() {
   const { me } = useSession();
   const [open, setOpen] = useState(false);
+  const [dropdown, setDropdown] = useState<string | null>(null);
   const menuId = useId();
   const toggleId = useId();
-  const { path } = useLocation();
+  const headerRef = useRef<HTMLElement>(null);
+  const { path, href } = useLocation();
   useCloseOnNavigate(setOpen);
   useEscapeToClose(open, setOpen, toggleId);
+  useEffect(() => setDropdown(null), [href]);
+  useEffect(() => {
+    if (!dropdown) return;
+    const onDown = (e: MouseEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) setDropdown(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const toggle = headerRef.current?.querySelector<HTMLButtonElement>(".nav-dd.is-open .nav-dd-toggle");
+      setDropdown(null);
+      toggle?.focus();
+    };
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [dropdown]);
   return (
-    <header className={`site-header${open ? " menu-open" : ""}`}>
+    <header ref={headerRef} className={`site-header${open ? " menu-open" : ""}`}>
       <div className="wrap site-header-row">
         <Link to="/" className="brand-link" aria-label="Matchframe home">
           <Logo />
@@ -82,13 +128,17 @@ export function SiteHeader() {
         <MenuToggle id={toggleId} open={open} controls={menuId} onToggle={() => setOpen(!open)} />
         <nav id={menuId} className={`site-nav${open ? " is-open" : ""}`} aria-label="Main">
           <ul className="site-nav-links">
-            {SITE_NAV.map((n) => (
-              <li key={n.to}>
-                <Link to={n.to} aria-current={isActive(path, n.to) ? "page" : undefined}>
-                  {n.label}
-                </Link>
-              </li>
-            ))}
+            {HEADER_NAV.map((n) =>
+              isMenu(n) ? (
+                <NavDropdown key={n.label} menu={n} path={path} open={dropdown === n.label} onToggle={(o) => setDropdown(o ? n.label : null)} />
+              ) : (
+                <li key={n.to}>
+                  <Link to={n.to} aria-current={isActive(path, n.to) ? "page" : undefined}>
+                    {n.label}
+                  </Link>
+                </li>
+              ),
+            )}
           </ul>
           <div className="site-nav-cta">
             {me ? (
@@ -111,48 +161,6 @@ export function SiteHeader() {
     </header>
   );
 }
-
-const FOOTER_COLUMNS: { title: string; links: { to: string; label: string }[] }[] = [
-  {
-    title: "Product",
-    links: [
-      { to: "/product", label: "Overview" },
-      { to: "/pricing", label: "Pricing" },
-      { to: "/getting-started", label: "How it works" },
-      { to: "/download", label: "Download" },
-      { to: "/changelog", label: "Changelog" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { to: "/about", label: "About" },
-      { to: "/contact", label: "Contact" },
-      { to: "/security", label: "Security" },
-      { to: "/status", label: "Status" },
-    ],
-  },
-  {
-    title: "Support",
-    links: [
-      { to: "/help", label: "Help centre" },
-      { to: "/faq", label: "FAQ" },
-      { to: "/getting-started", label: "Getting started" },
-      { to: "/contact?topic=support", label: "Contact support" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { to: "/legal/terms", label: "Terms of Service" },
-      { to: "/legal/privacy", label: "Privacy Policy" },
-      { to: "/legal/cookies", label: "Cookie Policy" },
-      { to: "/legal/refunds", label: "Refunds & cancellation" },
-      { to: "/legal/acceptable-use", label: "Acceptable use" },
-      { to: "/legal/eula", label: "Licence agreement (EULA)" },
-    ],
-  },
-];
 
 function Copyright() {
   const { site } = useSite();

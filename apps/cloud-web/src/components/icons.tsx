@@ -24,6 +24,11 @@ const PATHS = {
   server: "M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01",
   shield: "M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z",
   windows: "M3 5.5l7.5-1v7H3zM12.5 4.2L21 3v8.5h-8.5zM3 12.5h7.5v7L3 18.5zM12.5 12.5H21V21l-8.5-1.2z",
+  grenade: "M9.5 9h5l.8 1.6A6 6 0 1 1 8.7 10.6zM12 9V6.5h3.5M15.5 6.5l2.5-2M10 14h4",
+  school: "M3 9l9-4 9 4-9 4zM7 11v4.5c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V11M21 9v5",
+  mic: "M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM6 11a6 6 0 0 0 12 0M12 17v4M9 21h6",
+  calendar: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
+  layers: "M12 3l9 5-9 5-9-5zM3 13l9 5 9-5",
 } as const;
 
 export type IconName = keyof typeof PATHS;

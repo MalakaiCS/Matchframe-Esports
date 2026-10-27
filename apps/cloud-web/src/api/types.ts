@@ -2,13 +2,13 @@
  * Response shapes of services/cloud-api (read from its route handlers). Request bodies and shared
  * entities come from @matchframe/cloud-contracts.
  */
-import type { AutoDirectorAllowance, HourPack, OrgRole, OrgView, Plan, SubscriptionStatus, UserView } from "@matchframe/cloud-contracts";
+import type { AutoDirectorAllowance, HourPack, OrgRole, OrgView, Plan, StaffRole, SubscriptionStatus, UserView } from "@matchframe/cloud-contracts";
 
 export type { AutoDirectorAllowance, HourPack, OrgRole, OrgView, Plan, SubscriptionStatus, UserView };
 
-/** GET /v1/auth/me — `staffRole` is set for staff ("support" or "admin"); older servers only report `staff`. */
+/** GET /v1/auth/me — `user.staffRole` is "support" or "admin" for staff (`staff` is true for either). */
 export interface Me {
-  user: UserView & { staffRole?: StaffRole | null };
+  user: UserView;
   orgs: OrgView[];
   billingConfigured: boolean;
 }
@@ -185,7 +185,7 @@ export interface StripeEventRow {
 // ---------------------------------------------------------------------------- site, contact, sessions
 
 /** Staff role of a user: "support" looks things up and helps customers; "admin" can also change settings. */
-export type StaffRole = "support" | "admin";
+export type { StaffRole };
 
 /** GET /v1/site — public company details for the footer, contact page and legal documents. */
 export interface SiteInfo {
@@ -308,7 +308,13 @@ export interface ContactMessage {
   handledBy: string | null;
 }
 
-/** GET /v1/admin/emails — metadata only, never bodies. */
+/** GET /v1/admin/emails — `delivery` is "outbox" when no SMTP server is configured (emails are only logged). */
+export interface EmailLogResponse {
+  emails: EmailLogRow[];
+  delivery?: "smtp" | "outbox";
+}
+
+/** One logged email: metadata only, never bodies. */
 export interface EmailLogRow {
   id: string;
   to: string;

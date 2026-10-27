@@ -5,12 +5,16 @@ import { Icon } from "../components/icons.tsx";
 import { CtaBand, PageHero, SectionHead } from "../components/marketing.tsx";
 import { PackCard, PlanCard, purchaseBlocker } from "../components/PlanCard.tsx";
 import { Alert, Button, ErrorState, Loading } from "../components/ui.tsx";
-import { FAQ, FaqList } from "../content/faq.tsx";
+import { FaqList, faqById } from "../content/faq.tsx";
+import type { FaqItem } from "../content/faq.tsx";
 import { formatHours, formatMoney } from "../lib/format.ts";
 import { useResource, useTitle } from "../lib/hooks.ts";
 import { pickOrg } from "../lib/storage.ts";
 import { Link } from "../router.tsx";
 import { useSession } from "../state/session.tsx";
+
+/** Pricing FAQ: how hours are counted, the limit, packs, cancellation and payments. */
+export const PRICING_FAQ = ["what-is-an-hour", "limit", "overage", "packs", "reset", "cancel", "payments", "refunds"];
 
 function Yes({ label = "Included" }: { label?: string }) {
   return (
@@ -108,7 +112,7 @@ export function Pricing() {
     );
   };
 
-  const billingFaq = FAQ.filter((f) => f.category === "billing");
+  const billingFaq = PRICING_FAQ.map(faqById).filter((f): f is FaqItem => !!f);
 
   return (
     <>

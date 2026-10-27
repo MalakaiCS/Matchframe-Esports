@@ -16,7 +16,7 @@ import type {
   Device,
   DeviceLinkPreview,
   DownloadsResponse,
-  EmailLogRow,
+  EmailLogResponse,
   HealthResponse,
   InvitePreview,
   Me,
@@ -112,7 +112,7 @@ export const api = {
   adminOrg: (id: string) => client.get<AdminOrgDetail>(`/v1/admin/orgs/${seg(id)}`),
   adminMessages: (status: MessageStatus) => client.get<{ messages: ContactMessage[] }>(`/v1/admin/messages?status=${status}`),
   adminSetMessageHandled: (id: string, handled: boolean) => client.post<{ ok: true }>(`/v1/admin/messages/${seg(id)}/handled`, { handled }),
-  adminEmails: (limit = 100) => client.get<{ emails: EmailLogRow[] }>(`/v1/admin/emails?limit=${limit}`),
+  adminEmails: (limit = 100) => client.get<EmailLogResponse>(`/v1/admin/emails?limit=${limit}`),
   adminResendEmail: (id: string) => client.post<{ sent: boolean; error: string | null }>(`/v1/admin/emails/${seg(id)}/resend`),
 };
 

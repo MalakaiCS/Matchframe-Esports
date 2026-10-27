@@ -7,7 +7,20 @@ import type { ViewerRole } from "./lib/roles.ts";
 import { useTitle } from "./lib/hooks.ts";
 import { Link, Redirect, loginHref, matchPath, useLocation } from "./router.tsx";
 import { useSession } from "./state/session.tsx";
-import { Landing } from "./pages/Landing.tsx";
+import { Home } from "./pages/site/Home.tsx";
+import { Features, FeatureDetail } from "./pages/site/Features.tsx";
+import { HowItWorks } from "./pages/site/HowItWorks.tsx";
+import { Requirements } from "./pages/site/Requirements.tsx";
+import { UseCases } from "./pages/site/UseCases.tsx";
+import { Faq } from "./pages/site/Faq.tsx";
+import { HelpArticlePage, HelpCentre } from "./pages/site/Help.tsx";
+import { Contact } from "./pages/site/Contact.tsx";
+import { About } from "./pages/site/About.tsx";
+import { Security } from "./pages/site/Security.tsx";
+import { Status } from "./pages/site/Status.tsx";
+import { Changelog } from "./pages/site/Changelog.tsx";
+import { NotFound } from "./pages/site/NotFound.tsx";
+import { LegalDocPage, LegalHub } from "./pages/legal/Legal.tsx";
 import { Pricing } from "./pages/Pricing.tsx";
 import { Download } from "./pages/Download.tsx";
 import { Login } from "./pages/auth/Login.tsx";
@@ -24,7 +37,15 @@ import { Usage } from "./pages/org/Usage.tsx";
 import { Computers } from "./pages/org/Computers.tsx";
 import { Team } from "./pages/org/Team.tsx";
 import { Account } from "./pages/Account.tsx";
-import { Admin } from "./pages/admin/Admin.tsx";
+import { AdminAudit, AdminCatalog, AdminStripe } from "./pages/admin/Admin.tsx";
+import { AdminOverview } from "./pages/admin/Overview.tsx";
+import { AdminUsers } from "./pages/admin/Users.tsx";
+import { AdminUserDetail } from "./pages/admin/UserDetail.tsx";
+import { AdminOrgs } from "./pages/admin/Orgs.tsx";
+import { AdminOrgDetail } from "./pages/admin/OrgDetail.tsx";
+import { AdminInbox } from "./pages/admin/Inbox.tsx";
+import { AdminEmails } from "./pages/admin/Emails.tsx";
+import { ToastProvider } from "./components/overlay.tsx";
 
 export interface OrgScope {
   orgId: string;
@@ -33,7 +54,7 @@ export interface OrgScope {
 
 type Layout = "site" | "narrow" | "app";
 
-interface RouteDef {
+export interface RouteDef {
   path: string;
   layout: Layout;
   auth?: boolean;
@@ -42,9 +63,29 @@ interface RouteDef {
   render: (params: Record<string, string>, scope: OrgScope | null) => ReactNode;
 }
 
-const ROUTES: RouteDef[] = [
-  { path: "/", layout: "site", render: () => <Landing /> },
+export const ROUTES: RouteDef[] = [
+  { path: "/", layout: "site", render: () => <Home /> },
+  { path: "/features", layout: "site", render: () => <Features /> },
+  { path: "/features/:feature", layout: "site", render: (p) => <FeatureDetail slug={p.feature!} /> },
+  { path: "/how-it-works", layout: "site", render: () => <HowItWorks /> },
+  { path: "/requirements", layout: "site", render: () => <Requirements /> },
+  { path: "/use-cases", layout: "site", render: () => <UseCases /> },
   { path: "/pricing", layout: "site", render: () => <Pricing /> },
+  { path: "/faq", layout: "site", render: () => <Faq /> },
+  { path: "/help", layout: "site", render: () => <HelpCentre /> },
+  { path: "/help/:article", layout: "site", render: (p) => <HelpArticlePage slug={p.article!} /> },
+  { path: "/contact", layout: "site", render: () => <Contact /> },
+  { path: "/about", layout: "site", render: () => <About /> },
+  { path: "/security", layout: "site", render: () => <Security /> },
+  { path: "/status", layout: "site", render: () => <Status /> },
+  { path: "/changelog", layout: "site", render: () => <Changelog /> },
+  { path: "/legal", layout: "site", render: () => <LegalHub /> },
+  { path: "/legal/:doc", layout: "site", render: (p) => <LegalDocPage slug={p.doc!} /> },
+  // Earlier addresses of pages that moved.
+  { path: "/product", layout: "site", render: () => <Redirect to="/features" /> },
+  { path: "/getting-started", layout: "site", render: () => <Redirect to="/how-it-works#setup" /> },
+  { path: "/terms", layout: "site", render: () => <Redirect to="/legal/terms" /> },
+  { path: "/privacy", layout: "site", render: () => <Redirect to="/legal/privacy" /> },
   { path: "/signup", layout: "narrow", render: () => <Signup /> },
   { path: "/login", layout: "narrow", render: () => <Login /> },
   { path: "/forgot-password", layout: "narrow", render: () => <ForgotPassword /> },
@@ -64,8 +105,27 @@ const ROUTES: RouteDef[] = [
   { path: "/orgs/:orgId/settings", layout: "app", auth: true, org: true, render: (p) => <Redirect to={`/orgs/${encodeURIComponent(p.orgId!)}/team#organisation`} /> },
   { path: "/download", layout: "app", auth: true, render: () => <Download /> },
   { path: "/account", layout: "app", auth: true, render: () => <Account /> },
-  { path: "/admin", layout: "app", auth: true, staff: true, render: () => <Admin /> },
+  { path: "/admin", layout: "app", auth: true, staff: true, render: () => <AdminOverview /> },
+  { path: "/admin/users", layout: "app", auth: true, staff: true, render: () => <AdminUsers /> },
+  { path: "/admin/users/:userId", layout: "app", auth: true, staff: true, render: (p) => <AdminUserDetail userId={p.userId!} /> },
+  { path: "/admin/orgs", layout: "app", auth: true, staff: true, render: () => <AdminOrgs /> },
+  { path: "/admin/orgs/:adminOrgId", layout: "app", auth: true, staff: true, render: (p) => <AdminOrgDetail orgId={p.adminOrgId!} /> },
+  { path: "/admin/inbox", layout: "app", auth: true, staff: true, render: () => <AdminInbox /> },
+  { path: "/admin/emails", layout: "app", auth: true, staff: true, render: () => <AdminEmails /> },
+  { path: "/admin/catalog", layout: "app", auth: true, staff: true, render: () => <AdminCatalog /> },
+  { path: "/admin/audit", layout: "app", auth: true, staff: true, render: () => <AdminAudit /> },
+  { path: "/admin/stripe", layout: "app", auth: true, staff: true, render: () => <AdminStripe /> },
 ];
+
+/** The route a path (without query or hash) resolves to, or null for the not-found page. */
+export function resolveRoute(path: string): { route: RouteDef; params: Record<string, string> } | null {
+  const clean = path.split(/[?#]/)[0]!.replace(/\/+$/, "") || "/";
+  for (const r of ROUTES) {
+    const m = matchPath(r.path, clean);
+    if (m) return { route: r, params: m };
+  }
+  return null;
+}
 
 /** /dashboard → the remembered (or first) organisation. */
 function OrgHome() {
@@ -79,18 +139,6 @@ function OrgHome() {
         Ask an owner to invite you, or <Link to="/account#orgs">create an organisation</Link> from your account page.
       </Alert>
     </>
-  );
-}
-
-function NotFound() {
-  useTitle("Page not found");
-  return (
-    <section className="wrap section">
-      <PageHeader title="Page not found" subtitle="That address doesn't match any page on this site." />
-      <p>
-        <Link to="/">Go to the home page</Link> or <Link to="/dashboard">open your dashboard</Link>.
-      </p>
-    </section>
   );
 }
 
@@ -129,20 +177,22 @@ function useFocusOnNavigate(href: string): void {
 }
 
 export function App() {
+  return (
+    <ToastProvider>
+      <Routes />
+    </ToastProvider>
+  );
+}
+
+function Routes() {
   const loc = useLocation();
   const session = useSession();
-  useFocusOnNavigate(loc.href + window.location.hash);
+  // Query-only changes (search, filters, pagination) keep focus where it is.
+  useFocusOnNavigate(loc.path + window.location.hash);
 
-  let route: RouteDef | null = null;
-  let params: Record<string, string> = {};
-  for (const r of ROUTES) {
-    const m = matchPath(r.path, loc.path);
-    if (m) {
-      route = r;
-      params = m;
-      break;
-    }
-  }
+  const resolved = resolveRoute(loc.path);
+  const route: RouteDef | null = resolved?.route ?? null;
+  const params: Record<string, string> = resolved?.params ?? {};
 
   const orgId = params.orgId ?? null;
   const member = orgId ? session.me?.orgs.find((o) => o.id === orgId) : undefined;
