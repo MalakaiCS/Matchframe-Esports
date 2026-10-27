@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import type { ReactNode } from "react";
+import { Suspense, lazy, useEffect, useRef } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { AppShell, PublicLayout } from "./components/Layout.tsx";
 import { Alert, Loading, PageHeader } from "./components/ui.tsx";
 import { setLastOrg, pickOrg } from "./lib/storage.ts";
@@ -9,20 +9,11 @@ import { Link, Redirect, loginHref, matchPath, useLocation } from "./router.tsx"
 import { useSession } from "./state/session.tsx";
 import { Home } from "./pages/site/Home.tsx";
 import { Features, FeatureDetail } from "./pages/site/Features.tsx";
-import { HowItWorks } from "./pages/site/HowItWorks.tsx";
-import { Requirements } from "./pages/site/Requirements.tsx";
-import { UseCases } from "./pages/site/UseCases.tsx";
 import { Faq } from "./pages/site/Faq.tsx";
-import { HelpArticlePage, HelpCentre } from "./pages/site/Help.tsx";
 import { Contact } from "./pages/site/Contact.tsx";
-import { About } from "./pages/site/About.tsx";
-import { Security } from "./pages/site/Security.tsx";
 import { Status } from "./pages/site/Status.tsx";
-import { Changelog } from "./pages/site/Changelog.tsx";
 import { NotFound } from "./pages/site/NotFound.tsx";
-import { LegalDocPage, LegalHub } from "./pages/legal/Legal.tsx";
 import { Pricing } from "./pages/Pricing.tsx";
-import { Download } from "./pages/Download.tsx";
 import { Login } from "./pages/auth/Login.tsx";
 import { Signup } from "./pages/auth/Signup.tsx";
 import { ForgotPassword } from "./pages/auth/ForgotPassword.tsx";
@@ -30,22 +21,41 @@ import { ResetPassword } from "./pages/auth/ResetPassword.tsx";
 import { VerifyEmail } from "./pages/auth/VerifyEmail.tsx";
 import { ConfirmEmail } from "./pages/auth/ConfirmEmail.tsx";
 import { Invite } from "./pages/auth/Invite.tsx";
-import { LinkComputer } from "./pages/LinkComputer.tsx";
-import { Dashboard } from "./pages/org/Dashboard.tsx";
-import { Billing } from "./pages/org/Billing.tsx";
-import { Usage } from "./pages/org/Usage.tsx";
-import { Computers } from "./pages/org/Computers.tsx";
-import { Team } from "./pages/org/Team.tsx";
-import { Account } from "./pages/Account.tsx";
-import { AdminAudit, AdminCatalog, AdminStripe } from "./pages/admin/Admin.tsx";
-import { AdminOverview } from "./pages/admin/Overview.tsx";
-import { AdminUsers } from "./pages/admin/Users.tsx";
-import { AdminUserDetail } from "./pages/admin/UserDetail.tsx";
-import { AdminOrgs } from "./pages/admin/Orgs.tsx";
-import { AdminOrgDetail } from "./pages/admin/OrgDetail.tsx";
-import { AdminInbox } from "./pages/admin/Inbox.tsx";
-import { AdminEmails } from "./pages/admin/Emails.tsx";
 import { ToastProvider } from "./components/overlay.tsx";
+
+
+/** Code-split pages: loaded on first visit (the staff console and longer content pages). */
+function lazyPage<P extends object>(load: () => Promise<ComponentType<P>>) {
+  return lazy(async () => ({ default: await load() }));
+}
+const Download = lazyPage(() => import("./pages/Download.tsx").then((m) => m.Download));
+const LinkComputer = lazyPage(() => import("./pages/LinkComputer.tsx").then((m) => m.LinkComputer));
+const Dashboard = lazyPage(() => import("./pages/org/Dashboard.tsx").then((m) => m.Dashboard));
+const Billing = lazyPage(() => import("./pages/org/Billing.tsx").then((m) => m.Billing));
+const Usage = lazyPage(() => import("./pages/org/Usage.tsx").then((m) => m.Usage));
+const Computers = lazyPage(() => import("./pages/org/Computers.tsx").then((m) => m.Computers));
+const Team = lazyPage(() => import("./pages/org/Team.tsx").then((m) => m.Team));
+const Account = lazyPage(() => import("./pages/Account.tsx").then((m) => m.Account));
+const HowItWorks = lazyPage(() => import("./pages/site/HowItWorks.tsx").then((m) => m.HowItWorks));
+const Requirements = lazyPage(() => import("./pages/site/Requirements.tsx").then((m) => m.Requirements));
+const UseCases = lazyPage(() => import("./pages/site/UseCases.tsx").then((m) => m.UseCases));
+const HelpCentre = lazyPage(() => import("./pages/site/Help.tsx").then((m) => m.HelpCentre));
+const HelpArticlePage = lazyPage(() => import("./pages/site/Help.tsx").then((m) => m.HelpArticlePage));
+const About = lazyPage(() => import("./pages/site/About.tsx").then((m) => m.About));
+const Security = lazyPage(() => import("./pages/site/Security.tsx").then((m) => m.Security));
+const Changelog = lazyPage(() => import("./pages/site/Changelog.tsx").then((m) => m.Changelog));
+const LegalHub = lazyPage(() => import("./pages/legal/Legal.tsx").then((m) => m.LegalHub));
+const LegalDocPage = lazyPage(() => import("./pages/legal/Legal.tsx").then((m) => m.LegalDocPage));
+const AdminOverview = lazyPage(() => import("./pages/admin/Overview.tsx").then((m) => m.AdminOverview));
+const AdminUsers = lazyPage(() => import("./pages/admin/Users.tsx").then((m) => m.AdminUsers));
+const AdminUserDetail = lazyPage(() => import("./pages/admin/UserDetail.tsx").then((m) => m.AdminUserDetail));
+const AdminOrgs = lazyPage(() => import("./pages/admin/Orgs.tsx").then((m) => m.AdminOrgs));
+const AdminOrgDetail = lazyPage(() => import("./pages/admin/OrgDetail.tsx").then((m) => m.AdminOrgDetail));
+const AdminInbox = lazyPage(() => import("./pages/admin/Inbox.tsx").then((m) => m.AdminInbox));
+const AdminEmails = lazyPage(() => import("./pages/admin/Emails.tsx").then((m) => m.AdminEmails));
+const AdminCatalog = lazyPage(() => import("./pages/admin/Admin.tsx").then((m) => m.AdminCatalog));
+const AdminAudit = lazyPage(() => import("./pages/admin/Admin.tsx").then((m) => m.AdminAudit));
+const AdminStripe = lazyPage(() => import("./pages/admin/Admin.tsx").then((m) => m.AdminStripe));
 
 export interface OrgScope {
   orgId: string;
@@ -163,15 +173,24 @@ function useFocusOnNavigate(href: string): void {
       return;
     }
     const hash = window.location.hash.slice(1);
-    const t = setTimeout(() => {
+    let tries = 0;
+    let t: ReturnType<typeof setTimeout>;
+    // Lazily loaded pages render a moment later: keep looking for the target for up to ~1.5 s.
+    const attempt = () => {
       const target = hash ? document.getElementById(hash) : null;
       if (target) {
         target.scrollIntoView();
         return;
       }
       const h = document.querySelector<HTMLElement>("[data-page-heading]");
-      h?.focus({ preventScroll: true });
-    }, 30);
+      if (h && !hash) {
+        h.focus({ preventScroll: true });
+        return;
+      }
+      if (++tries < 30) t = setTimeout(attempt, 50);
+      else h?.focus({ preventScroll: true });
+    };
+    t = setTimeout(attempt, 30);
     return () => clearTimeout(t);
   }, [href]);
 }
@@ -236,5 +255,9 @@ function Routes() {
     else return wrap(<OrgNotFound />);
   }
 
-  return wrap(<div key={route.org ? `${route.path}:${orgId}` : route.path}>{route.render(params, scope)}</div>);
+  return wrap(
+    <div key={route.org ? `${route.path}:${orgId}` : route.path}>
+      <Suspense fallback={<Loading label="Loading…" />}>{route.render(params, scope)}</Suspense>
+    </div>,
+  );
 }

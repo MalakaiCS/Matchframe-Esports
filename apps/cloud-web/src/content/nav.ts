@@ -1,5 +1,5 @@
 import { FEATURES } from "./features.tsx";
-import { LEGAL_DOCS } from "./legal.tsx";
+import { LEGAL_INDEX } from "./legalIndex.ts";
 
 /** Public navigation: header menus and footer columns. Every `to` must be a real route (tested). */
 export interface NavLink {
@@ -90,6 +90,6 @@ export const FOOTER_COLUMNS: { title: string; links: NavLink[] }[] = [
   },
   {
     title: "Legal",
-    links: [{ to: "/legal", label: "Legal overview" }, ...LEGAL_DOCS.map((d) => ({ to: `/legal/${d.slug}`, label: d.title }))],
+    links: [{ to: "/legal", label: "Legal overview" }, ...LEGAL_INDEX.map((d) => ({ to: `/legal/${d.slug}`, label: d.title }))],
   },
 ];

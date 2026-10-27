@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import type { SiteInfo } from "../api/types.ts";
 import { Link } from "../router.tsx";
+import { legalTitle } from "./legalIndex.ts";
+import type { LegalSlug } from "./legalIndex.ts";
 
 /**
  * Terms and policies. Company details always come from GET /v1/site (never hard-coded here), so the
@@ -8,7 +10,7 @@ import { Link } from "../router.tsx";
  * account services and the Matchframe program.
  */
 export interface LegalDoc {
-  slug: string;
+  slug: LegalSlug;
   title: string;
   short: string;
   summary: string;
@@ -32,7 +34,7 @@ function ContactLine({ s }: { s: SiteInfo }) {
 
 const terms: LegalDoc = {
   slug: "terms",
-  title: "Terms of Service",
+  title: legalTitle("terms"),
   short: "Terms",
   summary: "The agreement that covers your account, subscriptions, auto-director hours and use of the website.",
   render: (s) => (
@@ -121,7 +123,7 @@ const terms: LegalDoc = {
 
 const privacy: LegalDoc = {
   slug: "privacy",
-  title: "Privacy Policy",
+  title: legalTitle("privacy"),
   short: "Privacy",
   summary: "What personal data we collect, why, who we share it with, how long we keep it and your rights.",
   render: (s) => (
@@ -217,7 +219,7 @@ const privacy: LegalDoc = {
 
 const cookies: LegalDoc = {
   slug: "cookies",
-  title: "Cookie Policy",
+  title: legalTitle("cookies"),
   short: "Cookies",
   summary: "We use one essential cookie to keep you signed in, and no tracking cookies.",
   render: (s) => (
@@ -274,7 +276,7 @@ const cookies: LegalDoc = {
 
 const refunds: LegalDoc = {
   slug: "refunds",
-  title: "Refund and Cancellation Policy",
+  title: legalTitle("refunds"),
   short: "Refunds",
   summary: "How to cancel a subscription, what happens to hours, and when refunds are available.",
   render: (s) => (
@@ -318,7 +320,7 @@ const refunds: LegalDoc = {
 
 const acceptableUse: LegalDoc = {
   slug: "acceptable-use",
-  title: "Acceptable Use Policy",
+  title: legalTitle("acceptable-use"),
   short: "Acceptable use",
   summary: "What you may not do with the website, your account and the program.",
   render: (s) => (
@@ -368,7 +370,7 @@ const acceptableUse: LegalDoc = {
 
 const eula: LegalDoc = {
   slug: "eula",
-  title: "End User Licence Agreement",
+  title: legalTitle("eula"),
   short: "EULA",
   summary: "The licence under which you may install and use the Matchframe program for Windows.",
   render: (s) => (
