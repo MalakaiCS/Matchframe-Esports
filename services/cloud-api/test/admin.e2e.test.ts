@@ -199,7 +199,7 @@ describe("website: site info, contact form, account sessions and data export, st
     const back = await login("dana@example.com");
     expect(back.status).toBe(200);
 
-    expect((await admin.client.req("POST", `/v1/admin/users/${dana.userId}/sign-out`)).data).toEqual({ revoked: 1 });
+    expect((await admin.client.req("POST", `/v1/admin/users/${dana.userId}/sign-out`)).data).toEqual({ revoked: 1, computers: 0 });
     expect((await back.client.req("GET", "/v1/auth/me")).status).toBe(401);
 
     // Edit: name, then email (unverified again, verification to the new address, notice to the old one).

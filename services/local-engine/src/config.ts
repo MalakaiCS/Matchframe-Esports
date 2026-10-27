@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
 
-export const APP_VERSION = "0.1.0";
+export const APP_VERSION = "0.1.1";
 
 export interface EngineConfig {
   /** Bind host. Loopback by default; LAN exposure is an explicit operator choice. */
@@ -31,6 +31,8 @@ export interface EngineConfig {
   cloudPublicKeys: Record<string, string> | null;
   /** "off" lets automatic direction arm without an account (development and offline lab builds only). */
   cloudEnforcement: "required" | "off";
+  /** "required": the program asks to sign in to a Matchframe account before it can be used (MATCHFRAME_SIGN_IN=off for development). */
+  cloudSignIn: "required" | "off";
 }
 
 export function defaultDataDir(): string {
@@ -66,6 +68,7 @@ export function loadConfig(overrides: Partial<EngineConfig> = {}): EngineConfig 
     cloudUrl: process.env.MATCHFRAME_CLOUD_URL ?? null,
     cloudPublicKeys: loadPinnedKeys(),
     cloudEnforcement: process.env.MATCHFRAME_CLOUD_ENFORCEMENT === "off" ? "off" : "required",
+    cloudSignIn: process.env.MATCHFRAME_SIGN_IN === "off" ? "off" : "required",
     ...overrides,
   };
   const ports = [cfg.gsiPort, cfg.apiPort, cfg.overlayPort];

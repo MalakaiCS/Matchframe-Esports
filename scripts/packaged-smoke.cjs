@@ -1,8 +1,12 @@
 // Smoke test for a PACKAGED Matchframe program (installed .exe on Windows, or an unpacked build):
-// starts it, waits for the bundled engine and the console shown from app://matchframe, checks API
-// forwarding, the live connection, that the engine's HTTP address serves no console, that the
-// captain page and HUD outputs are served, and saves a screenshot.
+// starts a local Matchframe website from this repository, starts the program against it, checks
+// that it opens on the sign-in screen and signs in with a website account's email and password,
+// waits for the bundled engine and the console shown from app://matchframe, checks API forwarding,
+// the live connection, that the engine's HTTP address serves no console, that the captain page and
+// HUD outputs are served, reports the website the build is pinned to (cloud.json), and saves
+// screenshots.
 //   node scripts/packaged-smoke.cjs "<path to Matchframe Esports.exe>" [screenshot.png]
+// MATCHFRAME_EXPECT_WEBSITE=<url> additionally requires the build's cloud.json to point there.
 // Uses `playwright` or `playwright-core` (only the Electron driver is needed, no browsers).
 let pw;
 try {
@@ -10,9 +14,10 @@ try {
 } catch {
   pw = require("playwright-core");
 }
-const { mkdtempSync } = require("node:fs");
+const { existsSync, mkdtempSync, readFileSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
+const { startCloud, signInThroughGate } = require("./smoke-cloud.cjs");
 
 const exe = process.argv[2];
 const shot = process.argv[3] ?? null;
@@ -37,24 +42,44 @@ const waitFor = async (fn, ms) => {
   }
 };
 
+const PASSWORD = "correct horse battery";
+
 (async () => {
+  const cloud = await startCloud({ repo: join(__dirname, ".."), port: 39540 });
+  try {
+    await cloud.account("producer@example.com", PASSWORD, "Night League");
+    await run(cloud);
+  } finally {
+    cloud.stop();
+  }
+})().catch((e) => {
+  console.error("PACKAGED SMOKE FAILED", e);
+  process.exit(1);
+});
+
+async function run(cloud) {
   const ports = { gsi: "39510", api: "39511", overlay: "39512" };
   const app = await pw._electron.launch({
     executablePath: exe,
     args: process.platform === "linux" ? ["--no-sandbox"] : [],
-    env: { ...process.env, MATCHFRAME_DATA_DIR: mkdtempSync(join(tmpdir(), "mf-packaged-")), MATCHFRAME_GSI_PORT: ports.gsi, MATCHFRAME_API_PORT: ports.api, MATCHFRAME_OVERLAY_PORT: ports.overlay, MATCHFRAME_LOG_STDOUT: "0" },
+    // The local website and its key replace the website pinned into the build (cloud.json) for this test.
+    env: { ...process.env, MATCHFRAME_DATA_DIR: mkdtempSync(join(tmpdir(), "mf-packaged-")), MATCHFRAME_GSI_PORT: ports.gsi, MATCHFRAME_API_PORT: ports.api, MATCHFRAME_OVERLAY_PORT: ports.overlay, MATCHFRAME_LOG_STDOUT: "0", MATCHFRAME_CLOUD_URL: cloud.base, MATCHFRAME_CLOUD_PUBLIC_KEYS: JSON.stringify(cloud.keys), MATCHFRAME_SIGN_IN: "" },
     timeout: 120000,
   });
   const win = await app.firstWindow({ timeout: 120000 });
   const errors = [];
   win.on("pageerror", (e) => errors.push(String(e)));
   win.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-  await waitFor(() => win.evaluate(() => document.querySelectorAll("nav a").length > 5), 120000);
+  await waitFor(() => win.evaluate(() => document.body.innerText.includes("Sign in to Matchframe")), 120000);
+  assert(!(await win.evaluate(() => document.querySelectorAll("nav a").length)), "the console stays closed until signed in");
+  if (shot) await win.screenshot({ path: shot.replace(/(\.png)?$/, "-signin.png") });
+  await signInThroughGate(win, "producer@example.com", PASSWORD);
   await waitFor(() => win.evaluate(() => document.body.innerText.includes("CONNECTED")), 30000);
   const info = await win.evaluate(async () => ({
     url: location.href,
     nav: [...document.querySelectorAll("nav a")].map((a) => a.textContent.trim()),
     me: await fetch("/api/v1/me", { headers: { authorization: `Bearer ${await window.matchframe.getOperatorToken()}` } }).then((r) => r.json()),
+    signIn: (await fetch("/api/v1/cloud/status", { headers: { authorization: `Bearer ${await window.matchframe.getOperatorToken()}` } }).then((r) => r.json())).signIn,
   }));
   const meta = await app.evaluate(({ app: a, BrowserWindow }) => {
     const p = BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences?.() ?? {};
@@ -68,7 +93,12 @@ const waitFor = async (fn, ms) => {
   const mainUrl = (Array.isArray(outputs) ? outputs : (outputs.outputs ?? [])).find((o) => o.url)?.url ?? null;
   const overlay = mainUrl ? await fetch(mainUrl) : null;
 
+  const pinnedFile = join(meta.resources, "cloud.json");
+  const pinned = existsSync(pinnedFile) ? JSON.parse(readFileSync(pinnedFile, "utf8")) : null;
+  const website = pinned ? { url: pinned.url, keys: Object.keys(pinned.publicKeys ?? {}) } : null;
+  if (process.env.MATCHFRAME_EXPECT_WEBSITE) assert(website?.url === process.env.MATCHFRAME_EXPECT_WEBSITE && website.keys.length > 0, `the build is pinned to ${process.env.MATCHFRAME_EXPECT_WEBSITE} with its licence key (cloud.json: ${JSON.stringify(website)})`);
   assert(meta.packaged, "running the packaged program");
+  assert(info.signIn.state === "signed_in" && info.signIn.user.email === "producer@example.com", "signed in with the website account's email and password");
   assert(info.url.startsWith("app://matchframe/"), "console shown from the program's own origin");
   assert(info.me.role === "owner", "API requests forwarded to the bundled engine");
   assert(health.ok === true, "bundled engine healthy");
@@ -77,9 +107,6 @@ const waitFor = async (fn, ms) => {
   assert(!overlay || overlay.status === 200, "HUD output served for OBS");
   assert(meta.contextIsolation && meta.sandbox && !meta.nodeIntegration, "hardened window");
   if (shot) await win.screenshot({ path: shot });
-  console.log(JSON.stringify({ ok: true, platform: process.platform, meta, url: info.url, navItems: info.nav.length, role: info.me.role, health: { ok: health.ok, version: health.version, schemaVersion: health.schemaVersion }, engineRoot: root.status, captain: captain.status, hudOutput: overlay?.status ?? null, errors }, null, 1));
+  console.log(JSON.stringify({ ok: true, platform: process.platform, meta, url: info.url, navItems: info.nav.length, role: info.me.role, signIn: info.signIn, website, health: { ok: health.ok, version: health.version, schemaVersion: health.schemaVersion }, engineRoot: root.status, captain: captain.status, hudOutput: overlay?.status ?? null, errors }, null, 1));
   await app.close();
-})().catch((e) => {
-  console.error("PACKAGED SMOKE FAILED", e);
-  process.exit(1);
-});
+}

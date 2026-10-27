@@ -9268,6 +9268,71 @@
         }
       }
     },
+    "/api/v1/cloud/login": {
+      "post": {
+        "operationId": "post_api_v1_cloud_login",
+        "summary": "POST /api/v1/cloud/login",
+        "description": "Requires permission `settings.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 254
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "orgId": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "deviceName": {
+                    "type": "string",
+                    "maxLength": 80
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cloud/link/start": {
       "post": {
         "operationId": "post_api_v1_cloud_link_start",

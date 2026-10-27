@@ -1,13 +1,16 @@
 import { z } from "zod";
-import { DeviceApproveRequest, DeviceAuthorizeRequest, DeviceTokenRequest, UsageBatch } from "@matchframe/cloud-contracts";
-import type { DeviceAuthorizeResponse, DeviceTokenResponse, EntitlementPayload } from "@matchframe/cloud-contracts";
+import { DeviceApproveRequest, DeviceAuthorizeRequest, DeviceLoginRequest, DeviceTokenRequest, UsageBatch } from "@matchframe/cloud-contracts";
+import type { DeviceAuthorizeResponse, DeviceLoginOrg, DeviceLoginResponse, DeviceTokenResponse, EntitlementPayload, OrgRole } from "@matchframe/cloud-contracts";
 import { signEntitlement } from "@matchframe/cloud-contracts/token";
 import type { CloudApp } from "../app.ts";
+import { DUMMY_HASH, verifyPassword } from "../auth/passwords.ts";
 import { audit } from "../domain/audit.ts";
 import { computeAllowance, ingestUsage, orgPlanState } from "../domain/allowance.ts";
+import { issueDeviceCredential } from "../domain/devices.ts";
+import { roleCan } from "../domain/roles.ts";
 import type { Router } from "../http/router.ts";
 import { HttpError, reply } from "../http/router.ts";
-import { hashSecret, newId, newSecret, newUserCode, normalizeUserCode } from "../ids.ts";
+import { hashSecret, newSecret, newUserCode, normalizeUserCode } from "../ids.ts";
 
 const LINK_TTL_S = 600;
 const POLL_INTERVAL_S = 5;
@@ -53,25 +56,54 @@ export function registerDeviceRoutes(r: Router, app: CloudApp): void {
       }
       await tx.query("UPDATE device_auth SET last_poll_at = $2 WHERE device_code_hash = $1", [h, now]);
       if (a.status === "pending") return fail("authorization_pending");
-      // Approved: issue the device credential exactly once. Re-linking the same install replaces its old link.
-      const token = `mfd_${newSecret()}`;
-      const deviceId = newId("dev");
-      await tx.query("UPDATE devices SET revoked_at = $3 WHERE org_id = $1 AND install_id = $2 AND revoked_at IS NULL", [a.org_id, a.install_id, now]);
-      await tx.query("INSERT INTO devices (id, org_id, name, platform, app_version, install_id, token_hash, approved_by, last_seen_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)", [
-        deviceId,
-        a.org_id,
-        a.device_name,
-        a.platform,
-        a.app_version,
-        a.install_id,
-        hashSecret(token),
-        a.approved_by,
-        now,
-      ]);
+      // Approved: issue the device credential exactly once.
+      const { deviceId, token } = await issueDeviceCredential(tx, { orgId: a.org_id!, userId: a.approved_by, installId: a.install_id, name: a.device_name, platform: a.platform, appVersion: a.app_version }, now);
       await tx.query("UPDATE device_auth SET status = 'consumed' WHERE device_code_hash = $1", [h]);
       const org = await tx.query<{ name: string }>("SELECT name FROM orgs WHERE id = $1", [a.org_id]);
       await audit(tx, a.approved_by ?? "device", a.org_id, "device.linked", { deviceId, name: a.device_name });
       const out: DeviceTokenResponse = { deviceId, orgId: a.org_id!, orgName: org.rows[0]!.name, deviceToken: token };
+      return out;
+    });
+  });
+
+  r.add("POST", "/v1/device/login", { body: DeviceLoginRequest, browserMutation: false, summary: "Desktop: sign in with the website's email and password; returns this computer's credential once" }, async (ctx) => {
+    const b = ctx.body;
+    // Same limits as signing in on the website (shared per-address counter).
+    app.rateLimit(app.limits.auth, `device-login:${ctx.ip}`);
+    app.rateLimit(app.limits.auth, `login-email:${b.email}`);
+    const { rows } = await app.sql.query<{ id: string; email: string; display_name: string; password_hash: string; email_verified_at: Date | null; disabled_at: Date | null }>(
+      "SELECT id, email, display_name, password_hash, email_verified_at, disabled_at FROM users WHERE email = $1",
+      [b.email],
+    );
+    const u = rows[0];
+    const ok = await verifyPassword(b.password, u?.password_hash ?? DUMMY_HASH);
+    if (!u || !ok) throw new HttpError(401, "invalid_credentials", "email or password is incorrect");
+    if (u.disabled_at) throw new HttpError(403, "account_disabled", "this account has been disabled; contact Matchframe support");
+    if (!u.email_verified_at) throw new HttpError(403, "email_unverified", "confirm your email address first: open the link in the email we sent you (or resend it from the website), then sign in again");
+    const m = await app.sql.query<{ org_id: string; name: string; role: OrgRole }>("SELECT m.org_id, o.name, m.role FROM memberships m JOIN orgs o ON o.id = m.org_id WHERE m.user_id = $1 ORDER BY m.created_at", [u.id]);
+    if (m.rows.length === 0) throw new HttpError(409, "no_organisation", "your account is not in an organisation yet: create one on the website or accept an invitation, then sign in again");
+    let membership = m.rows[0]!;
+    if (b.orgId) {
+      const chosen = m.rows.find((x) => x.org_id === b.orgId);
+      if (!chosen) throw new HttpError(404, "not_found", "you are not a member of that organisation");
+      membership = chosen;
+    } else if (m.rows.length > 1) {
+      const orgs: DeviceLoginOrg[] = [];
+      for (const x of m.rows) orgs.push({ id: x.org_id, name: x.name, role: x.role, planName: (await orgPlanState(app.sql, x.org_id, app.now())).plan.name });
+      throw new HttpError(409, "choose_org", "choose which organisation this computer belongs to", { orgs });
+    }
+    if (!roleCan(membership.role, "devices.link")) throw new HttpError(403, "forbidden", `your role (${membership.role}) cannot add computers to ${membership.name}`);
+    const now = app.now();
+    const st = await orgPlanState(app.sql, membership.org_id, now);
+    return app.sql.transaction(async (tx) => {
+      // The organisation row lock serialises concurrent sign-ins against the computer limit.
+      await tx.query("SELECT id FROM orgs WHERE id = $1 FOR UPDATE", [membership.org_id]);
+      const active = await tx.query<{ n: string }>("SELECT count(*) AS n FROM devices WHERE org_id = $1 AND revoked_at IS NULL AND install_id <> $2", [membership.org_id, b.installId]);
+      if (Number(active.rows[0]!.n) >= st.plan.features.maxDevices) throw new HttpError(409, "device_limit", `the ${st.plan.name} plan allows ${st.plan.features.maxDevices === 1 ? "1 signed-in computer" : `${st.plan.features.maxDevices} signed-in computers`}; sign one out on the website (Computers) or upgrade`);
+      const { deviceId, token } = await issueDeviceCredential(tx, { orgId: membership.org_id, userId: u.id, installId: b.installId, name: b.deviceName, platform: b.platform, appVersion: b.appVersion }, now);
+      await audit(tx, u.id, membership.org_id, "device.signed_in", { deviceId, name: b.deviceName, ip: ctx.ip });
+      await tx.query("UPDATE users SET last_login_at = $2 WHERE id = $1", [u.id, now]);
+      const out: DeviceLoginResponse = { deviceId, orgId: membership.org_id, orgName: membership.name, deviceToken: token, user: { id: u.id, email: u.email, displayName: u.display_name } };
       return out;
     });
   });
@@ -81,6 +113,7 @@ export function registerDeviceRoutes(r: Router, app: CloudApp): void {
     const now = app.now();
     const { planState, ...allowance } = await computeAllowance(app.sql, d.orgId, now);
     const org = await app.sql.query<{ name: string }>("SELECT name FROM orgs WHERE id = $1", [d.orgId]);
+    const signedInAs = await app.sql.query<{ id: string; email: string; display_name: string }>("SELECT u.id, u.email, u.display_name FROM devices d JOIN users u ON u.id = d.approved_by WHERE d.id = $1", [d.deviceId]);
     const appVersion = typeof ctx.headers["x-matchframe-version"] === "string" ? ctx.headers["x-matchframe-version"].slice(0, 40) : null;
     await app.sql.query("UPDATE devices SET last_seen_at = $2, app_version = COALESCE($3, app_version) WHERE id = $1", [d.deviceId, now, appVersion]);
     const payload: EntitlementPayload = {
@@ -97,6 +130,7 @@ export function registerDeviceRoutes(r: Router, app: CloudApp): void {
       issuedAt: now.toISOString(),
       expiresAt: new Date(now.getTime() + app.cfg.entitlementTtlHours * 3_600_000).toISOString(),
       graceUntil: new Date(now.getTime() + app.cfg.offlineGraceDays * 86_400_000).toISOString(),
+      user: signedInAs.rows[0] ? { id: signedInAs.rows[0].id, email: signedInAs.rows[0].email, displayName: signedInAs.rows[0].display_name } : null,
     };
     return { token: signEntitlement(payload, app.signingKeyPem), payload };
   });

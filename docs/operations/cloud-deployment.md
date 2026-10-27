@@ -3,9 +3,9 @@
 The website (payments, subscriptions, auto-director hours usage, account and team management,
 staff admin, and the program download) and its API are one service: `services/cloud-api` serves the API under `/v1/*` and the built website
 (`apps/cloud-web`) for every other path. It needs Postgres, and optionally Stripe and SMTP. The
-desktop app keeps working without it: HUDs, manual and advisory direction, replays and the
-simulation never need an account. Automatic direction on live matches needs a linked computer
-with auto-director hours (see [cloud architecture](../architecture/cloud.md)).
+program signs in to it with the same accounts (email and password, or a code approved on the
+website) and then works offline for up to 7 days after each check. Automatic direction on live
+matches uses the organisation's auto-director hours (see [cloud architecture](../architecture/cloud.md)).
 
 ## 1. The licence signing key
 
@@ -139,8 +139,12 @@ invitation links can be recovered by staff if delivery fails.
    `matchframe-windows-<commit>` artifact from any workflow run, or run `pnpm package:win`.
    Configure `CSC_LINK`/`CSC_KEY_PASSWORD` repository secrets to sign it; unsigned builds trigger
    SmartScreen warnings.
-2. Release builds should include `config/cloud.json` (website address + pinned licence public key,
-   see step 1) before building.
+2. The workflow pins the build to the website: it reads the address and licence public keys from
+   the live website (`scripts/write-cloud-config.mjs`, written to `config/cloud.json`, which is not
+   committed) and refuses a website whose key is temporary. The default is the Railway address;
+   set the repository variable `MATCHFRAME_WEBSITE_URL` (Settings → Secrets and variables →
+   Actions → Variables) when the website moves, e.g. to a custom domain, then build a new release.
+   Builds pinned to an old address keep using it.
 3. Put `MatchframeEsports-Setup-<version>.exe` into the directory named by `MF_DOWNLOAD_DIR` (a
    volume in Docker). The website serves the newest version at `/downloads/<file>` and shows its
    version and SHA-256 to signed-in accounts. Keep older installers there only as long as you want
@@ -174,8 +178,9 @@ invitation links can be recovered by staff if delivery fails.
 | `MF_DEV_LOG_EMAILS` | no | off | `1` prints emails to the console (development only) |
 
 Desktop side: `MATCHFRAME_CLOUD_URL` and `MATCHFRAME_CLOUD_PUBLIC_KEYS` (or the shipped
-`cloud.json`) pin the website and keys; `MATCHFRAME_CLOUD_ENFORCEMENT=off` lets development builds
-arm automatic direction without an account.
+`cloud.json`) pin the website and keys; `MATCHFRAME_SIGN_IN=off` opens development builds without
+the sign-in screen; `MATCHFRAME_CLOUD_ENFORCEMENT=off` lets development builds arm automatic
+direction without an account.
 
 ## 7. Operations
 

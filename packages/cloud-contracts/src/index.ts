@@ -145,6 +145,26 @@ export const DeviceTokenResponse = z.object({
 });
 export type DeviceTokenResponse = z.infer<typeof DeviceTokenResponse>;
 
+/** The account a computer is signed in as (the person who signed in, or who approved its link code). */
+export const DeviceUser = z.object({ id: z.string(), email: z.string(), displayName: z.string() });
+export type DeviceUser = z.infer<typeof DeviceUser>;
+
+/** Sign in from the program with the website's email and password; returns a per-computer credential. */
+export const DeviceLoginRequest = DeviceAuthorizeRequest.extend({
+  email: Email,
+  password: z.string().min(1).max(200),
+  /** Required when the account belongs to more than one organisation (the server answers 409 choose_org with the list). */
+  orgId: z.string().max(64).optional(),
+});
+export type DeviceLoginRequest = z.infer<typeof DeviceLoginRequest>;
+
+export const DeviceLoginResponse = DeviceTokenResponse.extend({ user: DeviceUser });
+export type DeviceLoginResponse = z.infer<typeof DeviceLoginResponse>;
+
+/** detail of a 409 choose_org answer to /v1/device/login. */
+export const DeviceLoginOrg = z.object({ id: z.string(), name: z.string(), role: OrgRole, planName: z.string() });
+export type DeviceLoginOrg = z.infer<typeof DeviceLoginOrg>;
+
 /** Errors returned while polling, as in RFC 8628. */
 export const DeviceTokenError = z.enum(["authorization_pending", "slow_down", "expired_token", "access_denied"]);
 export type DeviceTokenError = z.infer<typeof DeviceTokenError>;
@@ -183,6 +203,8 @@ export const EntitlementPayload = z.object({
   expiresAt: z.string(),
   /** Offline grace: the desktop may keep using the entitlement until this time without reaching the cloud. */
   graceUntil: z.string(),
+  /** Who this computer is signed in as (absent in licences from older servers). */
+  user: DeviceUser.nullable().optional(),
 });
 export type EntitlementPayload = z.infer<typeof EntitlementPayload>;
 

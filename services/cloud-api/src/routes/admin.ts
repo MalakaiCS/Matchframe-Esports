@@ -3,6 +3,7 @@ import { Email, HourPack, Plan, StaffRole } from "@matchframe/cloud-contracts";
 import type { CloudApp, SessionUser } from "../app.ts";
 import { audit } from "../domain/audit.ts";
 import { calendarMonth, computeAllowance, orgPlanState } from "../domain/allowance.ts";
+import { revokeComputersOf } from "../domain/devices.ts";
 import { listHourPacks, listPlans, upsertHourPack, upsertPlan } from "../domain/plans.ts";
 import type { Router } from "../http/router.ts";
 import { HttpError } from "../http/router.ts";
@@ -168,12 +169,13 @@ export function registerAdminRoutes(r: Router, app: CloudApp): void {
     return { sent: true };
   });
 
-  r.add("POST", "/v1/admin/users/:userId/sign-out", { summary: "Staff: sign an account out of every browser" }, async (ctx) => {
+  r.add("POST", "/v1/admin/users/:userId/sign-out", { summary: "Staff: sign an account out of every browser and computer" }, async (ctx) => {
     const staff = await app.requireStaff(ctx);
     const u = await loadUser(ctx.params.userId!);
     const { rows } = await app.sql.query<{ id_hash: string }>("DELETE FROM sessions WHERE user_id = $1 RETURNING id_hash", [u.id]);
-    await audit(app.sql, staff.id, null, "admin.user_signed_out", { targetUserId: u.id, email: u.email, revoked: rows.length });
-    return { revoked: rows.length };
+    const computers = await revokeComputersOf(app.sql, u.id, app.now());
+    await audit(app.sql, staff.id, null, "admin.user_signed_out", { targetUserId: u.id, email: u.email, revoked: rows.length, computers });
+    return { revoked: rows.length, computers };
   });
 
   r.add("PUT", "/v1/admin/users/:userId/staff-role", { body: z.object({ role: StaffRole.nullable() }), summary: "Admin: set an account's staff role (support, admin or none)" }, async (ctx) => {
@@ -186,14 +188,15 @@ export function registerAdminRoutes(r: Router, app: CloudApp): void {
     return { ok: true, staffRole: ctx.body.role };
   });
 
-  r.add("POST", "/v1/admin/users/:userId/disable", { body: z.object({ reason: z.string().trim().min(3).max(300) }), summary: "Admin: disable an account (signs it out; it cannot sign in until enabled)" }, async (ctx) => {
+  r.add("POST", "/v1/admin/users/:userId/disable", { body: z.object({ reason: z.string().trim().min(3).max(300) }), summary: "Admin: disable an account (signs it out of browsers and computers; it cannot sign in until enabled)" }, async (ctx) => {
     const staff = await app.requireStaff(ctx, "admin");
     const u = await loadUser(ctx.params.userId!);
     guardTarget(staff, u, "disable");
     await app.sql.transaction(async (tx) => {
       await tx.query("UPDATE users SET disabled_at = COALESCE(disabled_at, $2), disabled_reason = $3 WHERE id = $1", [u.id, app.now(), ctx.body.reason]);
       await tx.query("DELETE FROM sessions WHERE user_id = $1", [u.id]);
-      await audit(tx, staff.id, null, "admin.user_disabled", { targetUserId: u.id, email: u.email, reason: ctx.body.reason });
+      const computers = await revokeComputersOf(tx, u.id, app.now());
+      await audit(tx, staff.id, null, "admin.user_disabled", { targetUserId: u.id, email: u.email, reason: ctx.body.reason, computersSignedOut: computers });
     });
     return { ok: true };
   });

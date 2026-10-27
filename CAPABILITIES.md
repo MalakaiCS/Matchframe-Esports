@@ -51,13 +51,13 @@ The Matchframe program for Windows (`.exe`) contains everything app-related; its
 |---|---|---|
 | Signup, email verification, login, password reset, organisations, roles, invitations | implemented; tested with fixtures | cloud API end-to-end test over HTTP (PGlite) |
 | Stripe Checkout (plans, hour packs), customer portal, invoices, webhooks | implemented; tested against a local Stripe API stub | real Stripe SDK requests asserted; signed, duplicate and forged webhooks; no real Stripe account available |
-| Linking computers (device code), signed licences, offline grace, revocation | implemented; tested end to end | engine ↔ website test with both real servers |
+| Program sign-in with the website account (email + password, or device code), required when the program opens; signed licences, offline grace, sign-out on password change/disable/leaving | implemented; tested end to end | cloud API tests; engine ↔ website test with both real servers; program smoke tests sign in through the screen against a local website (dev program and packaged program) |
 | Auto-director metering and allowance (included hours, credits, quotas, no mid-map cut-off) | implemented; tested end to end | meter unit tests, engine ↔ website test, real Postgres concurrency test |
 | Account management on the website (name, email change confirmed from the new address, password, organisations, team) | implemented; tested with fixtures | cloud API e2e + website component tests |
 | Program download from the website | implemented; verified in a container | installer served from `MF_DOWNLOAD_DIR` with SHA-256; full download byte-identical |
 | Hosting | deployable (Dockerfile, compose, bundle) | runtime image verified on Postgres; real deployment, TLS, Stripe live mode and SMTP need the owner's accounts |
 
-The licence check runs on the customer's computer: it is a licensing control, not DRM. Server-side usage records are the billing source of truth. Everything except automatic direction on live matches works without an account or internet.
+The licence check runs on the customer's computer: it is a licensing control, not DRM. Server-side usage records are the billing source of truth. Release builds ask to sign in when the program opens and then work offline for up to 7 days after each check; being signed out during a session never interrupts it.
 
 ## 5. Not supported (by design or out of scope here)
 

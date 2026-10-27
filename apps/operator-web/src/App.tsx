@@ -1,9 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { api, describeError, NetworkError } from "./api/index.ts";
 import { resolveOperatorToken, setOperatorToken } from "./api/auth.ts";
 import type { Me } from "./api/types.ts";
 import { Icon, Logo } from "./components/icons.tsx";
+import { SignInGate } from "./components/SignIn.tsx";
 import { emergencyStop, OfflineBanner, STOP_SHORTCUT_LABEL, TopBar } from "./components/TopBar.tsx";
 import { ToastProvider, useToast } from "./components/toasts.tsx";
 import { Button, Field, Loading, Note } from "./components/ui.tsx";
@@ -126,7 +127,7 @@ function useDesktopEvents() {
   }, [toast]);
 }
 
-function Shell({ me }: { me: Me }) {
+function Shell({ me, notice }: { me: Me; notice?: ReactNode }) {
   const { path } = useLocation();
   useDesktopEvents();
   const [navCollapsed, setNavCollapsed] = usePersistentState("navCollapsed", typeof window !== "undefined" && window.innerWidth < 1440);
@@ -151,6 +152,7 @@ function Shell({ me }: { me: Me }) {
         <Nav collapsed={navCollapsed} path={path} />
         <main id="main" className="main" tabIndex={-1}>
           <OfflineBanner />
+          {notice ? <div className="signin-notice">{notice}</div> : null}
           {Screen ? (
             <Suspense fallback={<div className="page"><Loading label="Loading page…" /></div>}>
               <Screen />
@@ -188,7 +190,10 @@ function TokenGate() {
     void verify();
   }, [verify]);
 
-  if (gate.kind === "ready") return <Shell me={gate.me} />;
+  if (gate.kind === "ready") {
+    const me = gate.me;
+    return <SignInGate role={me.role}>{(notice) => <Shell me={me} notice={notice} />}</SignInGate>;
+  }
   return (
     <div className="gate">
       <div className="gate-card">

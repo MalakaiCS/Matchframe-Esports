@@ -29,3 +29,4 @@ Thumbs.db
 
 # Filled-in cloud deployment environment
 config/cloud.env
+config/cloud.json

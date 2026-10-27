@@ -5,8 +5,8 @@ Matchframe is two products that work together:
 - **The Matchframe program for Windows** (`.exe` installer; Electron shell + local engine) runs on
   the production computer and does everything app-related: HUDs, the auto director, observer
   camera control, OBS, replays, player cameras, match administration. Its operator console exists
-  only inside the program. It keeps working without an account or internet for everything except
-  automatic direction on live matches.
+  only inside the program. Release builds open on a sign-in screen (the website account's email and
+  password) and then work offline for up to 7 days after each check.
 - **The website** (`apps/cloud-web`, served by `services/cloud-api`) is only for **payments**
   (Stripe Checkout, invoices, hour packs), **subscription management** (plans, customer portal),
   **auto-director hours usage** (allowance, daily and per-computer usage, CSV), **account
@@ -29,13 +29,19 @@ Matchframe is two products that work together:
 
 ## What needs the website
 
-| Capability | Without an account / offline | With a linked computer |
-|---|---|---|
-| HUDs, outputs, match admin, veto, sponsors, replays, OBS | yes | yes |
-| Manual and advisory direction, takeover, emergency stop | yes | yes |
-| Labelled simulation (including automatic direction) | yes, free | yes, free |
-| Automatic/assisted direction on live telemetry | no | yes, while the plan has auto-director hours |
-| Learned-director shadow comparison | yes (local) | plan feature flag reported in the licence |
+| Capability | Signed in (online, or offline within 7 days of the last check) |
+|---|---|
+| HUDs, outputs, match admin, veto, sponsors, replays, OBS | yes |
+| Manual and advisory direction, takeover, emergency stop | yes |
+| Labelled simulation (including automatic direction) | yes, free |
+| Automatic/assisted direction on live telemetry | yes, while the plan has auto-director hours |
+| Learned-director shadow comparison | plan feature flag reported in the licence |
+
+Release builds ask to sign in when the program opens. A program that is already open is never
+locked: if it is signed out on the website (password changed or reset, account disabled, removed
+from the organisation, computer unlinked) or the offline period ends, it shows a notice and keeps
+running until it is closed; automatic direction then follows the usual gate (below). Development
+builds open without signing in (`MATCHFRAME_SIGN_IN=off`, the default for `pnpm dev`).
 
 ## Flows
 
@@ -51,7 +57,19 @@ state comes only from signed webhooks (stored once per event id) and is re-read 
 checkout completes. `active`, `trialing` and `past_due` keep the paid plan; anything else falls back
 to Free.
 
-**Linking a computer** (RFC 8628 device authorization). The desktop asks for a code
+**Signing in from the program.** The sign-in screen (and Account & Hours) sends the email and
+password through the local engine to `/v1/device/login` on the pinned website, once; nothing but
+the resulting computer credential is stored. The website checks them exactly like its own sign-in
+(scrypt, the same per-address rate limit, disabled accounts refused, the email must be confirmed),
+asks which organisation when the account has several, requires a role that may add computers
+(owner, admin, member) and a free computer slot on the plan, and issues the computer credential.
+The licence names the signed-in person; the website lists the computer with that person. Signing in
+again on the same computer replaces its credential (pending usage is uploaded first). The computer
+is signed out when that person's password is changed or reset, their account is disabled, staff
+sign them out everywhere, or they leave the organisation. Forgot password and Create account
+open the website.
+
+**Signing in with a code** (RFC 8628 device authorization), the alternative. The desktop asks for a code
 (`/v1/device/authorize`) and shows it with a link to `/link?code=…`; a signed-in member approves it
 for an organisation on the website (subject to the plan's computer limit); the desktop polls
 `/v1/device/token` (honouring `slow_down`) and receives a device token once. The token is stored

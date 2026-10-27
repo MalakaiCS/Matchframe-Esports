@@ -1209,6 +1209,52 @@ legend {
   color: var(--text-faint);
   font-size: 12px;
 }
+.signin-card {
+  width: min(440px, 100%);
+  padding: 28px;
+}
+.signin-title {
+  margin: 4px 0 0;
+  font-size: 22px;
+}
+.signin-actions {
+  align-items: center;
+  justify-content: space-between;
+}
+.signin-alt {
+  font-size: 13px;
+}
+.signin-notice {
+  margin-bottom: 12px;
+}
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+.choice-list {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.choice {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.choice.is-selected {
+  border-color: var(--accent);
+}
 
 /* ---------------------------------------------------------------- live control */
 .page-live {

@@ -1037,6 +1037,70 @@
         }
       }
     },
+    "/v1/device/login": {
+      "post": {
+        "summary": "Desktop: sign in with the website's email and password; returns this computer's credential once",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "deviceName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "platform": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "appVersion": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "installId": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{16,64}$"
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "orgId": {
+                    "type": "string",
+                    "maxLength": 64
+                  }
+                },
+                "required": [
+                  "deviceName",
+                  "platform",
+                  "appVersion",
+                  "installId",
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/device/entitlement": {
       "post": {
         "summary": "Desktop: fetch a signed entitlement (plan, features, auto-director allowance)",
@@ -1471,7 +1535,7 @@
     },
     "/v1/admin/users/{userId}/sign-out": {
       "post": {
-        "summary": "Staff: sign an account out of every browser",
+        "summary": "Staff: sign an account out of every browser and computer",
         "parameters": [
           {
             "name": "userId",
@@ -1541,7 +1605,7 @@
     },
     "/v1/admin/users/{userId}/disable": {
       "post": {
-        "summary": "Admin: disable an account (signs it out; it cannot sign in until enabled)",
+        "summary": "Admin: disable an account (signs it out of browsers and computers; it cannot sign in until enabled)",
         "parameters": [
           {
             "name": "userId",

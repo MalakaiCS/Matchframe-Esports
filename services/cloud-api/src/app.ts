@@ -192,7 +192,7 @@ export class CloudApp {
     if (!token) throw new HttpError(401, "unauthenticated", "device token required");
     const { rows } = await this.sql.query<{ id: string; org_id: string; name: string }>("SELECT id, org_id, name FROM devices WHERE token_hash = $1 AND revoked_at IS NULL", [hashSecret(token)]);
     const d = rows[0];
-    if (!d) throw new HttpError(401, "device_revoked", "this computer is not linked (it may have been unlinked on the website)");
+    if (!d) throw new HttpError(401, "device_revoked", "this computer is signed out: it was signed out or unlinked on the website, or the account's password was changed");
     return { deviceId: d.id, orgId: d.org_id, name: d.name };
   }
 

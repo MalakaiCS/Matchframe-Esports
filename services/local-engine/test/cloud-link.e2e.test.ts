@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -52,6 +52,7 @@ describe("desktop engine <-> Matchframe website (real servers on both sides)", (
   let owner: Browser;
   let staff: Browser;
   let orgId: string;
+  let dataDir: string;
   let ts = 1_700_000_000;
 
   const gsi = (mapName = "de_inferno") => fetch(`http://127.0.0.1:${ports.gsi}/gsi`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(buildSyntheticGsiPayload({ players: roster, token: engine.secrets.gsiToken, timestamp: ++ts, mapName, mapPhase: "live", roundPhase: "live", observed: roster[0]!.steamId })) });
@@ -78,7 +79,7 @@ describe("desktop engine <-> Matchframe website (real servers on both sides)", (
 
     ports = { gsi: await freePort(), api: await freePort(), overlay: await freePort() };
     process.env.MATCHFRAME_LOG_STDOUT = "0";
-    const dataDir = mkdtempSync(join(tmpdir(), "mf-engine-cloud-"));
+    dataDir = mkdtempSync(join(tmpdir(), "mf-engine-cloud-"));
     engine = new Engine(loadConfig({ dataDir, gsiPort: ports.gsi, apiPort: ports.api, overlayPort: ports.overlay, host: "127.0.0.1", captainUiDir: null, hudRendererDir: null, mapPackDir: null, workersDir: null, pythonPath: null, cloudUrl: cloudBase, cloudPublicKeys: null, cloudEnforcement: "required" }));
     await engine.init();
     const servers = await startServers(engine);
@@ -195,5 +196,28 @@ describe("desktop engine <-> Matchframe website (real servers on both sides)", (
     expect((await api("/api/v1/director/mode", { method: "POST", body: JSON.stringify({ mode: "automatic" }) })).status).toBe(200);
     const refused = await arm();
     expect([refused.status, refused.data.error]).toEqual([402, "not_linked"]);
+  });
+
+  it("signs in with the website's email and password (no password kept), and is signed out when the password changes on the website", async () => {
+    type Status = { linkState: string; signIn: { required: boolean; state: string; user: { email: string } | null; method: string | null }; gate: { ok: boolean } };
+    expect(((await api("/api/v1/cloud/status")).data as Status).signIn).toMatchObject({ required: true, state: "revoked", user: null });
+    const login = (body: Record<string, unknown>) => api("/api/v1/cloud/login", { method: "POST", body: JSON.stringify(body) });
+
+    const wrong = await login({ email: "producer@example.com", password: "not the password" });
+    expect([wrong.status, wrong.data.error, wrong.data.message]).toEqual([400, "invalid_credentials", "Email or password is incorrect"]);
+    const ok = await login({ email: "producer@example.com", password: "correct horse battery", deviceName: "Production PC" });
+    expect(ok.status, JSON.stringify(ok.data)).toBe(200);
+    expect(ok.data).toMatchObject({ status: "signed_in", orgName: "Night League", user: { email: "producer@example.com", displayName: "Producer" } });
+    const st = (await api("/api/v1/cloud/status")).data as Status;
+    expect(st).toMatchObject({ linkState: "linked", signIn: { required: true, state: "signed_in", user: { email: "producer@example.com" }, method: "password" }, gate: { ok: true } });
+
+    // The password is never written to the data folder (settings, secrets, database, logs).
+    const files = (dir: string): string[] => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? files(join(dir, f)) : [join(dir, f)]));
+    for (const f of files(dataDir)) expect(readFileSync(f).includes("correct horse battery"), f).toBe(false);
+
+    const changed = await owner.req<{ computersSignedOut: number }>("POST", "/v1/auth/change-password", { currentPassword: "correct horse battery", newPassword: "a brand new password" });
+    expect(changed.data.computersSignedOut).toBe(1);
+    const after = (await api("/api/v1/cloud/refresh", { method: "POST" })).data as Status;
+    expect(after.signIn).toMatchObject({ state: "revoked", user: null });
   });
 });

@@ -164,6 +164,7 @@ export class Engine {
       appVersion: APP_VERSION,
       pinnedKeys: cfg.cloudPublicKeys,
       enforcement: cfg.cloudEnforcement,
+      signIn: cfg.cloudSignIn,
       fixedUrl: cfg.cloudUrl,
     });
 
@@ -708,7 +709,7 @@ export class Engine {
     const primary = s?.sources[0] ?? null;
     return {
       ok: true,
-      version: "0.1.0",
+      version: APP_VERSION,
       startedAt: this.startedAt,
       simulated: this.simulationRunning,
       telemetry: primary ? { sourceId: primary.sourceId, stale: primary.stale, packets: primary.packetsReceived, gameBuild: primary.gameBuild } : null,

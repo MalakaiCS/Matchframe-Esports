@@ -14,6 +14,12 @@ export function registerCloudRoutes(r: Router, e: Engine): void {
     return e.cloud.status(simulated());
   });
 
+  r.post("/api/v1/cloud/login", { permission: "settings.manage", body: z.object({ email: z.string().trim().min(3).max(254), password: z.string().min(1).max(200), orgId: z.string().max(64).optional(), deviceName: z.string().trim().max(80).optional() }) }, async (req) => {
+    const out = await e.cloud.login({ email: req.body.email, password: req.body.password, orgId: req.body.orgId, deviceName: req.body.deviceName || undefined });
+    if (out.status === "signed_in") e.audit.record(req.principal!.label, "cloud.sign_in", out.user.email, { organisation: out.orgName });
+    return { ...out, cloud: e.cloud.status(simulated()) };
+  });
+
   r.post("/api/v1/cloud/link/start", { permission: "settings.manage", body: z.object({ deviceName: z.string().max(80).optional() }) }, async (req) => {
     const out = await e.cloud.startLink(req.body.deviceName);
     e.audit.record(req.principal!.label, "cloud.link_start", null);

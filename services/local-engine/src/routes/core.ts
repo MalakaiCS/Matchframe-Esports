@@ -1,4 +1,5 @@
 import { hostname, platform, release } from "node:os";
+import { APP_VERSION } from "../config.ts";
 import { z } from "zod";
 import { discoverCs2, GSI_COMPONENTS, renderGsiConfig, writeGsiConfig } from "@matchframe/game-adapters";
 import { EXPANSION_GAMES } from "@matchframe/game-adapters";
@@ -20,7 +21,7 @@ async function waitFor(pred: () => boolean, timeoutMs: number, stepMs = 50): Pro
 }
 
 export function registerCoreRoutes(r: Router, e: Engine): void {
-  r.get("/api/v1/health", { permission: "public" }, () => ({ ok: true, version: "0.1.0" }));
+  r.get("/api/v1/health", { permission: "public" }, () => ({ ok: true, version: APP_VERSION }));
   r.get("/api/v1/status", { permission: "state.read" }, () => e.health());
 
   r.get("/api/v1/capabilities", { permission: "state.read" }, () => ({
@@ -209,7 +210,7 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
     return {
       json: {
         generatedAt: new Date().toISOString(),
-        app: { version: "0.1.0", startedAt: e.startedAt },
+        app: { version: APP_VERSION, startedAt: e.startedAt },
         host: { platform: platform(), release: release(), hostnameHash: Buffer.from(hostname()).toString("base64url").slice(0, 8), node: process.versions.node },
         config: redact({ ...e.cfg, dataDir: "[local]" }),
         health: e.health(),

@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { hostname, platform } from "node:os";
-import type { DeviceAuthorizeResponse, DeviceTokenResponse, EntitlementPayload, UsageBatchResult } from "@matchframe/cloud-contracts";
+import type { DeviceAuthorizeResponse, DeviceLoginOrg, DeviceLoginResponse, DeviceTokenResponse, DeviceUser, EntitlementPayload, UsageBatchResult } from "@matchframe/cloud-contracts";
 import type { EntitlementCheck } from "@matchframe/cloud-contracts/token";
 import { verifyEntitlement } from "@matchframe/cloud-contracts/token";
 import type { SecretStore } from "../auth.ts";
@@ -10,11 +10,23 @@ import type { AutoDirectorMeter, UsageLedger } from "./meter.ts";
 
 export type GateResult = { ok: true; free?: boolean } | { ok: false; code: "not_linked" | "no_entitlement" | "entitlement_expired" | "plan_excludes" | "hours_exhausted"; reason: string };
 
+/**
+ * Whether the program may be used. signed_in: linked with a valid (or offline-grace) licence.
+ * unchecked: signed in but no licence downloaded yet. offline_expired: the licence could not be
+ * refreshed within the offline grace period. not_required: development builds.
+ */
+export type SignInState = "not_required" | "signed_in" | "signed_out" | "revoked" | "unchecked" | "offline_expired" | "invalid";
+
+export type LoginResult = { status: "signed_in"; user: DeviceUser; orgName: string } | { status: "choose_org"; orgs: DeviceLoginOrg[] };
+
 interface LinkRecord {
   deviceId: string;
   orgId: string;
   orgName: string;
   linkedAt: string;
+  /** Who this computer is signed in as (from sign-in, or from the licence after a link code). */
+  user?: DeviceUser | null;
+  method?: "password" | "code";
 }
 
 interface Linking {
@@ -58,6 +70,8 @@ export class CloudLink {
       pinnedKeys?: Record<string, string> | null;
       /** "off" disables enforcement (development builds only). */
       enforcement: "required" | "off";
+      /** "required": the program must be signed in to a Matchframe account to be used (release builds). */
+      signIn?: "required" | "off";
       /** Fixed website address from the build/environment; overrides the stored setting. */
       fixedUrl?: string | null;
       fetchImpl?: typeof fetch;
@@ -135,6 +149,72 @@ export class CloudLink {
     return { status: res.status, data: data as T };
   }
 
+  // ------------------------------------------------------------------ signing in
+
+  /**
+   * Signs this computer in with the website's email and password. The password is sent once to the
+   * website over its pinned address and never stored; the computer keeps only its own credential.
+   */
+  async login(input: { email: string; password: string; orgId?: string; deviceName?: string }): Promise<LoginResult> {
+    const fail = (status: number, message: string, code: string, detail: unknown = null) => Object.assign(new Error(message), { status, code, detail });
+    if (!this.url) throw fail(409, "set the Matchframe website address first", "no_website");
+    this.cancelLink();
+    if (this.link) {
+      // Signing in again replaces this computer's credential on the website: upload what the current one recorded first.
+      this.deps.meter.flush();
+      await this.sync();
+    }
+    let r: { status: number; data: DeviceLoginResponse & { error?: string; message?: string; detail?: { orgs?: DeviceLoginOrg[] } } };
+    try {
+      r = await this.call("POST", "/v1/device/login", {
+        email: input.email,
+        password: input.password,
+        orgId: input.orgId,
+        deviceName: (input.deviceName ?? hostname()).slice(0, 80) || "Matchframe PC",
+        platform: platform(),
+        appVersion: this.deps.appVersion,
+        installId: this.installId,
+      });
+    } catch (e) {
+      throw fail(502, `cannot reach the Matchframe website (${this.url}): ${e instanceof Error ? e.message : String(e)}`, "unreachable");
+    }
+    if (r.status === 409 && r.data?.error === "choose_org") return { status: "choose_org", orgs: r.data.detail?.orgs ?? [] };
+    if (r.status !== 200 || !r.data?.deviceToken) {
+      const message = r.data?.message ?? `the website refused the sign-in (HTTP ${r.status})`;
+      // 401 from the engine means "operator token rejected" to the console, so wrong passwords are 400 here.
+      throw fail(r.status === 401 ? 400 : r.status >= 500 ? 502 : r.status, message.charAt(0).toUpperCase() + message.slice(1), r.data?.error ?? "sign_in_failed");
+    }
+    this.deps.secrets.setSecret("cloud.deviceToken", r.data.deviceToken);
+    this.deps.settings.set("cloud.link", { deviceId: r.data.deviceId, orgId: r.data.orgId, orgName: r.data.orgName, linkedAt: this.now.toISOString(), user: r.data.user, method: "password" } satisfies LinkRecord);
+    this.deps.settings.set("cloud.entitlement", null);
+    this.checkCache = null;
+    this.revoked = false;
+    this.lastError = null;
+    await this.fetchKeys().catch(() => undefined);
+    await this.refresh();
+    this.startBackground();
+    this.deps.logger.info("signed in to Matchframe", { orgId: r.data.orgId, deviceId: r.data.deviceId, user: r.data.user.email });
+    return { status: "signed_in", user: r.data.user, orgName: r.data.orgName };
+  }
+
+  get signInRequired(): boolean {
+    return this.deps.signIn === "required" && this.enforcement === "required";
+  }
+
+  /** The account this computer is signed in as: the licence's (current) value, else the one stored at sign-in. */
+  get user(): DeviceUser | null {
+    return this.entitlementCheck()?.payload?.user ?? this.link?.user ?? null;
+  }
+
+  signInState(): SignInState {
+    if (!this.signInRequired) return "not_required";
+    if (!this.link) return this.revoked ? "revoked" : "signed_out";
+    const check = this.entitlementCheck();
+    if (!check) return "unchecked";
+    if (check.ok) return "signed_in";
+    return check.reason === "expired" ? "offline_expired" : "invalid";
+  }
+
   // ------------------------------------------------------------------ linking
 
   async startLink(deviceName = hostname()): Promise<{ userCode: string; verificationUri: string; verificationUriComplete: string; expiresAt: string }> {
@@ -172,7 +252,7 @@ export class CloudLink {
       const r = await this.call<DeviceTokenResponse & { error?: string }>("POST", "/v1/device/token", { deviceCode: l.deviceCode });
       if (r.status === 200 && r.data.deviceToken) {
         this.deps.secrets.setSecret("cloud.deviceToken", r.data.deviceToken);
-        this.deps.settings.set("cloud.link", { deviceId: r.data.deviceId, orgId: r.data.orgId, orgName: r.data.orgName, linkedAt: this.now.toISOString() } satisfies LinkRecord);
+        this.deps.settings.set("cloud.link", { deviceId: r.data.deviceId, orgId: r.data.orgId, orgName: r.data.orgName, linkedAt: this.now.toISOString(), method: "code" } satisfies LinkRecord);
         this.revoked = false;
         this.cancelLink();
         await this.fetchKeys();
@@ -226,7 +306,7 @@ export class CloudLink {
       const requestedAt = this.now.toISOString();
       const r = await this.call<{ token?: string; error?: string; message?: string }>("POST", "/v1/device/entitlement", undefined, true);
       if (r.status === 401) {
-        this.markRevoked(r.data?.message ?? "this computer was unlinked on the website");
+        this.markRevoked(r.data?.message ?? "this computer was signed out on the website");
         return null;
       }
       if (r.status !== 200 || !r.data?.token) throw new Error(r.data?.message ?? `HTTP ${r.status}`);
@@ -318,7 +398,7 @@ export class CloudLink {
   canArm(simulated: boolean): GateResult {
     if (simulated) return { ok: true, free: true };
     if (this.enforcement === "off") return { ok: true, free: true };
-    if (!this.link) return { ok: false, code: "not_linked", reason: this.revoked ? "This computer was unlinked on the website. Link it again (Account) to use automatic direction on live matches." : "Link this computer to a Matchframe account (Account) to use automatic direction on live matches. Manual and advisory direction stay available." };
+    if (!this.link) return { ok: false, code: "not_linked", reason: this.revoked ? "This computer was signed out on the website. Sign in again (Account & Hours) to use automatic direction on live matches." : "Sign in to your Matchframe account (Account & Hours) to use automatic direction on live matches. Manual and advisory direction stay available." };
     const check = this.entitlementCheck();
     if (!check) return { ok: false, code: "no_entitlement", reason: "No licence has been downloaded yet. Connect to the internet and press Refresh on the Account screen." };
     if (!check.ok) {
@@ -367,6 +447,7 @@ export class CloudLink {
       enforcement: this.enforcement,
       keysPinned: !!this.deps.pinnedKeys,
       linkState: this.linking ? "linking" : this.link ? "linked" : this.revoked ? "revoked" : "unlinked",
+      signIn: { required: this.signInRequired, state: this.signInState(), user: this.user, method: this.link?.method ?? null },
       linking: this.linking ? { userCode: this.linking.userCode, verificationUri: this.linking.verificationUri, verificationUriComplete: this.linking.verificationUriComplete, expiresAt: new Date(this.linking.expiresAt).toISOString() } : null,
       device: this.link,
       entitlement: payload

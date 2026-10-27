@@ -201,6 +201,7 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/integrations/matchframe/push-result` | metadata.write |
 | GET | `/api/v1/cloud/status` | state.read |
 | PUT | `/api/v1/cloud/url` | settings.manage |
+| POST | `/api/v1/cloud/login` | settings.manage |
 | POST | `/api/v1/cloud/link/start` | settings.manage |
 | POST | `/api/v1/cloud/link/cancel` | settings.manage |
 | POST | `/api/v1/cloud/refresh` | settings.manage |

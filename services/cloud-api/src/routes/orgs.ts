@@ -3,6 +3,7 @@ import { InviteRequest, OrgRole } from "@matchframe/cloud-contracts";
 import type { CloudApp } from "../app.ts";
 import { audit } from "../domain/audit.ts";
 import { orgPlanState } from "../domain/allowance.ts";
+import { revokeComputersOf } from "../domain/devices.ts";
 import type { Router } from "../http/router.ts";
 import { HttpError } from "../http/router.ts";
 import { hashSecret, newId, newSecret } from "../ids.ts";
@@ -128,7 +129,9 @@ export function registerOrgRoutes(r: Router, app: CloudApp): void {
       await tx.query("DELETE FROM memberships WHERE org_id = $1 AND user_id = $2", [ctx.params.orgId!, ctx.params.userId!]);
       const owners = await tx.query<{ n: string }>("SELECT count(*) AS n FROM memberships WHERE org_id = $1 AND role = 'owner'", [ctx.params.orgId!]);
       if (Number(owners.rows[0]!.n) < 1) throw new HttpError(409, "last_owner", "an organisation needs at least one owner; transfer ownership first");
-      await audit(tx, u.id, ctx.params.orgId!, leaving ? "org.member_left" : "org.member_removed", { userId: ctx.params.userId! });
+      // Computers signed in as this person stop working for the organisation they left.
+      const computers = await revokeComputersOf(tx, ctx.params.userId!, app.now(), ctx.params.orgId!);
+      await audit(tx, u.id, ctx.params.orgId!, leaving ? "org.member_left" : "org.member_removed", { userId: ctx.params.userId!, computersSignedOut: computers });
     });
     return { ok: true };
   });

@@ -179,14 +179,33 @@ export interface CloudSummary {
 }
 
 /** GET /api/v1/cloud/status (CloudLink.status in the engine). */
+export type SignInState = "not_required" | "signed_in" | "signed_out" | "revoked" | "unchecked" | "offline_expired" | "invalid";
+
+export interface CloudUser {
+  id: string;
+  email: string;
+  displayName: string;
+}
+
+export interface CloudLoginOrg {
+  id: string;
+  name: string;
+  role: string;
+  planName: string;
+}
+
+export type CloudLoginResult = ({ status: "signed_in"; user: CloudUser; orgName: string } | { status: "choose_org"; orgs: CloudLoginOrg[] }) & { cloud: CloudStatus };
+
 export interface CloudStatus {
   url: string | null;
   urlFixed?: boolean;
   enforcement: "required" | "off";
   keysPinned: boolean;
   linkState: CloudSummary["linkState"];
+  /** Whether the program must be signed in to be used (release builds), and as whom it is signed in. */
+  signIn: { required: boolean; state: SignInState; user: CloudUser | null; method: "password" | "code" | null };
   linking: { userCode: string; verificationUri: string; verificationUriComplete: string; expiresAt: string } | null;
-  device: { deviceId: string; orgId: string; orgName: string; linkedAt: string } | null;
+  device: { deviceId: string; orgId: string; orgName: string; linkedAt: string; user?: CloudUser | null; method?: "password" | "code" } | null;
   entitlement: {
     state: "valid" | "grace" | "expired" | "malformed" | "unknown_key" | "bad_signature" | "wrong_device";
     plan: { id: string; name: string };

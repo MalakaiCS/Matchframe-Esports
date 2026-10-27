@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/index.ts";
 import type { CloudStatus, CloudUsageRecord } from "../api/types.ts";
+import { SignInForm } from "../components/SignIn.tsx";
 import { ActionButton, Async, Badge, EmptyState, Field, KV, Meter, Note, Panel } from "../components/ui.tsx";
 import type { Tone } from "../components/ui.tsx";
 import { gateView } from "../lib/cloud.ts";
@@ -24,7 +25,7 @@ function WebsitePanel({ st, onChange }: { st: CloudStatus; onChange: () => void 
         <KV items={[["Address", st.url]]} />
       ) : (
         <div className="form-grid">
-          <Field label="Website address" hint="Changing it unlinks this computer.">
+          <Field label="Website address" hint="Changing it signs this computer out.">
             <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://app.matchframe.example" spellCheck={false} />
           </Field>
           <div>
@@ -34,7 +35,7 @@ function WebsitePanel({ st, onChange }: { st: CloudStatus; onChange: () => void 
               success="Website address saved"
               onDone={onChange}
               disabledReason={reason ?? (url.trim() === (st.url ?? "") ? "No change" : null)}
-              confirm={st.device ? { title: "Change the website address?", body: "This computer is unlinked from its current account. You will need to link it again." } : undefined}
+              confirm={st.device ? { title: "Change the website address?", body: "This computer is signed out of its current account. You will need to sign in again." } : undefined}
             >
               Save address
             </ActionButton>
@@ -55,40 +56,20 @@ function WebsitePanel({ st, onChange }: { st: CloudStatus; onChange: () => void 
 
 function LinkPanel({ st, onChange }: { st: CloudStatus; onChange: () => void }) {
   const reason = usePermission("settings.manage");
-  const [name, setName] = useState("");
-  const needUrl = !st.url ? "Set the website address first" : null;
+  const user = st.signIn.user;
   return (
     <Panel
-      title="This computer"
-      actions={st.linkState === "linked" ? <Badge tone="ok">LINKED</Badge> : st.linkState === "linking" ? <Badge tone="info">WAITING FOR APPROVAL</Badge> : st.linkState === "revoked" ? <Badge tone="danger">UNLINKED ON WEBSITE</Badge> : <Badge>NOT LINKED</Badge>}
+      title="Matchframe account"
+      actions={st.linkState === "linked" ? <Badge tone="ok">SIGNED IN</Badge> : st.linkState === "linking" ? <Badge tone="info">WAITING FOR APPROVAL</Badge> : st.linkState === "revoked" ? <Badge tone="danger">SIGNED OUT ON WEBSITE</Badge> : <Badge>SIGNED OUT</Badge>}
     >
-      {st.linkState === "linking" && st.linking ? (
-        <div className="stack">
-          <p>
-            On the website, open <strong>Link a computer</strong> and enter this code, or open the link below and approve it:
-          </p>
-          <div className="link-code" aria-label="Link code">
-            {st.linking.userCode}
-          </div>
-          <p>
-            <a href={st.linking.verificationUriComplete} target="_blank" rel="noreferrer">
-              {st.linking.verificationUriComplete}
-            </a>
-          </p>
-          <p className="muted">The code expires {fmtTime(st.linking.expiresAt)}. This page updates by itself once the website approves.</p>
-          <div>
-            <ActionButton variant="secondary" action={() => api.post("/api/v1/cloud/link/cancel")} onDone={onChange} disabledReason={reason}>
-              Cancel
-            </ActionButton>
-          </div>
-        </div>
-      ) : st.device ? (
+      {st.device ? (
         <div className="stack">
           <KV
             items={[
+              ["Signed in as", user ? `${user.displayName} (${user.email})` : MISSING],
               ["Organisation", st.device.orgName],
               ["Computer id", <code key="id">{st.device.deviceId}</code>],
-              ["Linked", fmtTime(st.device.linkedAt)],
+              ["Signed in", fmtTime(st.device.linkedAt)],
               ["Licence refreshed", st.lastRefreshAt ? fmtAgo(st.lastRefreshAt) : "not yet in this session"],
               ["Usage uploaded", st.lastSyncAt ? fmtAgo(st.lastSyncAt) : "not yet in this session"],
             ]}
@@ -100,27 +81,24 @@ function LinkPanel({ st, onChange }: { st: CloudStatus; onChange: () => void }) 
             <ActionButton
               variant="danger"
               action={() => api.post("/api/v1/cloud/unlink")}
-              success="Computer unlinked"
+              success="Signed out"
               onDone={onChange}
               disabledReason={reason}
-              confirm={{ title: "Unlink this computer?", body: "Pending usage is uploaded first. Automatic direction on live matches stops being available until you link again; HUDs and manual control keep working." }}
+              confirm={{
+                title: "Sign out of Matchframe?",
+                body: st.signIn.required
+                  ? "Pending usage is uploaded first. The program keeps running until you close it; the next time it opens it asks you to sign in."
+                  : "Pending usage is uploaded first. Automatic direction on live matches stops being available until you sign in again; HUDs and manual control keep working.",
+              }}
             >
-              Unlink
+              Sign out
             </ActionButton>
           </div>
         </div>
+      ) : reason ? (
+        <p>{reason}. Sign in on the production computer.</p>
       ) : (
-        <div className="stack">
-          <p>Link this computer to your Matchframe account to use automatic direction on live matches. You approve the link on the website; no password is typed here.</p>
-          <Field label="Name shown on the website" hint="Defaults to this computer's name">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Observer PC" maxLength={80} />
-          </Field>
-          <div>
-            <ActionButton variant="primary" action={() => api.post("/api/v1/cloud/link/start", name.trim() ? { deviceName: name.trim() } : {})} onDone={onChange} disabledReason={reason ?? needUrl}>
-              Link this computer
-            </ActionButton>
-          </div>
-        </div>
+        <SignInForm status={st} onSignedIn={onChange} onChange={onChange} />
       )}
       {st.lastError ? (
         <Note tone="warn" title="Last problem">
@@ -137,7 +115,7 @@ function HoursPanel({ st }: { st: CloudStatus }) {
   if (!ent)
     return (
       <Panel title="Plan and auto-director hours" actions={<Badge tone={gate.tone}>{gate.text}</Badge>}>
-        <EmptyState title="No licence on this computer">Link this computer to see its plan and hours. HUDs, manual and advisory direction, and the simulation never need an account.</EmptyState>
+        <EmptyState title="No licence on this computer">Sign in to see the plan and hours.</EmptyState>
       </Panel>
     );
   const ad = ent.autoDirector;
@@ -221,11 +199,11 @@ export function AccountScreen() {
       <div className="page-head">
         <h1 className="page-title">Account & Hours</h1>
       </div>
-      <p className="page-intro">HUDs, manual and advisory direction, replays and the simulation work without an account or internet. Automatic direction on live matches uses auto-director hours from your Matchframe plan.</p>
+      <p className="page-intro">The program is signed in to your Matchframe website account and keeps working offline for up to 7 days after each check. Automatic direction on live matches uses auto-director hours from your organisation's plan; plans, hour packs and team members are managed on the website.</p>
       <Async state={status}>
         {(st) => (
           <div className="stack">
-            {st.enforcement === "off" ? <Note tone="info" title="Enforcement is off">This build lets automatic direction arm without an account (MATCHFRAME_CLOUD_ENFORCEMENT=off). Release builds require a linked computer.</Note> : null}
+            {st.enforcement === "off" ? <Note tone="info" title="Enforcement is off">This build lets automatic direction arm without an account (MATCHFRAME_CLOUD_ENFORCEMENT=off). Release builds require signing in.</Note> : !st.signIn.required ? <Note tone="info" title="Sign-in not required">This build opens without signing in (MATCHFRAME_SIGN_IN=off, development only). Release builds ask to sign in when the program opens.</Note> : null}
             <div className="grid-2">
               <LinkPanel st={st} onChange={() => void status.reload()} />
               <HoursPanel st={st} />

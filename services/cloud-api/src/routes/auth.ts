@@ -7,6 +7,7 @@ import { DUMMY_HASH, hashPassword, verifyPassword } from "../auth/passwords.ts";
 import type { Queryable } from "../db/sql.ts";
 import { audit } from "../domain/audit.ts";
 import { orgPlanState } from "../domain/allowance.ts";
+import { revokeComputersOf } from "../domain/devices.ts";
 import type { Router } from "../http/router.ts";
 import { HttpError, reply } from "../http/router.ts";
 import { hashSecret, newId, newSecret } from "../ids.ts";
@@ -199,7 +200,8 @@ export function registerAuthRoutes(r: Router, app: CloudApp): void {
     const userId = await consumeEmailToken(app.sql, ctx.body.token, "reset", app.now());
     await app.sql.query("UPDATE users SET password_hash = $2, email_verified_at = COALESCE(email_verified_at, now()) WHERE id = $1", [userId, await hashPassword(ctx.body.password)]);
     await app.sql.query("DELETE FROM sessions WHERE user_id = $1", [userId]);
-    await audit(app.sql, userId, null, "account.password_reset");
+    const computers = await revokeComputersOf(app.sql, userId, app.now());
+    await audit(app.sql, userId, null, "account.password_reset", { computersSignedOut: computers });
     return { ok: true };
   });
 
@@ -209,8 +211,9 @@ export function registerAuthRoutes(r: Router, app: CloudApp): void {
     if (!(await verifyPassword(ctx.body.currentPassword, rows[0]!.password_hash))) throw new HttpError(400, "invalid_credentials", "current password is incorrect");
     await app.sql.query("UPDATE users SET password_hash = $2 WHERE id = $1", [u.id, await hashPassword(ctx.body.newPassword)]);
     await app.sql.query("DELETE FROM sessions WHERE user_id = $1 AND id_hash <> $2", [u.id, u.sessionHash]);
-    await audit(app.sql, u.id, null, "account.password_changed");
-    return { ok: true };
+    const computers = await revokeComputersOf(app.sql, u.id, app.now());
+    await audit(app.sql, u.id, null, "account.password_changed", { computersSignedOut: computers });
+    return { ok: true, computersSignedOut: computers };
   });
   r.add("GET", "/v1/auth/sessions", { summary: "Browsers signed in to your account" }, async (ctx) => {
     const u = await app.requireUser(ctx);

@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { APP_VERSION } from "./config.ts";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { join } from "node:path";
 import { GSI_MAX_BODY_BYTES } from "@matchframe/cs2-state";
@@ -60,7 +61,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerDeviceRoutes(router, e);
   registerIntegrationRoutes(router, e);
   registerCloudRoutes(router, e);
-  router.get("/api/v1/openapi.json", { permission: "public" }, () => router.openapi({ title: "Matchframe Esports local API", version: "0.1.0" }));
+  router.get("/api/v1/openapi.json", { permission: "public" }, () => router.openapi({ title: "Matchframe Esports local API", version: APP_VERSION }));
 
   // ------------------------------------------------------------------ GSI ingest server
   let gsiRejectedAuth = 0;

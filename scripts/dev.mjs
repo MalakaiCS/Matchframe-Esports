@@ -2,7 +2,9 @@
 // Development startup: builds the browser apps and the program's main/preload bundles when missing
 // (or with --build), then launches the Matchframe program (Electron), which runs the engine from
 // source. --sim starts the labelled simulation once the engine is ready. --engine-only runs the
-// engine without the program (API, HUD outputs and captain page only; no console).
+// engine without the program (API, HUD outputs and captain page only; no console). The program
+// opens without signing in during development; --sign-in shows the sign-in screen as release
+// builds do (set MATCHFRAME_CLOUD_URL to a website, e.g. a local `pnpm cloud`).
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -26,7 +28,12 @@ for (const [app, marker] of [["hud-renderer", "dist/index.html"], ["operator-web
   }
 }
 
-const env = { ...process.env, MATCHFRAME_PYTHON: process.env.MATCHFRAME_PYTHON ?? resolvePython(), MATCHFRAME_WORKERS_DIR: process.env.MATCHFRAME_WORKERS_DIR ?? workersDir };
+const env = {
+  ...process.env,
+  MATCHFRAME_PYTHON: process.env.MATCHFRAME_PYTHON ?? resolvePython(),
+  MATCHFRAME_WORKERS_DIR: process.env.MATCHFRAME_WORKERS_DIR ?? workersDir,
+  MATCHFRAME_SIGN_IN: args.has("--sign-in") ? "required" : (process.env.MATCHFRAME_SIGN_IN ?? "off"),
+};
 const apiPort = env.MATCHFRAME_API_PORT ?? "37211";
 
 let child;
