@@ -48,7 +48,7 @@ export function fullActionObserverFaq(planNames?: string[]): FaqItem {
           Full Action Observer does everything Observer &amp; Cinematics does and adds nade cameras: static cameras that catch smokes, flashes, molotovs and incendiaries, and HE grenades as they land. Like cinematic cameras, they're captured with <code>getpos</code> in Maps &amp; Cameras, validated by an operator and need a passed static camera test. It uses auto-director hours at the same rate as the other Observer modes.
         </p>
         <p>
-          {where} A plan change applies the next time automation is armed; automation is never cut mid-map.
+          {where} A new plan reaches the program within 15 minutes (or straight away with Refresh on Account &amp; Hours). If a plan stops including Full Action Observer, the program switches to Observer &amp; Cinematics at the next map change; automation is never cut mid-map.
         </p>
       </>
     ),
@@ -332,7 +332,7 @@ export const FAQ: FaqItem[] = [
     id: "cancel",
     category: "billing",
     q: "How do I cancel or change my plan?",
-    a: <p>Owners and billing members can change or cancel the subscription at any time in the customer portal (Billing &amp; Subscription → Manage subscription). A cancelled plan stays active until the end of the period you've paid for, then the organisation moves to the Free plan. In the program, a plan change applies the next time automation is armed, so a map in progress is never interrupted.</p>,
+    a: <p>Owners and billing members can change or cancel the subscription at any time in the customer portal (Billing &amp; Subscription → Manage subscription). A cancelled plan stays active until the end of the period you've paid for, then the organisation moves to the Free plan. The program picks up a plan change within 15 minutes, and never interrupts a map in progress: without Full Action Observer it switches to Observer &amp; Cinematics at the next map change.</p>,
   },
   {
     id: "payments",

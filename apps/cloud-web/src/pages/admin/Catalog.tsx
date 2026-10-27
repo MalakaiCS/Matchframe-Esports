@@ -159,7 +159,7 @@ function PlanEditor({ plan, onSaved, onCancel }: { plan: Plan | null; onSaved: (
       </div>
       <div className="editor-checks">
         <CheckField label="Automatic direction" checked={f.autoDirector} onValue={set("autoDirector")} hint="Observer and Observer & Cinematics. Off = the plan includes no auto-director hours (credits are not usable either)." />
-        <CheckField label="Full Action Observer (nade cameras)" checked={f.fullActionObserver} onValue={set("fullActionObserver")} hint={f.autoDirector ? "Adds nade cameras on top of Observer & Cinematics, at the same hourly rate. Applies in the program the next time automation is armed." : "Has no effect without automatic direction: it uses the same auto-director hours."} />
+        <CheckField label="Full Action Observer (nade cameras)" checked={f.fullActionObserver} onValue={set("fullActionObserver")} hint={f.autoDirector ? "Adds nade cameras on top of Observer & Cinematics, at the same hourly rate. Programs pick it up with their next licence refresh (within 15 minutes); removing it switches running programs to Observer & Cinematics at the next map change." : "Has no effect without automatic direction: it uses the same auto-director hours."} />
         <CheckField label="Learned-director shadow mode" checked={f.learnedDirectorShadow} onValue={set("learnedDirectorShadow")} />
         <CheckField label="Public (shown on the pricing page and purchasable)" checked={f.public} onValue={set("public")} />
       </div>

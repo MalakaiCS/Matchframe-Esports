@@ -174,7 +174,7 @@ export function HowItWorks() {
           <div>
             <SectionHead id="metering-title" eyebrow="Fair metering" title="Hours are used only while automation drives the camera" lead="The program counts a second only when every one of these is true:" />
             <Callout title="At the limit">
-              <p>Automation already running is never cut off mid-map: it finishes the map and hands the camera back at the map change. Re-arming is then blocked until hours are added. There are no overage charges. A plan change also applies the next time automation is armed.</p>
+              <p>Automation already running is never cut off mid-map: it finishes the map and hands the camera back at the map change. Re-arming is then blocked until hours are added. There are no overage charges. If a plan stops including Full Action Observer, the program switches to Observer &amp; Cinematics at the next map change.</p>
             </Callout>
           </div>
           <div>

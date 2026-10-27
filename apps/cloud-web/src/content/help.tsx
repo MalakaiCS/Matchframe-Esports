@@ -183,7 +183,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         <h2>When hours run out</h2>
         <p>Automation that's already running finishes the current map and then hands the camera back to your operator. It's never cut off mid-map. Automatic direction can't be re-armed until hours are added or the next period starts. There are no overage charges.</p>
         <h2>Changing plan</h2>
-        <p>A plan change, for example moving to the plan with Full Action Observer, applies in the program the next time automation is armed. Automation that's running on a map is never interrupted by it.</p>
+        <p>A plan change reaches the program within 15 minutes (or straight away with <strong>Refresh</strong> on Account &amp; Hours). Moving to the plan with Full Action Observer unlocks it in Live Control. Moving away from it never interrupts a map: the program switches to Observer &amp; Cinematics at the next map change.</p>
         <h2>When hours reset</h2>
         <p>
           Included hours renew at the start of each billing period on a paid plan, and each calendar month on the Free plan. They don't roll over. Need more right now? <Link to="/help/buying-hour-packs">Buy an hour pack</Link>.
