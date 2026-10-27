@@ -11,6 +11,8 @@
 # release's tag and attaches the installer, the portable zip and SHA256SUMS.txt to it. Running this
 # workflow manually with a tag builds that tag and attaches the files to its release, creating and
 # publishing the release first (notes from docs/release-notes/<version>-dev.md) when there is none.
+# A tag that does not exist yet is created by the release, on the commit of the branch the run was
+# started from (that commit is what gets built).
 # Builds are unsigned unless CSC_LINK / CSC_KEY_PASSWORD secrets are configured.
 name: Windows program (.exe)
 
@@ -38,7 +40,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to build and release (e.g. v0.1.2); the release is created when it does not exist yet. Leave empty for a test build of the selected branch."
+        description: "Tag to build and release (e.g. v0.1.2). A new tag and its release are created on the selected branch's latest commit. Leave empty for a test build of the selected branch."
         required: false
         default: ""
 
@@ -58,10 +60,24 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
+      - name: Choose what to build
+        id: ref
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        # A manual run for an existing tag builds exactly that tag; a new tag is created on the
+        # selected branch's commit by the release, so that commit is built.
+        run: |
+          if [ -n "$TAG" ] && gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            echo "ref=$TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
         with:
-          # A manual run for a release builds exactly that release's tag.
-          ref: ${{ inputs.tag }}
+          ref: ${{ steps.ref.outputs.ref }}
 
       - uses: pnpm/action-setup@v4
         with:
@@ -154,7 +170,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          ref: ${{ github.event.release.tag_name || github.sha }}
           sparse-checkout: docs/release-notes
       - name: Create the release if it does not exist yet (manual run with a new tag)
         env:
@@ -165,9 +181,9 @@ jobs:
           version="${TAG#v}"
           notes="docs/release-notes/${version}-dev.md"
           if [ -f "$notes" ]; then
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "Version ${version} Beta Matchframe Esports" --notes-file "$notes"
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Version ${version} Beta Matchframe Esports" --notes-file "$notes"
           else
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "Version ${version} Beta Matchframe Esports" --generate-notes
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Version ${version} Beta Matchframe Esports" --generate-notes
           fi
       - uses: actions/download-artifact@v4
         with:
