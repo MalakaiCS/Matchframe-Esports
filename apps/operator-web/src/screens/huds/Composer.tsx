@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { api, seg } from "../../api/index.ts";
 import type { HudOutputEntry, PublishedOutput } from "../../api/types.ts";
-import { ActionButton, Async, Badge, Button, Checkbox, Field, Note, Panel } from "../../components/ui.tsx";
+import { ActionButton, Async, Badge, Button, Checkbox, Details, Field, Panel } from "../../components/ui.tsx";
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
 import { previewUrl } from "./Outputs.tsx";
@@ -54,14 +54,13 @@ function readOffsets(settings: Record<string, unknown>): LayoutOffsets {
   return out;
 }
 
-function Editor({ entry, reload }: { entry: HudOutputEntry; reload: () => void }) {
+function Editor({ entry, reload, underlay }: { entry: HudOutputEntry; reload: () => void; underlay: boolean }) {
   const reason = usePermission("hud.publish");
   const base = entry.draft.settings;
   const [hidden, setHidden] = useState(() => readHidden(base));
   const [offsets, setOffsets] = useState<LayoutOffsets>(() => readOffsets(base));
   const [reducedMotion, setReducedMotion] = useState(base.reducedMotion === true);
   const [selected, setSelected] = useState<string>("scoreboard");
-  const [underlay, setUnderlay] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: string; x: number; y: number; dx: number; dy: number } | null>(null);
 
@@ -101,7 +100,7 @@ function Editor({ entry, reload }: { entry: HudOutputEntry; reload: () => void }
 
   return (
     <div className="grid-2-1">
-      <Panel title="Layout stage (1920×1080)" subtitle="Drag elements or use arrow keys (Shift = 10 px). Dashed = hidden." actions={<Checkbox checked={underlay} onChange={setUnderlay} label="Published output underneath" />}>
+      <Panel title="Layout (1920×1080)" subtitle="Drag elements or use the arrow keys (Shift moves 10 px). Dashed elements are hidden.">
         <div className="stage" ref={stageRef} onPointerMove={onMove} onPointerUp={() => (drag.current = null)}>
           {underlay && entry.published ? <iframe title="Published output" src={previewUrl(entry.url)} sandbox="allow-scripts allow-same-origin" tabIndex={-1} style={{ opacity: 0.55, pointerEvents: "none" }} /> : null}
           {COMPOSER_ELEMENTS.map((el) => {
@@ -128,26 +127,25 @@ function Editor({ entry, reload }: { entry: HudOutputEntry; reload: () => void }
           })}
         </div>
       </Panel>
-      <div className="stack">
-        <Panel title={`Element: ${sel.label}`}>
-          <Checkbox checked={!hidden[sel.hideKey]} onChange={(v) => setHidden({ ...hidden, [sel.hideKey]: !v })} label={`Visible (${sel.hideKey})`} />
-          {sel.hideKey === "hide.players" ? <p className="small muted">Both player panels share one visibility flag in the built-in HUD.</p> : null}
-          <div className="form-grid">
-            <Field label="Offset X (px)">
-              <input type="number" value={off(sel.id).dx} onChange={(e) => move(sel.id, Number(e.target.value), off(sel.id).dy)} />
-            </Field>
-            <Field label="Offset Y (px)">
-              <input type="number" value={off(sel.id).dy} onChange={(e) => move(sel.id, off(sel.id).dx, Number(e.target.value))} />
-            </Field>
-          </div>
-          <div className="form-actions">
-            <Button size="sm" onClick={() => move(sel.id, 0, 0)}>
-              Reset position
-            </Button>
-          </div>
-        </Panel>
-        <Panel title="Output-wide">
-          <Checkbox checked={reducedMotion} onChange={setReducedMotion} label="Reduced motion (reducedMotion)" />
+      <Panel title={sel.label} subtitle="Selected element" className="gb-start">
+        <Checkbox checked={!hidden[sel.hideKey]} onChange={(v) => setHidden({ ...hidden, [sel.hideKey]: !v })} label="Visible" hint={`Settings flag ${sel.hideKey}`} />
+        {sel.hideKey === "hide.players" ? <p className="small muted">Both player panels share one visibility flag in the built-in HUD.</p> : null}
+        <div className="form-grid" style={{ marginTop: 8 }}>
+          <Field label="Offset X (px)">
+            <input type="number" value={off(sel.id).dx} onChange={(e) => move(sel.id, Number(e.target.value), off(sel.id).dy)} />
+          </Field>
+          <Field label="Offset Y (px)">
+            <input type="number" value={off(sel.id).dy} onChange={(e) => move(sel.id, off(sel.id).dx, Number(e.target.value))} />
+          </Field>
+        </div>
+        <div className="form-actions">
+          <Button size="sm" variant="ghost" onClick={() => move(sel.id, 0, 0)}>
+            Reset position
+          </Button>
+        </div>
+        <div className="gb-section">
+          <h3 className="gb-section-title">Whole output</h3>
+          <Checkbox checked={reducedMotion} onChange={setReducedMotion} label="Reduced motion" hint="Settings flag reducedMotion" />
           <div className="form-actions">
             <ActionButton
               variant="primary"
@@ -168,18 +166,20 @@ function Editor({ entry, reload }: { entry: HudOutputEntry; reload: () => void }
               Publish draft
             </ActionButton>
           </div>
-          {entry.dirty ? <Badge tone="warn">DRAFT DIFFERS FROM ON-AIR</Badge> : null}
-          <details>
-            <summary className="small">Settings that will be written</summary>
+          {entry.dirty ? <p className="small text-warn">The draft has unpublished changes.</p> : null}
+          <Details summary="Settings that will be written">
             <pre className="json-view">{JSON.stringify(next, null, 2)}</pre>
-          </details>
-        </Panel>
-        <Note tone="warn" title="PREVIEW SCOPE">
-          <strong>Implemented:</strong> element visibility (<code>hide.*</code>) and reduced motion — both applied by the built-in renderer — plus position offsets stored as <code>settings.layout</code> and applied by the built-in renderer, saved to the draft and published with revisions/rollback.
-          <br />
-          <strong>Not yet implemented (Full Suite):</strong> resize/scale handles, adding new layers (text, images, video), data bindings to HUD state fields, per-variant layouts, multi-step undo, and rendering the unpublished draft in the live preview (the underlay shows the published revision).
-        </Note>
-      </div>
+          </Details>
+          <Details summary="What the preview can do">
+            <p className="small muted">
+              <strong>Implemented:</strong> element visibility (<code>hide.*</code>), reduced motion and position offsets (<code>settings.layout</code>), all applied by the built-in renderer, saved to the draft and published with revisions and rollback.
+            </p>
+            <p className="small muted">
+              <strong>Not yet implemented (Full Suite):</strong> resize and scale handles, new layers (text, images, video), data bindings to HUD state fields, per-variant layouts, multi-step undo, and rendering the unpublished draft in the live preview (the underlay shows the published revision).
+            </p>
+          </Details>
+        </div>
+      </Panel>
     </div>
   );
 }
@@ -187,25 +187,29 @@ function Editor({ entry, reload }: { entry: HudOutputEntry; reload: () => void }
 export function ComposerTab() {
   const outputs = useApi<HudOutputEntry[]>("/api/v1/hud/outputs");
   const [selected, setSelected] = useState("main");
+  const [underlay, setUnderlay] = useState(false);
   return (
     <Async state={outputs}>
       {(list) => {
         const entry = list.find((o) => o.draft.outputId === selected) ?? list[0];
         return (
           <>
-            <div className="row" style={{ marginBottom: 10 }}>
+            <div className="gb-toolbar">
               <Field label="Output">
                 <select value={entry?.draft.outputId ?? ""} onChange={(e) => setSelected(e.target.value)}>
                   {list.map((o) => (
                     <option key={o.draft.outputId} value={o.draft.outputId}>
-                      {o.draft.name} ({o.draft.outputId})
+                      {o.draft.name}
                     </option>
                   ))}
                 </select>
               </Field>
-              <Badge tone="info">COMPOSER (PREVIEW)</Badge>
+              <Badge tone="info" title="The composer is a preview: see “What the preview can do”">
+                Preview
+              </Badge>
+              <Checkbox checked={underlay} onChange={setUnderlay} label="Show published output underneath" />
             </div>
-            {entry ? <Editor key={entry.draft.outputId} entry={entry} reload={() => void outputs.reload()} /> : <p className="muted">No outputs.</p>}
+            {entry ? <Editor key={entry.draft.outputId} entry={entry} reload={() => void outputs.reload()} underlay={underlay} /> : <p className="muted">No outputs.</p>}
           </>
         );
       }}

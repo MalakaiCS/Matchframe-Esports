@@ -1,13 +1,12 @@
 import { useRef, useState } from "react";
 import { api, seg } from "../../api/index.ts";
 import type { HudPackage } from "../../api/types.ts";
-import { ActionButton, Async, Badge, EmptyState, Field, Note, Panel } from "../../components/ui.tsx";
+import { ActionButton, Async, Badge, Details, EmptyState, Field, KV, Panel } from "../../components/ui.tsx";
 import { fmtBytes, fmtTime } from "../../lib/format.ts";
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
 
-/** The engine's default request body limit; larger archives must be imported from a directory. */
-/** Engine limit for HUD archive uploads (POST /api/v1/hud/packages/import). */
+/** Engine limit for HUD archive uploads (POST /api/v1/hud/packages/import); larger archives must be imported from a directory. */
 const MAX_UPLOAD = 60 * 1024 * 1024;
 
 export function PackagesTab() {
@@ -18,10 +17,79 @@ export function PackagesTab() {
   const [dir, setDir] = useState("");
   return (
     <div className="stack">
-      <div className="grid-2">
-        <Panel title="Import a package archive (.zip)" subtitle="Validated before install; a failed import never touches the installed version">
+      <Panel title="Installed packages">
+        <Async state={pk}>
+          {(list) =>
+            list.length === 0 ? (
+              <EmptyState title="No packages">The built-in Matchframe HUD registers on engine start.</EmptyState>
+            ) : (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Package</th>
+                      <th>Version</th>
+                      <th>Integrity</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {list.map((p) => (
+                      <tr key={p.id}>
+                        <td>
+                          <strong>{p.manifest.name}</strong>
+                          <span className="muted small"> · {p.classification === "builtin" ? "Built-in" : "Imported"}</span>
+                          {p.manifest.description ? <div className="small muted">{p.manifest.description}</div> : null}
+                          <Details summary="Details">
+                            <KV
+                              items={[
+                                ["ID", <span key="id" className="mono">{p.id}</span>],
+                                ["Author", p.manifest.author],
+                                ["Licence", p.manifest.licence],
+                                ["Variants", Object.keys(p.manifest.entryPoints).join(", ")],
+                                ["Permissions", p.manifest.permissions.join(", ")],
+                                ["Installed", fmtTime(p.installedAt)],
+                                ["Files", p.classification === "builtin" ? "app build" : `${Object.keys(p.checksums).length} files hashed`],
+                              ]}
+                            />
+                          </Details>
+                        </td>
+                        <td>
+                          {p.manifest.version}
+                          {p.previous ? <div className="small muted">previous {p.previous.version}</div> : null}
+                        </td>
+                        <td>
+                          {p.verify.ok ? (
+                            <span className="small text-ok">✓ Verified</span>
+                          ) : (
+                            <Badge tone="danger" icon="!" title={p.verify.mismatches.join(", ")}>
+                              {p.verify.mismatches.length} changed
+                            </Badge>
+                          )}
+                        </td>
+                        <td>
+                          <div className="cell-actions">
+                            <ActionButton size="sm" action={() => api.post<HudPackage>(`/api/v1/hud/packages/${seg(p.id)}/rollback`)} success={(r) => `Rolled back to ${r.manifest.version}`} onDone={() => void pk.reload()} disabledReason={reason ?? (p.previous ? null : "No previous version installed")} confirm={{ title: `Roll back ${p.manifest.name} to ${p.previous?.version}?`, body: "Outputs using this package switch to the previous version immediately." }}>
+                              Roll back
+                            </ActionButton>
+                            <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/hud/packages/${seg(p.id)}`)} success="Package removed" onDone={() => void pk.reload()} disabledReason={reason ?? (p.classification === "builtin" ? "Built-in packages cannot be removed" : null)} confirm={{ title: `Remove ${p.manifest.name}?`, body: "Refused by the engine while a published output uses it.", danger: true, confirmLabel: "Remove" }}>
+                              Remove
+                            </ActionButton>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          }
+        </Async>
+      </Panel>
+      <Panel title="Import a package" subtitle="Validated before install; a failed import leaves the installed version untouched">
+        <div className="grid-2">
           <div className="row-end">
-            <Field label="Archive" hint={`Max ${fmtBytes(MAX_UPLOAD)} via upload (engine archive limit)`}>
+            <Field label={`Archive (.zip, up to ${fmtBytes(MAX_UPLOAD)})`}>
               <input ref={fileRef} type="file" accept=".zip,application/zip" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             </Field>
             <ActionButton
@@ -41,93 +109,21 @@ export function PackagesTab() {
               Import archive
             </ActionButton>
           </div>
-        </Panel>
-        <Panel title="Import from a directory" subtitle="Path on the engine machine (symlinks are rejected)">
           <div className="row-end">
-            <Field label="Directory">
-              <input value={dir} onChange={(e) => setDir(e.target.value)} placeholder="D:\HUDs\my-hud" style={{ width: 340 }} />
+            <Field label="Or a directory on the engine machine">
+              <input value={dir} onChange={(e) => setDir(e.target.value)} placeholder="D:\HUDs\my-hud" style={{ width: 300 }} />
             </Field>
             <ActionButton action={() => api.post<HudPackage>("/api/v1/hud/packages/import-directory", { path: dir.trim() })} success={(p) => `Installed ${p.manifest.name} ${p.manifest.version}`} onDone={() => void pk.reload()} disabledReason={reason ?? (dir.trim() ? null : "Enter a directory path")}>
               Import directory
             </ActionButton>
           </div>
-        </Panel>
-      </div>
-      <Panel title="Installed packages">
-        <Async state={pk}>
-          {(list) =>
-            list.length === 0 ? (
-              <EmptyState title="No packages">The built-in Matchframe HUD registers on engine start.</EmptyState>
-            ) : (
-              <div className="table-wrap">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Package</th>
-                      <th>Version</th>
-                      <th>Author / licence</th>
-                      <th>Type</th>
-                      <th>Integrity</th>
-                      <th>Variants</th>
-                      <th>Permissions</th>
-                      <th>Installed</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {list.map((p) => (
-                      <tr key={p.id}>
-                        <td>
-                          <strong>{p.manifest.name}</strong>
-                          <div className="muted small mono">{p.id}</div>
-                          {p.manifest.description ? <div className="small muted">{p.manifest.description}</div> : null}
-                        </td>
-                        <td>
-                          {p.manifest.version}
-                          {p.previous ? <div className="small muted">previous {p.previous.version}</div> : null}
-                        </td>
-                        <td>
-                          {p.manifest.author}
-                          <div className="small muted">{p.manifest.licence}</div>
-                        </td>
-                        <td>{p.classification === "builtin" ? <Badge tone="accent">BUILT-IN</Badge> : <Badge>IMPORTED</Badge>}</td>
-                        <td>
-                          {p.verify.ok ? (
-                            <Badge tone="ok" icon="✓">
-                              VERIFIED
-                            </Badge>
-                          ) : (
-                            <Badge tone="danger" icon="!" title={p.verify.mismatches.join(", ")}>
-                              {p.verify.mismatches.length} CHANGED
-                            </Badge>
-                          )}
-                          <div className="small muted">{p.classification === "builtin" ? "app build" : `${Object.keys(p.checksums).length} files hashed`}</div>
-                        </td>
-                        <td className="small">{Object.keys(p.manifest.entryPoints).join(", ")}</td>
-                        <td className="small">{p.manifest.permissions.join(", ")}</td>
-                        <td className="small">{fmtTime(p.installedAt)}</td>
-                        <td>
-                          <div className="cell-actions">
-                            <ActionButton size="sm" action={() => api.post<HudPackage>(`/api/v1/hud/packages/${seg(p.id)}/rollback`)} success={(r) => `Rolled back to ${r.manifest.version}`} onDone={() => void pk.reload()} disabledReason={reason ?? (p.previous ? null : "No previous version installed")} reasonPlacement="tooltip" confirm={{ title: `Roll back ${p.manifest.name} to ${p.previous?.version}?`, body: "Outputs using this package switch to the previous version immediately." }}>
-                              Roll back
-                            </ActionButton>
-                            <ActionButton size="sm" variant="danger" action={() => api.del(`/api/v1/hud/packages/${seg(p.id)}`)} success="Package removed" onDone={() => void pk.reload()} disabledReason={reason ?? (p.classification === "builtin" ? "Built-in packages cannot be removed" : null)} reasonPlacement="tooltip" confirm={{ title: `Remove ${p.manifest.name}?`, body: "Refused by the engine while a published output uses it.", danger: true, confirmLabel: "Remove" }}>
-                              Remove
-                            </ActionButton>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )
-          }
-        </Async>
+        </div>
+        <Details summary="What a package can contain">
+          <p className="small muted">
+            HUD packages are static web assets (HTML, JS, CSS, images, fonts). Nothing is executed during install; executables, scripts outside the allow-list and symlinks are rejected. Packages receive only the public HUD state. Archives larger than {fmtBytes(MAX_UPLOAD)} must be imported from a directory.
+          </p>
+        </Details>
       </Panel>
-      <Note tone="neutral" title="PACKAGES">
-        HUD packages are static web assets (HTML/JS/CSS/images/fonts). Nothing is executed during install; executables and scripts outside the allow-list are rejected. Packages receive only the public HUD state.
-      </Note>
     </div>
   );
 }

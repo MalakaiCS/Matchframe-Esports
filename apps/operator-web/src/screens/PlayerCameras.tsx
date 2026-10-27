@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { api, seg } from "../api/index.ts";
 import type { ObsState, PlayerCamConfig, PlayerCamResponse, PlayerRow, TeamRow } from "../api/types.ts";
-import { ActionButton, Async, Badge, Checkbox, EmptyState, Field, KV, Note, Panel } from "../components/ui.tsx";
+import { ActionButton, Async, Badge, Checkbox, Details, EmptyState, Field, KV, Panel } from "../components/ui.tsx";
 import { fmtTime, MISSING } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
 import { Link } from "../router.tsx";
 import { usePermission } from "../state/session.tsx";
+import "../styles/group-b.css";
 
 /** Keeps routing entries only for players who consented (the engine rejects the rest). */
 export function routableSources(sources: Record<string, string>, players: { id: string; cameraConsent: boolean }[]): Record<string, string> {
@@ -18,12 +20,11 @@ function ConsentToggle({ p, onSaved }: { p: PlayerRow; onSaved: () => void }) {
   return (
     <ActionButton
       size="sm"
-      variant="secondary"
+      variant="ghost"
       action={() => api.patch(`/api/v1/players/${seg(p.id)}`, { cameraConsent: !p.cameraConsent, revision: p.revision })}
       success={`${p.displayName}: consent ${p.cameraConsent ? "revoked" : "recorded"}`}
       onDone={onSaved}
       disabledReason={reason}
-      reasonPlacement="tooltip"
       confirm={p.cameraConsent ? { title: `Revoke ${p.displayName}'s camera consent?`, body: "Save the routing afterwards: their source is then removed from routing." } : { title: `Record camera consent for ${p.displayName}?`, body: "Only record consent you have actually obtained from the player." }}
     >
       {p.cameraConsent ? "Revoke consent" : "Record consent"}
@@ -50,7 +51,15 @@ export function PlayerCamerasScreen() {
       <div className="page-head">
         <h1 className="page-title">Player Cameras</h1>
       </div>
-      <p className="page-intro">When the observer is confirmed on a player, Matchframe shows that player's camera source in an OBS scene and hides the others — keyed by stable player identity, never by observer slot, and only for players who consented. Routing acts only while program is LIVE.</p>
+      <p className="page-intro">Shows the observed player's camera in OBS and hides the others, while program is live.</p>
+      <Details summary="How this works" className="gb-intro-details">
+        <p className="small muted">
+          When the observer is confirmed on a player, Matchframe makes that player's camera source visible in the chosen OBS scene and hides the others. Routing is keyed by stable player identity (SteamID), never by observer slot, and only covers players who consented. It acts only while program is live.
+        </p>
+        <p className="small muted">
+          Consent is stored on the player record; the OBS source mapping is part of the routing settings. Routing only toggles OBS source visibility: remote camera intake (SRT, NDI, WebRTC) and a dedicated camera mixer are not implemented, so add each camera to the OBS scene yourself.
+        </p>
+      </Details>
       <Async state={cfg}>
         {(c) => {
           const d = draft ?? c.config;
@@ -59,12 +68,21 @@ export function PlayerCamerasScreen() {
           const active = c.config.enabled && !!c.config.scene && st.obsConnected && st.programMode === "LIVE";
           const lastPlayer = list.find((p) => p.id === st.lastPlayerId);
           const dropped = Object.keys(d.sources).filter((id) => !list.find((p) => p.id === id)?.cameraConsent);
+          const sourcesChanged = JSON.stringify(d.sources) !== JSON.stringify(c.config.sources);
+          const modeText = st.programMode.charAt(0) + st.programMode.slice(1).replace(/_/g, " ").toLowerCase();
+          const statusItems: [ReactNode, ReactNode][] = [
+            ["Last routed player", lastPlayer?.displayName ?? st.lastPlayerId ?? "None"],
+            ["Last source shown", st.lastSource ?? "None"],
+            ["Last change", st.lastAt ? fmtTime(st.lastAt) : MISSING],
+          ];
+          if (st.programMode !== "LIVE") statusItems.push(["Program", `${modeText} (routing paused outside live)`]);
+          if (st.lastError) statusItems.push(["Last error", <span className="text-danger">{st.lastError}</span>]);
           return (
             <div className="stack">
               <div className="grid-2">
-                <Panel title="Routing" actions={active ? <Badge tone="ok" icon="●">ROUTING ACTIVE</Badge> : c.config.enabled ? <Badge tone="warn">ENABLED · IDLE</Badge> : <Badge>DISABLED</Badge>}>
+                <Panel title="Routing" actions={active ? <Badge tone="ok" icon="●">Routing active</Badge> : c.config.enabled ? <Badge tone="warn">Enabled · idle</Badge> : <Badge>Disabled</Badge>}>
                   <div className="form-grid">
-                    <Field label="OBS scene with the camera sources">
+                    <Field label="OBS scene with the cameras">
                       <input list="pc-scenes" value={d.scene ?? ""} onChange={(e) => set({ scene: e.target.value || null })} placeholder="Player Cams" />
                       <datalist id="pc-scenes">
                         {scenes.map((s) => (
@@ -72,7 +90,7 @@ export function PlayerCamerasScreen() {
                         ))}
                       </datalist>
                     </Field>
-                    <Field label="Fallback source" hint="Shown when the observed player has no routed camera">
+                    <Field label="Fallback source" hint="When the observed player has no camera">
                       <input list="pc-inputs" value={d.fallbackSource ?? ""} onChange={(e) => set({ fallbackSource: e.target.value || null })} />
                     </Field>
                     <Field label="Delay (ms)" hint="Match a delayed program feed">
@@ -102,28 +120,25 @@ export function PlayerCamerasScreen() {
                   {dropped.length ? <p className="small text-warn">{dropped.length} mapping(s) belong to players without consent and will be removed on save.</p> : null}
                   {!st.obsConnected ? (
                     <p className="small text-warn">
-                      OBS is not connected — routing cannot act. <Link to="/devices">Connect OBS</Link>
+                      OBS is not connected, so routing can't act. <Link to="/devices">Connect OBS</Link>
                     </p>
                   ) : null}
                 </Panel>
-                <Panel title="Status">
-                  <KV
-                    items={[
-                      ["OBS", st.obsConnected ? "connected" : "disconnected"],
-                      ["Program", `${st.programMode}${st.programMode !== "LIVE" ? " (routing paused outside LIVE)" : ""}`],
-                      ["Last routed player", lastPlayer?.displayName ?? st.lastPlayerId ?? "none"],
-                      ["Last source shown", st.lastSource ?? "none"],
-                      ["Last change", st.lastAt ? fmtTime(st.lastAt) : MISSING],
-                      ["Changes applied", st.applied],
-                      ["Last error", st.lastError ?? "none"],
-                    ]}
-                  />
-                  <Note tone="neutral" title="SCOPE">
-                    Routing toggles OBS source visibility. Remote camera intake (SRT/NDI/WebRTC) and a dedicated camera mixer are <strong>not implemented</strong>: add each camera to the OBS scene yourself.
-                  </Note>
+                <Panel title="Status" className="gb-start">
+                  <KV items={statusItems} />
+                  <Details summary="More">
+                    <KV
+                      items={[
+                        ["OBS", st.obsConnected ? "Connected" : "Disconnected"],
+                        ["Program", modeText],
+                        ["Changes applied", st.applied],
+                        ["Last error", st.lastError ?? "None"],
+                      ]}
+                    />
+                  </Details>
                 </Panel>
               </div>
-              <Panel title="Players" subtitle="Consent is stored on the player record; the OBS source mapping is part of the routing config">
+              <Panel title="Players">
                 {list.length === 0 ? (
                   <EmptyState title="No players">
                     Add players with SteamIDs in <Link to="/teams">Teams &amp; Players</Link> — routing matches telemetry by SteamID.
@@ -147,12 +162,12 @@ export function PlayerCamerasScreen() {
                           <tr key={p.id}>
                             <td>
                               <strong>{p.displayName}</strong>
-                              <div className="small muted mono">{p.steamId ?? "no SteamID — cannot match telemetry"}</div>
+                              {p.steamId ? <div className="small muted mono">{p.steamId}</div> : <div className="small text-warn">No SteamID, so telemetry can't match</div>}
                             </td>
-                            <td>{teamName(p.teamId) ?? <span className="muted">free agent</span>}</td>
+                            <td>{teamName(p.teamId) ?? <span className="muted">Free agent</span>}</td>
                             <td>
                               <div className="row">
-                                {p.cameraConsent ? <Badge tone="ok">CONSENT</Badge> : <Badge>NO CONSENT</Badge>}
+                                <span className={p.cameraConsent ? "" : "muted"}>{p.cameraConsent ? "Given" : "Not given"}</span>
                                 <ConsentToggle p={p} onSaved={() => void players.reload()} />
                               </div>
                             </td>
@@ -162,7 +177,7 @@ export function PlayerCamerasScreen() {
                                 aria-label={`OBS camera source for ${p.displayName}`}
                                 value={src}
                                 disabled={!p.cameraConsent}
-                                placeholder={p.cameraConsent ? (p.cameraSourceId ?? "OBS source name") : "consent required"}
+                                placeholder={p.cameraConsent ? (p.cameraSourceId ?? "OBS source name") : "Consent required"}
                                 onChange={(e) => {
                                   const next = { ...d.sources };
                                   if (e.target.value) next[p.id] = e.target.value;
@@ -171,14 +186,14 @@ export function PlayerCamerasScreen() {
                                 }}
                               />
                             </td>
-                            <td>{ok ? <Badge tone="ok">ROUTABLE</Badge> : !p.cameraConsent ? <Badge>NOT ROUTED</Badge> : !p.steamId ? <Badge tone="warn">NO STEAMID</Badge> : <Badge tone="warn">NO SOURCE</Badge>}</td>
+                            <td className="gb-nowrap">{ok ? <span className="text-ok">Routable</span> : !p.cameraConsent ? <span className="muted">Not routed</span> : !p.steamId ? <Badge tone="warn">No SteamID</Badge> : <Badge tone="warn">No source</Badge>}</td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
                 )}
-                <p className="small muted">Remember to press “Save routing” after changing sources.</p>
+                {sourcesChanged ? <p className="small text-warn">Source changes are not saved yet. Press Save routing.</p> : null}
               </Panel>
             </div>
           );

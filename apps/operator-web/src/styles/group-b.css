@@ -1,0 +1,47 @@
+/* HUDs, Sponsors, Studio, Replays and Player cameras */
+.gb-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.gb-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.gb-nowrap {
+  white-space: nowrap;
+}
+.table td .details {
+  margin-top: 2px;
+}
+.table td .details > summary {
+  font-size: 12px;
+}
+.table td .details .kv-row {
+  grid-template-columns: minmax(90px, 30%) 1fr;
+}
+.gb-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.gb-start {
+  align-self: start;
+}
+.gb-toolbar .badge {
+  margin-bottom: 9px;
+}
+.gb-form-block {
+  padding-bottom: 14px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.gb-intro-details {
+  margin: -8px 0 14px;
+}
+.gb-toolbar > .check {
+  margin-bottom: 7px;
+}
