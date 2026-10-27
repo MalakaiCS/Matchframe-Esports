@@ -124,17 +124,17 @@ export const HELP_ARTICLES: HelpArticle[] = [
     keywords: "sign in login password program computer link device code approve organisation slot limit account & hours offline signed out",
     body: (
       <>
-        <p>The program opens with a sign-in screen. Signing in connects that computer to your organisation's plan and auto-director hours. It's the same account as this website.</p>
+        <p>Signing in is optional: the program opens without an account. Signing in connects that computer to your organisation's plan and auto-director hours, which the Observer's camera-moving modes use on live matches. It's the same account as this website.</p>
         <h2>Sign in</h2>
         <ol>
-          <li>Start the program. Enter the email and password you use on this website and select <strong>Sign in</strong>.</li>
+          <li>In the program open <strong>Settings → Account</strong>. Enter the email and password you use on this website and select <strong>Sign in</strong>.</li>
           <li>If you belong to more than one organisation, choose which one this computer is for.</li>
-          <li>The program opens. <strong>Account &amp; Hours</strong> shows who it is signed in as, the plan and the hours left.</li>
+          <li><strong>Settings → Account</strong> then shows who it is signed in as, the plan and the hours left.</li>
         </ol>
         <p>Your password is sent to Matchframe once and never stored on the computer. Confirm your email address before signing in.</p>
         <h2>Sign in with a code instead</h2>
         <p>
-          On the sign-in screen choose <strong>Sign in with a code from the website</strong>. The program shows a code like <code>BCDF-GHJK</code>. Open the <Link to="/link">link page</Link> on this website, check the code and the computer's name, choose the organisation and select <strong>Approve and link</strong>. Codes expire after 10 minutes.
+          Under <strong>Settings → Account</strong> choose <strong>Sign in with a code</strong>. The program shows a code like <code>BCDF-GHJK</code>. Open the <Link to="/link">link page</Link> on this website, check the code and the computer's name, choose the organisation and select <strong>Approve and link</strong>. Codes expire after 10 minutes.
         </p>
         <h2>Working offline</h2>
         <p>After signing in, the program works without internet for up to 7 days after it last reached Matchframe. When that period ends it asks you to connect once.</p>
@@ -183,7 +183,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         <h2>When hours run out</h2>
         <p>Automation that's already running finishes the current map and then hands the camera back to your operator. It's never cut off mid-map. Automatic direction can't be re-armed until hours are added or the next period starts. There are no overage charges.</p>
         <h2>Changing plan</h2>
-        <p>A plan change reaches the program within 15 minutes (or straight away with <strong>Refresh</strong> on Account &amp; Hours). Moving to the plan with Full Action Observer unlocks it in Live Control. Moving away from it never interrupts a map: the program switches to Observer &amp; Cinematics at the next map change.</p>
+        <p>A plan change reaches the program within 15 minutes (or straight away with <strong>Refresh</strong> under Settings → Account). Moving to the plan with Full Action Observer unlocks it in Live Control. Moving away from it never interrupts a map: the program switches to Observer &amp; Cinematics at the next map change.</p>
         <h2>When hours reset</h2>
         <p>
           Included hours renew at the start of each billing period on a paid plan, and each calendar month on the Free plan. They don't roll over. Need more right now? <Link to="/help/buying-hour-packs">Buy an hour pack</Link>.

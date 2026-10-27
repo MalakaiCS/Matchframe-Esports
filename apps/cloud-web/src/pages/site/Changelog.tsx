@@ -11,6 +11,39 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.2.0",
+    title: "The HUD Library",
+    summary: "Matchframe now opens into a library of your HUDs. Run any of them as a transparent window over the game, as an OBS browser source or as a preview, with no account needed.",
+    sections: [
+      {
+        heading: "HUD Library",
+        items: [
+          "Search, filter, sort and switch between grid and list. Each card shows the HUD's thumbnail, version, status and active outputs.",
+          "Import a HUD as a ZIP or a folder. It's copied to your computer and keeps working if the original file is moved. Update with rollback, duplicate, export and remove.",
+          "Settings are saved per HUD and apply live to every output.",
+          "Two HUDs are included: the Sample CS2 HUD and the Pro CS2 HUD, adapted from Lexogrine's open-source CS2 React HUD.",
+          "Run Test Data feeds every HUD with a labelled simulation, so you can set up without CS2.",
+        ],
+      },
+      {
+        heading: "Transparent desktop HUD",
+        items: [
+          "Launch Transparent HUD opens a window that shows only the HUD over the game. It stays on top, mouse clicks pass through it and it never takes keyboard focus.",
+          "Choose the monitor, position and scale, drag it in edit mode, and lock it. Matchframe remembers where each HUD goes.",
+          "Ctrl+Shift+H shows or hides the desktop HUD. Ctrl+Shift+F9 hides every HUD graphic at once, OBS included.",
+          "It keeps running while the manager is minimised or closed to the tray. Use the game's Fullscreen Windowed mode.",
+        ],
+      },
+      {
+        heading: "The program",
+        items: [
+          "A new layout: a collapsible sidebar, a toolbar with the game-data connection and whether live or test data is showing, and a status bar with the HUD outputs and last data update.",
+          "Signing in is optional. Sign in under Settings → Account to use the Auto Director on live matches.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.1.3",
     title: "A cleaner program",
     summary: "Every screen in the program has been tidied up, with less on screen at once and nothing taken away, and the new Matchframe Esports logo.",

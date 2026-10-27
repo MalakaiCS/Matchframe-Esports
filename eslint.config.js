@@ -54,8 +54,8 @@ export default tseslint.config(
     languageOptions: { sourceType: "script", globals: { document: "readonly", window: "readonly" } },
   },
   {
-    // Example HUD packages run in the browser.
-    files: ["examples/**/*.js"],
+    // Example and bundled HUD packages run in the browser.
+    files: ["examples/**/*.js", "assets/hud-packages/**/*.js"],
     languageOptions: { globals: { document: "readonly", location: "readonly", URLSearchParams: "readonly", performance: "readonly", WebSocket: "readonly" } },
   },
 );

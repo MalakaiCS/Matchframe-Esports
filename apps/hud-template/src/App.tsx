@@ -30,8 +30,13 @@ export default function App() {
   return (
     <>
       <Layout state={state} receivedAt={receivedAt} now={now} />
-      {/* The labelled test simulation must be marked on air. */}
-      {state.simulated ? <div className="mf-simulation">SIMULATION</div> : null}
+      {/* Honest labels: the test simulation, and game data that has stopped arriving. */}
+      {state.simulated || state.stale ? (
+        <div className="mf-labels">
+          {state.simulated ? <div className="mf-simulation">SIMULATION</div> : null}
+          {state.stale ? <div className="mf-stale">DATA PAUSED</div> : null}
+        </div>
+      ) : null}
     </>
   );
 }

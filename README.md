@@ -63,7 +63,7 @@ pnpm dev --sim          # builds what is missing, starts the Matchframe program 
 
 | Task | Command |
 |---|---|
-| Start the program from source | `pnpm dev` (`--sim` simulation, `--build` rebuild, `--engine-only` headless engine without the program, `--sign-in` show the sign-in screen as release builds do; development opens without signing in) |
+| Start the program from source | `pnpm dev` (`--sim` simulation, `--build` rebuild, `--engine-only` headless engine without the program, `--sign-in` report sign-in as required, as release builds do; the program always opens without signing in) |
 | Engine only, from source | `pnpm engine` (API, HUD outputs and captain page; no console) |
 | Type check, lint, tests | `pnpm check` (or `pnpm typecheck`, `pnpm lint`, `pnpm test`) |
 | Python worker tests | `pnpm test:py` (with `MF_TEST_DEMOS=<demo folder>` to include real-demo tests) |

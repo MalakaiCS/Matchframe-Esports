@@ -180,9 +180,9 @@ invitation links can be recovered by staff if delivery fails.
 | `MF_DEV_LOG_EMAILS` | no | off | `1` prints emails to the console (development only) |
 
 Desktop side: `MATCHFRAME_CLOUD_URL` and `MATCHFRAME_CLOUD_PUBLIC_KEYS` (or the shipped
-`cloud.json`) pin the website and keys; `MATCHFRAME_SIGN_IN=off` opens development builds without
-the sign-in screen; `MATCHFRAME_CLOUD_ENFORCEMENT=off` lets development builds arm automatic
-direction without an account.
+`cloud.json`) pin the website and keys; signing in is optional (Settings → Account) and needed for
+the Auto Director on live matches; `MATCHFRAME_CLOUD_ENFORCEMENT=off` lets development builds arm
+automatic direction without an account (`MATCHFRAME_SIGN_IN=off` reports sign-in as not required).
 
 ## 7. Operations
 

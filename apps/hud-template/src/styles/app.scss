@@ -65,18 +65,30 @@ body {
 }
 
 /* ---- Matchframe additions ---- */
-.mf-simulation {
+.mf-labels {
   position: fixed;
   left: 50%;
   top: 136px;
   transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+}
+.mf-simulation,
+.mf-stale {
   padding: 3px 12px;
   border-radius: 3px;
-  background: #7b4dff;
   color: white;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.18em;
+}
+.mf-simulation {
+  background: #7b4dff;
+}
+.mf-stale {
+  background: rgba(0, 0, 0, 0.83);
+  border: 1px solid #f29318;
+  color: #f29318;
 }
 
 .killfeed .single_kill_container.kind-probable .single_kill {

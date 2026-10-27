@@ -5,8 +5,9 @@ Matchframe is two products that work together:
 - **The Matchframe program for Windows** (`.exe` installer; Electron shell + local engine) runs on
   the production computer and does everything app-related: HUDs, the auto director, observer
   camera control, OBS, replays, player cameras, match administration. Its operator console exists
-  only inside the program. Release builds open on a sign-in screen (the website account's email and
-  password) and then work offline for up to 7 days after each check.
+  only inside the program. It opens without an account (ADR-021); signing in with the website
+  account's email and password under Settings → Account is needed for the Auto Director on live
+  matches, and works offline for up to 7 days after each check.
 - **The website** (`apps/cloud-web`, served by `services/cloud-api`) is only for **payments**
   (Stripe Checkout, invoices, hour packs), **subscription management** (plans, customer portal),
   **auto-director hours usage** (allowance, daily and per-computer usage, CSV), **account
@@ -58,7 +59,7 @@ state comes only from signed webhooks (stored once per event id) and is re-read 
 checkout completes. `active`, `trialing` and `past_due` keep the paid plan; anything else falls back
 to Free.
 
-**Signing in from the program.** The sign-in screen (and Account & Hours) sends the email and
+**Signing in from the program.** Settings → Account sends the email and
 password through the local engine to `/v1/device/login` on the pinned website, once; nothing but
 the resulting computer credential is stored. The website checks them exactly like its own sign-in
 (scrypt, the same per-address rate limit, disabled accounts refused, the email must be confirmed),

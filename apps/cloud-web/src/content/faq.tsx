@@ -48,7 +48,7 @@ export function fullActionObserverFaq(planNames?: string[]): FaqItem {
           Full Action Observer does everything Observer &amp; Cinematics does and adds nade cameras: static cameras that catch smokes, flashes, molotovs and incendiaries, and HE grenades as they land. Like cinematic cameras, they're captured with <code>getpos</code> in Maps &amp; Cameras, validated by an operator and need a passed static camera test. It uses auto-director hours at the same rate as the other Observer modes.
         </p>
         <p>
-          {where} A new plan reaches the program within 15 minutes (or straight away with Refresh on Account &amp; Hours). If a plan stops including Full Action Observer, the program switches to Observer &amp; Cinematics at the next map change; automation is never cut mid-map.
+          {where} A new plan reaches the program within 15 minutes (or straight away with Refresh under Settings → Account). If a plan stops including Full Action Observer, the program switches to Observer &amp; Cinematics at the next map change; automation is never cut mid-map.
         </p>
       </>
     ),
@@ -92,7 +92,7 @@ export const FAQ: FaqItem[] = [
     q: "Do I need an account or an internet connection to use the program?",
     a: (
       <p>
-        You need a free account: the program opens with a sign-in screen, and you sign in with the same email and password as this website. After that it works offline for up to seven days after each check, so a LAN without internet is fine. Every plan covers HUDs, manual direction, the Observer's Off mode with its shot suggestions, replays, match administration and the simulation; the Observer's camera-moving modes on live matches use auto-director hours. See <Link to="/how-it-works#offline">what works offline</Link>.
+        No, not to start. The program opens straight into the HUD Library, and HUDs, the desktop HUD, OBS outputs, manual direction, replays, match administration and the simulation work without an account or internet. To use the Observer's camera-moving modes on live matches, sign in under Settings → Account with the same email and password as this website; they use auto-director hours. After signing in the program works offline for up to seven days after each check, so a LAN without internet is fine. See <Link to="/how-it-works#offline">what works offline</Link>.
       </p>
     ),
   },
@@ -418,7 +418,7 @@ export const FAQ: FaqItem[] = [
     q: "Automation won't arm.",
     a: (
       <p>
-        The program says why. Common reasons: the program was signed out on the website, the organisation has no hours left, the plan doesn't include the chosen Observer mode (Full Action Observer is on the top plan only), the player-selection test hasn't passed for this game build, static cameras aren't validated for this map, or the data is simulated. Check Account &amp; Hours in the program and your <Link to="/dashboard">dashboard</Link>.
+        The program says why. Common reasons: the program was signed out on the website, the organisation has no hours left, the plan doesn't include the chosen Observer mode (Full Action Observer is on the top plan only), the player-selection test hasn't passed for this game build, static cameras aren't validated for this map, or the data is simulated. Check Settings → Account in the program and your <Link to="/dashboard">dashboard</Link>.
       </p>
     ),
   },

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { delimiter, join } from "node:path";
 
-export const APP_VERSION = "0.1.3";
+export const APP_VERSION = "0.2.0";
 
 export interface EngineConfig {
   /** Bind host. Loopback by default; LAN exposure is an explicit operator choice. */
@@ -33,7 +33,7 @@ export interface EngineConfig {
   cloudPublicKeys: Record<string, string> | null;
   /** "off" lets automatic direction arm without an account (development and offline lab builds only). */
   cloudEnforcement: "required" | "off";
-  /** "required": the program asks to sign in to a Matchframe account before it can be used (MATCHFRAME_SIGN_IN=off for development). */
+  /** "required": sign-in state is reported (signed in or not; the Auto Director's arming gate needs it). "off" (MATCHFRAME_SIGN_IN=off, development) reports "not_required". The program never blocks on it (ADR-021). */
   cloudSignIn: "required" | "off";
 }
 
