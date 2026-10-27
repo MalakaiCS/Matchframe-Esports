@@ -19,7 +19,8 @@ Issue one token per device with the narrowest role that covers its buttons: `obs
 | `hold` | `{"durationMs":10000}` (`null` = until released) | director.control |
 | `release_hold` | `{}` | director.control |
 | `follow_action` | `{}` | director.control |
-| `director_mode` | `{"mode":"advisory"}` (`off`, `advisory`, `assisted`, `automatic`, `shadow`, `demo_review`, `delayed_lookahead`) | director.control |
+| `observer_mode` | `{"mode":"observer"}` (`off`, `observer`, `observer_cinematics`, `full_action`; Full Action Observer needs a plan that includes it) | director.control |
+| `director_mode` | `{"mode":"advisory"}` (editorial mode: `off`, `advisory`, `assisted`, `automatic`, `shadow`, `demo_review`, `delayed_lookahead`; `automatic`/`assisted` keep the current Observer mode, or choose Observer when it is Off) | director.control |
 | `select_slot` | `{"slot":1}` (observer slot as reported by GSI) | camera.control |
 | `cinematics_round` | `{"disabled":true}` | director.control |
 | `bookmark_replay` | `{"label":"Deck bookmark"}` | replay.control |

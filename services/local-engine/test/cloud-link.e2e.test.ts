@@ -220,4 +220,33 @@ describe("desktop engine <-> Matchframe website (real servers on both sides)", (
     const after = (await api("/api/v1/cloud/refresh", { method: "POST" })).data as Status;
     expect(after.signIn).toMatchObject({ state: "revoked", user: null });
   });
+
+  it("Observer modes: Full Action Observer needs the plan feature; the other modes run on any plan with hours", async () => {
+    const login = await api("/api/v1/cloud/login", { method: "POST", body: JSON.stringify({ email: "producer@example.com", password: "a brand new password" }) });
+    expect(login.status).toBe(200);
+    const observerMode = (mode: string) => api("/api/v1/director/observer-mode", { method: "POST", body: JSON.stringify({ mode }) });
+    expect((await gsi()).status).toBe(200);
+    expect(((await api("/api/v1/cloud/status")).data as { fullActionObserver: boolean }).fullActionObserver).toBe(false);
+
+    expect((await observerMode("observer")).data).toMatchObject({ observerMode: "observer", mode: "automatic" });
+    expect((await arm()).status).toBe(200);
+    // Choosing Full Action Observer while armed is refused on the Free plan; Observer keeps running.
+    const refused = await observerMode("full_action");
+    expect([refused.status, refused.data.error]).toEqual([402, "plan_excludes"]);
+    expect(refused.data.message).toMatch(/Full Action Observer/);
+    expect(engine.session.observerMode).toBe("observer");
+    expect(engine.session.arbiter.automationAllowed).toBe(true);
+    expect((await observerMode("observer_cinematics")).status).toBe(200);
+
+    // The organisation's plan gains the feature (staff edit here; a Studio subscription in practice).
+    const catalog = await staff.req<{ plans: { id: string; features: Record<string, unknown> }[] }>("GET", "/v1/admin/catalog");
+    const free = catalog.data.plans.find((p) => p.id === "free")!;
+    expect((await staff.req("PUT", "/v1/admin/plans/free", { ...free, features: { ...free.features, fullActionObserver: true } })).status).toBe(200);
+    expect(((await api("/api/v1/cloud/refresh", { method: "POST" })).data as { fullActionObserver: boolean }).fullActionObserver).toBe(true);
+    expect((await observerMode("full_action")).data).toMatchObject({ observerMode: "full_action" });
+
+    // Emergency stop switches the Observer off.
+    expect((await api("/api/v1/observer/emergency-stop", { method: "POST" })).status).toBe(200);
+    expect(engine.session.observerMode).toBe("off");
+  });
 });

@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
-import type { CameraRecord, DirectorDecision, DirectorMode, MatchState, ReasonCode, Side, SourceCapabilities } from "@matchframe/contracts";
+import type { CameraRecord, DirectorDecision, DirectorMode, MatchState, ObserverMode, ReasonCode, Side, SourceCapabilities } from "@matchframe/contracts";
 import { emptySourceCapabilities } from "@matchframe/contracts";
 import type { DerivedEvent, GsiObservation, IngestResult, ProfileSet, UtilityTrackerEvent } from "@matchframe/cs2-state";
 import { CapabilitySampler, hash53, MatchStateStore, normalizeGsi, parseGsiPayload, stripAuth } from "@matchframe/cs2-state";
@@ -36,10 +36,10 @@ export interface LiveSessionOptions {
   /** Per-type utility profiles (measured where available, defaults otherwise). */
   utilityProfiles?: ProfileSet;
   /**
-   * Consulted only when automatic direction is armed (resume, or switching to automatic/assisted
-   * while armed). It never stops automation that is already running.
+   * Consulted only when automatic direction is armed (resume, or choosing an Observer mode while
+   * armed). It never stops automation that is already running.
    */
-  armGate?: (simulated: boolean) => { ok: true } | { ok: false; code: string; reason: string };
+  armGate?: (simulated: boolean, observerMode: ObserverMode) => { ok: true } | { ok: false; code: string; reason: string };
 }
 
 export interface IngestOutcome {
@@ -70,7 +70,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   readonly decisionLog: DirectorDecision[] = [];
   private lastEvaluatedSequence = -1;
   private tickTimer: ReturnType<typeof setInterval> | null = null;
-  private pendingCinematic: { commandId: string; shot: string; plannedDurationMs: number; opportunityId: string | null } | null = null;
+  private pendingCinematic: { commandId: string; shot: string; plannedDurationMs: number; opportunityId: string | null; countsTowardBudget: boolean } | null = null;
   private stats = { packets: 0, rejected: 0, invalid: 0, cuts: 0, recommendations: 0, ingestMsTotal: 0, evalMsTotal: 0, evals: 0, maxIngestMs: 0, maxEvalMs: 0 };
   private ingestSamples: number[] = [];
   private evalSamples: number[] = [];
@@ -84,7 +84,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     this.sessionId = `session_${randomUUID().slice(0, 8)}`;
     this.store = this.makeStore();
     this.director = new Director();
-    this.director.setMode("advisory");
+    this.director.setObserverMode("off");
     this.arbiter = new ControlArbiter({
       now: opts.now,
       newId: () => `cmd_${randomUUID().slice(0, 12)}`,
@@ -318,7 +318,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
         .submit({ kind: "activate_static_camera", camera: cam, plannedDurationMs: intent.plannedDurationMs ?? 2000 }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs })
         .then((r) => {
           if (r.status !== "failed" && r.status !== "cancelled") {
-            this.pendingCinematic = { commandId: r.commandId, shot: cameraShot(cam.id), plannedDurationMs: intent.plannedDurationMs ?? 2000, opportunityId: intent.opportunityId };
+            this.pendingCinematic = { commandId: r.commandId, shot: cameraShot(cam.id), plannedDurationMs: intent.plannedDurationMs ?? 2000, opportunityId: intent.opportunityId, countsTowardBudget: intent.shotClass !== "establishing" };
           }
         });
     }
@@ -343,7 +343,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
 
   private onArbiterEvent(e: ArbiterEvent): void {
     if (e.kind === "result" && e.detail.status === "confirmed" && this.pendingCinematic && e.detail.commandId === this.pendingCinematic.commandId) {
-      this.director.cinematicStarted(this.pendingCinematic.shot, this.opts.now(), this.pendingCinematic.plannedDurationMs, this.pendingCinematic.opportunityId);
+      this.director.cinematicStarted(this.pendingCinematic.shot, this.opts.now(), this.pendingCinematic.plannedDurationMs, this.pendingCinematic.opportunityId, this.pendingCinematic.countsTowardBudget);
       this.pendingCinematic = null;
     }
     if (e.kind === "external_change") this.alertOnce("external_takeover", "warn", "Observer POV changed outside Matchframe: manual takeover engaged. Resume automation explicitly when ready.");
@@ -379,17 +379,38 @@ export class LiveSession extends EventEmitter<SessionEvents> {
 
   // ---- operator controls (all audited by the API layer) ----------------------------------
 
-  setMode(mode: DirectorMode): void {
+  get observerMode(): ObserverMode {
+    return this.director.observerMode ?? "off";
+  }
+
+  /**
+   * The operator's Observer mode. Choosing a mode while automation is armed checks the gate for that
+   * mode (Full Action Observer is a plan feature); the current mode keeps running if it is refused.
+   */
+  setObserverMode(mode: ObserverMode): void {
     const armedOrArming = this.arbiter.automationAllowed || this.arbiter.resumePendingInMs() !== null;
-    const automated = (m: DirectorMode) => m === "automatic" || m === "assisted";
-    // Switching between automatic and assisted while armed continues automation; it is not arming.
-    if (armedOrArming && automated(mode) && !automated(this.director.currentMode)) this.checkArmGate();
+    if (armedOrArming && mode !== "off" && mode !== this.observerMode) this.checkArmGate(mode);
+    this.director.setObserverMode(mode);
+  }
+
+  /**
+   * Editorial mode (API compatibility): automatic/assisted keep the current Observer mode, or choose
+   * Observer when it is Off; other modes switch the Observer off.
+   */
+  setMode(mode: DirectorMode): void {
+    if (mode === "automatic" || mode === "assisted") {
+      const observer = this.observerMode === "off" ? "observer" : this.observerMode;
+      this.setObserverMode(observer);
+      this.director.setMode(mode);
+      return;
+    }
+    this.director.setObserverMode("off");
     this.director.setMode(mode);
   }
 
   /** Throws (HTTP 402) when automatic direction may not be armed; see `armGate`. */
-  private checkArmGate(): void {
-    const g = this.opts.armGate?.(this.simulated);
+  private checkArmGate(mode: ObserverMode = this.observerMode): void {
+    const g = this.opts.armGate?.(this.simulated, mode);
     if (g && !g.ok) throw Object.assign(new Error(g.reason), { status: 402, code: g.code });
   }
 
@@ -467,7 +488,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
 
   async emergencyStop(): Promise<void> {
     await this.arbiter.emergencyStop();
-    this.director.setMode(this.director.currentMode === "automatic" || this.director.currentMode === "assisted" ? "advisory" : this.director.currentMode);
+    if (this.director.currentMode === "automatic" || this.director.currentMode === "assisted") this.director.setObserverMode("off");
   }
 
   clearEmergencyStop(): void {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { CameraRecord } from "@matchframe/contracts";
-import { CameraRecord as CameraRecordSchema, DirectorMode, Side } from "@matchframe/contracts";
-import { applyMapRevision, checkCameraPath, draftCamera, parseGetpos } from "@matchframe/map-runtime";
+import { CameraRecord as CameraRecordSchema, DirectorMode, ObserverMode, Side } from "@matchframe/contracts";
+import { applyMapRevision, checkCameraPath, draftCamera, parseGetpos, phasesForUses } from "@matchframe/map-runtime";
 import type { Engine } from "../app.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
@@ -46,10 +46,15 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
     };
   });
   r.get("/api/v1/director/decisions", { permission: "state.read" }, (req) => s.decisionLog.slice(-Number(req.query.get("limit") ?? 100)));
+  r.post("/api/v1/director/observer-mode", { permission: "director.control", body: z.object({ mode: ObserverMode }) }, (req) => {
+    s.setObserverMode(req.body.mode);
+    e.audit.record(req.principal!.label, "director.observer_mode", req.body.mode);
+    return { observerMode: s.observerMode, mode: s.director.currentMode };
+  });
   r.post("/api/v1/director/mode", { permission: "director.control", body: z.object({ mode: DirectorMode }) }, (req) => {
     s.setMode(req.body.mode);
     e.audit.record(req.principal!.label, "director.mode", req.body.mode);
-    return { mode: s.director.currentMode };
+    return { mode: s.director.currentMode, observerMode: s.observerMode };
   });
   r.post("/api/v1/director/hold", { permission: "director.control", body: z.object({ durationMs: z.number().int().positive().max(600000).nullable().default(null) }) }, (req) => {
     s.hold(req.body.durationMs);
@@ -329,19 +334,19 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
     return outline;
   });
   /** Camera authoring from real captured coordinates (CS2 `getpos` output). */
-  r.post("/api/v1/maps/:map/cameras/from-getpos", { permission: "metadata.write", body: z.object({ id: z.string().regex(/^[a-z0-9-]{3,64}$/), displayName: z.string().min(1), getpos: z.string(), focus: z.object({ x: z.number(), y: z.number(), z: z.number() }), coverageRadiusUnits: z.number().positive().max(3000).default(600), targetRegionIds: z.array(z.string()).default([]) }) }, (req) => {
+  r.post("/api/v1/maps/:map/cameras/from-getpos", { permission: "metadata.write", body: z.object({ id: z.string().regex(/^[a-z0-9-]{3,64}$/), displayName: z.string().min(1), getpos: z.string(), focus: z.object({ x: z.number(), y: z.number(), z: z.number() }), coverageRadiusUnits: z.number().positive().max(3000).default(600), targetRegionIds: z.array(z.string()).default([]), uses: z.array(z.enum(["utility", "tactical", "bomb", "establishing"])).min(1).optional() }) }, (req) => {
     const m = e.maps.get(req.params.map!);
     if (!m) throw new HttpError(404, "no map pack", "not_found");
     const pose = parseGetpos(req.body.getpos);
     if (!pose) throw new HttpError(400, "could not parse getpos output (expected 'setpos x y z;setang p y r')", "bad_getpos");
-    const cam = draftCamera({ id: req.body.id, displayName: req.body.displayName, mapName: m.mapName, mapRevision: m.pack.mapRevision, pose, focus: req.body.focus, coverageRadiusUnits: req.body.coverageRadiusUnits, levelId: m.levelAt(req.body.focus), targetRegionIds: req.body.targetRegionIds });
+    const cam = draftCamera({ id: req.body.id, displayName: req.body.displayName, mapName: m.mapName, mapRevision: m.pack.mapRevision, pose, focus: req.body.focus, coverageRadiusUnits: req.body.coverageRadiusUnits, levelId: m.levelAt(req.body.focus), targetRegionIds: req.body.targetRegionIds, ...(req.body.uses ? { uses: [...new Set(req.body.uses)] } : {}) });
     const cams = e.settings.get<CameraRecord[]>(`cameras.${m.mapName}`, []).filter((c) => c.id !== cam.id);
     e.settings.set(`cameras.${m.mapName}`, [...cams, cam]);
     e.applyCameraOverrides(m.mapName);
     e.audit.record(req.principal!.label, "camera.capture", cam.id, cam);
     return cam;
   });
-  r.post("/api/v1/maps/:map/cameras/:id/validation", { permission: "metadata.write", body: z.object({ validation: z.enum(["unvalidated", "preview_only", "validated", "invalidated"]), occlusion: z.enum(["unvalidated", "preview_only", "validated", "invalidated"]).optional(), grenadeTypes: z.array(z.enum(["he", "flashbang", "smoke", "molotov", "incendiary", "decoy"])).optional(), notes: z.string().optional() }) }, (req) => {
+  r.post("/api/v1/maps/:map/cameras/:id/validation", { permission: "metadata.write", body: z.object({ validation: z.enum(["unvalidated", "preview_only", "validated", "invalidated"]), occlusion: z.enum(["unvalidated", "preview_only", "validated", "invalidated"]).optional(), grenadeTypes: z.array(z.enum(["he", "flashbang", "smoke", "molotov", "incendiary", "decoy"])).optional(), notes: z.string().optional(), uses: z.array(z.enum(["utility", "tactical", "bomb", "establishing"])).min(1).optional() }) }, (req) => {
     const m = e.maps.get(req.params.map!);
     if (!m) throw new HttpError(404, "no map pack", "not_found");
     const cams = e.settings.get<CameraRecord[]>(`cameras.${m.mapName}`, []);
@@ -349,7 +354,8 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
     if (!cam) throw new HttpError(404, "camera not found", "not_found");
     if (req.body.validation === "validated" && e.simulationRunning) throw new HttpError(409, "cameras cannot be validated from simulation", "simulated");
     const build = s.state()?.sources[0]?.gameBuild ?? null;
-    const updated = CameraRecordSchema.parse({ ...cam, validation: req.body.validation, occlusionValidation: req.body.occlusion ?? cam.occlusionValidation, grenadeTypes: req.body.grenadeTypes ?? cam.grenadeTypes, notes: req.body.notes ?? cam.notes, lastTestedGameBuild: req.body.validation === "validated" ? build : cam.lastTestedGameBuild, lastTestedMapVersion: req.body.validation === "validated" ? m.pack.mapRevision : cam.lastTestedMapVersion });
+    const uses = req.body.uses ? [...new Set(req.body.uses)] : null;
+    const updated = CameraRecordSchema.parse({ ...cam, ...(uses ? { actionClasses: uses, allowedPhases: phasesForUses(uses) } : {}), validation: req.body.validation, occlusionValidation: req.body.occlusion ?? cam.occlusionValidation, grenadeTypes: req.body.grenadeTypes ?? cam.grenadeTypes, notes: req.body.notes ?? cam.notes, lastTestedGameBuild: req.body.validation === "validated" ? build : cam.lastTestedGameBuild, lastTestedMapVersion: req.body.validation === "validated" ? m.pack.mapRevision : cam.lastTestedMapVersion });
     e.settings.set(`cameras.${m.mapName}`, [...cams.filter((c) => c.id !== updated.id), updated]);
     e.applyCameraOverrides(m.mapName);
     e.audit.record(req.principal!.label, "camera.validation", updated.id, req.body);

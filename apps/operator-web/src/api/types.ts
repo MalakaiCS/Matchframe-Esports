@@ -10,6 +10,7 @@ import type {
   CommandResult,
   DemoJobState,
   DirectorDecision,
+  ObserverMode,
   DirectorMode,
   EvidenceType,
   EventRecord,
@@ -150,6 +151,8 @@ export interface OperatorSnapshot {
   opportunities: UtilityOpportunity[];
   candidates: CandidateSummary[];
   mode: DirectorMode;
+  /** The operator's Observer mode (Off, Observer, Observer & Cinematics, Full Action Observer). */
+  observerMode: ObserverMode;
   controls: DirectorControls;
   ownership: OwnershipState;
   resumeInMs: number | null;
@@ -176,6 +179,8 @@ export interface CloudSummary {
   gate: CloudGate;
   metering: boolean;
   enforcement: "required" | "off";
+  /** Whether the licence includes Full Action Observer (always true in the simulation and enforcement-off builds). */
+  fullActionObserver?: boolean;
 }
 
 /** GET /api/v1/cloud/status (CloudLink.status in the engine). */
@@ -218,6 +223,7 @@ export interface CloudStatus {
     localRemainingSeconds: number;
   } | null;
   gate: CloudGate;
+  fullActionObserver: boolean;
   usage: { pendingRecords: number; pendingSeconds: number; rejected: number; totalSeconds: number; openSeconds: number; metering: boolean };
   lastRefreshAt: string | null;
   lastSyncAt: string | null;

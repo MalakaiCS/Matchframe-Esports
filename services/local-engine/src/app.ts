@@ -182,7 +182,7 @@ export class Engine {
         return { playerId, teamId: this.roster.teamOf(playerId), displayName: p?.data.displayName ?? null };
       },
       verifiedControl: () => this.settings.get("observer.verifiedControl", {}),
-      armGate: (simulated) => this.cloud.canArm(simulated || this.simulationRunning),
+      armGate: (simulated, observerMode) => this.cloud.canArm(simulated || this.simulationRunning, observerMode),
     });
     this.refreshScenarios();
 
@@ -481,8 +481,17 @@ export class Engine {
     if (prev === null || s.mapName === null || prev === s.mapName) return;
     const mode = this.session.director.currentMode;
     if (!this.session.arbiter.automationAllowed || (mode !== "automatic" && mode !== "assisted")) return;
-    const gate = this.cloud.canArm(this.session.simulated || this.simulationRunning);
+    const simulated = this.session.simulated || this.simulationRunning;
+    const observer = this.session.observerMode;
+    const gate = this.cloud.canArm(simulated, observer);
     if (gate.ok) return;
+    // The plan no longer includes Full Action Observer: carry on without nade cameras.
+    if (observer === "full_action" && this.cloud.canArm(simulated, "observer_cinematics").ok) {
+      this.session.setObserverMode("observer_cinematics");
+      this.audit.record("system", "cloud.observer_mode_reduced", s.mapName, { from: observer, to: "observer_cinematics", previousMap: prev });
+      this.session.emit("alert", { level: "warn", code: "cloud_full_action_unavailable", message: `Switched to Observer & Cinematics at the map change: ${gate.reason}` });
+      return;
+    }
     this.meter.flush();
     this.session.takeover("auto-director-allowance");
     this.session.setMode("advisory");

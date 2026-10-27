@@ -255,6 +255,13 @@ export class MapRuntime {
     }
     return out.sort((a, b) => a.centrality - b.centrality);
   }
+
+  /** Validated cameras of the current revision with the action class and allowed phase (e.g. establishing shots in freeze time). */
+  camerasWith(opts: { actionClass: string; phase: string }): CameraMatch[] {
+    return this.pack.cameras
+      .filter((cam) => cam.validation === "validated" && cam.mapRevision === this.pack.mapRevision && cam.actionClasses.includes(opts.actionClass as never) && cam.allowedPhases.includes(opts.phase as never))
+      .map((camera) => ({ camera, distanceUnits: 0, centrality: 0 }));
+  }
 }
 
 /**

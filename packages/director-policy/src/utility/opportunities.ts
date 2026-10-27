@@ -12,6 +12,8 @@ export interface UtilityDirectorMap {
   regionsAt(p: Vec3): string[];
   levelAt(p: Vec3): string | null;
   camerasCovering(p: Vec3, opts?: { includeUnvalidated?: boolean; grenadeType?: string; actionClass?: string }): CameraMatch[];
+  /** Validated cameras with an action class and allowed phase, independent of a point (establishing shots). */
+  camerasWith?(opts: { actionClass: string; phase: string }): CameraMatch[];
 }
 
 /**

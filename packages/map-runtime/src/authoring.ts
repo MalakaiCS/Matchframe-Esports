@@ -20,6 +20,18 @@ export function parseGetpos(text: string): CapturedPose | null {
   return { position: { x, y, z }, pitch, yaw, roll };
 }
 
+/** What a static camera is used for: nade cameras (utility), fight overviews (tactical), the bomb, establishing shots in freeze time. */
+export type CameraUse = "utility" | "tactical" | "bomb" | "establishing";
+export const CAMERA_USES: readonly CameraUse[] = ["utility", "tactical", "bomb", "establishing"];
+
+/** Establishing shots run in freeze time; every other use during the live round. */
+export function phasesForUses(uses: readonly CameraUse[]): CameraRecord["allowedPhases"] {
+  const phases: CameraRecord["allowedPhases"] = [];
+  if (uses.includes("establishing")) phases.push("freezetime");
+  if (uses.some((u) => u !== "establishing")) phases.push("live");
+  return phases;
+}
+
 export interface CameraDraftInput {
   id: string;
   displayName: string;
@@ -33,6 +45,8 @@ export interface CameraDraftInput {
   targetRegionIds: string[];
   fov?: number | null;
   capturedFrom?: CameraRecord["capturedFrom"];
+  /** Defaults to nade camera + fight overview. */
+  uses?: CameraUse[];
 }
 
 /** Creates an UNVALIDATED camera record from a captured pose; it stays preview-only until qualified. */
@@ -55,8 +69,8 @@ export function draftCamera(input: CameraDraftInput): CameraRecord {
       zMax: input.focus.z + 220,
       levelId: input.levelId,
     },
-    allowedPhases: ["live"],
-    actionClasses: ["utility", "tactical"],
+    allowedPhases: phasesForUses(input.uses ?? ["utility", "tactical"]),
+    actionClasses: [...(input.uses ?? ["utility", "tactical"])],
     grenadeTypes: [],
     minAcquisitionMs: 400,
     normalDurationMs: 2000,

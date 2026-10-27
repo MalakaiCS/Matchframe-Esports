@@ -28,8 +28,31 @@ export const ShotClass = z.enum([
 ]);
 export type ShotClass = z.infer<typeof ShotClass>;
 
-export const ActionClass = z.enum(["pov_cut", "cinematic", "replay_suggestion", "mixer_cue"]);
+/** pov_cut: observing (spectated player). cinematic: static camera shots of fights, the bomb and establishing shots. utility_camera: nade cameras. */
+export const ActionClass = z.enum(["pov_cut", "cinematic", "utility_camera", "replay_suggestion", "mixer_cue"]);
 export type ActionClass = z.infer<typeof ActionClass>;
+
+/**
+ * The Observer (auto director) as the operator chooses it. off: never moves the camera (shot
+ * suggestions only). observer: player POV cuts. observer_cinematics: POV cuts and cinematic static
+ * cameras. full_action: POV cuts, cinematics and nade cameras (a plan feature).
+ */
+export const ObserverMode = z.enum(["off", "observer", "observer_cinematics", "full_action"]);
+export type ObserverMode = z.infer<typeof ObserverMode>;
+
+/** What each Observer mode may do on its own. */
+export const OBSERVER_MODE_ACTIONS: Record<ObserverMode, readonly ActionClass[]> = {
+  off: [],
+  observer: ["pov_cut"],
+  observer_cinematics: ["pov_cut", "cinematic"],
+  full_action: ["pov_cut", "cinematic", "utility_camera"],
+};
+
+/** The action class a shot belongs to (static utility cameras are nade cameras; other static shots are cinematics). */
+export function actionClassOfShot(shotClass: ShotClass): ActionClass {
+  if (shotClass === "pov" || shotClass === "third_person" || shotClass === "hold") return "pov_cut";
+  return shotClass === "static_utility" ? "utility_camera" : "cinematic";
+}
 
 export const REASON_CODES = [
   "CURRENT_SHOT_VALID",
@@ -66,6 +89,7 @@ export const REASON_CODES = [
   "CINEMATIC_DISABLED",
   "CINEMATIC_ELIGIBLE",
   "CINEMATIC_INTERRUPTED",
+  "OBSERVER_MODE_EXCLUDES",
   "CAMERA_UNVERIFIED",
   "COOLDOWN_ACTIVE",
   "STALE_DATA",

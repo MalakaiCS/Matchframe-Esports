@@ -4,16 +4,20 @@ import type {
   DirectorDecision,
   DirectorMode,
   MatchState,
+  ObserverMode,
   OwnershipState,
   ReasonCode,
   ShotCandidate,
+  ShotClass,
   Side,
   SourceCapabilities,
 } from "@matchframe/contracts";
+import { actionClassOfShot, OBSERVER_MODE_ACTIONS } from "@matchframe/contracts";
 import type { ProfileSet } from "@matchframe/cs2-state";
 import type { MapRuntime } from "@matchframe/map-runtime";
 import type { Pin, ScoredCandidate } from "./candidates.ts";
 import { generateCandidates } from "./candidates.ts";
+import { cinematicCandidates } from "./cinematics.ts";
 import type { DirectorConfig } from "./config.ts";
 import { mergeConfig } from "./config.ts";
 import type { InteractionFeatures, SpatialContext } from "./features/interactions.ts";
@@ -29,6 +33,8 @@ import { findUtilityOpportunities, INFERNO_BOTTOM_BANANA_RULE } from "./utility/
 /** What the engine should do with a decision. The director never talks to the game directly. */
 export interface DirectorIntent {
   kind: "select_player" | "activate_static_camera";
+  /** Kind of shot (a static camera can be a nade camera, a fight overview, the bomb or an establishing shot). */
+  shotClass: ShotClass;
   targetSteamId: string | null;
   observerSlot: number | null;
   cameraId: string | null;
@@ -92,6 +98,8 @@ function toShotCandidate(c: ScoredCandidate): ShotCandidate {
 export class Director {
   private cfg: DirectorConfig;
   private mode: DirectorMode = "advisory";
+  /** The operator's Observer mode; null when only the editorial mode is set (tests, legacy callers): no scope restriction. */
+  private observer: ObserverMode | null = null;
   private map: MapRuntime | undefined;
   private capabilities: SourceCapabilities | null = null;
   private readonly history = new StateHistory();
@@ -137,6 +145,22 @@ export class Director {
 
   setMode(mode: DirectorMode): void {
     this.mode = mode;
+  }
+
+  get observerMode(): ObserverMode | null {
+    return this.observer;
+  }
+
+  /** Off recommends only; the other modes direct automatically within their scope (see OBSERVER_MODE_ACTIONS). */
+  setObserverMode(mode: ObserverMode): void {
+    this.observer = mode;
+    this.mode = mode === "off" ? "advisory" : "automatic";
+  }
+
+  /** What automation may do on its own; null = unrestricted (recommendations in advisory mode, or no Observer mode set). */
+  get observerScope(): ReadonlySet<ActionClass> | null {
+    if (this.observer === null || this.observer === "off" || (this.mode !== "automatic" && this.mode !== "assisted")) return null;
+    return new Set(OBSERVER_MODE_ACTIONS[this.observer]);
   }
 
   setConfig(partial: Partial<DirectorConfig>): void {
@@ -201,8 +225,8 @@ export class Director {
     this.planner.observeShot(shot, at);
   }
 
-  cinematicStarted(shot: ShotKey, at: number, plannedDurationMs: number, opportunityId: string | null): void {
-    this.planner.cinematicStarted(shot, at, plannedDurationMs, opportunityId);
+  cinematicStarted(shot: ShotKey, at: number, plannedDurationMs: number, opportunityId: string | null, countsTowardBudget = true): void {
+    this.planner.cinematicStarted(shot, at, plannedDurationMs, opportunityId, countsTowardBudget);
   }
 
   private cinematicsAllowed(state: MatchState): { allowed: boolean; reason: ReasonCode | null } {
@@ -253,6 +277,8 @@ export class Director {
       scenarios: this.scenarios,
       mainStorySteamIds: new Set(interactions.mainStory?.members ?? []),
     });
+    const scope = this.observerScope;
+    const cinematicsAllowed = this.cinematicsAllowed(state);
     const candidates = generateCandidates({
       state,
       now,
@@ -266,9 +292,14 @@ export class Director {
       pin: this.controls.pin,
       oneSide: this.controls.oneSide,
       recentlyAbandoned: this.planner.recentlyAbandoned,
-      cinematicsAllowed: this.cinematicsAllowed(state),
+      cinematicsAllowed,
       map,
+      scope,
     });
+    if (scope?.has("cinematic")) {
+      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map }));
+      candidates.sort((a, b) => b.utility - a.utility);
+    }
 
     const health = this.controlHealth(control);
     const reasons: ReasonCode[] = [];
@@ -292,13 +323,17 @@ export class Director {
 
     const desired = plan.desired;
     const desiredKey = desired?.shotKey ?? null;
+    const desiredClass: ActionClass | null = desired ? actionClassOfShot(desired.shotClass) : null;
     const executable =
       plan.action === "cut" &&
       desired !== null &&
+      desiredClass !== null &&
       health === "armed" &&
       !control.pendingCommand &&
-      (this.mode === "automatic" ||
-        (this.mode === "assisted" && this.controls.assistedActions.has(parseShot(desiredKey).kind === "pov" ? "pov_cut" : "cinematic")));
+      ((this.mode === "automatic" && (!scope || scope.has(desiredClass))) ||
+        (this.mode === "assisted" &&
+          (!scope || scope.has(desiredClass)) &&
+          (this.controls.assistedActions.has(desiredClass) || (desiredClass === "utility_camera" && this.controls.assistedActions.has("cinematic")))));
 
     const action: DirectorDecision["action"] =
       plan.action === "hold" ? "hold" : executable ? "cut" : this.mode === "off" ? "none" : "recommend";
@@ -347,6 +382,7 @@ export class Director {
         shot.kind === "pov"
           ? {
               kind: "select_player",
+              shotClass: desired.shotClass,
               targetSteamId: shot.id,
               observerSlot: target?.observerSlot ?? null,
               cameraId: null,
@@ -358,6 +394,7 @@ export class Director {
             }
           : {
               kind: "activate_static_camera",
+              shotClass: desired.shotClass,
               targetSteamId: null,
               observerSlot: null,
               cameraId: shot.id,

@@ -100,6 +100,7 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | GET | `/api/v1/live/metrics` | state.read |
 | GET | `/api/v1/director/status` | state.read |
 | GET | `/api/v1/director/decisions` | state.read |
+| POST | `/api/v1/director/observer-mode` | director.control |
 | POST | `/api/v1/director/mode` | director.control |
 | POST | `/api/v1/director/hold` | director.control |
 | POST | `/api/v1/director/release-hold` | director.control |

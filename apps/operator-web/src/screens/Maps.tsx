@@ -24,6 +24,32 @@ const KIND_COLOR: Record<string, string> = {
 
 const VALIDATION_TONE: Record<string, "ok" | "warn" | "danger" | "neutral" | "info"> = { validated: "ok", preview_only: "info", unvalidated: "warn", invalidated: "danger" };
 
+type CameraUse = CameraRecord["actionClasses"][number];
+/** What the Observer may use a camera for (its action classes). */
+const CAMERA_USES: { id: CameraUse; label: string; hint: string }[] = [
+  { id: "utility", label: "Nade camera", hint: "Full Action Observer: catches grenades landing in its coverage" },
+  { id: "tactical", label: "Fight overview", hint: "Observer & Cinematics: big fights in its coverage" },
+  { id: "bomb", label: "Bomb", hint: "Observer & Cinematics: bomb defuse and the last seconds of the timer" },
+  { id: "establishing", label: "Establishing (freeze time)", hint: "Observer & Cinematics: wide shot during freeze time" },
+];
+
+function UsesPicker({ value, onChange, disabled, label }: { value: CameraUse[]; onChange: (v: CameraUse[]) => void; disabled?: boolean; label: string }) {
+  return (
+    <fieldset className="uses-picker" aria-label={label}>
+      <div className="row">
+        {CAMERA_USES.map((u) => (
+          <label key={u.id} className="check" title={u.hint}>
+            <input type="checkbox" disabled={disabled} checked={value.includes(u.id)} onChange={(e) => onChange(e.target.checked ? [...value, u.id] : value.filter((x) => x !== u.id))} />
+            {u.label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+const sameUses = (a: CameraUse[], b: CameraUse[]) => a.length === b.length && a.every((x) => b.includes(x));
+
 export function OutlineCanvas({ outline, highlight }: { outline: MapOutline; highlight?: string | null }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -93,12 +119,13 @@ function CameraAuthoring({ map, regions, onCreated }: { map: string; regions: Ma
   const [focus, setFocus] = useState("");
   const [radius, setRadius] = useState(600);
   const [targets, setTargets] = useState<string[]>([]);
+  const [uses, setUses] = useState<CameraUse[]>(["utility", "tactical"]);
   const parsedFocus = (() => {
     const m = /setpos(?:_exact)?\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)/i.exec(focus) ?? /^\s*(-?[\d.]+)[\s,]+(-?[\d.]+)[\s,]+(-?[\d.]+)\s*$/.exec(focus);
     return m ? { x: Number(m[1]), y: Number(m[2]), z: Number(m[3]) } : null;
   })();
   const getposOk = /setpos(?:_exact)?\s+-?[\d.]+\s+-?[\d.]+\s+-?[\d.]+\s*;\s*setang\s+-?[\d.]+\s+-?[\d.]+/i.test(getpos);
-  const missing = !/^[a-z0-9-]{3,64}$/.test(id) ? "Camera id: 3–64 chars a–z, 0–9, dash" : !name.trim() ? "Enter a display name" : !getposOk ? "Paste the camera's getpos output (setpos …; setang …)" : !parsedFocus ? "Enter the focus point as “x y z” or paste getpos taken at the focus point" : null;
+  const missing = !/^[a-z0-9-]{3,64}$/.test(id) ? "Camera id: 3–64 chars a–z, 0–9, dash" : !name.trim() ? "Enter a display name" : !getposOk ? "Paste the camera's getpos output (setpos …; setang …)" : !parsedFocus ? "Enter the focus point as “x y z” or paste getpos taken at the focus point" : uses.length === 0 ? "Choose what the camera is used for" : null;
   return (
     <>
       <p className="small muted">In CS2, fly the free camera to the shot, run <code>getpos</code> in the console and paste the output. Then do the same standing at the point the camera should look at (or type its x y z). Coordinates are never invented.</p>
@@ -119,6 +146,9 @@ function CameraAuthoring({ map, regions, onCreated }: { map: string; regions: Ma
       <Field label="Focus point (x y z, or getpos at the focus point)" hint={parsedFocus ? `Parsed: ${parsedFocus.x}, ${parsedFocus.y}, ${parsedFocus.z}` : undefined}>
         <input className="mono" value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="1500 -200 32" />
       </Field>
+      <Field label="Used for" hint="Which Observer shots may use this camera. Establishing shots run in freeze time; the others during the round.">
+        <UsesPicker value={uses} onChange={setUses} label="Used for" />
+      </Field>
       {regions.length ? (
         <fieldset>
           <legend>Target regions</legend>
@@ -135,7 +165,7 @@ function CameraAuthoring({ map, regions, onCreated }: { map: string; regions: Ma
       <div className="form-actions">
         <ActionButton
           variant="primary"
-          action={() => api.post<CameraRecord>(`/api/v1/maps/${seg(map)}/cameras/from-getpos`, { id, displayName: name.trim(), getpos, focus: parsedFocus, coverageRadiusUnits: radius, targetRegionIds: targets })}
+          action={() => api.post<CameraRecord>(`/api/v1/maps/${seg(map)}/cameras/from-getpos`, { id, displayName: name.trim(), getpos, focus: parsedFocus, coverageRadiusUnits: radius, targetRegionIds: targets, uses })}
           success={(c) => `Camera ${c.id} captured (UNVALIDATED until tested in-game)`}
           onDone={() => {
             setId("");
@@ -158,6 +188,7 @@ function CameraRow({ map, cam, onChanged }: { map: string; cam: CameraRecord; on
   const snap = useSnapshot();
   const [validation, setValidation] = useState(cam.validation);
   const [notes, setNotes] = useState(cam.notes ?? "");
+  const [uses, setUses] = useState<CameraUse[]>(cam.actionClasses);
   return (
     <tr>
       <td>
@@ -174,6 +205,9 @@ function CameraRow({ map, cam, onChanged }: { map: string; cam: CameraRecord; on
         <div className="muted">
           tested build {cam.lastTestedGameBuild ?? MISSING} / map {cam.lastTestedMapVersion ?? MISSING}
         </div>
+      </td>
+      <td className="small">
+        <UsesPicker value={uses} onChange={setUses} disabled={!!reason} label={`Used for (${cam.displayName})`} />
       </td>
       <td className="small mono">
         {cam.position.x.toFixed(0)}, {cam.position.y.toFixed(0)}, {cam.position.z.toFixed(0)}
@@ -192,10 +226,10 @@ function CameraRow({ map, cam, onChanged }: { map: string; cam: CameraRecord; on
           <input aria-label="Notes" placeholder="notes" value={notes} onChange={(e) => setNotes(e.target.value)} style={{ width: 140 }} />
           <ActionButton
             size="sm"
-            action={() => api.post<CameraRecord>(`/api/v1/maps/${seg(map)}/cameras/${seg(cam.id)}/validation`, { validation, notes })}
+            action={() => api.post<CameraRecord>(`/api/v1/maps/${seg(map)}/cameras/${seg(cam.id)}/validation`, { validation, notes, uses })}
             success={(c) => `${c.displayName}: ${c.validation}`}
             onDone={onChanged}
-            disabledReason={reason ?? (validation === "validated" && snap?.simulated ? "Cameras cannot be validated from simulation" : validation === cam.validation && notes === (cam.notes ?? "") ? "No change" : null)}
+            disabledReason={reason ?? (uses.length === 0 ? "Choose what the camera is used for" : validation === "validated" && snap?.simulated ? "Cameras cannot be validated from simulation" : validation === cam.validation && notes === (cam.notes ?? "") && sameUses(uses, cam.actionClasses) ? "No change" : null)}
             reasonPlacement="tooltip"
           >
             Save
@@ -286,6 +320,7 @@ function MapDetail({ map, reloadList }: { map: string; reloadList: () => void })
                       <th>Camera</th>
                       <th>Validation</th>
                       <th>Revision / tested</th>
+                      <th>Used for</th>
                       <th>Pose</th>
                       <th>Change validation</th>
                     </tr>

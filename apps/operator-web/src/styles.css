@@ -733,6 +733,11 @@ legend {
   background: var(--accent);
   color: #fff;
 }
+.mode-plan {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}
 .seg-btn.is-on::before,
 .mode-btn.is-on::before {
   content: "● ";
@@ -2152,4 +2157,13 @@ legend {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 8px;
+}
+
+.uses-picker {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.uses-picker .row {
+  gap: 6px 12px;
 }
