@@ -76,8 +76,12 @@ export class WsHub {
     }
   }
 
+  /** Closes every client (forcibly after a second if a peer does not complete the close handshake). */
   closeAll(): void {
-    for (const c of this.clients) c.ws.close(1001, "shutdown");
+    for (const c of this.clients) {
+      c.ws.close(1001, "shutdown");
+      setTimeout(() => c.ws.terminate(), 1000).unref();
+    }
     this.wss.close();
   }
 }

@@ -195,11 +195,12 @@
   text-overflow: ellipsis;
 }
 .hud-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 0;
+  display: block;
   font-size: 12px;
   color: var(--text-faint);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .hud-meta span + span::before {
   content: "·";

@@ -411,7 +411,16 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       operatorHub.closeAll();
       overlayHub.closeAll();
       runtimeHub.closeAll();
-      await Promise.all([gsi, api, overlay].map((s) => new Promise<void>((r) => s.close(() => r()))));
+      // Open keep-alive and streaming connections would hold close() open: drop them.
+      await Promise.all(
+        [gsi, api, overlay].map(
+          (s) =>
+            new Promise<void>((r) => {
+              s.close(() => r());
+              s.closeAllConnections();
+            }),
+        ),
+      );
     },
     get rejectedOverlayMessages() {
       return rejectedOverlayMessages;

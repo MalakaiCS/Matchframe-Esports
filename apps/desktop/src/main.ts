@@ -477,8 +477,12 @@ ipcMain.on("mf:hud-availability", (event) => {
 });
 ipcMain.handle("mf:open-data-dir", () => shell.openPath(dataDir()));
 ipcMain.handle("mf:restart-engine", () => {
-  if (connection.mode !== "local") return false;
-  engine?.send({ type: "shutdown" });
+  if (connection.mode !== "local" || !engine) return false;
+  const child = engine;
+  child.send({ type: "shutdown" });
+  // The supervisor restarts it on exit; an engine that does not stop is ended.
+  const kill = setTimeout(() => child.exitCode === null && child.kill(), 8000);
+  child.once("exit", () => clearTimeout(kill));
   return true;
 });
 ipcMain.handle("mf:open-connection", (event) => {

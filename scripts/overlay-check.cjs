@@ -24,7 +24,7 @@ try {
   pw = require("playwright-core");
 }
 const { execFileSync } = require("node:child_process");
-const { mkdtempSync, writeFileSync } = require("node:fs");
+const { existsSync, mkdtempSync, readFileSync, writeFileSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join, resolve } = require("node:path");
 
@@ -73,6 +73,21 @@ async function step(name, fn, opts) {
   }
 }
 
+/**
+ * Fractions of the capture where the HUD's empty centre and its top panel (scorebug) are: the
+ * output page fits the 1920×1080 HUD into the window without stretching (letterboxed).
+ */
+const HUD_POINTS = { empty: [960, 486], panel: [960, 54] };
+/** Runs in the main process: alpha at the HUD points of a captured page. */
+const ALPHA_AT_HUD_POINTS = `(img, pts) => {
+  const { width, height } = img.getSize();
+  const bmp = img.toBitmap();
+  const s = Math.min(width / 1920, height / 1080);
+  const x0 = (width - 1920 * s) / 2, y0 = (height - 1080 * s) / 2;
+  const alpha = ([dx, dy]) => bmp[(Math.floor(y0 + dy * s) * width + Math.floor(x0 + dx * s)) * 4 + 3];
+  return { size: { width, height }, center: alpha(pts.empty), scorebug: alpha(pts.panel) };
+}`;
+
 /** Windows input and window queries through user32 (PowerShell). */
 const USER32 = `Add-Type @"
 using System; using System.Text; using System.Runtime.InteropServices;
@@ -95,8 +110,9 @@ const foregroundTitle = () => ps(`$h=[MfU]::GetForegroundWindow(); $s=New-Object
 // Ctrl+Shift+<vk>, sent as global key presses.
 const pressHotkey = (vk) => ps(`[MfU]::keybd_event(0x11,0,0,[UIntPtr]::Zero); [MfU]::keybd_event(0x10,0,0,[UIntPtr]::Zero); [MfU]::keybd_event(${vk},0,0,[UIntPtr]::Zero); Start-Sleep -Milliseconds 60; [MfU]::keybd_event(${vk},0,2,[UIntPtr]::Zero); [MfU]::keybd_event(0x10,0,2,[UIntPtr]::Zero); [MfU]::keybd_event(0x11,0,2,[UIntPtr]::Zero)`);
 
+const data = mkdtempSync(join(tmpdir(), "mf-overlay-"));
+
 (async () => {
-  const data = mkdtempSync(join(tmpdir(), "mf-overlay-"));
   const app = await pw._electron.launch({
     executablePath: resolve(exe),
     args: [...(process.platform === "linux" ? ["--no-sandbox"] : []), ...(appDir ? [resolve(appDir)] : [])],
@@ -131,6 +147,9 @@ const pressHotkey = (vk) => ps(`[MfU]::keybd_event(0x11,0,0,[UIntPtr]::Zero); [M
   });
 
   const hard = checks.filter((c) => c.ok === false && !c.soft);
+  // The engine's log helps explain a failure (the data folder is a temporary one).
+  const log = join(data, "logs", "engine.log");
+  if (hard.length && existsSync(log)) info.engineLogTail = readFileSync(log, "utf8").split(/\r?\n/).slice(-80);
   const report = { ok: hard.length === 0, platform: process.platform, executable: exe, info, checks, at: new Date().toISOString() };
   writeFileSync(reportFile, JSON.stringify(report, null, 2));
   console.log(`\n${checks.filter((c) => c.ok).length} passed, ${hard.length} failed, ${checks.filter((c) => c.ok === false && c.soft).length} warnings, ${checks.filter((c) => c.ok === null).length} skipped. Report: ${reportFile}`);
@@ -239,20 +258,31 @@ async function run(app) {
 
   // capturePage: transparent pixels in the window itself (all platforms).
   await step("desktop HUD renders transparent pixels where there is no HUD", async () => {
-    const a = await app.evaluate(async ({ BrowserWindow }, tag) => {
+    const a = await app.evaluate(async ({ BrowserWindow }, { tag, fn, pts }) => {
       const w = BrowserWindow.getAllWindows().find((x) => x[Symbol.for(tag)]?.kind === "overlay");
-      const img = await w.webContents.capturePage();
-      const { width, height } = img.getSize();
-      const bmp = img.toBitmap();
-      const alpha = (fx, fy) => bmp[(Math.floor(fy * height) * width + Math.floor(fx * width)) * 4 + 3];
-      return { size: { width, height }, center: alpha(0.5, 0.45), scorebug: alpha(0.5, 0.05) };
-    }, TAG);
+      return eval(fn)(await w.webContents.capturePage(), pts);
+    }, { tag: TAG, fn: ALPHA_AT_HUD_POINTS, pts: HUD_POINTS });
     check("desktop HUD renders transparent pixels where there is no HUD", a.center === 0 && a.scorebug > 0, a);
   });
 
   // ---------------------------------------------------------------- real pixels and input (Windows)
   const d = info.displays.find((x) => x.primary);
-  const toScreen = (fx, fy) => ({ x: (props.bounds.x - d.bounds.x + fx * props.bounds.width) * d.scaleFactor, y: (props.bounds.y - d.bounds.y + fy * props.bounds.height) * d.scaleFactor });
+  // Physical screen pixels of a HUD design point, from the overlay window's current bounds.
+  let bounds = props.bounds;
+  const toScreen = ([dx, dy]) => {
+    const s = Math.min(bounds.width / 1920, bounds.height / 1080);
+    const x0 = (bounds.width - 1920 * s) / 2;
+    const y0 = (bounds.height - 1080 * s) / 2;
+    return { x: (bounds.x - d.bounds.x + x0 + dx * s) * d.scaleFactor, y: (bounds.y - d.bounds.y + y0 + dy * s) * d.scaleFactor };
+  };
+  const refreshBounds = async () => {
+    bounds = await app.evaluate(({ BrowserWindow }, tag) => BrowserWindow.getAllWindows().find((x) => x[Symbol.for(tag)]?.kind === "overlay").getBounds(), TAG);
+  };
+  // Put the stand-in game back in front of the manager window, with focus.
+  const frontGame = () => app.evaluate(() => {
+    globalThis.__mfFake.moveTop();
+    globalThis.__mfFake.focus();
+  });
   const screenPixels = (points) =>
     app.evaluate(
       async ({ desktopCapturer, screen }, points) => {
@@ -270,8 +300,8 @@ async function run(app) {
       points,
     );
   const isMagenta = (p) => p.r > 225 && p.g < 40 && p.b > 225;
-  const empty = toScreen(0.5, 0.45);
-  const panel = toScreen(0.5, 0.05);
+  const empty = toScreen(HUD_POINTS.empty);
+  let panel = toScreen(HUD_POINTS.panel);
   if (!isWin) {
     skip("real pixels: the game shows through empty HUD areas, not through panels", "needs the Windows desktop compositor");
     skip("click-through: clicks reach the game window", "Windows input");
@@ -316,7 +346,7 @@ async function run(app) {
     await sleep(300);
     const after = await app.evaluate(({ BrowserWindow }, tag) => BrowserWindow.getAllWindows().find((x) => x[Symbol.for(tag)]?.kind === "overlay")[Symbol.for(tag)].ignoringMouse, TAG);
     check("edit mode catches the mouse; leaving it restores click-through", editing === false && outline === true && after === true && (clicks === null || clicks === 0), { ignoringMouseWhileEditing: editing, outline, clicksReachingGameWhileEditing: clicks, ignoringMouseAfter: after });
-    if (isWin) await app.evaluate(() => globalThis.__mfFake.focus());
+    if (isWin) await frontGame();
   });
 
   // ---------------------------------------------------------------- scale, position, remembered
@@ -353,28 +383,31 @@ async function run(app) {
       const m = BrowserWindow.getAllWindows().find((x) => !x[Symbol.for(tag)] && x.getTitle().startsWith("Matchframe Esports"));
       m?.restore();
     }, TAG);
+    await frontGame();
   });
 
   // ---------------------------------------------------------------- OBS output
   await step("OBS browser source renders transparent with only the HUD", async () => {
     const url = (await library()).huds.find((h) => h.id === SAMPLE).urls.live;
-    const r = await app.evaluate(async ({ BrowserWindow }, url) => {
-      const w = new BrowserWindow({ show: false, width: 1920, height: 1080, transparent: true, frame: false, webPreferences: { offscreen: true, sandbox: true } });
+    // OBS renders browser sources offscreen at the source size (1920×1080).
+    const r = await app.evaluate(async ({ BrowserWindow }, { url, fn, pts }) => {
+      const w = new BrowserWindow({ show: false, width: 1920, height: 1080, useContentSize: true, enableLargerThanScreen: true, transparent: true, frame: false, webPreferences: { offscreen: true, sandbox: true } });
       globalThis.__mfObs = w;
       await w.loadURL(url);
       await new Promise((r) => setTimeout(r, 4000));
-      const img = await w.webContents.capturePage();
-      const { width, height } = img.getSize();
-      const bmp = img.toBitmap();
-      const alpha = (fx, fy) => bmp[(Math.floor(fy * height) * width + Math.floor(fx * width)) * 4 + 3];
-      return { size: { width, height }, center: alpha(0.5, 0.45), scorebug: alpha(0.5, 0.05) };
-    }, url);
+      return eval(fn)(await w.webContents.capturePage(), pts);
+    }, { url, fn: ALPHA_AT_HUD_POINTS, pts: HUD_POINTS });
     const counted = await waitFor(async () => ((await library()).huds.find((h) => h.id === SAMPLE).outputs.obs >= 1 ? true : null), 10000).catch(() => false);
     check("OBS browser source renders transparent with only the HUD", r.center === 0 && r.scorebug > 0 && counted, { ...r, countedAsObsOutput: counted });
   });
 
   // ---------------------------------------------------------------- outputs are independent
   await step("hiding the desktop HUD leaves the OBS output alone", async () => {
+    if (isWin) {
+      await frontGame();
+      await refreshBounds();
+      panel = toScreen(HUD_POINTS.panel);
+    }
     await win.evaluate((id) => window.matchframe.hud.setVisible(id, false), SAMPLE);
     await sleep(500);
     const visible = await app.evaluate(({ BrowserWindow }, tag) => BrowserWindow.getAllWindows().find((x) => x[Symbol.for(tag)]?.kind === "overlay")?.isVisible(), TAG);

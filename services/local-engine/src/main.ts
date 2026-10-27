@@ -49,6 +49,11 @@ export async function main(): Promise<void> {
     if (stopping) return;
     stopping = true;
     engine.logger.info("engine shutting down");
+    // A shutdown never hangs: the program restarts the engine only once this process has exited.
+    setTimeout(() => {
+      engine.logger.warn("shutdown took longer than 5 s; exiting");
+      process.exit(0);
+    }, 5000).unref();
     await servers.close();
     await engine.shutdown();
     process.exit(0);
