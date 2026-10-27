@@ -11,6 +11,37 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.3.0",
+    title: "Start CS2, minimaps everywhere and LHM HUDs",
+    summary: "Start CS2 from the program, a minimap and killfeed in every included HUD, HUDs made for Lexogrine HUD Manager running as they are, and updates that install themselves.",
+    sections: [
+      {
+        heading: "HUDs",
+        items: [
+          "Every included HUD now has a minimap and a killfeed in its own style. Built-in radars cover Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo, with upper and lower levels on Nuke and Vertigo.",
+          "Minimaps show flashed players and the bomb carrier, smokes outlined in the thrower's team colour and a pulsing planted bomb.",
+          "The killfeed shows the killer's weapon, headshots, assists and flashed killers. CS2's game data has no kill events, so kills are matched from the game's counters.",
+          "Import HUDs made for Lexogrine HUD Manager (hud.json, index.html, panel.json) as a ZIP or folder. They run as they are, without LHM. Their control panel becomes the HUD's settings, with player and team pickers and buttons that act on the running HUD.",
+        ],
+      },
+      {
+        heading: "Start CS2",
+        items: [
+          "Start CS2 writes the game-data config and starts the game. Choose Standard, Observer tools (the game's console, which needs the free CS2 Workshop Tools) or Observer tools with HLAE.",
+          "With Observer tools: Hide game HUD and X-ray, and the console camera control is set up for you.",
+          "With HLAE: No flash, team colours in the kill feed and no end-of-match screen. HLAE runs CS2 in insecure mode, so read the warning about VAC-secured servers first.",
+        ],
+      },
+      {
+        heading: "The program",
+        items: [
+          "Updates download in the background and install when you quit, or straight away with Restart now. The program never restarts on its own during a broadcast. Version 0.2.0 has no updater, so install 0.3.0 once by hand.",
+          "The program draws its own title bar, and the HUD Library has quick switches, a Counter-Strike 2 card and HUDs grouped by category.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.2.0",
     title: "The HUD Library",
     summary: "Matchframe now opens into a library of your HUDs. Run any of them as a transparent window over the game, as an OBS browser source or as a preview, with no account needed.",
