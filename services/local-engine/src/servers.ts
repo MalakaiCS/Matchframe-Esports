@@ -265,7 +265,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   e.hudLibrary.attachRuntime({
     outputs: (hudId) => {
       const counts: Record<HudOutputMode, number> = { obs: 0, desktop: 0, preview: 0 };
-      for (const c of runtimeHub.clients) if (c.meta.hudId === hudId) counts[c.meta.mode as HudOutputMode]++;
+      // The manager's own embedded preview (details panel) is not an output.
+      for (const c of runtimeHub.clients) if (c.meta.hudId === hudId && !c.meta.embedded) counts[c.meta.mode as HudOutputMode]++;
       return counts;
     },
   });
@@ -335,7 +336,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       const mode: HudOutputMode = (HUD_OUTPUT_MODES as readonly string[]).includes(m) ? (m as HudOutputMode) : "obs";
       const q = `output=${libraryOutputId(hudId)}&variant=${variant}&t=${encodeURIComponent(token!)}`;
       const frameUrl = rt.builtin ? `/hud/index.html?${q}` : `/huds/${encodeURIComponent(hudId)}/${entry.split("/").map(encodeURIComponent).join("/")}?${q}`;
-      const html = wrapperPage({ hudId, name: rt.name, variant, mode, checker: url.searchParams.get("checker") === "1", frameUrl, controlPath: `/hud-runtime-ws?hud=${encodeURIComponent(hudId)}&variant=${variant}&mode=${mode}&t=${encodeURIComponent(token!)}`, ...rt.designResolution });
+      const embed = mode === "preview" && url.searchParams.get("embed") === "1" ? "&embed=1" : "";
+      const html = wrapperPage({ hudId, name: rt.name, variant, mode, checker: url.searchParams.get("checker") === "1", frameUrl, controlPath: `/hud-runtime-ws?hud=${encodeURIComponent(hudId)}&variant=${variant}&mode=${mode}${embed}&t=${encodeURIComponent(token!)}`, ...rt.designResolution });
       res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers });
       res.end(html);
       return;
@@ -378,7 +380,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       if (!e.hudLibrary.checkToken(hudId, token)) return unauthorized();
       const m = url.searchParams.get("mode") ?? "obs";
       const mode = (HUD_OUTPUT_MODES as readonly string[]).includes(m) ? m : "obs";
-      return runtimeHub.upgrade(req, socket, head, { hudId, variant: url.searchParams.get("variant"), mode });
+      return runtimeHub.upgrade(req, socket, head, { hudId, variant: url.searchParams.get("variant"), mode, embedded: mode === "preview" && url.searchParams.get("embed") === "1" });
     }
     const outputId = url.searchParams.get("output") ?? "";
     const hudId = libraryHudId(outputId);

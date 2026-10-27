@@ -91,3 +91,23 @@ export interface DesktopHudBridge {
 export function desktopHud(): DesktopHudBridge | null {
   return (window as unknown as { matchframe?: { hud?: DesktopHudBridge } }).matchframe?.hud ?? null;
 }
+
+/** Program details from `window.matchframe.info()` (apps/desktop `mf:info`); absent in browsers and tests. */
+export interface DesktopInfo {
+  version?: string;
+  dataDir?: string;
+  ports?: { gsi?: number; api?: number; overlay?: number };
+  packaged?: boolean;
+  connection?: { mode: "local" } | { mode: "remote"; url: string };
+}
+
+export async function desktopInfo(): Promise<DesktopInfo | null> {
+  const info = (window as unknown as { matchframe?: { info?: () => Promise<unknown> } }).matchframe?.info;
+  if (!info) return null;
+  try {
+    const v = await info();
+    return v && typeof v === "object" ? (v as DesktopInfo) : null;
+  } catch {
+    return null;
+  }
+}

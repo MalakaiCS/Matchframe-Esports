@@ -160,7 +160,7 @@ export function ReplaysScreen() {
                   {p ? (
                     !p.health.ok && p.kind === "obs_replay_buffer" ? (
                       <p className="small">
-                        Connect OBS and start its replay buffer in <Link to="/devices">Devices &amp; Integrations</Link>.
+                        Connect OBS and start its replay buffer in <Link to="/settings/devices">Settings → Devices</Link>.
                       </p>
                     ) : null
                   ) : (

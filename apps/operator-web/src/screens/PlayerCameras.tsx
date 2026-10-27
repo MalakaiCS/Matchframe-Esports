@@ -120,7 +120,7 @@ export function PlayerCamerasScreen() {
                   {dropped.length ? <p className="small text-warn">{dropped.length} mapping(s) belong to players without consent and will be removed on save.</p> : null}
                   {!st.obsConnected ? (
                     <p className="small text-warn">
-                      OBS is not connected, so routing can't act. <Link to="/devices">Connect OBS</Link>
+                      OBS is not connected, so routing can't act. <Link to="/settings/devices">Connect OBS</Link>
                     </p>
                   ) : null}
                 </Panel>
@@ -141,7 +141,7 @@ export function PlayerCamerasScreen() {
               <Panel title="Players">
                 {list.length === 0 ? (
                   <EmptyState title="No players">
-                    Add players with SteamIDs in <Link to="/teams">Teams &amp; Players</Link> — routing matches telemetry by SteamID.
+                    Add players with SteamIDs in <Link to="/players">Players</Link> — routing matches telemetry by SteamID.
                   </EmptyState>
                 ) : (
                   <table className="table table-compact">

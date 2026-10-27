@@ -328,7 +328,7 @@ export function StudioScreen() {
                 </div>
                 {!p.scenes.STUDIO || !p.scenes.BREAK ? (
                   <p className="small text-warn">
-                    Studio and Break only switch when an OBS scene is mapped for them. <Link to="/setup#step-scenes">Map scenes in Setup</Link>
+                    Studio and Break only switch when an OBS scene is mapped for them. <Link to="/settings/setup#step-scenes">Map scenes in Setup</Link>
                   </p>
                 ) : null}
                 <Details summary="Scenes and owner">

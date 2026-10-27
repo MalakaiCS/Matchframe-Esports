@@ -286,9 +286,12 @@ describe("HUD Library (real HTTP/WS servers)", () => {
     const aDesktop = ctl(a, "desktop");
     const aObs = ctl(a, "obs");
     const bObs = ctl(b, "obs");
+    // The manager's embedded preview (details panel) gets control messages but is not counted as an output.
+    const aEmbedded = open(`ws://${overlay()}/hud-runtime-ws?hud=${a.id}&variant=live&mode=preview&embed=1&t=${tokenOf(a)}`);
     const control = (m: Record<string, unknown>) => m.type === "control";
-    await Promise.all([aDesktop.next(control), aObs.next(control), bObs.next(control)]);
+    await Promise.all([aDesktop.next(control), aObs.next(control), bObs.next(control), aEmbedded.next(control)]);
     expect((await entry("test.sample"))!.outputs).toEqual({ obs: 1, desktop: 1, preview: 0 });
+    aEmbedded.ws.close();
     expect((await entry("test.sample"))!.status).toBe("running");
 
     await api("/api/v1/hud/library/test.sample/stop", { method: "POST" });
