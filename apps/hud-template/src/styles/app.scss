@@ -1,0 +1,191 @@
+/* Base styles adapted from Lexogrine's CS2 React HUD (MIT, see LICENSE-lexogrine.txt). */
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 400;
+  src: url("../fonts/Montserrat-Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 500;
+  src: url("../fonts/Montserrat-Medium.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 600;
+  src: url("../fonts/Montserrat-SemiBold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 700;
+  src: url("../fonts/Montserrat-Bold.ttf") format("truetype");
+}
+
+:root {
+  --main-panel-color: rgba(12, 15, 18, 0.85);
+  --sub-panel-color: rgba(0, 0, 0, 0.83);
+  --white-dull: rgba(10, 5, 5, 0.25);
+  --white-full: rgba(250, 250, 250, 1);
+  --white-half: rgba(250, 250, 250, 0.5);
+  --color-gray: rgba(191, 191, 191, 1);
+  --color-moneys: #a7d32e;
+  --color-t: #c19511;
+  --color-ct: #5788a8;
+  --color-new-t: #f0c941;
+  --color-new-ct: #5ab8f4;
+  --color-bomb: #f22222;
+  --color-defuse: #2222f2;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  /* Transparent: only the HUD graphics are drawn (OBS browser source, desktop HUD window). */
+  background: transparent;
+}
+
+body {
+  font-family: "Montserrat", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: white;
+  user-select: none;
+}
+
+.layout {
+  width: 100%;
+  height: 100%;
+  perspective: 500px;
+}
+
+/* ---- Matchframe additions ---- */
+.mf-simulation {
+  position: fixed;
+  left: 50%;
+  top: 136px;
+  transform: translateX(-50%);
+  padding: 3px 12px;
+  border-radius: 3px;
+  background: #7b4dff;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.killfeed .single_kill_container.kind-probable .single_kill {
+  opacity: 0.8;
+}
+.killfeed .probable {
+  font-weight: 700;
+  margin-right: 4px;
+}
+.killfeed svg.weapon.icon-skull,
+.killfeed .way > svg.weapon {
+  max-height: 22px;
+}
+
+#radar_maps_container {
+  overflow: hidden;
+  background: var(--sub-panel-color);
+}
+.mf-radar {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.mf-radar-cell {
+  fill: rgba(255, 255, 255, 0.14);
+}
+.mf-radar-cell.k-bombsite {
+  fill: rgba(242, 34, 34, 0.22);
+}
+.mf-radar-cell.k-spawn {
+  fill: rgba(255, 255, 255, 0.07);
+}
+.mf-radar-player {
+  transition: transform 0.2s linear;
+}
+.mf-radar-player.CT {
+  --side: var(--color-new-ct);
+}
+.mf-radar-player.T {
+  --side: var(--color-new-t);
+}
+.mf-radar-dot {
+  fill: var(--side, #bbb);
+  stroke: rgba(0, 0, 0, 0.8);
+  stroke-width: 4;
+}
+.mf-radar-player.active .mf-radar-dot {
+  stroke: white;
+  stroke-width: 6;
+}
+.mf-radar-player.dead {
+  opacity: 0.35;
+}
+.mf-radar-player.dead .mf-radar-dot {
+  fill: white;
+  stroke: none;
+}
+.mf-radar-facing {
+  fill: var(--side, #bbb);
+  opacity: 0.85;
+}
+.mf-radar-label {
+  font-family: "Montserrat", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  fill: black;
+}
+.mf-radar-bomb {
+  fill: #f2f2f2;
+  stroke: black;
+  stroke-width: 2;
+}
+.mf-radar-bomb.s-planted,
+.mf-radar-bomb.s-defusing {
+  fill: var(--color-bomb);
+}
+.mf-radar-util {
+  stroke-width: 2;
+}
+.mf-radar-util.u-smoke {
+  fill: rgba(220, 225, 235, 0.55);
+  stroke: rgba(255, 255, 255, 0.7);
+}
+.mf-radar-util.u-fire {
+  fill: rgba(240, 120, 40, 0.45);
+  stroke: rgba(255, 150, 60, 0.9);
+}
+.mf-radar-util.u-he {
+  fill: none;
+  stroke: var(--color-bomb);
+}
+.mf-radar-util.u-flash {
+  fill: rgba(255, 255, 255, 0.35);
+  stroke: white;
+}
+.mf-radar-util.u-decoy {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-dasharray: 6 4;
+}
+
+.veto_picker .decider {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+/* Demo state (thumbnails): no entry animations. */
+.demo .killfeed .single_kill_container,
+.demo .win_text.show {
+  animation: none;
+}

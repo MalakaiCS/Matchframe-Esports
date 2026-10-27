@@ -24,6 +24,8 @@ extraResources:
   # HUD packages installed into the HUD Library on first start (each subfolder is one package).
   - from: ../../assets/hud-packages
     to: sample-huds
+  - from: ../hud-template/dist
+    to: sample-huds/matchframe-pro-cs2
   # Tray icon (the window icon comes from the .exe).
   - from: build/icon.png
     to: icon.png
