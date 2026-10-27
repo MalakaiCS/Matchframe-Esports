@@ -12,15 +12,6 @@
 .gb-nowrap {
   white-space: nowrap;
 }
-.table td .details {
-  margin-top: 2px;
-}
-.table td .details > summary {
-  font-size: 12px;
-}
-.table td .details .kv-row {
-  grid-template-columns: minmax(90px, 30%) 1fr;
-}
 .gb-toolbar {
   display: flex;
   align-items: flex-end;

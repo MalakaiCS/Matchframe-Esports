@@ -27,7 +27,7 @@ export function AssetUpload({ value, onChange, label, disabledReason }: { value:
     <div className="field">
       <span className="field-label">{label}</span>
       <div className="row">
-        {url ? isVideo ? <span className="small mono">{value}</span> : <img className="thumb" src={url} alt={`${label} preview`} /> : <span className="muted small">none</span>}
+        {url ? isVideo ? <span className="small mono">{value}</span> : <img className="thumb" src={url} alt={`${label} preview`} /> : null}
         <input
           ref={ref}
           type="file"
@@ -50,7 +50,7 @@ export function AssetUpload({ value, onChange, label, disabledReason }: { value:
             }
           }}
         />
-        <Button size="sm" onClick={() => ref.current?.click()} disabled={busy} disabledReason={disabledReason ?? null} reasonPlacement="tooltip">
+        <Button size="sm" onClick={() => ref.current?.click()} disabled={busy} disabledReason={disabledReason ?? null} title={`PNG, JPG, WebP, SVG, GIF, WebM or MP4 up to ${fmtBytes(ASSET_UPLOAD_LIMIT)}`}>
           {busy ? "Uploading…" : url ? "Replace" : "Upload"}
         </Button>
         {value ? (
@@ -59,7 +59,7 @@ export function AssetUpload({ value, onChange, label, disabledReason }: { value:
           </Button>
         ) : null}
       </div>
-      {error ? <span className="action-error">{error}</span> : <span className="field-hint">PNG/JPG/WebP/SVG/GIF/WebM/MP4 up to {fmtBytes(ASSET_UPLOAD_LIMIT)}</span>}
+      {error ? <span className="action-error">{error}</span> : null}
     </div>
   );
 }
@@ -84,7 +84,6 @@ export function MapPoolEditor({ value, onChange, suggestions }: { value: string[
             </button>
           </span>
         ))}
-        {value.length === 0 ? <span className="muted small">empty</span> : null}
       </div>
       <div className="row">
         <input
