@@ -498,10 +498,17 @@ async function run(app) {
       const s = await app.evaluate(() => globalThis.__mfObs.webContents.executeJavaScript("window.__mfOverlay.status()"));
       return s?.connected ? s : null;
     }, 45000);
-    const a = await frameEval(`document.querySelector(".clock-time").textContent`);
+    // The HUD's own data socket reconnects with backoff, a few seconds after the wrapper on Windows
+    // (refused loopback connections take ~2 s there): wait for its data, then see the clock run.
+    const clockText = () => frameEval(`document.querySelector(".clock-time").textContent`);
+    const a = await waitFor(async () => {
+      const t = await clockText();
+      return /\d/.test(t ?? "") ? t : null;
+    }, 20000).catch(() => null);
+    info.hudDataBackAfterSeconds = Math.round((Date.now() - t0) / 100) / 10;
     await sleep(2500);
-    const b = await frameEval(`document.querySelector(".clock-time").textContent`);
-    check("outputs recover after the engine restarts", desk.connected && obs.connected && a !== b, { engineBackAfterSeconds: info.engineRestartSeconds, desktop: desk.connected, browserSource: obs.connected, clock: [a, b] });
+    const b = await clockText();
+    check("outputs recover after the engine restarts", desk.connected && obs.connected && a !== null && a !== b, { engineBackAfterSeconds: info.engineRestartSeconds, hudDataBackAfterSeconds: info.hudDataBackAfterSeconds, desktop: desk.connected, browserSource: obs.connected, clock: [a, b] });
   });
 
   // ---------------------------------------------------------------- stop
