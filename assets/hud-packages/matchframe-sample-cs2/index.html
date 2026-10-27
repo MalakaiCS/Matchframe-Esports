@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Matchframe Sample CS2 HUD</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="hud" class="hud" hidden>
+      <section class="scorebug">
+        <div class="team team-left">
+          <img class="team-logo" alt="" hidden />
+          <span class="team-name"></span>
+          <b class="team-score"></b>
+        </div>
+        <div class="clock">
+          <b class="clock-time">--:--</b>
+          <span class="clock-round"></span>
+        </div>
+        <div class="team team-right">
+          <b class="team-score"></b>
+          <span class="team-name"></span>
+          <img class="team-logo" alt="" hidden />
+        </div>
+      </section>
+      <div class="banner bomb" hidden><img src="images/bomb.svg" alt="" /> <span></span></div>
+      <div class="chips">
+        <span class="chip test" hidden>Test data</span>
+        <span class="chip paused" hidden>Data paused</span>
+      </div>
+      <section class="players players-left"></section>
+      <section class="players players-right"></section>
+      <section class="observed" hidden>
+        <img class="observed-mark" src="images/mark.webp" alt="" />
+        <div class="observed-main">
+          <span class="observed-name"></span>
+          <span class="observed-weapon"></span>
+        </div>
+        <div class="observed-stats">
+          <b class="observed-hp"></b>
+          <span class="observed-armor"></span>
+          <span class="observed-kda"></span>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

@@ -242,8 +242,8 @@
   gap: 10px;
   padding: 12px 12px 12px 16px;
   border-radius: 12px;
-  background: #1b1830;
-  color: #f4f2ff;
+  background: #121a2e;
+  color: #f0f5ff;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
   border-left: 4px solid var(--brand-2);
   font-size: 14.5px;
@@ -275,7 +275,7 @@
   flex: none;
   border: 0;
   background: none;
-  color: #c9c3e3;
+  color: #c3cee2;
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
@@ -284,7 +284,7 @@
 }
 
 .toast-x:focus-visible {
-  outline-color: #d4ccff;
+  outline-color: #9fd8ff;
 }
 
 /* ------------------------------------------------------------------ toolbar, filters, pagination */

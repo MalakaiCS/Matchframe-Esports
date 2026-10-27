@@ -3,11 +3,12 @@ import { api, seg } from "../api/index.ts";
 import type { AutomationRule, RuleExecution, Sponsor, SponsorDelivery } from "../api/types.ts";
 import { assetUrl, uploadAsset } from "../components/AssetUpload.tsx";
 import { useToast } from "../components/toasts.tsx";
-import { ActionButton, Async, Badge, Button, Checkbox, EmptyState, Field, JsonEditor, Modal, Note, Panel, parseJsonOr, Tabs } from "../components/ui.tsx";
+import { ActionButton, Async, Badge, Button, Checkbox, Details, EmptyState, Field, JsonEditor, KV, Modal, Panel, parseJsonOr, Tabs } from "../components/ui.tsx";
 import { describeError } from "../api/index.ts";
 import { fmtMs, fmtTime } from "../lib/format.ts";
 import { useApi, usePersistentState } from "../lib/hooks.ts";
 import { usePermission } from "../state/session.tsx";
+import "../styles/group-b.css";
 
 const ZONES = [
   { id: "top_bar", label: "Top bar" },
@@ -44,14 +45,14 @@ function SponsorForm({ initial, sponsorId, onSaved, onCancel }: { initial: Spons
           <input type="number" min={0.1} step={0.1} value={d.weight} onChange={(e) => set({ weight: Number(e.target.value) })} />
         </Field>
       </div>
-      <fieldset style={{ marginTop: 8 }}>
+      <fieldset style={{ marginTop: 10 }}>
         <legend>Placements</legend>
         <div className="row">
           {ZONES.map((z) => (
             <Checkbox key={z.id} checked={d.placements.includes(z.id)} onChange={(v) => set({ placements: v ? [...d.placements, z.id] : d.placements.filter((x) => x !== z.id) })} label={z.label} />
           ))}
         </div>
-        <span className="small muted">The engine suppresses sponsor zones during critical moments (e.g. planted bomb) and on clean-feed outputs.</span>
+        <span className="field-hint">Hidden during critical moments (such as a planted bomb) and on clean-feed outputs.</span>
       </fieldset>
       <fieldset>
         <legend>Media ({d.assetIds.length})</legend>
@@ -103,7 +104,11 @@ function SponsorForm({ initial, sponsorId, onSaved, onCancel }: { initial: Spons
         >
           {sponsorId ? "Save sponsor" : "Add sponsor"}
         </ActionButton>
-        {onCancel ? <Button onClick={onCancel}>Cancel</Button> : null}
+        {onCancel ? (
+          <Button variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+        ) : null}
       </div>
     </>
   );
@@ -114,83 +119,101 @@ function SponsorsTab() {
   const deliveries = useApi<SponsorDelivery[]>("/api/v1/sponsors/deliveries", { refreshMs: 10000 });
   const reason = usePermission("metadata.write");
   const [editing, setEditing] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const name = (id: string) => sponsors.data?.find((s) => s.id === id)?.name ?? id;
   return (
     <div className="stack">
-      <div className="grid-2-1">
-        <Panel title="Sponsors">
-          <Async state={sponsors}>
-            {(list) =>
-              list.length === 0 ? (
-                <EmptyState title="No sponsors">Add a sponsor with its logo/media and allowed HUD zones; the engine rotates active sponsors by weight.</EmptyState>
-              ) : (
-                <table className="table table-compact">
-                  <thead>
-                    <tr>
-                      <th>Sponsor</th>
-                      <th>Placements</th>
-                      <th>Rotation</th>
-                      <th>Status</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {list.map((s) =>
-                      editing === s.id ? (
-                        <tr key={s.id}>
-                          <td colSpan={5}>
-                            <SponsorForm
-                              initial={s}
-                              sponsorId={s.id}
-                              onSaved={() => {
-                                setEditing(null);
-                                void sponsors.reload();
-                              }}
-                              onCancel={() => setEditing(null)}
-                            />
-                          </td>
-                        </tr>
-                      ) : (
-                        <tr key={s.id}>
-                          <td>
-                            <div className="row">
-                              {s.assetIds[0] && !/\.(webm|mp4)$/i.test(s.assetIds[0]) ? <img className="thumb" src={assetUrl(s.assetIds[0])!} alt="" /> : null}
-                              <strong>{s.name}</strong>
-                            </div>
-                          </td>
-                          <td className="small">{s.placements.map((p) => ZONES.find((z) => z.id === p)?.label ?? p).join(", ")}</td>
-                          <td className="small">
-                            {s.displaySeconds}s · weight {s.weight}
-                          </td>
-                          <td>{s.active ? <Badge tone="ok">ACTIVE</Badge> : <Badge>INACTIVE</Badge>}</td>
-                          <td>
-                            <div className="cell-actions">
-                              <Button size="sm" onClick={() => setEditing(s.id)} disabled={!!reason}>
-                                Edit
-                              </Button>
-                              <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/sponsors/${seg(s.id)}`)} success={`${s.name} deleted`} onDone={() => void sponsors.reload()} disabledReason={reason} reasonPlacement="tooltip" confirm={{ title: `Delete ${s.name}?`, danger: true, confirmLabel: "Delete" }}>
-                                Delete
-                              </ActionButton>
-                            </div>
-                          </td>
-                        </tr>
-                      ),
-                    )}
-                  </tbody>
-                </table>
-              )
-            }
-          </Async>
-        </Panel>
-        <Panel title="Add sponsor">
-          <SponsorForm initial={EMPTY_SPONSOR} onSaved={() => void sponsors.reload()} />
-        </Panel>
-      </div>
-      <Panel title="Delivery log" subtitle="Displays acknowledged by the browser sources (proof of display, not just scheduling)">
+      <Panel
+        title="Sponsors"
+        subtitle="Active sponsors rotate by weight"
+        actions={
+          adding ? null : (
+            <Button variant="primary" disabledReason={reason} onClick={() => setAdding(true)}>
+              Add sponsor
+            </Button>
+          )
+        }
+      >
+        {adding ? (
+          <div className="gb-form-block">
+            <h3 className="gb-section-title">New sponsor</h3>
+            <SponsorForm
+              initial={EMPTY_SPONSOR}
+              onSaved={() => {
+                setAdding(false);
+                void sponsors.reload();
+              }}
+              onCancel={() => setAdding(false)}
+            />
+          </div>
+        ) : null}
+        <Async state={sponsors}>
+          {(list) =>
+            list.length === 0 ? (
+              adding ? null : <EmptyState title="No sponsors yet">Add a sponsor with its logo or media and the HUD zones it may appear in.</EmptyState>
+            ) : (
+              <table className="table table-compact">
+                <thead>
+                  <tr>
+                    <th>Sponsor</th>
+                    <th>Placements</th>
+                    <th>Rotation</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.map((s) =>
+                    editing === s.id ? (
+                      <tr key={s.id}>
+                        <td colSpan={4}>
+                          <SponsorForm
+                            initial={s}
+                            sponsorId={s.id}
+                            onSaved={() => {
+                              setEditing(null);
+                              void sponsors.reload();
+                            }}
+                            onCancel={() => setEditing(null)}
+                          />
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr key={s.id}>
+                        <td>
+                          <div className="row">
+                            {s.assetIds[0] && !/\.(webm|mp4)$/i.test(s.assetIds[0]) ? <img className="thumb" src={assetUrl(s.assetIds[0])!} alt="" /> : null}
+                            <strong>{s.name}</strong>
+                            {s.active ? null : <span className="muted small">Inactive</span>}
+                          </div>
+                        </td>
+                        <td className="small">{s.placements.map((p) => ZONES.find((z) => z.id === p)?.label ?? p).join(", ")}</td>
+                        <td className="small">
+                          {s.displaySeconds}s · weight {s.weight}
+                        </td>
+                        <td>
+                          <div className="cell-actions">
+                            <Button size="sm" onClick={() => setEditing(s.id)} disabledReason={reason}>
+                              Edit
+                            </Button>
+                            <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/sponsors/${seg(s.id)}`)} success={`${s.name} deleted`} onDone={() => void sponsors.reload()} disabledReason={reason} confirm={{ title: `Delete ${s.name}?`, danger: true, confirmLabel: "Delete" }}>
+                              Delete
+                            </ActionButton>
+                          </div>
+                        </td>
+                      </tr>
+                    ),
+                  )}
+                </tbody>
+              </table>
+            )
+          }
+        </Async>
+      </Panel>
+      <Panel title="Delivery log" subtitle="Displays confirmed by the browser sources, not just scheduled">
         <Async state={deliveries}>
           {(list) =>
             list.length === 0 ? (
-              <EmptyState title="No acknowledged displays yet">Each time a HUD output actually shows a sponsor it reports back; those confirmations are listed here.</EmptyState>
+              <p className="muted small">No confirmed displays yet. Each time a HUD output shows a sponsor, it reports back here.</p>
             ) : (
               <table className="table table-compact">
                 <thead>
@@ -200,7 +223,7 @@ function SponsorsTab() {
                     <th>Zone</th>
                     <th>Shown at</th>
                     <th>Duration</th>
-                    <th>Ack</th>
+                    <th>Confirmed</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -208,10 +231,10 @@ function SponsorsTab() {
                     <tr key={i}>
                       <td>{name(dl.sponsorId)}</td>
                       <td>{dl.outputId}</td>
-                      <td>{dl.zone}</td>
+                      <td>{ZONES.find((z) => z.id === dl.zone)?.label ?? dl.zone}</td>
                       <td className="small">{fmtTime(dl.shownAt)}</td>
                       <td>{fmtMs(dl.durationMs)}</td>
-                      <td>{dl.acknowledged ? <Badge tone="ok">ACK</Badge> : <Badge>NO</Badge>}</td>
+                      <td>{dl.acknowledged ? "Yes" : <span className="text-warn">No</span>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -273,10 +296,23 @@ function RuleEditor({ rule, onClose, onSaved }: { rule: AutomationRule | null; o
         </>
       }
     >
-      <p className="small muted">
-        Triggers: {TRIGGERS.join(", ")}. Actions: {ACTION_KINDS.join(", ")}. Conditions use <code>{"{field, op: eq|neq|gte|lte|in|exists, value}"}</code> on the event (<code>data.*</code>). New rules start in dry-run in the template — verify them with the event simulator first.
-      </p>
+      <p className="small muted">New rules start in dry run. Check them with the event simulator before going live.</p>
       <JsonEditor label="Rule" value={text} onChange={setText} rows={22} />
+      <Details summary="Reference">
+        <KV
+          items={[
+            ["Triggers", TRIGGERS.join(", ")],
+            ["Actions", ACTION_KINDS.join(", ")],
+            [
+              "Conditions",
+              <span key="c">
+                <code>{"{field, op: eq|neq|gte|lte|in|exists, value}"}</code> on the event (<code>data.*</code>)
+              </span>,
+            ],
+            ["Program modes", PROGRAM_MODES.join(", ")],
+          ]}
+        />
+      </Details>
     </Modal>
   );
 }
@@ -304,11 +340,19 @@ function AutomationTab() {
   };
   return (
     <div className="stack">
-      <Panel title="Rules" subtitle="Typed signal automation on the canonical timeline; old events are never replayed" actions={<Button variant="primary" disabled={!!reason} onClick={() => setEditing("new")}>New rule</Button>}>
+      <Panel
+        title="Rules"
+        subtitle="Rules react to new game events; past events are never replayed"
+        actions={
+          <Button variant="primary" disabledReason={reason} onClick={() => setEditing("new")}>
+            New rule
+          </Button>
+        }
+      >
         <Async state={rules}>
           {(list) =>
             list.length === 0 ? (
-              <EmptyState title="No rules">Create a rule (e.g. show a cue when the bomb is planted). Start in dry-run.</EmptyState>
+              <EmptyState title="No rules">Create a rule, such as showing a cue when the bomb is planted. Start in dry run.</EmptyState>
             ) : (
               <table className="table table-compact">
                 <thead>
@@ -316,7 +360,6 @@ function AutomationTab() {
                     <th>Rule</th>
                     <th>Trigger</th>
                     <th>Action</th>
-                    <th>Modes</th>
                     <th>Enabled</th>
                     <th>Dry run</th>
                     <th />
@@ -327,31 +370,33 @@ function AutomationTab() {
                     <tr key={r.id}>
                       <td>
                         <strong>{r.name}</strong>
-                        <div className="small muted">
-                          priority {r.priority} · cooldown {fmtMs(r.cooldownMs)} · {r.timeline} timeline
-                        </div>
+                        <Details summary="Details">
+                          <KV
+                            items={[
+                              ["Conditions", r.trigger.where.length ? r.trigger.where.map((w) => `${w.field} ${w.op} ${JSON.stringify(w.value ?? "")}`).join(" & ") : "None"],
+                              ["Parameters", <span key="p" className="mono small">{JSON.stringify(r.action.params)}</span>],
+                              ["Program modes", r.allowedProgramModes.join(", ")],
+                              ["Priority", r.priority],
+                              ["Cooldown", fmtMs(r.cooldownMs)],
+                              ["Timeline", r.timeline],
+                            ]}
+                          />
+                        </Details>
                       </td>
-                      <td className="small">
-                        {r.trigger.kind}
-                        {r.trigger.where.length ? <div className="muted">{r.trigger.where.map((w) => `${w.field} ${w.op} ${JSON.stringify(w.value ?? "")}`).join(" & ")}</div> : null}
-                      </td>
-                      <td className="small">
-                        {r.action.kind}
-                        <div className="muted">{JSON.stringify(r.action.params).slice(0, 80)}</div>
-                      </td>
-                      <td className="small">{r.allowedProgramModes.join(", ")}</td>
-                      <td>
+                      <td className="small">{r.trigger.kind}</td>
+                      <td className="small">{r.action.kind}</td>
+                      <td className="gb-nowrap">
                         <Checkbox checked={r.enabled} disabled={!!reason} onChange={(v) => void patch(r, { enabled: v }, `${r.name} ${v ? "enabled" : "disabled"}`)} label={r.enabled ? "On" : "Off"} />
                       </td>
-                      <td>
+                      <td className="gb-nowrap">
                         <Checkbox checked={r.dryRun} disabled={!!reason} onChange={(v) => void patch(r, { dryRun: v }, `${r.name}: dry run ${v ? "on" : "off (actions execute)"}`)} label={r.dryRun ? "Dry run" : "Live"} />
                       </td>
                       <td>
                         <div className="cell-actions">
-                          <Button size="sm" disabled={!!reason} onClick={() => setEditing(r)}>
+                          <Button size="sm" disabledReason={reason} onClick={() => setEditing(r)}>
                             Edit
                           </Button>
-                          <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/automation/rules/${seg(r.id)}`)} success="Rule deleted" onDone={() => void rules.reload()} disabledReason={reason} reasonPlacement="tooltip" confirm={{ title: `Delete rule “${r.name}”?`, danger: true, confirmLabel: "Delete" }}>
+                          <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/automation/rules/${seg(r.id)}`)} success="Rule deleted" onDone={() => void rules.reload()} disabledReason={reason} confirm={{ title: `Delete rule “${r.name}”?`, danger: true, confirmLabel: "Delete" }}>
                             Delete
                           </ActionButton>
                         </div>
@@ -365,7 +410,7 @@ function AutomationTab() {
         </Async>
       </Panel>
       <div className="grid-2">
-        <Panel title="Event simulator" subtitle="Feed a synthetic event through the rules and see what would fire">
+        <Panel title="Event simulator" subtitle="Send a test event through the rules to see what fires">
           <div className="form-grid">
             <Field label="Event kind">
               <select value={simKind} onChange={(e) => setSimKind(e.target.value)}>
@@ -378,7 +423,7 @@ function AutomationTab() {
             </Field>
             <Field label="Program mode">
               <select value={simMode} onChange={(e) => setSimMode(e.target.value)}>
-                <option value="">current</option>
+                <option value="">Current</option>
                 {PROGRAM_MODES.map((m) => (
                   <option key={m} value={m}>
                     {m}
@@ -399,9 +444,7 @@ function AutomationTab() {
               Simulate event
             </ActionButton>
           </div>
-          <Note tone="warn" title="CAUTION">
-            Rules that are enabled and not in dry-run execute their real action when simulated.
-          </Note>
+          <p className="small text-warn">Enabled rules that are not in dry run execute their real action.</p>
           {simResult ? (
             simResult.length === 0 ? (
               <p className="muted small">No rule matched this event.</p>
@@ -416,7 +459,7 @@ function AutomationTab() {
             )
           ) : null}
         </Panel>
-        <Panel title="Rule log" subtitle="Most recent first">
+        <Panel title="Rule log" subtitle="Newest first" className="gb-start">
           <Async state={log}>
             {(list) =>
               list.length === 0 ? (
@@ -430,13 +473,14 @@ function AutomationTab() {
                           <td>
                             <Badge tone={x.status === "executed" ? "ok" : x.status === "dry_run" ? "info" : x.status === "failed" ? "danger" : "neutral"}>{x.status}</Badge>
                           </td>
-                          <td className="small">
+                          <td className="small" title={`Event ${x.eventId}`}>
                             {ruleName(x.ruleId)} → {x.action.kind}
-                            <div className="muted">
-                              {x.reason ?? ""} {x.attempts > 1 ? `· ${x.attempts} attempts` : ""}
-                            </div>
+                            {x.reason || x.attempts > 1 ? (
+                              <div className="muted">
+                                {x.reason ?? ""} {x.attempts > 1 ? `· ${x.attempts} attempts` : ""}
+                              </div>
+                            ) : null}
                           </td>
-                          <td className="small mono">{x.eventId.slice(0, 14)}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -42,6 +42,7 @@ extraResources:
     to: THIRD_PARTY_NOTICES.md
 asar: true
 win:
+  icon: build/icon.ico
   target:
     - target: nsis
       arch: [x64]
@@ -56,6 +57,7 @@ nsis:
   deleteAppDataOnUninstall: false
   artifactName: MatchframeEsports-Setup-${version}.${ext}
 linux:
+  icon: build/icon.png
   target: [dir]
   executableName: matchframe-esports
 publish: null

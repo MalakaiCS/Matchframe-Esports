@@ -421,7 +421,7 @@ kbd {
 .hero a:focus-visible,
 .cta-band a:focus-visible,
 .hero button:focus-visible {
-  outline-color: #d4ccff;
+  outline-color: #9fd8ff;
 }
 
 /* ------------------------------------------------------------------ hero (home) */
@@ -429,9 +429,9 @@ kbd {
 .hero {
   position: relative;
   overflow: hidden;
-  color: #f2f0fb;
+  color: #eef3fb;
   background:
-    radial-gradient(1000px 520px at 85% -10%, rgba(109, 85, 255, 0.5), transparent 62%),
+    radial-gradient(1000px 520px at 85% -10%, rgba(42, 95, 255, 0.5), transparent 62%),
     radial-gradient(700px 360px at -10% 110%, rgba(255, 75, 58, 0.16), transparent 60%),
     linear-gradient(180deg, var(--stage), var(--stage-2));
   padding: var(--sp-8) 0 var(--sp-8);
@@ -454,7 +454,7 @@ kbd {
   background: rgba(255, 255, 255, 0.05);
   font-size: var(--fs-sm);
   font-weight: 600;
-  color: #d9d4f2;
+  color: #d3deef;
 }
 
 .tally-dot {
@@ -475,7 +475,7 @@ kbd {
 
 .hero-lead {
   font-size: var(--fs-lg);
-  color: #d3cfe6;
+  color: #cdd7e6;
   max-width: 54ch;
   margin: 20px 0 0;
 }
@@ -495,7 +495,7 @@ kbd {
   padding: 0;
   margin: 26px 0 0;
   font-size: var(--fs-sm);
-  color: #c9c3e3;
+  color: #c3cee2;
 }
 
 .hero-points li {
@@ -505,7 +505,7 @@ kbd {
 }
 
 .hero-points .icon {
-  color: #a99bff;
+  color: #6fd0ff;
 }
 
 .hero-media .shot-frame {
@@ -513,7 +513,7 @@ kbd {
 }
 
 .hero-media figcaption {
-  color: #b7b1d1;
+  color: #b1bcd0;
 }
 
 @media (min-width: 1024px) {
@@ -731,9 +731,9 @@ kbd {
   padding: var(--sp-5);
   border-radius: 12px;
   text-align: center;
-  color: #e6e1ff;
+  color: #dcebff;
   background:
-    radial-gradient(400px 220px at 70% 0%, rgba(143, 107, 255, 0.45), transparent 70%),
+    radial-gradient(400px 220px at 70% 0%, rgba(24, 195, 255, 0.35), transparent 70%),
     linear-gradient(160deg, var(--stage), var(--stage-2));
   box-shadow: var(--shadow-lg);
 }
@@ -987,9 +987,9 @@ kbd {
 /* ------------------------------------------------------------------ CTA band */
 
 .cta-band {
-  color: #f2f0fb;
+  color: #eef3fb;
   background:
-    radial-gradient(700px 300px at 90% 0%, rgba(109, 85, 255, 0.45), transparent 65%),
+    radial-gradient(700px 300px at 90% 0%, rgba(42, 95, 255, 0.45), transparent 65%),
     linear-gradient(180deg, var(--stage), var(--stage-2));
   padding: var(--sp-8) 0;
 }
@@ -1007,7 +1007,7 @@ kbd {
 }
 
 .cta-text {
-  color: #d3cfe6;
+  color: #cdd7e6;
   font-size: var(--fs-md);
   margin: 10px 0 0;
 }

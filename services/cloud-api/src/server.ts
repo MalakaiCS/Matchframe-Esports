@@ -60,7 +60,7 @@ export function buildRouter(app: CloudApp): Router {
   return router;
 }
 
-function serveStatic(webDir: string, pathname: string, res: ServerResponse): boolean {
+function serveStatic(webDir: string, pathname: string, res: ServerResponse, publicUrl: string): boolean {
   const root = resolve(webDir);
   const rel = normalize(decodeURIComponent(pathname)).replace(/^([/\\])+/, "");
   let file = join(root, rel);
@@ -74,7 +74,8 @@ function serveStatic(webDir: string, pathname: string, res: ServerResponse): boo
   const ext = extname(file);
   const immutable = file.includes(`${join(root, "assets")}`);
   res.writeHead(200, { "content-type": MIME[ext] ?? "application/octet-stream", "cache-control": immutable ? "public, max-age=31536000, immutable" : "no-cache", ...SECURITY_HEADERS });
-  res.end(readFileSync(file));
+  // Social preview tags need absolute URLs: index.html carries a placeholder for the public address.
+  res.end(ext === ".html" ? readFileSync(file, "utf8").replaceAll("__MF_PUBLIC_URL__", publicUrl.replace(/\/$/, "")) : readFileSync(file));
   return true;
 }
 
@@ -86,7 +87,7 @@ export async function startCloudServer(app: CloudApp): Promise<{ server: Server;
       const url = new URL(req.url ?? "/", "http://local");
       if (url.pathname.startsWith("/v1/")) return json(res, 404, { error: "not_found", message: "no such API route" });
       if ((req.method === "GET" || req.method === "HEAD") && serveDownload(app.cfg.downloadDir, url.pathname, req.method, res)) return;
-      if ((req.method === "GET" || req.method === "HEAD") && app.cfg.webDir && serveStatic(app.cfg.webDir, url.pathname, res)) return;
+      if ((req.method === "GET" || req.method === "HEAD") && app.cfg.webDir && serveStatic(app.cfg.webDir, url.pathname, res, app.cfg.publicUrl)) return;
       json(res, 404, { error: "not_found", message: app.cfg.webDir ? "not found" : "website build not configured (MF_CLOUD_WEB_DIR)" });
     } catch (e) {
       console.error("[cloud-api] unhandled", e);

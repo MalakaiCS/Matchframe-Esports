@@ -19,7 +19,7 @@ export function CuesTab() {
   const [target, setTarget] = useState<string[]>([]);
   return (
     <div className="grid-2">
-      <Panel title="Show a cue" subtitle="Lower thirds, caster cards and short graphics on HUD outputs">
+      <Panel title="Show a cue" subtitle="Lower thirds, caster cards and other short graphics">
         <div className="form-grid">
           <Field label="Kind">
             <input list="cue-kinds" value={kind} onChange={(e) => setKind(e.target.value)} />
@@ -35,13 +35,14 @@ export function CuesTab() {
           <Field label="Subtitle">
             <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
           </Field>
-          <Field label="Duration (s)" hint="empty = until cleared">
+          <Field label="Duration (s)" hint="Empty = until cleared">
             <input type="number" min={1} value={duration} onChange={(e) => setDuration(e.target.value)} />
           </Field>
         </div>
         <fieldset style={{ marginTop: 10 }}>
-          <legend>Outputs</legend>
-          <span className="small muted">None selected = all outputs.</span>
+          <legend>
+            Outputs <span className="muted small">(none selected = all)</span>
+          </legend>
           <div className="row">
             {(outputs.data ?? []).map((o) => (
               <label key={o.draft.outputId} className="check">
@@ -63,12 +64,12 @@ export function CuesTab() {
           </ActionButton>
         </div>
       </Panel>
-      <Panel title="Active cues">
+      <Panel title="Active cues" className="gb-start">
         <Async state={cues}>
           {(list) => {
             const active = list.filter((c) => c.untilMs === null || c.untilMs > now);
             return active.length === 0 ? (
-              <EmptyState title="No active cues">Cues you show here (or that automation rules and rundown takes trigger) appear until they expire or are cleared.</EmptyState>
+              <EmptyState title="No active cues">Cues from here, automation rules and rundown takes stay listed until they expire or are cleared.</EmptyState>
             ) : (
               <table className="table table-compact">
                 <thead>
@@ -91,7 +92,7 @@ export function CuesTab() {
                       <td>{c.outputs?.join(", ") ?? "all"}</td>
                       <td>{c.untilMs === null ? "until cleared" : fmtMs(c.untilMs - now)}</td>
                       <td>
-                        <ActionButton size="sm" action={() => api.del(`/api/v1/hud/cues/${seg(c.id)}`)} success="Cue cleared" onDone={() => void cues.reload()} disabledReason={reason} reasonPlacement="tooltip">
+                        <ActionButton size="sm" action={() => api.del(`/api/v1/hud/cues/${seg(c.id)}`)} success="Cue cleared" onDone={() => void cues.reload()} disabledReason={reason}>
                           Clear
                         </ActionButton>
                       </td>

@@ -63,13 +63,13 @@ export function explainDecision(d: DirectorDecision | null | undefined, nameOf: 
     case "cut":
       if (advLine) lines.push(advLine);
       for (const r of d.reasonCodes) if (!HOLD_REASONS.has(r)) lines.push(`${reasonInfo(r).label}: ${reasonInfo(r).hint}`);
-      return { headline: `CUT → ${want}`, tone: "ok", lines };
+      return { headline: `Cut to ${want}`, tone: "ok", lines };
     case "hold": {
       const holds = d.reasonCodes.filter((r) => HOLD_REASONS.has(r) || r in BLOCK_REASONS);
       for (const r of holds) lines.push(`${reasonInfo(r).label}: ${reasonInfo(r).hint}`);
       if (advLine) lines.push(advLine);
       if (lines.length === 0) lines.push("The current shot remains the best available.");
-      return { headline: `HOLD ${cur}`, tone: "info", lines };
+      return { headline: `Holding ${cur}`, tone: "info", lines };
     }
     case "recommend": {
       const blockers = d.reasonCodes.filter((r) => r in BLOCK_REASONS).map((r) => BLOCK_REASONS[r]!);
@@ -79,7 +79,7 @@ export function explainDecision(d: DirectorDecision | null | undefined, nameOf: 
       lines.push(blockers.length ? `Not executed because ${[...new Set(blockers)].join("; ")}.` : "Recommendation only.");
       if (advLine) lines.push(advLine);
       for (const r of d.reasonCodes) if (!(r in BLOCK_REASONS) && !HOLD_REASONS.has(r)) lines.push(`${reasonInfo(r).label}: ${reasonInfo(r).hint}`);
-      return { headline: `RECOMMEND ${want}`, tone: "warn", lines };
+      return { headline: `Recommends ${want}`, tone: "warn", lines };
     }
     default:
       for (const r of d.reasonCodes) lines.push(`${reasonInfo(r).label}: ${reasonInfo(r).hint}`);

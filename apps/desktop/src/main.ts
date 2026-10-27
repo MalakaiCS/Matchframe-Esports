@@ -257,6 +257,8 @@ function createWindow(): BrowserWindow {
     minHeight: 720,
     backgroundColor: "#11141b",
     title: windowTitle(),
+    // Packaged Windows builds take the icon from the .exe (build/icon.ico); development runs need it set.
+    ...(isDev ? { icon: join(app.getAppPath(), "build", "icon.png") } : {}),
     webPreferences: {
       preload: join(__dirname, "preload.cjs"),
       contextIsolation: true,

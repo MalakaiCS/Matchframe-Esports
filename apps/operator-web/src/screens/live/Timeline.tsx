@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/index.ts";
 import type { DerivedEvent, UtilityTrackerEvent } from "../../api/types.ts";
 import { Badge, EmptyState, EvidenceBadge } from "../../components/ui.tsx";
+import { evidenceText } from "../../lib/evidence.ts";
 import type { TimelineCategory } from "../../lib/evidence.ts";
 import { describeEvent } from "../../lib/evidence.ts";
 import { fmtMatchTime } from "../../lib/format.ts";
@@ -60,7 +61,7 @@ export function Timeline({ nameOf, limit = 120 }: { nameOf: (id: string | null |
       </div>
       {loadError ? <p className="text-warn small">History could not be loaded ({loadError}); showing live events only.</p> : null}
       {rows.length === 0 ? (
-        <EmptyState title="No match events yet">Events (round phases, deaths, bomb changes, POV changes) appear here as telemetry arrives.</EmptyState>
+        <EmptyState title="No match events yet">Rounds, deaths, bomb and POV changes show up here.</EmptyState>
       ) : (
         <ol className="tl-list">
           {rows.map((r) => (
@@ -73,14 +74,13 @@ export function Timeline({ nameOf, limit = 120 }: { nameOf: (id: string | null |
                 <span className="tl-title">{r.title}</span>
                 {r.notExactKill ? (
                   <Badge tone="warn" title="This source does not report exact kill events (killer/victim/weapon). This entry is derived or estimated.">
-                    NOT AN EXACT KILL EVENT
+                    NOT EXACT
                   </Badge>
                 ) : null}
                 {r.detail ? <span className="tl-detail">{r.detail}</span> : null}
               </span>
-              <span className="tl-ev">
-                <EvidenceBadge evidence={r.evidence} />
-                <span className="muted small">{Math.round(r.confidence * 100)}%</span>
+              <span className="tl-ev" title={`${evidenceText(r.evidence).hint} Confidence ${Math.round(r.confidence * 100)}%.`}>
+                {r.evidence === "estimated" ? <EvidenceBadge evidence={r.evidence} /> : <span className="muted small">{evidenceText(r.evidence).text.toLowerCase()}</span>}
               </span>
             </li>
           ))}

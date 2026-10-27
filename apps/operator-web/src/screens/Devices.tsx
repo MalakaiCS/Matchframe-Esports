@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { api, seg } from "../api/index.ts";
 import type { DeviceActionInfo, DeviceTally, GamesResponse, MatchframeBridgeStatus, MatchRow, ObserverAdapterResponse, ObsSceneItem, ObsState, TokenInfo } from "../api/types.ts";
-import { ActionButton, Async, Badge, Checkbox, CopyButton, EmptyState, Field, KV, Note, Panel, parseJsonOr, SupportBadge, Tabs } from "../components/ui.tsx";
+import { ActionButton, Async, Badge, Checkbox, CopyButton, Details, EmptyState, Field, KV, Note, Panel, parseJsonOr, SupportBadge, Tabs } from "../components/ui.tsx";
+import { capabilityMeta } from "../lib/capabilities.ts";
+import { MODE_INFO } from "../lib/director.ts";
 import { fmtTime, MISSING } from "../lib/format.ts";
 import { useApi, usePersistentState } from "../lib/hooks.ts";
 import { ROLE_DESCRIPTIONS } from "../lib/permissions.ts";
@@ -9,9 +11,10 @@ import { Link } from "../router.tsx";
 import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
 import { engineOrigin } from "../lib/engine.ts";
+import "../styles/group-c.css";
 
 function onOff(v: boolean | null): string {
-  return v === null ? "unknown" : v ? "ON" : "off";
+  return v === null ? "unknown" : v ? "on" : "off";
 }
 
 function SceneItems({ scene }: { scene: string }) {
@@ -28,11 +31,11 @@ function SceneItems({ scene }: { scene: string }) {
               const enabled = it.enabled ?? it.sceneItemEnabled ?? false;
               return (
                 <li key={it.sceneItemId} className="row">
-                  <span style={{ flex: 1 }}>
+                  <span style={{ flex: 1 }} className={enabled ? undefined : "muted"}>
                     {it.sourceName} <span className="muted">{it.inputKind ?? ""}</span>
                   </span>
-                  {enabled ? <Badge tone="ok">VISIBLE</Badge> : <Badge>HIDDEN</Badge>}
-                  <ActionButton size="sm" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/source-visibility", { scene, source: it.sourceName, visible: !enabled })} success={(r) => `${it.sourceName} ${enabled ? "hidden" : "shown"}${r.confirmed ? "" : " (not confirmed)"}`} onDone={() => void items.reload()} disabledReason={reason} reasonPlacement="tooltip">
+                  {enabled ? null : <span className="muted">Hidden</span>}
+                  <ActionButton size="sm" variant="ghost" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/source-visibility", { scene, source: it.sourceName, visible: !enabled })} success={(r) => `${it.sourceName} ${enabled ? "hidden" : "shown"}${r.confirmed ? "" : " (not confirmed)"}`} onDone={() => void items.reload()} disabledReason={reason}>
                     {enabled ? "Hide" : "Show"}
                   </ActionButton>
                 </li>
@@ -56,10 +59,10 @@ function AudioRow({ input }: { input: { name: string; kind: string } }) {
       </td>
       <td>
         <div className="row">
-          <ActionButton size="sm" action={() => api.post("/api/v1/obs/audio", { input: input.name, muted: true })} success={`${input.name} muted`} disabledReason={reason} reasonPlacement="tooltip">
+          <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/obs/audio", { input: input.name, muted: true })} success={`${input.name} muted`} disabledReason={reason}>
             Mute
           </ActionButton>
-          <ActionButton size="sm" action={() => api.post("/api/v1/obs/audio", { input: input.name, muted: false })} success={`${input.name} unmuted`} disabledReason={reason} reasonPlacement="tooltip">
+          <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/obs/audio", { input: input.name, muted: false })} success={`${input.name} unmuted`} disabledReason={reason}>
             Unmute
           </ActionButton>
         </div>
@@ -70,7 +73,7 @@ function AudioRow({ input }: { input: { name: string; kind: string } }) {
           <span className="mono small" style={{ width: 52 }}>
             {db} dB
           </span>
-          <ActionButton size="sm" action={() => api.post<{ volume?: { confirmed: boolean; db: number } }>("/api/v1/obs/audio", { input: input.name, volumeDb: db })} success={(r) => `${input.name} → ${r.volume?.db ?? db} dB${r.volume?.confirmed === false ? " (not confirmed)" : ""}`} disabledReason={reason} reasonPlacement="tooltip">
+          <ActionButton size="sm" action={() => api.post<{ volume?: { confirmed: boolean; db: number } }>("/api/v1/obs/audio", { input: input.name, volumeDb: db })} success={(r) => `${input.name} → ${r.volume?.db ?? db} dB${r.volume?.confirmed === false ? " (not confirmed)" : ""}`} disabledReason={reason}>
             Set
           </ActionButton>
         </div>
@@ -79,29 +82,33 @@ function AudioRow({ input }: { input: { name: string; kind: string } }) {
   );
 }
 
-function ObsConnectForm({ onDone, defaultUrl }: { onDone: () => void; defaultUrl?: string | undefined }) {
+function ObsConnectForm({ onDone, defaultUrl, primary = true }: { onDone: () => void; defaultUrl?: string | undefined; primary?: boolean }) {
   const reason = usePermission("program.control");
   const [url, setUrl] = useState(defaultUrl ?? "ws://127.0.0.1:4455");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   return (
-    <div className="row-end" style={{ marginTop: 10 }}>
-      <Field label="obs-websocket URL" hint="OBS → Tools → WebSocket Server Settings (v5)">
-        <input value={url} onChange={(e) => setUrl(e.target.value)} style={{ width: 220 }} />
-      </Field>
-      <Field label="Password">
-        <input type="password" autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: 160 }} />
-      </Field>
-      <Checkbox checked={remember} onChange={setRemember} label="Remember" />
-      <ActionButton
-        variant="primary"
-        action={() => api.post<{ state: ObsState }>("/api/v1/obs/connect", { url, ...(password ? { password } : {}), remember })}
-        success={(r) => (r.state.connected ? `Connected to OBS ${r.state.obsVersion ?? ""}` : `Not connected: ${r.state.lastError ?? "unknown error"}`)}
-        onDone={onDone}
-        disabledReason={reason ?? (/^wss?:\/\//.test(url) ? null : "URL must start with ws:// or wss://")}
-      >
-        Connect
-      </ActionButton>
+    <div className="gc-form">
+      <div className="form-grid">
+        <Field label="obs-websocket URL" hint="OBS → Tools → WebSocket Server Settings (v5)">
+          <input value={url} onChange={(e) => setUrl(e.target.value)} />
+        </Field>
+        <Field label="Password">
+          <input type="password" autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </Field>
+      </div>
+      <div className="row">
+        <Checkbox checked={remember} onChange={setRemember} label="Remember" />
+        <ActionButton
+          variant={primary ? "primary" : "secondary"}
+          action={() => api.post<{ state: ObsState }>("/api/v1/obs/connect", { url, ...(password ? { password } : {}), remember })}
+          success={(r) => (r.state.connected ? `Connected to OBS ${r.state.obsVersion ?? ""}` : `Not connected: ${r.state.lastError ?? "unknown error"}`)}
+          onDone={onDone}
+          disabledReason={reason ?? (/^wss?:\/\//.test(url) ? null : "URL must start with ws:// or wss://")}
+        >
+          Connect
+        </ActionButton>
+      </div>
     </div>
   );
 }
@@ -119,37 +126,56 @@ function ObsTab() {
           <div className="grid-2">
             <Panel
               title="OBS connection"
-              actions={s.connected ? <Badge tone="ok">CONNECTED</Badge> : s.connecting ? <Badge tone="info">CONNECTING</Badge> : <Badge tone="warn">DISCONNECTED</Badge>}
+              actions={s.connected ? <Badge tone="ok">Connected</Badge> : s.connecting ? <Badge tone="info">Connecting</Badge> : <Badge tone="warn">Disconnected</Badge>}
             >
-              <KV
-                items={[
-                  ["Profile", profiles[0] ? `${profiles[0].name} · ${profiles[0].url}${profiles[0].hasPassword ? " (password stored)" : ""}` : "none saved"],
-                  ["OBS / websocket", `${s.obsVersion ?? MISSING} / ${s.websocketVersion ?? MISSING}${s.platform ? ` · ${s.platform}` : ""}`],
-                  ["Studio mode", onOff(s.studioMode)],
-                  ["Program / preview", `${s.programScene ?? MISSING} / ${s.previewScene ?? MISSING}`],
-                  ["Browser source plugin", s.inputKinds.includes("browser_source") ? "available" : s.connected ? "missing (obs-browser not installed)" : MISSING],
-                  ["Last error", s.lastError ?? "none"],
-                  ["Reconnect attempts", s.reconnectAttempt],
-                ]}
-              />
-              <div className="form-actions">
-                {profiles[0] && !s.connected ? (
-                  <ActionButton variant="primary" action={() => api.post<{ state: ObsState }>("/api/v1/obs/connect", { url: profiles[0]!.url, name: profiles[0]!.name })} success={(r) => (r.state.connected ? "Connected to OBS" : `Not connected: ${r.state.lastError ?? "?"}`)} onDone={() => void obs.reload()} disabledReason={reason}>
-                    Reconnect saved profile
-                  </ActionButton>
-                ) : null}
-                {s.connected ? (
-                  <>
-                    <ActionButton action={() => api.post("/api/v1/obs/refresh")} success="OBS state refreshed" onDone={() => void obs.reload()} disabledReason={reason}>
+              {s.connected ? (
+                <>
+                  <KV
+                    items={[
+                      ["Program / preview", `${s.programScene ?? MISSING} / ${s.previewScene ?? MISSING}`],
+                      ["Studio mode", onOff(s.studioMode)],
+                    ]}
+                  />
+                  {s.inputKinds.includes("browser_source") ? null : <p className="small text-warn">The obs-browser plugin is missing, so HUD browser sources cannot be added.</p>}
+                  <div className="form-actions">
+                    <ActionButton size="sm" action={() => api.post("/api/v1/obs/refresh")} success="OBS state refreshed" onDone={() => void obs.reload()} disabledReason={reason}>
                       Refresh
                     </ActionButton>
-                    <ActionButton action={() => api.post("/api/v1/obs/disconnect")} success="OBS disconnected" onDone={() => void obs.reload()} disabledReason={reason} confirm={{ title: "Disconnect OBS?", body: "Program mode becomes DEGRADED until OBS is reconnected and an operator recovers it." }}>
+                    <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/obs/disconnect")} success="OBS disconnected" onDone={() => void obs.reload()} disabledReason={reason} confirm={{ title: "Disconnect OBS?", body: "Program mode becomes degraded until OBS is reconnected and an operator recovers it." }}>
                       Disconnect
                     </ActionButton>
-                  </>
-                ) : null}
-              </div>
-              {!s.connected ? <ObsConnectForm onDone={() => void obs.reload()} defaultUrl={profiles[0]?.url} /> : null}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {s.lastError ? <p className="small text-danger">Last error: {s.lastError}</p> : null}
+                  {profiles[0] ? (
+                    <>
+                      <ActionButton variant="primary" action={() => api.post<{ state: ObsState }>("/api/v1/obs/connect", { url: profiles[0]!.url, name: profiles[0]!.name })} success={(r) => (r.state.connected ? "Connected to OBS" : `Not connected: ${r.state.lastError ?? "?"}`)} onDone={() => void obs.reload()} disabledReason={reason}>
+                        Reconnect saved profile
+                      </ActionButton>
+                      <Details summary="Connect to a different OBS">
+                        <ObsConnectForm onDone={() => void obs.reload()} defaultUrl={profiles[0]?.url} primary={false} />
+                      </Details>
+                    </>
+                  ) : (
+                    <ObsConnectForm onDone={() => void obs.reload()} />
+                  )}
+                </>
+              )}
+              <Details summary="Connection details">
+                <KV
+                  items={[
+                    ["Profile", profiles[0] ? `${profiles[0].name} · ${profiles[0].url}${profiles[0].hasPassword ? " (password stored)" : ""}` : "none saved"],
+                    ["OBS / websocket", `${s.obsVersion ?? MISSING} / ${s.websocketVersion ?? MISSING}${s.platform ? ` · ${s.platform}` : ""}`],
+                    ["Studio mode", onOff(s.studioMode)],
+                    ["Program / preview", `${s.programScene ?? MISSING} / ${s.previewScene ?? MISSING}`],
+                    ["Browser source plugin", s.inputKinds.includes("browser_source") ? "available" : s.connected ? "missing (obs-browser not installed)" : MISSING],
+                    ["Last error", s.lastError ?? "none"],
+                    ["Reconnect attempts", s.reconnectAttempt],
+                  ]}
+                />
+              </Details>
             </Panel>
             <Panel title="Outputs">
               {!s.connected ? (
@@ -166,7 +192,7 @@ function ObsTab() {
                     ).map(([kind, label, on]) => (
                       <tr key={kind}>
                         <td>{label}</td>
-                        <td>{on ? <Badge tone={kind === "stream" ? "danger" : "ok"} icon="●">ON</Badge> : <Badge>{on === null ? "UNKNOWN" : "OFF"}</Badge>}</td>
+                        <td>{on ? <Badge tone={kind === "stream" ? "danger" : "ok"} icon="●">On</Badge> : <span className="muted">{on === null ? "Unknown" : "Off"}</span>}</td>
                         <td>
                           <ActionButton
                             size="sm"
@@ -175,7 +201,7 @@ function ObsTab() {
                             success={`${label} ${on ? "stopped" : "started"}`}
                             onDone={() => void obs.reload()}
                             disabledReason={reason}
-                            reasonPlacement="tooltip"
+                           
                             confirm={kind === "stream" ? { title: on ? "Stop the stream?" : "Start streaming?", body: on ? "Viewers will lose the broadcast." : "OBS starts streaming to its configured service.", danger: !!on } : undefined}
                           >
                             {on ? "Stop" : "Start"}
@@ -187,8 +213,8 @@ function ObsTab() {
                 </table>
               )}
               <div className="form-actions">
-                <ActionButton action={() => api.post("/api/v1/obs/provision", {})} success="HUD browser source provisioned (scene “Matchframe Live”)" disabledReason={reason ?? (s.connected ? null : "Connect OBS first")}>
-                  Provision main HUD browser source
+                <ActionButton size="sm" title="Adds the main HUD as a browser source in the scene “Matchframe Live”" action={() => api.post("/api/v1/obs/provision", {})} success="HUD browser source provisioned (scene “Matchframe Live”)" disabledReason={reason ?? (s.connected ? null : "Connect OBS first")}>
+                  Add HUD browser source
                 </ActionButton>
               </div>
             </Panel>
@@ -205,14 +231,14 @@ function ObsTab() {
                             <button className="link-btn" onClick={() => setScene(sc === scene ? null : sc)}>
                               {sc}
                             </button>{" "}
-                            {sc === s.programScene ? <Badge tone="danger">PROGRAM</Badge> : null} {sc === s.previewScene ? <Badge tone="ok">PREVIEW</Badge> : null}
+                            {sc === s.programScene ? <Badge tone="danger">Program</Badge> : null} {sc === s.previewScene ? <Badge tone="ok">Preview</Badge> : null}
                           </td>
                           <td>
                             <div className="cell-actions">
-                              <ActionButton size="sm" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/preview", { scene: sc })} success={(r) => `Preview: ${sc}${r.confirmed ? "" : " (not confirmed)"}`} onDone={() => void obs.reload()} disabledReason={reason ?? (s.studioMode ? null : "Studio mode is off in OBS")} reasonPlacement="tooltip">
+                              <ActionButton size="sm" variant="ghost" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/preview", { scene: sc })} success={(r) => `Preview: ${sc}${r.confirmed ? "" : " (not confirmed)"}`} onDone={() => void obs.reload()} disabledReason={reason ?? (s.studioMode ? null : "Studio mode is off in OBS")}>
                                 Preview
                               </ActionButton>
-                              <ActionButton size="sm" variant="primary" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/program", { scene: sc })} success={(r) => `Program: ${sc}${r.confirmed ? "" : " (not confirmed)"}`} onDone={() => void obs.reload()} disabledReason={reason} reasonPlacement="tooltip" confirm={{ title: `Put “${sc}” on program?`, body: "Bypasses the program state machine (use Studio & Rundown for mode changes)." }}>
+                              <ActionButton size="sm" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/program", { scene: sc })} success={(r) => `Program: ${sc}${r.confirmed ? "" : " (not confirmed)"}`} onDone={() => void obs.reload()} disabledReason={reason} confirm={{ title: `Put “${sc}” on program?`, body: "Bypasses the program state machine (use Studio & Rundown for mode changes)." }}>
                                 Program
                               </ActionButton>
                             </div>
@@ -225,7 +251,7 @@ function ObsTab() {
                 <Panel title={scene ? `Sources in “${scene}”` : "Scene sources"}>{scene ? <SceneItems key={scene} scene={scene} /> : <p className="muted small">Choose a scene to list and toggle its sources.</p>}</Panel>
               </div>
               <div className="grid-2">
-                <Panel title="Audio">
+                <Panel title="Audio" subtitle="OBS does not report current mute or volume here; each change is confirmed by read-back.">
                   <table className="table table-compact">
                     <tbody>
                       {s.inputs.map((i) => (
@@ -233,7 +259,6 @@ function ObsTab() {
                       ))}
                     </tbody>
                   </table>
-                  <p className="small muted">OBS does not report the current mute/volume in this state view; the result of each change is confirmed by read-back.</p>
                 </Panel>
                 <Panel title="Screenshot">
                   <div className="row-end">
@@ -275,13 +300,13 @@ function ActionRow({ a }: { a: DeviceActionInfo }) {
   return (
     <tr>
       <td>
-        <strong>{a.label}</strong>
-        <div className="mono small muted">{a.id}</div>
+        {a.label}
+        <div className="small muted">
+          <span className="mono">{a.id}</span> · {a.permission}
+          {a.allowed ? null : <span className="text-warn"> · not allowed for your role</span>}
+        </div>
       </td>
-      <td className="small">
-        {a.permission} {a.allowed ? null : <Badge tone="warn">NOT ALLOWED</Badge>}
-      </td>
-      <td>{hasParams ? <input className="mono" aria-label={`Parameters for ${a.id}`} value={params} onChange={(e) => setParams(e.target.value)} style={{ width: 220 }} aria-invalid={!parsed.ok} /> : <span className="muted small">none</span>}</td>
+      <td>{hasParams ? <input className="mono" aria-label={`Parameters for ${a.id}`} value={params} onChange={(e) => setParams(e.target.value)} style={{ width: 220 }} aria-invalid={!parsed.ok} /> : <span className="muted small">—</span>}</td>
       <td>
         <div className="cell-actions">
           <ActionButton
@@ -293,7 +318,7 @@ function ActionRow({ a }: { a: DeviceActionInfo }) {
             }}
             success={(r) => `Device action ${r.action} executed`}
             disabledReason={a.allowed ? null : `Your role lacks ${a.permission}`}
-            reasonPlacement="tooltip"
+           
             confirm={{ title: `Run “${a.label}” now?`, body: "This is a real control action, exactly as a Stream Deck/Companion button would trigger it." }}
           >
             Run
@@ -308,20 +333,32 @@ function ActionRow({ a }: { a: DeviceActionInfo }) {
 function TallyView({ t }: { t: DeviceTally }) {
   return (
     <>
-      <div className="row" style={{ marginBottom: 8 }}>
-        {t.simulated ? <Badge tone="sim">SIMULATION</Badge> : null}
-        <Badge tone={t.telemetry === "live" ? "ok" : t.telemetry === "stale" ? "danger" : "neutral"}>TELEMETRY {t.telemetry.toUpperCase()}</Badge>
-        <Badge tone={t.control.emergencyStopped ? "danger" : t.control.automationActive ? "ok" : "warn"}>{t.control.emergencyStopped ? "EMERGENCY STOP" : t.control.automationActive ? "AUTOMATION" : "MANUAL"}</Badge>
-        <Badge tone="info">DIRECTOR {t.director.mode.toUpperCase()}</Badge>
-        {t.director.hold ? <Badge tone="warn">HOLD</Badge> : null}
-        <Badge tone={t.program.mode === "LIVE" ? "ok" : "info"}>PROGRAM {t.program.mode}</Badge>
-        <Badge tone={t.obs.connected ? "ok" : "warn"}>OBS {t.obs.connected ? "ON" : "OFF"}</Badge>
-      </div>
+      <ul className="gc-facts">
+        <li>
+          <span className="muted">Source</span> {t.simulated ? "Simulation" : "Live"}
+        </li>
+        <li>
+          <span className="muted">Telemetry</span> <span className={t.telemetry === "stale" ? "text-danger" : undefined}>{t.telemetry}</span>
+        </li>
+        <li>
+          <span className="muted">Camera</span> <span className={t.control.emergencyStopped ? "text-danger" : undefined}>{t.control.emergencyStopped ? "Emergency stop" : t.control.automationActive ? "Automation" : "Manual"}</span>
+        </li>
+        <li>
+          <span className="muted">Director</span> {MODE_INFO[t.director.mode]?.label ?? t.director.mode}
+          {t.director.hold ? " · hold" : ""}
+        </li>
+        <li>
+          <span className="muted">Program</span> {t.program.mode}
+        </li>
+        <li>
+          <span className="muted">OBS</span> {t.obs.connected ? "Connected" : "Off"}
+        </li>
+      </ul>
       {t.slots.length ? (
-        <div className="row">
+        <div className="row" style={{ marginTop: 10 }}>
           {t.slots.map((s) => (
             <span key={s.steamId} className={`badge ${s.onAir ? "tone-ok" : s.alive ? "" : "tone-danger"}`} title={`${s.side ?? "?"} · ${s.alive ? "alive" : "dead"}`}>
-              {s.slot ?? "·"} {s.name} {s.onAir ? "● ON AIR" : s.alive ? "" : "✕"}
+              {s.slot ?? "·"} {s.name} {s.onAir ? "● on air" : s.alive ? "" : "✕"}
             </span>
           ))}
         </div>
@@ -339,22 +376,15 @@ function ControlSurfacesTab() {
   const t = snap?.tally ?? tally.data;
   return (
     <div className="stack">
-      <Note tone="neutral" title="COMPANION / STREAM DECK">
-        Control surfaces use the same local HTTP API as this console: <code>POST {engineOrigin()}/api/v1/devices/actions/&lt;action&gt;</code> with <code>Authorization: Bearer &lt;token&gt;</code> and a JSON body. In Bitfocus Companion use the Generic HTTP module (POST, JSON body, custom header). Poll <code>GET /api/v1/devices/tally</code> for button feedback. Every action goes through the same control/program arbiters as the console and is audited. Issue a role-scoped token in the Tokens tab (e.g. role <em>observer</em> for camera buttons) — never share the operator token.
-      </Note>
-      <Panel title="Tally" subtitle="What a control surface sees for button feedback">
-        {t ? <TallyView t={t} /> : <Async state={tally}>{(x) => <TallyView t={x} />}</Async>}
-      </Panel>
-      <Panel title="Device actions">
+      <Panel title="Device actions" subtitle="What a Stream Deck or Companion button can trigger. Issue a token for each device in the Tokens tab.">
         <Async state={actions}>
           {(list) => (
             <table className="table table-compact">
               <thead>
                 <tr>
                   <th>Action</th>
-                  <th>Permission</th>
                   <th>Parameters (JSON)</th>
-                  <th />
+                  <th aria-label="Run" />
                 </tr>
               </thead>
               <tbody>
@@ -365,6 +395,14 @@ function ControlSurfacesTab() {
             </table>
           )}
         </Async>
+        <Details summary="How to connect Companion or Stream Deck">
+          <p className="small muted">
+            Control surfaces use the same local HTTP API as this console: <code>POST {engineOrigin()}/api/v1/devices/actions/&lt;action&gt;</code> with <code>Authorization: Bearer &lt;token&gt;</code> and a JSON body. In Bitfocus Companion use the Generic HTTP module (POST, JSON body, custom header). Poll <code>GET /api/v1/devices/tally</code> for button feedback. Every action goes through the same control/program arbiters as the console and is audited. Issue a role-scoped token in the Tokens tab (e.g. role <em>observer</em> for camera buttons) — never share the operator token.
+          </p>
+        </Details>
+      </Panel>
+      <Panel title="Tally" subtitle="What a control surface sees for button feedback">
+        {t ? <TallyView t={t} /> : <Async state={tally}>{(x) => <TallyView t={x} />}</Async>}
       </Panel>
     </div>
   );
@@ -398,14 +436,14 @@ function TokensTab() {
           <Field label="Label">
             <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Stream Deck — observer desk" />
           </Field>
-          <Field label="Expires after (hours)" hint="empty = no expiry (captain links default to 6 h)">
+          <Field label="Expires after (hours)" hint="Leave empty for no expiry (captain links default to 6 h)">
             <input type="number" min={1} max={720} value={ttl} onChange={(e) => setTtl(e.target.value)} />
           </Field>
           {role === "captain" ? (
             <>
               <Field label="Match">
                 <select value={matchId} onChange={(e) => setMatchId(e.target.value)}>
-                  <option value="">choose…</option>
+                  <option value="">Choose…</option>
                   {(matches.data ?? []).map((x) => (
                     <option key={x.id} value={x.id}>
                       {x.title ?? x.id}
@@ -415,7 +453,7 @@ function TokensTab() {
               </Field>
               <Field label="Team">
                 <select value={teamId} onChange={(e) => setTeamId(e.target.value)} disabled={!m}>
-                  <option value="">choose…</option>
+                  <option value="">Choose…</option>
                   {m ? (
                     <>
                       <option value={m.teamAId}>Team A ({m.teamAId})</option>
@@ -443,7 +481,7 @@ function TokensTab() {
           </ActionButton>
         </div>
         {issued ? (
-          <Note tone="warn" title="SHOWN ONCE">
+          <Note tone="warn" title="Shown once">
             <div className="url-box">
               <input readOnly className="mono" value={issued.token} aria-label="New token" onFocus={(e) => e.target.select()} />
               <CopyButton text={issued.token} />
@@ -462,7 +500,7 @@ function TokensTab() {
         <Async state={tokens}>
           {(d) =>
             d.tokens.length === 0 ? (
-              <EmptyState title="No issued tokens">Only the local operator token exists. Issue scoped tokens for Companion, Stream Deck, remote producers or captains.</EmptyState>
+              <EmptyState title="No issued tokens">Only the local operator token exists. Issue a scoped token for each Companion, Stream Deck, remote producer or captain.</EmptyState>
             ) : (
               <table className="table table-compact">
                 <thead>
@@ -480,16 +518,13 @@ function TokensTab() {
                     const expired = t.expiresAt ? Date.parse(t.expiresAt) < Date.now() : false;
                     return (
                       <tr key={t.id}>
-                        <td>
-                          {t.label}
-                          <div className="mono small muted">{t.id}</div>
-                        </td>
+                        <td title={`Token id ${t.id}`}>{t.label}</td>
                         <td>{t.role}</td>
                         <td className="small">{t.scope ? Object.entries(t.scope).map(([k, v]) => `${k}=${v}`).join(", ") : "—"}</td>
                         <td className="small">{fmtTime(t.createdAt)}</td>
-                        <td className="small">{t.expiresAt ? <>{fmtTime(t.expiresAt)} {expired ? <Badge tone="warn">EXPIRED</Badge> : null}</> : "never"}</td>
+                        <td className="small">{t.expiresAt ? <>{fmtTime(t.expiresAt)} {expired ? <span className="text-warn">expired</span> : null}</> : "never"}</td>
                         <td>
-                          <ActionButton size="sm" variant="danger" action={() => api.del(`/api/v1/tokens/${seg(t.id)}`)} success={`Token “${t.label}” revoked`} onDone={() => void tokens.reload()} confirm={{ title: `Revoke “${t.label}”?`, body: "Devices using it lose access immediately.", danger: true, confirmLabel: "Revoke" }}>
+                          <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/tokens/${seg(t.id)}`)} success={`Token “${t.label}” revoked`} onDone={() => void tokens.reload()} confirm={{ title: `Revoke “${t.label}”?`, body: "Devices using it lose access immediately.", danger: true, confirmLabel: "Revoke" }}>
                             Revoke
                           </ActionButton>
                         </td>
@@ -532,19 +567,23 @@ function IntegrationsTab() {
                   ]}
                 />
                 {a.capabilities ? (
-                  <table className="table table-compact" style={{ marginTop: 8 }}>
-                    <tbody>
-                      {Object.entries(a.capabilities).map(([k, c]) => (
-                        <tr key={k}>
-                          <td className="small">{k}</td>
-                          <td>
-                            <SupportBadge support={c.support} />
-                          </td>
-                          <td className="small muted">{c.limitations.join("; ")}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <Details summary={`Capabilities (${Object.keys(a.capabilities).length})`}>
+                    <table className="table table-compact">
+                      <tbody>
+                        {Object.entries(a.capabilities).map(([k, c]) => (
+                          <tr key={k}>
+                            <td className="small" title={k}>
+                              {capabilityMeta(k).label}
+                            </td>
+                            <td>
+                              <SupportBadge support={c.support} />
+                            </td>
+                            <td className="small muted">{c.limitations.join("; ")}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </Details>
                 ) : null}
               </>
             )}
@@ -553,40 +592,25 @@ function IntegrationsTab() {
         <Panel title="Games">
           <Async state={games}>
             {(g) => (
-              <table className="table table-compact">
-                <tbody>
-                  {g.supported.map((x) => (
-                    <tr key={x.gameId}>
-                      <td>{x.displayName}</td>
-                      <td>
-                        <Badge tone="ok">SUPPORTED · {x.status.toUpperCase()}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                  {g.expansion.map((x) => (
-                    <tr key={x.gameId}>
-                      <td>{x.displayName}</td>
-                      <td>
-                        <Badge>PLANNED · NOT SUPPORTED</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <KV
+                items={[
+                  ["Supported", g.supported.map((x) => `${x.displayName} (${x.status})`).join(", ") || "none"],
+                  ["Planned, not supported yet", <span key="p" className="muted">{g.expansion.map((x) => x.displayName).join(", ") || "none"}</span>],
+                ]}
+              />
             )}
           </Async>
         </Panel>
       </div>
-      <Panel title="MatchFrame bridge" subtitle="Optional push of match results to the MatchFrame service" actions={bridge.data ? <Badge tone={bridge.data.status === "connected" ? "ok" : bridge.data.status === "disabled" ? "neutral" : "warn"}>{bridge.data.status.toUpperCase()}</Badge> : null}>
+      <Panel title="MatchFrame bridge" subtitle="Optional push of match results to the MatchFrame service" actions={bridge.data ? <Badge tone={bridge.data.status === "connected" ? "ok" : bridge.data.status === "disabled" ? "neutral" : "warn"}>{bridge.data.status}</Badge> : null}>
         <Async state={bridge}>
           {(b) => (
             <>
-              <p className="small muted">{b.note}</p>
               <div className="form-grid">
                 <Field label="Bridge URL">
                   <input value={cfg.url} onChange={(e) => setCfg({ ...cfg, url: e.target.value })} placeholder="https://…" />
                 </Field>
-                <Field label="Token (stored in the secret store)" hint="leave empty to keep the stored token">
+                <Field label="Token" hint="Stored in the secret store. Leave empty to keep the stored token.">
                   <input type="password" autoComplete="off" value={cfg.token} onChange={(e) => setCfg({ ...cfg, token: e.target.value })} />
                 </Field>
               </div>
@@ -602,14 +626,14 @@ function IntegrationsTab() {
                 >
                   Save
                 </ActionButton>
-                <ActionButton action={() => api.post<{ lastError: string | null }>("/api/v1/integrations/matchframe/discover")} success={(r) => (r.lastError ? `Discovery failed: ${r.lastError}` : "Bridge capabilities discovered")} onDone={() => void bridge.reload()} disabledReason={settingsReason ?? (b.config.enabled && b.config.url ? null : "Enable the bridge and set its URL first")}>
+                <ActionButton variant="ghost" action={() => api.post<{ lastError: string | null }>("/api/v1/integrations/matchframe/discover")} success={(r) => (r.lastError ? `Discovery failed: ${r.lastError}` : "Bridge capabilities discovered")} onDone={() => void bridge.reload()} disabledReason={settingsReason ?? (b.config.enabled && b.config.url ? null : "Enable the bridge and set its URL first")}>
                   Discover
                 </ActionButton>
               </div>
-              <div className="row-end" style={{ marginTop: 8 }}>
+              <div className="row-end gc-section">
                 <Field label="Push a match result">
                   <select value={pushMatch} onChange={(e) => setPushMatch(e.target.value)}>
-                    <option value="">choose…</option>
+                    <option value="">Choose…</option>
                     {(matches.data ?? []).map((x) => (
                       <option key={x.id} value={x.id}>
                         {x.title ?? x.id}
@@ -622,6 +646,9 @@ function IntegrationsTab() {
                 </ActionButton>
               </div>
               {b.lastError ? <p className="small text-danger">Last error: {b.lastError}</p> : null}
+              <Details summary="About the bridge">
+                <p className="small muted">{b.note}</p>
+              </Details>
             </>
           )}
         </Async>

@@ -86,7 +86,7 @@ export function Home() {
             </ul>
           </div>
           <div className="hero-media">
-            <Screenshot name="live-control" eager alt="The Live Control screen of the Matchframe program: player cards for both teams, the director's recommended shot with its reasons, and operator actions including Stop automation." caption="Live Control in the Matchframe program. Real screenshot; the match data is simulated." />
+            <Screenshot name="live-control" eager alt="The Live Control screen of the Matchframe program: player cards for both teams, what is on air, the Observer mode and controls, the director's reasons, and Stop automation in the top bar." caption="Live Control in the Matchframe program. Real screenshot; the match data is simulated." />
           </div>
         </div>
       </section>
@@ -144,7 +144,7 @@ export function Home() {
               eyebrow="Observer (auto director)"
               title="An automatic observer you stay in charge of"
               reverse
-              shot={<Screenshot name="live-control" alt="The director panel in Live Control showing the recommended shot, the reasons for it and the best alternative candidates." caption="The Observer explains each shot it picks. Simulated match data." />}
+              shot={<Screenshot name="live-control" alt="Live Control with the Observer directing in Observer & Cinematics: what is on air, the shot the director wants and the reasons for it." caption="The Observer explains each shot it picks. Simulated match data." />}
             >
               <p>The Observer is designed to anticipate fights and utility, switch POVs, add cinematic shots and show you why. On the top plan, nade cameras catch the utility as it lands. Take the camera back with one click; emergency stop works from anywhere in Windows.</p>
               <CheckList items={["Off, Observer, Observer & Cinematics and Full Action Observer", "Starts disarmed every time", "Never cut off mid-map when hours run out"]} />

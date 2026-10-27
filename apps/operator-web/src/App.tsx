@@ -3,7 +3,7 @@ import type { ComponentType, ReactNode } from "react";
 import { api, describeError, NetworkError } from "./api/index.ts";
 import { resolveOperatorToken, setOperatorToken } from "./api/auth.ts";
 import type { Me } from "./api/types.ts";
-import { Icon, Logo } from "./components/icons.tsx";
+import { BrandBadge, Icon } from "./components/icons.tsx";
 import { SignInGate } from "./components/SignIn.tsx";
 import { emergencyStop, OfflineBanner, STOP_SHORTCUT_LABEL, TopBar } from "./components/TopBar.tsx";
 import { ToastProvider, useToast } from "./components/toasts.tsx";
@@ -38,53 +38,87 @@ export interface NavItem {
   label: string;
   icon: string;
   component: ComponentType;
+  /** Page name in the window title, when it differs from the short sidebar label. */
+  title?: string;
 }
 
-/** Primary navigation, in the order defined by the product spec. */
-export const NAV: NavItem[] = [
-  { path: "/", label: "Overview", icon: "overview", component: OverviewScreen },
-  { path: "/events", label: "Events", icon: "events", component: EventsScreen },
-  { path: "/teams", label: "Teams & Players", icon: "teams", component: TeamsScreen },
-  { path: "/matches", label: "Matches & Veto", icon: "matches", component: MatchesScreen },
-  { path: "/live", label: "Live Control", icon: "live", component: LiveControlScreen },
-  { path: "/huds", label: "HUDs & Composer", icon: "huds", component: HudsScreen },
-  { path: "/director", label: "Director", icon: "director", component: DirectorScreen },
-  { path: "/maps", label: "Maps & Cameras", icon: "maps", component: MapsScreen },
-  { path: "/replays", label: "Replays & Highlights", icon: "replays", component: ReplaysScreen },
-  { path: "/player-cameras", label: "Player Cameras", icon: "playercams", component: PlayerCamerasScreen },
-  { path: "/studio", label: "Studio & Rundown", icon: "studio", component: StudioScreen },
-  { path: "/sponsors", label: "Sponsors & Automation", icon: "sponsors", component: SponsorsScreen },
-  { path: "/demos", label: "Demo Library", icon: "demos", component: DemosScreen },
-  { path: "/training", label: "Training & Evaluation", icon: "training", component: TrainingScreen },
-  { path: "/devices", label: "Devices & Integrations", icon: "devices", component: DevicesScreen },
-  { path: "/account", label: "Account & Hours", icon: "account", component: AccountScreen },
-  { path: "/settings", label: "Settings & Diagnostics", icon: "settings", component: SettingsScreen },
+export interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+/** Sidebar, grouped by what the operator is doing. */
+export const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Broadcast",
+    items: [
+      { path: "/", label: "Overview", icon: "overview", component: OverviewScreen },
+      { path: "/live", label: "Live Control", icon: "live", component: LiveControlScreen },
+      { path: "/director", label: "Director", icon: "director", component: DirectorScreen },
+      { path: "/replays", label: "Replays", icon: "replays", component: ReplaysScreen, title: "Replays & Highlights" },
+      { path: "/studio", label: "Studio", icon: "studio", component: StudioScreen, title: "Studio & Rundown" },
+    ],
+  },
+  {
+    label: "Event",
+    items: [
+      { path: "/events", label: "Events", icon: "events", component: EventsScreen },
+      { path: "/teams", label: "Teams", icon: "teams", component: TeamsScreen, title: "Teams & Players" },
+      { path: "/matches", label: "Matches", icon: "matches", component: MatchesScreen, title: "Matches & Veto" },
+    ],
+  },
+  {
+    label: "Graphics & cameras",
+    items: [
+      { path: "/huds", label: "HUDs", icon: "huds", component: HudsScreen, title: "HUDs & Composer" },
+      { path: "/sponsors", label: "Sponsors", icon: "sponsors", component: SponsorsScreen, title: "Sponsors & Automation" },
+      { path: "/maps", label: "Maps & Cameras", icon: "maps", component: MapsScreen },
+      { path: "/player-cameras", label: "Player Cameras", icon: "playercams", component: PlayerCamerasScreen },
+    ],
+  },
+  {
+    label: "Analysis",
+    items: [
+      { path: "/demos", label: "Demos", icon: "demos", component: DemosScreen, title: "Demo Library" },
+      { path: "/training", label: "Training", icon: "training", component: TrainingScreen, title: "Training & Evaluation" },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { path: "/setup", label: "Setup", icon: "setup", component: SetupScreen },
+      { path: "/devices", label: "Devices", icon: "devices", component: DevicesScreen, title: "Devices & Integrations" },
+      { path: "/account", label: "Account", icon: "account", component: AccountScreen, title: "Account & Hours" },
+      { path: "/settings", label: "Settings", icon: "settings", component: SettingsScreen, title: "Settings & Diagnostics" },
+    ],
+  },
 ];
 
-const EXTRA_ROUTES: Record<string, ComponentType> = { "/setup": SetupScreen };
+export const NAV: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 
 function Nav({ collapsed, path }: { collapsed: boolean; path: string }) {
   return (
     <nav className={`nav ${collapsed ? "is-collapsed" : ""}`} aria-label="Primary">
-      <ul>
-        {NAV.map((n) => {
-          const active = n.path === "/" ? path === "/" : path === n.path || path.startsWith(`${n.path}/`);
-          return (
-            <li key={n.path}>
-              <Link to={n.path} className={`nav-link ${active ? "is-active" : ""}`} aria-current={active ? "page" : undefined} title={collapsed ? n.label : undefined}>
-                <Icon name={n.icon} />
-                <span className="nav-label">{n.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="nav-foot">
-        <Link to="/setup" className={`nav-link nav-link-secondary ${path === "/setup" ? "is-active" : ""}`} aria-current={path === "/setup" ? "page" : undefined} title={collapsed ? "Setup checklist" : undefined}>
-          <Icon name="setup" />
-          <span className="nav-label">Setup checklist</span>
-        </Link>
-      </div>
+      {NAV_GROUPS.map((g) => (
+        <div className="nav-group" key={g.label}>
+          <div className="nav-group-label" aria-hidden>
+            {g.label}
+          </div>
+          <ul aria-label={g.label}>
+            {g.items.map((n) => {
+              const active = n.path === "/" ? path === "/" : path === n.path || path.startsWith(`${n.path}/`);
+              return (
+                <li key={n.path}>
+                  <Link to={n.path} className={`nav-link ${active ? "is-active" : ""}`} aria-current={active ? "page" : undefined} title={collapsed ? n.label : undefined}>
+                    <Icon name={n.icon} />
+                    <span className="nav-label">{n.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
     </nav>
   );
 }
@@ -100,7 +134,7 @@ function NotFound({ path }: { path: string }) {
   );
 }
 
-/** Global STOP AUTOMATION shortcut (F8 or Pause); ignored while typing in an input. */
+/** Global Stop automation shortcut (F8 or Pause); ignored while typing in an input. */
 function useStopShortcut(enabled: boolean) {
   const toast = useToast();
   useEffect(() => {
@@ -110,8 +144,8 @@ function useStopShortcut(enabled: boolean) {
       if (isTypingTarget(e.target)) return;
       e.preventDefault();
       emergencyStop()
-        .then(() => toast.push("ok", `STOP AUTOMATION (${e.key}): emergency stop engaged`))
-        .catch((err) => toast.push("danger", "STOP AUTOMATION failed", describeError(err)));
+        .then(() => toast.push("ok", `Emergency stop engaged (${e.key}): automation stopped`))
+        .catch((err) => toast.push("danger", "Stop automation failed", describeError(err)));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -137,11 +171,10 @@ function Shell({ me, notice }: { me: Me; notice?: ReactNode }) {
     return () => stopLive();
   }, []);
   const item = NAV.find((n) => n.path === path);
-  const Screen = item?.component ?? EXTRA_ROUTES[path] ?? null;
+  const Screen = item?.component ?? null;
   useEffect(() => {
-    const label = item?.label ?? (path === "/setup" ? "Setup" : "Matchframe");
-    document.title = `${label} · Matchframe Operator`;
-  }, [item, path]);
+    document.title = `${item ? (item.title ?? item.label) : "Matchframe"} · Matchframe Operator`;
+  }, [item]);
   return (
     <SessionContext.Provider value={{ me }}>
       <a href="#main" className="skip-link">
@@ -197,13 +230,13 @@ function TokenGate() {
   return (
     <div className="gate">
       <div className="gate-card">
-        <div className="gate-brand">
-          <Logo /> <span>Matchframe Operator</span>
+        <div className="gate-brand gate-brand-badge">
+          <BrandBadge />
         </div>
         {gate.kind === "resolving" ? <p>{window.matchframe?.connectionMode === "remote" ? "Connecting to the production computer…" : "Connecting to the Matchframe engine…"}</p> : null}
         {gate.kind === "unreachable" ? (
           <>
-            <Note tone="danger" title="ENGINE UNREACHABLE">
+            <Note tone="danger" title="Engine unreachable">
               {gate.message}
             </Note>
             <div className="row">
@@ -217,7 +250,7 @@ function TokenGate() {
         {gate.kind === "no_token" || gate.kind === "invalid" ? (
           <>
             {gate.kind === "invalid" ? (
-              <Note tone="danger" title="TOKEN NOT ACCEPTED">
+              <Note tone="danger" title="Token not accepted">
                 {gate.message}
               </Note>
             ) : (

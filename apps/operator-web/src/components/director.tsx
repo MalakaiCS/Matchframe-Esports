@@ -41,7 +41,7 @@ export function CandidateList({ candidates, nameOf, limit = 3, currentShot }: { 
   const [open, setOpen] = useState<string | null>(null);
   const valid = [...candidates].filter((c) => c.valid).sort((a, b) => b.utility - a.utility);
   const invalid = candidates.filter((c) => !c.valid);
-  if (candidates.length === 0) return <EmptyState title="No candidates">The director produces candidates once live telemetry with player positions arrives.</EmptyState>;
+  if (candidates.length === 0) return <EmptyState title="No candidates yet">They appear once live telemetry with player positions arrives.</EmptyState>;
   return (
     <div className="cands">
       <ol className="cand-list">
@@ -100,7 +100,7 @@ export function DecisionExplain({ decision, nameOf, threshold }: { decision: Dir
         <span className="decision-headline">{ex.headline}</span>
         {decision ? (
           <span className="decision-meta">
-            confidence {(decision.confidence * 100).toFixed(0)}% · <span title="Evidence type of the decision">{decision.evidenceType.toUpperCase()}</span>
+            confidence {(decision.confidence * 100).toFixed(0)}% · <span title="Evidence type of the decision">{decision.evidenceType}</span>
           </span>
         ) : null}
       </div>
@@ -116,7 +116,7 @@ export function DecisionExplain({ decision, nameOf, threshold }: { decision: Dir
 
 export function OpportunityList({ opportunities, nameOf }: { opportunities: UtilityOpportunity[]; nameOf: (id: string) => string }) {
   if (opportunities.length === 0)
-    return <EmptyState title="No utility opportunities">Opportunities appear when grenades are thrown or about to take effect. Grenade telemetry must be supported by the source (see Setup → capability report).</EmptyState>;
+    return <EmptyState title="No grenades in play">Smokes, flashes, molotovs and HEs show up here as they're thrown.</EmptyState>;
   return (
     <table className="table table-compact">
       <thead>

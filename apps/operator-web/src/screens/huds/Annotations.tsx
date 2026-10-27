@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { api } from "../../api/index.ts";
 import type { HudAnnotation, HudOutputEntry } from "../../api/types.ts";
-import { ActionButton, Badge, Button, Checkbox, Field, Note, Panel } from "../../components/ui.tsx";
+import { ActionButton, Badge, Button, Checkbox, Field, Panel } from "../../components/ui.tsx";
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
 import { previewUrl } from "./Outputs.tsx";
@@ -57,7 +57,7 @@ export function AnnotationsTab() {
 
   return (
     <div className="grid-2-1">
-      <Panel title="Telestrator" subtitle="Draw on the 1920×1080 stage; coordinates are normalized and rendered by the HUD">
+      <Panel title="Telestrator" subtitle="Drag on the stage to draw">
         <div className="stage">
           {underlay && main?.published ? <iframe title="On-air HUD underlay" src={previewUrl(main.url)} sandbox="allow-scripts allow-same-origin" tabIndex={-1} /> : null}
           <svg
@@ -96,57 +96,55 @@ export function AnnotationsTab() {
           <Field label="Colour">
             <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
           </Field>
-          <Field label="Expires after (s)" hint="empty = until cleared">
+          <Field label="Expires after (s)" hint="Empty = until cleared">
             <input type="number" min={1} value={expiry} onChange={(e) => setExpiry(e.target.value)} style={{ width: 110 }} />
           </Field>
           <Checkbox checked={underlay} onChange={setUnderlay} label="Show on-air HUD underneath" />
-          <Button onClick={() => setItems(items.slice(0, -1))} disabled={items.length === 0}>
+          <span className="spacer" />
+          <Button size="sm" variant="ghost" onClick={() => setItems(items.slice(0, -1))} disabled={items.length === 0}>
             Undo
           </Button>
-          <Button onClick={() => setItems([])} disabled={items.length === 0}>
+          <Button size="sm" variant="ghost" onClick={() => setItems([])} disabled={items.length === 0}>
             Clear canvas
           </Button>
         </div>
       </Panel>
-      <div className="stack">
-        <Panel title="Publish" actions={onAir === null ? null : onAir ? <Badge tone="danger" icon="●">ON AIR</Badge> : <Badge>OFF AIR</Badge>}>
-          <p className="small muted">{items.length} drawing(s) in the draft (max 50).</p>
-          <div className="row">
-            <ActionButton
-              variant="primary"
-              action={() => api.put<{ onAir: boolean; count: number }>("/api/v1/hud/annotations", { annotations: withExpiry(items), onAir: true })}
-              success={(r) => `${r.count} annotation(s) on air${expiry ? ` for ${expiry} s` : ""}`}
-              onDone={() => setOnAir(true)}
-              disabledReason={reason ?? (items.length ? null : "Draw something first")}
-            >
-              Put on air
-            </ActionButton>
-            <ActionButton action={() => api.put("/api/v1/hud/annotations", { annotations: items, onAir: false })} success="Draft saved; annotations taken off air" onDone={() => setOnAir(false)} disabledReason={reason}>
-              Save draft &amp; take off air
-            </ActionButton>
-          </div>
-          <Note tone="neutral">Expiry uses this computer's clock (the engine runs on the same machine). Annotations render on every output whose profile is not “clean”.</Note>
-        </Panel>
-        <Panel title="Drawings">
-          {items.length === 0 ? (
-            <p className="muted small">Nothing drawn. Choose Arrow or Pencil and drag on the stage.</p>
-          ) : (
-            <ul className="list-plain">
-              {items.map((a, i) => (
-                <li key={a.id} className="row">
-                  <span className="dot" style={{ background: a.color }} aria-hidden />
-                  <span style={{ flex: 1 }}>
-                    #{i + 1} {a.kind} · {a.points.length} pts
-                  </span>
-                  <Button size="sm" variant="ghost" onClick={() => setItems(items.filter((x) => x.id !== a.id))} aria-label={`Delete drawing ${i + 1}`}>
-                    Delete
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
-      </div>
+      <Panel title="Drawings" className="gb-start" subtitle={`${items.length} of 50`} actions={onAir === null ? null : onAir ? <Badge tone="danger" icon="●">On air</Badge> : <Badge>Off air</Badge>}>
+        <div className="row">
+          <ActionButton
+            variant="primary"
+            action={() => api.put<{ onAir: boolean; count: number }>("/api/v1/hud/annotations", { annotations: withExpiry(items), onAir: true })}
+            success={(r) => `${r.count} annotation(s) on air${expiry ? ` for ${expiry} s` : ""}`}
+            onDone={() => setOnAir(true)}
+            disabledReason={reason ?? (items.length ? null : "Draw something first")}
+          >
+            Put on air
+          </ActionButton>
+          <ActionButton action={() => api.put("/api/v1/hud/annotations", { annotations: items, onAir: false })} success="Draft saved; annotations taken off air" onDone={() => setOnAir(false)} disabledReason={reason}>
+            Save draft &amp; take off air
+          </ActionButton>
+        </div>
+        <p className="small muted" title="Expiry uses this computer's clock (the engine runs on the same machine).">
+          Shown on every output except clean feeds.
+        </p>
+        {items.length === 0 ? (
+          <p className="muted small">Nothing drawn yet. Choose Arrow or Pencil and drag on the stage.</p>
+        ) : (
+          <ul className="list-plain">
+            {items.map((a, i) => (
+              <li key={a.id} className="row">
+                <span className="dot" style={{ background: a.color }} aria-hidden />
+                <span style={{ flex: 1 }}>
+                  #{i + 1} {a.kind} · {a.points.length} pts
+                </span>
+                <Button size="sm" variant="ghost" onClick={() => setItems(items.filter((x) => x.id !== a.id))} aria-label={`Delete drawing ${i + 1}`}>
+                  Delete
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
     </div>
   );
 }

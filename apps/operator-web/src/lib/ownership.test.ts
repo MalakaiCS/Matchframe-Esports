@@ -9,7 +9,7 @@ describe("ownershipView", () => {
   it("shows sticky MANUAL with an explicit resume action", () => {
     const v = ownershipView(base, null);
     expect(v.kind).toBe("manual");
-    expect(v.badge).toBe("MANUAL");
+    expect(v.badge).toBe("Manual");
     expect(v.actions).toEqual(["resume"]);
     expect(v.detail).toMatch(/sticky/);
   });
@@ -17,14 +17,14 @@ describe("ownershipView", () => {
   it("shows the resume countdown with cancel", () => {
     const v = ownershipView(base, 2350);
     expect(v.kind).toBe("resuming");
-    expect(v.badge).toBe("RESUMING IN 2.4 s");
+    expect(v.badge).toBe("Resuming in 2.4 s");
     expect(v.actions).toEqual(["cancel_resume"]);
   });
 
   it("gives emergency stop precedence over everything and only offers clearing it", () => {
     const v = ownershipView({ ...base, owner: "director", manualSticky: false, emergencyStopped: true }, 1000);
     expect(v.kind).toBe("emergency");
-    expect(v.badge).toBe("EMERGENCY STOP");
+    expect(v.badge).toBe("Emergency stop");
     expect(v.tone).toBe("danger");
     expect(v.actions).toEqual(["clear_emergency"]);
   });
@@ -37,7 +37,7 @@ describe("ownershipView", () => {
 
   it("names device and remote holders", () => {
     expect(ownershipView({ ...base, owner: "device", holder: "streamdeck-1" }, null).detail).toContain("streamdeck-1");
-    expect(ownershipView({ ...base, owner: "remote", holder: "producer" }, null).badge).toBe("REMOTE CONTROL");
+    expect(ownershipView({ ...base, owner: "remote", holder: "producer" }, null).badge).toBe("Remote control");
   });
 
   it("is neutral before the engine reports ownership", () => {

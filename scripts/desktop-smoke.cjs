@@ -67,7 +67,7 @@ async function run(cloud) {
   assert(!(await local.win.evaluate(() => document.querySelectorAll("nav a").length)), "the console stays closed until signed in");
   if (out) await local.win.screenshot({ path: `${out}-signin.png` });
   await signInThroughGate(local.win, "producer@example.com", PASSWORD);
-  await waitFor(() => local.win.evaluate(() => document.body.innerText.includes("CONNECTED")));
+  await waitFor(() => local.win.evaluate(() => !!document.querySelector('[data-link="open"]')));
   const info = await local.win.evaluate(async () => ({
     url: location.href,
     title: document.title,
@@ -123,7 +123,7 @@ async function run(cloud) {
     assert(typeof issued.token === "string", "role token issued on the production computer");
     const remote = await launch({ MATCHFRAME_DATA_DIR: mkdtempSync(join(tmpdir(), "mf-electron-remote-")), MATCHFRAME_GSI_PORT: "39430", MATCHFRAME_API_PORT: "39431", MATCHFRAME_OVERLAY_PORT: "39432", MATCHFRAME_REMOTE_URL: "http://127.0.0.1:39421", MATCHFRAME_REMOTE_TOKEN: issued.token });
     await waitFor(() => remote.win.evaluate(() => document.querySelectorAll("nav a").length > 5), 60000);
-    await waitFor(() => remote.win.evaluate(() => document.body.innerText.includes("CONNECTED")));
+    await waitFor(() => remote.win.evaluate(() => !!document.querySelector('[data-link="open"]')));
     const r = await remote.win.evaluate(async () => ({ mode: window.matchframe?.connectionMode, engineOrigin: window.matchframe?.engineOrigin, me: await fetch("/api/v1/me", { headers: { authorization: `Bearer ${await window.matchframe.getOperatorToken()}` } }).then((x) => x.json()) }));
     const title = await remote.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getTitle());
     const ownEngine = await fetch("http://127.0.0.1:39431/api/v1/health").then(() => true, () => false);
