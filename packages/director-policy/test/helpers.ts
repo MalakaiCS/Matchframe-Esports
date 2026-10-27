@@ -38,7 +38,7 @@ export class Sim {
     const rt = runtime ?? new MapRuntime(syntheticMapPack({ withValidatedCamera: true, mapName }));
     this.store = new MatchStateStore({ sessionId: "sim", simulated: true, mapContextFor: () => rt });
   }
-  push(players: SyntheticPlayer[], opts: { grenades?: SyntheticGrenade[]; observed?: string | null; dtMs?: number; bomb?: { state: string; position?: Vec3; countdown?: number }; phase?: string; mapName?: string } = {}) {
+  push(players: SyntheticPlayer[], opts: { grenades?: SyntheticGrenade[]; observed?: string | null; dtMs?: number; bomb?: { state: string; position?: Vec3; countdown?: number }; phase?: string; roundPhase?: "freezetime" | "live" | "over"; phaseEndsIn?: number; mapName?: string } = {}) {
     this.now += opts.dtMs ?? 100;
     this.ts += 1;
     const raw = buildSyntheticGsiPayload({
@@ -49,7 +49,8 @@ export class Sim {
       timestamp: this.ts,
       ...(opts.bomb ? { bomb: opts.bomb } : {}),
       phase: opts.phase ?? "live",
-      phaseEndsIn: 60,
+      phaseEndsIn: opts.phaseEndsIn ?? 60,
+      ...(opts.roundPhase ? { roundPhase: opts.roundPhase } : {}),
       round: 3,
     });
     const parsed = parseGsiPayload(raw);

@@ -147,7 +147,7 @@ function HoursPanel({ st }: { st: CloudStatus }) {
           </Note>
         ) : null}
         <p className="muted">
-          An hour counts only while automatic or assisted direction actually controls a real camera on live telemetry. Advisory and manual direction, the simulation, stale telemetry and time with no camera control connected are free. Running out never stops a map in progress: automation hands back to manual at the next map change, and re-arming is blocked until hours are added.
+          An hour counts only while the Observer (Observer, Observer & Cinematics or Full Action Observer) actually controls a real camera on live telemetry, at the same rate in every mode. Observer Off, manual camera work, the simulation, stale telemetry and time with no camera control connected are free. Full Action Observer (nade cameras) needs a plan that includes it. Running out never stops a map in progress: automation hands back to manual at the next map change, and re-arming is blocked until hours are added.
         </p>
       </div>
     </Panel>

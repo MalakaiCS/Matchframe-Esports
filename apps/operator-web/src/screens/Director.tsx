@@ -141,8 +141,8 @@ function MainStory({ story, nameOf }: { story: Record<string, unknown>; nameOf: 
 }
 
 const GATES = [
-  { key: "playerSelectionControl", gates: "POV cuts (automatic/assisted) and roster-card POV requests" },
-  { key: "staticCameraControl", gates: "Cinematic static cameras and utility camera shots" },
+  { key: "playerSelectionControl", gates: "Observer POV cuts and roster-card POV requests" },
+  { key: "staticCameraControl", gates: "Cinematics (Observer & Cinematics) and nade cameras (Full Action Observer)" },
   { key: "cameraPathControl", gates: "Camera path shots" },
   { key: "observerModeControl", gates: "Switching in-eye / chase / free camera" },
   { key: "grenadeEntities", gates: "Utility opportunities from tracked grenades" },

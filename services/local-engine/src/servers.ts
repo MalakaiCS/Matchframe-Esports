@@ -105,8 +105,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
 
   // ------------------------------------------------------------------ operator hub
   const cloudSummary = (eng: Engine) => {
-    const st = eng.cloud.status(eng.simulationRunning || eng.session.simulated);
-    return { linkState: st.linkState, plan: st.entitlement?.plan.name ?? null, licence: st.entitlement?.state ?? null, remainingSeconds: st.entitlement?.localRemainingSeconds ?? null, gate: st.gate, metering: st.usage.metering, enforcement: st.enforcement };
+    const st = eng.cloud.status(eng.simulationRunning || eng.session.simulated, eng.session.observerMode);
+    return { linkState: st.linkState, plan: st.entitlement?.plan.name ?? null, licence: st.entitlement?.state ?? null, remainingSeconds: st.entitlement?.localRemainingSeconds ?? null, gate: st.gate, metering: st.usage.metering, enforcement: st.enforcement, fullActionObserver: st.fullActionObserver };
   };
   let opSeq = 0;
   const env = <T>(topic: string, payload: T): EventEnvelope<T> => {
@@ -119,6 +119,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     opportunities: e.session.output()?.opportunities.slice(0, 8) ?? [],
     candidates: e.session.output()?.candidates.slice(0, 12).map((c) => ({ shotKey: c.shotKey, shotClass: c.shotClass, utility: c.utility, valid: c.valid, invalidReason: c.invalidReason, reasonCodes: c.reasonCodes, components: c.components, targetSteamId: c.targetSteamId, cameraId: c.cameraId })) ?? [],
     mode: e.session.director.currentMode,
+    observerMode: e.session.observerMode,
     controls: { ...e.session.director.controls, assistedActions: [...e.session.director.controls.assistedActions] },
     ownership: e.session.arbiter.state(),
     resumeInMs: e.session.arbiter.resumePendingInMs(),

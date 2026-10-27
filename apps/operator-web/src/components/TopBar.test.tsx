@@ -17,6 +17,7 @@ function snapshot(over: Partial<OperatorSnapshot> = {}): OperatorSnapshot {
     opportunities: [],
     candidates: [],
     mode: "advisory",
+    observerMode: "off",
     controls: { hold: null, pin: null, oneSide: null, cinematicsDisabled: { round: null, map: null, match: false }, autoReplaysDisabled: false, assistedActions: ["pov_cut"], followActionRequested: false, cinematicRequested: false },
     ownership: own,
     resumeInMs: null,
@@ -51,6 +52,16 @@ describe("top bar ownership banner", () => {
     expect(screen.getByText("MANUAL")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Resume automation" })).toBeTruthy();
     expect(screen.queryByText("SIMULATION")).toBeNull();
+  });
+
+  it("keeps Resume automation unavailable while the Observer is Off", () => {
+    act(() => liveStore.set({ status: "open", snapshot: snapshot({ observerMode: "off" }), snapshotAt: Date.now() }));
+    renderBar();
+    expect((screen.getByRole("button", { name: "Resume automation" }) as HTMLButtonElement).disabled).toBe(true);
+    cleanup();
+    act(() => liveStore.set({ status: "open", snapshot: snapshot({ observerMode: "observer_cinematics" }), snapshotAt: Date.now() }));
+    renderBar();
+    expect((screen.getByRole("button", { name: "Resume automation" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("shows the resume countdown with Cancel", () => {

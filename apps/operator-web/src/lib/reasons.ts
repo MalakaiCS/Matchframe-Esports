@@ -48,6 +48,7 @@ export const REASON_INFO: Record<ReasonCode, ReasonInfo> = {
   CINEMATIC_DISABLED: { label: "Cinematics disabled", tone: "neutral", hint: "Cinematics are disabled for this round/map/match." },
   CINEMATIC_ELIGIBLE: { label: "Cinematic eligible", tone: "info", hint: "A cinematic camera shot is available." },
   CINEMATIC_INTERRUPTED: { label: "Cinematic interrupted", tone: "warn", hint: "A cinematic was cut short by more important action." },
+  OBSERVER_MODE_EXCLUDES: { label: "Not in this Observer mode", tone: "neutral", hint: "This shot type is not part of the selected Observer mode (nade cameras need Full Action Observer; cinematics need Observer & Cinematics)." },
   CAMERA_UNVERIFIED: { label: "Camera unverified", tone: "warn", hint: "The camera has not been validated on this map revision/build." },
   COOLDOWN_ACTIVE: { label: "Cooldown active", tone: "neutral", hint: "A recently abandoned shot is cooling down." },
   STALE_DATA: { label: "Stale data", tone: "danger", hint: "Telemetry is stale; automated decisions are unsafe." },
