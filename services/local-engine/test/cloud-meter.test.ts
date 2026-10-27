@@ -107,7 +107,7 @@ describe("cloud link (offline licence checks, against a fake website)", () => {
     deviceId: "dev_1",
     plan: { id: "pro", name: "Pro" },
     subscriptionStatus: "active",
-    features: { autoDirector: true, learnedDirectorShadow: true, maxDevices: 2, maxMembers: 5 },
+    features: { autoDirector: true, learnedDirectorShadow: true, fullActionObserver: false, maxDevices: 2, maxMembers: 5 },
     autoDirector: { periodStart: "2026-10-01T00:00:00.000Z", periodEnd: "2026-11-01T00:00:00.000Z", includedSeconds: 7200, creditSeconds: 0, usedSeconds: 0, remainingSeconds: 600, overageAllowed: false },
     issuedAt: wall.toISOString(),
     expiresAt: new Date(wall.getTime() + 86_400_000).toISOString(),
@@ -178,7 +178,7 @@ describe("cloud link (offline licence checks, against a fake website)", () => {
     served.token = signEntitlement(payload({ deviceId: "dev_other" }), key.privateKeyPem);
     await link.refresh();
     expect(link.lastError).toMatch(/wrong_device/);
-    served.token = signEntitlement(payload({ features: { autoDirector: false, learnedDirectorShadow: false, maxDevices: 1, maxMembers: 1 } }), key.privateKeyPem);
+    served.token = signEntitlement(payload({ features: { autoDirector: false, learnedDirectorShadow: false, fullActionObserver: false, maxDevices: 1, maxMembers: 1 } }), key.privateKeyPem);
     await link.refresh();
     expect(link.canArm(false)).toMatchObject({ ok: false, code: "plan_excludes" });
 

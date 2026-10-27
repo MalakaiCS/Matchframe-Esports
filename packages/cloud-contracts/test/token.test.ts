@@ -12,7 +12,7 @@ function payload(kid: string, over: Partial<EntitlementPayload> = {}): Entitleme
     deviceId: "dev_1",
     plan: { id: "pro", name: "Pro" },
     subscriptionStatus: "active",
-    features: { autoDirector: true, learnedDirectorShadow: true, maxDevices: 3, maxMembers: 5 },
+    features: { autoDirector: true, learnedDirectorShadow: true, fullActionObserver: false, maxDevices: 3, maxMembers: 5 },
     autoDirector: { periodStart: "2026-10-01T00:00:00.000Z", periodEnd: "2026-11-01T00:00:00.000Z", includedSeconds: 144000, creditSeconds: 0, usedSeconds: 3600, remainingSeconds: 140400, overageAllowed: false },
     issuedAt: "2026-10-26T10:00:00.000Z",
     expiresAt: "2026-10-27T10:00:00.000Z",
