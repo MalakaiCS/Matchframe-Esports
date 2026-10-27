@@ -31,12 +31,29 @@ export interface CloudConfig {
   staffEmails: string[];
 }
 
+/**
+ * The website's public address. A bare host name (as copied from a hosting dashboard, e.g.
+ * `matchframe.up.railway.app`) gets `https://`; a trailing slash is dropped.
+ */
+export function publicAddress(raw: string): string {
+  const value = raw.trim();
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(value) ? value : `https://${value}`;
+  let url: URL;
+  try {
+    url = new URL(withScheme);
+  } catch {
+    throw new Error(`MF_CLOUD_PUBLIC_URL is not a valid web address: "${raw}" (example: https://matchframe.up.railway.app)`);
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error(`MF_CLOUD_PUBLIC_URL must start with https:// (got "${raw}")`);
+  return `${url.origin}${url.pathname}`.replace(/\/+$/, "");
+}
+
 export function loadCloudConfig(env: NodeJS.ProcessEnv = process.env, overrides: Partial<CloudConfig> = {}): CloudConfig {
   const list = (v: string | undefined) => (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   // Blank values count as unset (container tooling often passes empty strings for unset variables).
   const opt = (v: string | undefined) => (v && v.trim() ? v.trim() : null);
   const cfg: CloudConfig = {
-    publicUrl: (opt(env.MF_CLOUD_PUBLIC_URL) ?? "http://127.0.0.1:8080").replace(/\/$/, ""),
+    publicUrl: publicAddress(opt(env.MF_CLOUD_PUBLIC_URL) ?? "http://127.0.0.1:8080"),
     host: opt(env.MF_CLOUD_HOST) ?? "127.0.0.1",
     port: Number(opt(env.MF_CLOUD_PORT) ?? opt(env.PORT) ?? 8080),
     databaseUrl: opt(env.DATABASE_URL),

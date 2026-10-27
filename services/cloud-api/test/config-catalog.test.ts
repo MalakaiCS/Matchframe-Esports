@@ -12,6 +12,14 @@ describe("deployment configuration", () => {
     expect(cfg).toMatchObject({ stripeSecretKey: null, stripeWebhookSecret: null, smtpUrl: null, databaseUrl: null, signingKeyPem: null, port: 8080, downloads: { windowsUrl: null } });
   });
 
+  it("accepts the public address as copied from a hosting dashboard (no https://, trailing slash)", () => {
+    expect(loadCloudConfig({ MF_CLOUD_PUBLIC_URL: "matchframe-esports-production.up.railway.app" }).publicUrl).toBe("https://matchframe-esports-production.up.railway.app");
+    expect(loadCloudConfig({ MF_CLOUD_PUBLIC_URL: " https://app.example.com/ " }).publicUrl).toBe("https://app.example.com");
+    expect(loadCloudConfig({ MF_CLOUD_PUBLIC_URL: "http://127.0.0.1:8080" }).publicUrl).toBe("http://127.0.0.1:8080");
+    expect(() => loadCloudConfig({ MF_CLOUD_PUBLIC_URL: "https://" })).toThrow(/not a valid web address/);
+    expect(() => loadCloudConfig({ MF_CLOUD_PUBLIC_URL: "ftp://files.example.com" })).toThrow(/must start with https/);
+  });
+
   it("listens on the platform's PORT unless MF_CLOUD_PORT is set (Railway and similar hosts)", () => {
     expect(loadCloudConfig({ PORT: "4123" }).port).toBe(4123);
     expect(loadCloudConfig({ PORT: "4123", MF_CLOUD_PORT: "8081" }).port).toBe(8081);
