@@ -1,0 +1,14 @@
+{
+  "manifestVersion": 1,
+  "id": "example.minimal-scorebug",
+  "name": "Example minimal scorebug",
+  "version": "1.0.0",
+  "author": "Matchframe Esports",
+  "licence": "MIT",
+  "description": "Smallest working HUD package: a score bug driven by the public HUD state.",
+  "game": "cs2",
+  "schemaVersions": [1],
+  "entryPoints": { "live": "index.html", "compact": "index.html" },
+  "permissions": ["match.public", "series", "event"],
+  "resolutions": ["1920x1080"]
+}

@@ -1,0 +1,19 @@
+# Keep the cloud image build context small and free of local data and secrets.
+**/node_modules
+**/dist
+**/release
+**/.vite
+**/coverage
+.git
+.claude
+.env
+.env.*
+data
+*.dem
+*.dem.gz
+*.dem.bz2
+*.parquet
+workers/.venv
+**/__pycache__
+**/.pytest_cache
+docs/screenshots

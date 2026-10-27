@@ -1,0 +1,65 @@
+import type {
+  CameraMode,
+  CameraPath,
+  CameraRecord,
+  Capability,
+  CommandContext,
+  CommandResult,
+  ObservedCameraState,
+} from "@matchframe/contracts";
+
+/** Control-related capabilities reported by an adapter (never inferred from telemetry). */
+export interface ControlCapabilities {
+  playerSelectionControl: Capability;
+  observerModeControl: Capability;
+  staticCameraControl: Capability;
+  cameraPathControl: Capability;
+  cameraReadback: Capability;
+}
+
+/**
+ * Semantic observer control (spec §12.1). Implementations: verified direct channel, keyboard
+ * fallback scoped to the observer window, demo-playback controller, and the separate, labelled
+ * simulation adapter. Writing bytes to a socket or an input API is transport acknowledgement only —
+ * confirmation comes from observed camera feedback.
+ */
+export interface ObserverControlAdapter {
+  readonly id: string;
+  readonly kind: "direct" | "keyboard" | "demo_playback" | "simulation" | "none";
+  readonly simulated: boolean;
+  getCapabilities(): Promise<ControlCapabilities>;
+  selectPlayer(steamId: string, observerSlot: number | null, context: CommandContext): Promise<CommandResult>;
+  setObserverMode(mode: CameraMode, context: CommandContext): Promise<CommandResult>;
+  activateStaticCamera(camera: CameraRecord, context: CommandContext): Promise<CommandResult>;
+  playCameraPath(path: CameraPath, context: CommandContext): Promise<CommandResult>;
+  cancelPath(context: CommandContext): Promise<CommandResult>;
+  readState(): Promise<ObservedCameraState>;
+  /** Cancel queued keypresses / pending transport work immediately. */
+  cancelPending(): void;
+  stopAutomation(): Promise<void>;
+  dispose(): Promise<void>;
+}
+
+export function transportResult(context: CommandContext, ok: boolean, detail: string | null, now: number, failure: CommandResult["failureReason"] = null): CommandResult {
+  return {
+    commandId: context.commandId,
+    status: ok ? "transport_acknowledged" : "failed",
+    precision: ok ? "transport_only" : "none",
+    failureReason: ok ? null : (failure ?? "transport_error"),
+    detail,
+    transportAckAtMonotonicMs: ok ? now : null,
+    confirmedAtMonotonicMs: null,
+  };
+}
+
+export function failedResult(context: CommandContext, reason: NonNullable<CommandResult["failureReason"]>, detail: string): CommandResult {
+  return {
+    commandId: context.commandId,
+    status: "failed",
+    precision: "none",
+    failureReason: reason,
+    detail,
+    transportAckAtMonotonicMs: null,
+    confirmedAtMonotonicMs: null,
+  };
+}

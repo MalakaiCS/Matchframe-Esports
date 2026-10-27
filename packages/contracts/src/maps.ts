@@ -12,6 +12,8 @@ export const RadarCalibration = z.object({
   scale: z.number().positive(),
   rotationDeg: z.number().default(0),
   imageSizePx: z.number().int().positive().default(1024),
+  /** Radar image asset (operator supplied) this calibration belongs to; image mode needs it. */
+  imageAssetId: z.string().nullable().default(null),
   source: z.enum(["game_overview_file", "operator_calibration", "recalled_unverified"]),
   verified: z.boolean(),
   notes: z.string().nullable().default(null),
@@ -165,6 +167,19 @@ export const MapPack = z.object({
     .default([]),
   /** Per-map utility scenario overrides (e.g. Inferno Bottom Banana). */
   scenarios: z.array(z.record(z.string(), z.unknown())).default([]),
+  /**
+   * Approximate walkable floor heights per XY cell, derived from real player positions
+   * (e.g. parsed demos). Each entry is [ix, iy, z1, z2, ...] for stacked floors.
+   */
+  floorGrid: z
+    .object({
+      cellSize: z.number().positive(),
+      cells: z.array(z.array(z.number())),
+      source: z.string(),
+      sampleCount: z.number().int(),
+    })
+    .nullable()
+    .default(null),
   coverage: z.array(UtilityCoverageCell).default([]),
   provenance: z.object({
     createdBy: z.string(),

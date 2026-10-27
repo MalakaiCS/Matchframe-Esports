@@ -27,6 +27,7 @@ const schemas: Record<string, z.ZodType> = {
   Player: C.Player,
   Match: C.Match,
   EventRecord: C.EventRecord,
+  EventStage: C.EventStage,
   VetoDecision: C.VetoDecision,
 };
 

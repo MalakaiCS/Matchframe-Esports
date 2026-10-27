@@ -1,0 +1,61 @@
+appId: com.matchframe.esports
+productName: Matchframe Esports
+copyright: Copyright © Matchframe Esports
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/main.cjs
+  - dist/preload.cjs
+  - package.json
+extraResources:
+  - from: dist/engine
+    to: engine
+  # Operator console (shown only inside the program from app://matchframe) and its connection page.
+  - from: ../operator-web/dist
+    to: operator-web
+  - from: connect
+    to: connect
+  # Captain veto page, served by the engine for scoped captain links.
+  - from: ../operator-web/dist-captain
+    to: captain-web
+  - from: ../hud-renderer/dist
+    to: hud-renderer
+  - from: ../../assets/map-packs
+    to: map-packs
+  - from: ../../assets/utility-profiles
+    to: utility-profiles
+  - from: ../../workers
+    to: workers
+    filter:
+      - "**/*.py"
+      - "**/*.toml"
+      - "**/*.md"
+      - "!**/__pycache__/**"
+      - "!**/.pytest_cache/**"
+  # Optional release configuration: website address + pinned licence keys (see config/cloud.example.json).
+  - from: ../../config
+    to: .
+    filter:
+      - "cloud.json"
+  - from: ../../THIRD_PARTY_NOTICES.md
+    to: THIRD_PARTY_NOTICES.md
+asar: true
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+  # Code signing is configured in the release environment (CSC_LINK / CSC_KEY_PASSWORD).
+  # Unsigned development builds are labelled as such in the release notes.
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  artifactName: MatchframeEsports-Setup-${version}.${ext}
+linux:
+  target: [dir]
+  executableName: matchframe-esports
+publish: null

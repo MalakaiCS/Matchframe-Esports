@@ -1,0 +1,43 @@
+import { existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { CloudApp } from "./app.ts";
+import { loadCloudConfig, productionConfigProblems } from "./config.ts";
+import type { CloudConfig } from "./config.ts";
+import { startCloudServer } from "./server.ts";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const defaultWeb = [resolve(here, "..", "..", "..", "apps", "cloud-web", "dist"), resolve(here, "..", "web")].find((p) => existsSync(join(p, "index.html"))) ?? null;
+let cfg: CloudConfig;
+try {
+  cfg = loadCloudConfig(process.env, { webDir: process.env.MF_CLOUD_WEB_DIR?.trim() || defaultWeb });
+} catch (e) {
+  // Configuration mistakes get a one-line explanation, not a stack trace.
+  console.error(`Matchframe cloud API: cannot start: ${e instanceof Error ? e.message : String(e)}`);
+  process.exit(1);
+}
+const problems = productionConfigProblems(cfg);
+if (problems.length > 0) {
+  console.error(["Matchframe cloud API: refusing to start in production:", ...problems.map((p) => `  - ${p}`), "See docs/operations/cloud-deployment.md."].join("\n"));
+  process.exit(1);
+}
+const app = new CloudApp(cfg);
+await app.init();
+const { close } = await startCloudServer(app);
+console.log(
+  [
+    `Matchframe cloud API listening on http://${cfg.host}:${cfg.port} (public URL ${cfg.publicUrl})`,
+    `  database: ${app.sql.kind}${app.sql.kind === "pglite" ? ` (${cfg.pgliteDir ?? "in memory — data is lost on exit; set DATABASE_URL or MF_CLOUD_PGLITE_DIR"})` : ""}`,
+    `  billing: ${app.billing.configured ? "Stripe" : "not configured (set STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET)"}`,
+    `  email: ${app.mailer.kind === "smtp" ? "SMTP" : "outbox table only (set SMTP_URL)"}`,
+    `  entitlement signing key: ${app.kid} (${app.signingKeySource === "environment" ? "MF_CLOUD_SIGNING_KEY" : "stored in the database"})${app.ephemeralKey ? " — EPHEMERAL: in-memory database, lost on exit" : ""}`,
+    `  website: ${cfg.webDir ?? "not built (pnpm --filter @matchframe/cloud-web build)"}`,
+  ].join("\n"),
+);
+const stop = async () => {
+  await close();
+  await app.close();
+  process.exit(0);
+};
+process.on("SIGINT", () => void stop());
+process.on("SIGTERM", () => void stop());

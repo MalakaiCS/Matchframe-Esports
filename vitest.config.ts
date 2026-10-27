@@ -12,6 +12,8 @@ export default defineConfig({
     ],
     environment: "node",
     testTimeout: 20000,
+    // In-process Postgres (PGlite, WebAssembly) can take >10 s to start when several test files run at once.
+    hookTimeout: 30000,
     pool: "forks",
   },
 });

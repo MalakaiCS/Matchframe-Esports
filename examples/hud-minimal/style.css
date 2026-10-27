@@ -1,0 +1,5 @@
+html, body { margin: 0; background: transparent; font: 600 28px system-ui, sans-serif; color: #fff; }
+#bug { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 18px; align-items: center; padding: 10px 22px; background: rgba(12, 14, 20, 0.85); }
+#bug b { font-size: 34px; min-width: 1.4em; text-align: center; }
+#clock { font-variant-numeric: tabular-nums; color: #9aa4b5; }
+#sim { position: absolute; top: 8px; right: 12px; font-size: 14px; letter-spacing: 0.2em; color: #f1c75b; }

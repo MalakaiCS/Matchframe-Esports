@@ -1,0 +1,162 @@
+# Builds the Matchframe program for Windows (.exe installer + portable zip) on a real Windows
+# machine, installs it silently, smoke-tests the INSTALLED program (sign-in screen and a real
+# sign-in against a local Matchframe website, bundled engine, console from app://matchframe, HUD
+# outputs, no console from the engine's HTTP address), uninstalls it, and uploads the installer
+# with SHA-256 checksums as a workflow artifact.
+#
+# Website: the build is pinned to the live website (address + licence keys in cloud.json, read from
+# it at build time). Set the repository variable MATCHFRAME_WEBSITE_URL to change it.
+#
+# Releases: publishing a release on GitHub (Releases → Draft a new release → Publish) builds that
+# release's tag and attaches the installer, the portable zip and SHA256SUMS.txt to it. To attach
+# them to a release that already exists, run this workflow manually with the release tag.
+# Builds are unsigned unless CSC_LINK / CSC_KEY_PASSWORD secrets are configured.
+name: Windows program (.exe)
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "apps/desktop/**"
+      - "apps/operator-web/**"
+      - "apps/hud-renderer/**"
+      - "services/local-engine/**"
+      - "services/observer-agent/**"
+      - "services/replay-agent/**"
+      - "packages/**"
+      - "assets/**"
+      - "config/**"
+      - "scripts/packaged-smoke.cjs"
+      - "scripts/smoke-cloud.cjs"
+      - "scripts/write-cloud-config.mjs"
+      - "services/cloud-api/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/windows-program.yml"
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag of an existing release to build and attach the installer to (e.g. v0.1.0). Leave empty for a test build of the selected branch."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  MATCHFRAME_WEBSITE_URL: ${{ vars.MATCHFRAME_WEBSITE_URL || 'https://matchframe-esports-production.up.railway.app' }}
+
+concurrency:
+  group: windows-program-${{ github.ref }}-${{ inputs.tag || 'branch' }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, install and smoke-test (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # A manual run for a release builds exactly that release's tag.
+          ref: ${{ inputs.tag }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the console, captain page, HUD renderer and program bundles
+        run: |
+          pnpm --filter @matchframe/hud-renderer build
+          pnpm --filter @matchframe/operator-web build
+          pnpm --filter @matchframe/desktop build
+
+      - name: Pin the Matchframe website (address and licence keys)
+        id: pin
+        # Required for releases; a test build of a branch still builds (asking for the address) if the website is down.
+        continue-on-error: ${{ github.event_name == 'push' }}
+        run: node scripts/write-cloud-config.mjs "${{ env.MATCHFRAME_WEBSITE_URL }}"
+
+      - name: Package the installer (.exe) and portable zip
+        run: pnpm --filter @matchframe/desktop run package:win
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Install the program silently (per user)
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem apps/desktop/release/MatchframeEsports-Setup-*.exe | Select-Object -First 1
+          Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
+          $installed = Join-Path $env:LOCALAPPDATA 'Programs\Matchframe Esports\Matchframe Esports.exe'
+          if (-not (Test-Path $installed)) { throw "The installer did not create $installed" }
+          "INSTALLED_EXE=$installed" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Smoke-test the installed program
+        shell: pwsh
+        run: |
+          npm install --no-save --no-audit --no-fund --prefix "$env:RUNNER_TEMP\pw" playwright-core@1.63.0
+          $env:NODE_PATH = "$env:RUNNER_TEMP\pw\node_modules"
+          node scripts/packaged-smoke.cjs "$env:INSTALLED_EXE" "$env:RUNNER_TEMP\installed-program.png"
+        env:
+          MATCHFRAME_EXPECT_WEBSITE: ${{ steps.pin.outcome == 'success' && env.MATCHFRAME_WEBSITE_URL || '' }}
+
+      - name: Uninstall
+        if: always()
+        shell: pwsh
+        run: |
+          $uninstaller = Join-Path $env:LOCALAPPDATA 'Programs\Matchframe Esports\Uninstall Matchframe Esports.exe'
+          if (Test-Path $uninstaller) { Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait }
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem apps/desktop/release -File | Where-Object { $_.Extension -in '.exe', '.zip' } |
+            ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } |
+            Out-File apps/desktop/release/SHA256SUMS.txt -Encoding ascii
+          Get-Content apps/desktop/release/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matchframe-windows-${{ github.sha }}
+          path: |
+            apps/desktop/release/MatchframeEsports-Setup-*.exe
+            apps/desktop/release/*.zip
+            apps/desktop/release/SHA256SUMS.txt
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: installed-program-screenshot-${{ github.sha }}
+          path: ${{ runner.temp }}/installed-program*.png
+          if-no-files-found: ignore
+          retention-days: 30
+
+  attach-to-release:
+    name: Attach the installer to the GitHub release
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: matchframe-windows-${{ github.sha }}
+          path: release
+      - name: Upload the installer, zip and checksums to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: gh release upload "$TAG" release/* --repo "$GITHUB_REPOSITORY" --clobber

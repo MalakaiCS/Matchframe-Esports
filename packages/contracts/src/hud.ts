@@ -39,7 +39,8 @@ export const HudManifest = z.object({
   game: z.literal("cs2"),
   /** Supported public HUD state schema versions. */
   schemaVersions: z.array(z.number().int()).min(1),
-  entryPoints: z.record(HudVariant, z.string()),
+  /** Entry HTML per implemented variant; packages declare only the variants they implement. */
+  entryPoints: z.partialRecord(HudVariant, z.string()).refine((r) => Object.keys(r).length > 0, "at least one entry point is required"),
   preview: z.string().nullable().default(null),
   permissions: z.array(HudPermission),
   presets: z.array(z.object({ id: z.string(), name: z.string() })).default([]),

@@ -1,0 +1,60 @@
+# Self-hosting the Matchframe website + cloud API with Postgres.
+#   cp config/cloud.env.example config/cloud.env   # fill in the values
+#   docker compose -f docker-compose.cloud.yml --env-file config/cloud.env up -d --build
+# Put a TLS-terminating reverse proxy in front (MF_CLOUD_PUBLIC_URL must be the https address).
+services:
+  db:
+    image: postgres:16.10-bookworm
+    environment:
+      POSTGRES_DB: matchframe
+      POSTGRES_USER: matchframe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U matchframe -d matchframe"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  cloud:
+    build:
+      context: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://matchframe:${POSTGRES_PASSWORD}@db:5432/matchframe
+      MF_CLOUD_PUBLIC_URL: ${MF_CLOUD_PUBLIC_URL:?set MF_CLOUD_PUBLIC_URL}
+      MF_CLOUD_SIGNING_KEY: ${MF_CLOUD_SIGNING_KEY:-}
+      MF_CLOUD_EXTRA_PUBLIC_KEYS: ${MF_CLOUD_EXTRA_PUBLIC_KEYS:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_PRO: ${STRIPE_PRICE_PRO:-}
+      STRIPE_PRICE_STUDIO: ${STRIPE_PRICE_STUDIO:-}
+      STRIPE_PRICE_PACK_10: ${STRIPE_PRICE_PACK_10:-}
+      STRIPE_PRICE_PACK_50: ${STRIPE_PRICE_PACK_50:-}
+      SMTP_URL: ${SMTP_URL:-}
+      MF_MAIL_FROM: ${MF_MAIL_FROM:-}
+      MF_STAFF_EMAILS: ${MF_STAFF_EMAILS:-}
+      MF_COMPANY_NAME: ${MF_COMPANY_NAME:-}
+      MF_WEBSITE_NAME: ${MF_WEBSITE_NAME:-}
+      MF_SUPPORT_EMAIL: ${MF_SUPPORT_EMAIL:-}
+      MF_COMPANY_ADDRESS: ${MF_COMPANY_ADDRESS:-}
+      MF_LEGAL_JURISDICTION: ${MF_LEGAL_JURISDICTION:-}
+      MF_LEGAL_EFFECTIVE_DATE: ${MF_LEGAL_EFFECTIVE_DATE:-}
+      MF_DOWNLOAD_DIR: /downloads
+      MF_DOWNLOAD_VERSION: ${MF_DOWNLOAD_VERSION:-}
+      MF_DOWNLOAD_WINDOWS_URL: ${MF_DOWNLOAD_WINDOWS_URL:-}
+      MF_DOWNLOAD_WINDOWS_SHA256: ${MF_DOWNLOAD_WINDOWS_SHA256:-}
+      MF_DOWNLOAD_NOTES_URL: ${MF_DOWNLOAD_NOTES_URL:-}
+    volumes:
+      # Put MatchframeEsports-Setup-<version>.exe here to offer it on the website.
+      - ./downloads:/downloads:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

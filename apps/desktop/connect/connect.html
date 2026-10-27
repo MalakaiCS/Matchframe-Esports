@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="data:," />
+    <title>Connection settings · Matchframe</title>
+    <link rel="stylesheet" href="/connect/connect.css" />
+  </head>
+  <body>
+    <main class="card">
+      <h1>Connection settings</h1>
+      <p class="muted">Choose where the Matchframe engine runs. HUD outputs, the director and camera control always run on the production computer.</p>
+      <form id="form" autocomplete="off">
+        <label class="option">
+          <input type="radio" name="mode" value="local" checked />
+          <span>
+            <strong>This computer runs the production</strong>
+            <span class="muted">Matchframe runs its engine here (single-PC setups, or the production PC in a multi-PC setup).</span>
+          </span>
+        </label>
+        <label class="option">
+          <input type="radio" name="mode" value="remote" />
+          <span>
+            <strong>Connect to the production computer</strong>
+            <span class="muted">Use this computer as an extra operator position for the Matchframe engine on another computer.</span>
+          </span>
+        </label>
+        <fieldset id="remote" disabled>
+          <label>Production computer address
+            <input id="url" placeholder="192.168.1.20 or http://192.168.1.20:37211" spellcheck="false" />
+          </label>
+          <label>Access token
+            <input id="token" type="password" placeholder="Issued on the production computer: Devices &amp; Integrations → Tokens" />
+          </label>
+          <p class="muted small">Use a role token (for example <em>observer</em> or <em>producer</em>), not the production computer's owner token. On the production computer, Matchframe must listen on its network address (<code>MATCHFRAME_HOST</code>) and the firewall must allow it.</p>
+          <button type="button" id="test">Test connection</button>
+        </fieldset>
+        <p id="status" role="status" class="status"></p>
+        <div class="actions">
+          <button type="submit" class="primary" id="save">Save and connect</button>
+          <button type="button" id="cancel">Cancel</button>
+        </div>
+      </form>
+      <p class="muted small" id="version"></p>
+    </main>
+    <script src="/connect/connect.js"></script>
+  </body>
+</html>
