@@ -1,4 +1,4 @@
-import type { HourPack, OrgRole, Plan } from "@matchframe/cloud-contracts";
+import type { HourPack, OrgRole, Plan, SubscriptionStatus } from "@matchframe/cloud-contracts";
 import { createClient, seg } from "./client.ts";
 import type {
   AdminCatalog,
@@ -110,6 +110,12 @@ export const api = {
   adminEnableUser: (id: string) => client.post<{ ok: true }>(`/v1/admin/users/${seg(id)}/enable`),
   adminUpdateUser: (id: string, b: { displayName?: string; email?: string }) => client.patch<{ ok: true }>(`/v1/admin/users/${seg(id)}`, b),
   adminOrg: (id: string) => client.get<AdminOrgDetail>(`/v1/admin/orgs/${seg(id)}`),
+  adminClearLockout: (userId: string) => client.post<{ cleared: number }>(`/v1/admin/users/${seg(userId)}/clear-lockout`),
+  adminSignOutComputer: (orgId: string, deviceId: string) => client.post<{ computers: number }>(`/v1/admin/orgs/${seg(orgId)}/devices/${seg(deviceId)}/sign-out`),
+  adminSignOutAllComputers: (orgId: string) => client.post<{ computers: number }>(`/v1/admin/orgs/${seg(orgId)}/devices/sign-out-all`),
+  adminResetUsage: (orgId: string, note: string) => client.post<{ seconds: number }>(`/v1/admin/orgs/${seg(orgId)}/usage-reset`, { note }),
+  adminSetSubscriptionOverride: (orgId: string, b: { status: SubscriptionStatus; planId: string | null; note: string }) => client.put<{ planId: string; status: SubscriptionStatus }>(`/v1/admin/orgs/${seg(orgId)}/subscription-override`, b),
+  adminRemoveSubscriptionOverride: (orgId: string) => client.del<{ planId: string; status: SubscriptionStatus }>(`/v1/admin/orgs/${seg(orgId)}/subscription-override`),
   adminMessages: (status: MessageStatus) => client.get<{ messages: ContactMessage[] }>(`/v1/admin/messages?status=${status}`),
   adminSetMessageHandled: (id: string, handled: boolean) => client.post<{ ok: true }>(`/v1/admin/messages/${seg(id)}/handled`, { handled }),
   adminEmails: (limit = 100) => client.get<EmailLogResponse>(`/v1/admin/emails?limit=${limit}`),

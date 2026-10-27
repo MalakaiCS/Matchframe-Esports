@@ -14,7 +14,7 @@ import { Link } from "../../router.tsx";
 import { useSession } from "../../state/session.tsx";
 import { AdminOnlyNote, UserBadges, useStaffRole } from "./shared.tsx";
 
-type Dialog = null | "verify" | "resend" | "reset" | "signout" | "role" | "disable" | "enable" | "edit";
+type Dialog = null | "verify" | "resend" | "reset" | "signout" | "lockout" | "role" | "disable" | "enable" | "edit";
 
 /** Why an admin can't change this account's role or status (null = allowed). */
 export function protectedReason(u: AdminUser, myId: string | null, what: "role" | "status"): string | null {
@@ -172,6 +172,11 @@ export function AdminUserDetail({ userId }: { userId: string }) {
           It can't sign in. Reason: {u.disabledReason ?? "none recorded"}.
         </Alert>
       )}
+      {d.lockouts.length > 0 && (
+        <Alert tone="warn" title="Locked out after too many attempts" live={false}>
+          The website is refusing these for now: {d.lockouts.map((l) => l.label.toLowerCase()).join("; ")}. Clear the lockout under Support actions to let them try again straight away.
+        </Alert>
+      )}
 
       <div className="detail-grid">
         <div className="stack-lg">
@@ -311,6 +316,25 @@ export function AdminUserDetail({ userId }: { userId: string }) {
               )}
               <div className="action-item">
                 <div>
+                  <p className="strong">Clear lockout</p>
+                  {d.lockouts.length === 0 ? (
+                    <p className="small muted">Not locked out. After too many attempts (10 sign-ins a minute, 5 emails every 15 minutes) the website refuses for a while.</p>
+                  ) : (
+                    <ul className="small muted lockout-list">
+                      {d.lockouts.map((l) => (
+                        <li key={l.label}>
+                          {l.label}: until {formatDateTime(l.until)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <Button size="sm" onClick={() => setDialog("lockout")} disabledReason={d.lockouts.length === 0 ? "This account isn't locked out right now." : null}>
+                  Clear lockout
+                </Button>
+              </div>
+              <div className="action-item">
+                <div>
                   <p className="strong">Send password reset</p>
                   <p className="small muted">Email a reset link valid for 60 minutes.</p>
                 </div>
@@ -399,6 +423,20 @@ export function AdminUserDetail({ userId }: { userId: string }) {
             const n = (r as { revoked?: number } | undefined)?.revoked ?? 0;
             const c = (r as { computers?: number } | undefined)?.computers ?? 0;
             done(`Signed out ${n} ${n === 1 ? "session" : "sessions"}${c ? ` and ${c} ${c === 1 ? "computer" : "computers"}` : ""}.`);
+          }}
+        />
+      )}
+      {dialog === "lockout" && (
+        <ConfirmDialog
+          title="Clear the lockout?"
+          description={`${u.email} can sign in and ask for emails again straight away. Only do this when you're sure the attempts were theirs, not someone guessing their password.`}
+          confirmLabel="Clear lockout"
+          variant="primary"
+          onConfirm={() => api.adminClearLockout(u.id)}
+          onClose={close}
+          onDone={(r) => {
+            const n = (r as { cleared?: number } | undefined)?.cleared ?? 0;
+            done(n ? `Cleared ${n} ${n === 1 ? "lockout" : "lockouts"}.` : "The lockout had already ended.");
           }}
         />
       )}

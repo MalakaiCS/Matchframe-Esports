@@ -1553,6 +1553,26 @@
         }
       }
     },
+    "/v1/admin/users/{userId}/clear-lockout": {
+      "post": {
+        "summary": "Staff: clear an account's sign-in and email lockouts (too many attempts) so it can try again straight away",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/admin/users/{userId}/staff-role": {
       "put": {
         "summary": "Admin: set an account's staff role (support, admin or none)",
@@ -1755,6 +1775,182 @@
         }
       }
     },
+    "/v1/admin/orgs/{orgId}/devices/{deviceId}/sign-out": {
+      "post": {
+        "summary": "Staff: sign one of an organisation's computers out (frees a place under the plan's computer limit)",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/orgs/{orgId}/devices/sign-out-all": {
+      "post": {
+        "summary": "Staff: sign every computer of an organisation out (clears the computer limit)",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/orgs/{orgId}/usage-reset": {
+      "post": {
+        "summary": "Admin: reset this period's auto-director usage to zero (usage history is kept)",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "note"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/orgs/{orgId}/subscription-override": {
+      "put": {
+        "summary": "Admin: set an organisation's subscription status and plan by hand; it wins over Stripe until removed",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "trialing",
+                      "active",
+                      "past_due",
+                      "canceled",
+                      "incomplete",
+                      "incomplete_expired",
+                      "unpaid",
+                      "paused"
+                    ]
+                  },
+                  "planId": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "status",
+                  "note"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Admin: remove a subscription override; Stripe's status applies again",
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/admin/catalog": {
       "get": {
         "summary": "Staff: full plan and hour-pack catalogue including Stripe price ids",
@@ -1835,6 +2031,10 @@
                         "type": "boolean"
                       },
                       "learnedDirectorShadow": {
+                        "type": "boolean"
+                      },
+                      "fullActionObserver": {
+                        "default": false,
                         "type": "boolean"
                       },
                       "maxDevices": {

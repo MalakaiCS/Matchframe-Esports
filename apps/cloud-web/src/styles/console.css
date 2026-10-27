@@ -674,6 +674,32 @@
   justify-self: start;
 }
 
+.reset-list,
+.lockout-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.lockout-list {
+  margin-top: 4px;
+}
+
+.override-note {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.override-note p {
+  margin: 0;
+}
+
 .credit-list {
   list-style: none;
   margin: 0;

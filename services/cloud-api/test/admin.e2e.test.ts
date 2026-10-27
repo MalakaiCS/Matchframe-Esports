@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CloudApp } from "../src/app.ts";
 import { loadCloudConfig } from "../src/config.ts";
@@ -251,6 +252,99 @@ describe("website: site info, contact form, account sessions and data export, st
     expect(resend.data.error).toMatch(/SMTP_URL/);
     expect((await admin.client.req("POST", "/v1/admin/emails/424242/resend")).status).toBe(404);
   });
+
+  it("clearing lockouts: sign-in attempts, the computer limit, this period's usage; subscription overrides", async () => {
+    const admin = await login("admin@example.com");
+    const erin = await signup("erin@example.com");
+    const support = await signup("frank@example.com");
+    expect((await admin.client.req("PUT", `/v1/admin/users/${support.userId}/staff-role`, { role: "support" })).status).toBe(200);
+    const program = () => new Client(base, null);
+    const deviceLogin = (installId: string) =>
+      program().req<{ deviceToken: string; deviceId: string; error: string }>("POST", "/v1/device/login", { email: "erin@example.com", password: PASSWORD, deviceName: `PC ${installId}`, platform: "win32", appVersion: "0.3.0", installId });
+    type OrgDetail = {
+      plan: { id: string };
+      subscription: { status: string; override: { planId: string; status: string; note: string; createdBy: string } | null; stripe: { planId: string; status: string } | null };
+      limits: { maxDevices: number };
+      allowance: { usedSeconds: number; remainingSeconds: number; creditSeconds: number };
+      usageResets: { seconds: number; note: string; createdBy: string }[];
+      devices: { id: string; revokedAt: string | null }[];
+    };
+    const orgDetail = async () => (await admin.client.req<OrgDetail>("GET", `/v1/admin/orgs/${erin.orgId}`)).data;
+
+    // Sign-in lockout: wrong passwords until the website refuses with 429; staff see it and clear it.
+    let refused = 0;
+    for (let i = 0; i < 25 && !refused; i++) if ((await login("erin@example.com", "wrong password!!")).status === 429) refused = i + 1;
+    expect(refused).toBeGreaterThan(0);
+    expect((await login("erin@example.com")).status).toBe(429);
+    const locked = await support.client.req<{ lockouts: { label: string; until: string }[] }>("GET", `/v1/admin/users/${erin.userId}`);
+    expect(locked.data.lockouts.length).toBeGreaterThan(0);
+    expect(locked.data.lockouts.map((l) => l.label).join()).toMatch(/Sign-in attempts/);
+    expect((await erin.client.req("POST", `/v1/admin/users/${erin.userId}/clear-lockout`)).status).toBe(403);
+    const cleared = await support.client.req<{ cleared: number }>("POST", `/v1/admin/users/${erin.userId}/clear-lockout`);
+    expect(cleared.data.cleared).toBe(locked.data.lockouts.length);
+    expect((await login("erin@example.com")).status).toBe(200);
+    expect((await admin.client.req<{ lockouts: unknown[] }>("GET", `/v1/admin/users/${erin.userId}`)).data.lockouts).toEqual([]);
+
+    // Computer limit (Free: 1): staff sign one or all of the organisation's computers out.
+    const first = await deviceLogin("install-erin-aaaaa");
+    expect(first.status).toBe(200);
+    expect(await deviceLogin("install-erin-bbbbb").then((r) => [r.status, r.data.error])).toEqual([409, "device_limit"]);
+    expect((await orgDetail()).limits.maxDevices).toBe(1);
+    expect((await support.client.req("POST", `/v1/admin/orgs/${erin.orgId}/devices/${first.data.deviceId}/sign-out`)).data).toEqual({ computers: 1 });
+    expect((await support.client.req("POST", `/v1/admin/orgs/${erin.orgId}/devices/${first.data.deviceId}/sign-out`)).status).toBe(404);
+    const second = await deviceLogin("install-erin-bbbbb");
+    expect(second.status).toBe(200);
+    expect((await support.client.req("POST", `/v1/admin/orgs/${erin.orgId}/devices/sign-out-all`)).data).toEqual({ computers: 1 });
+    expect((await program().req("POST", "/v1/device/entitlement", undefined, { authorization: `Bearer ${second.data.deviceToken}` })).status).toBe(401);
+    const pc = await deviceLogin("install-erin-ccccc");
+    const bearer = { authorization: `Bearer ${pc.data.deviceToken}` };
+
+    // Usage reset: the period starts again from zero; credits already spent don't count twice.
+    expect((await admin.client.req("POST", `/v1/admin/orgs/${erin.orgId}/credits`, { hours: 1, note: "support credit" })).status).toBe(200);
+    const now = Date.now();
+    const rec = (minutesAgo: number, seconds: number) => ({ recordId: randomUUID(), kind: "auto_director", startedAt: new Date(now - minutesAgo * 60_000).toISOString(), endedAt: new Date(now - minutesAgo * 60_000 + seconds * 1000).toISOString(), seconds, sessionId: "s", matchRef: null, mapName: "de_nuke", appVersion: "0.3.0" });
+    const upload = async (records: ReturnType<typeof rec>[]) => expect((await program().req<{ accepted: string[] }>("POST", "/v1/device/usage", { records }, bearer)).data.accepted).toHaveLength(records.length);
+    await upload([rec(300, 3000), rec(240, 3000), rec(180, 3000)]);
+    // 2 h included + 1 h credit; 2.5 h used: half an hour comes from the credit.
+    expect((await orgDetail()).allowance).toMatchObject({ usedSeconds: 9000, creditSeconds: 1800, remainingSeconds: 1800 });
+    expect((await support.client.req("POST", `/v1/admin/orgs/${erin.orgId}/usage-reset`, { note: "outage refund" })).status).toBe(403);
+    expect((await admin.client.req("POST", `/v1/admin/orgs/${erin.orgId}/usage-reset`, { note: "x" })).status).toBe(400);
+    expect((await admin.client.req("POST", `/v1/admin/orgs/${erin.orgId}/usage-reset`, { note: "outage refund" })).data).toEqual({ seconds: 9000 });
+    const reset = await orgDetail();
+    expect(reset.allowance).toMatchObject({ usedSeconds: 0, creditSeconds: 1800, remainingSeconds: 9000 });
+    expect(reset.usageResets).toEqual([expect.objectContaining({ seconds: 9000, note: "outage refund", createdBy: "admin@example.com" })]);
+    expect((await program().req<{ payload: { autoDirector: { remainingSeconds: number } } }>("POST", "/v1/device/entitlement", undefined, bearer)).data.payload.autoDirector.remainingSeconds).toBe(9000);
+    await upload([rec(120, 3000), rec(60, 3000), rec(30, 1800)]);
+    // 2 h 10 min after the reset: 10 minutes from the credit, which had 30 minutes left.
+    expect((await orgDetail()).allowance).toMatchObject({ usedSeconds: 7800, creditSeconds: 1200, remainingSeconds: 1200 });
+    expect((await admin.client.req<{ error: string }>("POST", `/v1/admin/orgs/${support.orgId}/usage-reset`, { note: "nothing used" })).data.error).toBe("nothing_to_reset");
+
+    // Subscription override: wins over Stripe until removed, for the website and the program.
+    expect((await support.client.req("PUT", `/v1/admin/orgs/${erin.orgId}/subscription-override`, { status: "active", planId: "pro", note: "partner league" })).status).toBe(403);
+    expect((await admin.client.req<{ error: string }>("PUT", `/v1/admin/orgs/${erin.orgId}/subscription-override`, { status: "active", note: "partner league" })).data.error).toBe("plan_required");
+    expect((await admin.client.req<{ error: string }>("PUT", `/v1/admin/orgs/${erin.orgId}/subscription-override`, { status: "active", planId: "platinum", note: "partner league" })).data.error).toBe("unknown_plan");
+    expect((await admin.client.req("PUT", `/v1/admin/orgs/${erin.orgId}/subscription-override`, { status: "active", planId: "pro", note: "partner league" })).data).toEqual({ planId: "pro", status: "active" });
+    let o = await orgDetail();
+    expect(o).toMatchObject({ plan: { id: "pro" }, subscription: { status: "active", override: { planId: "pro", status: "active", note: "partner league", createdBy: "admin@example.com" }, stripe: null }, limits: { maxDevices: 2 } });
+    expect((await deviceLogin("install-erin-ddddd")).status).toBe(200);
+    expect((await erin.client.req<{ subscription: { status: string }; plan: { id: string } }>("GET", `/v1/orgs/${erin.orgId}/billing`)).data).toMatchObject({ plan: { id: "pro" }, subscription: { status: "active" } });
+    expect((await program().req<{ payload: { plan: { id: string }; subscriptionStatus: string } }>("POST", "/v1/device/entitlement", undefined, bearer)).data.payload).toMatchObject({ plan: { id: "pro" }, subscriptionStatus: "active" });
+    const listed = await admin.client.req<{ id: string; overridden: boolean }[]>("GET", "/v1/admin/orgs?q=erin");
+    expect(listed.data.find((x) => x.id === erin.orgId)?.overridden).toBe(true);
+    // Stripe reports a cancelled subscription meanwhile: recorded, but the override still applies.
+    await app.sql.query("INSERT INTO subscriptions (org_id, stripe_subscription_id, plan_id, status) VALUES ($1, 'sub_erin', 'studio', 'canceled')", [erin.orgId]);
+    o = await orgDetail();
+    expect(o).toMatchObject({ plan: { id: "pro" }, subscription: { status: "active", stripe: { planId: "studio", status: "canceled" } } });
+    // Overriding to a status without access gives the free plan.
+    expect((await admin.client.req("PUT", `/v1/admin/orgs/${erin.orgId}/subscription-override`, { status: "unpaid", planId: "studio", note: "chargeback" })).data).toEqual({ planId: "free", status: "unpaid" });
+    expect((await orgDetail())).toMatchObject({ plan: { id: "free" }, subscription: { status: "unpaid" } });
+    expect((await admin.client.req("DELETE", `/v1/admin/orgs/${erin.orgId}/subscription-override`)).data).toEqual({ planId: "free", status: "canceled" });
+    expect((await orgDetail()).subscription).toMatchObject({ status: "canceled", override: null, stripe: { planId: "studio", status: "canceled" } });
+    expect((await admin.client.req("DELETE", `/v1/admin/orgs/${erin.orgId}/subscription-override`)).status).toBe(404);
+
+    const actions = (await admin.client.req<{ action: string }[]>("GET", `/v1/admin/audit?orgId=${erin.orgId}`)).data.map((a) => a.action);
+    expect(actions).toEqual(expect.arrayContaining(["admin.device_signed_out", "admin.devices_signed_out", "admin.usage_reset", "admin.subscription_override_set", "admin.subscription_override_removed"]));
+  });
 });
 
 describe("migration 4: staff flag becomes the admin staff role", () => {
@@ -262,7 +356,7 @@ describe("migration 4: staff flag becomes the admin staff role", () => {
       await sql.query("INSERT INTO schema_migrations (version, name) VALUES ($1, $2)", [m.version, m.name]);
     }
     await sql.query("INSERT INTO users (id, email, display_name, password_hash, staff) VALUES ('usr_a', 'a@example.com', 'A', 'x', true), ('usr_b', 'b@example.com', 'B', 'x', false)");
-    expect(await migrate(sql)).toEqual({ from: 3, to: 4 });
+    expect(await migrate(sql)).toEqual({ from: 3, to: MIGRATIONS[MIGRATIONS.length - 1]!.version });
     const { rows } = await sql.query<{ id: string; staff_role: string | null; disabled_at: Date | null }>("SELECT id, staff_role, disabled_at FROM users ORDER BY id");
     expect(rows).toEqual([
       { id: "usr_a", staff_role: "admin", disabled_at: null },

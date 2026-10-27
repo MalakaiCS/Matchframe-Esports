@@ -61,6 +61,7 @@ export function AdminOrgs() {
                   <td data-label="Plan">
                     <span className="badge-row">
                       <span>{o.planId}</span> <Badge tone={statusTone(o.subscriptionStatus)}>{STATUS_LABEL[o.subscriptionStatus]}</Badge>
+                      {o.overridden && <Badge tone="info">Set by staff</Badge>}
                     </span>
                   </td>
                   <td data-label="Members">{o.members}</td>

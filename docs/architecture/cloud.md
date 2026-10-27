@@ -57,7 +57,10 @@ address; an organisation always keeps at least one owner.
 portal for plan changes, payment methods and cancellation; invoices listed on the website. Plan
 state comes only from signed webhooks (stored once per event id) and is re-read from Stripe when a
 checkout completes. `active`, `trialing` and `past_due` keep the paid plan; anything else falls back
-to Free.
+to Free. An admin can set an organisation's status and plan by hand (`subscription_overrides`,
+migration 5): the override wins over Stripe everywhere (website, licence, computer and member limits,
+hours) until an admin removes it. Stripe's updates keep being stored underneath and apply again once
+it is removed. An override never changes what Stripe charges.
 
 **Signing in from the program.** Settings → Account sends the email and
 password through the local engine to `/v1/device/login` on the pinned website, once; nothing but
@@ -100,7 +103,10 @@ month otherwise):
 `remaining = max(0, included − used) + available credits − overage not yet covered by credits`.
 Usage beyond the included hours draws on credits (hour packs and staff grants) at upload time,
 earliest expiry first, under a per-organisation row lock. Overage is not sold: when hours run out,
-re-arming is refused until hours are added.
+re-arming is refused until hours are added. An admin can reset the current period's usage to zero
+(`usage_resets`): the reset stores the period's used seconds and the credit seconds already spent,
+and both are subtracted, so the included hours are available again while spent credits stay spent.
+Usage records are never deleted.
 
 **The gate.** The desktop consults the licence when automatic direction is *armed* (resume, or
 choosing an Observer mode while armed): it needs a linked computer, a valid or in-grace
@@ -125,7 +131,7 @@ also installs and smoke-tests it on Windows.
 | Browser ↔ website | HttpOnly SameSite=Lax session cookie (Secure on https), Origin check on every cookie-authenticated mutation, rate limits on signup/login/email/linking, enumeration-safe login and reset, single-use hashed email tokens, role checks per organisation, CSP and security headers on the website. |
 | Desktop ↔ API | Device token (random, stored hashed server-side, encrypted at rest on the desktop), revocable from the website; licences signed with Ed25519 and verified offline against pinned keys; usage validated and idempotent server-side. |
 | Stripe ↔ API | Webhook signatures verified with the endpoint secret; events stored once; billing state only changes from verified events or direct reads from Stripe; customer creation is idempotent per organisation. |
-| Staff | Two staff roles. Support can view accounts and organisations, verify emails, send reset links, sign users out and work the support inbox; admin can also give staff roles, disable accounts, edit users, grant hours and edit the catalogue. The first admins come from `MF_STAFF_EMAILS` and cannot be demoted or disabled from the website; nobody can change their own role. Disabled accounts cannot sign in. Every staff action is audited. |
+| Staff | Two staff roles. Support can view accounts and organisations, verify emails, send reset links, sign users out, clear an account's sign-in and email lockouts (the in-memory rate-limit counters for its email address, user id and the addresses its browsers signed in from), sign an organisation's computers out (one or all, to free the computer limit) and work the support inbox; admin can also give staff roles, disable accounts, edit users, grant hours, reset a period's usage, set or remove subscription overrides and edit the catalogue. The first admins come from `MF_STAFF_EMAILS` and cannot be demoted or disabled from the website; nobody can change their own role. Disabled accounts cannot sign in. Every staff action is audited. |
 
 **What the licence does not do.** The gate runs on the customer's computer. It stops honest
 mistakes and casual misuse, and pinned keys stop a build from trusting a fake server, but anyone who

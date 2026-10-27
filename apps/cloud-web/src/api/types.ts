@@ -155,6 +155,8 @@ export interface AdminOrg {
   devices: number;
   planId: string;
   subscriptionStatus: SubscriptionStatus;
+  /** Status and plan set by staff (wins over Stripe until removed). */
+  overridden: boolean;
   usedSeconds: number;
   remainingSeconds: number;
 }
@@ -278,6 +280,8 @@ export interface AdminUserDetail {
   user: AdminUser;
   memberships: { orgId: string; orgName: string; role: OrgRole; planName: string }[];
   sessions: AdminSessionRow[];
+  /** Rate limits this account is over right now ("too many attempts"), until when. */
+  lockouts: { label: string; until: string }[];
   audit: { at: string; action: string; orgId: string | null; detail: unknown }[];
 }
 
@@ -285,8 +289,20 @@ export interface AdminUserDetail {
 export interface AdminOrgDetail {
   org: { id: string; name: string; createdAt: string; stripeCustomerId: string | null };
   plan: { id: string; name: string };
-  subscription: { status: SubscriptionStatus; periodStart: string; periodEnd: string; cancelAtPeriodEnd: boolean };
+  subscription: {
+    status: SubscriptionStatus;
+    periodStart: string;
+    periodEnd: string;
+    cancelAtPeriodEnd: boolean;
+    /** Set by staff: wins over Stripe until removed. */
+    override: { planId: string; status: SubscriptionStatus; note: string; createdBy: string; createdAt: string } | null;
+    /** What Stripe last reported (null when the organisation never subscribed). */
+    stripe: { planId: string; status: SubscriptionStatus } | null;
+  };
+  limits: { maxDevices: number; maxMembers: number };
   allowance: { periodStart: string; periodEnd: string; includedSeconds: number; creditSeconds: number; usedSeconds: number; remainingSeconds: number };
+  /** Staff resets of this period's usage. */
+  usageResets: { id: string; seconds: number; note: string; createdBy: string; createdAt: string }[];
   members: { userId: string; email: string; displayName: string; role: OrgRole }[];
   devices: { id: string; name: string; platform: string; appVersion: string; linkedAt: string; lastSeenAt: string | null; revokedAt: string | null }[];
   credits: { id: string; seconds: number; remainingSeconds: number; source: string; note: string | null; expiresAt: string | null; createdAt: string }[];

@@ -1,5 +1,6 @@
 import type { AutoDirectorAllowance, Plan, SubscriptionStatus, UsageBatchResult, UsageRecord } from "@matchframe/cloud-contracts";
 import type { Queryable } from "../db/sql.ts";
+import { newId } from "../ids.ts";
 import { getPlan } from "./plans.ts";
 
 /** Subscription states that keep the paid plan (past_due keeps access during Stripe's retry period). */
@@ -11,7 +12,21 @@ export interface OrgPlanState {
   periodStart: Date;
   periodEnd: Date;
   cancelAtPeriodEnd: boolean;
+  /** Set by staff on the website: wins over Stripe until staff remove it. */
+  override: SubscriptionOverride | null;
+  /** What Stripe last reported (null when the organisation never subscribed). Kept up to date under an override. */
+  stripe: { planId: string; status: SubscriptionStatus } | null;
 }
+
+export interface SubscriptionOverride {
+  planId: string;
+  status: SubscriptionStatus;
+  note: string;
+  createdBy: string;
+  createdAt: Date;
+}
+
+export const isPaidStatus = (status: string): boolean => PAID_STATES.has(status);
 
 export function calendarMonth(now: Date): { start: Date; end: Date } {
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -20,22 +35,42 @@ export function calendarMonth(now: Date): { start: Date; end: Date } {
 }
 
 export async function orgPlanState(db: Queryable, orgId: string, now: Date): Promise<OrgPlanState> {
-  const { rows } = await db.query<{ plan_id: string; status: string; current_period_start: Date | null; current_period_end: Date | null; cancel_at_period_end: boolean }>(
-    "SELECT plan_id, status, current_period_start, current_period_end, cancel_at_period_end FROM subscriptions WHERE org_id = $1",
+  const { rows } = await db.query<{
+    plan_id: string | null;
+    status: string | null;
+    current_period_start: Date | null;
+    current_period_end: Date | null;
+    cancel_at_period_end: boolean | null;
+    o_plan_id: string | null;
+    o_status: string | null;
+    o_note: string | null;
+    o_created_by: string | null;
+    o_created_at: Date | null;
+  }>(
+    `SELECT s.plan_id, s.status, s.current_period_start, s.current_period_end, s.cancel_at_period_end,
+            v.plan_id AS o_plan_id, v.status AS o_status, v.note AS o_note, v.created_by AS o_created_by, v.created_at AS o_created_at
+       FROM orgs o LEFT JOIN subscriptions s ON s.org_id = o.id LEFT JOIN subscription_overrides v ON v.org_id = o.id
+      WHERE o.id = $1`,
     [orgId],
   );
-  const sub = rows[0];
-  const paid = sub && PAID_STATES.has(sub.status);
-  const plan = (paid ? await getPlan(db, sub.plan_id) : null) ?? (await getPlan(db, "free"));
+  const r = rows[0];
+  const stripe = r?.status ? { planId: r.plan_id!, status: r.status as SubscriptionStatus } : null;
+  const override = r?.o_status ? { planId: r.o_plan_id!, status: r.o_status as SubscriptionStatus, note: r.o_note ?? "", createdBy: r.o_created_by ?? "", createdAt: r.o_created_at! } : null;
+  const effective = override ?? stripe;
+  const paid = !!effective && PAID_STATES.has(effective.status);
+  const plan = (paid ? await getPlan(db, effective.planId) : null) ?? (await getPlan(db, "free"));
   if (!plan) throw new Error("plan catalogue is missing the free plan");
-  const inPeriod = paid && sub.current_period_start && sub.current_period_end && now >= sub.current_period_start && now < sub.current_period_end;
+  // Stripe's billing period when it covers today (also under an override); otherwise the calendar month.
+  const inPeriod = paid && r?.current_period_start && r.current_period_end && now >= r.current_period_start && now < r.current_period_end;
   const month = calendarMonth(now);
   return {
     plan,
-    subscriptionStatus: (sub?.status as SubscriptionStatus | undefined) ?? "none",
-    periodStart: inPeriod ? sub.current_period_start! : month.start,
-    periodEnd: inPeriod ? sub.current_period_end! : month.end,
-    cancelAtPeriodEnd: sub?.cancel_at_period_end ?? false,
+    subscriptionStatus: effective?.status ?? "none",
+    periodStart: inPeriod ? r.current_period_start! : month.start,
+    periodEnd: inPeriod ? r.current_period_end! : month.end,
+    cancelAtPeriodEnd: override ? false : (r?.cancel_at_period_end ?? false),
+    override,
+    stripe,
   };
 }
 
@@ -50,10 +85,39 @@ async function availableCredits(db: Queryable, orgId: string, now: Date): Promis
   return rows.map((r) => ({ id: r.id, remaining: Number(r.seconds) - Number(r.used ?? 0), expiresAt: r.expires_at })).filter((g) => g.remaining > 0);
 }
 
+/**
+ * A period's usage and the credits it consumed, both net of staff usage resets: a reset records
+ * both at the time it was made, so the period starts again from zero without spent credits
+ * counting twice.
+ */
 async function periodUsage(db: Queryable, orgId: string, start: Date, end: Date): Promise<{ used: number; creditsConsumed: number }> {
   const u = await db.query<{ s: string | null }>("SELECT sum(seconds) AS s FROM usage_records WHERE org_id = $1 AND started_at >= $2 AND started_at < $3", [orgId, start, end]);
   const c = await db.query<{ s: string | null }>("SELECT sum(d.seconds) AS s FROM credit_debits d JOIN credit_grants g ON g.id = d.grant_id WHERE g.org_id = $1 AND d.period_start = $2", [orgId, start]);
-  return { used: Number(u.rows[0]?.s ?? 0), creditsConsumed: Number(c.rows[0]?.s ?? 0) };
+  const r = await db.query<{ s: string | null; c: string | null }>("SELECT sum(seconds) AS s, sum(credit_seconds) AS c FROM usage_resets WHERE org_id = $1 AND period_start = $2", [orgId, start]);
+  return {
+    used: Math.max(0, Number(u.rows[0]?.s ?? 0) - Number(r.rows[0]?.s ?? 0)),
+    creditsConsumed: Math.max(0, Number(c.rows[0]?.s ?? 0) - Number(r.rows[0]?.c ?? 0)),
+  };
+}
+
+/**
+ * Staff reset of the current period's auto-director usage to zero (usage records are kept as
+ * history). Serialised with usage uploads by the organisation row lock. Null when nothing is used.
+ */
+export async function resetPeriodUsage(tx: Queryable, orgId: string, now: Date, by: string, note: string): Promise<{ id: string; seconds: number; creditSeconds: number; periodStart: Date } | null> {
+  await tx.query("SELECT id FROM orgs WHERE id = $1 FOR UPDATE", [orgId]);
+  const st = await orgPlanState(tx, orgId, now);
+  const { used, creditsConsumed } = await periodUsage(tx, orgId, st.periodStart, st.periodEnd);
+  if (used === 0 && creditsConsumed === 0) return null;
+  const id = newId("rst");
+  await tx.query("INSERT INTO usage_resets (id, org_id, period_start, seconds, credit_seconds, note, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)", [id, orgId, st.periodStart, used, creditsConsumed, note, by]);
+  return { id, seconds: used, creditSeconds: creditsConsumed, periodStart: st.periodStart };
+}
+
+/** Staff usage resets of the period starting at `periodStart`, newest first. */
+export async function usageResetsFor(db: Queryable, orgId: string, periodStart: Date): Promise<{ id: string; seconds: number; note: string; createdBy: string; createdAt: Date }[]> {
+  const { rows } = await db.query<{ id: string; seconds: string; note: string; created_by: string; created_at: Date }>("SELECT id, seconds, note, created_by, created_at FROM usage_resets WHERE org_id = $1 AND period_start = $2 ORDER BY created_at DESC", [orgId, periodStart]);
+  return rows.map((x) => ({ id: x.id, seconds: Number(x.seconds), note: x.note, createdBy: x.created_by, createdAt: x.created_at }));
 }
 
 /**

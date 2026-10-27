@@ -23,8 +23,9 @@ function adminUser(over: Partial<AdminUser> = {}): AdminUser {
   return { id: "usr_42", email: "producer@example.com", displayName: "Sam Ortega", emailVerified: false, staffRole: null, disabled: false, disabledReason: null, createdAt: "2026-10-02T09:00:00.000Z", lastLoginAt: "2026-10-26T09:00:00.000Z", orgCount: 1, bootstrapAdmin: false, ...over };
 }
 
-function userDetail(over: Partial<AdminUser> = {}): AdminUserDetail {
+function userDetail(over: Partial<AdminUser> = {}, lockouts: AdminUserDetail["lockouts"] = []): AdminUserDetail {
   return {
+    lockouts,
     user: adminUser(over),
     memberships: [{ orgId: "org_1", orgName: "Northside Broadcast", role: "member", planName: "Free" }],
     sessions: [{ id: "s1", createdAt: "2026-10-26T09:00:00.000Z", lastSeenAt: "2026-10-26T10:00:00.000Z", userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/142.0.0.0 Safari/537.36", ip: "203.0.113.9" }],
@@ -151,6 +152,26 @@ describe("user detail: support role", () => {
     expect(await screen.findByText("Signed out 3 sessions.")).toBeTruthy();
   });
 
+  it("shows a sign-in lockout and clears it after confirming", async () => {
+    const f = fakeFetch({ "GET /v1/admin/users/usr_42": { body: userDetail({}, [{ label: "Sign-in attempts with this email address", until: "2026-10-26T09:01:00.000Z" }]) }, "POST /v1/admin/users/usr_42/clear-lockout": { body: { cleared: 1 } } });
+    renderWithSession(<UserDetailPage userId="usr_42" />, makeStaff("support"));
+    expect(await screen.findByText("Locked out after too many attempts")).toBeTruthy();
+    expect(screen.getByText(/Sign-in attempts with this email address: until/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Clear lockout" }));
+    const dialog = screen.getByRole("dialog", { name: "Clear the lockout?" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Clear lockout" }));
+    expect(await screen.findByText("Cleared 1 lockout.")).toBeTruthy();
+    expect(f.calls.some((c) => c.method === "POST" && c.url === "/v1/admin/users/usr_42/clear-lockout")).toBe(true);
+  });
+
+  it("explains why there's no lockout to clear", async () => {
+    fakeFetch({ "GET /v1/admin/users/usr_42": { body: userDetail() } });
+    renderWithSession(<UserDetailPage userId="usr_42" />, makeStaff("support"));
+    const btn = await screen.findByRole("button", { name: "Clear lockout" });
+    expect(reasonOf(btn)).toBe("This account isn't locked out right now.");
+    expect(screen.queryByText("Locked out after too many attempts")).toBeNull();
+  });
+
   it("keeps the dialog open and shows the server's reason on failure", async () => {
     fakeFetch({ "GET /v1/admin/users/usr_42": { body: userDetail() }, "POST /v1/admin/users/usr_42/verify-email": err(403, "forbidden", "staff role required") });
     renderWithSession(<UserDetailPage userId="usr_42" />, makeStaff("support"));
@@ -232,17 +253,22 @@ describe("user detail: admin role", () => {
   });
 });
 
-function orgDetail(): AdminOrgDetail {
+function orgDetail(over: Partial<AdminOrgDetail> = {}): AdminOrgDetail {
   return {
     org: { id: "org_1", name: "Northside Broadcast", createdAt: "2026-10-01T00:00:00.000Z", stripeCustomerId: null },
     plan: { id: "free", name: "Free" },
-    subscription: { status: "none", periodStart: "2026-10-01T00:00:00.000Z", periodEnd: "2026-11-01T00:00:00.000Z", cancelAtPeriodEnd: false },
+    subscription: { status: "none", periodStart: "2026-10-01T00:00:00.000Z", periodEnd: "2026-11-01T00:00:00.000Z", cancelAtPeriodEnd: false, override: null, stripe: null },
+    limits: { maxDevices: 1, maxMembers: 2 },
     allowance: { periodStart: "2026-10-01T00:00:00.000Z", periodEnd: "2026-11-01T00:00:00.000Z", includedSeconds: 7200, creditSeconds: 0, usedSeconds: 3600, remainingSeconds: 3600 },
+    usageResets: [],
     members: [{ userId: "usr_1", email: "owner@example.com", displayName: "Riley Park", role: "owner" }],
     devices: [{ id: "dev_1", name: "OBSERVER-01", platform: "win32", appVersion: "0.1.0", linkedAt: "2026-10-02T00:00:00.000Z", lastSeenAt: null, revokedAt: null }],
     credits: [{ id: "c1", seconds: 18000, remainingSeconds: 18000, source: "grant", note: "Launch credit", expiresAt: null, createdAt: "2026-10-03T00:00:00.000Z" }],
+    ...over,
   };
 }
+
+const PRO_PLAN = { id: "pro", name: "Pro", description: "", priceMonthlyCents: 4900, currency: "usd", includedAutoDirectorHours: 40, features: { autoDirector: true, learnedDirectorShadow: true, fullActionObserver: false, maxDevices: 2, maxMembers: 5 }, stripePriceId: null, public: true, sortOrder: 1 };
 
 describe("organisation detail", () => {
   it("admins grant hours from a dialog", async () => {
@@ -260,12 +286,82 @@ describe("organisation detail", () => {
     expect(f.calls.find((c) => c.method === "POST")!.body).toEqual({ hours: 5, note: "Support credit, ticket 12", expiresAt: null });
   });
 
+  it("admins set a subscription status and plan by hand", async () => {
+    const f = fakeFetch({
+      "GET /v1/admin/orgs/org_1": { body: orgDetail() },
+      "GET /v1/admin/audit": { body: [] },
+      "GET /v1/admin/catalog": { body: { plans: [PRO_PLAN], hourPacks: [] } },
+      "PUT /v1/admin/orgs/org_1/subscription-override": { body: { planId: "pro", status: "active" } },
+    });
+    renderWithSession(<OrgDetailPage orgId="org_1" />, makeStaff("admin"));
+    fireEvent.click(await screen.findByRole("button", { name: "Change status" }));
+    const dialog = screen.getByRole("dialog", { name: "Change Northside Broadcast's subscription status" });
+    expect(within(dialog).queryByLabelText("Plan")).toBeNull();
+    fireEvent.change(within(dialog).getByLabelText("Status"), { target: { value: "active" } });
+    await waitFor(() => expect(within(dialog).getByRole("option", { name: "Pro" })).toBeTruthy());
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save status" }));
+    expect(await within(dialog).findByText("Choose the plan they get.")).toBeTruthy();
+    fireEvent.change(within(dialog).getByLabelText("Plan"), { target: { value: "pro" } });
+    fireEvent.change(within(dialog).getByLabelText("Reason (recorded in the audit log)"), { target: { value: "Partner league" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save status" }));
+    expect(await screen.findByText("Northside Broadcast is now active on Pro.")).toBeTruthy();
+    expect(f.calls.find((c) => c.method === "PUT")!.body).toEqual({ status: "active", planId: "pro", note: "Partner league" });
+  });
+
+  it("shows a staff override with what Stripe reports, and removes it", async () => {
+    const overridden = orgDetail({
+      plan: { id: "pro", name: "Pro" },
+      subscription: { status: "active", periodStart: "2026-10-01T00:00:00.000Z", periodEnd: "2026-11-01T00:00:00.000Z", cancelAtPeriodEnd: false, override: { planId: "pro", status: "active", note: "Partner league", createdBy: "admin@example.com", createdAt: "2026-10-20T09:00:00.000Z" }, stripe: { planId: "studio", status: "canceled" } },
+    });
+    const f = fakeFetch({ "GET /v1/admin/orgs/org_1": { body: overridden }, "GET /v1/admin/audit": { body: [] }, "DELETE /v1/admin/orgs/org_1/subscription-override": { body: { planId: "free", status: "canceled" } } });
+    renderWithSession(<OrgDetailPage orgId="org_1" />, makeStaff("admin"));
+    expect(await screen.findByText(/Reason: Partner league/)).toBeTruthy();
+    expect(screen.getAllByText("Set by staff").length).toBeGreaterThan(0);
+    expect(screen.getByText("Cancelled · studio")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Remove override" }));
+    const dialog = screen.getByRole("dialog", { name: "Remove the override?" });
+    expect(within(dialog).getByText(/Stripe's status applies again: cancelled \(studio\)/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Remove override" }));
+    expect(await screen.findByText("Override removed; Stripe's status applies again.")).toBeTruthy();
+    expect(f.calls.some((c) => c.method === "DELETE" && c.url === "/v1/admin/orgs/org_1/subscription-override")).toBe(true);
+  });
+
+  it("admins reset this period's usage with a reason", async () => {
+    const f = fakeFetch({ "GET /v1/admin/orgs/org_1": { body: orgDetail() }, "GET /v1/admin/audit": { body: [] }, "POST /v1/admin/orgs/org_1/usage-reset": { body: { seconds: 3600 } } });
+    renderWithSession(<OrgDetailPage orgId="org_1" />, makeStaff("admin"));
+    fireEvent.click(await screen.findByRole("button", { name: "Reset usage" }));
+    const dialog = screen.getByRole("dialog", { name: "Reset Northside Broadcast's usage this period?" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Reset usage" }));
+    expect(await within(dialog).findByText("Give a reason of at least 3 characters.")).toBeTruthy();
+    fireEvent.change(within(dialog).getByLabelText("Reason (recorded in the audit log)"), { target: { value: "Outage refund" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Reset usage" }));
+    expect(await screen.findByText("Usage reset to zero for this period.")).toBeTruthy();
+    expect(f.calls.find((c) => c.method === "POST")!.body).toEqual({ note: "Outage refund" });
+  });
+
+  it("staff sign one computer or all of them out to clear the computer limit", async () => {
+    const f = fakeFetch({ "GET /v1/admin/orgs/org_1": { body: orgDetail() }, "GET /v1/admin/audit": { body: [] }, "POST /v1/admin/orgs/org_1/devices/dev_1/sign-out": { body: { computers: 1 } }, "POST /v1/admin/orgs/org_1/devices/sign-out-all": { body: { computers: 1 } } });
+    renderWithSession(<OrgDetailPage orgId="org_1" />, makeStaff("support"));
+    expect(await screen.findByText("Computers (1 of 1 signed in)")).toBeTruthy();
+    expect(screen.getByText(/At the Free plan's limit/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Sign out OBSERVER-01?" })).getByRole("button", { name: "Sign out computer" }));
+    expect(await screen.findByText("OBSERVER-01 signed out.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Sign out all" }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Sign out all of Northside Broadcast's computers?" })).getByRole("button", { name: "Sign out all" }));
+    expect(await screen.findByText("Signed out 1 computer.")).toBeTruthy();
+    expect(f.calls.filter((c) => c.method === "POST").map((c) => c.url)).toEqual(["/v1/admin/orgs/org_1/devices/dev_1/sign-out", "/v1/admin/orgs/org_1/devices/sign-out-all"]);
+  });
+
   it("support sees the organisation without the grant action", async () => {
     fakeFetch({ "GET /v1/admin/orgs/org_1": { body: orgDetail() }, "GET /v1/admin/audit": { body: [] } });
     renderWithSession(<OrgDetailPage orgId="org_1" />, makeStaff("support"));
     expect(await screen.findByRole("heading", { name: "Northside Broadcast" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Grant hours" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Change status" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Reset usage" })).toBeNull();
     expect(screen.getByText(/Granting hours is hidden/)).toBeTruthy();
+    expect(screen.getByText(/Changing the subscription status is hidden/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open as staff (read-only)" }).getAttribute("href")).toBe("/orgs/org_1");
   });
 });

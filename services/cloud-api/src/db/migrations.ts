@@ -206,6 +206,31 @@ CREATE TABLE contact_messages (
 CREATE INDEX contact_messages_open ON contact_messages(handled_at, created_at);
 `,
   },
+  {
+    version: 5,
+    name: "staff subscription overrides and usage resets",
+    sql: `
+CREATE TABLE subscription_overrides (
+  org_id text PRIMARY KEY REFERENCES orgs(id) ON DELETE CASCADE,
+  plan_id text NOT NULL,
+  status text NOT NULL,
+  note text NOT NULL,
+  created_by text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE usage_resets (
+  id text PRIMARY KEY,
+  org_id text NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  period_start timestamptz NOT NULL,
+  seconds bigint NOT NULL CHECK (seconds >= 0),
+  credit_seconds bigint NOT NULL CHECK (credit_seconds >= 0),
+  note text NOT NULL,
+  created_by text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX usage_resets_org_period ON usage_resets(org_id, period_start);
+`,
+  },
 ];
 
 export async function migrate(sql: Sql): Promise<{ from: number; to: number }> {

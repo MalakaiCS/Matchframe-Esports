@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { Email, HourPack, Plan, StaffRole } from "@matchframe/cloud-contracts";
+import { Email, HourPack, Plan, StaffRole, SubscriptionStatus } from "@matchframe/cloud-contracts";
 import type { CloudApp, SessionUser } from "../app.ts";
 import { audit } from "../domain/audit.ts";
-import { calendarMonth, computeAllowance, orgPlanState } from "../domain/allowance.ts";
+import { calendarMonth, computeAllowance, isPaidStatus, orgPlanState, resetPeriodUsage, usageResetsFor } from "../domain/allowance.ts";
 import { revokeComputersOf } from "../domain/devices.ts";
-import { listHourPacks, listPlans, upsertHourPack, upsertPlan } from "../domain/plans.ts";
+import { getPlan, listHourPacks, listPlans, upsertHourPack, upsertPlan } from "../domain/plans.ts";
 import type { Router } from "../http/router.ts";
 import { HttpError } from "../http/router.ts";
 import { newId } from "../ids.ts";
@@ -30,9 +30,10 @@ const MessageStatus = z.enum(["open", "handled", "all"]);
 
 /**
  * Matchframe staff administration. Staff roles: support (customer help: view accounts and
- * organisations, verify emails, send reset links, sign users out, support inbox) and admin
- * (additionally staff roles, disabling accounts, editing users, hour grants, the catalogue, Stripe
- * events and resending emails). MF_STAFF_EMAILS are bootstrap admins that cannot be demoted.
+ * organisations, verify emails, send reset links, sign users out, clear sign-in lockouts, sign an
+ * organisation's computers out, support inbox) and admin (additionally staff roles, disabling
+ * accounts, editing users, hour grants, usage resets, subscription overrides, the catalogue,
+ * Stripe events and resending emails). MF_STAFF_EMAILS are bootstrap admins that cannot be demoted.
  */
 export function registerAdminRoutes(r: Router, app: CloudApp): void {
   const adminUser = (u: UserRow) => ({
@@ -59,6 +60,37 @@ export function registerAdminRoutes(r: Router, app: CloudApp): void {
   const guardTarget = (staff: SessionUser, target: UserRow, what: string) => {
     if (target.id === staff.id) throw new HttpError(409, "self", `you cannot ${what} your own account; ask another admin`);
     if (app.isBootstrapAdmin(target.email)) throw new HttpError(409, "bootstrap_admin", `this account is a bootstrap admin (MF_STAFF_EMAILS on the server); you cannot ${what} it from the website`);
+  };
+
+  /**
+   * Rate-limit counters that can lock this account out: sign-in attempts (by email, and from the
+   * addresses its browsers signed in from), and the emails and approvals it can trigger. They are
+   * per website instance and in memory.
+   */
+  const lockoutCounters = async (u: UserRow) => {
+    const ips = (await app.sql.query<{ ip: string }>("SELECT DISTINCT ip FROM sessions WHERE user_id = $1 AND ip IS NOT NULL AND ip <> '' LIMIT 20", [u.id])).rows.map((x) => x.ip);
+    const { auth, email, deviceLink } = app.limits;
+    return [
+      { limiter: auth, key: `login-email:${u.email}`, label: "Sign-in attempts with this email address" },
+      ...ips.flatMap((ip) => [
+        { limiter: auth, key: `login:${ip}`, label: `Sign-in attempts from ${ip}` },
+        { limiter: auth, key: `device-login:${ip}`, label: `Program sign-in attempts from ${ip}` },
+        { limiter: email, key: `reset:${ip}`, label: `Password reset requests from ${ip}` },
+      ]),
+      { limiter: email, key: `verify:${u.id}`, label: "Verification emails" },
+      { limiter: email, key: `email-change:${u.id}`, label: "Email change confirmations" },
+      { limiter: email, key: `invite:${u.id}`, label: "Invitations sent" },
+      { limiter: email, key: `admin-reset:${u.id}`, label: "Password reset links sent by staff" },
+      { limiter: deviceLink, key: `approve:${u.id}`, label: "Computer link approvals" },
+    ];
+  };
+  const activeLockouts = async (u: UserRow) => {
+    const out: { label: string; until: string }[] = [];
+    for (const c of await lockoutCounters(u)) {
+      const until = c.limiter.blockedUntil(c.key);
+      if (until !== null) out.push({ label: c.label, until: new Date(until).toISOString() });
+    }
+    return out;
   };
 
   r.add("GET", "/v1/admin/overview", { summary: "Staff: headline numbers (accounts, organisations, computers, usage, revenue) and recent sign-ups" }, async (ctx) => {
@@ -137,6 +169,7 @@ export function registerAdminRoutes(r: Router, app: CloudApp): void {
       user: adminUser(u),
       memberships,
       sessions: (await sessionsFor(app, u.id)).map(sessionView),
+      lockouts: await activeLockouts(u),
       audit: a.rows.map((e) => ({ at: e.at.toISOString(), action: e.action, orgId: e.org_id, detail: e.detail })),
     };
   });
@@ -176,6 +209,15 @@ export function registerAdminRoutes(r: Router, app: CloudApp): void {
     const computers = await revokeComputersOf(app.sql, u.id, app.now());
     await audit(app.sql, staff.id, null, "admin.user_signed_out", { targetUserId: u.id, email: u.email, revoked: rows.length, computers });
     return { revoked: rows.length, computers };
+  });
+
+  r.add("POST", "/v1/admin/users/:userId/clear-lockout", { summary: "Staff: clear an account's sign-in and email lockouts (too many attempts) so it can try again straight away" }, async (ctx) => {
+    const staff = await app.requireStaff(ctx);
+    const u = await loadUser(ctx.params.userId!);
+    const cleared: string[] = [];
+    for (const c of await lockoutCounters(u)) if (c.limiter.clear(c.key)) cleared.push(c.label);
+    await audit(app.sql, staff.id, null, "admin.user_lockout_cleared", { targetUserId: u.id, email: u.email, cleared });
+    return { cleared: cleared.length };
   });
 
   r.add("PUT", "/v1/admin/users/:userId/staff-role", { body: z.object({ role: StaffRole.nullable() }), summary: "Admin: set an account's staff role (support, admin or none)" }, async (ctx) => {
@@ -260,7 +302,7 @@ export function registerAdminRoutes(r: Router, app: CloudApp): void {
     const out = [];
     for (const o of rows) {
       const { planState, ...a } = await computeAllowance(app.sql, o.id, app.now());
-      out.push({ id: o.id, name: o.name, createdAt: o.created_at.toISOString(), ownerEmail: o.owner_email, members: Number(o.members), devices: Number(o.devices), planId: planState.plan.id, subscriptionStatus: planState.subscriptionStatus, usedSeconds: a.usedSeconds, remainingSeconds: a.remainingSeconds });
+      out.push({ id: o.id, name: o.name, createdAt: o.created_at.toISOString(), ownerEmail: o.owner_email, members: Number(o.members), devices: Number(o.devices), planId: planState.plan.id, subscriptionStatus: planState.subscriptionStatus, overridden: planState.override !== null, usedSeconds: a.usedSeconds, remainingSeconds: a.remainingSeconds });
     }
     return out;
   });
@@ -276,6 +318,9 @@ export function registerAdminRoutes(r: Router, app: CloudApp): void {
       "SELECT id, name, platform, app_version, created_at, last_seen_at, revoked_at FROM devices WHERE org_id = $1 ORDER BY revoked_at NULLS FIRST, created_at DESC LIMIT 100",
       [id],
     );
+    const staffEmail = async (id: string) => (await app.sql.query<{ email: string }>("SELECT email FROM users WHERE id = $1", [id])).rows[0]?.email ?? id;
+    const ov = planState.override;
+    const resets = await usageResetsFor(app.sql, id, planState.periodStart);
     const credits = await app.sql.query<{ id: string; seconds: string; used: string | null; source: string; note: string | null; expires_at: Date | null; created_at: Date }>(
       "SELECT g.id, g.seconds, (SELECT COALESCE(sum(d.seconds), 0) FROM credit_debits d WHERE d.grant_id = g.id) AS used, g.source, g.note, g.expires_at, g.created_at FROM credit_grants g WHERE g.org_id = $1 ORDER BY g.created_at DESC LIMIT 100",
       [id],
@@ -283,8 +328,17 @@ export function registerAdminRoutes(r: Router, app: CloudApp): void {
     return {
       org: { id: o.id, name: o.name, createdAt: o.created_at.toISOString(), stripeCustomerId: o.stripe_customer_id },
       plan: { id: planState.plan.id, name: planState.plan.name },
-      subscription: { status: planState.subscriptionStatus, periodStart: planState.periodStart.toISOString(), periodEnd: planState.periodEnd.toISOString(), cancelAtPeriodEnd: planState.cancelAtPeriodEnd },
+      subscription: {
+        status: planState.subscriptionStatus,
+        periodStart: planState.periodStart.toISOString(),
+        periodEnd: planState.periodEnd.toISOString(),
+        cancelAtPeriodEnd: planState.cancelAtPeriodEnd,
+        override: ov ? { planId: ov.planId, status: ov.status, note: ov.note, createdBy: await staffEmail(ov.createdBy), createdAt: ov.createdAt.toISOString() } : null,
+        stripe: planState.stripe,
+      },
+      limits: { maxDevices: planState.plan.features.maxDevices, maxMembers: planState.plan.features.maxMembers },
       allowance: { periodStart: allowance.periodStart, periodEnd: allowance.periodEnd, includedSeconds: allowance.includedSeconds, creditSeconds: allowance.creditSeconds, usedSeconds: allowance.usedSeconds, remainingSeconds: allowance.remainingSeconds },
+      usageResets: await Promise.all(resets.map(async (x) => ({ id: x.id, seconds: x.seconds, note: x.note, createdBy: await staffEmail(x.createdBy), createdAt: x.createdAt.toISOString() }))),
       members: members.rows.map((m) => ({ userId: m.user_id, email: m.email, displayName: m.display_name, role: m.role })),
       devices: devices.rows.map((d) => ({ id: d.id, name: d.name, platform: d.platform, appVersion: d.app_version, linkedAt: d.created_at.toISOString(), lastSeenAt: d.last_seen_at?.toISOString() ?? null, revokedAt: d.revoked_at?.toISOString() ?? null })),
       credits: credits.rows.map((c) => ({ id: c.id, seconds: Number(c.seconds), remainingSeconds: Math.max(0, Number(c.seconds) - Number(c.used ?? 0)), source: c.source, note: c.note, expiresAt: c.expires_at?.toISOString() ?? null, createdAt: c.created_at.toISOString() })),
@@ -299,6 +353,70 @@ export function registerAdminRoutes(r: Router, app: CloudApp): void {
     await app.sql.query("INSERT INTO credit_grants (id, org_id, seconds, source, expires_at, created_by, note) VALUES ($1, $2, $3, 'grant', $4, $5, $6)", [id, ctx.params.orgId!, Math.round(ctx.body.hours * 3600), ctx.body.expiresAt, staff.id, ctx.body.note]);
     await audit(app.sql, staff.id, ctx.params.orgId!, "admin.credit_granted", ctx.body);
     return { id };
+  });
+
+  const requireOrgRow = async (orgId: string) => {
+    const { rows } = await app.sql.query<{ id: string }>("SELECT id FROM orgs WHERE id = $1", [orgId]);
+    if (!rows[0]) throw new HttpError(404, "not_found", "organisation not found");
+  };
+
+  r.add("POST", "/v1/admin/orgs/:orgId/devices/:deviceId/sign-out", { summary: "Staff: sign one of an organisation's computers out (frees a place under the plan's computer limit)" }, async (ctx) => {
+    const staff = await app.requireStaff(ctx);
+    const { rows } = await app.sql.query<{ id: string; name: string }>("UPDATE devices SET revoked_at = $3 WHERE id = $2 AND org_id = $1 AND revoked_at IS NULL RETURNING id, name", [ctx.params.orgId!, ctx.params.deviceId!, app.now()]);
+    if (!rows[0]) throw new HttpError(404, "not_found", "computer not found or already signed out");
+    await audit(app.sql, staff.id, ctx.params.orgId!, "admin.device_signed_out", { deviceId: rows[0].id, name: rows[0].name });
+    return { computers: 1 };
+  });
+
+  r.add("POST", "/v1/admin/orgs/:orgId/devices/sign-out-all", { summary: "Staff: sign every computer of an organisation out (clears the computer limit)" }, async (ctx) => {
+    const staff = await app.requireStaff(ctx);
+    await requireOrgRow(ctx.params.orgId!);
+    const { rows } = await app.sql.query<{ id: string }>("UPDATE devices SET revoked_at = $2 WHERE org_id = $1 AND revoked_at IS NULL RETURNING id", [ctx.params.orgId!, app.now()]);
+    await audit(app.sql, staff.id, ctx.params.orgId!, "admin.devices_signed_out", { computers: rows.length });
+    return { computers: rows.length };
+  });
+
+  r.add("POST", "/v1/admin/orgs/:orgId/usage-reset", { body: z.object({ note: z.string().trim().min(3).max(200) }), summary: "Admin: reset this period's auto-director usage to zero (usage history is kept)" }, async (ctx) => {
+    const staff = await app.requireStaff(ctx, "admin");
+    await requireOrgRow(ctx.params.orgId!);
+    const reset = await app.sql.transaction((tx) => resetPeriodUsage(tx, ctx.params.orgId!, app.now(), staff.id, ctx.body.note));
+    if (!reset) throw new HttpError(409, "nothing_to_reset", "this organisation has no auto-director usage this period");
+    await audit(app.sql, staff.id, ctx.params.orgId!, "admin.usage_reset", { seconds: reset.seconds, creditSeconds: reset.creditSeconds, periodStart: reset.periodStart.toISOString(), note: ctx.body.note });
+    return { seconds: reset.seconds };
+  });
+
+  r.add(
+    "PUT",
+    "/v1/admin/orgs/:orgId/subscription-override",
+    { body: z.object({ status: SubscriptionStatus, planId: z.string().min(1).max(64).nullable().default(null), note: z.string().trim().min(3).max(200) }), summary: "Admin: set an organisation's subscription status and plan by hand; it wins over Stripe until removed" },
+    async (ctx) => {
+      const staff = await app.requireStaff(ctx, "admin");
+      await requireOrgRow(ctx.params.orgId!);
+      const { status, note } = ctx.body;
+      let planId = "free";
+      if (isPaidStatus(status)) {
+        if (!ctx.body.planId) throw new HttpError(400, "plan_required", `choose the plan the organisation gets while ${status}`);
+        if (!(await getPlan(app.sql, ctx.body.planId))) throw new HttpError(400, "unknown_plan", `there is no plan ${ctx.body.planId}`);
+        planId = ctx.body.planId;
+      }
+      const before = await orgPlanState(app.sql, ctx.params.orgId!, app.now());
+      await app.sql.query(
+        `INSERT INTO subscription_overrides (org_id, plan_id, status, note, created_by, created_at) VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (org_id) DO UPDATE SET plan_id = EXCLUDED.plan_id, status = EXCLUDED.status, note = EXCLUDED.note, created_by = EXCLUDED.created_by, created_at = EXCLUDED.created_at`,
+        [ctx.params.orgId!, planId, status, note, staff.id, app.now()],
+      );
+      await audit(app.sql, staff.id, ctx.params.orgId!, "admin.subscription_override_set", { from: { planId: before.plan.id, status: before.subscriptionStatus }, to: { planId, status }, stripe: before.stripe, note });
+      return { planId, status };
+    },
+  );
+
+  r.add("DELETE", "/v1/admin/orgs/:orgId/subscription-override", { summary: "Admin: remove a subscription override; Stripe's status applies again" }, async (ctx) => {
+    const staff = await app.requireStaff(ctx, "admin");
+    const { rows } = await app.sql.query<{ plan_id: string; status: string }>("DELETE FROM subscription_overrides WHERE org_id = $1 RETURNING plan_id, status", [ctx.params.orgId!]);
+    if (!rows[0]) throw new HttpError(404, "not_found", "this organisation has no subscription override");
+    const after = await orgPlanState(app.sql, ctx.params.orgId!, app.now());
+    await audit(app.sql, staff.id, ctx.params.orgId!, "admin.subscription_override_removed", { removed: { planId: rows[0].plan_id, status: rows[0].status }, now: { planId: after.plan.id, status: after.subscriptionStatus } });
+    return { planId: after.plan.id, status: after.subscriptionStatus };
   });
 
   r.add("GET", "/v1/admin/catalog", { summary: "Staff: full plan and hour-pack catalogue including Stripe price ids" }, async (ctx) => {
