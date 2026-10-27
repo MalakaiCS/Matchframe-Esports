@@ -24,6 +24,15 @@ Matchframe Esports is original software. This file lists third-party components 
 
 Operator UI dependencies are listed in `apps/operator-web/package.json` and included in `pnpm licenses list --prod` output.
 
+## Bundled HUD packages
+
+| Package | Contents and origin | Licence |
+|---|---|---|
+| Matchframe Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2`) | Original code and artwork; Inter font files | Code MIT; Inter SIL OFL 1.1 (`fonts/OFL.txt`) |
+| Matchframe Pro CS2 HUD (`apps/hud-template`) | Adapted from Lexogrine's CS2 React HUD (https://github.com/lexogrine/cs2-react-hud, © 2021 Lexogrine); Montserrat font files | Lexogrine code MIT (`LICENSE-lexogrine.txt`); Montserrat SIL OFL 1.1 (© 2011 The Montserrat Project Authors) |
+
+The weapon and equipment icons in the Pro CS2 HUD come with Lexogrine's template and originate from Counter-Strike 2 game files (© Valve Corporation). Lexogrine's MIT licence covers their code, not Valve's artwork. Counter-Strike broadcast HUDs commonly use these icons; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons.
+
 ## Python worker dependencies (installed into a local virtual environment; not bundled)
 
 | Package | Tested version | Licence |
