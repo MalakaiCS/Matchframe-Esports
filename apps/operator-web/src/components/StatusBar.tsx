@@ -174,12 +174,21 @@ export function StatusBar() {
       <Link
         to="/settings/devices"
         className="sb-item sb-link"
-        title={[obs ? (obs.connected ? `OBS connected · program scene ${obs.programScene ?? "none"}` : `OBS not connected${obs.lastError ? `: ${obs.lastError}` : ""}`) : "OBS status unknown", program ? `Program mode ${program.mode.replace("_", " ").toLowerCase()} (owner ${program.owner.kind}, ${program.owner.holder})` : ""].filter(Boolean).join(". ")}
+        title={[
+          obs
+            ? obs.connected
+              ? `OBS connected · program scene ${obs.programScene ?? "none"}`
+              : `${obs.lastError ? `OBS connection failed: ${obs.lastError}. ` : ""}Optional: HUDs reach OBS as browser sources (Copy OBS Browser URL) without this. Connect OBS under Settings → Devices only for automatic scene switching and replays.`
+            : "OBS status unknown",
+          program && obs?.connected ? `Program mode ${program.mode.replace("_", " ").toLowerCase()} (owner ${program.owner.kind}, ${program.owner.holder})` : "",
+        ]
+          .filter(Boolean)
+          .join(". ")}
         data-sb="obs"
       >
-        <StatusDot tone={!obs ? "neutral" : !obs.connected ? "warn" : program?.mode === "DEGRADED" ? "danger" : "ok"} />
+        <StatusDot tone={!obs || (!obs.connected && !obs.lastError) ? "neutral" : !obs.connected ? "warn" : program?.mode === "DEGRADED" ? "danger" : "ok"} />
         <span>OBS</span>
-        <span className="sb-meta">{!obs ? "—" : obs.connected ? (program ? sentence(program.mode.replace("_", " ")) : "Connected") : "Offline"}</span>
+        <span className="sb-meta">{!obs ? "—" : obs.connected ? (program ? sentence(program.mode.replace("_", " ")) : "Connected") : obs.lastError ? "Connection failed" : "Not connected (optional)"}</span>
       </Link>
 
       <span className="sb-spacer" />
