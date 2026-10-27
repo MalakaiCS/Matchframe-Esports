@@ -21,6 +21,12 @@ extraResources:
     to: captain-web
   - from: ../hud-renderer/dist
     to: hud-renderer
+  # HUD packages installed into the HUD Library on first start (each subfolder is one package).
+  - from: ../../assets/hud-packages
+    to: sample-huds
+  # Tray icon (the window icon comes from the .exe).
+  - from: build/icon.png
+    to: icon.png
   - from: ../../assets/map-packs
     to: map-packs
   - from: ../../assets/utility-profiles
