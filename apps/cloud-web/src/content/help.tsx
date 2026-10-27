@@ -155,18 +155,35 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "plans-and-hours",
     category: "billing",
     title: "Plans and auto-director hours",
-    summary: "What each plan includes, how hours are measured and what happens at the limit.",
-    keywords: "plan hours auto-director allowance limit usage period reset overage free pro studio included",
+    summary: "What each plan includes, which Observer modes it has, how hours are measured and what happens at the limit.",
+    keywords: "plan hours auto-director allowance limit usage period reset overage free pro studio included observer cinematics full action nade cameras modes change",
     body: (
       <>
-        <p>Every plan includes the whole program. Plans differ in the auto-director hours included each period, the number of linked computers and the size of the team. Compare them on the <Link to="/pricing">pricing page</Link>.</p>
+        <p>Every plan includes the whole program. Plans differ in the auto-director hours included each period, the Observer modes, the number of linked computers and the size of the team. Compare them on the <Link to="/pricing">pricing page</Link>.</p>
+        <h2>Observer modes on each plan</h2>
+        <p>
+          The <Link to="/features/auto-director">Observer</Link> is Matchframe's auto director. Its modes are:
+        </p>
+        <ul>
+          <li>
+            <strong>Off</strong>, on every plan: Matchframe never moves the camera and shot suggestions stay visible in Live Control. Uses no hours.
+          </li>
+          <li>
+            <strong>Observer</strong> (automatic player POV switching) and <strong>Observer &amp; Cinematics</strong> (plus cinematic shots from your static cameras), on every plan with auto-director hours.
+          </li>
+          <li>
+            <strong>Full Action Observer</strong>, on the top plan only: everything above plus nade cameras that catch smokes, flashes, molotovs and HE grenades as they land.
+          </li>
+        </ul>
         <h2>What uses hours</h2>
-        <p>Hours are used only while the auto director controls the camera on a live match: automation armed, the director in automatic or assisted mode, a real observer client connected and live telemetry arriving. The program measures this per second and uploads it every few minutes.</p>
-        <p>These never use hours: manual and advisory direction, the simulation, demo playback, HUDs, replays, administration, and time when the computer is asleep.</p>
+        <p>Hours are used only while automation controls the camera on a live match: automation armed, the Observer in Observer, Observer &amp; Cinematics or Full Action Observer mode, a real observer client connected and live telemetry arriving. All three modes use hours at the same rate. The program measures this per second and uploads it every few minutes.</p>
+        <p>These never use hours: manual direction, the Off mode, the simulation in any mode, demo playback, HUDs, replays, administration, and time when the computer is asleep.</p>
         <h2>Watching your usage</h2>
         <p>The dashboard shows the hours left this period. The Usage page breaks usage down by day and by computer, lists every session with its map and match, and exports CSV.</p>
         <h2>When hours run out</h2>
         <p>Automation that's already running finishes the current map and then hands the camera back to your operator. It's never cut off mid-map. Automatic direction can't be re-armed until hours are added or the next period starts. There are no overage charges.</p>
+        <h2>Changing plan</h2>
+        <p>A plan change reaches the program within 15 minutes (or straight away with <strong>Refresh</strong> on Account &amp; Hours). Moving to the plan with Full Action Observer unlocks it in Live Control. Moving away from it never interrupts a map: the program switches to Observer &amp; Cinematics at the next map change.</p>
         <h2>When hours reset</h2>
         <p>
           Included hours renew at the start of each billing period on a paid plan, and each calendar month on the Free plan. They don't roll over. Need more right now? <Link to="/help/buying-hour-packs">Buy an hour pack</Link>.

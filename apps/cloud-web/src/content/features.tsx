@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import { Icon } from "../components/icons.tsx";
 import type { IconName } from "../components/icons.tsx";
+import { Included, NotIncluded } from "../components/marketing.tsx";
 import type { ShotName } from "../components/marketing.tsx";
 import { Link } from "../router.tsx";
 
@@ -26,11 +28,87 @@ export interface Feature {
   highlights: string[];
   shot?: { name: ShotName; alt: string; caption: string };
   what: ReactNode;
+  /** Extra sections shown after "What it does", each with its own heading. */
+  sections?: { id: string; title: string; body: ReactNode }[];
   how: string[];
   needs: ReactNode[];
   /** Early-access note specific to this capability (verification status). */
   status?: ReactNode;
   faqs: FeatureFaq[];
+}
+
+/** The Observer's four modes, from "never moves the camera" to nade cameras. */
+export const OBSERVER_MODES: { id: string; name: string; icon: IconName; text: string; note: string }[] = [
+  { id: "off", name: "Off", icon: "stop", text: "Matchframe never moves the camera. Shot suggestions stay visible in Live Control for your observer to use.", note: "Uses no hours" },
+  { id: "observer", name: "Observer", icon: "director", text: "Does the observing: switches between player POVs automatically, following the action it anticipates.", note: "Uses auto-director hours on live matches" },
+  { id: "cinematics", name: "Observer & Cinematics", icon: "camera", text: "Observing plus cinematic shots from static cameras you capture in Maps & Cameras: an establishing shot during freeze time, bomb plant and defuse shots, and overviews of big fights.", note: "Same hourly rate as Observer" },
+  { id: "full-action", name: "Full Action Observer", icon: "grenade", text: "Everything above plus nade cameras: static cameras that catch smokes, flashes, molotovs and incendiaries, and HE grenades as they land.", note: "Same hourly rate · top plan only" },
+];
+
+type ModeCell = boolean | string;
+
+/** What each mode does, in OBSERVER_MODES order (Off, Observer, Observer & Cinematics, Full Action Observer). */
+const MODE_COMPARISON: [string, ModeCell[]][] = [
+  ["Shot suggestions in Live Control", [true, true, true, true]],
+  ["Moves the camera", [false, true, true, true]],
+  ["Switches between player POVs", [false, true, true, true]],
+  ["Establishing shot during freeze time", [false, false, true, true]],
+  ["Bomb plant and defuse shots", [false, false, true, true]],
+  ["Overviews of big fights", [false, false, true, true]],
+  ["Nade cameras: smokes, flashes, molotovs and HE grenades as they land", [false, false, false, true]],
+  ["Auto-director hours on live matches", ["None", "Yes", "Yes, same rate", "Yes, same rate"]],
+  ["Simulation (rehearsal)", ["Free", "Free", "Free", "Free"]],
+  ["Setup in the program", ["Nothing extra", "A passed player-selection test", "Plus validated static cameras and a passed static camera test", "Plus validated nade cameras"]],
+  ["Plans", ["Every plan", "Every plan with auto-director hours", "Every plan with auto-director hours", "Top plan only"]],
+];
+
+function ModeCards() {
+  return (
+    <ul className="feature-grid cols-2 mode-grid">
+      {OBSERVER_MODES.map((m) => (
+        <li key={m.id} className="feature" id={`mode-${m.id}`}>
+          <span className="feature-icon">
+            <Icon name={m.icon} />
+          </span>
+          <h3 className="feature-title">{m.name}</h3>
+          <p className="feature-text">{m.text}</p>
+          <p className="mode-note">{m.note}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ModeComparison() {
+  return (
+    <div className="table-scroll" role="region" aria-label="Observer modes compared" tabIndex={0}>
+      <table className="cmp-table cmp-modes">
+        <caption className="visually-hidden">What each Observer mode does</caption>
+        <thead>
+          <tr>
+            <th scope="col">
+              <span className="visually-hidden">Feature</span>
+            </th>
+            {OBSERVER_MODES.map((m) => (
+              <th scope="col" key={m.id}>
+                {m.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {MODE_COMPARISON.map(([label, cells]) => (
+            <tr key={label}>
+              <th scope="row">{label}</th>
+              {cells.map((c, i) => (
+                <td key={OBSERVER_MODES[i]!.id}>{typeof c === "string" ? c : c ? <Included /> : <NotIncluded />}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 export const EARLY_ACCESS = (
@@ -73,23 +151,18 @@ export const FEATURES: Feature[] = [
   },
   {
     slug: "auto-director",
-    title: "Auto director",
-    nav: "Auto director",
+    title: "Observer (auto director)",
+    nav: "Observer",
     icon: "director",
-    tagline: "Automatic direction that explains itself, with the operator always in charge.",
-    summary: "The director is designed to anticipate fights, crossfires and utility, pick the next shot and show its reasons. Choose how much it may do, take the camera back at any moment, and stop everything with one key.",
-    highlights: ["Advisory, assisted and automatic modes", "Sticky manual takeover and emergency stop", "Starts disarmed every time"],
-    shot: { name: "live-control", alt: "Live Control: player cards for both teams, the point-of-view panel, operator actions and the director panel with its modes and the reasons for the current shot.", caption: "Live Control: director modes, reasons and operator actions. Simulated match data." },
+    tagline: "Automatic observing that explains itself, with the operator always in charge.",
+    summary: "The Observer is Matchframe's auto director. It switches player POVs, adds cinematic shots from your static cameras and, on the top plan, catches the utility with nade cameras. Choose one of four modes, take the camera back at any moment and stop everything with one key.",
+    highlights: ["Off, Observer, Observer & Cinematics and Full Action Observer", "Sticky manual takeover and emergency stop", "Starts disarmed every time"],
+    shot: { name: "live-control", alt: "Live Control: player cards for both teams, operator actions, the Observer mode selector (Off, Observer, Observer & Cinematics, Full Action Observer) and the reasons for the current shot.", caption: "Live Control with the Observer armed in Observer & Cinematics: the mode selector, the reasons for the current shot and operator actions. Simulated match data." },
     what: (
       <>
-        <p>The rule-based director reads the live game state and scores possible shots on anticipation (where action is likely next), readiness and information value. It looks at interaction clusters, crossfires, isolated aggressors and utility opportunities, and a planner with hysteresis avoids jittery cuts.</p>
+        <p>The Observer drives the camera of your CS2 observer client. It reads the live game state and scores possible shots on anticipation (where action is likely next), readiness and information value. It looks at interaction clusters, crossfires, isolated aggressors and utility, and a planner with hysteresis avoids jittery cuts. Every shot it picks shows its reasons, confidence and the best alternatives.</p>
+        <p>You decide how much it may do with four modes, from Off (suggestions only) to Full Action Observer. In every mode the operator stays in charge:</p>
         <ul>
-          <li>
-            <strong>Modes:</strong> off; advisory (recommends, never moves the camera); assisted (player cuts only); automatic; and shadow for comparing models.
-          </li>
-          <li>
-            <strong>Explanations:</strong> every recommendation shows its reasons, confidence and the best alternatives.
-          </li>
           <li>
             <strong>Manual takeover:</strong> any manual camera action makes control manual and sticky; pending automated commands are cancelled.
           </li>
@@ -101,15 +174,43 @@ export const FEATURES: Feature[] = [
           </li>
         </ul>
         <p>
-          Automatic direction on live matches uses <Link to="/how-it-works#metering">auto-director hours</Link>. When hours run out, the current map is finished and the camera is handed back at the map change.
+          Observer, Observer &amp; Cinematics and Full Action Observer use <Link to="/how-it-works#metering">auto-director hours</Link> at the same rate, and only while automation actually controls the camera on a live match. The simulation is free in every mode. When hours run out, the current map is finished and the camera is handed back at the map change.
         </p>
       </>
     ),
-    how: ["Pass the player-selection test in the setup checklist.", "Start in Advisory and watch the recommendations.", "Switch to Assisted or Automatic once you trust the setup.", "Arm it with Resume automation in Live Control; take over whenever you like."],
-    needs: ["A real observer control adapter with a passed player-selection test", "Auto-director hours on your organisation's plan for live matches", "Advisory and manual direction: no hours needed"],
-    status: <>The director has been exercised end to end in the labelled simulation and with synthetic data. It hasn't yet directed a real CS2 match.</>,
+    sections: [
+      { id: "modes", title: "The four modes", body: <ModeCards /> },
+      {
+        id: "compare-modes",
+        title: "Compare the modes",
+        body: (
+          <>
+            <ModeComparison />
+            <p className="small muted mode-foot">
+              Cinematic and nade cameras are static cameras you capture with <code>getpos</code> in Maps &amp; Cameras; an operator validates each one, and the static camera test must pass. See which plan includes Full Action Observer on the <Link to="/pricing">pricing page</Link>.
+            </p>
+          </>
+        ),
+      },
+    ],
+    how: [
+      "Pass the player-selection test in the setup checklist.",
+      "Start in Off and watch the shot suggestions in Live Control.",
+      "For cinematics and nade cameras, capture static cameras with getpos in Maps & Cameras, run the static camera test and validate each camera.",
+      "Choose Observer, Observer & Cinematics or Full Action Observer and arm it with Resume automation; take over whenever you like.",
+    ],
+    needs: [
+      "A real observer control adapter with a passed player-selection test",
+      "Operator-validated static cameras and a passed static camera test for cinematics and nade cameras",
+      "Auto-director hours for the camera-moving modes on live matches; Full Action Observer needs the top plan",
+      "Off, manual direction and the simulation: no hours needed",
+    ],
+    status: <>The director behind the Observer has been exercised end to end in the labelled simulation and with synthetic data. It hasn't yet directed a real CS2 match, and real camera control, including static and nade cameras, hasn't been verified on a real CS2 client.</>,
     faqs: [
-      { q: "Does advisory mode use hours?", a: <p>No. Hours are only used while automation actually controls the camera on a live match. Advisory, manual direction and the simulation are free.</p> },
+      { q: "Which mode should I start with?", a: <p>Start in Off and watch the shot suggestions during a rehearsal. Move to Observer once you trust the setup, then add cinematics once your static cameras are captured and validated for the map. Full Action Observer adds nade cameras on the top plan.</p> },
+      { q: "Do all the modes use the same hours?", a: <p>Observer, Observer &amp; Cinematics and Full Action Observer all use auto-director hours at the same rate, and only while automation actually controls the camera on a live match. Off, manual direction and the simulation are free in every mode.</p> },
+      { q: "What are nade cameras?", a: <p>Static cameras placed to catch utility as it lands: smokes, flashes, molotovs and incendiaries, and HE grenades. You capture them with <code>getpos</code> in Maps &amp; Cameras like cinematic cameras, an operator validates each one, and the static camera test must pass. They're part of Full Action Observer, on the top plan.</p> },
+      { q: "What happens if we change plan during a match?", a: <p>Automation is never cut mid-map. The program picks up a plan change within 15 minutes; if the new plan doesn't include Full Action Observer, it switches to Observer &amp; Cinematics at the next map change.</p> },
       { q: "Is there a language model in the cut loop?", a: <p>No. Live decisions come from the rule-based director. Demo-trained models only run in shadow mode for comparison and never move the camera.</p> },
       { q: "What happens if the game data stops?", a: <p>If telemetry is stale for more than a few seconds, the command in flight is cancelled, control goes back to the operator and an alert is raised.</p> },
       { q: "Will it resume on its own after I take over?", a: <p>No. Automation only resumes when an operator chooses Resume automation, optionally after a short countdown.</p> },
@@ -122,7 +223,7 @@ export const FEATURES: Feature[] = [
     icon: "camera",
     tagline: "One verified control channel to the CS2 observer client.",
     summary: "The program moves the observer camera through a direct console connection or keyboard input, behind a single-writer control arbiter. Automatic control stays blocked until the in-program setup tests pass on your client.",
-    highlights: ["Single-writer control arbiter", "Setup tests before any automation", "Operator-validated cinematic cameras"],
+    highlights: ["Single-writer control arbiter", "Setup tests before any automation", "Operator-validated cinematic and nade cameras"],
     shot: { name: "maps-cameras", alt: "The Maps & Cameras screen: map packs, a schematic outline of Inferno with named regions and the list of cameras for the map.", caption: "Maps & Cameras: map regions and operator-validated cameras." },
     what: (
       <>
@@ -141,17 +242,17 @@ export const FEATURES: Feature[] = [
             <strong>Confirmation:</strong> a command counts as done only when the observer client reports the new view, not when it was sent.
           </li>
           <li>
-            <strong>Cinematic cameras:</strong> authored from in-game <code>getpos</code> output, validated by an operator and invalidated when the map revision changes.
+            <strong>Static cameras:</strong> cinematic cameras for Observer &amp; Cinematics and nade cameras for Full Action Observer, authored from in-game <code>getpos</code> output, validated by an operator and invalidated when the map revision changes.
           </li>
         </ul>
         <p>No memory reading, code injection or anti-cheat evasion is used.</p>
       </>
     ),
-    how: ["Add -netconport to the observer client's launch options and choose Direct (console), or choose Keyboard.", "Run the player-selection test; automatic player cuts stay blocked until it passes.", "For cinematic shots, author cameras in Maps & Cameras, run the static camera test and validate each camera.", "Arm automation from Live Control."],
-    needs: ["A CS2 observer or spectator client on the same computer as the control adapter", "A passed player-selection test for this game build", "Validated cameras for the current map revision for cinematic shots"],
+    how: ["Add -netconport to the observer client's launch options and choose Direct (console), or choose Keyboard.", "Run the player-selection test; automatic player cuts stay blocked until it passes.", "For cinematics and nade cameras, author cameras in Maps & Cameras, run the static camera test and validate each camera.", "Choose an Observer mode and arm automation from Live Control."],
+    needs: ["A CS2 observer or spectator client on the same computer as the control adapter", "A passed player-selection test for this game build", "Validated cameras for the current map revision for cinematics and nade cameras"],
     status: <>Both adapters are built against the public documentation and tested with a simulated observer. Real camera control hasn't yet been verified on a real CS2 client, which is exactly why the setup tests gate automation.</>,
     faqs: [
-      { q: "Why won't the director move the camera yet?", a: <p>Automatic control needs a passed player-selection test on your client (and the static camera test plus validated cameras for cinematic shots). Until then it stays in advisory mode.</p> },
+      { q: "Why won't the Observer move the camera yet?", a: <p>Automatic control needs a passed player-selection test on your client (and the static camera test plus validated cameras for cinematics and nade cameras). Until then the Observer stays in Off: it suggests shots in Live Control but never moves the camera.</p> },
       { q: "Can the keyboard adapter type into the wrong window?", a: <p>No. It only sends input when the CS2 observer window has focus. Otherwise the command fails with a clear reason.</p> },
       { q: "Can I control an observer client on another computer?", a: <p>The console channel is local by design and keyboard input must happen on the observer computer. Run a second engine there as the control agent, or operate that client manually.</p> },
     ],
@@ -172,6 +273,9 @@ export const FEATURES: Feature[] = [
           <li>Fire areas linked to the grenade that caused them; Molotov and incendiary told apart from the thrower's inventory where possible.</li>
           <li>Entity-ID reuse handled, so a new grenade isn't mistaken for an old one.</li>
           <li>The director uses utility opportunities such as flash entries, smoke executes, volleys and fire displacement; the radar shows confirmed utility.</li>
+          <li>
+            On the top plan, <Link to="/features/auto-director">Full Action Observer</Link> cuts to validated nade cameras so smokes, flashes, molotovs and HE grenades are caught as they land.
+          </li>
         </ul>
         <p>Game State Integration doesn't report damage or impacts, so those details are never invented.</p>
       </>

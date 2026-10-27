@@ -2,7 +2,7 @@
 
 Matchframe is two products:
 
-- **The Matchframe program for Windows** — a downloadable program (`MatchframeEsports-Setup-<version>.exe`) that does everything app-related: CS2 Game State Integration ingest, browser-source HUDs for OBS, match/event/veto/sponsor administration, the auto director (anticipation/readiness director with a single-writer control arbiter), observer camera control, universal grenade tracking for all six types, OBS control, replays, player cameras, and an offline demo pipeline that trains models. Its operator console exists only inside the program.
+- **The Matchframe program for Windows** — a downloadable program (`MatchframeEsports-Setup-<version>.exe`) that does everything app-related: CS2 Game State Integration ingest, browser-source HUDs for OBS, match/event/veto/sponsor administration, the auto director — the **Observer**, with Off, Observer, Observer & Cinematics and Full Action Observer modes (anticipation/readiness director with a single-writer control arbiter), observer camera control, universal grenade tracking for all six types, OBS control, replays, player cameras, and an offline demo pipeline that trains models. Its operator console exists only inside the program.
 - **The website** — only for payments, subscription management, auto-director hours usage, account and team management, and staff administration. It also hosts the program download for signed-in accounts. See [docs/architecture/cloud.md](docs/architecture/cloud.md).
 
 The program opens with a **sign-in screen**: the same email and password as the website (or a code approved on the website). Once signed in it works offline for up to 7 days after each check, and being signed out on the website mid-broadcast never stops a running show — it only asks to sign in again at the next start. Automatic direction on live matches uses auto-director hours from the organisation's Matchframe plan.
@@ -29,7 +29,13 @@ Follow the **Setup** checklist in the program (`Overview → Open Setup`):
 2. Steps 4–5 — start CS2 as an observer/spectator; **Wait for a real payload** and read the **Capability report** (what the feed actually delivers).
 3. Steps 6–8 — choose the **Observer control adapter**: direct console (`-netconport <port>` launch option) or keyboard (focused window only). Run the **Player-selection test**; automatic POV cuts stay blocked until it passes from observed feedback. Static cinematics additionally need the **Static camera test** and operator-validated cameras captured with `getpos` (**Maps & Cameras**).
 4. Steps 9–11 — **Connect OBS**, set the **Program scene mapping** and add the main HUD browser source.
-5. Arm automation explicitly from **Live Control** (the engine always starts and restarts disarmed). Automatic direction on live telemetry needs hours left on the plan; it is never cut mid-map. Stopping: EMERGENCY STOP, STOP AUTOMATION (`F8`/`Pause`, ignored while typing), `Ctrl+Shift+F12` anywhere in Windows, or **Automation → Emergency stop** in the menu.
+5. Choose the **Observer** mode in **Live Control** and arm it with **Resume automation** (the engine always starts and restarts disarmed, with the Observer Off):
+   - **Off**: never moves the camera; shot suggestions only.
+   - **Observer**: player POV cuts.
+   - **Observer & Cinematics**: POV cuts plus cinematic static cameras (establishing shot in freeze time, the bomb at plant/defuse, big-fight overviews).
+   - **Full Action Observer**: all of that plus nade cameras; a plan feature (Studio by default).
+
+   Static shots use operator-validated cameras from **Maps & Cameras**. Every mode except Off uses auto-director hours on live telemetry at the same rate; automation is never cut mid-map. Stopping: EMERGENCY STOP, STOP AUTOMATION (`F8`/`Pause`, ignored while typing), `Ctrl+Shift+F12` anywhere in Windows, or **Automation → Emergency stop** in the menu.
 
 Guides: [one PC](docs/operations/one-pc.md), [multi-PC](docs/operations/multi-pc.md), [preflight](docs/operations/preflight.md), [takeover and recovery](docs/operations/takeover-and-recovery.md), [GSI](docs/integrations/cs2-gsi.md), [observer control](docs/integrations/observer-control.md), [OBS](docs/integrations/obs.md), [replay bridge](docs/integrations/replay-bridge.md), [MatchFrame bridge](docs/integrations/matchframe-bridge.md), [Companion/Stream Deck](docs/integrations/companion-streamdeck.md).
 

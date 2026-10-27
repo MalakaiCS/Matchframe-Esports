@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { api } from "../api/index.ts";
 import { CONTROL_HEALTH_TEXT, ownershipView } from "../lib/ownership.ts";
+import { MODE_INFO, OBSERVER_MODE_INFO } from "../lib/director.ts";
 import { fmtHours, fmtMs } from "../lib/format.ts";
 import { gateView } from "../lib/cloud.ts";
 import { liveStore, reconnectLive, useLive, useNow } from "../state/live.ts";
@@ -97,8 +98,8 @@ export function TopBar({ onToggleNav }: { onToggleNav: () => void }) {
             </span>
           ) : null}
         </Chip>
-        <Chip label="Director" tone={healthInfo?.tone ?? "neutral"} title={healthInfo?.hint}>
-          <span className="chip-strong">{(snap?.mode ?? "—").toUpperCase().replace("_", " ")}</span>
+        <Chip label="Observer" tone={healthInfo?.tone ?? "neutral"} title={healthInfo?.hint}>
+          <span className="chip-strong">{snap ? (snap.mode === "advisory" || snap.mode === "automatic" || snap.mode === "assisted" ? OBSERVER_MODE_INFO[snap.observerMode].label : MODE_INFO[snap.mode].label).toUpperCase() : "—"}</span>
           <span className="chip-meta">{healthInfo?.text ?? "NO DECISION"}</span>
         </Chip>
         <div className={`chip chip-ownership tone-${own.tone}`} title={own.detail}>
@@ -106,7 +107,7 @@ export function TopBar({ onToggleNav }: { onToggleNav: () => void }) {
           <span className="chip-value">
             <span className="chip-strong">{own.badge}</span>
             {own.actions.includes("resume") ? (
-              <ActionButton size="sm" variant="primary" action={() => api.post("/api/v1/observer/resume", { countdownMs: 3000 })} success="Automation resumes in 3 s (cancel to stay manual)" disabledReason={directorReason} reasonPlacement="tooltip" inlineError={false}>
+              <ActionButton size="sm" variant="primary" action={() => api.post("/api/v1/observer/resume", { countdownMs: 3000 })} success="Automation resumes in 3 s (cancel to stay manual)" disabledReason={directorReason ?? (snap?.observerMode === "off" ? "The Observer is Off: choose an Observer mode in Live Control first" : null)} reasonPlacement="tooltip" inlineError={false}>
                 Resume automation
               </ActionButton>
             ) : null}

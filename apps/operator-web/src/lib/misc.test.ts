@@ -95,7 +95,7 @@ describe("hold vs cut explanation", () => {
     const ex = explainDecision(d({}), nameOf, 0.08);
     expect(ex.headline).toBe("RECOMMEND POV · kindle");
     expect(ex.lines[0]).toMatch(/operator owns the camera/);
-    expect(ex.lines[0]).toMatch(/advisory mode only recommends/);
+    expect(ex.lines[0]).toMatch(/the Observer is Off \(suggestions only\)/);
     expect(ex.lines.join(" ")).toContain("+0.30; cut threshold +0.08");
   });
   it("explains holds with their reasons", () => {

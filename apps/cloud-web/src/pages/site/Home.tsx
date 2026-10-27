@@ -45,7 +45,7 @@ function PlanTeaser() {
 }
 
 export function Home() {
-  useTitle("", "Matchframe is the Windows program for Counter-Strike 2 broadcasts: HUDs for OBS, an automatic director with manual takeover, observer camera control, replays and match administration.");
+  useTitle("", "Matchframe is the Windows program for Counter-Strike 2 broadcasts: HUDs for OBS, the Observer auto director with manual takeover, observer camera control, replays and match administration.");
   const { me } = useSession();
   return (
     <>
@@ -58,7 +58,7 @@ export function Home() {
             <h1 tabIndex={-1} data-page-heading>
               Run your whole CS2 broadcast from one Windows program
             </h1>
-            <p className="hero-lead">HUDs for OBS, an automatic director designed to drive the observer camera, replays and match administration, together on your production PC. You stay in control of every shot.</p>
+            <p className="hero-lead">HUDs for OBS, the Observer auto director designed to drive the observer camera, replays and match administration, together on your production PC. You stay in control of every shot.</p>
             <div className="hero-cta">
               {me ? (
                 <Link to="/dashboard" className="btn btn-primary btn-lg">
@@ -141,13 +141,13 @@ export function Home() {
             </Spotlight>
             <Spotlight
               id="home-director"
-              eyebrow="Auto director"
-              title="An automatic director you stay in charge of"
+              eyebrow="Observer (auto director)"
+              title="An automatic observer you stay in charge of"
               reverse
-              shot={<Screenshot name="live-control" alt="The director panel in Live Control showing the recommended shot, the reasons for it and the best alternative candidates." caption="The director explains each shot it picks. Simulated match data." />}
+              shot={<Screenshot name="live-control" alt="The director panel in Live Control showing the recommended shot, the reasons for it and the best alternative candidates." caption="The Observer explains each shot it picks. Simulated match data." />}
             >
-              <p>The director is designed to anticipate fights and utility, pick the shot and show you why. Take the camera back with one click; emergency stop works from anywhere in Windows.</p>
-              <CheckList items={["Advisory, assisted and automatic modes", "Starts disarmed every time", "Never cut off mid-map when hours run out"]} />
+              <p>The Observer is designed to anticipate fights and utility, switch POVs, add cinematic shots and show you why. On the top plan, nade cameras catch the utility as it lands. Take the camera back with one click; emergency stop works from anywhere in Windows.</p>
+              <CheckList items={["Off, Observer, Observer & Cinematics and Full Action Observer", "Starts disarmed every time", "Never cut off mid-map when hours run out"]} />
             </Spotlight>
             <Spotlight
               id="home-admin"
@@ -161,7 +161,7 @@ export function Home() {
           <FeatureGrid
             columns={3}
             items={[
-              { icon: "camera", title: "Observer camera control", text: "Player cuts and validated cinematic cameras through one control channel, gated by setup tests on your client." },
+              { icon: "camera", title: "Observer camera control", text: "Player cuts, validated cinematic cameras and nade cameras through one control channel, gated by setup tests on your client." },
               { icon: "replay", title: "Replays and OBS", text: "Bookmark moments, approve them in a queue and play them out through OBS, then return live." },
               { icon: "network", title: "Multi-PC positions", text: "Extra operators connect to the production computer with role-scoped tokens." },
               { icon: "grenade", title: "Grenade tracking", text: "All six grenade types from both teams, with predictions kept apart from confirmed events." },

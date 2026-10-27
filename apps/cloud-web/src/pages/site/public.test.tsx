@@ -2,14 +2,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { App, resolveRoute } from "../../App.tsx";
+import type { PublicPlan } from "../../api/types.ts";
+import { PlanCard } from "../../components/PlanCard.tsx";
 import { FEATURES } from "../../content/features.tsx";
-import { FAQ, FAQ_CATEGORIES, filterFaq } from "../../content/faq.tsx";
+import { FAQ, FAQ_CATEGORIES, filterFaq, nodeText } from "../../content/faq.tsx";
 import { HELP_ARTICLES } from "../../content/help.tsx";
 import { LEGAL_DOCS } from "../../content/legal.tsx";
 import { FOOTER_COLUMNS, HEADER_NAV, isMenu } from "../../content/nav.ts";
 import { SessionProvider } from "../../state/session.tsx";
 import { SITE, at, err, fakeFetch, makeMe, renderWithSession } from "../../test/helpers.tsx";
 import { formatLegalDate } from "../legal/Legal.tsx";
+import { PRICING_FAQ, PlanComparison, pricingFaq } from "../Pricing.tsx";
 import { Contact } from "./Contact.tsx";
 import { Faq } from "./Faq.tsx";
 import { Status } from "./Status.tsx";
@@ -20,7 +23,7 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-const plans = { body: { plans: [{ id: "free", name: "Free", description: "", priceMonthlyCents: 0, currency: "usd", includedAutoDirectorHours: 2, features: { autoDirector: true, learnedDirectorShadow: false, maxDevices: 1, maxMembers: 2 }, public: true, sortOrder: 0, purchasable: false }], hourPacks: [], billingConfigured: false } };
+const plans = { body: { plans: [{ id: "free", name: "Free", description: "", priceMonthlyCents: 0, currency: "usd", includedAutoDirectorHours: 2, features: { autoDirector: true, learnedDirectorShadow: false, fullActionObserver: false, maxDevices: 1, maxMembers: 2 }, public: true, sortOrder: 0, purchasable: false }], hourPacks: [], billingConfigured: false } };
 const publicApi = { "GET /v1/site": { body: SITE }, "GET /v1/plans": plans, "GET /v1/health": { body: { ok: true, version: "0.1.0", database: "pglite", billingConfigured: false } } };
 const ALLOWED = new Set(["/v1/site", "/v1/plans", "/v1/health"]);
 
@@ -116,7 +119,29 @@ describe("public pages, signed out", () => {
     expect(screen.getByRole("heading", { name: "How it works" })).toBeTruthy();
     expect(screen.getByText("What you need")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Frequently asked questions" })).toBeTruthy();
-    expect(screen.getByText("Does advisory mode use hours?")).toBeTruthy();
+    expect(screen.getByText("Do all the modes use the same hours?")).toBeTruthy();
+  });
+
+  it("the Observer page explains and compares the four modes", async () => {
+    at("/features/auto-director");
+    fakeFetch(publicApi);
+    renderApp();
+    expect(await screen.findByRole("heading", { level: 1, name: "Observer (auto director)" })).toBeTruthy();
+    const modes = screen.getByRole("region", { name: "The four modes" });
+    expect(within(modes).getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual(["Off", "Observer", "Observer & Cinematics", "Full Action Observer"]);
+    expect(within(modes).getByText(/catch smokes, flashes, molotovs and incendiaries, and HE grenades as they land/)).toBeTruthy();
+    const table = screen.getByRole("table", { name: "What each Observer mode does" });
+    expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Feature", "Off", "Observer", "Observer & Cinematics", "Full Action Observer"]);
+    const marks = (label: string) =>
+      within(within(table).getByRole("row", { name: new RegExp(`^${label}`) }))
+        .getAllByRole("cell")
+        .map((c) => c.textContent!.replace(/^—/, ""));
+    expect(marks("Moves the camera")).toEqual(["Not included", "Included", "Included", "Included"]);
+    expect(marks("Bomb plant and defuse shots")).toEqual(["Not included", "Not included", "Included", "Included"]);
+    expect(marks("Nade cameras")).toEqual(["Not included", "Not included", "Not included", "Included"]);
+    expect(marks("Auto-director hours")).toEqual(["None", "Yes", "Yes, same rate", "Yes, same rate"]);
+    expect(marks("Plans")[3]).toBe("Top plan only");
+    expect(document.body.textContent).not.toMatch(/advisory|assisted/i);
   });
 
   it("unknown feature or article slugs show the 404 page", async () => {
@@ -173,7 +198,7 @@ describe("navigation links", () => {
 
 describe("FAQ", () => {
   it("has the requested categories and an early-access answer", () => {
-    expect(FAQ_CATEGORIES.map((c) => c.title)).toEqual(["General", "Program and installation", "Auto director and hours", "HUDs and OBS", "Accounts and teams", "Billing and subscriptions", "Privacy and security", "Troubleshooting"]);
+    expect(FAQ_CATEGORIES.map((c) => c.title)).toEqual(["General", "Program and installation", "Observer and hours", "HUDs and OBS", "Accounts and teams", "Billing and subscriptions", "Privacy and security", "Troubleshooting"]);
     for (const c of FAQ_CATEGORIES) expect(FAQ.filter((f) => f.category === c.id).length).toBeGreaterThanOrEqual(3);
     expect(filterFaq(FAQ, "early access").map((f) => f.id)).toContain("early-access");
   });
@@ -198,6 +223,59 @@ describe("FAQ", () => {
     fireEvent.click(screen.getByRole("button", { name: "clear the filter" }));
     expect(screen.getByText("What counts as an auto-director hour?")).toBeTruthy();
     expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent).slice(0, FAQ_CATEGORIES.length)).toEqual(FAQ_CATEGORIES.map((c) => c.title));
+  });
+});
+
+describe("pricing", () => {
+  const plan = (id: string, name: string, cents: number, hours: number, fullActionObserver: boolean, autoDirector = true): PublicPlan => ({ id, name, description: "", priceMonthlyCents: cents, currency: "usd", includedAutoDirectorHours: hours, features: { autoDirector, learnedDirectorShadow: cents > 0, fullActionObserver, maxDevices: 2, maxMembers: 5 }, public: true, sortOrder: 0, purchasable: false });
+  const catalogue = [plan("free", "Free", 0, 2, false), plan("pro", "Pro", 4900, 40, false), plan("studio", "Studio", 14900, 150, true)];
+  const row = (name: string | RegExp) =>
+    within(screen.getByRole("row", { name: typeof name === "string" ? new RegExp(`^${name}`) : name }))
+      .getAllByRole("cell")
+      .map((c) => c.textContent!.replace(/^—/, ""));
+
+  it("the comparison shows Observer modes on plans with hours and Full Action Observer only where the plan has it", () => {
+    render(<PlanComparison plans={[...catalogue, plan("lite", "Lite", 900, 0, true, false)]} />);
+    expect(row("Off: shot suggestions only")).toEqual(["Included", "Included", "Included", "Included"]);
+    expect(row(/^Observer ?Switches/)).toEqual(["Included", "Included", "Included", "Not included"]);
+    expect(row("Observer & Cinematics")).toEqual(["Included", "Included", "Included", "Not included"]);
+    expect(row("Full Action Observer")).toEqual(["Not included", "Not included", "Included", "Not included"]);
+    expect(screen.getByText(/Adds nade cameras/)).toBeTruthy();
+  });
+
+  it("plan cards list Full Action Observer only on plans with it", () => {
+    render(
+      <>
+        <PlanCard plan={catalogue[1]!} />
+        <PlanCard plan={catalogue[2]!} />
+      </>,
+    );
+    const pro = within(screen.getByRole("article", { name: "Pro" }));
+    const studio = within(screen.getByRole("article", { name: "Studio" }));
+    const nade = (card: typeof pro) => card.getByText(/with nade cameras/).closest("li")!;
+    expect(nade(pro).className).toBe("is-off");
+    expect(nade(pro).textContent).toMatch(/^Not included: /);
+    expect(nade(studio).className).toBe("");
+    expect(studio.getByText("Observer & Cinematics").closest("li")!.className).toBe("");
+  });
+
+  it("the pricing FAQ names the plans with Full Action Observer from the catalogue", () => {
+    const answer = (plans: PublicPlan[] | undefined) => nodeText(pricingFaq(plans).find((f) => f.id === "full-action-observer")!.a);
+    expect(pricingFaq(catalogue).map((f) => f.id)).toEqual(PRICING_FAQ);
+    expect(answer(catalogue)).toMatch(/It's included in the Studio plan\./);
+    expect(answer([plan("league", "League", 9900, 80, true), ...catalogue])).toMatch(/It's included in the League and Studio plans\./);
+    expect(answer(catalogue.slice(0, 2))).toMatch(/None of the plans listed right now includes it\./);
+    expect(answer(undefined)).toMatch(/available on the top plan only/);
+    expect(answer(catalogue)).toMatch(/nade cameras/);
+  });
+
+  it("the pricing page asks the Full Action Observer question with the plan from the catalogue", async () => {
+    at("/pricing");
+    fakeFetch({ ...publicApi, "GET /v1/plans": { body: { plans: catalogue, hourPacks: [], billingConfigured: false } } });
+    renderApp();
+    expect(await screen.findByRole("row", { name: /^Full Action Observer/ })).toBeTruthy();
+    expect(screen.getByText("What does Full Action Observer add, and which plan has it?")).toBeTruthy();
+    expect(screen.getByText(/It's included in the Studio plan\./)).toBeTruthy();
   });
 });
 

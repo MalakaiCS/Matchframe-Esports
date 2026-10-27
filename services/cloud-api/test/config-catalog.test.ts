@@ -67,4 +67,22 @@ describe("deployment configuration", () => {
     expect((await getHourPack(sql, "hours-50"))?.stripePriceId).toBeNull();
     await sql.close();
   });
+
+  it("fills in the Full Action Observer feature for plans stored before it existed (Studio only), keeping staff edits", async () => {
+    const sql = new PgliteSql();
+    await migrate(sql);
+    await seedCatalog(sql, {});
+    expect((await getPlan(sql, "studio"))?.features.fullActionObserver).toBe(true);
+    expect((await getPlan(sql, "pro"))?.features.fullActionObserver).toBe(false);
+    // A catalogue from an older version: the feature key is missing.
+    await sql.query("UPDATE plans SET data = data #- '{features,fullActionObserver}'");
+    const pro = (await getPlan(sql, "pro"))!;
+    expect(pro.features.fullActionObserver).toBe(false); // schema default while missing
+    await upsertPlan(sql, { ...pro, features: { ...pro.features, fullActionObserver: true } }); // staff decision
+    await seedCatalog(sql, {});
+    expect((await getPlan(sql, "studio"))?.features.fullActionObserver).toBe(true);
+    expect((await getPlan(sql, "pro"))?.features.fullActionObserver).toBe(true);
+    expect((await getPlan(sql, "free"))?.features.fullActionObserver).toBe(false);
+    await sql.close();
+  });
 });

@@ -50,7 +50,7 @@ function FeatureSection({ f, reverse }: { f: Feature; reverse: boolean }) {
 }
 
 export function Features() {
-  useTitle("Features", "Matchframe features: HUDs for OBS, an auto director with manual takeover and emergency stop, observer camera control, grenade tracking, OBS control and replays, match administration, the demo pipeline and multi-PC operation.");
+  useTitle("Features", "Matchframe features: HUDs for OBS, the Observer auto director with four modes, manual takeover and emergency stop, observer camera control, grenade tracking, OBS control and replays, match administration, the demo pipeline and multi-PC operation.");
   const { me } = useSession();
   return (
     <>
@@ -165,6 +165,14 @@ export function FeatureDetail({ slug }: { slug: string }) {
             </h2>
             <div className="prose">{f.what}</div>
           </section>
+          {f.sections?.map((s) => (
+            <section key={s.id} id={s.id} aria-labelledby={`${s.id}-title`} className="feature-block">
+              <h2 id={`${s.id}-title`} className="display-3">
+                {s.title}
+              </h2>
+              {s.body}
+            </section>
+          ))}
           <section aria-labelledby="how-title" className="feature-block">
             <h2 id="how-title" className="display-3">
               How it works

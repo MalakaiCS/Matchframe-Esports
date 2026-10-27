@@ -1,4 +1,4 @@
-import type { MatchState, ReasonCode, ScoreComponents, ShotCandidate, Side, SourceCapabilities, Vec3 } from "@matchframe/contracts";
+import type { ActionClass, MatchState, ReasonCode, ScoreComponents, ShotCandidate, Side, SourceCapabilities, Vec3 } from "@matchframe/contracts";
 import type { DirectorConfig, DirectorWeights } from "./config.ts";
 import type { InteractionFeatures } from "./features/interactions.ts";
 import { playerReadiness } from "./features/readiness.ts";
@@ -31,6 +31,8 @@ export interface CandidateInput {
   map?: UtilityDirectorMap | undefined;
   /** Optional learned per-player contact/imminence overrides (validated model output). */
   learnedImminence?: ReadonlyMap<string, number> | undefined;
+  /** What the Observer mode may do on its own; null = no restriction (advisory recommendations). */
+  scope?: ReadonlySet<ActionClass> | null | undefined;
 }
 
 export interface ScoredCandidate extends ShotCandidate {
@@ -77,9 +79,11 @@ export function generateCandidates(input: CandidateInput): ScoredCandidate[] {
   const byId = new Map(state.players.map((p) => [p.steamId, p]));
 
   // Fallback boosts for utility with no valid camera: show it from a relevant POV instead.
+  // Without nade cameras in the Observer mode, utility is shown from a POV as if no camera covered it.
+  const utilityCamerasAllowed = !input.scope || input.scope.has("utility_camera");
   const povUtilityBoost = new Map<string, { value: number; reason: ReasonCode }>();
   for (const opp of input.opportunities) {
-    if (opp.camera) continue;
+    if (opp.camera && utilityCamerasAllowed) continue;
     for (const a of opp.affected) {
       const prev = povUtilityBoost.get(a.steamId)?.value ?? 0;
       if (opp.value > prev) povUtilityBoost.set(a.steamId, { value: opp.value, reason: "UTILITY_NO_CAMERA" });
@@ -252,6 +256,11 @@ export function generateCandidates(input: CandidateInput): ScoredCandidate[] {
     if (input.oneSide || (input.pin && input.pin.kind !== "cluster")) {
       valid = false;
       invalidReason = "pinned/one-side profile active";
+    }
+    if (!utilityCamerasAllowed) {
+      valid = false;
+      invalidReason = "nade cameras are part of the Full Action Observer mode";
+      reasons.push("OBSERVER_MODE_EXCLUDES");
     }
     if (valid) reasons.push("CINEMATIC_ELIGIBLE");
     const storyAffected = opp.affected.some((a) => storySet.has(a.steamId));

@@ -81,7 +81,7 @@ export function AllowanceMeter({ allowance, planName, footer }: { allowance: Aut
       )}
       {v.state === "exhausted" && (
         <Alert tone="warn" title="No auto-director hours left">
-          The auto director can't be re-armed until hours are added or the period resets on {formatDate(allowance.periodEnd)}. Manual and advisory direction keep working.
+          The auto director can't be re-armed until hours are added or the period resets on {formatDate(allowance.periodEnd)}. Manual direction and the Observer's Off mode keep working.
         </Alert>
       )}
       {v.state === "low" && (

@@ -7,7 +7,7 @@ import { useTitle } from "../../lib/hooks.ts";
 import { Link } from "../../router.tsx";
 
 export function Faq() {
-  useTitle("FAQ", "Answers to common questions about Matchframe: the program and installation, the auto director and hours, HUDs and OBS, accounts, billing, privacy and troubleshooting.");
+  useTitle("FAQ", "Answers to common questions about Matchframe: the program and installation, the Observer (auto director) and hours, HUDs and OBS, accounts, billing, privacy and troubleshooting.");
   const [q, setQ] = useState("");
   const inputId = useId();
   const matches = filterFaq(FAQ, q);
@@ -15,7 +15,7 @@ export function Faq() {
   const groups = FAQ_CATEGORIES.map((c) => ({ ...c, items: matches.filter((f) => f.category === c.id) })).filter((g) => g.items.length > 0);
   return (
     <>
-      <PageHero eyebrow="Support" title="Frequently asked questions" lead={<>Answers about the program, the auto director, plans and your account. For step-by-step guides, see the <Link to="/help">help centre</Link>.</>}>
+      <PageHero eyebrow="Support" title="Frequently asked questions" lead={<>Answers about the program, the Observer, plans and your account. For step-by-step guides, see the <Link to="/help">help centre</Link>.</>}>
         <form className="help-search" role="search" onSubmit={(e) => e.preventDefault()}>
           <label htmlFor={inputId} className="visually-hidden">
             Filter questions

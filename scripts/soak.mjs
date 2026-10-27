@@ -42,7 +42,7 @@ const rss = () => {
 };
 
 await call("POST", "/api/v1/simulation/start", { startOffsetSec: 0 });
-await call("POST", "/api/v1/director/mode", { mode: "automatic" });
+await call("POST", "/api/v1/director/observer-mode", { mode: "full_action" });
 await call("POST", "/api/v1/observer/resume", { countdownMs: 0 });
 let opMessages = 0;
 let hudMessages = 0;

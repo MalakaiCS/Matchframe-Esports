@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CommandResult, DirectorMode, PlayerState, Side } from "@matchframe/contracts";
+import type { CommandResult, ObserverMode, PlayerState, Side } from "@matchframe/contracts";
 import { api, describeError, seg } from "../api/index.ts";
-import type { ActionClass, DirectorStatus, EventRecord, MapPackDetail, MatchRow, OperatorSnapshot, ReplaysResponse, TeamRow } from "../api/types.ts";
+import type { DirectorStatus, EventRecord, MapPackDetail, MatchRow, OperatorSnapshot, ReplaysResponse, TeamRow } from "../api/types.ts";
 import { CandidateList, DecisionExplain, OpportunityList } from "../components/director.tsx";
 import { useToast } from "../components/toasts.tsx";
 import { ActionButton, Badge, Button, Checkbox, EmptyState, KV, Note, Panel } from "../components/ui.tsx";
 import { capabilityGate } from "../lib/capabilities.ts";
 import { phaseRemaining } from "../lib/clock.ts";
-import { ASSISTED_ACTIONS, DIRECTOR_MODES, MODE_INFO } from "../lib/director.ts";
+import { MODE_INFO, OBSERVER_MODE_INFO, OBSERVER_MODES } from "../lib/director.ts";
 import { fmtClock, fmtMs, MISSING, shotLabel, shotTarget, titleCase } from "../lib/format.ts";
 import { isTypingTarget, useApi } from "../lib/hooks.ts";
 import { CONTROL_HEALTH_TEXT } from "../lib/ownership.ts";
@@ -316,43 +316,51 @@ function DirectorPanel({ snap, threshold }: { snap: OperatorSnapshot; threshold:
   const now = useNow(500);
   const sequenceChangedAt = useLive((s) => s.sequenceChangedAt);
   const directorReason = usePermission("director.control");
-  const [busyMode, setBusyMode] = useState<DirectorMode | null>(null);
+  const [busyMode, setBusyMode] = useState<ObserverMode | null>(null);
   const toast = useToast();
   const nameOf = makeNameOf(snap.state);
   const health = d ? CONTROL_HEALTH_TEXT[d.controlHealth] : null;
   const ageEst = snap.state ? liveStore.clock.ageOf(snap.state.time.receivedAtMonotonicMs, now) : null;
   const inputAge = d && typeof d.supportingFeatures.dataAgeMs === "number" ? d.supportingFeatures.dataAgeMs : null;
   const stale = snap.state?.sources[0]?.stale ?? false;
-  const setMode = async (m: DirectorMode) => {
+  const fullActionAvailable = snap.simulated || snap.cloud?.fullActionObserver !== false;
+  const setMode = async (m: ObserverMode) => {
     setBusyMode(m);
     try {
-      await api.post("/api/v1/director/mode", { mode: m });
-      toast.push("ok", `Director mode: ${MODE_INFO[m].label}`, m === "automatic" && snap.ownership.manualSticky ? "Automatic mode still needs camera ownership: use Resume automation in the top bar." : undefined);
+      await api.post("/api/v1/director/observer-mode", { mode: m });
+      toast.push("ok", `Observer: ${OBSERVER_MODE_INFO[m].label}`, m !== "off" && (snap.ownership.manualSticky || snap.ownership.owner !== "director") ? "The Observer moves the camera once it owns it: use Resume automation in the top bar." : undefined);
     } catch (e) {
-      toast.push("danger", "Mode change failed", describeError(e));
+      toast.push("danger", "Observer mode not changed", describeError(e));
     } finally {
       setBusyMode(null);
     }
   };
+  const editorial = snap.mode !== "advisory" && snap.mode !== "automatic" && snap.mode !== "assisted" ? MODE_INFO[snap.mode] : null;
   return (
     <div className="director-panel">
-      <div className="mode-select" role="radiogroup" aria-label="Director mode">
-        {DIRECTOR_MODES.map((m) => (
-          <button
-            key={m}
-            role="radio"
-            aria-checked={snap.mode === m}
-            className={`mode-btn ${snap.mode === m ? "is-on" : ""}`}
-            title={MODE_INFO[m].hint}
-            disabled={directorReason !== null || busyMode !== null}
-            onClick={() => void setMode(m)}
-          >
-            {MODE_INFO[m].label}
-          </button>
-        ))}
+      <div className="mode-select" role="radiogroup" aria-label="Observer mode">
+        {OBSERVER_MODES.map((m) => {
+          const locked = m === "full_action" && !fullActionAvailable;
+          return (
+            <button
+              key={m}
+              role="radio"
+              aria-checked={snap.observerMode === m}
+              className={`mode-btn ${snap.observerMode === m ? "is-on" : ""}`}
+              title={locked ? "Full Action Observer comes with the top plan. Upgrade on the website." : OBSERVER_MODE_INFO[m].hint}
+              disabled={directorReason !== null || busyMode !== null || locked}
+              onClick={() => void setMode(m)}
+            >
+              {OBSERVER_MODE_INFO[m].label}
+              {OBSERVER_MODE_INFO[m].topPlan ? <span className="mode-plan"> {locked ? "· TOP PLAN" : ""}</span> : null}
+            </button>
+          );
+        })}
       </div>
       <p className="small muted">
-        {MODE_INFO[snap.mode].hint}
+        {OBSERVER_MODE_INFO[snap.observerMode].hint}
+        {!fullActionAvailable ? " Full Action Observer (nade cameras) comes with the top plan." : ""}
+        {editorial ? ` Editorial mode: ${editorial.label} (${editorial.hint})` : ""}
         {directorReason ? ` (${directorReason})` : ""}
       </p>
       <KV
@@ -391,8 +399,6 @@ function DirectorControls({ snap }: { snap: OperatorSnapshot }) {
       toast.push("danger", "Director control failed", describeError(e));
     }
   };
-  const assisted = new Set<ActionClass>(c.assistedActions);
-  const staticGate = capabilityGate("staticCameraControl", snap.capabilities.staticCameraControl, { simulated: snap.simulated });
   return (
     <div className="dir-controls">
       <fieldset>
@@ -411,30 +417,6 @@ function DirectorControls({ snap }: { snap: OperatorSnapshot }) {
           ))}
         </div>
         <span className="small muted">Restrict POV choices to one side (e.g. a team-specific stream).</span>
-      </fieldset>
-      <fieldset>
-        <legend>Assisted mode executes</legend>
-        {ASSISTED_ACTIONS.map((a) => (
-          <Checkbox
-            key={a.id}
-            checked={assisted.has(a.id)}
-            disabled={!!reason}
-            hint={a.hint}
-            onChange={(v) => {
-              const next = new Set(assisted);
-              if (v) next.add(a.id);
-              else next.delete(a.id);
-              void call("/api/v1/director/assisted-actions", { actions: [...next] }, `Assisted actions: ${[...next].join(", ") || "none"}`);
-            }}
-            label={
-              <>
-                {a.label}
-                {a.id === "cinematic" && !staticGate.enabled ? <span className="small text-warn"> — {staticGate.reason}</span> : null}
-              </>
-            }
-          />
-        ))}
-        {snap.mode !== "assisted" ? <span className="small muted">Only used in Assisted mode (current: {MODE_INFO[snap.mode].label}).</span> : null}
       </fieldset>
       <fieldset>
         <legend>Replays</legend>

@@ -11,6 +11,27 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.1.2",
+    title: "The Observer",
+    summary: "The auto director is now the Observer: Off, Observer, Observer & Cinematics, and Full Action Observer with nade cameras on the top plan.",
+    sections: [
+      {
+        heading: "The program",
+        items: [
+          "Off: Matchframe never moves the camera; shot suggestions stay visible in Live Control. Uses no hours.",
+          "Observer switches between player POVs automatically.",
+          "Observer & Cinematics adds cinematic shots from static cameras you capture in Maps & Cameras: an establishing shot during freeze time, bomb plant and defuse shots, and overviews of big fights.",
+          "Full Action Observer adds nade cameras that catch smokes, flashes, molotovs and incendiaries, and HE grenades as they land. Top plan only.",
+          "Observer, Observer & Cinematics and Full Action Observer use auto-director hours at the same rate; the simulation is free in every mode. If a plan stops including Full Action Observer, the program switches to Observer & Cinematics at the next map change, never mid-map.",
+        ],
+      },
+      {
+        heading: "The website",
+        items: ["Pricing and plan cards show which Observer modes each plan includes.", "The Observer page explains and compares the four modes.", "Staff can turn Full Action Observer on or off per plan in the catalogue."],
+      },
+    ],
+  },
+  {
     version: "0.1.1",
     title: "Sign in to the program",
     summary: "The program now has its own sign-in screen, using the same account as this website.",
@@ -43,7 +64,7 @@ const RELEASES: Release[] = [
         items: [
           "Counter-Strike 2 Game State Integration ingest with token authentication, capability sampling and clear evidence levels for every derived event.",
           "Browser-source HUDs for OBS: Classic, Minimal and Arena presets with pre-match, veto, live, post-map, standings and bracket variants; imported HUD packages; draft, publish and rollback per output.",
-          "Auto director with advisory, assisted and automatic modes, explained shot choices, sticky manual takeover, emergency stop and a single-writer camera control arbiter. Always starts disarmed.",
+          "Auto director (now the Observer) with explained shot choices, sticky manual takeover, emergency stop and a single-writer camera control arbiter. Always starts disarmed.",
           "Observer camera control through the direct console or keyboard adapter, gated by in-program setup tests; operator-validated static cameras for cinematic shots.",
           "OBS control over obs-websocket 5: scenes, sources, audio, recording, streaming and the replay buffer, with a replay approval queue and confirmed playout.",
           "Events, teams, players, series rules, veto with captain links, sponsors with delivery acknowledgements, automation rules and studio rundown.",

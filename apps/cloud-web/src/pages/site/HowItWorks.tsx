@@ -10,16 +10,17 @@ const FLOW: { icon: IconName; title: string; text: string }[] = [
   { icon: "download", title: "Install", text: "Download the Windows installer from your account and run the setup checklist in the program." },
   { icon: "link", title: "Sign in", text: "Start the program and sign in with your Matchframe email and password." },
   { icon: "card", title: "Buy or receive hours", text: "Plans include auto-director hours each period, and hour packs add more at any time." },
-  { icon: "director", title: "Arm automation", text: "Resume automation in Live Control. Hours are used only while it drives the camera." },
+  { icon: "director", title: "Arm automation", text: "Choose an Observer mode and resume automation in Live Control. Hours are used only while it drives the camera." },
 ];
 
 const OFFLINE: [string, ReactNode, ReactNode][] = [
   ["HUDs for OBS", "Yes", "Yes"],
-  ["Manual and advisory direction", "Yes", "Yes"],
+  ["Manual direction and the Observer's Off mode (shot suggestions)", "Yes", "Yes"],
   ["OBS control and replays", "Yes", "Yes"],
   ["Match, veto and sponsor administration", "Yes", "Yes"],
   ["Simulation and demo pipeline", "Yes", "Yes"],
-  ["Automatic direction on live matches", "Uses your plan's auto-director hours", "Yes, for up to 7 days after the last licence refresh"],
+  ["Observer and Observer & Cinematics on live matches", "Uses your plan's auto-director hours", "Yes, for up to 7 days after the last licence refresh"],
+  ["Full Action Observer (nade cameras) on live matches", "Top plan only, same hourly rate", "Yes, for up to 7 days after the last licence refresh"],
 ];
 
 const SETUP: { id: string; title: string; where: string; body: ReactNode }[] = [
@@ -53,7 +54,7 @@ const SETUP: { id: string; title: string; where: string; body: ReactNode }[] = [
         <ul>
           <li>Detect CS2 and write the Game State Integration config, then restart CS2 as an observer.</li>
           <li>Wait for a real payload and read the capability report.</li>
-          <li>Choose the observer control adapter and run the player-selection test (and the static camera test for cinematic shots).</li>
+          <li>Choose the observer control adapter and run the player-selection test (and the static camera test for cinematics and nade cameras).</li>
           <li>Connect OBS, map your programme scenes and add the HUD browser source.</li>
         </ul>
       </>
@@ -95,7 +96,7 @@ const SETUP: { id: string; title: string; where: string; body: ReactNode }[] = [
     where: "In the program",
     body: (
       <p>
-        Start the director in Advisory, move to Assisted or Automatic when you trust the setup, and arm it with Resume automation. Stop everything with <kbd>F8</kbd> in the program or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F12</kbd> anywhere in Windows.
+        Start the Observer in Off and watch its shot suggestions, move to Observer, Observer &amp; Cinematics or Full Action Observer when you trust the setup, and arm it with Resume automation. Stop everything with <kbd>F8</kbd> in the program or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F12</kbd> anywhere in Windows.
       </p>
     ),
   },
@@ -173,14 +174,14 @@ export function HowItWorks() {
           <div>
             <SectionHead id="metering-title" eyebrow="Fair metering" title="Hours are used only while automation drives the camera" lead="The program counts a second only when every one of these is true:" />
             <Callout title="At the limit">
-              <p>Automation already running is never cut off mid-map: it finishes the map and hands the camera back at the map change. Re-arming is then blocked until hours are added. There are no overage charges.</p>
+              <p>Automation already running is never cut off mid-map: it finishes the map and hands the camera back at the map change. Re-arming is then blocked until hours are added. There are no overage charges. If a plan stops including Full Action Observer, the program switches to Observer &amp; Cinematics at the next map change.</p>
             </Callout>
           </div>
           <div>
             <CheckList
               items={[
                 "Automation is armed, not manually taken over and not emergency-stopped",
-                "The director is in automatic or assisted mode",
+                "The Observer is in Observer, Observer & Cinematics or Full Action Observer mode (all at the same rate)",
                 "A real observer control adapter is connected",
                 "Telemetry is live, not simulated, with a packet in the last 15 seconds",
                 "The computer is linked to your organisation",

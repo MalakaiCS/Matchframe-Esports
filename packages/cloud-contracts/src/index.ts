@@ -71,6 +71,11 @@ export const PlanFeatures = z.object({
   autoDirector: z.boolean(),
   /** Running exported models in shadow next to the baseline director. */
   learnedDirectorShadow: z.boolean(),
+  /**
+   * The Full Action Observer mode: nade (utility) cameras on top of POV observing and cinematics.
+   * Observer and Observer & Cinematics are on every plan with autoDirector.
+   */
+  fullActionObserver: z.boolean().default(false),
   maxDevices: z.number().int().min(1),
   maxMembers: z.number().int().min(1),
 });

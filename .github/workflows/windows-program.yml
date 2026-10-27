@@ -8,8 +8,9 @@
 # it at build time). Set the repository variable MATCHFRAME_WEBSITE_URL to change it.
 #
 # Releases: publishing a release on GitHub (Releases → Draft a new release → Publish) builds that
-# release's tag and attaches the installer, the portable zip and SHA256SUMS.txt to it. To attach
-# them to a release that already exists, run this workflow manually with the release tag.
+# release's tag and attaches the installer, the portable zip and SHA256SUMS.txt to it. Running this
+# workflow manually with a tag builds that tag and attaches the files to its release, creating and
+# publishing the release first (notes from docs/release-notes/<version>-dev.md) when there is none.
 # Builds are unsigned unless CSC_LINK / CSC_KEY_PASSWORD secrets are configured.
 name: Windows program (.exe)
 
@@ -37,7 +38,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag of an existing release to build and attach the installer to (e.g. v0.1.0). Leave empty for a test build of the selected branch."
+        description: "Tag to build and release (e.g. v0.1.2); the release is created when it does not exist yet. Leave empty for a test build of the selected branch."
         required: false
         default: ""
 
@@ -151,6 +152,23 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          sparse-checkout: docs/release-notes
+      - name: Create the release if it does not exist yet (manual run with a new tag)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then exit 0; fi
+          version="${TAG#v}"
+          notes="docs/release-notes/${version}-dev.md"
+          if [ -f "$notes" ]; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "Version ${version} Beta Matchframe Esports" --notes-file "$notes"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "Version ${version} Beta Matchframe Esports" --generate-notes
+          fi
       - uses: actions/download-artifact@v4
         with:
           name: matchframe-windows-${{ github.sha }}

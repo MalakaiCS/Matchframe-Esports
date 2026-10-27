@@ -19,6 +19,7 @@ function status(state: SignInState, over: Partial<CloudStatus> = {}): CloudStatu
     device: signedIn ? { deviceId: "dev_1", orgId: "org_1", orgName: "Night League", linkedAt: "2026-10-20T10:00:00.000Z" } : null,
     entitlement: null,
     gate: { ok: false, code: "not_linked", reason: "Sign in" },
+    fullActionObserver: false,
     usage: { pendingRecords: 0, pendingSeconds: 0, rejected: 0, totalSeconds: 0, openSeconds: 0, metering: false },
     lastRefreshAt: null,
     lastSyncAt: null,

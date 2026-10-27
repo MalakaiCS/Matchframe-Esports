@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DirectorMode } from "@matchframe/contracts";
+import { DirectorMode, ObserverMode } from "@matchframe/contracts";
 import type { Engine } from "../app.ts";
 import type { Permission } from "../auth.ts";
 import { can } from "../auth.ts";
@@ -90,6 +90,16 @@ const ACTIONS: DeviceAction[] = [
     run: (e) => {
       e.session.followAction();
       return { decision: e.session.output()?.decision ?? null };
+    },
+  },
+  {
+    id: "observer_mode",
+    label: "Set Observer mode (off, observer, observer_cinematics, full_action)",
+    permission: "director.control",
+    params: z.object({ mode: ObserverMode }),
+    run: (e, _req, p: { mode: z.infer<typeof ObserverMode> }) => {
+      e.session.setObserverMode(p.mode);
+      return { observerMode: e.session.observerMode };
     },
   },
   {

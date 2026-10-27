@@ -5,7 +5,7 @@ import { at, err, fakeFetch, makeMe, renderWithSession } from "../test/helpers.t
 import { LinkComputer, normalizeCode } from "./LinkComputer.tsx";
 
 const preview = { deviceName: "OBSERVER-01", platform: "win32", appVersion: "0.1.0", requestedAt: "2026-10-26T12:00:00.000Z", expiresAt: new Date(Date.now() + 9 * 60_000).toISOString() };
-const free = { id: "free", name: "Free", description: "", priceMonthlyCents: 0, currency: "usd", includedAutoDirectorHours: 2, features: { autoDirector: true, learnedDirectorShadow: false, maxDevices: 1, maxMembers: 2 }, stripePriceId: null, public: true, sortOrder: 0 };
+const free = { id: "free", name: "Free", description: "", priceMonthlyCents: 0, currency: "usd", includedAutoDirectorHours: 2, features: { autoDirector: true, learnedDirectorShadow: false, fullActionObserver: false, maxDevices: 1, maxMembers: 2 }, stripePriceId: null, public: true, sortOrder: 0 };
 const orgDetails = { id: "org_1", name: "Northside Broadcast", createdAt: "2026-10-01T00:00:00.000Z", role: "owner", plan: free, subscriptionStatus: "none" };
 
 function routes(extra: Record<string, Parameters<typeof fakeFetch>[0][string]> = {}) {

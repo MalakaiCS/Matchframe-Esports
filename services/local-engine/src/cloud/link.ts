@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { hostname, platform } from "node:os";
 import type { DeviceAuthorizeResponse, DeviceLoginOrg, DeviceLoginResponse, DeviceTokenResponse, DeviceUser, EntitlementPayload, UsageBatchResult } from "@matchframe/cloud-contracts";
 import type { EntitlementCheck } from "@matchframe/cloud-contracts/token";
+import type { ObserverMode } from "@matchframe/contracts";
 import { verifyEntitlement } from "@matchframe/cloud-contracts/token";
 import type { SecretStore } from "../auth.ts";
 import type { SettingsRepo } from "../db/store.ts";
@@ -395,7 +396,8 @@ export class CloudLink {
     return p.autoDirector.remainingSeconds - this.deps.ledger.secondsNotUploadedBefore(requestedAt) - this.deps.meter.openSeconds();
   }
 
-  canArm(simulated: boolean): GateResult {
+  /** Whether automatic direction may be armed in the Observer mode (rehearsals in the simulation are free in every mode). */
+  canArm(simulated: boolean, observerMode: ObserverMode = "observer"): GateResult {
     if (simulated) return { ok: true, free: true };
     if (this.enforcement === "off") return { ok: true, free: true };
     if (!this.link) return { ok: false, code: "not_linked", reason: this.revoked ? "This computer was signed out on the website. Sign in again (Account & Hours) to use automatic direction on live matches." : "Sign in to your Matchframe account (Account & Hours) to use automatic direction on live matches. Manual and advisory direction stay available." };
@@ -406,6 +408,8 @@ export class CloudLink {
       return { ok: false, code: "no_entitlement", reason: `The stored licence is not valid (${check.reason}). Refresh it on the Account screen.` };
     }
     if (!check.payload.features.autoDirector) return { ok: false, code: "plan_excludes", reason: `The ${check.payload.plan.name} plan does not include automatic direction.` };
+    if (observerMode === "full_action" && !check.payload.features.fullActionObserver)
+      return { ok: false, code: "plan_excludes", reason: `Full Action Observer (nade cameras) is not part of the ${check.payload.plan.name} plan. Observer and Observer & Cinematics are available; Full Action Observer comes with the top plan on the website.` };
     if (this.localRemainingSeconds(check.payload) <= 0 && !check.payload.autoDirector.overageAllowed) return { ok: false, code: "hours_exhausted", reason: "No auto-director hours left this period. Buy an hour pack or change plan on the website, then press Refresh. Matches already running are never cut off." };
     return { ok: true };
   }
@@ -438,7 +442,14 @@ export class CloudLink {
     if (this.link && this.url) await Promise.race([this.sync(), new Promise((r) => setTimeout(r, 3000))]);
   }
 
-  status(simulated: boolean) {
+  /** Observer modes the licence allows (Full Action Observer is a plan feature; the simulation and enforcement-off builds allow everything). */
+  fullActionObserverAvailable(simulated: boolean): boolean {
+    if (simulated || this.enforcement === "off") return true;
+    const check = this.entitlementCheck();
+    return !!(check?.ok && check.payload.features.fullActionObserver);
+  }
+
+  status(simulated: boolean, observerMode: ObserverMode = "observer") {
     const check = this.entitlementCheck();
     const payload = check?.payload ?? null;
     return {
@@ -453,7 +464,8 @@ export class CloudLink {
       entitlement: payload
         ? { state: check!.ok ? check!.state : check!.reason, plan: payload.plan, subscriptionStatus: payload.subscriptionStatus, features: payload.features, autoDirector: payload.autoDirector, issuedAt: payload.issuedAt, expiresAt: payload.expiresAt, graceUntil: payload.graceUntil, localRemainingSeconds: this.localRemainingSeconds(payload) }
         : null,
-      gate: this.canArm(simulated),
+      gate: this.canArm(simulated, observerMode),
+      fullActionObserver: this.fullActionObserverAvailable(simulated),
       usage: { ...this.deps.ledger.stats(), openSeconds: this.deps.meter.openSeconds(), metering: this.deps.meter.active },
       lastRefreshAt: this.lastRefreshAt,
       lastSyncAt: this.lastSyncAt,

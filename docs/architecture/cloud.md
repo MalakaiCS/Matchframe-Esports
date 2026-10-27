@@ -32,9 +32,10 @@ Matchframe is two products that work together:
 | Capability | Signed in (online, or offline within 7 days of the last check) |
 |---|---|
 | HUDs, outputs, match admin, veto, sponsors, replays, OBS | yes |
-| Manual and advisory direction, takeover, emergency stop | yes |
+| Manual camera work, Observer Off (shot suggestions), takeover, emergency stop | yes |
 | Labelled simulation (including automatic direction) | yes, free |
-| Automatic/assisted direction on live telemetry | yes, while the plan has auto-director hours |
+| Observer and Observer & Cinematics on live telemetry | yes, while the plan has auto-director hours |
+| Full Action Observer (nade cameras) on live telemetry | plans with the `fullActionObserver` feature (Studio by default), while they have hours |
 | Learned-director shadow comparison | plan feature flag reported in the licence |
 
 Release builds ask to sign in when the program opens. A program that is already open is never
@@ -85,7 +86,7 @@ working offline inside the window. It refreshes every 15 minutes while online.
 
 **Usage.** The engine meters automatic direction once per second. A second counts only when
 automation owns the camera (armed, not manually taken over, no emergency stop), the director is
-in automatic or assisted mode, a real observer control adapter is connected, telemetry is live
+in an Observer mode other than Off (all three use hours at the same rate), a real observer control adapter is connected, telemetry is live
 (not simulated, a packet within 15 s) and the computer is linked. Continuous time becomes records
 that close on map or session change, every five minutes, and when billing stops; a gap in ticks
 (sleep) is never billed. Records are stored locally (SQLite `cloud_usage`), uploaded every two
@@ -101,12 +102,14 @@ earliest expiry first, under a per-organisation row lock. Overage is not sold: w
 re-arming is refused until hours are added.
 
 **The gate.** The desktop consults the licence when automatic direction is *armed* (resume, or
-switching to automatic/assisted while armed): it needs a linked computer, a valid or in-grace
-licence, the plan's `autoDirector` feature, and remaining hours (the licence's figure minus usage
-the website had not seen yet, including the open segment). If not, the request fails with HTTP 402
-and a plain reason, shown in the console. **Automation already running is never cut mid-map**: when
-hours run out (or the licence lapses), it continues to the end of the map and hands the camera back
-to the operator at the map change (audited as `cloud.allowance_takeover`).
+choosing an Observer mode while armed): it needs a linked computer, a valid or in-grace
+licence, the plan's `autoDirector` feature (and `fullActionObserver` for Full Action Observer), and
+remaining hours (the licence's figure minus usage the website had not seen yet, including the open
+segment). If not, the request fails with HTTP 402 and a plain reason, shown in the console.
+**Automation already running is never cut mid-map**: when hours run out (or the licence lapses), it
+continues to the end of the map and hands the camera back to the operator at the map change (audited
+as `cloud.allowance_takeover`). If the plan stops including Full Action Observer, the program
+switches to Observer & Cinematics at the map change (`cloud.observer_mode_reduced`).
 
 **Program download.** An installer placed in `MF_DOWNLOAD_DIR` (`MatchframeEsports-Setup-<version>.exe`)
 is served by the website at `/downloads/…`; `/v1/downloads` reports the newest version with its

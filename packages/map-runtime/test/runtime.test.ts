@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyMapRevision, buildCoverageRow, checkCameraPath, draftCamera, MapRegistry, MapRuntime, parseGetpos, syntheticMapPack, targetInFrame } from "../src/index.ts";
+import { applyMapRevision, buildCoverageRow, checkCameraPath, draftCamera, MapRegistry, MapRuntime, parseGetpos, phasesForUses, syntheticMapPack, targetInFrame } from "../src/index.ts";
 
 describe("MapRuntime", () => {
   const rt = new MapRuntime(syntheticMapPack({ withValidatedCamera: true }));
@@ -61,6 +61,19 @@ describe("camera authoring", () => {
     const cam = draftCamera({ id: "c1", displayName: "c1", mapName: "de_x", mapRevision: "r1", pose, focus: { x: 0, y: 0, z: 0 }, coverageRadiusUnits: 500, levelId: null, targetRegionIds: [] });
     expect(cam.validation).toBe("unvalidated");
     expect(parseGetpos("garbage")).toBeNull();
+  });
+
+  it("records what a camera is used for; establishing shots run in freeze time and are found without a point", () => {
+    const pose = parseGetpos("setpos 0 0 300;setang 30 0 0")!;
+    expect(draftCamera({ id: "c1", displayName: "c1", mapName: "de_x", mapRevision: "r1", pose, focus: { x: 0, y: 0, z: 0 }, coverageRadiusUnits: 500, levelId: null, targetRegionIds: [] })).toMatchObject({ actionClasses: ["utility", "tactical"], allowedPhases: ["live"] });
+    const est = draftCamera({ id: "est", displayName: "est", mapName: "de_synthetic", mapRevision: "synthetic-1", pose, focus: { x: 0, y: 0, z: 0 }, coverageRadiusUnits: 500, levelId: null, targetRegionIds: [], uses: ["establishing"] });
+    expect(est).toMatchObject({ actionClasses: ["establishing"], allowedPhases: ["freezetime"] });
+    expect(phasesForUses(["establishing", "bomb"])).toEqual(["freezetime", "live"]);
+    const pack = syntheticMapPack({ withValidatedCamera: true });
+    pack.cameras.push({ ...est, validation: "validated" });
+    const rt = new MapRuntime(pack);
+    expect(rt.camerasWith({ actionClass: "establishing", phase: "freezetime" }).map((m) => m.camera.id)).toEqual(["est"]);
+    expect(rt.camerasWith({ actionClass: "establishing", phase: "live" })).toEqual([]);
   });
 
   it("checks whether a target is in frame", () => {

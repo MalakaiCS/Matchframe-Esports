@@ -84,14 +84,14 @@ export class ShotPlanner {
     this.pending = null;
   }
 
-  /** Record that a cinematic actually became active (confirmed by the controller). */
-  cinematicStarted(shot: ShotKey, at: number, plannedDurationMs: number, opportunityId: string | null): void {
+  /** Record that a cinematic actually became active (confirmed by the controller). Freeze-time establishing shots do not use the round's budget. */
+  cinematicStarted(shot: ShotKey, at: number, plannedDurationMs: number, opportunityId: string | null, countsTowardBudget = true): void {
     if (this.currentShot && this.currentShot !== shot) this.abandoned.set(this.currentShot, at);
     this.currentShot = shot;
     this.currentSince = at;
     this.pending = null;
     this.cinematic = { shotKey: shot, startedAt: at, plannedEndAt: at + Math.min(plannedDurationMs, this.cfg.cinematic.maxDurationMs), opportunityId };
-    this.cinematicsThisRound++;
+    if (countsTowardBudget) this.cinematicsThisRound++;
   }
 
   /** A meaningful event on the current shot (e.g. its fight resolved): hold briefly to explain it. */
@@ -162,9 +162,10 @@ export class ShotPlanner {
     } else {
       this.pending.sequences.add(sequence);
     }
-    // Utility cameras are already gated by lead-time eligibility; one fresh sequence suffices.
-    const needSeq = cinematicAlt ? 1 : this.cfg.persistenceSequences;
-    const needMs = cinematicAlt ? 0 : this.cfg.persistenceMs;
+    // Utility (nade) cameras are already gated by lead-time eligibility; one fresh sequence suffices.
+    const leadGated = bestAlt.shotClass === "static_utility";
+    const needSeq = leadGated ? 1 : this.cfg.persistenceSequences;
+    const needMs = leadGated ? 0 : this.cfg.persistenceMs;
     if (now - this.pending.firstSeenAt >= needMs && this.pending.sequences.size >= needSeq) {
       const reasons: ReasonCode[] = current.components.actionCoverage < 0.15 ? ["CURRENT_SHOT_LOW_ACTION"] : [];
       return cut(bestAlt, [...reasons, ...bestAlt.reasonCodes.slice(0, 4)]);
