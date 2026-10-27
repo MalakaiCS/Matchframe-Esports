@@ -34,13 +34,13 @@ function WebsiteAddress({ status, onSaved }: { status: CloudStatus; onSaved: () 
           .finally(() => setBusy(false));
       }}
     >
-      <p>This build does not know the Matchframe website yet. Enter its address (development builds only; release builds have it built in).</p>
-      <Field label="Website address">
+      <p>Enter the address of the Matchframe website.</p>
+      <Field label="Website address" hint="Development builds only; release builds have it built in.">
         <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://matchframe.example" spellCheck={false} autoFocus disabled={status.urlFixed} />
       </Field>
       {error ? <Note tone="danger">{error}</Note> : null}
       <div>
-        <Button type="submit" variant="primary" disabledReason={busy ? "Saving…" : url.trim() ? null : "Enter the address first"} reasonPlacement="tooltip">
+        <Button type="submit" variant="primary" disabledReason={busy ? "Saving…" : url.trim() ? null : "Enter the address first"}>
           Continue
         </Button>
       </div>
@@ -147,7 +147,7 @@ export function SignInForm({ status, onSignedIn, onChange, autoFocus = false }: 
           submit(orgId);
         }}
       >
-        <p>Your account belongs to more than one organisation. Which one is this computer for? Its plan provides the auto-director hours.</p>
+        <p>Which organisation is this computer for? Its plan provides the auto-director hours.</p>
         <fieldset className="choice-list">
           <legend className="sr-only">Organisation</legend>
           {orgs.map((o) => (
@@ -165,7 +165,7 @@ export function SignInForm({ status, onSignedIn, onChange, autoFocus = false }: 
         </fieldset>
         {error ? <Note tone="danger">{error}</Note> : null}
         <div className="row">
-          <Button type="submit" variant="primary" disabledReason={busy ? "Signing in…" : orgId ? null : "Choose an organisation"} reasonPlacement="tooltip">
+          <Button type="submit" variant="primary" disabledReason={busy ? "Signing in…" : orgId ? null : "Choose an organisation"}>
             Continue
           </Button>
           <Button
@@ -200,7 +200,7 @@ export function SignInForm({ status, onSignedIn, onChange, autoFocus = false }: 
         </Note>
       ) : null}
       <div className="row signin-actions">
-        <Button type="submit" variant="primary" disabledReason={busy ? "Signing in…" : email.trim() && password ? null : "Enter your email and password"} reasonPlacement="tooltip">
+        <Button type="submit" variant="primary" disabledReason={busy ? "Signing in…" : email.trim() && password ? null : "Enter your email and password"}>
           {busy ? "Signing in…" : "Sign in"}
         </Button>
         <a href={websiteLink(status, "/forgot-password")} target="_blank" rel="noreferrer">
@@ -212,7 +212,7 @@ export function SignInForm({ status, onSignedIn, onChange, autoFocus = false }: 
         <a href={websiteLink(status, "/signup")} target="_blank" rel="noreferrer">
           Create one on the website
         </a>{" "}
-        · <button type="button" className="link-button" onClick={() => setUseCode(true)}>Sign in with a code from the website</button>
+        · <button type="button" className="link-button" onClick={() => setUseCode(true)} title="Approve this computer on the website with a short code instead of a password">Sign in with a code</button>
       </p>
     </form>
   );
@@ -289,8 +289,8 @@ export function SignInGate({ role, children }: { role: string | null; children: 
       status && st && !PASSES.has(st) ? (
         <Note tone="warn" title={st === "offline_expired" ? "Matchframe needs to go online" : "Signed out of Matchframe"}>
           {st === "offline_expired"
-            ? "This computer has not reached the Matchframe website within the offline period. Everything keeps running until you close the program; connect to the internet so the next start does not ask you to sign in."
-            : `${status.lastError ? `${status.lastError.charAt(0).toUpperCase()}${status.lastError.slice(1)}. ` : ""}Everything keeps running until you close the program. Sign in again on Account & Hours.`}
+            ? "Everything keeps running until you close the program. Connect to the internet so the next start does not ask you to sign in."
+            : `${status.lastError ? `${status.lastError.charAt(0).toUpperCase()}${status.lastError.slice(1)}. ` : ""}Everything keeps running until you close the program. Sign in again under Account.`}
         </Note>
       ) : null;
     return <>{children(notice)}</>;
@@ -360,14 +360,14 @@ export function SignInGate({ role, children }: { role: string | null; children: 
   return (
     <GateCard>
       <h1 className="signin-title">Sign in to Matchframe</h1>
-      <p className="muted">Use the email and password of your Matchframe website account.</p>
+      <p className="muted">Use your Matchframe website account.</p>
       {st === "revoked" ? (
         <Note tone="warn" title="You were signed out">
           {status.lastError ? `${status.lastError.charAt(0).toUpperCase()}${status.lastError.slice(1)}.` : "This computer was signed out on the website."} Sign in again to continue.
         </Note>
       ) : null}
       <SignInForm status={status} onSignedIn={() => void load()} onChange={() => void load()} autoFocus />
-      <p className="gate-foot">The password is sent to the Matchframe website once and never stored on this computer. Works offline for up to 7 days after each check.</p>
+      <p className="gate-foot">Your password is never stored on this computer. Matchframe works offline for up to 7 days after each check.</p>
     </GateCard>
   );
 }

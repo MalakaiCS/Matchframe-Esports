@@ -1,0 +1,81 @@
+/* Setup, Events, Teams, Matches and Account */
+.ga-step {
+  scroll-margin-top: 80px;
+}
+.ga-step + .ga-step {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.ga-step-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.ga-step-title .step-num {
+  margin-right: 0;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--text-dim);
+}
+.ga-step-title .step-num.is-done {
+  background: var(--ok-bg);
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.ga-done {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ok);
+}
+.ga-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.ga-section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.ga-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.ga-counts {
+  display: flex;
+  align-items: center;
+  gap: 6px 16px;
+  flex-wrap: wrap;
+}
+.ga-counts > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ga-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--line-strong);
+  vertical-align: middle;
+}
+.ga-list-meta {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.ga-group > .panel-body {
+  padding-top: 16px;
+}

@@ -76,6 +76,7 @@ describe("sign-in gate when the program opens", () => {
     expect(screen.queryByTestId("console")).toBeNull();
     expect(screen.getByRole("link", { name: "Forgot password?" }).getAttribute("href")).toBe("https://matchframe.example/forgot-password");
     expect(screen.getByRole("link", { name: "Create one on the website" }).getAttribute("href")).toBe("https://matchframe.example/signup");
+    expect(screen.getByRole("button", { name: "Sign in with a code" })).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "producer@example.com" } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "wrong" } });
@@ -129,6 +130,7 @@ describe("sign-in gate when the program opens", () => {
     current = status("revoked", { lastError: "this computer is signed out" });
     await act(() => vi.advanceTimersByTimeAsync(31_000));
     await waitFor(() => expect(screen.getByText("Signed out of Matchframe")).toBeTruthy());
+    expect(screen.getByText(/Sign in again under Account/)).toBeTruthy();
     expect(screen.getByTestId("console").textContent).toContain("CONSOLE");
     expect(screen.queryByRole("heading", { name: "Sign in to Matchframe" })).toBeNull();
   });
