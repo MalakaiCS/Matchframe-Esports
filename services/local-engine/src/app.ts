@@ -294,6 +294,10 @@ export class Engine {
       schemaVersions: [1],
       entryPoints: { live: "index.html", compact: "index.html", replay: "index.html", veto: "index.html", "pre-match": "index.html", break: "index.html", "post-map": "index.html", "post-series": "index.html", studio: "index.html" },
       preview: null,
+      thumbnail: "thumbnail.webp",
+      category: "Broadcast",
+      tags: ["scoreboard", "radar", "players", "killfeed"],
+      designResolution: { width: 1920, height: 1080 },
       permissions: ["match.public", "players.public", "radar.public", "utility.public", "sponsors", "series", "event", "veto.public", "annotations"],
       presets: [
         { id: "classic", name: "Matchframe Classic" },
