@@ -114,7 +114,7 @@ export function Home() {
           <Steps
             items={[
               { icon: "download", title: "Download the program", text: <p>Create a free account, download the Windows installer and check its SHA-256 checksum. The in-program setup checklist walks you through CS2, OBS and your first HUD.</p> },
-              { icon: "link", title: "Link your computer", text: <p>In the program, open Account &amp; Hours → Link this computer. Enter the code it shows on this website and choose your organisation.</p> },
+              { icon: "link", title: "Sign in to the program", text: <p>Start the program and sign in with the same email and password as this website. It uses your organisation's plan and hours, and works offline for up to seven days after each check.</p> },
               { icon: "card", title: "Choose a plan or buy hours", text: <p>Start on the Free plan. Move to a larger plan for more auto-director hours, computers and team members, or top up with hour packs.</p> },
             ]}
           />

@@ -33,7 +33,7 @@ export function HelpCentre() {
             Search help articles
           </label>
           <Icon name="search" size={20} className="help-search-icon" />
-          <input id={inputId} type="search" placeholder="Search, e.g. invoice, SmartScreen, link code" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
+          <input id={inputId} type="search" placeholder="Search, e.g. invoice, SmartScreen, sign in" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
         </form>
       </PageHero>
       <div className="wrap section-top">

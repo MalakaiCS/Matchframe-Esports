@@ -11,6 +11,29 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.1.1",
+    title: "Sign in to the program",
+    summary: "The program now has its own sign-in screen, using the same account as this website.",
+    sections: [
+      {
+        heading: "The program",
+        items: [
+          "Sign in with your Matchframe email and password when the program opens, or with a code approved on this website. Accounts in several organisations choose which one the computer is for.",
+          "Works offline for up to 7 days after each check; a program that is already open is never locked when it is signed out on the website.",
+          "Account & Hours shows who the program is signed in as, with Sign out.",
+          "Builds are pinned to this website's address and licence keys, so there is nothing to configure.",
+        ],
+      },
+      {
+        heading: "The website",
+        items: [
+          "Changing or resetting your password, being removed from an organisation or a disabled account signs that person's computers out.",
+          "Public product pages, FAQ, help centre, legal documents and a staff console for user management.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.1.0",
     title: "First release",
     summary: "The first public version of the Matchframe program for Windows and of this website.",

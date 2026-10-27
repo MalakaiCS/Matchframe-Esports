@@ -7,7 +7,7 @@ const STORED: [string, string][] = [
   ["Account", "Your name, email address, a salted password hash, whether your email is verified, and when you signed up and last signed in."],
   ["Sessions", "For each signed-in browser: when it was created and last used, its user agent and IP address, so you can review and end sessions."],
   ["Organisations", "Organisation names, members and their roles, pending invitations and the audit trail of changes."],
-  ["Linked computers", "The computer name, platform and program version you approved, when it was linked and last seen. Its access token is stored only as a hash."],
+  ["Signed-in computers", "The computer name, platform and program version, who signed it in, when and when it was last seen. Its access token is stored only as a hash; your password is never stored on the computer."],
   ["Auto-director usage", "When and for how long automatic direction ran on each computer, with the map and match label sent by the program."],
   ["Billing", "Your plan, subscription status, hour credits and a reference to your Stripe customer and invoices. No card numbers."],
   ["Support", "Messages you send through the contact form and the emails we send you (recipient and subject, delivery state)."],

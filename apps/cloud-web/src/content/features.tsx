@@ -62,10 +62,10 @@ export const FEATURES: Feature[] = [
       </>
     ),
     how: ["Open HUDs & Composer, choose a preset and variant, then Publish.", "Copy the output's browser-source URL.", "Add it to OBS as a 1920×1080 Browser Source (or let the program provision it).", "Activate the match so the HUD shows the teams, players and series."],
-    needs: ["OBS Studio 30 or later", "The program on the production computer", "No account or hours"],
+    needs: ["OBS Studio 30 or later", "The program on the production computer", "A free account; no hours needed"],
     status: <>HUDs are rendered and checked in Chromium, the browser engine OBS uses for browser sources. They haven't yet been used in a Windows OBS production.</>,
     faqs: [
-      { q: "Do HUDs use auto-director hours or need an account?", a: <p>No. HUDs work offline without an account, on every plan.</p> },
+      { q: "Do HUDs use auto-director hours?", a: <p>No. HUDs work on every plan, including Free, and keep working offline for up to seven days after the program last checked in.</p> },
       { q: "Can I design my own HUD?", a: <p>Yes. Build a HUD package with the HUD SDK and import it in HUDs &amp; Composer. It gets the same draft, publish and rollback flow as the built-in presets.</p> },
       { q: "Are the player cards video feeds?", a: <p>No. Player cards are graphics driven by game data. Player cameras are routed separately through OBS, with the player's consent.</p> },
       { q: "Can a delayed output leak what's about to happen?", a: <p>Delayed outputs read from a delay buffer and show nothing until it has filled, so they never show information ahead of the delayed programme.</p> },
@@ -106,7 +106,7 @@ export const FEATURES: Feature[] = [
       </>
     ),
     how: ["Pass the player-selection test in the setup checklist.", "Start in Advisory and watch the recommendations.", "Switch to Assisted or Automatic once you trust the setup.", "Arm it with Resume automation in Live Control; take over whenever you like."],
-    needs: ["A real observer control adapter with a passed player-selection test", "A linked computer with auto-director hours for live matches", "Advisory and manual direction: no account needed"],
+    needs: ["A real observer control adapter with a passed player-selection test", "Auto-director hours on your organisation's plan for live matches", "Advisory and manual direction: no hours needed"],
     status: <>The director has been exercised end to end in the labelled simulation and with synthetic data. It hasn't yet directed a real CS2 match.</>,
     faqs: [
       { q: "Does advisory mode use hours?", a: <p>No. Hours are only used while automation actually controls the camera on a live match. Advisory, manual direction and the simulation are free.</p> },
@@ -211,7 +211,7 @@ export const FEATURES: Feature[] = [
     faqs: [
       { q: "Can I use a separate replay system?", a: <p>A bridge for an external replay tool is designed, but that integration isn't available yet. The OBS replay buffer is the supported replay path today.</p> },
       { q: "Are multiple replay angles supported?", a: <p>Replays currently use the programme angle captured by OBS. Additional angles are planned.</p> },
-      { q: "Do I need an account for OBS control?", a: <p>No. OBS control and replays work offline without an account.</p> },
+      { q: "Do OBS control and replays use hours?", a: <p>No. They work on every plan and offline for up to seven days after the program last checked in.</p> },
     ],
   },
   {
@@ -236,7 +236,7 @@ export const FEATURES: Feature[] = [
       </>
     ),
     how: ["Create teams and players, or import them.", "Create the match and its format.", "Send captain links and run the veto.", "Activate the match so HUDs show the teams, players and series."],
-    needs: ["The program only: no account or hours"],
+    needs: ["The program only: no hours needed"],
     faqs: [
       { q: "How secure are captain links?", a: <p>Each link is a token scoped to one match and one team. Captains only see veto information and can only act on their own turns. Links can be revoked at any time.</p> },
       { q: "Can sponsors appear during a fight?", a: <p>No. Sponsor slots use safe windows that avoid live fights, and each display is logged when the HUD acknowledges it.</p> },

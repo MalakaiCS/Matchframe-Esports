@@ -49,7 +49,8 @@ export const REQUIREMENT_GROUPS: RequirementGroup[] = [
     rows: [
       ["Local ports", <>37210 (Game State Integration), 37211 (engine API), 37212 (HUD outputs). Bound to this computer (loopback) by default.</>],
       ["Multi-PC", "Set the production computer to listen on its LAN address and allow ports 37210–37212 from the production subnet only."],
-      ["Internet", "Only for linking the computer, refreshing its licence (every 15 minutes while online) and uploading auto-director usage. A licence stays usable offline for 7 days after it was issued."],
+      ["Internet", "For signing in to the program, refreshing its licence (every 15 minutes while online) and uploading auto-director usage. After that the program works offline for up to 7 days after each check."],
+      ["Account", "A free Matchframe account with a confirmed email address. The program asks you to sign in with it when it opens."],
     ],
   },
   {

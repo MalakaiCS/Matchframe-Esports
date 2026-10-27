@@ -107,10 +107,10 @@ export const HELP_ARTICLES: HelpArticle[] = [
         <ol>
           <li>Run the installer and choose a folder. It installs for the current Windows user.</li>
           <li>
-            Start <strong>Matchframe Esports</strong>. It opens on Overview with the <strong>Setup</strong> checklist: detect CS2, write the Game State Integration config, connect OBS and add your HUD.
+            Start <strong>Matchframe Esports</strong> and <Link to="/help/linking-a-computer">sign in</Link> with your Matchframe email and password.
           </li>
           <li>
-            When you're ready for automatic direction, <Link to="/help/linking-a-computer">link the computer</Link> to your organisation.
+            The program opens on Overview with the <strong>Setup</strong> checklist: detect CS2, write the Game State Integration config, connect OBS and add your HUD.
           </li>
         </ol>
       </>
@@ -119,30 +119,34 @@ export const HELP_ARTICLES: HelpArticle[] = [
   {
     slug: "linking-a-computer",
     category: "start",
-    title: "Linking a computer",
-    summary: "Connect the program on a computer to your organisation's plan and hours.",
-    keywords: "link device code computer approve pair organisation slot limit account & hours",
+    title: "Signing in to the program",
+    summary: "Sign in to the program with your Matchframe email and password; it then uses your organisation's plan and hours.",
+    keywords: "sign in login password program computer link device code approve organisation slot limit account & hours offline signed out",
     body: (
       <>
-        <p>Linking tells Matchframe which organisation's plan and auto-director hours a computer uses. You only need it for automatic direction on live matches; everything else works without linking.</p>
-        <h2>Link a computer</h2>
+        <p>The program opens with a sign-in screen. Signing in connects that computer to your organisation's plan and auto-director hours. It's the same account as this website.</p>
+        <h2>Sign in</h2>
         <ol>
-          <li>
-            In the program, open <strong>Account &amp; Hours → Link this computer</strong>. It shows a code like <code>BCDF-GHJK</code> and opens this website.
-          </li>
-          <li>
-            Sign in if asked. On the <Link to="/link">link page</Link>, check the code and the computer's name.
-          </li>
-          <li>
-            Choose the organisation and select <strong>Approve and link</strong>. The program picks up the link within a few seconds.
-          </li>
+          <li>Start the program. Enter the email and password you use on this website and select <strong>Sign in</strong>.</li>
+          <li>If you belong to more than one organisation, choose which one this computer is for.</li>
+          <li>The program opens. <strong>Account &amp; Hours</strong> shows who it is signed in as, the plan and the hours left.</li>
         </ol>
-        <p>Codes expire after 10 minutes. If yours expired, start again in the program to get a new one.</p>
-        <h2>Who can link computers</h2>
-        <p>Owners, admins and members can link computers once their email address is verified. Billing members can't.</p>
-        <h2>"This organisation has no free computer slot"</h2>
+        <p>Your password is sent to Matchframe once and never stored on the computer. Confirm your email address before signing in.</p>
+        <h2>Sign in with a code instead</h2>
         <p>
-          Each plan allows a number of linked computers. <Link to="/help/unlinking-a-computer">Unlink a computer</Link> you no longer use, or move to a plan with more computers on the Billing &amp; Subscription page.
+          On the sign-in screen choose <strong>Sign in with a code from the website</strong>. The program shows a code like <code>BCDF-GHJK</code>. Open the <Link to="/link">link page</Link> on this website, check the code and the computer's name, choose the organisation and select <strong>Approve and link</strong>. Codes expire after 10 minutes.
+        </p>
+        <h2>Working offline</h2>
+        <p>After signing in, the program works without internet for up to 7 days after it last reached Matchframe. When that period ends it asks you to connect once.</p>
+        <h2>Signed out?</h2>
+        <p>
+          A computer is signed out when the account's password is changed or reset, the account is disabled, its person leaves the organisation, or someone <Link to="/help/unlinking-a-computer">unlinks the computer</Link>. A program that is already open keeps running and shows a notice; it asks you to sign in the next time it opens.
+        </p>
+        <h2>Who can sign in a computer</h2>
+        <p>Owners, admins and members, once their email address is confirmed. Billing members can't.</p>
+        <h2>"This plan allows 1 signed-in computer"</h2>
+        <p>
+          Each plan allows a number of signed-in production computers. <Link to="/help/unlinking-a-computer">Sign out a computer</Link> you no longer use, or move to a plan with more computers on the Billing &amp; Subscription page. Extra operator positions that connect to the production computer from File → Connection settings don't need their own sign-in.
         </p>
       </>
     ),

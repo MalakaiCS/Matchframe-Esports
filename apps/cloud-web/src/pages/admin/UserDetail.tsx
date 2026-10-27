@@ -321,7 +321,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
               <div className="action-item">
                 <div>
                   <p className="strong">Sign out everywhere</p>
-                  <p className="small muted">End every session of this account.</p>
+                  <p className="small muted">End every browser session and sign out the computers this account signed in.</p>
                 </div>
                 <Button size="sm" variant="ghost" className="btn-danger-text" onClick={() => setDialog("signout")} disabledReason={d.sessions.length === 0 ? "No active sessions." : null}>
                   Sign out everywhere
@@ -391,13 +391,14 @@ export function AdminUserDetail({ userId }: { userId: string }) {
       {dialog === "signout" && (
         <ConfirmDialog
           title="Sign out everywhere?"
-          description={`Every browser signed in as ${u.email} is signed out. They can sign in again straight away.`}
+          description={`Every browser and every Matchframe program signed in as ${u.email} is signed out. A program that is open keeps running until it is closed. They can sign in again straight away.`}
           confirmLabel="Sign out everywhere"
           onConfirm={() => api.adminSignOutUser(u.id)}
           onClose={close}
           onDone={(r) => {
             const n = (r as { revoked?: number } | undefined)?.revoked ?? 0;
-            done(`Signed out ${n} ${n === 1 ? "session" : "sessions"}.`);
+            const c = (r as { computers?: number } | undefined)?.computers ?? 0;
+            done(`Signed out ${n} ${n === 1 ? "session" : "sessions"}${c ? ` and ${c} ${c === 1 ? "computer" : "computers"}` : ""}.`);
           }}
         />
       )}

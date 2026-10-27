@@ -93,11 +93,9 @@ export function Download() {
             </Alert>
             <ol className="plain-steps">
               <li>Install and start Matchframe.</li>
+              <li>Sign in with the same email and password as this website.</li>
               <li>
-                In the program open <strong>Account &amp; Hours → Link this computer</strong>. It shows a code like <code>BCDF-GHJK</code>.
-              </li>
-              <li>
-                Enter the code at <Link to="/link">/link</Link>, choose the organisation and approve.
+                Prefer a code? Choose <strong>Sign in with a code from the website</strong> in the program, then enter the code at <Link to="/link">/link</Link> and approve.
               </li>
             </ol>
           </Card>

@@ -45,7 +45,7 @@ function CodeEntry({ initial = "", autoFocus = false }: { initial?: string; auto
         maxLength={9}
         className="code-input"
         error={error}
-        hint="In the program open Account & Hours → Link this computer to see it. Codes expire after 10 minutes."
+        hint="On the program's sign-in screen choose Sign in with a code from the website to see it. Codes expire after 10 minutes."
         autoFocus={autoFocus}
       />
       <Button type="submit" variant="primary">
@@ -109,7 +109,7 @@ function Pending({ code, preview, orgs, verified, onOutcome, onInvalid }: { code
     }
   }
 
-  const approveReason = expired ? "This code has expired. Start linking again in the program." : !verified ? "Verify your email address before linking computers." : linkable.length === 0 ? "None of your organisations lets your role link computers." : !orgId ? "Choose an organisation first." : null;
+  const approveReason = expired ? "This code has expired. Get a new code in the program." : !verified ? "Verify your email address before linking computers." : linkable.length === 0 ? "None of your organisations lets your role link computers." : !orgId ? "Choose an organisation first." : null;
 
   return (
     <Card title="A computer wants to link to your account">
@@ -276,7 +276,7 @@ export function LinkComputer() {
         <Card title="Enter the code">
           <ol className="plain-steps">
             <li>
-              In the Matchframe program open <strong>Account &amp; Hours → Link this computer</strong>.
+              On the Matchframe program's sign-in screen choose <strong>Sign in with a code from the website</strong>.
             </li>
             <li>Type the code it shows below (or click the link the program opens, which fills it in).</li>
           </ol>

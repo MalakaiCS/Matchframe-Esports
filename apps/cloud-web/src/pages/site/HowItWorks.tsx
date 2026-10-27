@@ -8,7 +8,7 @@ import { useSession } from "../../state/session.tsx";
 
 const FLOW: { icon: IconName; title: string; text: string }[] = [
   { icon: "download", title: "Install", text: "Download the Windows installer from your account and run the setup checklist in the program." },
-  { icon: "link", title: "Link the computer", text: "Account & Hours → Link this computer, then approve the code on this website." },
+  { icon: "link", title: "Sign in", text: "Start the program and sign in with your Matchframe email and password." },
   { icon: "card", title: "Buy or receive hours", text: "Plans include auto-director hours each period, and hour packs add more at any time." },
   { icon: "director", title: "Arm automation", text: "Resume automation in Live Control. Hours are used only while it drives the camera." },
 ];
@@ -19,7 +19,7 @@ const OFFLINE: [string, ReactNode, ReactNode][] = [
   ["OBS control and replays", "Yes", "Yes"],
   ["Match, veto and sponsor administration", "Yes", "Yes"],
   ["Simulation and demo pipeline", "Yes", "Yes"],
-  ["Automatic direction on live matches", "No: needs a linked computer with hours", "Yes, for up to 7 days after the last licence refresh"],
+  ["Automatic direction on live matches", "Uses your plan's auto-director hours", "Yes, for up to 7 days after the last licence refresh"],
 ];
 
 const SETUP: { id: string; title: string; where: string; body: ReactNode }[] = [
@@ -61,11 +61,11 @@ const SETUP: { id: string; title: string; where: string; body: ReactNode }[] = [
   },
   {
     id: "link",
-    title: "Link the computer",
-    where: "In the program, then on this website",
+    title: "Sign in to the program",
+    where: "In the program",
     body: (
       <p>
-        Open <strong>Account &amp; Hours → Link this computer</strong>, enter the code at <Link to="/link">/link</Link>, choose your organisation and approve. <Link to="/help/linking-a-computer">More help</Link>
+        Start the program and sign in with the same email and password as this website (or choose <strong>Sign in with a code from the website</strong> and approve it at <Link to="/link">/link</Link>). If you're in several organisations, pick the one this computer is for. <Link to="/help/linking-a-computer">More help</Link>
       </p>
     ),
   },
@@ -193,13 +193,13 @@ export function HowItWorks() {
 
       <section className="section section-alt" id="offline" aria-labelledby="offline-title">
         <div className="wrap">
-          <SectionHead id="offline-title" eyebrow="Offline-first" title="What works offline and without an account" lead="Your broadcast never depends on this website. A linked computer refreshes its signed licence every 15 minutes while online and keeps it valid offline for 7 days." center />
+          <SectionHead id="offline-title" eyebrow="Offline-first" title="What works offline" lead="Your broadcast never depends on this website. The program signs in once, refreshes its signed licence every 15 minutes while online, and keeps working offline for 7 days. Being signed out never stops a show that is already running." center />
           <div className="table-scroll" role="region" aria-label="What works offline" tabIndex={0}>
             <table className="cmp-table">
               <thead>
                 <tr>
                   <th scope="col">Feature</th>
-                  <th scope="col">Without an account</th>
+                  <th scope="col">On every plan</th>
                   <th scope="col">Offline</th>
                 </tr>
               </thead>

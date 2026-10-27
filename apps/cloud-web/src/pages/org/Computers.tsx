@@ -41,10 +41,10 @@ export function Computers({ scope }: { scope: OrgScope }) {
               Install the Matchframe program from the <Link to="/download">download page</Link>.
             </li>
             <li>
-              In the program open <strong>Account &amp; Hours → Link this computer</strong>. It shows a code and opens this website.
+              Start the program and sign in with your Matchframe email and password. If you're in several organisations, choose this one.
             </li>
             <li>
-              Enter the code at <Link to="/link">/link</Link>, choose this organisation and approve. The program finishes linking within a few seconds.
+              Or choose <strong>Sign in with a code from the website</strong> in the program, enter the code at <Link to="/link">/link</Link>, choose this organisation and approve.
             </li>
           </ol>
           <p className="small muted">Unlinking stops that computer's credential immediately and frees its slot. Plan details it already downloaded expire on their own schedule.</p>

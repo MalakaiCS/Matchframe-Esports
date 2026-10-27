@@ -395,7 +395,7 @@ const eula: LegalDoc = {
       </ul>
 
       <h2>3. Online features</h2>
-      <p>Most of the Program works offline without an account. Automatic direction on live matches requires the computer to be linked to an organisation with auto-director hours. A linked Program periodically contacts our servers to refresh its signed licence and upload usage records (when and for how long automatic direction ran, with the map and match label). A licence remains usable offline for a limited period after it was issued. When hours run out, automation already running continues to the end of the current map.</p>
+      <p>The Program requires you to sign in with a Matchframe account when it starts and then works offline for a limited period after each check. Automatic direction on live matches uses your organisation's auto-director hours. A signed-in Program periodically contacts our servers to refresh its signed licence and upload usage records (when and for how long automatic direction ran, with the map and match label). A licence remains usable offline for a limited period after it was issued. When hours run out, automation already running continues to the end of the current map.</p>
 
       <h2>4. Your responsibilities</h2>
       <p>You're responsible for your production setup and for monitoring your broadcast. Automatic camera control is only available after the in-program setup tests pass, and depends on third-party software and game builds outside our control. Use the manual takeover and emergency stop whenever needed.</p>

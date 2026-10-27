@@ -56,7 +56,7 @@ export const USE_CASES: UseCase[] = [
     helps: [
       "Built-in HUD presets work out of the box as OBS browser sources.",
       "Advisory mode suggests shots; assisted mode can take over player cuts while you cast.",
-      "Everything except automatic direction on live matches works offline without an account.",
+      "Sign in once with a free account; the program then works offline for up to seven days after each check.",
       "The Free plan includes a few auto-director hours each month to try automation.",
     ],
     setup: "A single Windows PC running the CS2 observer client, OBS and Matchframe together.",
@@ -72,7 +72,7 @@ export const USE_CASES: UseCase[] = [
     icon: "network",
     intro: "Produce on site on a local network, where internet access may be limited and every computer has a job.",
     helps: [
-      "The program works on the local network; only linking, licence refresh and usage upload need the internet.",
+      "The program works on the local network; only signing in, licence refresh and usage upload need the internet.",
       "A fetched licence keeps automatic direction available offline for up to seven days.",
       "Replay, graphics and producer positions connect to the production computer with their own tokens.",
       "Emergency stop works from anywhere in Windows on the production PC.",

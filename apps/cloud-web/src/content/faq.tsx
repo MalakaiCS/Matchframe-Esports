@@ -59,7 +59,7 @@ export const FAQ: FaqItem[] = [
     q: "Do I need an account or an internet connection to use the program?",
     a: (
       <p>
-        Not for most of it. HUDs, manual and advisory direction, replays, match administration and the built-in simulation work offline without an account. Only automatic direction on live matches needs a linked computer with auto-director hours left, and a fetched licence keeps working offline for up to seven days. See <Link to="/how-it-works#offline">what works offline</Link>.
+        You need a free account: the program opens with a sign-in screen, and you sign in with the same email and password as this website. After that it works offline for up to seven days after each check, so a LAN without internet is fine. The Free plan covers HUDs, manual and advisory direction, replays, match administration and the simulation; automatic direction on live matches uses auto-director hours. See <Link to="/how-it-works#offline">what works offline</Link>.
       </p>
     ),
   },
@@ -363,15 +363,31 @@ export const FAQ: FaqItem[] = [
     q: "Automation won't arm.",
     a: (
       <p>
-        The program says why. Common reasons: the computer isn't linked, the organisation has no hours left, the plan doesn't include automatic direction, the player-selection test hasn't passed for this game build, or the data is simulated. Check Account &amp; Hours in the program and your <Link to="/dashboard">dashboard</Link>.
+        The program says why. Common reasons: the program was signed out on the website, the organisation has no hours left, the plan doesn't include automatic direction, the player-selection test hasn't passed for this game build, or the data is simulated. Check Account &amp; Hours in the program and your <Link to="/dashboard">dashboard</Link>.
       </p>
     ),
   },
   {
+    id: "sign-in-program",
+    category: "troubleshooting",
+    q: "I can't sign in to the program.",
+    a: (
+      <p>
+        Use the same email and password as this website, and confirm your email address first (the program can't sign in before that). If you belong to several organisations, the program asks which one the computer is for. "This plan allows 1 signed-in computer" means the organisation has no free computer slot: sign out an old computer on the Computers page or move to a larger plan. Forgot your password? <Link to="/forgot-password">Reset it here</Link>, then sign in again.
+      </p>
+    ),
+  },
+  {
+    id: "signed-out",
+    category: "troubleshooting",
+    q: "Why was the program signed out?",
+    a: <p>A computer is signed out when the account's password is changed or reset, the account is disabled, its person leaves the organisation, or the computer is unlinked on the Computers page. A program that is already open keeps running and shows a notice; it asks you to sign in the next time it opens.</p>,
+  },
+  {
     id: "link-code",
     category: "troubleshooting",
-    q: "My link code doesn't work.",
-    a: <p>Codes expire after 10 minutes and work once. Start linking again in the program to get a new code. If the organisation has no free computer slot, unlink an old computer or move to a larger plan.</p>,
+    q: "My sign-in code doesn't work.",
+    a: <p>Codes (the "sign in with a code" option) expire after 10 minutes and work once. Get a new code in the program. If the organisation has no free computer slot, sign out an old computer or move to a larger plan.</p>,
   },
   {
     id: "no-email",
