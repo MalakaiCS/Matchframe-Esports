@@ -179,6 +179,33 @@ CREATE TABLE signing_keys (
 );
 `,
   },
+  {
+    version: 4,
+    name: "staff roles, disabled accounts, session activity, contact messages",
+    sql: `
+ALTER TABLE users ADD COLUMN staff_role text CHECK (staff_role IN ('support', 'admin'));
+UPDATE users SET staff_role = 'admin' WHERE staff;
+ALTER TABLE users DROP COLUMN staff;
+ALTER TABLE users ADD COLUMN disabled_at timestamptz;
+ALTER TABLE users ADD COLUMN disabled_reason text;
+ALTER TABLE users ADD COLUMN last_login_at timestamptz;
+ALTER TABLE sessions ADD COLUMN last_seen_at timestamptz;
+CREATE TABLE contact_messages (
+  id bigserial PRIMARY KEY,
+  name text NOT NULL,
+  email text NOT NULL,
+  topic text NOT NULL CHECK (topic IN ('sales', 'support', 'billing', 'legal', 'other')),
+  message text NOT NULL,
+  org_id text,
+  user_id text,
+  ip text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  handled_at timestamptz,
+  handled_by text
+);
+CREATE INDEX contact_messages_open ON contact_messages(handled_at, created_at);
+`,
+  },
 ];
 
 export async function migrate(sql: Sql): Promise<{ from: number; to: number }> {

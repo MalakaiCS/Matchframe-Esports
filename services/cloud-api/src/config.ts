@@ -29,6 +29,18 @@ export interface CloudConfig {
   offlineGraceDays: number;
   /** Emails that become staff (admin) on signup or login. */
   staffEmails: string[];
+  /** Business details shown on the website's contact, about and legal pages (GET /v1/site). */
+  site: SiteInfo;
+}
+
+export interface SiteInfo {
+  companyName: string;
+  websiteName: string;
+  supportEmail: string | null;
+  address: string | null;
+  jurisdiction: string;
+  /** YYYY-MM-DD shown as the "effective" date of the terms and policies. */
+  legalEffectiveDate: string;
 }
 
 /**
@@ -72,9 +84,18 @@ export function loadCloudConfig(env: NodeJS.ProcessEnv = process.env, overrides:
     entitlementTtlHours: Number(opt(env.MF_ENTITLEMENT_TTL_HOURS) ?? 24),
     offlineGraceDays: Number(opt(env.MF_OFFLINE_GRACE_DAYS) ?? 7),
     staffEmails: list(env.MF_STAFF_EMAILS).map((e) => e.toLowerCase()),
+    site: {
+      companyName: opt(env.MF_COMPANY_NAME) ?? "Matchframe Esports",
+      websiteName: opt(env.MF_WEBSITE_NAME) ?? "Matchframe",
+      supportEmail: opt(env.MF_SUPPORT_EMAIL),
+      address: opt(env.MF_COMPANY_ADDRESS),
+      jurisdiction: opt(env.MF_LEGAL_JURISDICTION) ?? "the country in which the company is registered",
+      legalEffectiveDate: opt(env.MF_LEGAL_EFFECTIVE_DATE) ?? "2026-10-27",
+    },
     ...overrides,
   };
   if (!Number.isInteger(cfg.port) || cfg.port < 1 || cfg.port > 65535) throw new Error("MF_CLOUD_PORT must be a port number");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cfg.site.legalEffectiveDate)) throw new Error("MF_LEGAL_EFFECTIVE_DATE must be a date like 2026-10-27");
   return cfg;
 }
 

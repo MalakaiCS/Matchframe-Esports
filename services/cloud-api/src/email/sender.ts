@@ -38,11 +38,30 @@ export class Mailer {
       if (this.logToConsole) console.log(`[cloud-api] email (outbox only) to ${msg.to}: ${msg.subject}\n${msg.text}\n`);
       return;
     }
+    await this.deliver(String(rows[0]!.id), msg);
+  }
+
+  /**
+   * Staff: send an outbox email again (after an SMTP outage or a typo in the address was fixed).
+   * Returns null when the email does not exist.
+   */
+  async resend(id: string): Promise<{ sent: boolean; error: string | null } | null> {
+    const { rows } = await this.sql.query<{ to_addr: string; subject: string; body_text: string }>("SELECT to_addr, subject, body_text FROM outbox_emails WHERE id = $1", [id]);
+    const e = rows[0];
+    if (!e) return null;
+    if (!this.transport) return { sent: false, error: "email delivery is not configured (SMTP_URL is not set); the email stays in the outbox" };
+    return this.deliver(id, { to: e.to_addr, subject: e.subject, text: e.body_text });
+  }
+
+  private async deliver(id: string, msg: EmailMessage): Promise<{ sent: boolean; error: string | null }> {
     try {
-      await this.transport.sendMail({ from: this.from, to: msg.to, subject: msg.subject, text: msg.text });
-      await this.sql.query("UPDATE outbox_emails SET sent_at = now() WHERE id = $1", [rows[0]!.id]);
+      await this.transport!.sendMail({ from: this.from, to: msg.to, subject: msg.subject, text: msg.text });
+      await this.sql.query("UPDATE outbox_emails SET sent_at = now(), error = NULL WHERE id = $1", [id]);
+      return { sent: true, error: null };
     } catch (e) {
-      await this.sql.query("UPDATE outbox_emails SET error = $2 WHERE id = $1", [rows[0]!.id, String(e).slice(0, 500)]);
+      const error = String(e).slice(0, 500);
+      await this.sql.query("UPDATE outbox_emails SET error = $2 WHERE id = $1", [id, error]);
+      return { sent: false, error };
     }
   }
 }

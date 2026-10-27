@@ -1,4 +1,4 @@
-import type { OrgRole, UserView } from "@matchframe/cloud-contracts";
+import type { OrgRole, StaffRole, UserView } from "@matchframe/cloud-contracts";
 import { generateSigningKey, keyId } from "@matchframe/cloud-contracts/token";
 import { createPublicKey } from "node:crypto";
 import type { CloudConfig } from "./config.ts";
@@ -18,6 +18,11 @@ import { hashSecret, newSecret } from "./ids.ts";
 
 export const SESSION_COOKIE = "mf_session";
 const SESSION_DAYS = 30;
+/** How often a session's "last seen" time is written (at most once per this interval per session). */
+const LAST_SEEN_INTERVAL_MS = 5 * 60_000;
+
+/** The id a session is shown under (account and staff pages): derived from the stored hash, never the cookie secret. */
+export const sessionPublicId = (idHash: string) => hashSecret(`session:${idHash}`).slice(0, 24);
 
 export interface SessionUser extends UserView {
   sessionHash: string;
@@ -38,7 +43,7 @@ export class CloudApp {
   publicKeys: Record<string, string>;
   kid: string;
   signingKeySource: "environment" | "database" = "environment";
-  readonly limits: { auth: RateLimiter; email: RateLimiter; deviceAuthorize: RateLimiter; deviceLink: RateLimiter };
+  readonly limits: { auth: RateLimiter; email: RateLimiter; deviceAuthorize: RateLimiter; deviceLink: RateLimiter; contact: RateLimiter };
   readonly origin: string;
 
   constructor(
@@ -51,6 +56,7 @@ export class CloudApp {
       email: new RateLimiter(5 * k, 15 * 60_000),
       deviceAuthorize: new RateLimiter(10 * k, 60_000),
       deviceLink: new RateLimiter(20 * k, 60_000),
+      contact: new RateLimiter(5 * k, 15 * 60_000),
     };
     this.sql = deps.sql ?? openSql(cfg.databaseUrl, cfg.pgliteDir ?? undefined);
     this.mailer = new Mailer(this.sql, cfg.smtpUrl, cfg.mailFrom, cfg.devLogEmails && !cfg.smtpUrl);
@@ -131,13 +137,16 @@ export class CloudApp {
     const secret = ctx.cookies[SESSION_COOKIE];
     if (!secret) return null;
     const h = hashSecret(secret);
-    const { rows } = await this.sql.query<{ id: string; email: string; display_name: string; email_verified_at: Date | null; staff: boolean; created_at: Date }>(
-      "SELECT u.id, u.email, u.display_name, u.email_verified_at, u.staff, u.created_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id_hash = $1 AND s.expires_at > $2",
-      [h, this.now()],
+    const now = this.now();
+    const { rows } = await this.sql.query<{ id: string; email: string; display_name: string; email_verified_at: Date | null; staff_role: StaffRole | null; disabled_at: Date | null; created_at: Date; last_seen_at: Date | null }>(
+      "SELECT u.id, u.email, u.display_name, u.email_verified_at, u.staff_role, u.disabled_at, u.created_at, s.last_seen_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id_hash = $1 AND s.expires_at > $2",
+      [h, now],
     );
     const u = rows[0];
-    if (!u) return null;
-    return { id: u.id, email: u.email, displayName: u.display_name, emailVerified: !!u.email_verified_at, staff: u.staff, createdAt: u.created_at.toISOString(), sessionHash: h };
+    // Disabling an account also deletes its sessions; the check covers a request already in flight.
+    if (!u || u.disabled_at) return null;
+    if (!u.last_seen_at || now.getTime() - u.last_seen_at.getTime() > LAST_SEEN_INTERVAL_MS) await this.sql.query("UPDATE sessions SET last_seen_at = $2 WHERE id_hash = $1", [h, now]);
+    return { id: u.id, email: u.email, displayName: u.display_name, emailVerified: !!u.email_verified_at, staff: u.staff_role !== null, staffRole: u.staff_role, createdAt: u.created_at.toISOString(), sessionHash: h };
   }
 
   async requireUser(ctx: Ctx, opts: { verified?: boolean } = {}): Promise<SessionUser> {
@@ -147,10 +156,17 @@ export class CloudApp {
     return u;
   }
 
-  async requireStaff(ctx: Ctx): Promise<SessionUser> {
+  /** Matchframe staff. Support staff help customers; changes to staff roles, accounts, the catalogue and hours need the admin role. */
+  async requireStaff(ctx: Ctx, level: StaffRole = "support"): Promise<SessionUser> {
     const u = await this.requireUser(ctx);
-    if (!u.staff) throw new HttpError(403, "forbidden", "staff only");
+    if (!u.staffRole) throw new HttpError(403, "forbidden", "staff only");
+    if (level === "admin" && u.staffRole !== "admin") throw new HttpError(403, "forbidden", "admin staff role required");
     return u;
+  }
+
+  /** Bootstrap admins (MF_STAFF_EMAILS) always keep the admin role; it cannot be removed from the website. */
+  isBootstrapAdmin(email: string): boolean {
+    return this.cfg.staffEmails.includes(email.toLowerCase());
   }
 
   async roleIn(userId: string, orgId: string): Promise<OrgRole | null> {
