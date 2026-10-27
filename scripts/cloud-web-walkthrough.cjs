@@ -2,10 +2,11 @@
 //
 //   pnpm --filter @matchframe/cloud-web build
 //   MF_CLOUD_PORT=8080 MF_CLOUD_PUBLIC_URL=http://127.0.0.1:8080 MF_CLOUD_WEB_DIR=apps/cloud-web/dist \
-//     MF_DEV_LOG_EMAILS=1 MF_STAFF_EMAILS=admin@example.com pnpm cloud > cloud.log 2>&1 &
+//     MF_DEV_LOG_EMAILS=1 MF_STAFF_EMAILS=admin@example.com MF_SUPPORT_EMAIL=help@example.com pnpm cloud > cloud.log 2>&1 &
 //   MF_CLOUD_LOG=cloud.log node scripts/cloud-web-walkthrough.cjs [--stripe-enabled]
 //
-// Needs a fresh (in-memory) API: it signs up owner@, producer@ and admin@example.com. Set
+// Needs a fresh (in-memory) API: it signs up owner@, producer@, admin@ and spam@example.com, sends a
+// contact-form message, promotes producer@ to support staff and checks the support view. Set
 // MF_DOWNLOAD_WINDOWS_URL / MF_DOWNLOAD_WINDOWS_SHA256 on the API to capture the published download. Emailed links
 // are read from the API's console output (MF_DEV_LOG_EMAILS=1). Device linking is driven through
 // the desktop endpoints (/v1/device/*) with fetch, as the desktop app would. Every page is checked
@@ -23,6 +24,35 @@ const STRIPE_MODE = process.argv.includes("--stripe-enabled");
 const PASSWORD = "correct horse battery";
 const DESKTOP = { width: 1440, height: 900 };
 const MOBILE = { width: 390, height: 844 };
+
+/** Public pages captured signed out (desktop), and the subset also captured at 390 px. */
+const PUBLIC_PAGES = [
+  ["/", "home"],
+  ["/features", "features"],
+  ["/features/huds", "feature-huds", { full: false }],
+  ["/features/auto-director", "feature-auto-director"],
+  ["/features/cameras", "feature-cameras", { full: false }],
+  ["/features/utility-tracking", "feature-utility-tracking", { full: false }],
+  ["/features/obs-replays", "feature-obs-replays", { full: false }],
+  ["/features/match-admin", "feature-match-admin", { full: false }],
+  ["/features/multi-pc", "feature-multi-pc", { full: false }],
+  ["/how-it-works", "how-it-works"],
+  ["/requirements", "requirements"],
+  ["/use-cases", "use-cases"],
+  ["/pricing", "pricing"],
+  ["/faq", "faq"],
+  ["/help", "help"],
+  ["/help/installing-the-program", "help-article"],
+  ["/contact", "contact"],
+  ["/about", "about"],
+  ["/security", "security"],
+  ["/status", "status"],
+  ["/changelog", "changelog"],
+  ["/legal", "legal"],
+  ["/legal/terms", "legal-terms"],
+  ["/legal/privacy", "legal-privacy", { full: false }],
+];
+const PUBLIC_MOBILE = ["/", "/features", "/features/auto-director", "/how-it-works", "/requirements", "/use-cases", "/pricing", "/faq", "/help", "/contact", "/status", "/legal/terms"];
 
 const problems = [];
 const visited = [];
@@ -129,6 +159,17 @@ function watch(page, label, expected) {
 
 async function shot(page, name, opts = {}) {
   await page.waitForLoadState("networkidle").catch(() => undefined);
+  if (opts.full ?? true) {
+    // Scroll through the page once so lazily loaded screenshots are in the capture.
+    await page.evaluate(async () => {
+      for (let y = 0; y < document.documentElement.scrollHeight; y += 700) {
+        window.scrollTo(0, y);
+        await new Promise((r) => setTimeout(r, 40));
+      }
+      window.scrollTo(0, 0);
+    });
+    await page.waitForLoadState("networkidle").catch(() => undefined);
+  }
   await sleep(150);
   const vw = page.viewportSize();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -138,9 +179,9 @@ async function shot(page, name, opts = {}) {
   const file = path.join(OUT, `${name}.jpg`);
   const full = opts.full ?? true;
   const height = await page.evaluate(() => document.documentElement.scrollHeight);
-  const maxH = vw.width < 600 ? 3400 : 2600;
+  const maxH = vw.width < 600 ? 3000 : 2300;
   // Full page, cut at maxH so very long pages stay readable and small.
-  await page.screenshot({ path: file, type: "jpeg", quality: opts.quality ?? 72, fullPage: full, clip: full && height > maxH ? { x: 0, y: 0, width: vw.width, height: maxH } : undefined });
+  await page.screenshot({ path: file, type: "jpeg", quality: opts.quality ?? 55, fullPage: full, clip: full && height > maxH ? { x: 0, y: 0, width: vw.width, height: maxH } : undefined });
   const kb = Math.round(fs.statSync(file).size / 1024);
   visited.push(`${name}.jpg (${vw.width}×${vw.height}, ${kb} KB)`);
   if (kb > 400) problems.push(`[${name}] screenshot is ${kb} KB`);
@@ -199,16 +240,37 @@ async function main() {
 
   // ------------------------------------------------------------ public pages, signed out
   const pub = await newPage(browser, "public", DESKTOP);
-  for (const [p, n] of [
-    ["/", "home"],
-    ["/pricing", "pricing"],
-  ]) {
+  for (const [p, n, opts] of PUBLIC_PAGES) {
     await go(pub.page, p);
-    await shot(pub.page, n);
+    await pub.page.locator("h1").first().waitFor();
+    await shot(pub.page, n, opts);
   }
+  await go(pub.page, "/");
+  await pub.page.getByRole("button", { name: "Product" }).click();
+  await shot(pub.page, "nav-product-menu", { full: false });
+  await go(pub.page, "/faq");
+  await pub.page.getByRole("searchbox", { name: "Filter questions" }).fill("SmartScreen");
+  await pub.page.getByText(/questions match/).waitFor();
+  await shot(pub.page, "faq-filtered", { full: false });
+  // Contact form (signed out): lands in the staff support inbox.
+  await go(pub.page, "/contact?topic=sales");
+  await pub.page.getByLabel("Your name", { exact: true }).fill("Jo Rivera");
+  await pub.page.getByLabel("Email", { exact: true }).fill("jo@league.example");
+  await pub.page.getByLabel("Message", { exact: true }).fill("We run a 16-team league with two broadcasts each week. Which plan fits, and can we add hours for playoff weeks?");
+  await pub.page.getByRole("button", { name: "Send message" }).click();
+  await pub.page.getByText("Thanks, we've received your message").waitFor();
+  await shot(pub.page, "contact-sent", { full: false });
+  await go(pub.page, "/no-such-page");
+  await shot(pub.page, "not-found", { full: false });
   const pubDark = await newPage(browser, "public-dark", DESKTOP, [], "dark");
-  await go(pubDark.page, "/");
-  await shot(pubDark.page, "home-dark", { full: false });
+  for (const [p, n] of [
+    ["/", "home-dark"],
+    ["/features", "features-dark"],
+    ["/pricing", "pricing-dark"],
+  ]) {
+    await go(pubDark.page, p);
+    await shot(pubDark.page, n, { full: false });
+  }
 
   // ------------------------------------------------------------ owner signs up
   const owner = await newPage(browser, "owner", DESKTOP, ["POST /v1/device-link/approve 409", "GET /v1/device-link/BBBB-BBBB 404", "POST /v1/auth/login 401"]);
@@ -289,8 +351,27 @@ async function main() {
   await go(op, "/download");
   await op.getByText("SHA-256 checksum").waitFor();
   await shot(op, "download");
+  // A second browser signs in as the owner, so the account page lists two sessions.
+  const owner2 = await newPage(browser, "owner-second-browser", DESKTOP, ["GET /v1/auth/me 401"]);
+  await go(owner2.page, "/login");
+  await owner2.page.getByLabel("Email").fill("owner@example.com");
+  await owner2.page.getByLabel("Password").fill(PASSWORD);
+  await owner2.page.getByRole("button", { name: "Sign in" }).click();
+  await owner2.page.waitForURL(/\/orgs\//);
   await go(op, "/account");
+  await op.getByText("This device").waitFor();
   await shot(op, "account");
+  await op.locator("#sessions").scrollIntoViewIfNeeded();
+  await shot(op, "account-sessions", { full: false });
+  await op.getByRole("button", { name: "Sign out all other sessions" }).click();
+  await op.getByRole("dialog").getByRole("button", { name: "Sign out others" }).click();
+  await op.getByText("Signed out 1 other session.").waitFor();
+  const [download] = await Promise.all([op.waitForEvent("download"), op.getByRole("button", { name: "Download my data" }).click()]);
+  if (!/^matchframe-account-\d{4}-\d{2}-\d{2}\.json$/.test(download.suggestedFilename())) problems.push(`[account] export file name: ${download.suggestedFilename()}`);
+  const exported = JSON.parse(fs.readFileSync(await download.path(), "utf8"));
+  if (!JSON.stringify(exported).includes("owner@example.com")) problems.push("[account] export doesn't contain the account email");
+  await owner2.page.goto(`${BASE}/account`, { waitUntil: "networkidle" });
+  await owner2.page.waitForURL(/\/login/);
 
   // Owner opens the producer's invitation: wrong account.
   const inviteLink = await emailLink("producer@example.com", "invite");
@@ -342,39 +423,118 @@ async function main() {
   await pp.getByRole("button", { name: "Sign in" }).click();
   await pp.waitForURL(/\/orgs\//);
 
-  // ------------------------------------------------------------ staff
+  // ------------------------------------------------------------ staff console (bootstrap admin)
+  const spam = await api("POST", "/v1/auth/signup", { email: "spam@example.com", password: PASSWORD, displayName: "Bulk Inviter", orgName: "Spam Co" }, { origin: BASE });
+  if (spam.status !== 200 && spam.status !== 201) problems.push(`[staff] signup spam@ via API: ${spam.status} ${JSON.stringify(spam.data)}`);
   const staff = await newPage(browser, "staff", DESKTOP);
   const sp = staff.page;
   await signUp(sp, { name: "Matchframe Support", email: "admin@example.com", org: "Matchframe Staff" });
   await verify(sp, "admin@example.com");
   await go(sp, "/admin");
+  await sp.getByText("Monthly recurring revenue").waitFor();
+  await shot(sp, "admin-overview");
+
+  await go(sp, "/admin/users");
+  await sp.getByText(/Showing 1–\d+ of \d+ users/).waitFor();
+  await shot(sp, "admin-users");
+  await sp.getByRole("button", { name: "Staff" }).click();
+  await sp.getByText(/Showing 1–1 of 1 users/).waitFor();
+  await sp.getByRole("button", { name: "All" }).click();
+  await sp.getByLabel("Search users").fill("producer");
+  await sp.getByRole("button", { name: "Search" }).click();
+  await sp.getByRole("link", { name: "Sam Ortega" }).click();
+  await sp.getByRole("heading", { name: "Sam Ortega" }).waitFor();
+  await shot(sp, "admin-user-detail");
+  await sp.getByLabel("Staff role").selectOption("support");
+  await sp.getByRole("button", { name: "Save staff role" }).click();
+  await sp.getByRole("dialog").getByRole("button", { name: "Save staff role" }).click();
+  await sp.getByText("Staff role set to support.").waitFor();
+  await shot(sp, "admin-user-staff-role", { full: false });
+
+  // Disable an account; it can no longer sign in.
+  await go(sp, "/admin/users?q=spam");
+  await sp.getByRole("link", { name: "Bulk Inviter" }).click();
+  await sp.getByRole("button", { name: "Disable account" }).click();
+  await sp.getByRole("dialog").getByLabel("Reason (recorded in the audit log)").fill("Mass invitations to unrelated addresses");
+  await shot(sp, "admin-disable-dialog", { full: false });
+  await sp.getByRole("dialog").getByRole("button", { name: "Disable account" }).click();
+  await sp.getByText("This account is disabled").waitFor();
+  await shot(sp, "admin-user-disabled");
+  const blocked = await newPage(browser, "disabled-login", DESKTOP, ["POST /v1/auth/login 403"]);
+  await go(blocked.page, "/login");
+  await blocked.page.getByLabel("Email").fill("spam@example.com");
+  await blocked.page.getByLabel("Password").fill(PASSWORD);
+  await blocked.page.getByRole("button", { name: "Sign in" }).click();
+  await blocked.page.getByText(/This account has been disabled/).waitFor();
+  await shot(blocked.page, "login-disabled", { full: false });
+
+  // Organisations: search, detail, grant hours.
+  await go(sp, "/admin/orgs");
   await sp.getByLabel("Search organisations").fill("northside");
   await sp.getByRole("button", { name: "Search" }).click();
-  await sp.getByRole("button", { name: "Grant hours" }).first().waitFor();
-  await sp.getByRole("button", { name: "Grant hours" }).first().click();
-  await sp.getByLabel("Hours", { exact: true }).fill("5");
-  await sp.getByLabel("Note (shown to the organisation)").fill("Launch-week support credit");
-  await shot(sp, "admin-grant-hours");
-  await sp.getByRole("button", { name: "Grant hours" }).click();
-  await sp.getByText("Granted 5 h to Northside Broadcast.").waitFor();
+  await sp.getByRole("link", { name: "Northside Broadcast" }).first().waitFor();
   await shot(sp, "admin-orgs");
-  await sp.getByRole("tab", { name: "Catalogue" }).click();
+  await sp.getByRole("link", { name: "Northside Broadcast" }).first().click();
+  await sp.getByRole("heading", { name: "Northside Broadcast" }).waitFor();
+  await sp.getByRole("button", { name: "Grant hours" }).first().click();
+  const grant = sp.getByRole("dialog");
+  await grant.getByLabel("Hours", { exact: true }).fill("5");
+  await grant.getByLabel("Note (shown to the organisation)").fill("Launch-week support credit");
+  await shot(sp, "admin-grant-hours", { full: false });
+  await grant.getByRole("button", { name: "Grant hours" }).click();
+  await sp.getByText("Granted 5 h to Northside Broadcast.").waitFor();
+  await shot(sp, "admin-org-detail");
+
+  // Support inbox: the contact-form message from earlier.
+  await go(sp, "/admin/inbox");
+  await sp.getByText(/16-team league/).waitFor();
+  await shot(sp, "admin-inbox");
+  await sp.getByRole("button", { name: "Mark handled" }).first().click();
+  await sp.getByText(/marked handled/).waitFor();
+
+  // Email log (no SMTP here: emails are logged, resending explains why nothing was sent).
+  await go(sp, "/admin/emails");
+  await sp.getByText("Email delivery isn't configured").waitFor();
+  await shot(sp, "admin-emails");
+  await sp.getByRole("button", { name: /^Resend/ }).first().click();
+  await sp.getByText(/Not resent:/).waitFor();
+
+  // Catalogue edit, audit, Stripe events.
+  await go(sp, "/admin/catalog");
   await sp.getByRole("button", { name: "Edit Pro" }).click();
   await sp.getByLabel("Stripe price id").fill("price_1PRO_demo");
   await shot(sp, "admin-catalog");
   await sp.getByRole("button", { name: "Save plan" }).click();
   await sp.getByText("Plan “Pro” saved.").waitFor();
-  await sp.getByRole("tab", { name: "Stripe events" }).click();
+  await go(sp, "/admin/stripe");
   await sp.getByText("No Stripe webhook events received yet").waitFor();
-  await sp.getByRole("tab", { name: "Audit log" }).click();
+  await go(sp, "/admin/audit");
   await sp.getByText("admin.plan_saved").first().waitFor();
   await shot(sp, "admin-audit");
   // Restore the catalogue entry (no Stripe price) so billing shows the unconfigured state consistently.
-  await sp.getByRole("tab", { name: "Catalogue" }).click();
+  await go(sp, "/admin/catalog");
   await sp.getByRole("button", { name: "Edit Pro" }).click();
   await sp.getByLabel("Stripe price id").fill("");
   await sp.getByRole("button", { name: "Save plan" }).click();
   await sp.getByText("Plan “Pro” saved.").waitFor();
+
+  // ------------------------------------------------------------ support staff view (producer@ was promoted above)
+  await go(pp, "/admin");
+  await pp.getByRole("navigation", { name: "Staff console" }).waitFor();
+  await pp.getByText("Monthly recurring revenue").waitFor();
+  await go(pp, "/admin/users?q=owner");
+  await pp.getByRole("link", { name: "Riley Park" }).click();
+  await pp.getByRole("heading", { name: "Riley Park" }).waitFor();
+  await pp.getByText("Admin staff only").waitFor();
+  if ((await pp.getByRole("button", { name: "Disable account" }).count()) > 0) problems.push("[support] Disable account is offered to support staff");
+  if ((await pp.getByLabel("Staff role").count()) > 0) problems.push("[support] staff role select is offered to support staff");
+  await shot(pp, "admin-support-user-detail");
+  await go(pp, "/admin/catalog");
+  await pp.getByText(/creating and editing plans and hour packs is hidden/).waitFor();
+  if ((await pp.getByRole("button", { name: /^Edit/ }).count()) > 0) problems.push("[support] catalogue edit offered to support staff");
+  await shot(pp, "admin-support-catalog", { full: false });
+  await go(pp, "/admin/stripe");
+  await pp.getByText(/only shown to admins/).waitFor();
 
   // Owner sees the granted credit.
   await go(op, `${orgPath}/billing`);
@@ -410,9 +570,12 @@ async function main() {
   // ------------------------------------------------------------ 390 px
   const mob = await newPage(browser, "mobile", MOBILE, ["POST /v1/auth/login 401"]);
   const mp = mob.page;
+  for (const p of PUBLIC_MOBILE) {
+    await go(mp, p);
+    await mp.locator("h1").first().waitFor();
+    await shot(mp, `${PUBLIC_PAGES.find(([q]) => q === p)[1]}-mobile`);
+  }
   for (const [p, n] of [
-    ["/", "home-mobile"],
-    ["/pricing", "pricing-mobile"],
     ["/login", "login-mobile"],
     ["/signup", "signup-mobile"],
   ]) {
@@ -420,6 +583,7 @@ async function main() {
     await shot(mp, n);
   }
   await mp.getByRole("button", { name: "Menu" }).click();
+  await mp.getByRole("button", { name: "Product" }).click();
   await shot(mp, "nav-menu-mobile", { full: false });
   await mob.ctx.addCookies(await owner.ctx.cookies());
   const d3 = await deviceAuthorize("CASTER-LAPTOP");
@@ -444,8 +608,16 @@ async function main() {
   const smob = await newPage(browser, "staff-mobile", MOBILE);
   await smob.ctx.addCookies(await staff.ctx.cookies());
   await go(smob.page, "/admin");
-  await smob.page.getByText("Northside Broadcast").first().waitFor();
+  await smob.page.getByText("Monthly recurring revenue").waitFor();
   await shot(smob.page, "admin-mobile");
+  await go(smob.page, "/admin/users");
+  await smob.page.getByText(/Showing 1–/).waitFor();
+  await shot(smob.page, "admin-users-mobile");
+  await smob.page.getByRole("link", { name: "Sam Ortega" }).click();
+  await smob.page.getByRole("heading", { name: "Sam Ortega" }).waitFor();
+  await shot(smob.page, "admin-user-detail-mobile");
+  await smob.page.getByRole("button", { name: "Menu" }).click();
+  await shot(smob.page, "admin-menu-mobile", { full: false });
 
   await browser.close();
   report();

@@ -224,7 +224,8 @@ function PackEditor({ pack, onSaved, onCancel }: { pack: HourPack | null; onSave
 
 type Editing = { kind: "plan"; item: Plan | null } | { kind: "pack"; item: HourPack | null } | null;
 
-export function CatalogEditor() {
+/** Plan and hour-pack catalogue; read-only for support staff (editing needs the admin role). */
+export function CatalogEditor({ readOnly = false }: { readOnly?: boolean }) {
   const cat = useResource("admin-catalog", api.catalog);
   const [editing, setEditing] = useState<Editing>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -245,9 +246,11 @@ export function CatalogEditor() {
           <h3 id="cat-plans" className="h3">
             Plans
           </h3>
-          <Button size="sm" onClick={() => setEditing({ kind: "plan", item: null })}>
-            New plan
-          </Button>
+          {!readOnly && (
+            <Button size="sm" onClick={() => setEditing({ kind: "plan", item: null })}>
+              New plan
+            </Button>
+          )}
         </div>
         <table className="rtable">
           <thead>
@@ -278,9 +281,11 @@ export function CatalogEditor() {
                   {p.stripePriceId ?? <Badge tone="warn">none</Badge>}
                 </td>
                 <td data-label="Actions" className="cell-actions">
-                  <Button size="sm" onClick={() => setEditing({ kind: "plan", item: p })}>
-                    Edit<span className="visually-hidden"> {p.name}</span>
-                  </Button>
+                  {!readOnly && (
+                    <Button size="sm" onClick={() => setEditing({ kind: "plan", item: p })}>
+                      Edit <span className="visually-hidden">{p.name}</span>
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -293,9 +298,11 @@ export function CatalogEditor() {
           <h3 id="cat-packs" className="h3">
             Hour packs
           </h3>
-          <Button size="sm" onClick={() => setEditing({ kind: "pack", item: null })}>
-            New hour pack
-          </Button>
+          {!readOnly && (
+            <Button size="sm" onClick={() => setEditing({ kind: "pack", item: null })}>
+              New hour pack
+            </Button>
+          )}
         </div>
         <table className="rtable">
           <thead>
@@ -323,9 +330,11 @@ export function CatalogEditor() {
                   {h.stripePriceId ?? <Badge tone="warn">none</Badge>}
                 </td>
                 <td data-label="Actions" className="cell-actions">
-                  <Button size="sm" onClick={() => setEditing({ kind: "pack", item: h })}>
-                    Edit<span className="visually-hidden"> {h.name}</span>
-                  </Button>
+                  {!readOnly && (
+                    <Button size="sm" onClick={() => setEditing({ kind: "pack", item: h })}>
+                      Edit <span className="visually-hidden">{h.name}</span>
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}

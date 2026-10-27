@@ -8,7 +8,9 @@ import { ActionButton, Alert, Badge, Button, Card, FormError, PageHeader, TextFi
 import { formatDate } from "../lib/format.ts";
 import { useTitle } from "../lib/hooks.ts";
 import { ROLE_LABEL } from "../lib/roles.ts";
+import { STAFF_ROLE_LABEL, staffRoleOf } from "../lib/staff.ts";
 import { Link } from "../router.tsx";
+import { DataExportCard, SessionsCard } from "./AccountSessions.tsx";
 import { DownloadCard } from "./Download.tsx";
 import { useSession } from "../state/session.tsx";
 
@@ -154,7 +156,7 @@ export function Account() {
   const u = me.user;
   return (
     <>
-      <PageHeader title="Account" subtitle="Your profile, email address, password and organisations." />
+      <PageHeader title="Account" subtitle="Your profile, sign-in details, sessions, organisations and data." />
       <div className="stack-lg">
         <Card title="Profile">
           <dl className="kv">
@@ -172,7 +174,7 @@ export function Account() {
               <div>
                 <dt>Access</dt>
                 <dd>
-                  Matchframe staff · <Link to="/admin">Admin</Link>
+                  Matchframe staff ({STAFF_ROLE_LABEL[staffRoleOf(u) ?? "support"].toLowerCase()}) · <Link to="/admin">Admin console</Link>
                 </dd>
               </div>
             )}
@@ -222,10 +224,14 @@ export function Account() {
           <CreateOrgForm />
         </Card>
 
+        <SessionsCard />
+
         <DownloadCard />
 
+        <DataExportCard />
+
         <Card title="Sign out">
-          <p className="muted">Signs out this browser only. Changing your password signs out everywhere else.</p>
+          <p className="muted">Signs out this browser only. To sign out elsewhere, use Active sessions above; changing your password also signs out every other browser.</p>
           <ActionButton variant="danger" action={() => signOut(clear)}>
             Sign out
           </ActionButton>

@@ -56,11 +56,25 @@ export function useResource<T>(key: string | null, load: () => Promise<T>): Reso
   return { data, error: cause ? describeError(cause) : null, cause, loading, reload: run, setData };
 }
 
-/** Sets document.title to "<title> · Matchframe". */
-export function useTitle(title: string): void {
+export const DEFAULT_DESCRIPTION =
+  "Matchframe is a Windows program for Counter-Strike 2 broadcasts: HUDs for OBS, an automatic director with manual takeover, observer camera control, replays and match administration.";
+
+function setMeta(name: string, content: string): void {
+  let el = document.head.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
+  if (!el) {
+    el = document.createElement("meta");
+    el.name = name;
+    document.head.appendChild(el);
+  }
+  el.content = content;
+}
+
+/** Sets document.title to "<title> · Matchframe" and the page's meta description. */
+export function useTitle(title: string, description: string = DEFAULT_DESCRIPTION): void {
   useEffect(() => {
-    document.title = title ? `${title} · Matchframe` : "Matchframe";
-  }, [title]);
+    document.title = title ? `${title} · Matchframe` : "Matchframe — CS2 broadcast production for Windows";
+    setMeta("description", description);
+  }, [title, description]);
 }
 
 /** Re-renders every `ms` (for countdowns); returns Date.now(). */
