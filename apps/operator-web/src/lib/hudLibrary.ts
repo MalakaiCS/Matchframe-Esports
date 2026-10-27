@@ -151,7 +151,7 @@ export function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-const FIELD_TYPES = new Set(["boolean", "number", "string", "color", "select"]);
+const FIELD_TYPES = new Set(["boolean", "number", "string", "color", "select", "player", "team", "action"]);
 
 /** Schema entries the settings form can render; anything else is edited in the JSON editor. */
 export function formFields(schema: Record<string, unknown> | null | undefined): [string, HudSettingField][] {

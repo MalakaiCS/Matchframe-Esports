@@ -11,11 +11,12 @@ import type { Router } from "../http/router.ts";
 
 const isLoopbackAddress = (a: string | undefined) => a === "127.0.0.1" || a === "::1" || a === "::ffff:127.0.0.1";
 
-/** The package folder: the folder itself, or its only subfolder when manifest.json is one level down. */
+/** The package folder: the folder itself, or its only subfolder when manifest.json (or an LHM HUD's hud.json) is one level down. */
 function packageFolder(dir: string): string {
-  if (existsSync(join(dir, "manifest.json"))) return dir;
+  const isPackage = (d: string) => existsSync(join(d, "manifest.json")) || existsSync(join(d, "hud.json"));
+  if (isPackage(dir)) return dir;
   const subs = readdirSync(dir).filter((n) => statSync(join(dir, n)).isDirectory());
-  return subs.length === 1 && existsSync(join(dir, subs[0]!, "manifest.json")) ? join(dir, subs[0]!) : dir;
+  return subs.length === 1 && isPackage(join(dir, subs[0]!)) ? join(dir, subs[0]!) : dir;
 }
 
 /** HUD Library operator API (ADR-020). Every mutation is audited. */
@@ -81,6 +82,11 @@ export function registerHudLibraryRoutes(r: Router, e: Engine): void {
   });
 
   /** Settings are pushed live to every output of the HUD. */
+  r.post("/api/v1/hud/library/:id/action", { permission: "hud.publish", body: z.object({ key: z.string().min(1).max(64), value: z.string().min(1).max(64) }) }, (req) => {
+    lib.action(req.params.id!, req.body.key, req.body.value);
+    e.audit.record(req.principal!.label, "hud.library.action", req.params.id!, req.body);
+    return { sent: true };
+  });
   r.put("/api/v1/hud/library/:id/settings", { permission: "hud.publish", body: z.object({ settings: z.record(z.string(), z.unknown()), presetId: z.string().max(64).nullable().optional() }) }, (req) => {
     const entry = lib.setSettings(req.params.id!, req.body.settings, req.body.presetId);
     e.audit.record(req.principal!.label, "hud.library.settings", entry.id, { presetId: entry.presetId });

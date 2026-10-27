@@ -179,6 +179,7 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/hud/library/:id/duplicate` | hud.publish |
 | GET | `/api/v1/hud/library/:id/export` | metadata.read |
 | DELETE | `/api/v1/hud/library/:id` | hud.publish |
+| POST | `/api/v1/hud/library/:id/action` | hud.publish |
 | PUT | `/api/v1/hud/library/:id/settings` | hud.publish |
 | POST | `/api/v1/hud/library/:id/start` | hud.publish |
 | POST | `/api/v1/hud/library/:id/stop` | hud.publish |

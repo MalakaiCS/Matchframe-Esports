@@ -39,9 +39,14 @@ A HUD package is a folder (or ZIP of one) with `manifest.json` at its root (or o
 | `description`, `category`, `tags` | no | shown and filtered in the library |
 | `thumbnail` | no | package-relative image for the library card (falls back to `preview`) |
 | `designResolution` | no | `{ "width": 1920, "height": 1080 }`; defaults to the first of `resolutions` |
-| `presets`, `settingsSchema`, `resolutions` | no | `settingsSchema` values follow `HudSettingField` (`boolean`, `number`, `string`, `color`, `select`) and produce the settings form |
+| `presets`, `settingsSchema`, `resolutions` | no | `settingsSchema` values follow `HudSettingField` (`boolean`, `number`, `string`, `color`, `select`; `player` and `team` store an id; `action` is a row of buttons, never stored) and produce the settings form |
+| `runtime` | no | `"matchframe"` (default) or `"lhm"`; written by the importer for LHM-format HUDs (below) |
 
 A HUD page connects to the HUD server with the read-only SDK (`/sdk/hud-sdk.js`), using the `output`, `variant` and `t` query parameters it is opened with, and receives `hud.snapshot` messages (public HUD state, including `settings`). Its `html` and `body` backgrounds must be transparent.
+
+### LHM-format HUDs (ADR-023)
+
+A folder with `hud.json` and `index.html` and no `manifest.json` (at the root or one folder down) is an LHM-format HUD. Import converts it (`services/local-engine/src/hud/lhm.ts`): it writes `manifest.json` with id `lhm.<slug of hud.json name>`, the `hud.json` version as semver, category `LHM`, entry point `live: index.html`, design size 1920×1080, `thumb.png` as the thumbnail and `runtime: "lhm"`. `panel.json` becomes `settingsSchema` with keys `<section>.<input>`: `text` → string, `checkbox` → boolean, `color`, `select`, `player`, `team`, `action` (buttons). `images` inputs are left out. A `hud.json` for another game is refused. The original files stay in the package, so export gives back the HUD plus its manifest.
 
 ### Import, update and conflicts
 
@@ -58,6 +63,11 @@ Read-only, GET only, bound to `127.0.0.1` unless `MATCHFRAME_HOST` says otherwis
 - `GET /overlay-ws?output=hud:<id>&variant=<v>&t=<token>` — the existing HUD state socket also accepts library outputs. The state is the live timeline (no delay), the HUD's settings and preset, profile `program`. A new connection gets the current snapshot immediately; settings changes push a new snapshot to every output of that HUD.
 - Tokens: one random token per library HUD (rotatable). They guard the state and control sockets and the output page; package files under `/huds/<id>/…` and the built-in renderer under `/hud/…` are static and public on this computer.
 - Existing broadcast outputs (`/overlay/<output>/<variant>`, draft/publish/rollback, delay) keep working unchanged.
+- **LHM compatibility layer** (`services/local-engine/src/hud/lhm-runtime.ts`), for HUDs with `runtime: "lhm"`:
+  - The output page adds `isProd=1` to the frame URL (the template then uses its own origin for the API and socket). It also sets the cookie `mf_lhm_<hud-id>=<token>` (HttpOnly, SameSite=Strict, path `/`), because LHM HUDs can't send the token in requests.
+  - `/socket.io` (socket.io 4, polling and WebSocket), only with a cookie matching a current LHM HUD token. On connect the server sends `readyToRegister`. The HUD's `register(<hud-id>)` joins it to its room and returns `hud_config`: `{ [section]: { [input]: value } }`, with player and team values expanded to LHM's `{ type, id, player | team }`. It is sent again when settings change. Broadcast to every LHM HUD: `update` (each accepted GSI packet without `auth`; simulated packets while Test data runs), `update_mirv` (each new paired kill as an HLAE `player_death`), `match` (the current match changed; checked every 2 s). Per HUD: `hud_action { action: <input>, data: <value> }` from `POST /api/v1/hud/library/:id/action`. Other messages from HUDs are ignored.
+  - `GET /api/…`, with the same cookie (401 without it): `match` and `match/current` (the active match: left/right team ids from the live sides, series wins, maps as vetos), `teams`, `teams/:id` (`extra.TeamColor` and `SecondaryColor` from the team colours), `teams/logo/:id` (302 to the logo asset), `players?steamids=a;b`, `players/avatar/steamid/:id`, `tournament` (null), `camera` (no players), `radar/maps` (empty: older templates bundle their radars), `game-maps/cs2` and `game-maps/cs2/image/<map>/radar` (the built-in radars with their calibration and Nuke/Vertigo height layers). Anything else is 404.
+  - LHM HUD files are served with the overlay CSP plus `https://fonts.googleapis.com` (styles) and `https://fonts.gstatic.com` (fonts). The output page shows a TEST DATA badge over them while the simulation runs (`HudRuntimeControl.testData`).
 
 ## Operator API (engine API port, bearer token)
 
@@ -70,6 +80,7 @@ Read-only, GET only, bound to `127.0.0.1` unless `MATCHFRAME_HOST` says otherwis
 | `GET /api/v1/hud/library/:id/export` | metadata.read | ZIP download (`<id>-<version>.zip`) |
 | `DELETE /api/v1/hud/library/:id` | hud.publish | remove (built-in refused; in use by a published broadcast output → 409 `in_use`) |
 | `PUT /api/v1/hud/library/:id/settings` | hud.publish | `{ settings, presetId? }`; pushed live to its outputs |
+| `POST /api/v1/hud/library/:id/action` | hud.publish | `{ key, value }`: a panel button of an LHM-format HUD; 400 for a button the panel doesn't have, 409 when the HUD isn't running |
 | `POST /api/v1/hud/library/:id/start` / `stop` | hud.publish | clears/sets `stopped`; start also records last used |
 | `POST /api/v1/hud/library/:id/reload` | hud.publish | increments `reloadSeq` |
 | `POST /api/v1/hud/library/:id/rollback` | hud.publish | previous installed version |

@@ -25,10 +25,12 @@
     "@matchframe/obs-adapter": "workspace:*",
     "@matchframe/game-adapters": "workspace:*",
     "@matchframe/matchframe-bridge": "workspace:*",
-    "@matchframe/cloud-contracts": "workspace:*"
+    "@matchframe/cloud-contracts": "workspace:*",
+    "socket.io": "4.8.1"
   },
   "devDependencies": {
     "@types/ws": "8.18.2",
-    "@matchframe/cloud-api": "workspace:*"
+    "@matchframe/cloud-api": "workspace:*",
+    "socket.io-client": "4.8.1"
   }
 }

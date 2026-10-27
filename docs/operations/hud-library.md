@@ -70,6 +70,26 @@ HLAE is a separate download (MIT licence) and is not included with Matchframe. M
 
 Other actions, under **⋯** on the HUD's row: **Reload**, **Stop**, **Duplicate** (a copy you can change), **Export ZIP**, **Open Folder**, **Remove…**. The built-in HUD can't be removed, exported or duplicated.
 
+## LHM-format HUDs
+
+HUDs made for Lexogrine HUD Manager (LHM) can be imported as they are: a ZIP or folder with `hud.json` and `index.html`, usually also `panel.json`. Many custom HUDs are built this way. LHM doesn't need to be installed and no LHM account is needed.
+
+1. **Add HUD → Import HUD ZIP…** (or **Import HUD folder…**) and pick the HUD. It appears in the **LHM** category with the id `lhm.<its name>`. Its details show **Format: LHM-format HUD**.
+2. If the HUD uses team names, logos, colours or player photos, enter the teams and players in **Teams** and **Players** and make the match active in **Matches**. The HUD reads them from Matchframe, the way it read them from LHM. Without an active match it shows the names CS2 sends.
+3. The HUD's control panel (`panel.json`) becomes its **Appearance** settings, grouped by panel section: text, checkboxes, colours and lists. Player and team choices are lists of Matchframe's players (and the players in the game) and teams. **Save settings** sends them to the running HUD.
+4. Panel buttons (for example *Toggle Header* or *Show veto*) appear as buttons in **Appearance** and act straight away. They work only while the HUD is running (desktop, preview or OBS); otherwise the program says the HUD isn't running.
+5. Show it like any other HUD: the **Desktop** switch, **Preview**, or **Copy OBS Browser URL**. The OBS size is 1920×1080.
+
+What works: everything the HUD draws from game data (scoreboard, players, bomb, utility, its own minimap and killfeed), its fonts, its settings and buttons, teams, players and the current match, and Matchframe's built-in radars for HUDs that ask for them. During **Test data**, a purple **TEST DATA** label appears at the top of the HUD.
+
+Limits:
+
+- **Killfeed**: CS2's game data has no kill events. The killfeed shows Matchframe's paired kills (killer, weapon in hand, headshot, assister, blind killer), so wallbang, no-scope, through-smoke and flash-assist icons never appear. Kills made before the HUD opened don't appear either.
+- No output delay: LHM-format HUDs always show live data.
+- Not supported: image inputs in the panel (for example sponsor boards), the HUD's keyboard shortcuts (`keybinds.json`), player cameras, and anything that needs LHM's cloud. The rest of the HUD still works.
+- Fonts from Google Fonts load from the internet. Offline, the HUD falls back to other fonts.
+- Only CS2 (and CS:GO-format) HUDs are accepted.
+
 ## Test data
 
 The **Test data** switch starts the labelled simulation: a synthetic 5v5 on a synthetic map, offline. The header shows **Test data** while it runs, and HUDs show a test-data label. Stop it before a real match; real game data is ignored while it runs.
@@ -124,6 +144,8 @@ The header shows the game-data state. If CS2 stops sending data (game closed, ma
 | OBS source shows nothing | URL copied from this computer's library, HUD not stopped or hidden, source size as shown, Matchframe running |
 | OBS source shows a black background | Custom CSS in the source settings; clear it |
 | HUD shows Error | The package's files changed on disk or its entry file is missing: re-import it |
+| LHM-format HUD stays empty | Opened through Matchframe's URL (Preview, Desktop or Copy OBS Browser URL), not by opening `index.html`; game data arriving or Test data on; after **New access key**, copy the URL again |
+| LHM-format HUD shows no team names or logos | Teams entered in **Teams** with logos, and the match active in **Matches** |
 | Hotkey not working | Registration failure in the HUD's details; choose another combination |
 | Console never connects | CS2 Workshop Tools installed; CS2 started with Start CS2 (not already running); the same console port in Setup and in CS2's launch options |
 | HLAE could not start CS2 | Latest HLAE installed (CS2 updates break older versions); Steam running; the HLAE folder still has `x64\AfxHookSource2.dll` |

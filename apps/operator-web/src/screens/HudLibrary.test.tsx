@@ -20,6 +20,7 @@ function hud(over: Partial<HudLibraryEntry> & Pick<HudLibraryEntry, "id" | "name
     tags: [],
     game: "cs2",
     kind: "imported",
+    runtime: "matchframe",
     thumbnailUrl: null,
     variants: ["live"],
     designResolution: { width: 1920, height: 1080 },

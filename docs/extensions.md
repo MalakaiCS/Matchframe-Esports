@@ -21,10 +21,15 @@ A HUD package is a folder or zip with a `manifest.json` at its root (or inside o
 | `description`, `category`, `tags` | optional; shown, searched and filtered in the HUD Library |
 | `thumbnail` | optional package-relative image for the library card (falls back to `preview`) |
 | `designResolution` | optional `{ "width": 1920, "height": 1080 }`: the size the HUD is laid out for. Outputs scale it uniformly (letterboxed, never stretched). Defaults to the first of `resolutions` |
-| `settingsSchema` | optional settings form for the library: `{ "key": { "type": "boolean" \| "number" \| "string" \| "color" \| "select", "label", "default", "options": [{ "value", "label" }], "min", "max", "step", "group" } }`. Values arrive in `state.settings` and update live |
+| `settingsSchema` | optional settings form for the library: `{ "key": { "type": "boolean" \| "number" \| "string" \| "color" \| "select" \| "player" \| "team", "label", "default", "options": [{ "value", "label" }], "min", "max", "step", "group" } }`. `player` stores a SteamID and `team` a Matchframe team id, both picked from lists. Values arrive in `state.settings` and update live |
 | `presets`, `resolutions`, `preview` | optional |
+| `runtime` | optional, `"matchframe"` (default). `"lhm"` is set by the importer for LHM-format HUDs (below); don't set it yourself |
 
 Ids `assets` and `sdk` are reserved.
+
+### LHM-format HUDs
+
+HUDs built for Lexogrine HUD Manager on Lexogrine's MIT HUD template (`hud.json`, `index.html`, optionally `panel.json`) import without changes. The importer writes the manifest and turns `panel.json` into the settings form. At run time the HUD server provides what the template expects from LHM: socket.io with raw game data, panel settings and buttons, and `/api` with Matchframe's teams, players, current match and built-in radars. Operator steps and limits are in `docs/operations/hud-library.md` (LHM-format HUDs); the protocol details are in `docs/architecture/hud-library.md` (ADR-023). New HUDs should use the HUD SDK below: it gives the processed state (killfeed, utility, radar, series, delay) that LHM HUDs have to work out from raw data.
 
 ### What the engine enforces on import
 

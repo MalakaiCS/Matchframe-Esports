@@ -97,11 +97,12 @@ export function readDirectory(dir: string): Map<string, Uint8Array> {
 }
 
 function stripCommonRoot(files: Map<string, Uint8Array>): Map<string, Uint8Array> {
-  if (files.has("manifest.json")) return files;
+  if (files.has("manifest.json") || files.has("hud.json")) return files;
   const roots = new Set([...files.keys()].map((k) => k.split("/")[0]));
   if (roots.size !== 1) return files;
   const root = [...roots][0]!;
-  if (!files.has(`${root}/manifest.json`)) return files;
+  // A package folder inside the archive: manifest.json, or hud.json for an LHM-format HUD.
+  if (!files.has(`${root}/manifest.json`) && !files.has(`${root}/hud.json`)) return files;
   return new Map([...files].map(([k, v]) => [k.slice(root.length + 1), v]));
 }
 

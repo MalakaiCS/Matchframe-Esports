@@ -54,6 +54,12 @@ export const HudManifest = z.object({
   settingsSchema: z.record(z.string(), z.unknown()).default({}),
   resolutions: z.array(z.enum(["1920x1080", "2560x1440", "3840x2160"])).default(["1920x1080"]),
   classification: z.enum(["builtin", "imported"]).default("imported"),
+  /**
+   * "matchframe": the HUD reads HudState from the overlay socket. "lhm": an LHM-format HUD (Lexogrine
+   * template protocol), converted on import; it receives raw game data over socket.io and reads
+   * teams and players from /api (Matchframe's LHM compatibility layer).
+   */
+  runtime: z.enum(["matchframe", "lhm"]).default("matchframe"),
 });
 export type HudManifest = z.infer<typeof HudManifest>;
 
@@ -74,9 +80,13 @@ export type OverlayOutput = z.infer<typeof OverlayOutput>;
 /** Package ids that would clash with the overlay server's own paths under /hud/. */
 export const RESERVED_HUD_IDS = ["assets", "sdk", "thumbnail.webp", "index.html"] as const;
 
-/** One field of a HUD's settings form (manifest `settingsSchema` values). Unknown shapes are edited as JSON. */
+/**
+ * One field of a HUD's settings form (manifest `settingsSchema` values). Unknown shapes are edited as
+ * JSON. "player" and "team" store a Steam ID or team id chosen from Matchframe's data; "action" is a
+ * row of buttons (`options`) that send a one-off action to the HUD and store nothing.
+ */
 export const HudSettingField = z.object({
-  type: z.enum(["boolean", "number", "string", "color", "select"]),
+  type: z.enum(["boolean", "number", "string", "color", "select", "player", "team", "action"]),
   label: z.string().max(80).optional(),
   description: z.string().max(200).optional(),
   default: z.unknown().optional(),
@@ -104,6 +114,8 @@ export interface HudLibraryEntry {
   game: "cs2";
   /** builtin: part of the program; sample: bundled sample installed into the library; imported: added by the user. */
   kind: "builtin" | "sample" | "imported";
+  /** How the HUD gets its data: Matchframe's HUD state, or the LHM compatibility layer (LHM-format HUDs). */
+  runtime: "matchframe" | "lhm";
   /** Absolute URL on the HUD server, or null. */
   thumbnailUrl: string | null;
   variants: HudVariant[];
@@ -147,4 +159,6 @@ export interface HudRuntimeControl {
   /** Increments when the operator reloads the HUD or installs a new version: wrappers reload the HUD frame. */
   reloadSeq: number;
   designResolution: { width: number; height: number };
+  /** The labelled simulation is running (wrappers of HUDs that do not label it themselves show a badge). */
+  testData?: boolean;
 }

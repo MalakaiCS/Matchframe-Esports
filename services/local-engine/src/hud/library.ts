@@ -10,7 +10,8 @@ import { HttpError } from "../http/router.ts";
 import type { Logger } from "../logger.ts";
 import type { OutputService } from "./outputs.ts";
 import type { HudPackageManager, InstalledPackage } from "./packages.ts";
-import { readDirectory, safeEntryPath, validateManifest } from "./packages.ts";
+import { convertLhmPackage } from "./lhm.ts";
+import { PackageError, readDirectory, safeEntryPath, validateManifest } from "./packages.ts";
 
 export type LibraryKind = HudLibraryEntry["kind"];
 export type OnConflict = "fail" | "replace" | "copy";
@@ -30,6 +31,8 @@ export type LibraryEvent =
 /** Live output counts, provided by the HUD server while it runs. */
 export interface LibraryRuntime {
   outputs(hudId: string): Record<HudOutputMode, number>;
+  /** Sends a panel button press to an LHM-format HUD; false when it is not one of its buttons. */
+  action?(hudId: string, key: string, value: string): boolean;
 }
 
 export interface HudLibraryDeps {
@@ -132,6 +135,13 @@ function coerceSetting(key: string, f: HudSettingField, v: unknown): Coerced {
       if (s !== null && options.some((o) => o.value === s)) return { ok: true, value: s };
       return { ok: false, message: `${name} must be one of: ${options.map((o) => o.value).join(", ")}` };
     }
+    case "player":
+    case "team":
+      if (v === "") return { ok: true, value: "" };
+      if (typeof v === "string" && /^[A-Za-z0-9_.:-]{1,64}$/.test(v)) return { ok: true, value: v };
+      return { ok: false, message: `${name} must be a ${f.type === "player" ? "player" : "team"} from Matchframe` };
+    case "action":
+      return { ok: false, message: `${name} is a button: it sends an action and stores nothing` };
   }
 }
 
@@ -139,9 +149,10 @@ function coerceSetting(key: string, f: HudSettingField, v: unknown): Coerced {
  * Normalizes a manifest `settingsSchema` into form fields. Valid `HudSettingField`s are kept, a
  * bare default value (`"accent": "#ff3300"`) becomes a field of its type, select options may be
  * plain strings, and defaults that do not fit their field are dropped. Other shapes are left out
- * of the form; their values are still kept in the HUD's settings.
+ * of the form; their values are still kept in the HUD's settings. Buttons ("action") are kept only
+ * for LHM-format HUDs, the only HUDs they can be sent to.
  */
-export function normalizeSettingsSchema(raw: Record<string, unknown> | undefined): Record<string, HudSettingField> {
+export function normalizeSettingsSchema(raw: Record<string, unknown> | undefined, runtime: "matchframe" | "lhm" = "matchframe"): Record<string, HudSettingField> {
   const out: Record<string, HudSettingField> = {};
   for (const [key, value] of Object.entries(raw ?? {})) {
     if (key.length === 0 || key.length > 64) continue;
@@ -150,7 +161,7 @@ export function normalizeSettingsSchema(raw: Record<string, unknown> | undefined
       const v = value as Record<string, unknown>;
       const options = Array.isArray(v.options) ? v.options.map((o) => (typeof o === "string" ? { value: o, label: o } : o)) : v.options;
       const r = HudSettingField.safeParse({ ...v, options });
-      if (r.success && (r.data.type !== "select" || (r.data.options?.length ?? 0) > 0)) field = r.data;
+      if (r.success && (r.data.type !== "action" || runtime === "lhm") && ((r.data.type !== "select" && r.data.type !== "action") || (r.data.options?.length ?? 0) > 0)) field = r.data;
     } else if (typeof value === "boolean") field = { type: "boolean", default: value };
     else if (typeof value === "number" && Number.isFinite(value)) field = { type: "number", default: value };
     else if (typeof value === "string") field = { type: COLOR_RE.test(value) && value.startsWith("#") ? "color" : "string", default: value };
@@ -176,6 +187,8 @@ export function validateSettings(schema: Record<string, HudSettingField>, input:
       out[key] = value;
       continue;
     }
+    // Buttons store nothing (the form never sends them; anything sent is dropped).
+    if (f.type === "action") continue;
     const r = coerceSetting(key, f, value);
     if (r.ok) out[key] = r.value;
     else problems.push(r.message);
@@ -325,7 +338,7 @@ export class HudLibraryService {
   private toEntry(pkg: InstalledPackage, row: LibraryRow): HudLibraryEntry {
     const m = pkg.manifest;
     const builtin = pkg.classification === "builtin";
-    const schema = normalizeSettingsSchema(m.settingsSchema);
+    const schema = normalizeSettingsSchema(m.settingsSchema, m.runtime);
     const variants = HUD_VARIANTS.filter((v) => m.entryPoints[v]);
     const outputs = this.runtime?.outputs(pkg.id) ?? zeroOutputs();
     const error = this.problem(pkg);
@@ -343,6 +356,7 @@ export class HudLibraryService {
       tags: m.tags,
       game: m.game,
       kind: row.kind,
+      runtime: m.runtime ?? "matchframe",
       thumbnailUrl: this.thumbnailUrl(pkg),
       variants,
       designResolution: designResolutionOf(m),
@@ -414,7 +428,17 @@ export class HudLibraryService {
   }
 
   /** What a library HUD's outputs render with (settings incl. defaults, preset, implemented variants). Null for an unknown HUD. */
-  runtimeConfig(id: string): { settings: Record<string, unknown>; presetId: string | null; variants: HudVariant[]; entryPoints: HudManifest["entryPoints"]; builtin: boolean; designResolution: { width: number; height: number }; name: string } | null {
+  runtimeConfig(id: string): {
+    settings: Record<string, unknown>;
+    presetId: string | null;
+    variants: HudVariant[];
+    entryPoints: HudManifest["entryPoints"];
+    builtin: boolean;
+    designResolution: { width: number; height: number };
+    name: string;
+    runtime: HudManifest["runtime"];
+    installDir: string | null;
+  } | null {
     if (!this.has(id)) return null;
     const pkg = this.d.packages.get(id);
     const row = this.row(id);
@@ -428,6 +452,8 @@ export class HudLibraryService {
       builtin: pkg.classification === "builtin",
       designResolution: designResolutionOf(m),
       name: m.name,
+      runtime: m.runtime ?? "matchframe",
+      installDir: pkg.classification === "builtin" ? null : pkg.installDir,
     };
   }
 
@@ -438,6 +464,14 @@ export class HudLibraryService {
     const a = Buffer.from(token);
     const b = Buffer.from(expected);
     return a.length === b.length && timingSafeEqual(a, b);
+  }
+
+  /** A settings-form button ("action" field) pressed for this HUD. */
+  action(id: string, key: string, value: string): void {
+    const { pkg } = this.require(id);
+    const field = normalizeSettingsSchema(pkg.manifest.settingsSchema, pkg.manifest.runtime)[key];
+    if (!field || field.type !== "action" || !field.options?.some((o) => o.value === value)) throw new HttpError(400, `${key} has no button ${value}`, "unknown_action");
+    if (!this.runtime?.action?.(id, key, value)) throw new HttpError(409, "the HUD is not running: open it first", "not_running");
   }
 
   control(id: string): HudRuntimeControl | null {
@@ -454,7 +488,14 @@ export class HudLibraryService {
    * unless onConflict says `replace` (install over it; the replaced version becomes the rollback
    * target; running outputs reload) or `copy` (install as `<id>-copy[-n]`, "<name> (copy)").
    */
-  importFiles(files: Map<string, Uint8Array>, onConflict: OnConflict = "fail"): { entry: HudLibraryEntry; result: "installed" | "replaced" | "copied" } {
+  importFiles(input: Map<string, Uint8Array>, onConflict: OnConflict = "fail"): { entry: HudLibraryEntry; result: "installed" | "replaced" | "copied" } {
+    // LHM-format HUDs (hud.json) get a manifest.json and run in the LHM compatibility layer.
+    let files: Map<string, Uint8Array>;
+    try {
+      files = convertLhmPackage(input).files;
+    } catch (e) {
+      throw new PackageError(e instanceof Error ? e.message : String(e));
+    }
     const manifest = validateManifest(files);
     this.sync();
     const existing = this.d.packages.get(manifest.id);

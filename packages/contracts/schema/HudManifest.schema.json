@@ -74,6 +74,62 @@
         "null"
       ]
     },
+    "thumbnail": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "category": {
+      "default": null,
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 40
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tags": {
+      "default": [],
+      "maxItems": 12,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 24
+      }
+    },
+    "designResolution": {
+      "default": null,
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "integer",
+              "minimum": 320,
+              "maximum": 7680
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 180,
+              "maximum": 4320
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "permissions": {
       "type": "array",
       "items": {
@@ -138,6 +194,14 @@
       "enum": [
         "builtin",
         "imported"
+      ]
+    },
+    "runtime": {
+      "default": "matchframe",
+      "type": "string",
+      "enum": [
+        "matchframe",
+        "lhm"
       ]
     }
   },

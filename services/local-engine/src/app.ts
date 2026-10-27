@@ -9,7 +9,7 @@ import type { DerivedEvent, MeasuredProfilesFile, ProfileSet } from "@matchframe
 import { DEFAULT_PROFILES, profilesFromMeasured } from "@matchframe/cs2-state";
 import type { UtilityScenarioRule } from "@matchframe/director-policy";
 import { INFERNO_BOTTOM_BANANA_RULE } from "@matchframe/director-policy";
-import type { HudState } from "@matchframe/hud-sdk";
+import type { HudKillfeedEntry, HudState } from "@matchframe/hud-sdk";
 import { MapRegistry, syntheticMapPack } from "@matchframe/map-runtime";
 import { ObsManager } from "@matchframe/obs-adapter";
 import { loadWindowsInputBackend, KeyboardObserverAdapter, NetconObserverAdapter, NoControlAdapter, SimulationObserverAdapter } from "@matchframe/observer-agent";
@@ -126,6 +126,8 @@ export class Engine {
   /** Start CS2 (launch profile) and the game's console while it runs (console options). */
   readonly gameConsole: GameConsoleService;
   private meterTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly rawGsiListeners = new Set<(payload: Record<string, unknown>, simulated: boolean) => void>();
+  private readonly killListeners = new Set<(entry: HudKillfeedEntry) => void>();
   private cloudMap: string | null = null;
 
   private readonly killfeed = new KillfeedBuilder();
@@ -332,6 +334,7 @@ export class Engine {
       },
       resolutions: ["1920x1080", "2560x1440", "3840x2160"],
       classification: "builtin",
+      runtime: "matchframe",
     };
     this.hudPackages.registerBuiltin(manifest, this.cfg.hudRendererDir ?? "");
     this.outputs.ensureDefaults("matchframe-default");
@@ -582,7 +585,9 @@ export class Engine {
       const reg = this.players.get(this.steamIndex.lookup(steamId) ?? "")?.data;
       return { name: reg?.displayName ?? p?.name ?? steamId, side: (p?.side ?? null) as Side | null };
     };
+    const before = new Set(this.killfeed.list().map((k) => k.id));
     this.killfeed.ingest(evs, nameOf);
+    for (const k of this.killfeed.list()) if (!before.has(k.id)) for (const fn of this.killListeners) fn(k);
     if (state) {
       for (const e of evs) {
         if (e.kind === "round_end" && typeof e.data.roundNumber === "number" && e.data.winnerSide) {
@@ -681,6 +686,32 @@ export class Engine {
     }
   }
 
+  // ---------------------------------------------------------------------------- raw game data
+
+  /** Every accepted game-data packet as CS2 sent it (auth token removed), for LHM-format HUDs. */
+  onRawGsi(fn: (payload: Record<string, unknown>, simulated: boolean) => void): () => void {
+    this.rawGsiListeners.add(fn);
+    return () => this.rawGsiListeners.delete(fn);
+  }
+
+  /** Each new killfeed entry (LHM-format HUDs get it as an HLAE-style player_death event). */
+  onKill(fn: (entry: HudKillfeedEntry) => void): () => void {
+    this.killListeners.add(fn);
+    return () => this.killListeners.delete(fn);
+  }
+
+  emitRawGsi(payload: unknown, simulated: boolean): void {
+    if (this.rawGsiListeners.size === 0 || !payload || typeof payload !== "object") return;
+    const { auth: _auth, ...rest } = payload as Record<string, unknown>;
+    for (const fn of this.rawGsiListeners) {
+      try {
+        fn(rest, simulated);
+      } catch (err) {
+        this.logger.warn("raw game data listener failed", { error: String(err) });
+      }
+    }
+  }
+
   // ---------------------------------------------------------------------------- simulation
 
   get simulationRunning(): boolean {
@@ -700,6 +731,7 @@ export class Engine {
       const payload = simulator.payload(token);
       const text = JSON.stringify(payload);
       this.session.ingestGsi(payload, "simulation", this.now(), text);
+      this.emitRawGsi(payload, true);
     }, 100);
     this.sim = { simulator, adapter, timer };
     this.sides = new TeamSideTracker();

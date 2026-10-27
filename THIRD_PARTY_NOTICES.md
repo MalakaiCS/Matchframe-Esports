@@ -16,6 +16,12 @@ Matchframe Esports is original software. This file lists third-party components 
 | ↳ eventemitter3 | 5.0.4 | MIT | obs-websocket-js |
 | ↳ isomorphic-ws | 5.0.0 | MIT | obs-websocket-js |
 | ↳ type-fest | 3.13.1 | MIT OR CC0-1.0 | obs-websocket-js (types) |
+| socket.io | 4.8.1 | MIT | LHM-format HUDs (the LHM compatibility layer's socket) |
+| ↳ engine.io, engine.io-parser | 6.6.11, 5.2.3 | MIT | socket.io |
+| ↳ socket.io-adapter, socket.io-parser, @socket.io/component-emitter | 2.5.8, 4.2.7, 3.1.2 | MIT | socket.io |
+| ↳ accepts, mime-types, mime-db, negotiator | 1.3.8, 2.1.35, 1.52.0, 0.6.3 | MIT | socket.io |
+| ↳ base64id, cookie, cors, object-assign, vary | 2.0.0, 0.7.2, 2.8.6, 4.1.1, 1.1.2 | MIT | socket.io, engine.io |
+| ↳ debug, ws | 4.3.7, 8.21.3 | MIT | socket.io, engine.io |
 | react, react-dom, scheduler | 19.3.1, 19.3.1, 0.28.0 | MIT | HUD renderer, operator UI |
 | @fontsource/inter | 5.3.0 | OFL-1.1 (font: Inter, © The Inter Project Authors) | HUD renderer |
 | @fontsource/barlow-condensed | 5.3.0 | OFL-1.1 (font: Barlow, © The Barlow Project Authors) | HUD renderer (Arena preset) |
@@ -62,7 +68,8 @@ TypeScript 6.0.3 (Apache-2.0), Vitest 5.0.5 (MIT), ESLint 10.13.0 (MIT), typescr
 
 ## Reference material (not used as code or assets)
 
-- Lexogrine HUD Manager: functional reference for workflow breadth only. Its manager repository is under a proprietary EULA; no LHM code, designs, names, assets, models or services are used, and no LHM account or licence is required.
+- Lexogrine HUD Manager: functional reference for workflow breadth only. Its manager repository is under a proprietary EULA; no LHM code, designs, assets, models or services are used, and no LHM account or licence is required. "LHM-format HUD" is used only to describe which HUD packages Matchframe can import.
+- LHM compatibility layer (`services/local-engine/src/hud/lhm.ts`, `lhm-runtime.ts`): written from the HUD side of the protocol as Lexogrine's MIT-licensed HUD templates use it (https://github.com/lexogrine/cs2-react-hud: `hud.json`, `panel.json`, the socket events and the `/api` paths they call). No code was copied from the manager. Imported LHM-format HUDs belong to their authors and keep their own licences; none are bundled.
 - CounterStrike2GSI (GPL-3.0): consulted as documentation of the public GSI field layout; no code or fixtures copied.
 - demoinfocs-golang (MIT): consulted for the location of its public test-demo corpus.
 - obs-websocket protocol documentation: request/event names.

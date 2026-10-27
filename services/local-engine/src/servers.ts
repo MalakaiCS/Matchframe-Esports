@@ -15,6 +15,7 @@ import { registerHudRoutes } from "./routes/hud.ts";
 import { registerHudLibraryRoutes } from "./routes/hud-library.ts";
 import { libraryHudId, libraryOutputId } from "./hud/library.ts";
 import { WRAPPER_JS, wrapperPage } from "./hud/wrapper.ts";
+import { LhmRuntime, lhmSetCookie } from "./hud/lhm-runtime.ts";
 import { registerLiveRoutes } from "./routes/live.ts";
 import { registerDemoRoutes } from "./routes/demos.ts";
 import { registerDeviceRoutes, tally } from "./routes/devices.ts";
@@ -126,6 +127,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     const provider = (payload as { provider?: { steamid?: unknown } })?.provider?.steamid;
     const sourceId = `gsi:${typeof provider === "string" && /^\d+$/.test(provider) ? provider : "unknown"}`;
     const outcome = e.session.ingestGsi(payload, sourceId, receivedAt, text);
+    if (outcome.reason !== "invalid") e.emitRawGsi(payload, false);
     res.writeHead(outcome.reason === "invalid" ? 400 : 200, { "content-type": "text/plain" }).end();
   });
 
@@ -232,6 +234,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   const overlayOrigin = `http://127.0.0.1:${cfg.overlayPort}`;
   // 'self': the library output page frames its HUD; the console (and its preview panels) frames outputs.
   const csp = overlayCsp(overlayOrigin, ["'self'", `http://127.0.0.1:${cfg.apiPort}`, `http://localhost:${cfg.apiPort}`, "app://matchframe", "file:"]);
+  // LHM-format HUDs commonly load their fonts from Google Fonts; their files may (offline, the HUD falls back).
+  const lhmCsp = csp.replace("style-src 'self' 'unsafe-inline'", "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com").replace("font-src 'self' data:", "font-src 'self' data: https://fonts.gstatic.com");
   let rejectedOverlayMessages = 0;
   const overlayHub = new WsHub({
     onConnect: (c) => sendHud(c, true),
@@ -274,14 +278,20 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   };
   e.onHudUpdate(() => pushHud());
 
+  // LHM compatibility layer for LHM-format HUDs (socket.io at /socket.io, GET /api/...): attached
+  // to the HUD server below.
+  const lhm = new LhmRuntime(e);
+
   // Library output pages (/hud/<id>/<variant>) keep a read-only control socket: the server sends
   // a HudRuntimeControl on connect and whenever stopped, hidden or reloadSeq change.
   const runtimeHub = new WsHub();
   const sendControl = (c: HubClient) => {
     const ctl = e.hudLibrary.control(String(c.meta.hudId));
-    if (ctl) runtimeHub.sendTo(c, ctl, { snapshot: true });
+    if (ctl) runtimeHub.sendTo(c, { ...ctl, testData: e.simulationRunning }, { snapshot: true });
   };
+  let lastTestData = e.simulationRunning;
   e.hudLibrary.attachRuntime({
+    action: (hudId, key, value) => lhm.action(hudId, key, value),
     outputs: (hudId) => {
       const counts: Record<HudOutputMode, number> = { obs: 0, desktop: 0, preview: 0 };
       // The manager's own embedded preview (details panel) is not an output.
@@ -301,6 +311,11 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   });
   const hudTimer = setInterval(() => {
     pushHud();
+    // Wrappers that label test data themselves (LHM HUDs) learn when the simulation starts or stops.
+    if (e.simulationRunning !== lastTestData) {
+      lastTestData = e.simulationRunning;
+      for (const c of runtimeHub.clients) sendControl(c);
+    }
     // Control messages dropped for a slow client are resent once it drains.
     for (const c of runtimeHub.clients) if (c.needsSnapshot) sendControl(c);
   }, 500);
@@ -332,7 +347,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       const pkg = id ? e.hudPackages.get(decodeURIComponent(id)) : undefined;
       if (pkg && pkg.classification === "imported") {
         const f = safeResolve(pkg.installDir, rest.join("/"));
-        if (f) return serveFile(res, f, headers);
+        if (f) return serveFile(res, f, pkg.manifest.runtime === "lhm" ? { ...headers, "content-security-policy": lhmCsp } : headers);
       }
       return json(res, 404, { error: "not_found" });
     }
@@ -353,14 +368,17 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       if (!entry) return json(res, 404, { error: "not_found", message: `this HUD has no ${variant} variant` });
       const m = url.searchParams.get("mode") ?? "obs";
       const mode: HudOutputMode = (HUD_OUTPUT_MODES as readonly string[]).includes(m) ? (m as HudOutputMode) : "obs";
-      const q = `output=${libraryOutputId(hudId)}&variant=${variant}&t=${encodeURIComponent(token!)}`;
+      const lhmHud = rt.runtime === "lhm";
+      // LHM-format HUDs use relative addresses with isProd set, and reach /socket.io and /api with a cookie.
+      const q = `output=${libraryOutputId(hudId)}&variant=${variant}&t=${encodeURIComponent(token!)}${lhmHud ? "&isProd=1" : ""}`;
       const frameUrl = rt.builtin ? `/hud/index.html?${q}` : `/huds/${encodeURIComponent(hudId)}/${entry.split("/").map(encodeURIComponent).join("/")}?${q}`;
       const embed = mode === "preview" && url.searchParams.get("embed") === "1" ? "&embed=1" : "";
-      const html = wrapperPage({ hudId, name: rt.name, variant, mode, checker: url.searchParams.get("checker") === "1", frameUrl, controlPath: `/hud-runtime-ws?hud=${encodeURIComponent(hudId)}&variant=${variant}&mode=${mode}${embed}&t=${encodeURIComponent(token!)}`, ...rt.designResolution });
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers });
+      const html = wrapperPage({ hudId, name: rt.name, variant, mode, checker: url.searchParams.get("checker") === "1", testDataBadge: lhmHud, frameUrl, controlPath: `/hud-runtime-ws?hud=${encodeURIComponent(hudId)}&variant=${variant}&mode=${mode}${embed}&t=${encodeURIComponent(token!)}`, ...rt.designResolution });
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers, ...(lhmHud ? { "set-cookie": lhmSetCookie(hudId, token!) } : {}) });
       res.end(html);
       return;
     }
+    if (p.startsWith("/api/") && lhm.handleApi(req, res, p, url.searchParams)) return;
     const radar = /^\/overlay-api\/radar\/([a-z0-9_]+)$/.exec(p);
     if (radar) {
       const rt = e.maps.get(radar[1]!);
@@ -393,8 +411,11 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       json(res, 500, { error: "internal" });
     }
   });
+  lhm.attach(overlay);
   overlay.on("upgrade", (req, socket, head) => {
     const url = new URL(req.url ?? "/", "http://local");
+    // socket.io handles its own upgrades (and checks the HUD cookie).
+    if (url.pathname.startsWith("/socket.io/")) return;
     const token = url.searchParams.get("t");
     const unauthorized = () => {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
@@ -433,6 +454,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       clearInterval(hudTimer);
       if (hudPending) clearTimeout(hudPending);
       offLibrary();
+      await lhm.close();
       e.hudLibrary.attachRuntime(null);
       operatorHub.closeAll();
       overlayHub.closeAll();

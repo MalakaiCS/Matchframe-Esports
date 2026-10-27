@@ -16,6 +16,8 @@ export interface WrapperPageOptions {
   mode: HudOutputMode;
   /** Checkerboard behind the HUD (preview mode only). */
   checker: boolean;
+  /** Show a TEST DATA badge while the simulation runs (for HUDs that do not label it themselves). */
+  testDataBadge?: boolean;
   /** Same-origin URL of the HUD page the frame loads. */
   frameUrl: string;
   /** Path and query of the control socket (/hud-runtime-ws?...). */
@@ -41,6 +43,8 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
 #mf-edit { z-index: 2; }
 html.mf-checker #mf-checker { display: block; background-color: #d0d0d0; background-image: linear-gradient(45deg, #a9a9a9 25%, transparent 25%, transparent 75%, #a9a9a9 75%), linear-gradient(45deg, #a9a9a9 25%, transparent 25%, transparent 75%, #a9a9a9 75%); background-size: 32px 32px; background-position: 0 0, 16px 16px; }
 html.mf-editing #mf-edit { display: block; pointer-events: auto; cursor: move; outline: 3px dashed #ffb400; outline-offset: -3px; background: rgba(255, 180, 0, 0.08); -webkit-app-region: drag; app-region: drag; }
+#mf-test { position: absolute; z-index: 3; left: 50%; top: 8px; transform: translateX(-50%); display: none; padding: 3px 10px; border-radius: 4px; background: #7c3aed; color: #fff; font: 700 12px/1.4 system-ui, sans-serif; letter-spacing: 0.08em; pointer-events: none; }
+html.mf-test-data #mf-test { display: block; }
 #mf-label { position: absolute; left: 10px; top: 10px; padding: 4px 8px; border-radius: 4px; background: rgba(17, 20, 27, 0.88); color: #fff; font: 600 13px/1.3 system-ui, sans-serif; white-space: nowrap; }
 </style>
 </head>
@@ -48,6 +52,7 @@ html.mf-editing #mf-edit { display: block; pointer-events: auto; cursor: move; o
 <div id="mf-checker"></div>
 <div id="mf-stage"></div>
 <div id="mf-edit"><span id="mf-label"></span></div>
+${o.testDataBadge ? '<div id="mf-test">TEST DATA</div>' : ""}
 <script src="/hud-runtime/wrapper.js"></script>
 </body>
 </html>
@@ -79,7 +84,7 @@ export const WRAPPER_JS = String.raw`(function () {
   var label = document.getElementById("mf-label");
   var frame = null;
   var gotControl = false;
-  var st = { connected: false, frameLoaded: false, stopped: false, hidden: false, reloadSeq: null, editing: false, scale: 1 };
+  var st = { connected: false, frameLoaded: false, stopped: false, hidden: false, reloadSeq: null, editing: false, scale: 1, testData: false };
 
   function place(el, x, y, w, h) {
     el.style.left = x + "px";
@@ -147,6 +152,8 @@ export const WRAPPER_JS = String.raw`(function () {
     st.reloadSeq = msg.reloadSeq;
     st.hidden = !!msg.hidden;
     st.stopped = !!msg.stopped;
+    st.testData = !!msg.testData;
+    document.documentElement.className = document.documentElement.className.replace(/\s*mf-test-data/g, "") + (st.testData ? " mf-test-data" : "");
     applyHidden();
     if (st.stopped) {
       removeFrame();

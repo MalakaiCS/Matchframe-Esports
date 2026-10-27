@@ -10,6 +10,9 @@ import type { HudDisplayStatus } from "../../lib/hudLibrary.ts";
 import { compareVersions, defaultVariant, formFields, KIND_LABEL, resolutionLabel, VARIANT_LABEL, variantUrl, withQuery } from "../../lib/hudLibrary.ts";
 import type { HudActionReasons, HudActions } from "./HudCard.tsx";
 import { OutputIndicators } from "./HudCard.tsx";
+import type { PlayerRow, TeamRow } from "../../api/types.ts";
+import { useApi } from "../../lib/hooks.ts";
+import { useLive } from "../../state/live.ts";
 import { hudPath, useRun } from "./actions.ts";
 
 export type DetailsTab = "overview" | "appearance" | "outputs";
@@ -112,6 +115,7 @@ function Overview(p: Props) {
             ["Category", entry.category ?? "—"],
             ["Tags", entry.tags.length ? entry.tags.join(", ") : "—"],
             ["Source", KIND_LABEL[entry.kind]],
+            ["Format", entry.runtime === "lhm" ? "LHM-format HUD (runs in LHM compatibility mode: raw game data, Matchframe's teams and players, its panel as settings)" : "Matchframe HUD"],
             ["Design size", resolutionLabel(entry)],
             ["Installed", fmtTime(entry.installedAt)],
             ["Last used", entry.lastUsedAt ? fmtAgo(entry.lastUsedAt) : "Never"],
@@ -158,9 +162,68 @@ function Overview(p: Props) {
 
 // ------------------------------------------------------------------ appearance (per-HUD settings)
 
-function SettingInput({ name, field, value, onChange, disabled }: { name: string; field: HudSettingField; value: unknown; onChange: (v: unknown) => void; disabled: boolean }) {
+/** A player from Matchframe's players, or from the game in progress (by Steam ID). */
+function PlayerPicker({ label, hint, value, onChange, disabled }: { label: string; hint?: string; value: unknown; onChange: (v: unknown) => void; disabled: boolean }) {
+  const players = useApi<PlayerRow[]>("/api/v1/players");
+  const live = useLive((s) => s.snapshot?.state?.players ?? null);
+  const options = new Map<string, string>();
+  for (const p of players.data ?? []) if (p.steamId) options.set(p.steamId, p.displayName);
+  for (const p of live ?? []) if (p.steamId && !options.has(p.steamId)) options.set(p.steamId, `${p.name} (in game)`);
+  const v = typeof value === "string" ? value : "";
+  if (v && !options.has(v)) options.set(v, v);
+  return (
+    <Field label={label} hint={hint}>
+      <select value={v} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
+        <option value="">None</option>
+        {[...options].map(([id, name]) => (
+          <option key={id} value={id}>
+            {name}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+}
+
+function TeamPicker({ label, hint, value, onChange, disabled }: { label: string; hint?: string; value: unknown; onChange: (v: unknown) => void; disabled: boolean }) {
+  const teams = useApi<TeamRow[]>("/api/v1/teams");
+  const v = typeof value === "string" ? value : "";
+  return (
+    <Field label={label} hint={hint}>
+      <select value={v} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
+        <option value="">None</option>
+        {(teams.data ?? []).map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+}
+
+/** Panel buttons (LHM-format HUDs): each sends a one-off action to the running HUD. */
+function ActionButtons({ hudId, name, label, field, disabled }: { hudId: string; name: string; label: string; field: HudSettingField; disabled: boolean }) {
+  const run = useRun();
+  return (
+    <Field label={label} hint={field.description ?? "Sends the action to the HUD straight away."}>
+      <div className="row">
+        {(field.options ?? []).map((o) => (
+          <Button key={o.value} size="sm" disabled={disabled} onClick={() => void run(o.label, () => api.post(`${hudPath(hudId)}/action`, { key: name, value: o.value }), `${o.label}: sent`)}>
+            {o.label}
+          </Button>
+        ))}
+      </div>
+    </Field>
+  );
+}
+
+function SettingInput({ hudId, name, field, value, onChange, disabled }: { hudId: string; name: string; field: HudSettingField; value: unknown; onChange: (v: unknown) => void; disabled: boolean }) {
   const label = field.label ?? name;
   const hint = field.description;
+  if (field.type === "player") return <PlayerPicker label={label} hint={hint} value={value} onChange={onChange} disabled={disabled} />;
+  if (field.type === "team") return <TeamPicker label={label} hint={hint} value={value} onChange={onChange} disabled={disabled} />;
+  if (field.type === "action") return <ActionButtons hudId={hudId} name={name} label={label} field={field} disabled={disabled} />;
   if (field.type === "boolean") return <Checkbox checked={value === true} onChange={onChange} label={label} hint={hint} disabled={disabled} />;
   if (field.type === "select")
     return (
@@ -273,7 +336,7 @@ function Appearance({ entry, editReason, onChanged }: { entry: HudLibraryEntry; 
         <fieldset key={group || "_"} className="settings-group">
           {group ? <legend>{group}</legend> : null}
           {list.map(([k, f]) => (
-            <SettingInput key={k} name={k} field={f} value={draft[k] ?? f.default} onChange={(v) => set(k, v)} disabled={disabled} />
+            <SettingInput key={k} hudId={entry.id} name={k} field={f} value={draft[k] ?? f.default} onChange={(v) => set(k, v)} disabled={disabled} />
           ))}
         </fieldset>
       ))}
