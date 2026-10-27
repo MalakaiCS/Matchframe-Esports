@@ -207,6 +207,18 @@ describe("Auto Director: one button, checks and fixes by itself", () => {
     await waitFor(async () => (await auto()).phase === "running", 5000);
   });
 
+  it("holds after Take over until the camera is handed back", async () => {
+    expect((await api("/api/v1/observer/takeover", { method: "POST" })).status).toBe(200);
+    await waitFor(async () => (await auto()).phase === "paused", 3000);
+    // Longer than the 1 s return delay: still yours.
+    await new Promise((r) => setTimeout(r, 1800));
+    const st = await auto();
+    expect(st.phase).toBe("paused");
+    expect(st.headline).toMatch(/You took over/);
+    expect((await api("/api/v1/observer/resume", { method: "POST", body: { countdownMs: 0 } })).status).toBe(200);
+    await waitFor(async () => (await auto()).phase === "running", 3000);
+  });
+
   it("stops with the button, and the Observer switches off", async () => {
     const st = (await api("/api/v1/director/auto/stop", { method: "POST" })).json as { on: boolean; phase: string };
     expect(st).toMatchObject({ on: false, phase: "off" });

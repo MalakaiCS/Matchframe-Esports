@@ -141,7 +141,49 @@ async function fakeCs2Console(freeMode: number) {
   return { lines, server, port: (server.address() as { port: number }).port };
 }
 
+/** A console where the free camera is spec_mode 6 but in-eye is spec_mode 2, with game data following the camera. */
+async function mixedNumberingCs2() {
+  const lines: string[] = [];
+  const game = { mode: 2, observed: "76561198000000001" as string | null };
+  const server = createServer((sock) =>
+    sock.on("data", (d) => {
+      for (const line of d.toString().split("\n").filter(Boolean)) {
+        lines.push(line);
+        for (const cmd of line.split(";").map((c) => c.trim())) {
+          const m = /^spec_mode (\d+)$/.exec(cmd);
+          if (m) game.mode = Number(m[1]);
+          if (/^spec_goto /.test(cmd) && game.mode === 6) game.observed = null;
+          if (/^spec_player /.test(cmd) && game.mode === 2) game.observed = "76561198000000002";
+          if (cmd === "getpos") sock.write("setpos 1200.500000 -340.000000 256.000000;setang 18.000000 -135.000000 0.000000\n");
+        }
+      }
+    }),
+  );
+  await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
+  return { lines, game, server, port: (server.address() as { port: number }).port };
+}
+
 const camera = (over: Record<string, unknown> = {}) => ({ id: "cam-a", position: { x: 1200.5, y: -340, z: 256 }, pitch: 18, yaw: -135, ...over }) as never;
+
+describe("in-eye numbering", () => {
+  it("learns the in-eye spec_mode from the game data when leaving the free camera doesn't reach the player", async () => {
+    const c = await mixedNumberingCs2();
+    const learned: unknown[] = [];
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => 0, playerName: () => "nova", onModesLearned: (m) => learned.push(m) });
+    // The game data, every 100 ms.
+    const feed = setInterval(() => a.noteObserverState({ cameraMode: c.game.observed ? "unknown" : "roaming", observedSteamId: c.game.observed }), 100);
+    expect((await a.activateStaticCamera(camera(), ctx())).status).toBe("confirmed");
+    await a.selectPlayer("76561198000000002", 2, ctx());
+    for (let i = 0; i < 60 && !learned.length; i++) await new Promise((res) => setTimeout(res, 50));
+    clearInterval(feed);
+    expect(c.lines).toContain('spec_mode 4; spec_player "nova"');
+    expect(c.lines).toContain('spec_mode 2; spec_player "nova"');
+    expect(learned).toEqual([{ modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 6" }]);
+    expect(c.game.observed).toBe("76561198000000002");
+    await a.dispose();
+    c.server.close();
+  });
+});
 
 describe("camera paths", () => {
   const path = {

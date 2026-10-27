@@ -125,6 +125,7 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
   // ---- observer ownership / commands ----------------------------------------------------
   r.post("/api/v1/observer/takeover", { permission: "camera.control" }, (req) => {
     s.takeover(req.principal!.label);
+    e.autoDirector.holdManual();
     e.audit.record(req.principal!.label, "observer.takeover", null);
     return { ownership: s.arbiter.state() };
   });

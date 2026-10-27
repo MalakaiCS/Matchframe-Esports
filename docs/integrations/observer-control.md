@@ -18,6 +18,7 @@ Matchframe controls the observer through semantic operations (`selectPlayer`, `s
 While it runs:
 
 - When you pick a player yourself (in CS2, in Live Control or on a control surface), it pauses and takes the camera back after 8 s. The delay can be 5, 8, 15 or 30 s, or "only when I press Start".
+- **Take over** in the top bar keeps the camera yours until you press **Resume automation** or Start.
 - After a gap in the game data, it takes the camera back as soon as data flows again.
 - **Stop**, the emergency stop, or switching the Observer to Off stops it. It also stops when the hours run out at a map change.
 - `GET /api/v1/director/auto` returns the status and checks, and `PUT /api/v1/director/auto/settings` sets `cinematic`, `nadeCams` and `returnAfterSec`.
@@ -36,7 +37,7 @@ While it runs:
 | Operation | Built-in command |
 |---|---|
 | Select player | `spec_player "{name}"`, with the player's in-game name from the game data. CS2 has no `spec_player_by_accountid` (CS:GO only). Names containing `"`, `;`, `\` or line breaks, and names two players share, are refused rather than sent. Other placeholders: `{slot}` (number key), `{steamId}`, `{accountId}`. When the camera is free, the in-eye mode is sent first: `spec_player` alone only moves a free camera. |
-| In-eye / chase / free camera | `spec_mode 4` / `5` / `6` (CS:GO numbering). On a build where `getpos` shows that this numbering doesn't move the camera, the adapter tries CS2's enum numbering (`2` / `3` / `4`). It keeps whichever works and saves it to the templates. |
+| In-eye / chase / free camera | `spec_mode 4` / `5` / `6` (CS:GO numbering). On a build where `getpos` shows that this numbering doesn't move the camera, the adapter tries CS2's enum numbering (`2` / `3` / `4`). It keeps whichever works and saves it to the templates. The in-eye command is checked the same way: when leaving the free camera for a player, if the game data still shows the free camera, the adapter tries the other numbering's in-eye command once and keeps it if the player then shows. |
 | Static camera | `{roaming}; spec_goto {x} {y} {z} {pitch} {yaw}` (`{roaming}` is the free-camera command), then `getpos`. |
 | Camera path | The first pose as a static camera, then `spec_goto {x} {y} {z} {pitch} {yaw}` 60 times a second along the path (Catmull-Rom positions, eased timing, the shorter way round for yaw), then `getpos` at the end. |
 | Pose readback | `getpos` → `setpos x y z;setang pitch yaw roll`. |

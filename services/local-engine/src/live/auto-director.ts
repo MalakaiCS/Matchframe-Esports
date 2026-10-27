@@ -75,6 +75,8 @@ export class AutoDirector {
   private camWorks = false;
   private consolePrepared = false;
   private noNadeCams = false;
+  /** Take over pressed: hold until the camera is handed back (Resume automation or Start). */
+  private manualHold = false;
   private lastManualAt = -Infinity;
   private resumeAt: number | null = null;
   private startedAt: string | null = null;
@@ -116,6 +118,7 @@ export class AutoDirector {
     this.camWorks = false;
     this.consolePrepared = false;
     this.noNadeCams = false;
+    this.manualHold = false;
     this.resumeAt = null;
     this.haltReason = null;
     this.startedAt = new Date().toISOString();
@@ -142,6 +145,11 @@ export class AutoDirector {
     return this.status();
   }
 
+  /** Take over was pressed: the Auto Director keeps the camera off until it is handed back. */
+  holdManual(): void {
+    if (this.on) this.manualHold = true;
+  }
+
   dispose(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
@@ -161,7 +169,9 @@ export class AutoDirector {
             : this.phase === "paused"
               ? this.resumeAt !== null
                 ? `You have the camera: back to automatic in ${Math.max(1, Math.ceil((this.resumeAt - now) / 1000))} s.`
-                : "You have the camera. Press Start to hand it back."
+                : this.manualHold
+                  ? "You took over. Press Resume automation or Start to hand the camera back."
+                  : "You have the camera. Press Start to hand it back."
               : (waiting?.detail ?? "Starting…");
     return {
       on: this.on,
@@ -361,7 +371,11 @@ export class AutoDirector {
         await this.e.gameConsole.connection?.write("cl_demo_freecam 0").catch(() => undefined);
         ok = await this.showCamera(cam);
       }
-      if (back) await s.manualSelectPlayer(back, "auto-director").catch(() => undefined);
+      if (back) {
+        // Back on the player (this also lets the console adapter learn the in-eye numbering).
+        await s.manualSelectPlayer(back, "auto-director").catch(() => undefined);
+        await this.waitFor(() => s.state()?.observer.observedSteamId === back, 3500);
+      }
       this.camWorks = ok;
     } finally {
       this.testing = false;
@@ -404,6 +418,7 @@ export class AutoDirector {
     if (s.arbiter.automationAllowed) {
       this.phase = "running";
       this.resumeAt = null;
+      this.manualHold = false;
       this.set("director", "ok", `${label}: Matchframe moves the camera.`);
       return;
     }
@@ -411,8 +426,8 @@ export class AutoDirector {
     const own = s.arbiter.state();
     const now = this.e.now();
     const since = Math.max(this.lastManualAt, own.acquiredAtMonotonicMs);
-    const backAt = st.returnAfterSec > 0 ? since + st.returnAfterSec * 1000 : null;
-    if (SELF_HOLDERS.has(own.holder ?? "") || (backAt !== null && now >= backAt)) {
+    const backAt = st.returnAfterSec > 0 && !this.manualHold ? since + st.returnAfterSec * 1000 : null;
+    if (!this.manualHold && (SELF_HOLDERS.has(own.holder ?? "") || (backAt !== null && now >= backAt))) {
       // Admitted at Start: taking the camera back is not a new arm.
       s.arbiter.resumeAutomation(0);
       this.phase = "running";
@@ -422,7 +437,7 @@ export class AutoDirector {
     }
     this.phase = "paused";
     this.resumeAt = backAt;
-    this.set("director", "wait", backAt !== null ? "You picked the camera: the Auto Director takes it back shortly." : "You picked the camera. Press Start to hand it back.");
+    this.set("director", "wait", backAt !== null ? "You picked the camera: the Auto Director takes it back shortly." : this.manualHold ? "You took over. Press Resume automation or Start to hand the camera back." : "You picked the camera. Press Start to hand it back.");
   }
 
   /** An alive player who isn't spectated now and whose name CS2 can select. */

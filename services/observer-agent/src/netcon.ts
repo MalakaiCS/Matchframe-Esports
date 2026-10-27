@@ -45,6 +45,8 @@ export const DEFAULT_NETCON_TEMPLATES: NetconTemplates = {
 
 /** The CS2 ObserverMode_t numbering, tried when the CS:GO numbers don't move the camera. */
 export const CS2_ENUM_MODES = { modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" } as const;
+/** CS:GO's numbering (the built-in default). */
+const CSGO_MODES = { modeInEye: "spec_mode 4", modeChase: "spec_mode 5", modeRoaming: "spec_mode 6" } as const;
 
 export interface PathPose {
   position: Vec3;
@@ -165,6 +167,9 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   private pathTimer: ReturnType<typeof setInterval> | null = null;
   private pathToken = 0;
   private modesLearned = false;
+  private inEyeLearned = false;
+  /** The latest observer state from the game data; `seq` counts updates. */
+  private observed: { cameraMode: string; observedSteamId: string | null; seq: number } = { cameraMode: "unknown", observedSteamId: null, seq: 0 };
 
   constructor(private readonly opts: NetconOptions) {
     this.id = `netcon:${opts.host}:${opts.port}`;
@@ -207,6 +212,47 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   noteObserverState(observer: { cameraMode: string; observedSteamId: string | null }): void {
     this.telemetryRoaming = observer.cameraMode === "roaming" && !observer.observedSteamId;
     if (observer.observedSteamId && !this.pathTimer) this.freeCam = false;
+    this.observed = { cameraMode: observer.cameraMode, observedSteamId: observer.observedSteamId, seq: this.observed.seq + 1 };
+  }
+
+  /**
+   * After leaving the free camera for a player: if the game data still shows the free camera, the
+   * in-eye command uses the other spec_mode numbering on this build. Try that once, and keep it if the
+   * game data then shows the player.
+   */
+  private async learnInEye(steamId: string, selectCmd: string, token: number): Promise<void> {
+    const first = await this.waitObserved(steamId, 1000);
+    if (first === "player") {
+      this.inEyeLearned = true;
+      return;
+    }
+    if (first !== "free" || token !== this.pathToken) return;
+    const alt = this.templates.modeInEye === CS2_ENUM_MODES.modeInEye ? CSGO_MODES : CS2_ENUM_MODES;
+    try {
+      await this.conn.write(`${alt.modeInEye}; ${selectCmd}`);
+    } catch {
+      return;
+    }
+    if ((await this.waitObserved(steamId, 1500)) !== "player") return;
+    this.inEyeLearned = true;
+    this.templates.modeInEye = alt.modeInEye;
+    this.templates.modeChase = alt.modeChase;
+    this.opts.onModesLearned?.({ modeInEye: alt.modeInEye, modeChase: alt.modeChase, modeRoaming: this.templates.modeRoaming });
+  }
+
+  /** Waits for game data showing the player, or a fresh update (at least 300 ms after the command) still in the free camera. */
+  private async waitObserved(steamId: string, ms: number): Promise<"player" | "free" | "other" | "none"> {
+    const seq = this.observed.seq;
+    const start = Date.now();
+    while (Date.now() - start < ms) {
+      await new Promise((r) => setTimeout(r, 40));
+      if (this.observed.seq === seq) continue;
+      if (this.observed.observedSteamId === steamId) return "player";
+      if (Date.now() - start >= 300 && this.observed.cameraMode === "roaming" && !this.observed.observedSteamId) return "free";
+    }
+    if (this.observed.seq === seq) return "none";
+    if (this.observed.observedSteamId === steamId) return "player";
+    return this.observed.cameraMode === "roaming" && !this.observed.observedSteamId ? "free" : "other";
   }
 
   private cameraCommand(pose: PathPose, template = this.templates.staticCamera, roaming = this.templates.modeRoaming): string {
@@ -278,9 +324,12 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     }
     this.stopPath();
     // spec_player in the free camera only moves the free camera: go back to in-eye first.
-    if (this.freeCam || this.telemetryRoaming) cmd = `${this.templates.modeInEye}; ${cmd}`;
-    const r = await this.send(ctx, cmd);
-    if (r.status !== "failed") this.freeCam = false;
+    const leaveFree = this.freeCam || this.telemetryRoaming;
+    const r = await this.send(ctx, leaveFree ? `${this.templates.modeInEye}; ${cmd}` : cmd);
+    if (r.status !== "failed") {
+      this.freeCam = false;
+      if (leaveFree && !this.inEyeLearned) void this.learnInEye(steamId, cmd, this.pathToken);
+    }
     return r;
   }
 
