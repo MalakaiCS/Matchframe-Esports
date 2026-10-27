@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { discoverCs2, renderGsiConfig, writeGsiConfig, type Cs2Install } from "@matchframe/game-adapters";
 import type { Engine } from "../app.ts";
-import { ConsoleOptions, GameLaunchMode, launchPlan, parseExtraArgs } from "../game/console.ts";
+import { ConsoleOptionsPatch, GameLaunchMode, launchPlan, parseExtraArgs } from "../game/console.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
 
@@ -35,7 +35,7 @@ export function registerGameRoutes(r: Router, e: Engine): void {
     },
   );
 
-  r.put("/api/v1/game/console-options", { permission: "camera.control", body: ConsoleOptions.partial() }, (req) => {
+  r.put("/api/v1/game/console-options", { permission: "camera.control", body: ConsoleOptionsPatch }, (req) => {
     e.gameConsole.setOptions(req.body);
     e.audit.record(req.principal!.label, "game.console_options.set", null, req.body);
     return e.gameConsole.status();

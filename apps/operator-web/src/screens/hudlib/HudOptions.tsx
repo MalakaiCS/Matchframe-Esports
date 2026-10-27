@@ -186,6 +186,14 @@ export function GameCard() {
               <Toggle label="No flash" testId="no-flash" hint="HLAE mirv_noflash 1: flashbangs don't white out the observer's screen." on={o ? o.noFlash : null} reason={cameraReason} onChange={option("noFlash")} />
               <Toggle label="Team colours in kill feed" testId="killfeed-colours" hint="HLAE mirv_deathmsg colors: CT and T names in the kill feed in each team's colour (Teams → colour), swapped at half time." on={o ? o.killfeedTeamColours : null} reason={cameraReason} onChange={option("killfeedTeamColours")} />
               <Toggle label="Hide end-of-match screen" testId="hide-end-of-match" hint="HLAE mirv_endofmatch 0: no end-of-match scene over the game." on={o ? o.hideEndOfMatch : null} reason={cameraReason} onChange={option("hideEndOfMatch")} />
+              <Toggle
+                label="Hide CS2 kill feed"
+                testId="hide-game-killfeed"
+                hint="HLAE mirv_deathmsg filter add block=1: CS2's own kill feed is blocked, so only your HUD's kill feed shows. With Hide game HUD on, the crosshair stays."
+                on={o ? o.hideGameKillfeed : null}
+                reason={cameraReason}
+                onChange={option("hideGameKillfeed")}
+              />
             </>
           ) : null}
         </div>

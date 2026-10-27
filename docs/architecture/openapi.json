@@ -1257,23 +1257,21 @@
                 "type": "object",
                 "properties": {
                   "hideGameHud": {
-                    "default": true,
                     "type": "boolean"
                   },
                   "xray": {
-                    "default": true,
                     "type": "boolean"
                   },
                   "noFlash": {
-                    "default": false,
                     "type": "boolean"
                   },
                   "killfeedTeamColours": {
-                    "default": false,
                     "type": "boolean"
                   },
                   "hideEndOfMatch": {
-                    "default": false,
+                    "type": "boolean"
+                  },
+                  "hideGameKillfeed": {
                     "type": "boolean"
                   }
                 }

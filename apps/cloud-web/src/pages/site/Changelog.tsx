@@ -11,6 +11,20 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.4.1",
+    title: "Game options fixed, and no CS2 kill feed",
+    summary: "The game options on the Counter-Strike 2 card no longer switch each other off, and with HLAE you can hide CS2's own kill feed while keeping the crosshair.",
+    sections: [
+      {
+        heading: "Game options",
+        items: [
+          "Each switch on the Counter-Strike 2 card now changes only its own option. Before, turning one on could turn the others off.",
+          "Hide CS2 kill feed (with HLAE): CS2's own kill feed is blocked so only your HUD's kill feed shows. With Hide game HUD on, the crosshair stays.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.4.0",
     title: "A one-button Auto Director and cameras on every map",
     summary: "Press Start Auto Director and Matchframe checks CS2, confirms that it can switch players and place cameras, and directs the match, with built-in cameras and camera paths on all nine active-duty maps.",

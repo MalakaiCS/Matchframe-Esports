@@ -47,7 +47,11 @@ describe("console commands and launch plan", () => {
       "mirv_endofmatch 0",
       "mirv_deathmsg colors ct 30 144 255 255",
       "mirv_deathmsg colors t 255 136 0 255",
+      "mirv_deathmsg filter clear",
     ]);
+    // Hide CS2's kill feed: one rule with no player match blocks every notice (cleared first, so it never stacks).
+    expect(consoleCommands(ConsoleOptions.parse({ hideGameKillfeed: true }), "hlae", { ct: null, t: null }).slice(-3)).toEqual(["mirv_deathmsg filter clear", "mirv_deathmsg filter add block=1", "mirv_deathmsg clear"]);
+    expect(consoleCommands(ConsoleOptions.parse({ hideGameKillfeed: true }), "tools", { ct: null, t: null }).some((l) => l.startsWith("mirv_"))).toBe(false);
     // A team without a colour (or the option off) keeps the game's colours.
     expect(killfeedColourCommands(true, { ct: "#ffffff", t: null })).toEqual(["mirv_deathmsg colors ct 255 255 255 255", "mirv_deathmsg colors t default"]);
     expect(killfeedColourCommands(false, { ct: "#ffffff", t: "#000000" })).toEqual(["mirv_deathmsg colors ct default", "mirv_deathmsg colors t default"]);
@@ -204,6 +208,13 @@ describe("Start CS2 and the game console (engine)", () => {
     received.length = 0;
     await api("/api/v1/game/console-options", { method: "PUT", body: { noFlash: true, hideEndOfMatch: true } });
     await waitFor(() => received.includes("mirv_noflash 1") && received.includes("mirv_endofmatch 0"));
+    // One option at a time (as the switches send them) keeps the others as they were.
+    received.length = 0;
+    const one = await api("/api/v1/game/console-options", { method: "PUT", body: { killfeedTeamColours: true } });
+    expect(one.json.options).toMatchObject({ noFlash: true, hideEndOfMatch: true, killfeedTeamColours: true, xray: false });
+    const two = await api("/api/v1/game/console-options", { method: "PUT", body: { hideGameKillfeed: true } });
+    expect(two.json.options).toMatchObject({ noFlash: true, hideEndOfMatch: true, killfeedTeamColours: true, hideGameKillfeed: true });
+    await waitFor(() => received.includes("mirv_deathmsg filter add block=1") && received.includes("mirv_endofmatch 0"));
     // Back to standard: the console connection is closed.
     await api("/api/v1/game/launch-profile", { method: "PUT", body: { mode: "standard" } });
     expect((await api("/api/v1/game/console")).json.console).toBe("off");

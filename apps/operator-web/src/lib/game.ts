@@ -12,6 +12,7 @@ export interface ConsoleOptions {
   noFlash: boolean;
   killfeedTeamColours: boolean;
   hideEndOfMatch: boolean;
+  hideGameKillfeed: boolean;
 }
 
 export interface GameLaunchProfile {
@@ -51,7 +52,7 @@ export const LAUNCH_MODES: { id: GameLaunchMode; label: string; short: string; d
     id: "hlae",
     label: "Observer tools + HLAE",
     short: "Tools + HLAE",
-    detail: "Also loads HLAE (advancedfx) for no flash, team colours in the kill feed and no end-of-match scene. CS2 runs insecure: only LAN, demos, or servers with tv_secure_bypass 1.",
+    detail: "Also loads HLAE (advancedfx) for no flash, team colours in the kill feed or no game kill feed at all, and no end-of-match scene. CS2 runs insecure: only LAN, demos, or servers with tv_secure_bypass 1.",
   },
 ];
 

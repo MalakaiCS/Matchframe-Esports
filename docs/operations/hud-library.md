@@ -43,13 +43,13 @@ Every bundled HUD shows a minimap (top left) and a killfeed (top right), each in
 |---|---|---|---|
 | **Standard** | Steam, your launch options | Game data for the HUDs. Works on any server. | CS2 |
 | **Observer tools** | Steam, `-tools -netconport 2121` | Matchframe connects to CS2's console on this computer: camera control for the Observer (the *Direct (console)* adapter is selected if none was) and the game options below. | The free **CS2 Workshop Tools** (Steam → Counter-Strike 2 → DLC) |
-| **Observer tools + HLAE** | HLAE, `-steam -insecure -tools -netconport 2121` | Also HLAE's options: no flash, team colours in the kill feed, no end-of-match screen. | CS2 Workshop Tools, [HLAE](https://www.advancedfx.org/) (choose `HLAE.exe`), Steam running |
+| **Observer tools + HLAE** | HLAE, `-steam -insecure -tools -netconport 2121` | Also HLAE's options: no flash, team colours in the kill feed or no game kill feed, no end-of-match screen. | CS2 Workshop Tools, [HLAE](https://www.advancedfx.org/) (choose `HLAE.exe`), Steam running |
 
 Game options (console modes; sent every time the console connects, and straight away when changed):
 
 - **Hide game HUD**: `cl_draw_only_deathnotices 1`, the game shows only its kill feed and your HUD shows the rest.
 - **X-ray**: `spec_show_xray`, players visible through walls on the observer's screen.
-- HLAE only: **No flash** (`mirv_noflash 1`), **Team colours in kill feed** (`mirv_deathmsg colors`, using each team's colour from Teams, swapped at half time), **Hide end-of-match screen** (`mirv_endofmatch 0`).
+- HLAE only: **No flash** (`mirv_noflash 1`), **Team colours in kill feed** (`mirv_deathmsg colors`, using each team's colour from Teams, swapped at half time), **Hide end-of-match screen** (`mirv_endofmatch 0`), **Hide CS2 kill feed** (`mirv_deathmsg filter add block=1`: CS2's own kill notices are blocked so only your HUD's kill feed shows; with **Hide game HUD** on, the crosshair stays). Matchframe clears its kill feed rule (`mirv_deathmsg filter clear`) each time it applies the options, so rules never stack; that also clears kill feed filters you added in the console yourself.
 
 The card shows **Console connected** once CS2 is up. If it keeps showing *Console: waiting for CS2* after CS2 has started, the CS2 Workshop Tools are usually not installed, or CS2 was already running (close it and click Start CS2 again).
 

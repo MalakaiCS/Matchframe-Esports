@@ -256,7 +256,7 @@ describe("HUD Library screen", () => {
     };
     const consoleStatus = (mode: string) => ({
       profile: { mode, netconPort: 2121, extraArgs: "", insecureAcknowledgedAt: null },
-      options: { hideGameHud: true, xray: true, noFlash: false, killfeedTeamColours: false, hideEndOfMatch: false },
+      options: { hideGameHud: true, xray: true, noFlash: false, killfeedTeamColours: false, hideEndOfMatch: false, hideGameKillfeed: false },
       console: "connected",
       port: 2121,
       connectedAt: "2026-10-27T10:00:00.000Z",
@@ -286,5 +286,33 @@ describe("HUD Library screen", () => {
     expect(within(dialog).getByText(/VAC banned/)).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "I understand, use HLAE" }));
     await waitFor(() => expect(calls.some((c) => c.method === "PUT" && c.path === "/api/v1/game/launch-profile" && JSON.parse(String(c.body)).acknowledgeInsecure === true && JSON.parse(String(c.body)).mode === "hlae")).toBe(true));
+  });
+
+  it("has HLAE's switches in the HLAE mode, each sending only its own option", async () => {
+    (window as { matchframe?: unknown }).matchframe = { hlae: { info: async () => ({ path: "C:\\HLAE\\HLAE.exe", ok: true, problem: null }), choose: async () => null } };
+    const status = {
+      profile: { mode: "hlae", netconPort: 2121, extraArgs: "", insecureAcknowledgedAt: "2026-10-27T10:00:00.000Z" },
+      options: { hideGameHud: true, xray: true, noFlash: false, killfeedTeamColours: false, hideEndOfMatch: true, hideGameKillfeed: false },
+      console: "connected",
+      port: 2121,
+      connectedAt: "2026-10-27T10:00:00.000Z",
+      lastError: null,
+      lastApplyError: null,
+      lastAppliedAt: null,
+    };
+    const calls = serve((m, p) => {
+      if (m === "GET" && p === "/api/v1/hud/library") return { status: 200, json: library([SAMPLE]) };
+      if (p === "/api/v1/game/console" || p === "/api/v1/game/console-options") return { status: 200, json: status };
+      return undefined;
+    });
+    renderScreen();
+    const card = await screen.findByRole("region", { name: "Game" });
+    const hide = await within(card).findByRole("switch", { name: "Hide CS2 kill feed" });
+    fireEvent.click(hide);
+    fireEvent.click(within(card).getByRole("switch", { name: "Team colours in kill feed" }));
+    await waitFor(() => {
+      const puts = calls.filter((c) => c.method === "PUT" && c.path === "/api/v1/game/console-options").map((c) => JSON.parse(String(c.body)));
+      expect(puts).toEqual([{ hideGameKillfeed: true }, { killfeedTeamColours: true }]);
+    });
   });
 });

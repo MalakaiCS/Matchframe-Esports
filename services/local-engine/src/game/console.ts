@@ -60,8 +60,24 @@ export const ConsoleOptions = z.object({
   killfeedTeamColours: z.boolean().default(false),
   /** HLAE `mirv_endofmatch 0`: no end-of-match scene over the game. */
   hideEndOfMatch: z.boolean().default(false),
+  /**
+   * HLAE `mirv_deathmsg filter add block=1`: CS2's own kill feed is blocked, so only the HUD's kill
+   * feed shows. With Hide game HUD (`cl_draw_only_deathnotices 1`) the crosshair still shows.
+   */
+  hideGameKillfeed: z.boolean().default(false),
 });
 export type ConsoleOptions = z.infer<typeof ConsoleOptions>;
+
+/** A change to some options. Keys that are left out keep their value: nothing is filled with defaults. */
+export const ConsoleOptionsPatch = z.object({
+  hideGameHud: z.boolean().optional(),
+  xray: z.boolean().optional(),
+  noFlash: z.boolean().optional(),
+  killfeedTeamColours: z.boolean().optional(),
+  hideEndOfMatch: z.boolean().optional(),
+  hideGameKillfeed: z.boolean().optional(),
+});
+export type ConsoleOptionsPatch = z.infer<typeof ConsoleOptionsPatch>;
 
 export interface SideColours {
   ct: string | null;
@@ -83,7 +99,12 @@ export function killfeedColourCommands(on: boolean, colours: SideColours): strin
 export function consoleCommands(o: ConsoleOptions, mode: GameLaunchMode, colours: SideColours): string[] {
   if (mode === "standard") return [];
   const out = [`cl_draw_only_deathnotices ${o.hideGameHud ? 1 : 0}`, `spec_show_xray ${o.xray ? 1 : 0}`];
-  if (mode === "hlae") out.push(`mirv_noflash ${o.noFlash ? 1 : 0}`, `mirv_endofmatch ${o.hideEndOfMatch ? 0 : 1}`, ...killfeedColourCommands(o.killfeedTeamColours, colours));
+  if (mode === "hlae") {
+    out.push(`mirv_noflash ${o.noFlash ? 1 : 0}`, `mirv_endofmatch ${o.hideEndOfMatch ? 0 : 1}`, ...killfeedColourCommands(o.killfeedTeamColours, colours));
+    // A rule with no player match applies to every kill notice. Cleared first so applying again never stacks rules.
+    out.push("mirv_deathmsg filter clear");
+    if (o.hideGameKillfeed) out.push("mirv_deathmsg filter add block=1", "mirv_deathmsg clear");
+  }
   return out;
 }
 
@@ -170,8 +191,9 @@ export class GameConsoleService {
     return p;
   }
 
-  setOptions(patch: Partial<ConsoleOptions>): ConsoleOptions {
-    const next = ConsoleOptions.parse({ ...this.options(), ...patch });
+  setOptions(patch: ConsoleOptionsPatch): ConsoleOptions {
+    const given = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+    const next = ConsoleOptions.parse({ ...this.options(), ...given });
     this.deps.settings.set("game.consoleOptions", next);
     void this.apply();
     return next;
