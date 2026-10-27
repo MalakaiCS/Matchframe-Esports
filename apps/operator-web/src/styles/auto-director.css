@@ -137,3 +137,6 @@
     margin-left: 0;
   }
 }
+.autodir-return select {
+  width: auto;
+}

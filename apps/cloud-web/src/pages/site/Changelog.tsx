@@ -11,6 +11,28 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.4.0",
+    title: "A one-button Auto Director and cameras on every map",
+    summary: "Press Start Auto Director and Matchframe checks CS2, confirms that it can switch players and place cameras, and directs the match, with built-in cameras and camera paths on all nine active-duty maps.",
+    sections: [
+      {
+        heading: "Auto Director",
+        items: [
+          "Start Auto Director checks the CS2 console, the game data and your hours, tests player switching and the cameras on your CS2 build, and then directs. Each check says what it's doing or what it needs.",
+          "Toggles for cinematic cameras and nade cams. Pick a player yourself and the Auto Director takes the camera back after a few seconds.",
+          "Camera control confirms itself from CS2's own feedback, so there are no setup tests to run and no commands to type.",
+        ],
+      },
+      {
+        heading: "Cameras",
+        items: [
+          "Built-in cameras and camera paths on Ancient, Anubis, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo, placed from the maps' navigation data.",
+          "In freeze time, a camera path flies around the map every round. The bomb and big fights get cinematic shots too.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.3.0",
     title: "Start CS2, minimaps everywhere and LHM HUDs",
     summary: "Start CS2 from the program, a minimap and killfeed in every included HUD, HUDs made for Lexogrine HUD Manager running as they are, and updates that install themselves.",
