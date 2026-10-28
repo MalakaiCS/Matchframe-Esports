@@ -103,6 +103,7 @@ export const REASON_CODES = [
   "MAIN_STORY",
   "ESTABLISHING",
   "NO_VALID_CANDIDATE",
+  "MAIN_OBSERVER_ON_IT",
 ] as const;
 export const ReasonCode = z.enum(REASON_CODES);
 export type ReasonCode = z.infer<typeof ReasonCode>;

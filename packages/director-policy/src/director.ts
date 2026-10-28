@@ -75,6 +75,8 @@ export interface DirectorControls {
   followActionRequested: boolean;
   /** One-shot: allow the next eligible cinematic even if the round budget is used. */
   cinematicRequested: boolean;
+  /** Players another observer shows right now (replay PC: the main PC's player), until a time. */
+  avoid: { steamIds: string[]; until: number } | null;
 }
 
 export interface DirectorOptions {
@@ -122,6 +124,7 @@ export class Director {
     assistedActions: new Set<ActionClass>(["pov_cut"]),
     followActionRequested: false,
     cinematicRequested: false,
+    avoid: null,
   };
 
   constructor(opts: DirectorOptions = {}) {
@@ -204,6 +207,11 @@ export class Director {
 
   setOneSide(side: Side | null): void {
     this.controls.oneSide = side;
+  }
+
+  /** Prefer anyone but these players until `until` (another observer has them on air). */
+  avoid(steamIds: string[], until: number): void {
+    this.controls.avoid = steamIds.length ? { steamIds, until } : null;
   }
 
   followAction(): void {
@@ -297,6 +305,7 @@ export class Director {
       cinematicsAllowed,
       map,
       scope,
+      avoid: this.controls.avoid && this.controls.avoid.until > now ? new Set(this.controls.avoid.steamIds) : null,
     });
     if (scope?.has("cinematic")) {
       candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map }));

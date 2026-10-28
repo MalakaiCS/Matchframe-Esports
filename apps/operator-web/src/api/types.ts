@@ -632,6 +632,10 @@ export interface ReplayItem {
   error: string | null;
   order: number;
   trim: { startMs: number; durationMs: number } | null;
+  origin?: "main" | "replay_pc";
+  priority?: number;
+  playMs?: number | null;
+  play?: { kind: "missed" | "other_angle" | "big_play"; killer: { steamId: string; name: string } | null; victims: string[]; kills: number; weapon: string | null; headshot: boolean } | null;
 }
 
 export interface ReplayProviderCapabilities {
@@ -986,4 +990,29 @@ export interface AutoDirectorStatus {
   checks: AutoDirectorCheck[];
   resumesInMs: number | null;
   startedAt: string | null;
+}
+
+export interface AutoReplaySettings {
+  enabled: boolean;
+  maxPerBreak: number;
+  speedPercent: number;
+  startDelayMs: number;
+  otherAngles: boolean;
+  ownBigPlays: boolean;
+}
+export interface AutoReplayResponse {
+  settings: AutoReplaySettings;
+  status: { enabled: boolean; state: "off" | "waiting" | "playing" | "blocked"; detail: string; waiting: number; playing: { id: string; label: string } | null; lastPlayed: { id: string; label: string; at: string } | null };
+}
+export interface ReplayPcResponse {
+  settings: { enabled: boolean; mainUrl: string; preRollMs: number; postRollMs: number };
+  hasToken: boolean;
+  status: { enabled: boolean; state: "off" | "connecting" | "connected" | "error"; detail: string; main: { computer: string; version: string; url: string } | null; mainObserved: string | null; obsReady: boolean; sent: number; failed: number; last: { label: string; at: string; ok: boolean; error: string | null } | null };
+}
+export interface NetworkInfo {
+  computer: string;
+  host: string;
+  apiPort: number;
+  reachable: boolean;
+  addresses: string[];
 }

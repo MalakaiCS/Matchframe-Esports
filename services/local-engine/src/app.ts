@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 import type { AutomationRule, ProgramMode, TriggerEvent, TriggerKind } from "@matchframe/automation";
@@ -35,6 +35,8 @@ import type { HudContext } from "./live/projection.ts";
 import { buildHudState } from "./live/projection.ts";
 import { refreshGsiConfig } from "@matchframe/game-adapters";
 import { AutoDirector } from "./live/auto-director.ts";
+import { AutoReplay } from "./replay/auto.ts";
+import { ReplayLink } from "./replay/link.ts";
 import { LiveSession } from "./live/session.ts";
 import { TeamSideTracker } from "./live/team-sides.ts";
 import { Logger } from "./logger.ts";
@@ -139,6 +141,8 @@ export class Engine {
   /** Start CS2 (launch profile) and the game's console while it runs (console options). */
   readonly gameConsole: GameConsoleService;
   readonly autoDirector: AutoDirector;
+  readonly replayLink: ReplayLink;
+  readonly autoReplay: AutoReplay;
   private meterTimer: ReturnType<typeof setInterval> | null = null;
   private readonly rawGsiListeners = new Set<(payload: Record<string, unknown>, simulated: boolean) => void>();
   private readonly killListeners = new Set<(entry: HudKillfeedEntry) => void>();
@@ -231,7 +235,11 @@ export class Engine {
       },
       this.settings.get("program.scenes", { LIVE: null, REPLAY: null, STUDIO: null, BREAK: null }),
     );
-    this.replays = new ReplayQueue(null);
+    this.replays = new ReplayQueue(null, (item) => {
+      // Clips the replay PC sent live in this computer's data folder: delete them when they drop off the queue.
+      const path = item.origin === "replay_pc" ? item.clip?.media.path : null;
+      if (path && path.startsWith(this.replayDir())) rmSync(path, { force: true });
+    });
     this.ruleEngine = new RuleEngine((action, event, rule) => this.executeRuleAction(action, event, rule), this.now);
     if (this.rules.list().length === 0) for (const r of exampleRules()) this.rules.create(r);
     this.ruleEngine.setRules(this.rules.list().map((d) => d.data));
@@ -254,6 +262,8 @@ export class Engine {
 
     this.gameConsole = new GameConsoleService({ settings: this.settings, teams: this.teams, logger: this.logger });
     this.autoDirector = new AutoDirector(this);
+    this.replayLink = new ReplayLink(this);
+    this.autoReplay = new AutoReplay(this);
     this.radars = BuiltinRadars.load(cfg.radarDir, (msg, data) => this.logger.warn(msg, data));
 
     this.session.on("events", (evs) => this.onDerivedEvents(evs));
@@ -501,6 +511,7 @@ export class Engine {
 
   private onState(s: MatchState): void {
     if (!s.simulated) this.gameConsole.onState(s);
+    this.replayLink.noteOwnState(s.observer.observedSteamId);
     for (const o of this.outputs.list()) {
       const pub = o.published?.data;
       if (pub && pub.timelineProfile === "delayed" && pub.delayMs > 0) {
@@ -831,12 +842,19 @@ export class Engine {
     return this.replayProvider;
   }
 
+  /** Where clips from the replay PC are kept. */
+  replayDir(): string {
+    return join(this.cfg.dataDir, "replays");
+  }
+
   // ---------------------------------------------------------------------------- lifecycle
 
   async init(): Promise<void> {
     this.refreshGsiConfig();
     this.hudLibrary.installSamples(this.cfg.sampleHudsDirs);
     this.configureReplay();
+    this.replayLink.start();
+    this.autoReplay.start();
     this.gameConsole.sync();
     this.gameConsole.onConnectionChange(() => void this.applyObserverAdapter());
     await this.applyObserverAdapter();
@@ -865,6 +883,8 @@ export class Engine {
 
   async shutdown(): Promise<void> {
     this.autoDirector.dispose();
+    this.replayLink.stop();
+    this.autoReplay.dispose();
     await this.stopSimulation().catch(() => undefined);
     this.demos.stop();
     this.session.stop();

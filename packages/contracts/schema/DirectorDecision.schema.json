@@ -117,7 +117,8 @@
           "DISTANCE_CLOSING",
           "MAIN_STORY",
           "ESTABLISHING",
-          "NO_VALID_CANDIDATE"
+          "NO_VALID_CANDIDATE",
+          "MAIN_OBSERVER_ON_IT"
         ]
       }
     },
@@ -314,7 +315,8 @@
                 "DISTANCE_CLOSING",
                 "MAIN_STORY",
                 "ESTABLISHING",
-                "NO_VALID_CANDIDATE"
+                "NO_VALID_CANDIDATE",
+                "MAIN_OBSERVER_ON_IT"
               ]
             }
           },

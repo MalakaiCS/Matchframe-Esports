@@ -62,6 +62,7 @@ export const REASON_INFO: Record<ReasonCode, ReasonInfo> = {
   MAIN_STORY: { label: "Main story", tone: "info", hint: "Part of the round's main storyline." },
   ESTABLISHING: { label: "Establishing shot", tone: "neutral", hint: "An establishing shot to orient viewers." },
   NO_VALID_CANDIDATE: { label: "No valid candidate", tone: "warn", hint: "No usable shot was found; holding." },
+  MAIN_OBSERVER_ON_IT: { label: "Main camera has them", tone: "neutral", hint: "Replay PC: the main PC already shows this player, so this computer films someone else." },
 };
 
 export function reasonInfo(code: string): ReasonInfo {

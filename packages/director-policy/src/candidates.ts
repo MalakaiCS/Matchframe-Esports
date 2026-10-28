@@ -33,7 +33,12 @@ export interface CandidateInput {
   learnedImminence?: ReadonlyMap<string, number> | undefined;
   /** What the Observer mode may do on its own; null = no restriction (advisory recommendations). */
   scope?: ReadonlySet<ActionClass> | null | undefined;
+  /** Players another observer already shows (a replay PC avoids the main PC's player). */
+  avoid?: ReadonlySet<string> | null | undefined;
 }
+
+/** Utility taken off a player another observer already shows: the next-best action wins, but they stay a fallback. */
+const AVOID_PENALTY = 0.8;
 
 export interface ScoredCandidate extends ShotCandidate {
   opportunity: UtilityOpportunity | null;
@@ -202,6 +207,8 @@ export function generateCandidates(input: CandidateInput): ScoredCandidate[] {
       cinematicOpportunityCost: 0,
     };
     if (isCurrent) reasons.unshift(valid ? "CURRENT_SHOT_VALID" : "CURRENT_SHOT_INVALID");
+    const avoided = input.avoid?.has(p.steamId) === true;
+    if (avoided) reasons.push("MAIN_OBSERVER_ON_IT");
     const urgent = sig.reasons.includes("BOMB_CRITICAL") || sig.reasons.includes("BOMB_DEFUSE_PRESSURE") || (f?.contact["0.5"] ?? 0) >= 0.7;
     out.push({
       candidateId: `cand:${key}`,
@@ -212,14 +219,14 @@ export function generateCandidates(input: CandidateInput): ScoredCandidate[] {
       clusterId: f?.clusterId ?? null,
       regionIds: cluster?.regionIds ?? [],
       components,
-      utility: valid ? utilityOf(components, w) : -1,
+      utility: valid ? utilityOf(components, w) - (avoided ? AVOID_PENALTY : 0) : -1,
       reasonCodes: [...new Set(reasons)],
       valid,
       invalidReason,
       evidenceType: "estimated",
       opportunity: null,
       plannedDurationMs: null,
-      urgent: valid && urgent,
+      urgent: valid && urgent && !avoided,
     });
   }
 

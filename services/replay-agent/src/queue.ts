@@ -13,6 +13,25 @@ export interface QueueItem {
   error: string | null;
   order: number;
   trim: { startMs: number; durationMs: number } | null;
+  /** Which computer filmed it: this one (its program output) or the replay PC (its own observer). */
+  origin: "main" | "replay_pc";
+  /** Higher plays first in an automatic replay break. */
+  priority: number;
+  /** How much of the end of the clip to show (the moment and its lead-up); null = the whole clip. */
+  playMs: number | null;
+  /** What the clip shows, when it was cut for a play. */
+  play: ReplayPlay | null;
+}
+
+/** The play a clip was cut for. */
+export interface ReplayPlay {
+  /** missed: the main camera showed neither player; other_angle: it showed the victim, this is the killer; big_play: the main camera showed it (3+ kills). */
+  kind: "missed" | "other_angle" | "big_play";
+  killer: { steamId: string; name: string } | null;
+  victims: string[];
+  kills: number;
+  weapon: string | null;
+  headshot: boolean;
 }
 
 /**
@@ -26,7 +45,11 @@ export class ReplayQueue {
   private items: QueueItem[] = [];
   private counter = 0;
 
-  constructor(private provider: ReplayProvider | null) {}
+  constructor(
+    private provider: ReplayProvider | null,
+    /** Called with an item that dropped off the end of the queue (its media may be deleted). */
+    private readonly onEvict?: (item: QueueItem) => void,
+  ) {}
 
   setProvider(p: ReplayProvider | null): void {
     this.provider = p;
@@ -40,10 +63,23 @@ export class ReplayQueue {
     return this.items.find((i) => i.id === id);
   }
 
-  bookmark(label: string, reason: string, roundNumber: number | null): QueueItem {
-    const it: QueueItem = { id: `bm_${Date.now().toString(36)}_${this.counter}`, state: "bookmarked", label, reason, roundNumber, createdAt: new Date().toISOString(), clip: null, error: null, order: this.counter++, trim: null };
+  bookmark(label: string, reason: string, roundNumber: number | null, extra: Partial<Pick<QueueItem, "priority" | "playMs" | "play">> = {}): QueueItem {
+    const it: QueueItem = { id: `bm_${Date.now().toString(36)}_${this.counter}`, state: "bookmarked", label, reason, roundNumber, createdAt: new Date().toISOString(), clip: null, error: null, order: this.counter++, trim: null, origin: "main", priority: 0, playMs: null, play: null, ...extra };
+    return this.push(it);
+  }
+
+  /** A clip captured elsewhere (the replay PC), ready for approval. */
+  addExternal(label: string, reason: string, roundNumber: number | null, clip: ClipRecord, extra: Partial<Pick<QueueItem, "priority" | "playMs" | "play">> = {}): QueueItem {
+    const it: QueueItem = { id: `rp_${Date.now().toString(36)}_${this.counter}`, state: "prepared", label, reason, roundNumber, createdAt: new Date().toISOString(), clip, error: null, order: this.counter++, trim: null, origin: "replay_pc", priority: 0, playMs: null, play: null, ...extra };
+    return this.push(it);
+  }
+
+  private push(it: QueueItem): QueueItem {
     this.items.push(it);
-    if (this.items.length > 200) this.items.shift();
+    if (this.items.length > 200) {
+      const gone = this.items.shift();
+      if (gone) this.onEvict?.(gone);
+    }
     return it;
   }
 
@@ -58,6 +94,8 @@ export class ReplayQueue {
     try {
       const clips = await this.provider.capture({ ...req, bookmarkId: id });
       it.clip = clips[0] ?? null;
+      // Rejected while capturing (a longer clip of the same play replaced it): stays rejected.
+      if ((it.state as ClipState) === "rejected") return it;
       it.state = it.clip?.media.path || it.clip ? "prepared" : "failed";
       if (!it.clip) it.error = "provider returned no clip";
     } catch (e) {

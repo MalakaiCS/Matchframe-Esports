@@ -45,6 +45,10 @@ contextBridge.exposeInMainWorld("matchframe", {
   info: (): Promise<unknown> => ipcRenderer.invoke("mf:info"),
   openDataDir: (): Promise<string> => ipcRenderer.invoke("mf:open-data-dir"),
   restartEngine: (): Promise<boolean> => ipcRenderer.invoke("mf:restart-engine"),
+  network: {
+    get: (): Promise<{ networkAccess: boolean; local: boolean } | null> => ipcRenderer.invoke("mf:network-get"),
+    set: (on: boolean): Promise<{ networkAccess: boolean; local: boolean } | null> => ipcRenderer.invoke("mf:network-set", on),
+  },
   openConnection: (): Promise<void> => ipcRenderer.invoke("mf:open-connection"),
   onEngineStatus: (fn: (s: unknown) => void) => {
     const h = (_: unknown, s: unknown) => fn(s);

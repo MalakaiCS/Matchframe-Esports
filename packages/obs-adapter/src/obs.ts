@@ -355,9 +355,18 @@ export class ObsManager extends EventEmitter {
     return { state: r.mediaState, durationMs: r.mediaDuration ?? null, cursorMs: r.mediaCursor ?? null };
   }
 
-  async setMediaFile(inputName: string, localFile: string): Promise<void> {
+  async setMediaFile(inputName: string, localFile: string, opts: { speedPercent?: number } = {}): Promise<void> {
     this.requireConnected();
-    await this.obs.call("SetInputSettings", { inputName, inputSettings: { local_file: localFile, is_local_file: true }, overlay: true });
+    // A media source's own speed setting (100 = real time) slows a replay down without re-encoding it.
+    const inputSettings: Record<string, string | number | boolean> = { local_file: localFile, is_local_file: true };
+    if (opts.speedPercent !== undefined) inputSettings.speed_percent = Math.round(Math.min(200, Math.max(1, opts.speedPercent)));
+    await this.obs.call("SetInputSettings", { inputName, inputSettings, overlay: true });
+  }
+
+  /** Seeks a playing media input (milliseconds from its start). */
+  async setMediaCursor(inputName: string, cursorMs: number): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("SetMediaInputCursor", { inputName, mediaCursor: Math.max(0, Math.round(cursorMs)) });
   }
 
   async screenshot(sourceName: string, width = 640): Promise<string> {

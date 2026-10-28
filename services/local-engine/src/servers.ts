@@ -19,6 +19,7 @@ import { WRAPPER_JS, wrapperPage } from "./hud/wrapper.ts";
 import { LhmRuntime, lhmSetCookie } from "./hud/lhm-runtime.ts";
 import { lhmViews } from "./hud/lhm.ts";
 import { registerLiveRoutes } from "./routes/live.ts";
+import { registerReplayRoutes } from "./routes/replay.ts";
 import { registerDemoRoutes } from "./routes/demos.ts";
 import { registerDeviceRoutes, tally } from "./routes/devices.ts";
 import { registerReportRoutes } from "./routes/reports.ts";
@@ -83,6 +84,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerGameRoutes(router, e);
   registerDomainRoutes(router, e);
   registerLiveRoutes(router, e);
+  registerReplayRoutes(router, e);
   registerHudRoutes(router, e);
   registerHudLibraryRoutes(router, e);
   registerDemoRoutes(router, e);

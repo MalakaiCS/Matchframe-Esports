@@ -24,6 +24,11 @@ declare global {
       getOperatorToken?: () => Promise<string | null>;
       openConnection?: () => Promise<void>;
       openDataDir?: () => Promise<string>;
+      /** Let other computers on the network reach this computer's engine (restarts it). */
+      network?: {
+        get(): Promise<{ networkAccess: boolean; local: boolean } | null>;
+        set(on: boolean): Promise<{ networkAccess: boolean; local: boolean } | null>;
+      };
       onEmergencyStop?: (fn: (s: unknown) => void) => () => void;
       onEngineStatus?: (fn: (s: unknown) => void) => () => void;
       /** "win32", "darwin", "linux". */

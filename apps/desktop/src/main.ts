@@ -66,14 +66,16 @@ interface ProgramSettings {
   autoDownloadUpdates: boolean;
   /** HLAE.exe for the Start CS2 HLAE mode (chosen by the operator on this computer). */
   hlaePath: string | null;
+  /** The engine listens on the network (a replay PC or another operator position connects), not only on this computer. */
+  networkAccess: boolean;
 }
 const programSettingsFile = () => join(app.getPath("userData"), "program-settings.json");
 function readProgramSettings(): ProgramSettings {
   try {
     const raw = JSON.parse(readFileSync(programSettingsFile(), "utf8")) as Partial<ProgramSettings>;
-    return { autoDownloadUpdates: raw.autoDownloadUpdates !== false, hlaePath: typeof raw.hlaePath === "string" ? raw.hlaePath : null };
+    return { autoDownloadUpdates: raw.autoDownloadUpdates !== false, hlaePath: typeof raw.hlaePath === "string" ? raw.hlaePath : null, networkAccess: raw.networkAccess === true };
   } catch {
-    return { autoDownloadUpdates: true, hlaePath: null };
+    return { autoDownloadUpdates: true, hlaePath: null, networkAccess: false };
   }
 }
 function writeProgramSettings(patch: Partial<ProgramSettings>): void {
@@ -264,6 +266,8 @@ function startEngine(): void {
     MATCHFRAME_API_PORT: String(PORTS.api),
     MATCHFRAME_OVERLAY_PORT: String(PORTS.overlay),
   };
+  // Network access: every interface (access still needs a token); otherwise this computer only.
+  if (readProgramSettings().networkAccess && !process.env.MATCHFRAME_HOST) env.MATCHFRAME_HOST = "0.0.0.0";
   const key = secretKey();
   if (key) env.MATCHFRAME_SECRET_KEY = key;
   Object.assign(env, cloudReleaseConfig(env));
@@ -537,7 +541,7 @@ ipcMain.on("mf:hud-availability", (event) => {
   event.returnValue = fromApp(event) && !fromApp(event, "/connect") ? { available: connection.mode === "local", reason: connection.mode === "remote" ? REMOTE_REASON : null } : { available: false, reason: "not allowed" };
 });
 ipcMain.handle("mf:open-data-dir", () => shell.openPath(dataDir()));
-ipcMain.handle("mf:restart-engine", () => {
+function restartEngine(): boolean {
   if (connection.mode !== "local" || !engine) return false;
   const child = engine;
   child.send({ type: "shutdown" });
@@ -545,6 +549,16 @@ ipcMain.handle("mf:restart-engine", () => {
   const kill = setTimeout(() => child.exitCode === null && child.kill(), 8000);
   child.once("exit", () => clearTimeout(kill));
   return true;
+}
+ipcMain.handle("mf:restart-engine", () => restartEngine());
+ipcMain.handle("mf:network-get", (event) => (fromApp(event) ? { networkAccess: readProgramSettings().networkAccess, local: connection.mode === "local" } : null));
+ipcMain.handle("mf:network-set", (event, on: unknown) => {
+  if (!fromApp(event) || typeof on !== "boolean" || connection.mode !== "local") return null;
+  if (readProgramSettings().networkAccess !== on) {
+    writeProgramSettings({ networkAccess: on });
+    restartEngine();
+  }
+  return { networkAccess: on, local: true };
 });
 ipcMain.handle("mf:open-connection", (event) => {
   if (fromApp(event)) showConnectionSettings();

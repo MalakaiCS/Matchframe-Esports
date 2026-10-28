@@ -8,6 +8,7 @@ import { Link } from "../router.tsx";
 import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
 import "../styles/group-b.css";
+import { AutoReplaysPanel, ReplayPcPanel } from "./replays/AutoReplays.tsx";
 
 const STATE_TONE: Record<ClipState, "ok" | "info" | "warn" | "danger" | "neutral" | "accent"> = {
   bookmarked: "neutral",
@@ -123,7 +124,11 @@ export function ReplaysScreen() {
           Return live
         </ActionButton>
       </div>
-      <p className="page-intro">Bookmark, capture, approve, then play clips on the replay scene; the live observer camera never moves for a replay.</p>
+      <p className="page-intro">Replays play by themselves between rounds, or bookmark, capture, approve and play clips yourself. The live observer camera never moves for a replay.</p>
+      <div className="grid-2">
+        <AutoReplaysPanel />
+        <ReplayPcPanel />
+      </div>
       <Async state={replays}>
         {(r) => {
           const p = r.provider;
