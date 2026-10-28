@@ -19,7 +19,7 @@ export interface AlphaVideoOptions {
 export async function canEncodeVideo(width = 1920, height = 1080): Promise<boolean> {
   if (typeof VideoEncoder === "undefined" || typeof VideoFrame === "undefined") return false;
   try {
-    const r = await VideoEncoder.isConfigSupported({ codec: "vp8", width, height, bitrate: 8_000_000, framerate: 60 });
+    const r = await VideoEncoder.isConfigSupported({ codec: "vp8", width, height, bitrate: 8_000_000, framerate: 60, hardwareAcceleration: "prefer-software" });
     return r.supported === true;
   } catch {
     return false;
@@ -119,7 +119,9 @@ export async function encodeAlphaWebm(o: AlphaVideoOptions): Promise<Uint8Array>
         e.dispatchEvent(new Event("dequeue"));
       },
     });
-    e.configure({ codec: "vp8", width: w, height: h, bitrate, framerate: fps, latencyMode: "quality" });
+    // The software VP8 encoder (libvpx) everywhere: the same, predictable encoder on every computer
+    // (on a Windows machine without a usable GPU another path made the stinger crawl).
+    e.configure({ codec: "vp8", width: w, height: h, bitrate, framerate: fps, latencyMode: "quality", hardwareAcceleration: "prefer-software" });
     return e;
   };
   const colorEnc = make("color", 12_000_000);

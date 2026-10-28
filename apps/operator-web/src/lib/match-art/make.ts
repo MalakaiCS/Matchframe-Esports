@@ -146,7 +146,9 @@ export async function artInput(matchId: string): Promise<ArtInput> {
 
 async function png(w: number, h: number, draw: (ctx: OffscreenCanvasRenderingContext2D) => void): Promise<Blob> {
   const c = new OffscreenCanvas(w, h);
-  const ctx = c.getContext("2d");
+  // Drawn on the CPU (read back at once as a PNG): no GPU round trips, and no slow GPU emulation on a
+  // computer without a usable graphics card.
+  const ctx = c.getContext("2d", { willReadFrequently: true });
   if (!ctx) throw new Error("This computer can't draw the graphics (no 2D canvas).");
   draw(ctx);
   return c.convertToBlob({ type: "image/png" });

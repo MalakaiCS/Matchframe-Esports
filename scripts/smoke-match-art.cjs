@@ -13,9 +13,22 @@ const SIZES = { "thumb-highlights": [1280, 720], "thumb-replay": [1280, 720], "t
 /** Rejects after `ms` (a Playwright evaluate has no timeout of its own). */
 const within = (p, ms, what) => Promise.race([p, new Promise((_, reject) => setTimeout(() => reject(new Error(`${what}: no answer in ${ms / 1000} s`)), ms))]);
 
-async function checkMatchArt({ win, base, waitFor, assert, shot }) {
+async function checkMatchArt({ app, win, base, waitFor, assert, shot }) {
   const t0 = Date.now();
   const log = (msg) => console.log(`[match art +${Math.round((Date.now() - t0) / 1000)} s] ${msg}`);
+  // Which of the program's processes are busy (CPU % by process type), when the app is given.
+  const cpu = async () => {
+    if (!app) return "";
+    const metrics = await within(app.evaluate(({ app: a }) => a.getAppMetrics().map((m) => ({ type: m.type, cpu: m.cpu.percentCPUUsage }))), 10000, "process metrics").catch(() => null);
+    if (!metrics) return " · cpu ?";
+    const by = {};
+    for (const m of metrics) by[m.type] = (by[m.type] ?? 0) + m.cpu;
+    return ` · cpu ${Object.entries(by).map(([k, v]) => `${k} ${Math.round(v)}%`).join(", ")}`;
+  };
+  if (app) {
+    const gpu = await within(app.evaluate(({ app: a }) => a.getGPUFeatureStatus()), 10000, "GPU status").catch(() => null);
+    if (gpu) log(`GPU features: canvas ${gpu["2d_canvas"]}, compositing ${gpu.gpu_compositing}, video encode ${gpu.video_encode}`);
+  }
   const token = await within(win.evaluate(() => window.matchframe.getOperatorToken()), 30000, "operator token");
   const call = async (path, body) => {
     const r = await fetch(base + path, { method: body ? "POST" : "GET", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(30000) });
@@ -44,7 +57,7 @@ async function checkMatchArt({ win, base, waitFor, assert, shot }) {
     // Logged when a file is added, and every 15 s otherwise.
     const made = r.items.map((i) => i.kind).join(",") || "none";
     if (made !== last || Date.now() - lastAt > 15000) {
-      log(`${made} · ${panel.progress ?? "-"}`);
+      log(`${made} · ${panel.progress ?? "-"}${await cpu()}`);
       last = made;
       lastAt = Date.now();
     }

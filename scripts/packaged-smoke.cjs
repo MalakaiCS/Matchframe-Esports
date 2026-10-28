@@ -128,7 +128,7 @@ async function check(app, ports, shot) {
   const update = await win.evaluate(() => window.matchframe.updates.check());
 
   // Match graphics: thumbnails drawn and stingers encoded (with alpha) by the program itself.
-  const matchArt = await checkMatchArt({ win, base, waitFor, assert, shot: shot ? shot.replace(/(\.png)?$/, "-match-art.png") : null });
+  const matchArt = await checkMatchArt({ app, win, base, waitFor, assert, shot: shot ? shot.replace(/(\.png)?$/, "-match-art.png") : null });
 
   const pinnedFile = join(meta.resources, "cloud.json");
   const pinned = existsSync(pinnedFile) ? JSON.parse(readFileSync(pinnedFile, "utf8")) : null;

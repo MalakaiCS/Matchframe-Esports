@@ -113,7 +113,7 @@ async function run(cloud) {
   const captain = await fetch("http://127.0.0.1:39411/captain", { headers: { accept: "text/html" } });
   assert(captain.status === 200 && (await captain.text()).includes("captain-assets"), "captain page is still served for captain links");
   // Match graphics: thumbnails drawn and stingers encoded (with alpha) in the program's window.
-  const matchArt = await checkMatchArt({ win: local.win, base: "http://127.0.0.1:39411", waitFor, assert, shot: out ? `${out}-match-art.png` : null });
+  const matchArt = await checkMatchArt({ app: local.app, win: local.win, base: "http://127.0.0.1:39411", waitFor, assert, shot: out ? `${out}-match-art.png` : null });
   // Pages outside the program's origin cannot be navigated to.
   await local.win.evaluate(() => (location.href = "http://127.0.0.1:39411/"));
   await local.win.waitForTimeout(500);
