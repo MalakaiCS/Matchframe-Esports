@@ -4,8 +4,9 @@
 //     installed; a desktop HUD window opens transparent, click-through and on top; signing in with
 //     the website account's email and password works under Settings → Account; supervised engine
 //     healthy; console shown from app://matchframe (not from the engine's HTTP address); API
-//     forwarding and the live WebSocket work; hardened window settings; the engine's HTTP address
-//     serves no console to browsers, only the captain page.
+//     forwarding and the live WebSocket work; hardened window settings; a new match's thumbnails
+//     and stingers (with alpha) are made in the program; the engine's HTTP address serves no
+//     console to browsers, only the captain page.
 //  2. Remote mode: the program connects to an engine on "another computer" (a second engine on
 //     other ports, signed in through its API) with a role token, without starting its own engine;
 //     desktop HUDs are marked unavailable there.
@@ -16,6 +17,7 @@ const { mkdtempSync, readFileSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 const { startCloud, signInThroughAccount } = require("./smoke-cloud.cjs");
+const { checkMatchArt } = require("./smoke-match-art.cjs");
 
 const repo = join(__dirname, "..");
 const out = process.argv[2] ?? null;
@@ -110,6 +112,8 @@ async function run(cloud) {
   assert(browserRoot.status === 404 && browserText.includes("runs inside the Matchframe program"), "engine serves no console to browsers");
   const captain = await fetch("http://127.0.0.1:39411/captain", { headers: { accept: "text/html" } });
   assert(captain.status === 200 && (await captain.text()).includes("captain-assets"), "captain page is still served for captain links");
+  // Match graphics: thumbnails drawn and stingers encoded (with alpha) in the program's window.
+  const matchArt = await checkMatchArt({ win: local.win, base: "http://127.0.0.1:39411", waitFor, assert, shot: out ? `${out}-match-art.png` : null });
   // Pages outside the program's origin cannot be navigated to.
   await local.win.evaluate(() => (location.href = "http://127.0.0.1:39411/"));
   await local.win.waitForTimeout(500);
@@ -156,5 +160,5 @@ async function run(cloud) {
     prod.kill("SIGTERM");
   }
 
-  console.log(JSON.stringify({ local: { info, prefs, health: { ok: health.ok, version: health.version }, browserRoot: browserRoot.status, captain: captain.status, errors: localErrors }, remote: remoteResult }, null, 1));
+  console.log(JSON.stringify({ local: { info, prefs, health: { ok: health.ok, version: health.version }, matchArt, browserRoot: browserRoot.status, captain: captain.status, errors: localErrors }, remote: remoteResult }, null, 1));
 }

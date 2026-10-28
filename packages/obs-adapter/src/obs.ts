@@ -231,9 +231,50 @@ export class ObsManager extends EventEmitter {
     return { current: r.currentSceneTransitionName ?? null, names: (r.transitions as { transitionName: string }[]).map((t) => t.transitionName) };
   }
 
-  async setTransition(name: string): Promise<void> {
+  /**
+   * Makes a transition OBS's current one and waits until OBS reports it: OBS applies the switch a
+   * moment later (a request right after can still see the old one), so a cut or a settings change
+   * straight after would otherwise use the old transition. Returns whether OBS confirmed it.
+   */
+  async setTransition(name: string, timeoutMs = 2000): Promise<boolean> {
     this.requireConnected();
     await this.obs.call("SetCurrentSceneTransition", { transitionName: name });
+    const end = Date.now() + timeoutMs;
+    for (;;) {
+      const r = await this.obs.call("GetCurrentSceneTransition");
+      if (r.transitionName === name) return true;
+      if (Date.now() > end) return false;
+      await new Promise((res) => setTimeout(res, 15));
+    }
+  }
+
+  /** Scene transitions with their kinds (a Stinger is `obs_stinger_transition`). */
+  async transitionKinds(): Promise<{ current: string | null; transitions: { name: string; kind: string }[] }> {
+    this.requireConnected();
+    const r = await this.obs.call("GetSceneTransitionList");
+    return { current: r.currentSceneTransitionName ?? null, transitions: (r.transitions as { transitionName: string; transitionKind: string }[]).map((t) => ({ name: t.transitionName, kind: t.transitionKind })) };
+  }
+
+  /**
+   * Changes a transition's settings (e.g. a Stinger's video file). obs-websocket only edits the
+   * current transition, so it is made current for the change, read back, and the one before put back
+   * unless `keepCurrent`.
+   */
+  async setTransitionSettings(name: string, settings: Record<string, unknown>, opts: { keepCurrent?: boolean } = {}): Promise<{ confirmed: boolean; settings: Record<string, unknown> }> {
+    this.requireConnected();
+    const before = await this.obs.call("GetCurrentSceneTransition");
+    const prev = before.transitionName as string;
+    // Never change settings before OBS has really switched: they would go to the old transition.
+    if (prev !== name && !(await this.setTransition(name))) throw new Error(`OBS didn't switch to the transition "${name}"`);
+    try {
+      await this.obs.call("SetCurrentSceneTransitionSettings", { transitionSettings: settings as never, overlay: true });
+      const now = await this.obs.call("GetCurrentSceneTransition");
+      const got = (now.transitionSettings ?? {}) as Record<string, unknown>;
+      const confirmed = now.transitionName === name && Object.entries(settings).every(([k, v]) => got[k] === v);
+      return { confirmed, settings: got };
+    } finally {
+      if (!opts.keepCurrent && prev !== name) await this.setTransition(prev).catch(() => false);
+    }
   }
 
   /** Idempotent visibility set; confirmed by read-back. */

@@ -7,6 +7,8 @@ import { fmtTime, MISSING } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
 import { useMapSuggestions } from "../lib/maps.ts";
 import { usePermission } from "../state/session.tsx";
+import { makeMatchArt } from "../lib/match-art/make.ts";
+import { MatchArtPanel } from "./matches/MatchArt.tsx";
 import { VetoBoard } from "./matches/Veto.tsx";
 import "../styles/group-a.css";
 
@@ -16,11 +18,57 @@ function formatText(f: Match["format"]): string {
   return `BO${f.bestOf} · MR${f.regulationRounds / 2}${f.overtimeEnabled ? ` + OT${f.overtimeRounds / 2}` : ""}`;
 }
 
-function CreateMatch({ teams, events, onCreated }: { teams: TeamRow[]; events: EventRecord[]; onCreated: (id: string) => void }) {
+/** "New team…" in a team picker: the team is created with the match. */
+const NEW_TEAM = "__new";
+
+interface TeamChoice {
+  id: string;
+  name: string;
+  shortName: string;
+}
+
+/** A short name from a team name: the initials of several words, or the first four letters of one. */
+export function shortNameOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const s = words.length > 1 ? words.map((w) => w[0]).join("").slice(0, 4) : (words[0] ?? "").slice(0, 4);
+  return s.toUpperCase();
+}
+
+function TeamPicker({ label, teams, value, onChange }: { label: string; teams: TeamRow[]; value: TeamChoice; onChange: (v: TeamChoice) => void }) {
+  return (
+    <>
+      <Field label={label}>
+        <select value={value.id} onChange={(e) => onChange({ ...value, id: e.target.value })}>
+          {teams.length ? <option value="">Choose…</option> : null}
+          {teams.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+          <option value={NEW_TEAM}>New team…</option>
+        </select>
+      </Field>
+      {value.id === NEW_TEAM ? (
+        <>
+          <Field label={`${label} name`}>
+            <input value={value.name} maxLength={80} onChange={(e) => onChange({ ...value, name: e.target.value })} placeholder="Team name" />
+          </Field>
+          <Field label={`${label} short name`} hint="Shown on the HUD (logo: Teams)">
+            <input value={value.shortName} maxLength={12} onChange={(e) => onChange({ ...value, shortName: e.target.value })} placeholder={shortNameOf(value.name) || "TAG"} />
+          </Field>
+        </>
+      ) : null}
+    </>
+  );
+}
+
+function CreateMatch({ teams, events, onCreated, onTeamCreated }: { teams: TeamRow[]; events: EventRecord[]; onCreated: (id: string) => void; onTeamCreated: () => void }) {
   const reason = usePermission("metadata.write");
   const suggestions = useMapSuggestions();
-  const [teamAId, setA] = useState("");
-  const [teamBId, setB] = useState("");
+  // With fewer than two teams, the pickers start on "New team…": a match can be made from here alone.
+  const blank = (i: number): TeamChoice => ({ id: teams.length > i ? "" : NEW_TEAM, name: "", shortName: "" });
+  const [a, setA] = useState<TeamChoice>(() => blank(1));
+  const [b, setB] = useState<TeamChoice>(() => blank(1));
   const [eventId, setEvent] = useState("");
   const [title, setTitle] = useState("");
   const [scheduledAt, setScheduled] = useState("");
@@ -34,31 +82,23 @@ function CreateMatch({ teams, events, onCreated }: { teams: TeamRow[]; events: E
     const ev = events.find((e) => e.id === eventId);
     if (ev && ev.mapPool.length && mapPool.length === 0) setPool(ev.mapPool);
   }, [eventId, events, mapPool.length]);
-  const missing = !teamAId || !teamBId ? "Choose both teams" : teamAId === teamBId ? "A match needs two different teams" : mapPool.length < bestOf ? `Map pool needs at least ${bestOf} maps for BO${bestOf}` : null;
+  const unnamed = [a, b].some((t) => t.id === NEW_TEAM && !t.name.trim());
+  const same = a.id === NEW_TEAM && b.id === NEW_TEAM ? a.name.trim().toLowerCase() === b.name.trim().toLowerCase() : a.id === b.id;
+  const missing = !a.id || !b.id ? "Choose both teams" : unnamed ? "Name the new team" : same ? "A match needs two different teams" : mapPool.length < bestOf ? `Map pool needs at least ${bestOf} maps for BO${bestOf}` : null;
+  /** The team's id, creating it first if it is new (and keeping it, so a second try doesn't make it twice). */
+  const teamId = async (t: TeamChoice, set: (v: TeamChoice) => void): Promise<string> => {
+    if (t.id !== NEW_TEAM) return t.id;
+    const created = await api.post<TeamRow>("/api/v1/teams", { name: t.name.trim(), shortName: (t.shortName.trim() || shortNameOf(t.name)).slice(0, 12) });
+    set({ ...t, id: created.id });
+    onTeamCreated();
+    return created.id;
+  };
   const rules = `MR${regulationRounds / 2}${overtimeEnabled ? ` + OT${overtimeRounds / 2}` : ", no overtime"}${allowTie ? ", ties allowed" : ""}`;
   return (
     <>
       <div className="form-grid">
-        <Field label="Team A">
-          <select value={teamAId} onChange={(e) => setA(e.target.value)}>
-            <option value="">Choose…</option>
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Team B">
-          <select value={teamBId} onChange={(e) => setB(e.target.value)}>
-            <option value="">Choose…</option>
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <TeamPicker label="Team A" teams={teams} value={a} onChange={setA} />
+        <TeamPicker label="Team B" teams={teams} value={b} onChange={setB} />
         <Field label="Event">
           <select value={eventId} onChange={(e) => setEvent(e.target.value)}>
             <option value="">None</option>
@@ -105,10 +145,10 @@ function CreateMatch({ teams, events, onCreated }: { teams: TeamRow[]; events: E
       <div className="form-actions">
         <ActionButton
           variant="primary"
-          action={() =>
+          action={async () =>
             api.post<Match>("/api/v1/matches", {
-              teamAId,
-              teamBId,
+              teamAId: await teamId(a, setA),
+              teamBId: await teamId(b, setB),
               eventId: eventId || null,
               title: title || null,
               scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
@@ -429,7 +469,7 @@ function MatchOverview({ match, teamA, teamB, activeId, players, reload, reloadA
 
 function MatchDetailView({ matchId, teams, players, activeId, reloadList, reloadActive }: { matchId: string; teams: TeamRow[]; players: PlayerRow[]; activeId: string | null; reloadList: () => void; reloadActive: () => void }) {
   const m = useApi<MatchDetail>(`/api/v1/matches/${seg(matchId)}`);
-  const [tab, setTab] = useState<"overview" | "veto">("overview");
+  const [tab, setTab] = useState<"overview" | "veto" | "art">("overview");
   const reload = () => {
     void m.reload();
     reloadList();
@@ -448,9 +488,16 @@ function MatchDetailView({ matchId, teams, players, activeId, reloadList, reload
               tabs={[
                 { id: "overview", label: "Match & maps" },
                 { id: "veto", label: "Veto" },
+                { id: "art", label: "Thumbnails & stingers" },
               ]}
             />
-            {tab === "overview" ? <MatchOverview match={match} teamA={teamA} teamB={teamB} activeId={activeId} players={players} reload={reload} reloadActive={reloadActive} /> : <VetoBoard match={match} teamA={teamA} teamB={teamB} onMapsChanged={reload} />}
+            {tab === "overview" ? (
+              <MatchOverview match={match} teamA={teamA} teamB={teamB} activeId={activeId} players={players} reload={reload} reloadActive={reloadActive} />
+            ) : tab === "veto" ? (
+              <VetoBoard match={match} teamA={teamA} teamB={teamB} onMapsChanged={reload} />
+            ) : (
+              <MatchArtPanel matchId={match.id} teams={`${teamA?.shortName ?? "A"}-vs-${teamB?.shortName ?? "B"}`} />
+            )}
           </div>
         );
       }}
@@ -473,9 +520,13 @@ export function MatchesScreen() {
     <div className="page">
       <div className="page-head">
         <h1 className="page-title">Matches &amp; Veto</h1>
-        {sel ? (
-          <Button variant={creating ? "secondary" : "primary"} onClick={() => setCreating(!creating)}>
-            {creating ? "Cancel" : "New match"}
+        {!showCreate ? (
+          <Button variant="primary" onClick={() => setCreating(true)}>
+            Create match
+          </Button>
+        ) : sel ? (
+          <Button variant="secondary" onClick={() => setCreating(false)}>
+            Cancel
           </Button>
         ) : null}
       </div>
@@ -484,7 +535,7 @@ export function MatchesScreen() {
           <Async state={matches}>
             {(list) =>
               list.length === 0 ? (
-                <EmptyState title="No matches yet">Create a match between two teams, run the veto, then activate it for the broadcast.</EmptyState>
+                <EmptyState title="No matches yet">Create a match between two teams, run the veto, then activate it for the broadcast. New teams can be made in the form.</EmptyState>
               ) : (
                 <ul className="select-list">
                   {list.map((m) => (
@@ -522,16 +573,17 @@ export function MatchesScreen() {
         </Panel>
         {showCreate ? (
           <Panel title="New match">
-            {teams.data === undefined ? null : teams.data.length < 2 ? (
-              <EmptyState title="Two teams needed">Create teams in Teams first.</EmptyState>
-            ) : (
+            {teams.data === undefined ? null : (
               <CreateMatch
                 teams={teams.data}
                 events={events.data ?? []}
+                onTeamCreated={() => void teams.reload()}
                 onCreated={(id) => {
                   setCreating(false);
                   setSel(id);
                   void matches.reload();
+                  // Thumbnails and stingers for the new match, made in the background.
+                  void makeMatchArt(id);
                 }}
               />
             )}

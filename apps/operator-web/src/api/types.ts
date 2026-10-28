@@ -1000,6 +1000,26 @@ export interface AutoReplaySettings {
   otherAngles: boolean;
   ownBigPlays: boolean;
 }
+export type MatchArtKind = "thumb-highlights" | "thumb-replay" | "thumb-live" | "up-next" | "stinger" | "stinger-replay";
+
+/** GET /api/v1/matches/:id/art */
+export interface MatchArtResponse {
+  folder: string;
+  items: { kind: MatchArtKind; label: string; file: string; url: string; bytes: number; updatedAt: string }[];
+  settings: { backgroundAssetId: string | null };
+  kinds: { kind: MatchArtKind; label: string; file: string }[];
+  obs: { transitions: { stinger: string; "stinger-replay": string }; cutMs: number };
+}
+
+/** POST /api/v1/matches/:id/art/obs */
+export interface MatchArtObsResult {
+  set: { kind: MatchArtKind; transition: string; confirmed: boolean }[];
+  missing: string[];
+  noFile: MatchArtKind[];
+  current: string | null;
+  replayTransition: string;
+}
+
 export interface AutoReplayResponse {
   settings: AutoReplaySettings;
   status: { enabled: boolean; state: "off" | "waiting" | "playing" | "blocked"; detail: string; waiting: number; playing: { id: string; label: string } | null; lastPlayed: { id: string; label: string; at: string } | null };

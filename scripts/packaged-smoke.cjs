@@ -4,8 +4,8 @@
 // website account's email and password under Settings → Account, checks the bundled engine and the
 // console shown from app://matchframe, API forwarding,
 // the live connection, that the engine's HTTP address serves no console, that the captain page and
-// HUD outputs are served, reports the website the build is pinned to (cloud.json), and saves
-// screenshots.
+// HUD outputs are served, that the program makes a match's thumbnails and stingers (with alpha),
+// reports the website the build is pinned to (cloud.json), and saves screenshots.
 //   node scripts/packaged-smoke.cjs "<path to Matchframe Esports.exe>" [screenshot.png]
 // MATCHFRAME_EXPECT_WEBSITE=<url> additionally requires the build's cloud.json to point there.
 // Uses `playwright` or `playwright-core` (only the Electron driver is needed, no browsers).
@@ -19,6 +19,7 @@ const { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } = requ
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 const { startCloud, signInThroughAccount } = require("./smoke-cloud.cjs");
+const { checkMatchArt } = require("./smoke-match-art.cjs");
 
 const exe = process.argv[2];
 const shot = process.argv[3] ?? null;
@@ -108,6 +109,9 @@ async function run(cloud) {
   // release has no latest.yml); only that the check ran is asserted.
   const update = await win.evaluate(() => window.matchframe.updates.check());
 
+  // Match graphics: thumbnails drawn and stingers encoded (with alpha) by the program itself.
+  const matchArt = await checkMatchArt({ win, base, waitFor, assert, shot: shot ? shot.replace(/(\.png)?$/, "-match-art.png") : null });
+
   const pinnedFile = join(meta.resources, "cloud.json");
   const pinned = existsSync(pinnedFile) ? JSON.parse(readFileSync(pinnedFile, "utf8")) : null;
   const website = pinned ? { url: pinned.url, keys: Object.keys(pinned.publicKeys ?? {}) } : null;
@@ -125,6 +129,6 @@ async function run(cloud) {
   assert(existsSync(join(meta.resources, "app-update.yml")), "update settings (app-update.yml) are in the program");
   assert(update && update.status !== "disabled" && update.status !== "idle" && update.currentVersion === meta.version && update.autoDownload === false, `the updater checked for updates (${JSON.stringify(update)})`);
   if (shot) await win.screenshot({ path: shot });
-  console.log(JSON.stringify({ ok: true, platform: process.platform, meta, url: info.url, navItems: info.nav.length, huds, role: info.me.role, signIn: info.signIn, website, health: { ok: health.ok, version: health.version, schemaVersion: health.schemaVersion }, engineRoot: root.status, captain: captain.status, hudOutput: overlay?.status ?? null, update, errors }, null, 1));
+  console.log(JSON.stringify({ ok: true, platform: process.platform, meta, url: info.url, navItems: info.nav.length, huds, role: info.me.role, signIn: info.signIn, website, health: { ok: health.ok, version: health.version, schemaVersion: health.schemaVersion }, engineRoot: root.status, captain: captain.status, hudOutput: overlay?.status ?? null, update, matchArt, errors }, null, 1));
   await app.close();
 }

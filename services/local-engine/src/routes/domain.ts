@@ -20,6 +20,16 @@ export function assetDir(e: Engine): string {
   return join(e.cfg.dataDir, "assets");
 }
 
+/** Stores an asset under its content hash (`<sha256 prefix><ext>`); returns its id. */
+export function storeAsset(e: Engine, body: Buffer, ext: string): string {
+  const sha = createHash("sha256").update(body).digest("hex");
+  const id = `${sha.slice(0, 24)}${ext}`;
+  mkdirSync(assetDir(e), { recursive: true });
+  const path = join(assetDir(e), id);
+  if (!existsSync(path)) writeFileSync(path, body);
+  return id;
+}
+
 /** Duplicate detection for imports: same SteamID or same normalized name. */
 function normalizeName(n: string): string {
   return n.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -32,13 +42,9 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
     const ext = extname(name).toLowerCase();
     if (!ASSET_EXT.has(ext)) throw new HttpError(400, `asset type ${ext} not allowed`, "bad_type");
     if (req.rawBody.length === 0 || req.rawBody.length > ASSET_MAX) throw new HttpError(400, "empty or too large asset", "bad_size");
-    const sha = createHash("sha256").update(req.rawBody).digest("hex");
-    const id = `${sha.slice(0, 24)}${ext}`;
-    mkdirSync(assetDir(e), { recursive: true });
-    const path = join(assetDir(e), id);
-    if (!existsSync(path)) writeFileSync(path, req.rawBody);
+    const id = storeAsset(e, req.rawBody, ext);
     e.audit.record(req.principal!.label, "asset.upload", id, { name, bytes: req.rawBody.length });
-    return { assetId: id, url: `/assets/${id}`, sha256: sha };
+    return { assetId: id, url: `/assets/${id}`, sha256: createHash("sha256").update(req.rawBody).digest("hex") };
   });
 
   // ---- teams -------------------------------------------------------------------------------

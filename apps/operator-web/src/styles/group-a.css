@@ -116,3 +116,35 @@
 .hlae-warning li + li {
   margin-top: 4px;
 }
+
+/* Match graphics (Matches → Thumbnails & stingers). */
+.art-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.art-card {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raised-2);
+  overflow: hidden;
+}
+.art-card figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+}
+.art-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #000;
+}
+/* A checkerboard behind the stingers shows where they are see-through. */
+.art-checker {
+  background: repeating-conic-gradient(#3a3f4b 0 25%, #252933 0 50%) 0 0 / 20px 20px;
+}

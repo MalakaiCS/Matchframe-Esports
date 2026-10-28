@@ -51,6 +51,7 @@ import { DemoLibrary, PythonWorkerRunner } from "./demos/library.ts";
 import { RoundSimulator } from "./sim/simulator.ts";
 import { GameConsoleService } from "./game/console.ts";
 import { BuiltinRadars } from "./live/builtin-radars.ts";
+import { MatchArt } from "./domain/match-art.ts";
 
 export const SetupProfile = z.object({
   id: z.string(),
@@ -151,6 +152,8 @@ export class Engine {
   readonly autoReplay: AutoReplay;
   readonly graphics: GraphicsDirector;
   readonly obsAuto: ObsAutomation;
+  /** Each match's thumbnails, "Up next" screen and stingers (and OBS's stinger transitions). */
+  readonly matchArt: MatchArt;
   private meterTimer: ReturnType<typeof setInterval> | null = null;
   private readonly rawGsiListeners = new Set<(payload: Record<string, unknown>, simulated: boolean) => void>();
   private readonly killListeners = new Set<(entry: HudKillfeedEntry) => void>();
@@ -277,6 +280,7 @@ export class Engine {
     this.autoReplay = new AutoReplay(this);
     this.graphics = new GraphicsDirector(this);
     this.obsAuto = new ObsAutomation(this);
+    this.matchArt = new MatchArt(this);
     this.radars = BuiltinRadars.load(cfg.radarDir, (msg, data) => this.logger.warn(msg, data));
 
     this.session.on("events", (evs) => this.onDerivedEvents(evs));
@@ -409,6 +413,7 @@ export class Engine {
     const m = matchId ? this.matches.get(matchId)?.data : null;
     this.sides = new TeamSideTracker({ leftTeamId: m?.teamAId ?? null, rightTeamId: m?.teamBId ?? null });
     this.roundWinnersLR.clear();
+    if (matchId) void this.matchArt.onActivated(matchId);
   }
 
   /** Standings/bracket for studio and break screens only (public team fields). */
