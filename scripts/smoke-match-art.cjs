@@ -53,11 +53,14 @@ async function checkMatchArt({ app, win, base, waitFor, assert, shot }) {
     const r = await call(`/api/v1/matches/${m.id}/art`);
     if (r.items.length >= 6) return r;
     // What the panel says (progress, or a failed run's reason: stop early with it).
-    const panel = await within(win.evaluate(() => ({ failed: document.querySelector(".note.tone-warn")?.textContent ?? null, progress: [...document.querySelectorAll(".small")].map((e) => e.textContent).find((t) => t.startsWith("Making")) ?? null })), 10000, "the panel");
+    const panel = await within(win.evaluate(() => ({ failed: document.querySelector(".note.tone-warn")?.textContent ?? null, progress: [...document.querySelectorAll(".small")].map((e) => e.textContent).find((t) => t.startsWith("Making")) ?? null, encode: window.__matchframeEncode ?? null })), 10000, "the panel");
     // Logged when a file is added, and every 15 s otherwise.
     const made = r.items.map((i) => i.kind).join(",") || "none";
     if (made !== last || Date.now() - lastAt > 15000) {
-      log(`${made} · ${panel.progress ?? "-"}${await cpu()}`);
+      const e = panel.encode;
+      // The stinger encoder: frames submitted / encoded (colour, alpha), queues, and where the time went.
+      const enc = e ? ` · encoder ${e.submitted}/${e.frames} submitted, ${e.encoded.join("+")} encoded, queues ${e.queue.join("+")}, ms draw ${Math.round(e.ms.draw)} read ${Math.round(e.ms.read)} convert ${Math.round(e.ms.convert)} submit ${Math.round(e.ms.submit)} wait ${Math.round(e.ms.wait)}, last frame ${e.lastFrameAt ? Math.round((Date.now() - e.lastFrameAt) / 1000) : "-"} s ago` : "";
+      log(`${made} · ${panel.progress ?? "-"}${await cpu()}${enc}`);
       last = made;
       lastAt = Date.now();
     }

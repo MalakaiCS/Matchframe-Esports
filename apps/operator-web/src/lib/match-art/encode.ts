@@ -91,6 +91,25 @@ function dequeued(enc: VideoEncoder): Promise<void> {
   return new Promise((resolve) => enc.addEventListener("dequeue", () => resolve(), { once: true }));
 }
 
+/**
+ * What the stinger encoder is doing, for the program's smoke test (`window.__matchframeEncode`):
+ * frames submitted and encoded, the encoders' queues, and where the time went (totals in ms).
+ */
+export interface EncodeTrace {
+  frames: number;
+  submitted: number;
+  encoded: [number, number];
+  queue: [number, number];
+  ms: { draw: number; read: number; convert: number; submit: number; wait: number };
+  lastFrameAt: number;
+}
+
+function newTrace(frames: number): EncodeTrace {
+  const t: EncodeTrace = { frames, submitted: 0, encoded: [0, 0], queue: [0, 0], ms: { draw: 0, read: 0, convert: 0, submit: 0, wait: 0 }, lastFrameAt: 0 };
+  (globalThis as { __matchframeEncode?: EncodeTrace }).__matchframeEncode = t;
+  return t;
+}
+
 interface Chunk {
   data: Uint8Array;
   key: boolean;
@@ -105,6 +124,7 @@ export async function encodeAlphaWebm(o: AlphaVideoOptions): Promise<Uint8Array>
   const ctx = canvas.getContext("2d", { willReadFrequently: true }) as Ctx | null;
   if (!ctx) throw new Error("This computer can't draw the stinger (no 2D canvas).");
   const out: { color: Chunk[]; alpha: Chunk[] } = { color: [], alpha: [] };
+  const trace = newTrace(o.frames);
   let failure: Error | null = null;
   const make = (which: "color" | "alpha", bitrate: number) => {
     const e = new VideoEncoder({
@@ -112,6 +132,7 @@ export async function encodeAlphaWebm(o: AlphaVideoOptions): Promise<Uint8Array>
         const data = new Uint8Array(chunk.byteLength);
         chunk.copyTo(data);
         out[which].push({ data, key: chunk.type === "key", ts: chunk.timestamp });
+        trace.encoded[which === "color" ? 0 : 1]++;
       },
       error: (err) => {
         failure = err instanceof Error ? err : new Error(String(err));
@@ -130,11 +151,21 @@ export async function encodeAlphaWebm(o: AlphaVideoOptions): Promise<Uint8Array>
   try {
     for (let i = 0; i < o.frames; i++) {
       if (failure) throw failure;
+      let t = performance.now();
+      const lap = (k: keyof EncodeTrace["ms"]) => {
+        const now = performance.now();
+        trace.ms[k] += now - t;
+        t = now;
+      };
       ctx.clearRect(0, 0, w, h);
       ctx.save();
       o.draw(ctx, i);
       ctx.restore();
-      const { color, alpha } = rgbaToI420Pair(ctx.getImageData(0, 0, w, h).data, w, h);
+      lap("draw");
+      const pixels = ctx.getImageData(0, 0, w, h).data;
+      lap("read");
+      const { color, alpha } = rgbaToI420Pair(pixels, w, h);
+      lap("convert");
       const timestamp = Math.round(i * frameUs);
       const key = i % keyEvery === 0;
       for (const [enc, buf] of [
@@ -148,8 +179,13 @@ export async function encodeAlphaWebm(o: AlphaVideoOptions): Promise<Uint8Array>
       // Let the window breathe between frames, and don't run ahead of the encoders. Neither waits on
       // a timer: a window the system reports as hidden (covered by OBS, minimised) gets its chained
       // timers held back to one a minute after a few minutes, which stalled a stinger half way.
+      trace.submitted = i + 1;
+      trace.queue = [colorEnc.encodeQueueSize, alphaEnc.encodeQueueSize];
+      lap("submit");
       await nextTask();
       for (const enc of [colorEnc, alphaEnc]) while (enc.encodeQueueSize > 4 && !failure) await dequeued(enc);
+      lap("wait");
+      trace.lastFrameAt = Date.now();
       o.onProgress?.(i + 1, o.frames);
     }
     await Promise.all([colorEnc.flush(), alphaEnc.flush()]);
