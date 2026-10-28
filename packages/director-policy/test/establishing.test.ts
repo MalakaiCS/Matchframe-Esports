@@ -1,11 +1,12 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import type { OwnershipState } from "@matchframe/contracts";
 import { MapPack } from "@matchframe/contracts";
 import type { SyntheticPlayer } from "@matchframe/cs2-state";
-import { MapRuntime } from "@matchframe/map-runtime";
+import { MapRuntime, VisibilityGrid } from "@matchframe/map-runtime";
 import { cameraShot, Director, pathShot } from "../src/index.ts";
 import type { ControlStatus } from "../src/index.ts";
 import { capsWithCameraControl, CT, player, Sim, T } from "./helpers.ts";
@@ -36,14 +37,18 @@ interface Shot {
   regions: string[];
   durationMs: number | null;
   pan: number;
+  /** A team shot's glide. */
+  move: { from: { x: number; y: number; z: number }; to: { x: number; y: number; z: number } } | null;
 }
 
 /**
  * Plays 18 s of freeze time then `liveMs` of live round; the "camera" does what the director says.
  * `pause`: a timeout from `at` ms into freeze time, `ms` long (freeze time is longer by as much).
  */
-function play(opts: { ctAt: { x: number; y: number; z: number }; liveMs: number; neverConfirmed?: boolean; pause?: { at: number; ms: number; phase: "timeout_t" | "timeout_ct" | "paused" } }) {
+function play(opts: { ctAt: { x: number; y: number; z: number }; liveMs: number; neverConfirmed?: boolean; pause?: { at: number; ms: number; phase: "timeout_t" | "timeout_ct" | "paused" }; grid?: boolean }) {
   const rt = new MapRuntime(pack());
+  // With Mirage's free-space grid: team shots.
+  if (opts.grid) rt.grid = VisibilityGrid.parse(readFileSync(join(root, "assets", "map-packs", "de_mirage.grid")), (b) => inflateSync(b));
   const sim = new Sim("de_mirage", rt);
   const director = new Director({ newId: (() => { let i = 0; return () => `d${i++}`; })() });
   director.setMode("automatic");
@@ -69,11 +74,11 @@ function play(opts: { ctAt: { x: number; y: number; z: number }; liveMs: number;
     if (!i) continue;
     if (i.kind === "select_player") {
       observed = i.targetSteamId;
-      shots.push({ at: sim.now - t0, kind: "pov", id: i.targetSteamId, regions: [], durationMs: null, pan: 0 });
+      shots.push({ at: sim.now - t0, kind: "pov", id: i.targetSteamId, regions: [], durationMs: null, pan: 0, move: null });
     } else if (i.kind === "activate_static_camera" || i.kind === "play_camera_path") {
       const key = i.kind === "activate_static_camera" ? cameraShot(i.cameraId!) : pathShot(i.pathId!);
-      const regions = i.kind === "activate_static_camera" ? rt.pack.cameras.find((c) => c.id === i.cameraId)!.targetRegionIds : rt.pack.paths.find((p) => p.id === i.pathId)!.targetRegionIds;
-      shots.push({ at: sim.now - t0, kind: i.kind, id: i.cameraId ?? i.pathId ?? null, regions, durationMs: i.plannedDurationMs, pan: i.panDegPerSec ?? 0 });
+      const regions = i.move ? [] : i.kind === "activate_static_camera" ? rt.pack.cameras.find((c) => c.id === i.cameraId)!.targetRegionIds : rt.pack.paths.find((p) => p.id === i.pathId)!.targetRegionIds;
+      shots.push({ at: sim.now - t0, kind: i.kind, id: i.cameraId ?? i.pathId ?? null, regions, durationMs: i.plannedDurationMs, pan: i.panDegPerSec ?? 0, move: i.move ?? null });
       // Confirmed at once, like a camera the console's getpos confirms; or never confirmed (the camera stays on the player).
       if (opts.neverConfirmed) director.cinematicFailed(key);
       else {
@@ -226,6 +231,44 @@ describe("freeze-time establishing shots and the start of the round", () => {
     if (lastEnd > freezeMs) {
       expect(afterLive[0]?.kind).toBe("pov");
       expect(afterLive[0]!.at - freezeMs).toBeLessThan(600);
+    }
+  });
+});
+
+describe("team shots (the map's free-space grid frames each team where it stands)", () => {
+  it("shows each team once, framed where it stands, gliding, for all of freeze time, then first person", () => {
+    const { shots, freezeMs } = play({ ctAt: CT_SPAWN, liveMs: 3000, grid: true });
+    const first = shots.findIndex((s) => s.kind !== "pov");
+    const inFreeze = shots.slice(first).filter((s) => s.at < freezeMs);
+    expect(inFreeze.map((s) => s.id).sort(), JSON.stringify(inFreeze)).toEqual(["team-CT", "team-T"]);
+    for (const s of inFreeze) {
+      // Gliding: the camera moves (Matchframe sends the poses), and doesn't also turn.
+      expect(s.move).not.toBeNull();
+      expect(Math.hypot(s.move!.to.x - s.move!.from.x, s.move!.to.y - s.move!.from.y)).toBeGreaterThan(10);
+      expect(s.pan).toBe(0);
+    }
+    // The last runs until the round goes live; then first person.
+    expect(inFreeze[1]!.at + inFreeze[1]!.durationMs!).toBeGreaterThanOrEqual(freezeMs);
+    expect(shots.find((s) => s.at >= freezeMs)?.kind).toBe("pov");
+  });
+
+  it("holds a still shot of the team that called a tactical timeout", () => {
+    const { shots, freezeMs } = play({ ctAt: CT_SPAWN, liveMs: 2000, grid: true, pause: { at: 4000, ms: 20000, phase: "timeout_ct" } });
+    const hold = shots.find((s) => s.at >= 4000 && s.kind !== "pov")!;
+    expect(hold.id).toBe("team-CT-still");
+    expect(hold.at - 4000).toBeLessThan(500);
+    expect(hold.move!.to).toEqual(hold.move!.from);
+    expect(shots.filter((s) => s.at > hold.at && s.at < freezeMs)).toEqual([]);
+  });
+
+  it("cuts to the still shot also from the same team's glide, whichever team is on air", () => {
+    for (const at of [6000, 13000]) {
+      for (const [phase, side] of [["timeout_t", "T"], ["timeout_ct", "CT"]] as const) {
+        const { shots } = play({ ctAt: CT_SPAWN, liveMs: 1000, grid: true, pause: { at, ms: 15000, phase } });
+        const hold = shots.find((s) => s.at >= at && s.kind !== "pov");
+        expect(hold?.id, `${phase} at ${at}: ${JSON.stringify(shots)}`).toBe(`team-${side}-still`);
+        expect(hold!.at - at).toBeLessThan(500);
+      }
     }
   });
 });

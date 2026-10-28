@@ -14,9 +14,10 @@ For each bombsite, the mid area (or the map's equivalent) and each spawn:
 * target points: the area's region cells dropped onto CS2's walkable floor, at chest height;
 * camera spots: walkable floor 300-1100 units from the area's centre, with the camera 140, 200 or
   260 units above it. A spot is kept only when, in CS2's collision geometry, the camera has clear
-  space around it and above its floor, it sees the area's centre, and it sees most of the area's
-  target points. Two or three spots far apart in angle are chosen, preferring the ones that see
-  the most, from a good distance and a little above;
+  space around it and above its floor, it sees the area's centre, it sees most of the area's
+  target points, and no wall fills the picture (at most a quarter of it nearer than 150 units).
+  Two or three spots far apart in angle are chosen, preferring the ones that see the most, from a
+  good distance and a little above;
 * paths: an orbit through neighbouring good spots (or a sideways drift) and a slow push-in from the
   best one. The curve the console adapter actually flies (Catmull-Rom through the keyframes, as
   samplePath in services/observer-agent/src/netcon.ts) is sampled every few units: every step must
@@ -74,6 +75,10 @@ MIN_COVER = {"bombsite": 0.5, "mid": 0.45, "spawn": 0.4, "area": 0.45}
 OPEN_RANGE = 220.0
 MIN_OPEN = 0.55
 MIN_OPEN_TIGHT = 0.45  # for narrow areas (a connector) where no spot does better
+# A wall at the lens: at most this share of the whole picture (CS2's 90 degrees at 4:3, so about 106
+# degrees across on 16:9) may be geometry nearer than NEAR_RANGE.
+NEAR_RANGE = 150.0
+MAX_NEAR = 0.25
 LABEL = {"bombsite_a": "A site", "bombsite_b": "B site", "ct_spawn": "CT spawn", "t_spawn": "T spawn"}
 
 _NUMERIC_ARRAY = re.compile(r"\[\s*(-?\d[\d.eE+-]*(?:\s*,\s*-?\d[\d.eE+-]*)*)\s*\]")
@@ -188,6 +193,25 @@ class Map:
                 hits += not self.vc.is_visible(cam, end)
         return 1 - hits / total
 
+    def near(self, cam: tuple[float, float, float], aim: tuple[float, float, float]) -> float:
+        """Share of a 9 x 5 grid of rays across the whole picture that hit geometry within NEAR_RANGE."""
+        dx, dy, dz = aim[0] - cam[0], aim[1] - cam[1], aim[2] - cam[2]
+        n = math.sqrt(dx * dx + dy * dy + dz * dz) or 1.0
+        f = (dx / n, dy / n, dz / n)
+        h = math.hypot(f[0], f[1]) or 1.0
+        r = (f[1] / h, -f[0] / h, 0.0)
+        u = (r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0])
+        tanh = 4 / 3  # tan(53.13 degrees): 90 degrees at 4:3 is 106 degrees across 16:9
+        tanv = tanh * 9 / 16
+        hits = 0
+        for i in range(9):
+            for j in range(5):
+                sx, sy = (i / 4 - 1) * tanh * 0.95, (j / 2 - 1) * tanv * 0.95
+                d = [f[k] + sx * r[k] + sy * u[k] for k in range(3)]
+                m = math.sqrt(sum(x * x for x in d))
+                hits += not self.vc.is_visible(cam, tuple(cam[k] + d[k] / m * NEAR_RANGE for k in range(3)))
+        return hits / 45
+
     def clear_around(self, p: tuple[float, float, float], r: float = CLEAR) -> bool:
         """Free space in the six axis directions, checked at two lengths (a ray can graze a triangle edge at one length only)."""
         x, y, z = p
@@ -245,7 +269,7 @@ def candidates(m: Map, t: dict, kind: str, min_open: float = MIN_OPEN) -> list[d
             # Frame what this camera sees of the area: its middle, not the region's centre.
             aim = tuple(sum(p[k] for p in sees) / len(sees) for k in range(3)) if sees else t["centre"]
             open_ = m.openness(cam, aim)
-            if open_ < min_open:
+            if open_ < min_open or m.near(cam, aim) > MAX_NEAR:
                 continue
             pitch, _ = angles(cam, aim)
             score = 1.2 * cover + 0.5 * open_ + 0.5 * (1 - abs(d - BEST_D) / BEST_D) + 0.4 * max(0.0, min(1.0, (cam[2] - cz) / 250)) - (0.6 if pitch > 50 else 0)

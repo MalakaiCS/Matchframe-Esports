@@ -1,6 +1,7 @@
 import { createServer } from "node:net";
 import { describe, expect, it } from "vitest";
 import type { CameraPath, CommandContext } from "@matchframe/contracts";
+import { aimAt, glideMotion, panMotion, teamCamera } from "@matchframe/director-policy";
 import { accountIdOf, KeyboardObserverAdapter, NetconObserverAdapter, safeName, samplePath, slotKey } from "../src/index.ts";
 
 const ctx = (over: Partial<CommandContext> = {}): CommandContext => ({
@@ -260,17 +261,13 @@ describe("leaving the free camera", () => {
 });
 
 /**
- * A console whose free camera (spec_mode 6) also turns while +left or +right is held, at cl_yawspeed
- * degrees a second, the way CS2 turns it every frame. `turns: false`: a build that ignores them.
+ * A console whose free camera (spec_mode 6) behaves like CS2's: spec_goto moves it, and +left/+right
+ * (CS2's strafe keys, not turning) slide it sideways at 400 units a second while held.
  */
-async function turningCs2(turns = true) {
+async function freeCamCs2() {
   const lines: { at: number; line: string }[] = [];
-  const cam = { mode: 4, x: 0, y: 0, z: 0, pitch: 0, yaw: 0, speed: 210, dir: 0, since: 0 };
-  const yawNow = () => cam.yaw + cam.dir * cam.speed * ((performance.now() - cam.since) / 1000);
-  const settle = () => {
-    cam.yaw = yawNow();
-    cam.since = performance.now();
-  };
+  const cam = { mode: 4, x: 0, y: 0, z: 0, pitch: 0, yaw: 0, strafe: 0, since: 0 };
+  const xNow = () => cam.x + cam.strafe * 400 * ((performance.now() - cam.since) / 1000);
   const server = createServer((sock) =>
     sock.on("data", (d) => {
       for (const line of d.toString().split("\n").filter(Boolean)) {
@@ -280,78 +277,111 @@ async function turningCs2(turns = true) {
           if (m) cam.mode = Number(m[1]);
           const g = /^spec_goto (\S+) (\S+) (\S+) (\S+) (\S+)$/.exec(cmd);
           if (g && cam.mode === 6) Object.assign(cam, { x: Number(g[1]), y: Number(g[2]), z: Number(g[3]), pitch: Number(g[4]), yaw: Number(g[5]), since: performance.now() });
-          const sp = /^cl_yawspeed (\S+)$/.exec(cmd);
-          if (sp) {
-            settle();
-            cam.speed = Number(sp[1]);
+          if (/^[+-](left|right)$/.test(cmd)) {
+            cam.x = xNow();
+            cam.since = performance.now();
+            cam.strafe = cmd === "+left" ? -1 : cmd === "+right" ? 1 : 0;
           }
-          if (turns && /^[+-](left|right)$/.test(cmd)) {
-            settle();
-            cam.dir = cmd === "+left" ? 1 : cmd === "+right" ? -1 : 0;
-          }
-          if (cmd === "getpos") sock.write(`setpos ${cam.x.toFixed(6)} ${cam.y.toFixed(6)} ${cam.z.toFixed(6)};setang ${cam.pitch.toFixed(6)} ${yawNow().toFixed(6)} 0.000000\n`);
+          if (cmd === "getpos") sock.write(`setpos ${xNow().toFixed(6)} ${cam.y.toFixed(6)} ${cam.z.toFixed(6)};setang ${cam.pitch.toFixed(6)} ${cam.yaw.toFixed(6)} 0.000000\n`);
         }
       }
     }),
   );
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
-  return { lines, cam, yawNow, server, port: (server.address() as { port: number }).port };
+  const gotos = () => lines.filter((l) => /^spec_goto /.test(l.line)).map((l) => ({ at: l.at, v: l.line.split(" ").slice(1).map(Number) }));
+  return { lines, cam, xNow, gotos, server, port: (server.address() as { port: number }).port };
 }
 
 describe("smooth camera motion", () => {
-  it("turns a freeze-time camera in the game, centred on its aim, and lets go before the next command", async () => {
-    const c = await turningCs2();
+  it("turns a freeze-time camera by sending its poses, centred on its aim, never with +left/+right (they strafe in CS2)", async () => {
+    const c = await freeCamCs2();
     const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova" });
     // 3° a second for 10 s: starts 15° to the right of the camera's aim (-135°).
-    const r = await a.activateStaticCamera(camera(), ctx(), { panDegPerSec: 3, durationMs: 10000 });
+    const r = await a.activateStaticCamera(camera(), ctx(), panMotion(camera(), 3, 10000));
     expect(r.status).toBe("confirmed");
     expect(c.lines.map((l) => l.line)).toContain("spec_mode 6; spec_goto 1200.5 -340 256 18 -150");
     await sleep(1500);
-    expect(c.lines.map((l) => l.line)).toContain("cl_yawspeed 3; +left");
-    // Turning: about 3° a second, in the game.
-    expect(c.yawNow()).toBeGreaterThan(-150 + 2.5);
-    expect(c.yawNow()).toBeLessThan(-150 + 6);
+    // Turning about 3° a second, the camera where it was put.
+    expect(c.cam.yaw).toBeGreaterThan(-150 + 3);
+    expect(c.cam.yaw).toBeLessThan(-150 + 6);
+    expect(c.xNow()).toBe(1200.5);
+    expect(c.lines.filter((l) => /[+-](left|right)|cl_yawspeed/.test(l.line))).toEqual([]);
+    // About 64 poses a second, waiting on timers between them.
+    const recent = c.gotos().filter((g) => g.at > performance.now() - 1000);
+    expect(recent.length).toBeGreaterThan(40);
+    expect(recent.length).toBeLessThan(75);
     await a.selectPlayer("76561198000000002", 2, ctx());
-    for (let i = 0; i < 20 && !c.lines.some((l) => /spec_player/.test(l.line)); i++) await sleep(25);
-    const tail = c.lines.map((l) => l.line).slice(-2);
-    expect(tail).toEqual(["-left; -right; cl_yawspeed 210", 'spec_mode 4; spec_player "nova"']);
-    expect(c.cam.dir).toBe(0);
+    await sleep(100);
+    const after = c.lines.slice(c.lines.findIndex((l) => /spec_player/.test(l.line)) + 1);
+    expect(after.filter((l) => /spec_goto/.test(l.line))).toEqual([]);
     await a.dispose();
     c.server.close();
   });
 
-  it("stops turning at the end of the shot's planned length", async () => {
-    const c = await turningCs2();
+  it("stops at the end of the shot's planned length and stays there", async () => {
+    const c = await freeCamCs2();
     const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now() });
-    await a.activateStaticCamera(camera(), ctx(), { panDegPerSec: -4, durationMs: 1200 });
+    await a.activateStaticCamera(camera(), ctx(), panMotion(camera(), -4, 1200));
     await sleep(1600);
-    expect(c.lines.map((l) => l.line)).toContain("cl_yawspeed 4; +right");
-    expect(c.lines.at(-1)!.line).toBe("-left; -right; cl_yawspeed 210");
-    expect(c.cam.dir).toBe(0);
+    const g = c.gotos();
+    // From 2.4° left of the aim to 2.4° right of it.
+    expect(g[0]!.v[4]).toBeCloseTo(-132.6, 1);
+    expect(g.at(-1)!.v[4]).toBeCloseTo(-137.4, 1);
+    expect(performance.now() - g.at(-1)!.at).toBeGreaterThan(250);
     await a.dispose();
     c.server.close();
   });
 
-  it("shows cameras still on a build where +left doesn't turn the free camera", async () => {
-    const c = await turningCs2(false);
+  it("glides a team shot round the team, always looking at it", async () => {
+    const c = await freeCamCs2();
     const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now() });
-    await a.activateStaticCamera(camera(), ctx(), { panDegPerSec: 3, durationMs: 10000 });
-    await sleep(1200);
-    // Checked with getpos, let go.
-    expect(c.lines.map((l) => l.line).slice(-2)).toEqual(["getpos", "-left; -right; cl_yawspeed 210"]);
-    const before = c.lines.length;
-    // The next one is shown still, at the camera's own aim.
-    await a.activateStaticCamera(camera({ id: "cam-b" }), ctx(), { panDegPerSec: 3, durationMs: 10000 });
-    await sleep(900);
-    const after = c.lines.slice(before).map((l) => l.line);
-    expect(after[0]).toBe("spec_mode 6; spec_goto 1200.5 -340 256 18 -135");
-    expect(after.some((l) => /\+left|\+right/.test(l))).toBe(false);
+    const focus = { x: 0, y: 0, z: 40 };
+    const move = { from: { x: 400, y: 0, z: 150 }, to: { x: 400 * Math.cos(0.17), y: 400 * Math.sin(0.17), z: 150 }, focus };
+    const r = await a.activateStaticCamera(teamCamera("T", "m", move, 1000), ctx(), glideMotion(move, 1000));
+    expect(r.status).toBe("confirmed");
+    await sleep(1300);
+    const g = c.gotos();
+    expect(g.length).toBeGreaterThan(30);
+    for (const { v } of g) {
+      const [x, y, z, pitch, yaw] = v as [number, number, number, number, number];
+      expect(Math.hypot(x, y)).toBeCloseTo(400, 0);
+      expect(z).toBe(150);
+      const aim = aimAt({ x, y, z }, focus);
+      expect(Math.abs(pitch - aim.pitch)).toBeLessThan(0.05);
+      expect(Math.abs(((yaw - aim.yaw + 540) % 360) - 180)).toBeLessThan(0.05);
+    }
+    expect(g.at(-1)!.v[1]).toBeCloseTo(400 * Math.sin(0.17), 0);
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("doesn't start a move when another command came while the camera was being confirmed", async () => {
+    const c = await freeCamCs2();
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova" });
+    const shown = a.activateStaticCamera(camera(), ctx(), panMotion(camera(), 3, 5000));
+    // Before its getpos check (60 ms after the command): a player.
+    await sleep(20);
+    await a.selectPlayer("76561198000000002", 2, ctx());
+    await shown;
+    await sleep(300);
+    expect(c.lines.filter((l) => /^spec_goto /.test(l.line))).toEqual([]);
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("shows a still team shot with one command", async () => {
+    const c = await freeCamCs2();
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now() });
+    const move = { from: { x: 400, y: 0, z: 150 }, to: { x: 400, y: 0, z: 150 }, focus: { x: 0, y: 0, z: 40 } };
+    expect((await a.activateStaticCamera(teamCamera("CT", "m", move, 60000), ctx(), glideMotion(move, 60000))).status).toBe("confirmed");
+    await sleep(400);
+    expect(c.lines.map((l) => l.line).filter((l) => /spec_goto/.test(l))).toEqual(["spec_mode 6; spec_goto 400 0 150 15.38 -180"]);
     await a.dispose();
     c.server.close();
   });
 
   it("sends a camera path's poses evenly, about 128 a second", async () => {
-    const c = await turningCs2();
+    const c = await freeCamCs2();
     const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now() });
     const p = {
       id: "push",

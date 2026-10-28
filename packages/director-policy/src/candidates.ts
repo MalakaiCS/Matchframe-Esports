@@ -54,6 +54,8 @@ export interface ScoredCandidate extends ShotCandidate {
   chain?: boolean;
   /** A static camera that turns slowly while it is on air (degrees a second, positive to the left); 0 or absent: still. */
   panDegPerSec?: number;
+  /** A team shot (camera `team-T` / `team-CT`): where the camera glides from and to, and what it looks at. */
+  framing?: { from: Vec3; to: Vec3; focus: Vec3 };
 }
 
 function clamp01(x: number): number {

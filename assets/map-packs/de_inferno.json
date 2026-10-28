@@ -3459,54 +3459,6 @@
       "notes": "Placed on CS2's walkable floor (Topof Mid), 260 units up, 465 units from the Arch centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "cs2-inferno-back_alley-1",
-      "displayName": "Back Alley #1",
-      "mapName": "de_inferno",
-      "mapRevision": "observed_builds:13926",
-      "position": {
-        "x": 421.6,
-        "y": -603.1,
-        "z": 380.0
-      },
-      "pitch": 42.56,
-      "yaw": -9.84,
-      "fov": null,
-      "observerMode": "roaming_static",
-      "targetRegionIds": [
-        "back_alley"
-      ],
-      "coverage": {
-        "center": {
-          "x": 736.0,
-          "y": -608.0,
-          "z": 143.4
-        },
-        "radiusUnits": 500.0,
-        "zMin": -8.0,
-        "zMax": 350.0,
-        "levelId": "ground"
-      },
-      "allowedPhases": [
-        "live",
-        "over"
-      ],
-      "actionClasses": [
-        "tactical",
-        "utility"
-      ],
-      "grenadeTypes": [],
-      "minAcquisitionMs": 150,
-      "normalDurationMs": 3500,
-      "maxDurationMs": 7000,
-      "occlusionValidation": "validated",
-      "validation": "unvalidated",
-      "exitStrategy": "most_relevant_player",
-      "lastTestedGameBuild": null,
-      "lastTestedMapVersion": null,
-      "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 314 units from the Back Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 60% of its view is open for at least 220 units. Not seen in game yet."
-    },
-    {
       "id": "cs2-inferno-balcony-1",
       "displayName": "Balcony from Graveyard",
       "mapName": "de_inferno",
@@ -4753,54 +4705,6 @@
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
       "notes": "Placed on CS2's walkable floor (Arch), 260 units up, 677 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 87% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
-    },
-    {
-      "id": "cs2-inferno-underpass-1",
-      "displayName": "Underpass from Apartments",
-      "mapName": "de_inferno",
-      "mapRevision": "observed_builds:13926",
-      "position": {
-        "x": 341.0,
-        "y": -561.0,
-        "z": 240.0
-      },
-      "pitch": 13.72,
-      "yaw": 93.92,
-      "fov": null,
-      "observerMode": "roaming_static",
-      "targetRegionIds": [
-        "underpass"
-      ],
-      "coverage": {
-        "center": {
-          "x": 288.0,
-          "y": 352.0,
-          "z": 42.0
-        },
-        "radiusUnits": 500.0,
-        "zMin": -106.0,
-        "zMax": 339.4,
-        "levelId": "ground"
-      },
-      "allowedPhases": [
-        "live",
-        "over"
-      ],
-      "actionClasses": [
-        "tactical",
-        "utility"
-      ],
-      "grenadeTypes": [],
-      "minAcquisitionMs": 150,
-      "normalDurationMs": 3500,
-      "maxDurationMs": 7000,
-      "occlusionValidation": "validated",
-      "validation": "unvalidated",
-      "exitStrategy": "most_relevant_player",
-      "lastTestedGameBuild": null,
-      "lastTestedMapVersion": null,
-      "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (Apartments), 140 units up, 915 units from the Underpass centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 47% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-inferno-bottom_banana-1",

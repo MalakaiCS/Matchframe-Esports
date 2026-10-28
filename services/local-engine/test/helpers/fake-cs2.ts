@@ -19,8 +19,8 @@ export class TimedCs2 {
   observed: string | null = this.roster[0]!.steamId;
   free = false;
   pose = { x: 0, y: 0, z: 0, pitch: 0, yaw: 0 };
-  /** Turning the free camera (+left/+right held): degrees a second, -1/0/1, since when. */
-  turn = { speed: 210, dir: 0, since: 0 };
+  /** Strafing the free camera (+left/+right held, CS2's strafe keys): -1/0/1 at 400 units a second, since when. */
+  strafe = { dir: 0, since: 0 };
   t0 = 0;
   private seq = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -90,14 +90,12 @@ export class TimedCs2 {
       if (goto && this.free) {
         const [x, y, z, pitch, yaw] = goto.slice(1).map(Number) as [number, number, number, number, number];
         this.pose = { x, y, z, pitch, yaw };
-        this.turn.since = Date.now();
+        this.strafe.since = Date.now();
         this.observed = null;
       }
-      const speed = /^cl_yawspeed (\S+)$/.exec(cmd);
-      if (speed) this.turn.speed = Number(speed[1]);
       if (/^[+-](left|right)$/.test(cmd)) {
-        this.pose.yaw = this.yawNow();
-        this.turn = { ...this.turn, dir: cmd === "+left" ? 1 : cmd === "+right" ? -1 : 0, since: Date.now() };
+        this.pose = this.poseNow();
+        this.strafe = { dir: cmd === "+left" ? -1 : cmd === "+right" ? 1 : 0, since: Date.now() };
       }
       const player = /^spec_player "(.+)"$/.exec(cmd);
       if (player) {
@@ -107,15 +105,15 @@ export class TimedCs2 {
       if (cmd === "getpos") {
         const f = (n: number) => n.toFixed(6);
         const at = !this.free ? this.roster.find((r) => r.steamId === this.observed)?.position : undefined;
-        const pose = at ? { x: at.x, y: at.y, z: at.z + 64, pitch: 10, yaw: 0 } : { ...this.pose, yaw: this.yawNow() };
+        const pose = at ? { x: at.x, y: at.y, z: at.z + 64, pitch: 10, yaw: 0 } : this.poseNow();
         sock.write(`setpos ${f(pose.x)} ${f(pose.y)} ${f(pose.z)};setang ${f(pose.pitch)} ${f(pose.yaw)} 0.000000\n`);
       }
     }
   }
 
-  /** The free camera's yaw now (it turns while +left or +right is held). */
-  yawNow(): number {
-    return this.pose.yaw + (this.free ? this.turn.dir * this.turn.speed * ((Date.now() - this.turn.since) / 1000) : 0);
+  /** The free camera's pose now (it slides sideways while +left or +right is held). */
+  poseNow(): { x: number; y: number; z: number; pitch: number; yaw: number } {
+    return { ...this.pose, x: this.pose.x + (this.free ? this.strafe.dir * 400 * ((Date.now() - this.strafe.since) / 1000) : 0) };
   }
 
   private async post(): Promise<void> {

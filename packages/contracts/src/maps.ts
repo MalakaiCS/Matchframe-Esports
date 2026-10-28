@@ -118,7 +118,8 @@ export const CameraRecord = z.object({
   exitStrategy: z.enum(["most_relevant_player", "previous_pov", "closest_alive_to_region"]),
   lastTestedGameBuild: z.string().nullable(),
   lastTestedMapVersion: z.string().nullable(),
-  capturedFrom: z.enum(["getpos_paste", "netcon_readback", "imported", "derived_navmesh"]),
+  /** `framed_live`: placed on air from the players' positions and the map's free-space grid (a team shot), never stored. */
+  capturedFrom: z.enum(["getpos_paste", "netcon_readback", "imported", "derived_navmesh", "framed_live"]),
   notes: z.string().nullable().default(null),
 });
 export type CameraRecord = z.infer<typeof CameraRecord>;

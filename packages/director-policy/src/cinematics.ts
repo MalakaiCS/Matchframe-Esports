@@ -6,6 +6,8 @@ import type { DirectorConfig } from "./config.ts";
 import type { InteractionFeatures } from "./features/interactions.ts";
 import type { RoundContext } from "./features/significance.ts";
 import type { CameraMatch } from "@matchframe/map-runtime";
+import type { TeamShot } from "./framing.ts";
+import { teamCameraId } from "./framing.ts";
 import type { ShotKey } from "./shots.ts";
 import { cameraShot, followShot, pathShot } from "./shots.ts";
 import type { UtilityDirectorMap } from "./utility/opportunities.ts";
@@ -41,6 +43,11 @@ export interface CinematicInput {
    * and when it began (monotonic ms).
    */
   pause?: { side: "T" | "CT" | null; since: number } | null | undefined;
+  /**
+   * A shot of one team from where its players stand (the map's free-space grid frames it), gliding
+   * slowly round them, or still; null when no spot frames them. Absent without a grid.
+   */
+  teamShot?: ((side: "T" | "CT", still: boolean) => TeamShot | null) | undefined;
 }
 
 /** Follow cam: a player running (units/s) with no fight expected within 2 s. */
@@ -61,7 +68,7 @@ const ESTABLISHING_SHOT_MIN_SEC = 4;
 const ESTABLISHING_OVERRUN_MS = 1500;
 /** The shot a pause (tactical or technical timeout) is held on lasts until the round goes live, up to this. */
 export const PAUSE_HOLD_MS = 180_000;
-/** Freeze-time shots turn slowly (in the game, every frame): degrees a second, and at most this far in a shot. */
+/** Freeze-time shots from the map's cameras turn slowly: degrees a second, and at most this far in a shot. */
 const PAN_DEG_PER_SEC = 3;
 const PAN_MAX_DEG = 30;
 /** An establishing shot must show at least this many players (fewer when fewer are alive). */
@@ -217,16 +224,18 @@ export function cinematicCandidates(input: CinematicInput): ScoredCandidate[] {
 }
 
 /**
- * Freeze-time establishing shots: the spawns where the players are, for the whole freeze time.
- * Every spawn camera of the map is scored by how many alive players it shows (standing in the regions
- * it is aimed at, or in clear view within range in the free-space grid). Shots showing fewer than two
- * players are left out, a shot already played this round is never played again, and a spawn not yet
- * shown this freeze time is preferred. The time left is shared between shots of 4–12 s, each turning
- * slowly in the game, and the last one runs until the round goes live. Each may follow the one before
- * directly. Camera paths (streamed from Matchframe, so less smooth) only with `freezeTimePaths`.
+ * Freeze-time establishing shots: the teams where they stand, for the whole freeze time. First the
+ * team shots: each team framed from where its players stand (see frameTeam), the camera gliding
+ * slowly round them; one team, then the other (the Ts first in even rounds). Then, or when a team
+ * can't be framed, the map's spawn cameras, scored by how many alive players they show (standing in
+ * the regions they are aimed at, or in clear view within range in the free-space grid). Shots showing
+ * fewer than two players are left out, a shot already played this round is never played again, and
+ * a team not yet shown this freeze time is preferred. The time left is shared between shots of
+ * 4–12 s, each moving slowly, and the last one runs until the round goes live. Each may follow the
+ * one before directly. Camera paths only with `freezeTimePaths`.
  *
- * In a pause (tactical or technical timeout) the camera cuts to a still shot of one team's spawn (the
- * team that called it) and stays there until the round goes live.
+ * In a pause (tactical or technical timeout) the camera cuts to a still shot of one team (the team
+ * that called it) and stays there until the round goes live.
  */
 function establishingCandidates(input: CinematicInput, seen: Set<string>): ScoredCandidate[] {
   const { state, map, cfg } = input;
@@ -250,16 +259,15 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
     cfg.cinematic.establishingMaxMs,
     left === null ? 8000 : shotsLeft === 1 ? left * 1000 + ESTABLISHING_OVERRUN_MS : Math.max(ESTABLISHING_SHOT_MIN_SEC * 1000, (left * 1000) / shotsLeft),
   );
-  interface Option {
-    key: ShotKey;
-    shotClass: "establishing" | "camera_path";
-    camera: CameraRecord | null;
-    path: CameraPath | null;
-    regionIds: string[];
-    durationMs: number;
-    players: MatchState["players"];
+  const options: EstablishingOption[] = [];
+  // Team shots first (still ones in a pause).
+  const firstSide = (state.roundNumber ?? 0) % 2 === 0 ? "T" : "CT";
+  for (const side of firstSide === "T" ? (["T", "CT"] as const) : (["CT", "T"] as const)) {
+    const shot = input.teamShot?.(side, !!input.pause);
+    if (!shot) continue;
+    const ids = new Set(shot.steamIds);
+    options.push({ key: cameraShot(teamCameraId(side, !!input.pause)), shotClass: "establishing", camera: null, path: null, team: { side, shot }, regionIds: [], durationMs: nextMs, players: alive.filter((p) => ids.has(p.steamId)) });
   }
-  const options: Option[] = [];
   for (const m of map.camerasWith?.({ actionClass: "establishing", phase: "freezetime" }) ?? []) {
     const cam = m.camera;
     options.push({ key: cameraShot(cam.id), shotClass: "establishing", camera: cam, path: null, regionIds: cam.targetRegionIds, durationMs: nextMs, players: inView(cam.position, cam.targetRegionIds) });
@@ -293,9 +301,9 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
       invalidReason = "cinematics not allowed";
       if (input.cinematicsAllowed.reason) reasons.push(input.cinematicsAllowed.reason);
     }
-    if (!(o.camera ? cameraControlUsable(input.capabilities) : pathControlUsable(input.capabilities))) {
+    if (!(o.path ? pathControlUsable(input.capabilities) : cameraControlUsable(input.capabilities))) {
       valid = false;
-      invalidReason = o.camera ? "static camera control not verified for this environment" : "camera path control not verified for this environment";
+      invalidReason = o.path ? "camera path control not verified for this environment" : "static camera control not verified for this environment";
       reasons.push("CAMERA_UNVERIFIED");
     }
     if (input.oneSide || (input.pin && input.pin.kind !== "cluster")) {
@@ -303,14 +311,15 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
       invalidReason = "pinned/one-side profile active";
     }
     if (valid) reasons.push("CINEMATIC_ELIGIBLE");
-    // More players in the shot, a spawn not shown yet, and a path (when they are on) over a still camera.
+    // More players in the shot, a team not shown yet, and a path (when they are on) over a still
+    // camera; a team shot tells the story better than the map's cameras (the team whose turn it is first).
     const coverage = clamp01(0.45 + 0.08 * o.players.length + (fresh ? 0.12 : 0) + (o.path ? 0.04 : 0));
     const components: ScoreComponents = {
       actionCoverage: coverage,
       imminence: 0.5,
       readiness: 0.5,
       significance: 0.5,
-      narrative: 0.7,
+      narrative: o.team ? (o.team.side === firstSide ? 0.95 : 0.94) : 0.7,
       framing: 1,
       continuity: isCurrent ? 1 : 0,
       mainStory: 0,
@@ -323,7 +332,7 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
       shotClass: o.shotClass,
       shotKey: o.key,
       targetSteamId: null,
-      cameraId: o.camera?.id ?? null,
+      cameraId: o.camera?.id ?? (o.team ? teamCameraId(o.team.side, !!input.pause) : null),
       clusterId: null,
       regionIds: o.regionIds,
       components,
@@ -337,23 +346,38 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
       urgent: false,
       chain: true,
       panDegPerSec: o.camera ? panSign * Math.min(PAN_DEG_PER_SEC, PAN_MAX_DEG / (o.durationMs / 1000)) : 0,
+      ...(o.team ? { framing: { from: o.team.shot.from, to: o.team.shot.to, focus: o.team.shot.focus } } : {}),
     });
   }
   return out;
 }
 
+interface EstablishingOption {
+  key: ShotKey;
+  shotClass: "establishing" | "camera_path";
+  camera: CameraRecord | null;
+  path: CameraPath | null;
+  /** A team shot. */
+  team?: { side: "T" | "CT"; shot: TeamShot };
+  regionIds: string[];
+  durationMs: number;
+  players: MatchState["players"];
+}
+
 /**
- * In a pause: a still shot of the spawn of the team that called it (for a technical pause, the team
- * the camera already shows, else the Ts), held until the round goes live. A shot that was on air
- * before the pause gives way to it at once; the pause shot may be one already played this round.
+ * In a pause: a still shot of the team that called it (for a technical pause, the team the camera
+ * already shows, else the Ts), held until the round goes live: their team shot, or else a spawn
+ * camera showing them. A shot that was on air before the pause gives way to it at once; the pause
+ * shot may be one already played this round.
  */
-function pauseCandidates(input: CinematicInput, options: { key: ShotKey; camera: CameraRecord | null; regionIds: string[]; players: MatchState["players"] }[], need: number, seen: Set<string>): ScoredCandidate[] {
+function pauseCandidates(input: CinematicInput, options: EstablishingOption[], need: number, seen: Set<string>): ScoredCandidate[] {
   const { cfg, pause } = input;
-  const cams = options.filter((o) => o.camera && o.players.length >= need);
+  const cams = options.filter((o) => (o.camera || o.team) && o.players.length >= need);
   const current = cams.find((o) => o.key === input.currentShot);
-  const majority = (o: { players: MatchState["players"] }) => (o.players.filter((p) => p.side === "CT").length > o.players.length / 2 ? "CT" : "T");
+  const majority = (o: EstablishingOption) => o.team?.side ?? (o.players.filter((p) => p.side === "CT").length > o.players.length / 2 ? "CT" : "T");
   const side = pause!.side ?? (current ? majority(current) : "T");
-  const ofSide = cams.filter((o) => majority(o) === side);
+  // The team shot of that side first.
+  const ofSide = cams.filter((o) => majority(o) === side).sort((a, b) => Number(!!b.team) - Number(!!a.team));
   // The pause shot on air: started after the pause began.
   const holding = !!current && majority(current) === side && input.currentShotSinceMs != null && input.currentShotSinceMs >= pause!.since;
   const pick = holding ? [current] : ofSide.filter((o) => o.key !== input.currentShot).concat(ofSide.filter((o) => o.key === input.currentShot)).slice(0, 1);
@@ -381,7 +405,7 @@ function pauseCandidates(input: CinematicInput, options: { key: ShotKey; camera:
       shotClass: "establishing",
       shotKey: o.key,
       targetSteamId: null,
-      cameraId: o.camera!.id,
+      cameraId: o.camera?.id ?? teamCameraId(o.team!.side, true),
       clusterId: null,
       regionIds: o.regionIds,
       components,
@@ -396,6 +420,7 @@ function pauseCandidates(input: CinematicInput, options: { key: ShotKey; camera:
       urgent: !holding,
       chain: true,
       panDegPerSec: 0,
+      ...(o.team ? { framing: { from: o.team.shot.from, to: o.team.shot.from, focus: o.team.shot.focus } } : {}),
     });
   }
   return out;

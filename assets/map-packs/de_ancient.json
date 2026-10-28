@@ -2829,12 +2829,12 @@
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": 708.7,
-        "y": 92.8,
-        "z": 394.0
+        "x": 716.0,
+        "y": 20.9,
+        "z": 393.0
       },
-      "pitch": 43.57,
-      "yaw": 46.25,
+      "pitch": 50.66,
+      "yaw": 29.18,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2872,7 +2872,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 302 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 55% of the area, and 71% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 363 units from the B site centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 67% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-ancient-middle-1",
@@ -3788,12 +3788,12 @@
       "mapName": "de_ancient",
       "mapRevision": "observed_builds:13916",
       "position": {
-        "x": -282.8,
-        "y": -487.0,
-        "z": 427.0
+        "x": -356.3,
+        "y": -526.7,
+        "z": 299.5
       },
-      "pitch": 19.68,
-      "yaw": 110.44,
+      "pitch": 9.05,
+      "yaw": 103.38,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3828,7 +3828,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 639 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 650 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-ancient-topof_mid-2",

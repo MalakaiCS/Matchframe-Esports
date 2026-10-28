@@ -21,6 +21,8 @@ import { generateCandidates } from "./candidates.ts";
 import { cinematicCandidates, PAUSE_HOLD_MS } from "./cinematics.ts";
 import type { DirectorConfig } from "./config.ts";
 import { mergeConfig } from "./config.ts";
+import type { FreeSpace, TeamShot } from "./framing.ts";
+import { frameTeam } from "./framing.ts";
 import type { InteractionFeatures, SpatialContext } from "./features/interactions.ts";
 import { computeInteractions } from "./features/interactions.ts";
 import type { RoundContext } from "./features/significance.ts";
@@ -34,6 +36,8 @@ import { findUtilityOpportunities, INFERNO_BOTTOM_BANANA_RULE } from "./utility/
 
 /** How long after a cinematic is confirmed a player's view in the game data is taken as data from before the cut. */
 export const CINEMATIC_SETTLE_MS = 600;
+/** A team shot is framed again when the team's middle moved this far (units). */
+const TEAM_MOVED = 150;
 
 /** What the engine should do with a decision. The director never talks to the game directly. */
 export interface DirectorIntent {
@@ -48,6 +52,11 @@ export interface DirectorIntent {
   plannedDurationMs: number | null;
   /** activate_static_camera: turn slowly while on air (degrees a second, positive to the left); 0 or absent: still. */
   panDegPerSec?: number | null;
+  /**
+   * activate_static_camera of a team shot (camera `team-T` / `team-CT`, not in the map pack): where the
+   * camera glides from and to over the shot (the same point: still), looking at `focus`.
+   */
+  move?: { from: Vec3; to: Vec3; focus: Vec3 } | null;
   opportunityId: string | null;
   decisionId: string;
   basedOnSequence: number;
@@ -132,6 +141,8 @@ export class Director {
   private follows = { map: null as string | null, count: 0 };
   /** A pause (tactical or technical timeout) in this round's freeze time: held on one team's spawn until live. */
   private pause: { round: string | null; side: "T" | "CT" | null; since: number } | null = null;
+  /** Team shots of this round, by side and still/gliding, with where the team stood when framed. */
+  private teamShots: { round: string | null; shots: Map<string, { shot: TeamShot | null; at: { x: number; y: number }; when: number }> } = { round: null, shots: new Map() };
   readonly controls: DirectorControls = {
     hold: null,
     pin: null,
@@ -323,6 +334,29 @@ export class Director {
     this.pause = { round: state.roundAttemptId, side: g === "timeout_t" ? "T" : g === "timeout_ct" ? "CT" : null, since: now };
   }
 
+  /**
+   * A team's shot this round (see frameTeam): framed once (players can't move in freeze time) and
+   * framed again when the team's middle moved (the first game data of a round can be from before
+   * the respawn) or, when no spot worked, a second later.
+   */
+  private teamShot(state: MatchState, space: FreeSpace, side: "T" | "CT", still: boolean, now: number): TeamShot | null {
+    if (this.teamShots.round !== state.roundAttemptId) this.teamShots = { round: state.roundAttemptId, shots: new Map() };
+    const team = state.players.filter((p) => p.side === side && p.lifeState === "alive" && p.position);
+    if (team.length < 2) return null;
+    const at = { x: team.reduce((s, p) => s + p.position!.x, 0) / team.length, y: team.reduce((s, p) => s + p.position!.y, 0) / team.length };
+    const key = `${side}:${still ? "still" : "glide"}`;
+    const cached = this.teamShots.shots.get(key);
+    if (cached && Math.hypot(cached.at.x - at.x, cached.at.y - at.y) < TEAM_MOVED && (cached.shot || now - cached.when < 1000)) return cached.shot;
+    const others = state.players.filter((p) => p.side !== side && p.lifeState === "alive" && p.position).map((p) => p.position!);
+    const shot = frameTeam(
+      team.map((p) => ({ steamId: p.steamId, position: p.position!, forward: p.forward ?? null })),
+      space,
+      { still, others },
+    );
+    this.teamShots.shots.set(key, { shot, at, when: now });
+    return shot;
+  }
+
   private controlHealth(control: ControlStatus): ControlHealth {
     if (control.ownership.emergencyStopped) return "emergency_stopped";
     if (this.mode === "off" || this.mode === "advisory" || this.mode === "shadow" || this.mode === "demo_review") return "disarmed";
@@ -393,7 +427,7 @@ export class Director {
       clutchMode: this.controls.clutchMode,
     });
     if (scope?.has("cinematic")) {
-      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, followable: this.controls.followCams && grid ? this.followableNow(state) : undefined, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, sight: grid ? (a, b) => grid.lineOfSight(a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince, pause: this.pause }));
+      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, followable: this.controls.followCams && grid ? this.followableNow(state) : undefined, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, sight: grid ? (a, b) => grid.lineOfSight(a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince, pause: this.pause, teamShot: grid && state.roundPhase === "freezetime" ? (side, still) => this.teamShot(state, grid, side, still, now) : undefined }));
       candidates.sort((a, b) => b.utility - a.utility);
     }
 
@@ -523,6 +557,7 @@ export class Director {
                 cameraId: shot.id,
                 plannedDurationMs: desired.plannedDurationMs,
                 panDegPerSec: desired.panDegPerSec ?? 0,
+                move: desired.framing ?? null,
                 opportunityId: desired.opportunity?.id ?? null,
                 decisionId,
                 basedOnSequence: state.sequence,

@@ -11,6 +11,25 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.6.2",
+    title: "Broadcast team shots, and cameras that stay put",
+    summary: "Freeze time shows each team the way a broadcast does: the camera framed from where the players stand, gliding slowly round them. Fixes cinematics sliding into walls and floors. Every map's cameras checked again.",
+    sections: [
+      {
+        heading: "Auto Director",
+        items: [
+          "Fixed: freeze-time cinematics could slide sideways into walls or under the floor (on Mirage, into the ground). Matchframe now moves every camera itself.",
+          "Team shots: in freeze time the camera frames each team from where its players stand, a little above their heads, everyone in the picture, and glides slowly round them. One team, then the other, until the round goes live.",
+          "Pauses hold a still shot of the team that called them.",
+        ],
+      },
+      {
+        heading: "Maps",
+        items: ["All nine maps' cameras checked against CS2's own geometry: none sits inside a wall or under a floor, and 25 that looked into a wall were dropped or moved."],
+      },
+    ],
+  },
+  {
     version: "0.6.1",
     title: "Smooth freeze-time cinematics, and back to the players on time",
     summary: "Freeze time is cinematic all the way, with shots CS2 itself turns smoothly; pauses hold on one team; first person when the round goes live. Fixes the camera staying on a freeze-time shot into the live round. A HUD that lags now says so, and why.",

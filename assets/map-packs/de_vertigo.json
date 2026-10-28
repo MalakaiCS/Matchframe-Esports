@@ -3323,12 +3323,12 @@
       "mapName": "de_vertigo",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": 24.0,
-        "y": 24.0,
-        "z": 11982.6
+        "x": 69.0,
+        "y": 48.0,
+        "z": 12010.7
       },
-      "pitch": 25.56,
-      "yaw": 164.93,
+      "pitch": 26.58,
+      "yaw": 172.45,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3363,7 +3363,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (no named area), 200 units up, 320 units from the Backof A centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 62% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 200 units up, 360 units from the Backof A centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 72% of the area, and 56% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-vertigo-backof_b-1",

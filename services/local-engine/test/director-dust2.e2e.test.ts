@@ -115,18 +115,21 @@ describe("Dust2: out of the freeze-time shot and into first person when the roun
     await engine?.shutdown();
   });
 
-  it("fills freeze time with turning spawn shots, is on a player from the start of the live round, and keeps CS2's spec_mode numbers", async () => {
+  it("fills freeze time with a gliding shot of each team, is on a player from the start of the live round, and keeps CS2's spec_mode numbers", async () => {
     await waitFor(() => cs2.now() > LIVE_END, 70000);
     const freezeRound = samples.find((s) => s.at > 20000 && s.phase === "freezetime")!.round;
     const liveAt = samples.find((s) => s.round === freezeRound && s.phase === "live")!.at;
     const why = JSON.stringify(cs2.lines.filter((l) => l.at > 12000 && !/spec_goto/.test(l.line) || /^spec_mode/.test(l.line)).map((l) => `${(l.at / 1000).toFixed(1)} ${l.line}`));
-    // Freeze time: spawn cameras one after another (no player view between), each turned in the game.
+    // Freeze time: a shot of each team, framed where they stand, one after the other (no player view
+    // between), each gliding (Matchframe sends the poses; CS2's +left/+right would strafe it).
     const inFreeze = commands.filter((c) => c.at > 13000 && c.at < LIVE_START);
     const cams = inFreeze.filter((c) => c.request.kind === "activate_static_camera");
     expect(cams.length, why).toBeGreaterThanOrEqual(2);
     expect(inFreeze.filter((c) => c.at > cams[0]!.at && c.request.kind !== "activate_static_camera"), why).toEqual([]);
-    expect(cams.every((c) => /(t|ct)_spawn/.test(String(c.request.cameraId)) && c.request.panDegPerSec !== 0), why).toBe(true);
-    expect(cs2.lines.filter((l) => l.at < LIVE_START && /^cl_yawspeed [\d.]+; \+(left|right)$/.test(l.line)).length, why).toBe(cams.length);
+    expect(new Set(cams.slice(0, 2).map((c) => c.request.cameraId)), why).toEqual(new Set(["team-T", "team-CT"]));
+    expect(cams.slice(0, 2).every((c) => Number(c.request.movingMs) > 4000), why).toBe(true);
+    expect(cs2.lines.filter((l) => /[+-](left|right)|cl_yawspeed/.test(l.line)), why).toEqual([]);
+    expect(cs2.lines.filter((l) => l.at > cams[0]!.at && l.at < LIVE_START && /^spec_goto /.test(l.line)).length, why).toBeGreaterThan(100);
     expect(samples.filter((s) => s.at > cams[0]!.at + 500 && s.at < liveAt - 300).every((s) => s.free), why).toBe(true);
     // On a player within a second of the engine seeing the round go live, and for the rest of it.
     const late = samples.filter((s) => s.at > liveAt + 1000 && s.at < LIVE_END - 500 && s.free);
@@ -142,20 +145,20 @@ describe("Dust2: out of the freeze-time shot and into first person when the roun
     expect(log.some((l) => l.msg === "game" && l.data?.phase === "live" && l.data?.round === freezeRound)).toBe(true);
   }, 90000);
 
-  it("in a CT tactical timeout, holds a still shot of the CT spawn until the round goes live, then first person", async () => {
+  it("in a CT tactical timeout, holds a still shot of the CTs until the round goes live, then first person", async () => {
     await waitFor(() => cs2.now() > LIVE2_END, 60000);
     // When the engine saw the round go live (its game data is a moment behind the stand-in's clock).
     const liveAt = samples.find((s) => s.at > LIVE2_START - 1000 && s.phase === "live")!.at;
     const why = JSON.stringify(commands.filter((c) => c.at > FREEZE2).map((c) => [Math.round(c.at), c.request]));
-    // Within a second of the timeout, a still shot of the CT spawn.
+    // Within a second of the timeout, a still shot of the CTs.
     const hold = commands.find((c) => c.at > TIMEOUT[0] && c.request.kind === "activate_static_camera");
     expect(hold, why).toBeTruthy();
     expect(hold!.at - TIMEOUT[0], why).toBeLessThan(1000);
-    expect(String(hold!.request.cameraId), why).toMatch(/ct_spawn/);
-    expect(hold!.request.panDegPerSec ?? 0, why).toBe(0);
-    // Nothing else until the round goes live (the timeout ends at 69 s, the round goes live at 75 s); no turning.
+    expect(hold!.request.cameraId, why).toBe("team-CT-still");
+    expect(hold!.request.movingMs ?? 0, why).toBe(0);
+    // Nothing else until the round goes live (the timeout ends at 69 s, the round goes live at 75 s); still.
     expect(commands.filter((c) => c.at > hold!.at && c.at < LIVE2_START), why).toEqual([]);
-    expect(cs2.lines.filter((l) => l.at > hold!.at && l.at < LIVE2_START && /\+(left|right)/.test(l.line)), why).toEqual([]);
+    expect(cs2.lines.filter((l) => l.at > hold!.at + 300 && l.at < LIVE2_START && /spec_goto|\+(left|right)/.test(l.line)), why).toEqual([]);
     // Then first person.
     const next = commands.find((c) => c.at > hold!.at);
     expect(next?.request.kind, why).toBe("select_player");

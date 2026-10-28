@@ -3217,11 +3217,11 @@
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
         "x": 1032.0,
-        "y": 1032.0,
-        "z": -73.2
+        "y": 1128.0,
+        "z": -73.1
       },
-      "pitch": 9.21,
-      "yaw": 85.48,
+      "pitch": 11.09,
+      "yaw": 83.74,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3256,55 +3256,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 543 units from the Ivy centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 73% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
-    },
-    {
-      "id": "cs2-train-locker_room-1",
-      "displayName": "Locker Room from Ladder Top",
-      "mapName": "de_train",
-      "mapRevision": "navmesh:awpy-1.3.1",
-      "position": {
-        "x": -572.5,
-        "y": -243.0,
-        "z": 160.0
-      },
-      "pitch": 10.72,
-      "yaw": 99.17,
-      "fov": null,
-      "observerMode": "roaming_static",
-      "targetRegionIds": [
-        "locker_room"
-      ],
-      "coverage": {
-        "center": {
-          "x": -672.0,
-          "y": 288.0,
-          "z": 66.7
-        },
-        "radiusUnits": 565.7,
-        "zMin": -82.0,
-        "zMax": 338.0,
-        "levelId": "ground"
-      },
-      "allowedPhases": [
-        "live",
-        "over"
-      ],
-      "actionClasses": [
-        "tactical",
-        "utility"
-      ],
-      "grenadeTypes": [],
-      "minAcquisitionMs": 150,
-      "normalDurationMs": 3500,
-      "maxDurationMs": 7000,
-      "occlusionValidation": "validated",
-      "validation": "unvalidated",
-      "exitStrategy": "most_relevant_player",
-      "lastTestedGameBuild": null,
-      "lastTestedMapVersion": null,
-      "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (Ladder Top), 140 units up, 540 units from the Locker Room centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 84% of the area, and 47% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 449 units from the Ivy centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 77% of the area, and 58% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-train-pop_dog-1",
@@ -3547,103 +3499,7 @@
       "notes": "Placed on CS2's walkable floor (TMain), 140 units up, 396 units from the TMain centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 83% of the area, and 89% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
-      "id": "cs2-train-t_stairs-1",
-      "displayName": "TStairs #1",
-      "mapName": "de_train",
-      "mapRevision": "navmesh:awpy-1.3.1",
-      "position": {
-        "x": -984.0,
-        "y": 552.0,
-        "z": 156.0
-      },
-      "pitch": 30.96,
-      "yaw": 87.06,
-      "fov": null,
-      "observerMode": "roaming_static",
-      "targetRegionIds": [
-        "t_stairs"
-      ],
-      "coverage": {
-        "center": {
-          "x": -992.0,
-          "y": 864.0,
-          "z": -21.5
-        },
-        "radiusUnits": 500.0,
-        "zMin": -312.0,
-        "zMax": 266.7,
-        "levelId": "ground"
-      },
-      "allowedPhases": [
-        "live",
-        "over"
-      ],
-      "actionClasses": [
-        "tactical",
-        "utility"
-      ],
-      "grenadeTypes": [],
-      "minAcquisitionMs": 150,
-      "normalDurationMs": 3500,
-      "maxDurationMs": 7000,
-      "occlusionValidation": "validated",
-      "validation": "unvalidated",
-      "exitStrategy": "most_relevant_player",
-      "lastTestedGameBuild": null,
-      "lastTestedMapVersion": null,
-      "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (TStairs), 140 units up, 312 units from the TStairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 49% of its view is open for at least 220 units. Not seen in game yet."
-    },
-    {
       "id": "cs2-train-tunnel-1",
-      "displayName": "Tunnel from TStairs",
-      "mapName": "de_train",
-      "mapRevision": "navmesh:awpy-1.3.1",
-      "position": {
-        "x": -984.0,
-        "y": 840.0,
-        "z": 148.3
-      },
-      "pitch": 6.05,
-      "yaw": -90.3,
-      "fov": null,
-      "observerMode": "roaming_static",
-      "targetRegionIds": [
-        "tunnel"
-      ],
-      "coverage": {
-        "center": {
-          "x": -992.0,
-          "y": 32.0,
-          "z": 66.0
-        },
-        "radiusUnits": 640.0,
-        "zMin": -83.3,
-        "zMax": 272.0,
-        "levelId": "ground"
-      },
-      "allowedPhases": [
-        "live",
-        "over"
-      ],
-      "actionClasses": [
-        "tactical",
-        "utility"
-      ],
-      "grenadeTypes": [],
-      "minAcquisitionMs": 150,
-      "normalDurationMs": 3500,
-      "maxDurationMs": 7000,
-      "occlusionValidation": "validated",
-      "validation": "unvalidated",
-      "exitStrategy": "most_relevant_player",
-      "lastTestedGameBuild": null,
-      "lastTestedMapVersion": null,
-      "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (TStairs), 200 units up, 808 units from the Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 76% of the area, and 47% of its view is open for at least 220 units. Not seen in game yet."
-    },
-    {
-      "id": "cs2-train-tunnel-2",
       "displayName": "Tunnel from Backof B",
       "mapName": "de_train",
       "mapRevision": "navmesh:awpy-1.3.1",

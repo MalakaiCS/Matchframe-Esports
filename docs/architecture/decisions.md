@@ -444,3 +444,39 @@ Through Matchframe in Chromium, the same kaiHUD ticks within 0.1 s of each secon
 - **Chromium with kaiHUD through the output page:** 57 fps with an 83 ms worst gap, and a 600 ms block in kaiHUD's page reported as a 583 ms pause.
 
 **Not checked.** A real CS2: whether `+left`/`+right` turn the spectator free camera on the current build (the check with `getpos` falls back to still shots); OBS's browser source on the owner's computer.
+
+**Superseded in part by ADR-034:** in CS2 `+left`/`+right` strafe the camera; every move is now sent by Matchframe.
+
+## ADR-034 — Team shots framed live, every move sent by Matchframe, no wall at the lens
+
+**Context.** After 0.6.1 the owner found Mirage's cinematics "all in the ground", nothing like a pro production, and asked for every map to be gone through.
+- 0.6.1 turned freeze-time shots with `cl_yawspeed` and `+left`/`+right` (ADR-033). In CS2 those are the strafe keys (A and D); turning is `+turnleft`/`+turnright`, and sources disagree on whether `cl_yawspeed` still sets its speed. So the first panned shot of a session slid sideways (into walls, under floors) for the 0.7 s before the `getpos` check and its readback, and the check then turned panning off for the session.
+- Every built-in camera was checked against CS2's collision meshes (build 26144732): none sits inside geometry or under a floor (rays all round hit only outward faces, as from player positions). But rendered from the meshes, Mirage's spawn cameras show the team small, with walls filling half the picture. 14 of 391 cameras had a third or more of the picture within 150 units: the generator's openness test used a 90° picture, not CS2's 106° across 16:9, and had no rule for a wall at the lens.
+
+**Decision.**
+- **No movement keys.** A moving shot is an `activate_static_camera` with `motion` (`CameraMotion`: `durationMs` and `pose(t)`). The adapter shows `pose(0)`, confirms it with `getpos` (and learns the spec_mode numbering) as for any camera, then sends `spec_goto` 64 times a second, waiting on timers (no busy loop), until the planned end. Pans (`panMotion`) and glides (`glideMotion`) are built by the session from the intent.
+- **Team shots** (`frameTeam`, director-policy/src/framing.ts), framed with the map's free-space grid from the team's live positions (players can't move in freeze time):
+  - the group: players within 900 units and 160 units of height of the team's median; at least half the team, two or more;
+  - spots: 32 bearings × 4 distances (the group's spread + 220–600, 260–1000 units) × 4 heights (75, 110, 160, 220 above their floor);
+  - a spot is kept when: 20 units of room round it, 28 above, floor below; aimed at the middle of the group as it lands in the picture, pitch −5° to 40°; every body (feet to 72 units) inside 86 % / 88 % of the picture; all but one seen (chest or eyes); no other player within 120 units or in the picture nearer than 70 % of the way; nothing within 90 units of the lens or between the lens and the middle of the picture (rays through the upper two thirds), and at most 45 % of those rays blocked before the team;
+  - scored on players seen, the group filling about half the picture's width, a 12° look down, height, distance, how much they face the camera, and openness;
+  - the glide: 10° round the focus and 8 % closer (else the other way, else 5°), checked every 12 units the same way; otherwise still;
+  - none frames all of them: the player furthest out is left out (down to three);
+  - framed once per team and round, again when the team's middle moves 150 units (game data from before the respawn) or a second after no spot worked.
+- **Freeze time:** the team shots (cameras `team-T`, `team-CT`, source `framed_live`, shot keys `camera:team-*`) come first: same coverage as a spawn camera, narrative 0.95/0.94 against 0.7, the Ts first in even rounds. Spawn cameras follow, or stand in for a team no spot frames. **Pauses:** the still team shot of that side first (camera `team-CT-still` / `team-T-still`: its own shot key, so a pause cuts to it from the same team's glide).
+- **Built-in cameras:** `scripts/generate-map-cameras.py` also rejects a spot when more than a quarter of a 9 × 5 grid of rays across the whole 106° picture hits geometry within 150 units. Rerun on the same meshes: 12 cameras dropped (no other spot qualified), 13 moved, 354 and all 81 paths unchanged.
+
+**Consequences.**
+- Freeze time shows the teams the way a broadcast does, from where they actually stand, on every map, moving gently; a camera never moves unless Matchframe sends the pose.
+- The engine keeps no thread busy for slow moves.
+- Areas with a wall at every camera spot have no built-in camera; operators can add their own.
+
+**Checked.**
+- **Exact geometry, both spawns of all nine maps** (five players placed on navigation areas inside each spawn; Overpass's CT spawn has no area in the data): a team shot for every spawn in 4–60 ms. Rendered from the collision meshes and looked at. Along every glide, the camera is in open space (outward faces all round) and sees at least as many players as the grid said.
+- **Framing tests:** flat ground (distance, height, look down, glide, faces, still, walls, foreground, groups) and CS2's grids for the 17 spawns.
+- **Director:** Mirage with its grid gives a gliding team shot of each team for all of freeze time, then first person; a CT timeout gives the CTs' still team shot, held until live.
+- **Adapter:** against a console where `+left`/`+right` strafe, a pan is sent as poses (about 64 a second), never with movement keys, ending where planned; a glide keeps the focus centred; a still shot is one command.
+- **E2e:** Dust2 against the real engine with game data 250 ms late (both team shots gliding, then first person; a CT timeout's still CT team shot until live); Mirage rounds; the Auto Director.
+- **Built-in cameras:** 379, none inside geometry, none with more than 30 % of the picture within 150 units.
+
+**Not checked.** A real CS2: how the shots look on air.

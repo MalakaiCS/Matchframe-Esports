@@ -6,7 +6,7 @@ import { emptySourceCapabilities } from "@matchframe/contracts";
 import type { DerivedEvent, GsiObservation, IngestResult, ProfileSet, UtilityTrackerEvent } from "@matchframe/cs2-state";
 import { CapabilitySampler, hash53, MatchStateStore, normalizeGsi, parseGsiPayload, stripAuth } from "@matchframe/cs2-state";
 import type { ArbiterEvent, ControlCapabilities, DirectorOutput, ObserverControlAdapter, Pin, PlayerView } from "@matchframe/director-policy";
-import { cameraShot, chaseMoment, ControlArbiter, Director, followShot, parseShot, pathShot, povShot } from "@matchframe/director-policy";
+import { cameraShot, chaseMoment, ControlArbiter, Director, followShot, glideMotion, panMotion, parseShot, pathShot, povShot, teamCamera, teamShotSide } from "@matchframe/director-policy";
 import type { MapRegistry } from "@matchframe/map-runtime";
 import type { Logger } from "../logger.ts";
 import type { LiveContactModel } from "./model-runtime.ts";
@@ -349,11 +349,16 @@ export class LiveSession extends EventEmitter<SessionEvents> {
         { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs },
       );
     } else if (intent.kind === "activate_static_camera") {
-      const cam = this.findCamera(intent.cameraId!);
+      const planned = intent.plannedDurationMs ?? 2000;
+      // A team shot is framed live (not in the map pack); a map camera may turn slowly.
+      const move = intent.move;
+      const side = teamShotSide(intent.cameraId);
+      const cam = move && side ? teamCamera(side, s.mapName ?? "", move, planned, intent.cameraId!.endsWith("-still")) : this.findCamera(intent.cameraId!);
       if (!cam) return;
+      const motion = move ? glideMotion(move, planned) : intent.panDegPerSec ? panMotion(cam, intent.panDegPerSec, planned) : undefined;
       this.stats.cuts++;
-      this.submitCinematic({ shot: cameraShot(cam.id), plannedDurationMs: intent.plannedDurationMs ?? 2000, opportunityId: intent.opportunityId, countsTowardBudget: !LiveSession.OFF_BUDGET.has(intent.shotClass), shotClass: intent.shotClass }, () =>
-        this.arbiter.submit({ kind: "activate_static_camera", camera: cam, plannedDurationMs: intent.plannedDurationMs ?? 2000, panDegPerSec: intent.panDegPerSec ?? 0 }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs }),
+      this.submitCinematic({ shot: cameraShot(cam.id), plannedDurationMs: planned, opportunityId: intent.opportunityId, countsTowardBudget: !LiveSession.OFF_BUDGET.has(intent.shotClass), shotClass: intent.shotClass }, () =>
+        this.arbiter.submit({ kind: "activate_static_camera", camera: cam, plannedDurationMs: planned, ...(motion ? { motion } : {}) }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs }),
       );
     } else if (intent.kind === "play_camera_path") {
       const path = this.findPath(intent.pathId ?? "");

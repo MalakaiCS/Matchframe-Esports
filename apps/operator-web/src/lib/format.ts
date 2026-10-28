@@ -151,8 +151,12 @@ export function shotLabel(shotKey: string | null | undefined, nameOf: (steamId: 
   switch (kind) {
     case "pov":
       return `POV · ${nameOf(target)}`;
-    case "camera":
+    case "camera": {
+      // A team shot, framed live in freeze time ("team-T", "team-CT-still").
+      const team = /^team-(T|CT)(-still)?$/.exec(target);
+      if (team) return `Team shot · ${team[1] === "T" ? "Terrorists" : "Counter-Terrorists"}${team[2] ? " (still)" : ""}`;
       return `Camera · ${target}`;
+    }
     case "path":
       return `Camera path · ${target}`;
     case "hold":

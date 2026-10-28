@@ -144,6 +144,9 @@ describe("small helpers", () => {
     expect(weaponName("weapon_m4a1_silencer")).toBe("M4A1-S");
     expect(shotLabel("pov:2", (id) => (id === "2" ? "kindle" : id))).toBe("POV · kindle");
     expect(shotLabel(null, (id) => id)).toBe("—");
+    expect(shotLabel("camera:team-CT", (id) => id)).toBe("Team shot · Counter-Terrorists");
+    expect(shotLabel("camera:team-T-still", (id) => id)).toBe("Team shot · Terrorists (still)");
+    expect(shotLabel("camera:cs2-mirage-t_spawn-1", (id) => id)).toBe("Camera · cs2-mirage-t_spawn-1");
   });
   it("knows which demo job states can be retried", () => {
     expect(retryable("FAILED")).toBe(true);

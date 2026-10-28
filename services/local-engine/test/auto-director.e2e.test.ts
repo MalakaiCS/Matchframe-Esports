@@ -29,8 +29,8 @@ const waitFor = async (fn: () => boolean | Promise<boolean>, ms = 8000) => {
 /**
  * A stand-in for CS2 observing a match: its console takes spec_player / spec_mode / spec_goto and
  * answers getpos like the game (`setpos x y z;setang pitch yaw roll`), and its game data follows the
- * camera. `freeMode` is the spec_mode number of the free camera on this "build". The free camera
- * turns while +left or +right is held, at cl_yawspeed degrees a second.
+ * camera. `freeMode` is the spec_mode number of the free camera on this "build". +left and +right
+ * (CS2's strafe keys) slide the free camera sideways while held.
  */
 class FakeCs2 {
   readonly roster = syntheticRoster();
@@ -44,8 +44,8 @@ class FakeCs2 {
   bomb: "planting" | "planted" | null = null;
   private bombAt: { x: number; y: number; z: number } | null = null;
   pose = { x: 0, y: 0, z: 0, pitch: 0, yaw: 0 };
-  /** Turning the free camera: degrees a second, -1/0/1, since when. */
-  turn = { speed: 210, dir: 0, since: 0 };
+  /** Strafing the free camera: -1/0/1 at 400 units a second, since when. */
+  strafe = { dir: 0, since: 0 };
   private seq = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
 
@@ -66,14 +66,12 @@ class FakeCs2 {
       if (goto && this.free) {
         const [x, y, z, pitch, yaw] = goto.slice(1).map(Number) as [number, number, number, number, number];
         this.pose = { x, y, z, pitch, yaw };
-        this.turn.since = Date.now();
+        this.strafe.since = Date.now();
         this.observed = null;
       }
-      const speed = /^cl_yawspeed (\S+)$/.exec(cmd);
-      if (speed) this.turn.speed = Number(speed[1]);
       if (/^[+-](left|right)$/.test(cmd)) {
-        this.pose.yaw = this.yawNow();
-        this.turn = { ...this.turn, dir: cmd === "+left" ? 1 : cmd === "+right" ? -1 : 0, since: Date.now() };
+        this.pose = this.poseNow();
+        this.strafe = { dir: cmd === "+left" ? -1 : cmd === "+right" ? 1 : 0, since: Date.now() };
       }
       const player = /^spec_player "(.+)"$/.exec(cmd);
       if (player) {
@@ -87,15 +85,15 @@ class FakeCs2 {
         const f = (n: number) => n.toFixed(6);
         // On a player: their eyes, or 100 units behind them in the chase view.
         const at = !this.free ? this.roster.find((r) => r.steamId === this.observed)?.position : undefined;
-        const pose = at ? { x: at.x - (this.chase ? 100 : 0), y: at.y, z: at.z + 64, pitch: 10, yaw: 0 } : { ...this.pose, yaw: this.yawNow() };
+        const pose = at ? { x: at.x - (this.chase ? 100 : 0), y: at.y, z: at.z + 64, pitch: 10, yaw: 0 } : this.poseNow();
         sock.write(`setpos ${f(pose.x)} ${f(pose.y)} ${f(pose.z)};setang ${f(pose.pitch)} ${f(pose.yaw)} 0.000000\n`);
       }
     }
     void this.post();
   }
 
-  yawNow(): number {
-    return this.pose.yaw + (this.free ? this.turn.dir * this.turn.speed * ((Date.now() - this.turn.since) / 1000) : 0);
+  poseNow(): { x: number; y: number; z: number; pitch: number; yaw: number } {
+    return { ...this.pose, x: this.pose.x + (this.free ? this.strafe.dir * 400 * ((Date.now() - this.strafe.since) / 1000) : 0) };
   }
 
   async post(): Promise<void> {
@@ -227,18 +225,28 @@ describe("Auto Director: one button, checks and fixes by itself", () => {
     expect(ownership).toMatchObject({ owner: "director", manualSticky: false });
   });
 
-  it("shows a spawn camera in freeze time and turns it slowly in the game", async () => {
-    // Freeze time: Ts in T spawn and CTs in CT spawn, where the spawn cameras look.
+  it("frames a team in freeze time from where they stand, and glides the camera slowly round them", async () => {
+    // Freeze time: Ts in T spawn and CTs in CT spawn.
     cs2.roster.forEach((r, i) => (r.position = r.side === "T" ? { x: -800 + (i % 5) * 40, y: -736, z: 40 } : { x: 224 + (i % 5) * 40, y: 2272, z: -64 }));
     const before = cs2.lines.length;
-    // Freeze time on Dust II with 15 s left: a spawn camera, then CS2 turns it (+left or +right).
-    await waitFor(() => cs2.lines.slice(before).some((l) => /^cl_yawspeed [\d.]+; \+(left|right)$/.test(l)), 12000);
-    const yaw0 = cs2.yawNow();
+    // Freeze time on Dust II with 15 s left: a team shot (this build's free camera is spec_mode 4).
+    await waitFor(() => cs2.lines.slice(before).some((l) => /^spec_mode 4; spec_goto /.test(l)), 12000);
+    const shown = cs2.lines.slice(before).find((l) => /^spec_mode 4; spec_goto /.test(l))!;
+    const [x, y, z] = shown.split(" ").slice(3).map(Number) as [number, number, number];
+    const team = cs2.roster.filter((r) => (Math.hypot(r.position!.x - x, r.position!.y - y) < 1000));
+    // A few hundred units from the team it shows, a little above their heads.
+    expect(team.length, shown).toBeGreaterThanOrEqual(3);
+    const floor = team[0]!.position!.z;
+    expect(z - floor).toBeGreaterThan(60);
+    expect(z - floor).toBeLessThan(240);
     await new Promise((r) => setTimeout(r, 1200));
-    // Still turning after the getpos check (about 2-3° a second), and nothing streamed.
-    expect(Math.abs(cs2.yawNow() - yaw0)).toBeGreaterThan(1.5);
-    expect(cs2.lines.slice(before).some((l) => /^-left; -right/.test(l))).toBe(false);
-    expect(cs2.lines.slice(before).filter((l) => /^spec_goto /.test(l))).toEqual([]);
+    // Matchframe moves it (spec_goto poses), slowly; CS2's +left/+right (strafing) never.
+    const frames = cs2.lines.slice(before).filter((l) => /^spec_goto /.test(l)).map((l) => l.split(" ").slice(1).map(Number) as [number, number, number, number, number]);
+    expect(frames.length).toBeGreaterThan(30);
+    const moved = Math.hypot(frames.at(-1)![0] - frames[0]![0], frames.at(-1)![1] - frames[0]![1]);
+    expect(moved).toBeGreaterThan(2);
+    expect(moved).toBeLessThan(60);
+    expect(cs2.lines.slice(before).filter((l) => /[+-](left|right)|cl_yawspeed/.test(l))).toEqual([]);
   });
 
   it("gives the camera back to automation shortly after you pick a player yourself", async () => {

@@ -57,10 +57,8 @@ const FREE_FEEDBACK_MS = 1500;
  */
 const LEAVE_FREE_VERDICT_MS = 2000;
 const otherModes = (inEye: string) => (inEye === CS2_ENUM_MODES.modeInEye ? CSGO_MODES : CS2_ENUM_MODES);
-/** CS2's default turn speed for +left/+right (degrees a second), put back after a pan. */
-const DEFAULT_YAW_SPEED = 210;
-/** A pan is checked with getpos this long after it starts (the first time). */
-const PAN_CHECK_MS = 700;
+/** A moving camera shot (slow pans and drifts) is sent this many poses a second, without keeping the engine busy between them. */
+const MOTION_HZ = 64;
 
 export interface PathPose {
   position: Vec3;
@@ -190,11 +188,6 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   private leaving: { since: number; modeInEye: string } | null = null;
   private pathTimer: ReturnType<typeof setTimeout> | ReturnType<typeof setImmediate> | null = null;
   private pathToken = 0;
-  /** The free camera turning in the game (+left or +right held), until the shot's planned end. */
-  private panning: "left" | "right" | null = null;
-  private panTimer: ReturnType<typeof setTimeout> | null = null;
-  /** Whether a pan turned the camera on this build (getpos, the first time); null until checked. */
-  private panWorks: boolean | null = null;
   private modesLearned = false;
   private chaseLearned = false;
   /** The camera is in the third-person chase view of a player. */
@@ -400,48 +393,6 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
       clearImmediate(this.pathTimer as ReturnType<typeof setImmediate>);
     }
     this.pathTimer = null;
-    this.stopPan();
-  }
-
-  /** Lets go of +left/+right (written at once, so it reaches the game before the next command). */
-  private stopPan(): void {
-    if (this.panTimer) clearTimeout(this.panTimer);
-    this.panTimer = null;
-    if (!this.panning) return;
-    this.panning = null;
-    void this.write(`-left; -right; cl_yawspeed ${DEFAULT_YAW_SPEED}`).catch(() => undefined);
-  }
-
-  /**
-   * Turns the free camera in the game: `cl_yawspeed` with +left or +right held turns it every frame
-   * the game draws, smoother than any pose Matchframe could send. It stops at the shot's planned end
-   * or with the next command. The first time, getpos must show the camera turning; if it doesn't on
-   * this build, cameras are shown still from then on.
-   */
-  private async startPan(degPerSec: number, durationMs: number, startYaw: number, token: number): Promise<void> {
-    const dir = degPerSec > 0 ? "left" : "right";
-    const speed = Math.abs(degPerSec);
-    try {
-      await this.write(`cl_yawspeed ${safeValue(speed)}; +${dir}`);
-    } catch {
-      return;
-    }
-    if (token !== this.pathToken) {
-      void this.write(`-${dir}; cl_yawspeed ${DEFAULT_YAW_SPEED}`).catch(() => undefined);
-      return;
-    }
-    this.panning = dir;
-    const startedAt = Date.now();
-    this.panTimer = setTimeout(() => this.stopPan(), durationMs);
-    if (this.panWorks !== null) return;
-    await new Promise((r) => setTimeout(r, PAN_CHECK_MS));
-    if (token !== this.pathToken || this.panning !== dir) return;
-    const pose = await this.readPose();
-    if (!pose || token !== this.pathToken) return;
-    const expected = (speed * (Date.now() - startedAt)) / 1000;
-    const turned = Math.abs(wrap180(pose.yaw - startYaw));
-    this.panWorks = turned >= expected * 0.3;
-    if (!this.panWorks) this.stopPan();
   }
 
   /**
@@ -450,10 +401,14 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
    * evenly and faster than the recording's frames: Windows timers tick every 15.6 ms, which gave
    * uneven 64-a-second poses (judder). The loop waits with setImmediate between frames (busy while a
    * path or follow cam plays; it still serves the game data and HUDs between frames).
+   *
+   * `gentle`: MOTION_HZ poses a second, waiting on timers between them (the engine is idle between
+   * frames). For slow moves (a pan of a few degrees a second, a drift of a few units a second) each
+   * step is far below a pixel, so uneven timer ticks don't show.
    */
-  private runFrames(token: number, frame: (elapsedMs: number) => boolean): void {
+  private runFrames(token: number, frame: (elapsedMs: number) => boolean, gentle = false): void {
     const start = performance.now();
-    const gap = 1000 / (this.opts.pathHz ?? 128);
+    const gap = 1000 / (gentle ? MOTION_HZ : (this.opts.pathHz ?? 128));
     let next = start;
     const tick = () => {
       if (token !== this.pathToken) return;
@@ -463,9 +418,43 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
         next = Math.max(next + gap, now + gap * 0.5);
         if (!frame(now - start)) return;
       }
-      this.pathTimer = next - performance.now() > 20 ? setTimeout(tick, next - performance.now() - 16) : setImmediate(tick);
+      const wait = next - performance.now();
+      this.pathTimer = gentle ? setTimeout(tick, Math.max(0, wait)) : wait > 20 ? setTimeout(tick, wait - 16) : setImmediate(tick);
     };
     tick();
+  }
+
+  /**
+   * Moves the camera along `motion` (from the pose it was shown at), until the shot's planned end or
+   * the next command; it then stays where the move ended. Matchframe sends every pose: CS2's own
+   * turning commands can't be used (+left/+right strafe the camera sideways in CS2).
+   */
+  private playMotion(motion: CameraMotion, token: number): void {
+    let last: string | null = null;
+    this.runFrames(
+      token,
+      (elapsed) => {
+        const t = Math.min(motion.durationMs, elapsed);
+        const pose = motion.pose(t);
+        if (!pose) {
+          this.stopPath();
+          return false;
+        }
+        try {
+          const cmd = this.cameraCommand(pose, this.templates.pathFrame);
+          // A still stretch of the move sends nothing.
+          if (cmd !== last) void this.conn.write(cmd).catch(() => this.stopPath());
+          last = cmd;
+        } catch {
+          this.stopPath();
+          return false;
+        }
+        if (t < motion.durationMs) return true;
+        this.stopPath();
+        return false;
+      },
+      true,
+    );
   }
 
   private async send(ctx: CommandContext, command: string): Promise<CommandResult> {
@@ -523,9 +512,8 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   }
 
   async activateStaticCamera(camera: CameraRecord, ctx: CommandContext, motion?: CameraMotion): Promise<CommandResult> {
-    // A camera that turns starts half its turn to one side, so the turn is centred on its aim.
-    const pan = motion && this.panWorks !== false ? motion.panDegPerSec : 0;
-    const pose: PathPose = { position: camera.position, pitch: camera.pitch, yaw: pan ? wrap180(camera.yaw - (pan * motion!.durationMs) / 2000) : camera.yaw };
+    // A moving shot is shown at its first pose, confirmed there, then moved.
+    const pose: PathPose = motion?.pose(0) ?? { position: camera.position, pitch: camera.pitch, yaw: camera.yaw };
     let cmd: string;
     try {
       cmd = this.cameraCommand(pose);
@@ -533,6 +521,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
       return failedResult(ctx, "target_invalid", e instanceof Error ? e.message : String(e));
     }
     this.stopPath();
+    const token = this.pathToken;
     const r = await this.send(ctx, cmd);
     if (r.status === "failed") return r;
     this.wentFree();
@@ -550,7 +539,8 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     }
     if (check !== "match") return r;
     this.modesLearned = true;
-    if (pan) void this.startPan(pan, motion!.durationMs, pose.yaw, this.pathToken);
+    // Moved only while this is still the latest command (another one stops the move).
+    if (motion && motion.durationMs > 0 && token === this.pathToken) this.playMotion(motion, token);
     this.opts.onEvidence?.("staticCameraControl", "supported", `getpos confirmed camera ${camera.id}`);
     this.opts.onEvidence?.("cameraReadback", "supported", "getpos answered with the camera pose");
     this.opts.onEvidence?.("observerModeControl", "partial", `free camera with ${this.templates.modeRoaming}`);

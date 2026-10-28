@@ -125,12 +125,14 @@ describe("Director over a round: freeze time cinematics, then first person once 
     const why = JSON.stringify({ round, liveAt, cine, results: results.filter((r) => r.at >= w.freeze[0] - 2000 && r.at < liveAt) });
     expect(cine.length, JSON.stringify(inFreeze)).toBeGreaterThanOrEqual(2);
     expect(cine.length, why).toBeLessThanOrEqual(4);
-    expect(cine.every((c) => c.request.kind === "activate_static_camera" && c.request.panDegPerSec !== 0), why).toBe(true);
+    // Moving shots (a team shot glides, a spawn camera turns), Matchframe sending the poses.
+    expect(cine.every((c) => c.request.kind === "activate_static_camera" && Number(c.request.movingMs) > 0), why).toBe(true);
     expect(new Set(cine.map(idOf)).size, why).toBe(cine.length);
     // From the first shot to the end of freeze time: no player view between the shots.
     expect(inFreeze.filter((c) => c.at > cine[0]!.at && c.request.kind === "select_player"), why).toEqual([]);
-    expect(cine.every((c) => /(^|-)(t|ct)_spawn-/.test(idOf(c))), why).toBe(true);
-    if (cine.length === 2) expect(new Set(cine.map((c) => idOf(c).includes("ct_spawn"))), why).toEqual(new Set([true, false]));
+    // Each team framed where it stands first (a spawn camera only after, or for a team no spot frames).
+    expect(cine.every((c) => /^team-(T|CT)$|(^|-)(t|ct)_spawn-/.test(idOf(c))), why).toBe(true);
+    expect(new Set(cine.slice(0, 2).map(idOf)), why).toEqual(new Set(["team-T", "team-CT"]));
     // Held: nothing else is sent for at least 4 s after each (no 1 s repeats of the same shot).
     for (const c of cine) {
       const next = commands.find((x) => x.at > c.at);

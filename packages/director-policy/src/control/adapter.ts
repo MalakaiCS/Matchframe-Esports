@@ -36,10 +36,13 @@ export interface ControlCapabilities {
  * simulation adapter. Writing bytes to a socket or an input API is transport acknowledgement only —
  * confirmation comes from observed camera feedback.
  */
-/** A camera turning while it is on air: degrees a second (positive to the left), over the shot's planned length. */
+/**
+ * A camera moving while it is on air (a slow pan or drift): where it is `t` ms into the shot, for t
+ * from 0 to `durationMs`; it is shown at `pose(0)` first and stays where the move ends.
+ */
 export interface CameraMotion {
-  panDegPerSec: number;
   durationMs: number;
+  pose: PoseStream;
 }
 
 export interface ObserverControlAdapter {
@@ -53,8 +56,8 @@ export interface ObserverControlAdapter {
   selectPlayer(steamId: string, observerSlot: number | null, context: CommandContext, view?: PlayerView): Promise<CommandResult>;
   setObserverMode(mode: CameraMode, context: CommandContext): Promise<CommandResult>;
   /**
-   * Shows a camera. With `motion`, it turns slowly while on air (in the game, every frame), centred on
-   * the camera's aim over `durationMs`; an adapter that can't turn it shows it still.
+   * Shows a camera. With `motion`, it is shown at the move's first pose and moved along it while on
+   * air; an adapter that can't move a camera shows that first pose still.
    */
   activateStaticCamera(camera: CameraRecord, context: CommandContext, motion?: CameraMotion): Promise<CommandResult>;
   playCameraPath(path: CameraPath, context: CommandContext): Promise<CommandResult>;
