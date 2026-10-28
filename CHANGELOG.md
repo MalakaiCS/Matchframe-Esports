@@ -49,6 +49,12 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
   - **Now:** 104 cameras and 81 paths (orbits of at most 10 s, push-ins, and sideways drifts where there is no orbit).
   - **Gaps filled:** Train CT spawn, Vertigo T spawn, and a mid stand-in on Nuke (Outside), Train and Overpass (Connector).
   - **Generator:** `scripts/generate-map-cameras.py`; the old CS:GO-nav generator is now `scripts/generate-map-regions-csgo-nav.py`.
+- **Replay PC behind the main PC, or rewinding** (version 0.5.1, ADR-030):
+  - **Measuring:** the replay PC works out how far behind the main PC its game is, from the two round clocks and the kills both see. The main PC now reports its round clock and recent kills, each judged with its exact camera history.
+  - **Behind (a CSTV a few seconds later):** every kill the main camera missed is known before it plays on the replay PC. Its director is pinned to the killer for the lead-up and the kill, then the clip is sent. Of two kills it can't both film it keeps the better one, and switches to a multi-kill.
+  - **Rewinding (experimental, setting `replayPc.rewind`, off):** at the same time as the main PC, a missed kill the replay PC's camera didn't have makes CS2 go back (`demo_gototick`, CSTV+ streams only), the kill is filmed, and CS2 skips forward to live. A CSTV connection that can't go back is detected and reported.
+  - **Live path:** the main PC's own verdict for a kill now decides whether the replay PC's clip is a missed kill, another angle, or not needed.
+  - **Replay PC panel:** how far behind, what it is filming, kills it couldn't film with the reason, the rewind switch, and the server lines for a second CSTV.
 - **Replay PC and automatic replays** (version 0.5.0, ADR-027):
   - **Replay PC:** a second computer with its own CS2, OBS and Matchframe, linked to the main PC by address and code. Its director avoids the main PC's player. It sends the kills the main camera missed (or showed only from the victim) as clips from its OBS replay buffer.
   - **Automatic replays:** the main PC plays them between rounds by itself, best first, never during a live round or over the operator's program choice. They come with slow motion, a replay transition and a one-click OBS replay scene.

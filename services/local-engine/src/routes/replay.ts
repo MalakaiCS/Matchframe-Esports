@@ -30,7 +30,7 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
   // ---- main PC: what the replay PC asks for ---------------------------------------------------
   r.get("/api/v1/replay-link/on-air", { permission: "state.read" }, () => {
     const s = e.session.state();
-    return { computer: hostname(), version: APP_VERSION, observedSteamId: s?.observer.observedSteamId ?? null, roundNumber: s?.roundNumber ?? null, roundPhase: s?.roundPhase ?? null, mapName: s?.mapName ?? null };
+    return { computer: hostname(), version: APP_VERSION, observedSteamId: s?.observer.observedSteamId ?? null, roundNumber: s?.roundNumber ?? null, roundPhase: s?.roundPhase ?? null, mapName: s?.mapName ?? null, clock: e.onAir.clock(s), kills: e.onAir.recentKills() };
   });
 
   r.post("/api/v1/replays/incoming", { permission: "replay.control", maxBodyBytes: CLIP_MAX }, async (req) => {
@@ -98,7 +98,7 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
 
   // ---- replay PC: its link to the main PC -------------------------------------------------------
   r.get("/api/v1/replay-pc", { permission: "state.read" }, () => ({ settings: e.replayLink.settings(), hasToken: e.replayLink.hasToken(), status: e.replayLink.getStatus() }));
-  r.put("/api/v1/replay-pc", { permission: "settings.manage", body: z.object({ enabled: z.boolean().optional(), mainUrl: z.string().max(200).optional(), token: z.string().max(200).nullable().optional(), preRollMs: ReplayPcSettings.shape.preRollMs.optional(), postRollMs: ReplayPcSettings.shape.postRollMs.optional() }) }, (req) => {
+  r.put("/api/v1/replay-pc", { permission: "settings.manage", body: z.object({ enabled: z.boolean().optional(), mainUrl: z.string().max(200).optional(), token: z.string().max(200).nullable().optional(), preRollMs: ReplayPcSettings.shape.preRollMs.unwrap().optional(), postRollMs: ReplayPcSettings.shape.postRollMs.unwrap().optional(), rewind: z.boolean().optional() }) }, (req) => {
     try {
       e.replayLink.setSettings(req.body);
     } catch (err) {

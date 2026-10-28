@@ -8058,16 +8058,17 @@
                     ]
                   },
                   "preRollMs": {
-                    "default": 5000,
                     "type": "integer",
                     "minimum": 2000,
                     "maximum": 15000
                   },
                   "postRollMs": {
-                    "default": 2000,
                     "type": "integer",
                     "minimum": 500,
                     "maximum": 5000
+                  },
+                  "rewind": {
+                    "type": "boolean"
                   }
                 }
               }

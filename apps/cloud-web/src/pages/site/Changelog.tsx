@@ -11,6 +11,21 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.5.1",
+    title: "A replay PC that knows the kill is coming",
+    summary: "Run the replay PC a few seconds behind the main PC and it films every kill the main camera misses, from the killer, before it happens on its screen.",
+    sections: [
+      {
+        heading: "Replays",
+        items: [
+          "The replay PC measures how far behind the main PC it is. A few seconds behind, it gets on the killer before each missed kill plays there and films it with its lead-up.",
+          "Two missed kills at once: it films the better one, and switches to a multi-kill.",
+          "Experimental: at the same time as the main PC, it can rewind a CSTV+ stream to film a missed kill, then go back to live.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.5.0",
     title: "Replay PC, automatic replays, clutch mode and follow cams",
     summary: "A second computer catches the kills your camera misses and the program replays them between rounds. The Auto Director cuts before fights start, follows lurks with a free camera, locks onto clutches, and times HUD graphics and OBS scenes to the shots.",

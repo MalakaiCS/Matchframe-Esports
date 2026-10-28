@@ -12,9 +12,9 @@ const auto: AutoReplayResponse = {
   status: { enabled: false, state: "off", detail: "Automatic replays are off.", waiting: 0, playing: null, lastPlayed: null },
 };
 const link: ReplayPcResponse = {
-  settings: { enabled: false, mainUrl: "", preRollMs: 5000, postRollMs: 2000 },
+  settings: { enabled: false, mainUrl: "", preRollMs: 5000, postRollMs: 2000, rewind: false },
   hasToken: false,
-  status: { enabled: false, state: "off", detail: "This computer is not a replay PC.", main: null, mainObserved: null, obsReady: false, sent: 0, failed: 0, last: null },
+  status: { enabled: false, state: "off", detail: "This computer is not a replay PC.", main: null, mainObserved: null, obsReady: false, timing: { state: "measuring", delayMs: null, detail: "" }, rewind: { state: "off", detail: "", count: 0 }, filming: null, planned: 0, sent: 0, failed: 0, skipped: 0, last: null, lastSkip: null },
 };
 
 function serve(routes: Record<string, unknown>) {
@@ -72,6 +72,37 @@ describe("Replay PC panel", () => {
     fireEvent.change(screen.getByLabelText(/Replay PC code/), { target: { value: "abc123" } });
     fireEvent.click(screen.getByRole("button", { name: "Make this the replay PC" }));
     await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ enabled: true, mainUrl: "192.168.1.20:37211", token: "abc123" }));
+  });
+
+  it("shows how far behind the main PC this computer is, what it films, and switches rewinding on", async () => {
+    const behind: ReplayPcResponse = {
+      ...link,
+      settings: { ...link.settings, enabled: true, mainUrl: "http://192.168.1.20:37211" },
+      hasToken: true,
+      status: {
+        ...link.status,
+        enabled: true,
+        state: "connected",
+        detail: "Linked to STUDIO-PC.",
+        mainObserved: "765",
+        obsReady: true,
+        timing: { state: "behind", delayMs: 7040, detail: "7.0 s behind the main PC: this computer gets on the killer before each missed kill plays here." },
+        filming: "haze ▸ kite (AWP)",
+        planned: 1,
+        sent: 3,
+        skipped: 1,
+        lastSkip: { label: "saber ▸ blaze (AK47)", reason: "this computer is filming haze then", at: "2026-10-28T04:00:00Z" },
+      },
+    };
+    const calls = serve({ "GET /api/v1/replay-pc": behind, "PUT /api/v1/replay-pc": behind });
+    wrap(<ReplayPcPanel />);
+    expect(await screen.findByText("7.0 s behind")).toBeTruthy();
+    expect(screen.getByText(/gets on the killer before each missed kill/)).toBeTruthy();
+    expect(screen.getByText("Filming now: haze ▸ kite (AWP) (1 more planned)")).toBeTruthy();
+    expect(screen.getByText(/Not filmed: 1 · last: saber ▸ blaze \(AK47\) \(this computer is filming haze then\)/)).toBeTruthy();
+    expect(screen.getByText("Best: this computer about 7 s behind the main PC")).toBeTruthy();
+    fireEvent.click(screen.getByLabelText(/Rewind to film a missed kill/));
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ rewind: true }));
   });
 
   it("makes a replay PC code on the main PC", async () => {

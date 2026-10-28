@@ -40,6 +40,7 @@ import { AutoReplay } from "./replay/auto.ts";
 import { GraphicsDirector } from "./live/graphics.ts";
 import { ObsAutomation } from "./live/obs-auto.ts";
 import { ReplayLink } from "./replay/link.ts";
+import { OnAirLog } from "./replay/onair.ts";
 import { LiveSession } from "./live/session.ts";
 import { TeamSideTracker } from "./live/team-sides.ts";
 import { Logger } from "./logger.ts";
@@ -145,6 +146,8 @@ export class Engine {
   readonly gameConsole: GameConsoleService;
   readonly autoDirector: AutoDirector;
   readonly replayLink: ReplayLink;
+  /** What this computer tells a replay PC (as the main PC): its camera history, round clock and kills. */
+  readonly onAir: OnAirLog;
   readonly autoReplay: AutoReplay;
   readonly graphics: GraphicsDirector;
   readonly obsAuto: ObsAutomation;
@@ -270,6 +273,7 @@ export class Engine {
     this.gameConsole = new GameConsoleService({ settings: this.settings, teams: this.teams, logger: this.logger });
     this.autoDirector = new AutoDirector(this);
     this.replayLink = new ReplayLink(this);
+    this.onAir = new OnAirLog(() => this.now());
     this.autoReplay = new AutoReplay(this);
     this.graphics = new GraphicsDirector(this);
     this.obsAuto = new ObsAutomation(this);
@@ -528,7 +532,8 @@ export class Engine {
 
   private onState(s: MatchState): void {
     if (!s.simulated) this.gameConsole.onState(s);
-    this.replayLink.noteOwnState(s.observer.observedSteamId);
+    this.onAir.noteState(s.observer.observedSteamId);
+    this.replayLink.noteOwnState(s);
     for (const o of this.outputs.list()) {
       const pub = o.published?.data;
       if (pub && pub.timelineProfile === "delayed" && pub.delayMs > 0) {
@@ -870,6 +875,7 @@ export class Engine {
     this.refreshGsiConfig();
     this.hudLibrary.installSamples(this.cfg.sampleHudsDirs);
     this.configureReplay();
+    this.onKill((k) => this.onAir.noteKill(k, this.session.state()?.roundNumber ?? null));
     this.replayLink.start();
     this.autoReplay.start();
     this.graphics.start();

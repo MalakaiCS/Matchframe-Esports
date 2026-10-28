@@ -72,6 +72,38 @@ export function AutoReplaysPanel() {
   );
 }
 
+const TIMING_TONE = { measuring: "info", live: "neutral", behind: "ok", ahead: "warn" } as const;
+
+function timingLabel(t: ReplayPcResponse["status"]["timing"]): string {
+  if (t.delayMs === null || t.state === "measuring") return "Timing…";
+  const s = (Math.abs(t.delayMs) / 1000).toFixed(1);
+  return t.state === "behind" ? `${s} s behind` : t.state === "ahead" ? `${s} s ahead` : "Same time";
+}
+
+const SECOND_CSTV = "tv_enable1 1\ntv_port1 27021\ntv_delay1 17";
+
+/** The best setup: this computer a few seconds behind the main PC, so it knows each missed kill before it plays here. */
+function BehindHelp() {
+  return (
+    <details className="small">
+      <summary>Best: this computer about 7 s behind the main PC</summary>
+      <div className="stack-sm">
+        <p>Then every kill the main camera misses is known here before it happens on this computer: the camera gets on the killer first and the whole kill is filmed. The program measures how far behind it is by itself.</p>
+        <ul>
+          <li>Main PC in the server as a spectator: watch the server's CSTV here, with a CSTV delay of about 7 s (tv_delay 7).</li>
+          <li>
+            Main PC on CSTV: give the server a second CSTV, 7 s later than the first, and connect to it here (connect server-address:27021). With the main CSTV at tv_delay 10:
+            <div className="row">
+              <code className="mono">{SECOND_CSTV.replace(/\n/g, "; ")}</code>
+              <CopyButton text={SECOND_CSTV} label="Copy" />
+            </div>
+          </li>
+        </ul>
+      </div>
+    </details>
+  );
+}
+
 /** Setting up the two computers: the main PC lets the replay PC in, the replay PC connects to it. */
 export function ReplayPcPanel() {
   const link = useApi<ReplayPcResponse>("/api/v1/replay-pc", { refreshMs: 1500 });
@@ -187,6 +219,7 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
         <li>On this computer: Start CS2 and spectate the same match, connect OBS (Game Capture of CS2) and start the Auto Director.</li>
         <li>Type the main PC's address and its replay PC code below.</li>
       </ol>
+      <BehindHelp />
       <div className="form-grid">
         <Field label="Main PC address" hint="As shown on the main PC, e.g. 192.168.1.20:37211">
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="192.168.1.20:37211" spellCheck={false} />
@@ -214,19 +247,41 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
           </Button>
         ) : null}
       </div>
+      {enabled ? (
+        <Checkbox
+          checked={data?.settings.rewind ?? false}
+          disabled={!!reason}
+          label="Rewind to film a missed kill (experimental)"
+          hint="When this computer is at the same time as the main PC and its camera didn't have the killer, CS2 goes back a few seconds, films the kill and skips forward to live again. Only a CSTV+ stream (playcast) can go back; with a CSTV connection the program says so and films someone else."
+          onChange={(v) => void api.put("/api/v1/replay-pc", { rewind: v }).then(reload)}
+        />
+      ) : null}
       {st && st.enabled ? (
         <div className="stack-sm small" role="status">
           <div className="row">
             <Badge tone={st.state === "connected" ? "ok" : st.state === "error" ? "warn" : "info"}>{st.state === "connected" ? "Linked" : st.state === "error" ? "Not linked" : "Connecting"}</Badge>
             <span>{st.detail}</span>
           </div>
-          {st.state === "connected" ? <span>The main camera shows {nameOf(st.mainObserved)}: this computer's Auto Director films someone else.</span> : null}
+          {st.state === "connected" ? (
+            <div className="row">
+              <Badge tone={TIMING_TONE[st.timing.state]}>{timingLabel(st.timing)}</Badge>
+              <span>{st.timing.detail}</span>
+            </div>
+          ) : null}
+          {st.state === "connected" && st.timing.state !== "behind" ? <span>The main camera shows {nameOf(st.mainObserved)}: this computer's Auto Director films someone else.</span> : null}
+          {data?.settings.rewind && st.rewind.detail ? <span className={st.rewind.state === "unsupported" ? "text-warn" : ""}>Rewinding: {st.rewind.detail}</span> : null}
+          {st.filming ? <span>Filming now: {st.filming}{st.planned ? ` (${st.planned} more planned)` : ""}</span> : null}
           <span className={st.obsReady ? "" : "text-warn"}>{st.obsReady ? "OBS replay buffer is running." : "Connect OBS on this computer (Settings → Devices); its replay buffer starts by itself."}</span>
           <span>
             Clips sent: {st.sent}
             {st.failed ? `, not sent: ${st.failed}` : ""}
             {st.last ? ` · last: ${st.last.label}${st.last.ok ? "" : ` (${st.last.error})`}` : ""}
           </span>
+          {st.lastSkip ? (
+            <span className="muted">
+              Not filmed: {st.skipped} · last: {st.lastSkip.label} ({st.lastSkip.reason})
+            </span>
+          ) : null}
         </div>
       ) : null}
     </div>

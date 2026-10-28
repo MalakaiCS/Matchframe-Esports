@@ -1005,9 +1005,26 @@ export interface AutoReplayResponse {
   status: { enabled: boolean; state: "off" | "waiting" | "playing" | "blocked"; detail: string; waiting: number; playing: { id: string; label: string } | null; lastPlayed: { id: string; label: string; at: string } | null };
 }
 export interface ReplayPcResponse {
-  settings: { enabled: boolean; mainUrl: string; preRollMs: number; postRollMs: number };
+  settings: { enabled: boolean; mainUrl: string; preRollMs: number; postRollMs: number; rewind: boolean };
   hasToken: boolean;
-  status: { enabled: boolean; state: "off" | "connecting" | "connected" | "error"; detail: string; main: { computer: string; version: string; url: string } | null; mainObserved: string | null; obsReady: boolean; sent: number; failed: number; last: { label: string; at: string; ok: boolean; error: string | null } | null };
+  status: {
+    enabled: boolean;
+    state: "off" | "connecting" | "connected" | "error";
+    detail: string;
+    main: { computer: string; version: string; url: string } | null;
+    mainObserved: string | null;
+    obsReady: boolean;
+    /** How far this computer's game is behind the main PC's. */
+    timing: { state: "measuring" | "live" | "behind" | "ahead"; delayMs: number | null; detail: string };
+    rewind: { state: "off" | "ready" | "rewinding" | "rewound" | "returning" | "unsupported"; detail: string; count: number };
+    filming: string | null;
+    planned: number;
+    sent: number;
+    failed: number;
+    skipped: number;
+    last: { label: string; at: string; ok: boolean; error: string | null } | null;
+    lastSkip: { label: string; reason: string; at: string } | null;
+  };
 }
 export interface NetworkInfo {
   computer: string;

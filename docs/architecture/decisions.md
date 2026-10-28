@@ -231,3 +231,51 @@ What remains:
 **Consequences.** Freeze time, clutches, long holds, timeouts and map ends get their graphics and scenes without an operator. Matchframe HUDs draw the cues, and LHM HUDs get their pages through OBS. kaiHUD 1.0.2 was checked page by page in a browser against test data.
 
 **Revisit if.** Operators want different timings, or an LHM HUD's page needs a data source the layer lacks.
+
+## ADR-030 — Replay PC timing: behind the main PC, or rewinding to get there
+**Context.** In 0.5.0 the replay PC watches the game at the same time as the main PC. It can only send a missed kill its own camera happened to have. The owner asked for the replay PC to stay about 7 s behind the main PC. If that isn't possible, it should go back 4–7 s on the same CSTV when a kill is missed, film it, and come back to live.
+
+**What CS2 offers.** These facts come from CS2's console variable and command dump (SteamDatabase GameTracking-CS2, `DumpSource2/convars.txt` and `commands.txt`) and the engine's strings:
+- **A second CSTV with its own delay:** `tv_enable1`, `tv_delay1` (default 15 s) and `tv_port1` (default 27021).
+- **No rewind on a CSTV connection:** CS2 can't rewind a CSTV connection (`connect ip:port`). The instant-replay commands are development-only.
+- **Possible rewind on CSTV+:** a CSTV+ stream (`playcast <url>`) is played by the broadcast player. That player has `SkipToTick`, a fragment cache (`tv_playcast_fragment_cache_history_length`) and `/sync?fragment=N`. `demo_goto <tick> [relative] [pause]` may therefore move it back. No public source confirms this.
+- **Refusal message:** demo commands outside playback print "Not currently playing back a demo".
+
+**Decision.**
+- **The main PC reports more** (`replay/onair.ts`). `GET /api/v1/replay-link/on-air` adds:
+  - its round clock: phase, seconds left, and the age of that reading;
+  - its kills of the last 30 s, each judged with its exact camera history: killer shown, victim only, or neither in the 2.5 s before.
+- **Measuring the delay** (`replay/timing.ts`):
+  - **Clock matching:** the replay PC matches each of its own round-clock readings to the moment the main PC had the same reading. The main PC's readings are interpolated and corrected for half the round trip and the reading's age.
+  - **Kill matching:** kills seen on both PCs count too, twice each.
+  - **The answer:** the median over 20 s, given only when the interquartile range is ≤ 0.8 s.
+  - **Jumps:** a jump in the replay PC's own clock (more than 1 s off) clears its readings, so a rewind or skip is measured again at once.
+- **Behind (≥ 2.5 s)** (`replay/link.ts`):
+  - **Planning:** every main-PC kill not shown from the killer becomes a planned capture at its time on the replay PC (main time + delay).
+  - **Filming:** the director is pinned to the killer from preroll + 0.6 s before the kill until postroll after it.
+  - **Confirming:** the kill is confirmed from the replay PC's own game data. A victim going alive → dead counts, so a replayed death counts too; the killfeed would de-duplicate it.
+  - **Sending:** the clip is sent only if the camera stayed on the killer from before the kill.
+  - **One camera:** of two kills that can't both be filmed, the better one is kept (more kills, then missed over another angle). A set-aside kill comes back when the same player's next kill makes it a multi-kill, and that can replace a kill being filmed, as long as that kill hasn't happened yet.
+- **Live:**
+  - **Same-time path:** it stays, but the main PC's own verdict for the kill now decides when it reports one.
+  - **Rewinding (setting `replayPc.rewind`, off by default):** on a missed kill this camera didn't have, it sends `demo_gototick -N 1` with N = time since the kill + preroll + 1.5 s (3–12 s). Success means the measured delay becomes ≥ 2.5 s within 4 s. The kill is then filmed as above, and `demo_gototick +N 1` returns to live once nothing is planned.
+  - **Unsupported:** a refusal from the console, or no jump, marks rewinding unsupported for the session, and the PC films someone else as before.
+- **Ahead:** treated as live, and the panel says the replay PC should be the later one.
+
+**Consequences.**
+- **Second CSTV ~7 s later:** this setup, or the main PC in the server with the replay PC on CSTV, catches every missed kill the one camera can film, with its lead-up. The clips reach the main PC a few seconds after the kill, still within the replay break.
+- **Rewinding** is experimental until checked on a real CSTV+ stream.
+
+**Checked.**
+- **Unit tests:** the delay measurement (behind, same time, ahead, paused clock, other round, a rewind and a skip, kills only, disagreement).
+- **Two-engine e2e:**
+  - 3 s behind: pinned before the kill, clip sent;
+  - a single kill and a 2K at once: the 2K is filmed, even after starting on the single;
+  - rewinding with a stand-in console: back, filmed, forward to live;
+  - a console that refuses: unsupported.
+- **Real OBS:** the replay PC flow still passes.
+
+**Revisit if.**
+- **Real CSTV+:** a real CSTV+ stream shows `demo_gototick` doesn't seek backwards.
+- **Pause instead:** pausing (`demo_pause`) a CSTV+ stream proves a simpler way to fall behind.
+- **Delay limit:** operators need delays over two minutes.
