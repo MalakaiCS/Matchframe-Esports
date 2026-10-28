@@ -57,8 +57,8 @@ const roster = syntheticRoster();
 const [T1, , , T4] = roster.filter((p) => p.side === "T");
 const CT9 = roster.find((p) => p.side === "CT" && p.slot === 9)!;
 
-async function feed(p: Pc, observed: string, players: SyntheticPlayer[], roundPhase: "live" | "over" | "freezetime" = "live") {
-  const payload = buildSyntheticGsiPayload({ mapName: "de_dust2", round: 7, players, observed, roundPhase, phase: roundPhase, phaseEndsIn: roundPhase === "live" ? 60 : 15, token: p.e.secrets.gsiToken, timestamp: p.ts++ });
+async function feed(p: Pc, observed: string, players: SyntheticPlayer[], roundPhase: "live" | "over" | "freezetime" = "live", extra: { round?: number; roundWins?: Record<string, string> } = {}) {
+  const payload = buildSyntheticGsiPayload({ mapName: "de_dust2", round: extra.round ?? 7, players, observed, roundPhase, phase: roundPhase, phaseEndsIn: roundPhase === "live" ? 60 : 15, token: p.e.secrets.gsiToken, timestamp: p.ts++, ...(extra.roundWins ? { roundWins: extra.roundWins } : {}) });
   const r = await fetch(`http://127.0.0.1:${p.ports.gsi}/gsi`, { method: "POST", body: JSON.stringify(payload) });
   expect(r.status).toBe(200);
 }
@@ -159,5 +159,28 @@ describe("Replay PC: catches the kills the main camera misses, the main PC repla
     expect(items.find((i) => i.origin === "replay_pc")?.state).toBe("played");
     const status = (await main.api("/api/v1/replays/auto")).json.status as { lastPlayed: { label: string } };
     expect(status.lastPlayed.label).toContain(T4!.name);
+  });
+
+  it("replays a won 1v2 clutch the main camera showed, before anything else", async () => {
+    // The main PC's own replay buffer (stand-in).
+    Object.assign(main.e.obs.state, { replayBuffer: true });
+    main.e.obs.saveReplayBuffer = async () => ({ savedPath: clipFile });
+    mediaCalls = 0;
+    const before = programScenes.length;
+    const dead = (p: SyntheticPlayer) => ({ ...p, health: 0, deaths: 1 });
+    const cts = roster.filter((p) => p.side === "CT");
+    // Round 9: T1 alone against two CTs, on the main camera.
+    const clutch = roster.map((p) => (p.side === "T" && p.steamId !== T1!.steamId ? dead(p) : p.side === "CT" && p !== cts[0] && p !== cts[1] ? dead(p) : p));
+    await feed(main, T1!.steamId, clutch, "live", { round: 8 });
+    await new Promise((r) => setTimeout(r, 500));
+    const won = clutch.map((p) => (p === cts[0] || p === cts[1] ? dead(p) : p.steamId === T1!.steamId ? { ...p, kills: 2, roundKills: 2 } : p));
+    await feed(main, T1!.steamId, won, "live", { round: 8 });
+    await new Promise((r) => setTimeout(r, 300));
+    await feed(main, T1!.steamId, won, "over", { round: 8, roundWins: { "9": "t_win_elimination" } });
+    await waitFor(async () => ((await main.api("/api/v1/replays")).json.items as { label: string }[]).some((i) => i.label === `Clutch 1v2: ${T1!.name}`));
+    await waitFor(() => programScenes.slice(before).includes("Replay"));
+    await waitFor(() => programScenes[programScenes.length - 1] === "Game");
+    const clip = ((await main.api("/api/v1/replays")).json.items as { label: string; state: string; priority: number; origin: string }[]).find((i) => i.label === `Clutch 1v2: ${T1!.name}`)!;
+    expect(clip).toMatchObject({ state: "played", priority: 4, origin: "main" });
   });
 });

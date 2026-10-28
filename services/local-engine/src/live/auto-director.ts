@@ -12,6 +12,8 @@ export const AutoDirectorSettings = z.object({
   returnAfterSec: z.number().int().min(0).max(120).default(8),
   /** The third-person chase view while the spectated player plants or defuses the bomb or wins the round. */
   chase: z.boolean().default(true),
+  /** Clutch mode: in a 1vX, stay with the last player alive on their side; no cutaways to cameras. */
+  clutch: z.boolean().default(true),
 });
 export type AutoDirectorSettings = z.infer<typeof AutoDirectorSettings>;
 

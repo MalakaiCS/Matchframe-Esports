@@ -39,7 +39,7 @@ export function AutoDirectorCard({ compact = false }: { compact?: boolean }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const st = status.data;
-  const set = st?.settings ?? { cinematic: true, nadeCams: false, returnAfterSec: 8, chase: true };
+  const set = st?.settings ?? { cinematic: true, nadeCams: false, returnAfterSec: 8, chase: true, clutch: true };
 
   const call = async (fn: () => Promise<AutoDirectorStatus>, failTitle: string) => {
     setBusy(true);
@@ -111,6 +111,13 @@ export function AutoDirectorCard({ compact = false }: { compact?: boolean }) {
           label="Chase cam"
           hint="Shows the player from behind (third person) while they plant or defuse the bomb and when their team wins the round, then goes back to their eyes."
           onChange={(v) => void save({ chase: v })}
+        />
+        <Checkbox
+          checked={set.clutch}
+          disabled={!!reason || busy}
+          label="Clutch mode"
+          hint="When one player is left alone against the other team, stay with them: no cuts to cameras, and the chase view while no opponent is near. A won clutch is replayed if automatic replays are on."
+          onChange={(v) => void save({ clutch: v })}
         />
         {compact ? null : (
           <label className="autodir-return">

@@ -42,3 +42,26 @@ describe("chaseMoment", () => {
     expect(chaseMoment({ ...s, observer: { ...s.observer, observedSteamId: null } })).toBeNull();
   });
 });
+
+describe("chaseMoment in a clutch", () => {
+  const clutch = (distance: number) => {
+    const sim = new Sim();
+    const s = sim.push([player(T(1), "T", 1, { x: 0, y: 0, z: 0 }), player(T(2), "T", 2, { x: 50, y: 0, z: 0 }, null, { health: 0 }), player(CT(1), "CT", 6, { x: distance, y: 0, z: 0 }), player(CT(2), "CT", 7, { x: distance + 300, y: 0, z: 0 })], { observed: T(1) });
+    return s;
+  };
+
+  it("shows the last player alive from behind while no opponent is near, with a margin so it doesn't flicker", () => {
+    expect(chaseMoment(clutch(2500))).toBe("CLUTCH_LEADUP");
+    expect(chaseMoment(clutch(1600))).toBeNull();
+    // Already behind them: stays until an opponent is closer still.
+    expect(chaseMoment(clutch(1600), { chasing: true })).toBe("CLUTCH_LEADUP");
+    expect(chaseMoment(clutch(1200), { chasing: true })).toBeNull();
+  });
+
+  it("is not a clutch while a teammate lives, or after the round", () => {
+    const s = clutch(2500);
+    const withMate = { ...s, players: s.players.map((p) => (p.steamId === T(2) ? { ...p, lifeState: "alive" as const, health: 100 } : p)) };
+    expect(chaseMoment(withMate)).toBeNull();
+    expect(chaseMoment({ ...s, roundPhase: "over" })).toBeNull();
+  });
+});

@@ -22,6 +22,7 @@ import type { DirectorConfig } from "./config.ts";
 import { mergeConfig } from "./config.ts";
 import type { InteractionFeatures, SpatialContext } from "./features/interactions.ts";
 import { computeInteractions } from "./features/interactions.ts";
+import type { RoundContext } from "./features/significance.ts";
 import { roundContext } from "./features/significance.ts";
 import { StateHistory } from "./history.ts";
 import { ShotPlanner } from "./planner.ts";
@@ -77,6 +78,8 @@ export interface DirectorControls {
   cinematicRequested: boolean;
   /** Players another observer shows right now (replay PC: the main PC's player), until a time. */
   avoid: { steamIds: string[]; until: number } | null;
+  /** Clutch mode: in a 1vX, stay with the last player alive on their side; no cutaways to cameras. */
+  clutchMode: boolean;
 }
 
 export interface DirectorOptions {
@@ -125,6 +128,7 @@ export class Director {
     followActionRequested: false,
     cinematicRequested: false,
     avoid: null,
+    clutchMode: false,
   };
 
   constructor(opts: DirectorOptions = {}) {
@@ -239,7 +243,9 @@ export class Director {
     this.planner.cinematicStarted(shot, at, plannedDurationMs, opportunityId, countsTowardBudget);
   }
 
-  private cinematicsAllowed(state: MatchState): { allowed: boolean; reason: ReasonCode | null } {
+  private cinematicsAllowed(state: MatchState, round?: RoundContext): { allowed: boolean; reason: ReasonCode | null } {
+    // Mid-clutch, a camera would cut away from the player the whole round is about.
+    if (this.controls.clutchMode && round?.clutch) return { allowed: false, reason: "CLUTCH" };
     const d = this.controls.cinematicsDisabled;
     if (!this.cfg.cinematic.enabled || d.match || (d.map !== null && d.map === state.mapName) || (d.round !== null && d.round === state.roundAttemptId)) {
       return { allowed: false, reason: "CINEMATIC_DISABLED" };
@@ -288,7 +294,7 @@ export class Director {
       mainStorySteamIds: new Set(interactions.mainStory?.members ?? []),
     });
     const scope = this.observerScope;
-    const cinematicsAllowed = this.cinematicsAllowed(state);
+    const cinematicsAllowed = this.cinematicsAllowed(state, round);
     const candidates = generateCandidates({
       state,
       now,
@@ -306,6 +312,7 @@ export class Director {
       map,
       scope,
       avoid: this.controls.avoid && this.controls.avoid.until > now ? new Set(this.controls.avoid.steamIds) : null,
+      clutchMode: this.controls.clutchMode,
     });
     if (scope?.has("cinematic")) {
       candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map }));

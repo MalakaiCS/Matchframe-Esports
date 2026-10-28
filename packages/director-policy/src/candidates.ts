@@ -35,7 +35,13 @@ export interface CandidateInput {
   scope?: ReadonlySet<ActionClass> | null | undefined;
   /** Players another observer already shows (a replay PC avoids the main PC's player). */
   avoid?: ReadonlySet<string> | null | undefined;
+  /** Clutch mode: the last player alive on their side is the shot until the clutch ends. */
+  clutchMode?: boolean | undefined;
 }
+
+/** Clutch mode: the clutching player's lead over everyone else, and what an opponent gives up. */
+const CLUTCH_BONUS = 0.45;
+const CLUTCH_OPPONENT_PENALTY = 0.25;
 
 /** Utility taken off a player another observer already shows: the next-best action wins, but they stay a fallback. */
 const AVOID_PENALTY = 0.8;
@@ -209,6 +215,8 @@ export function generateCandidates(input: CandidateInput): ScoredCandidate[] {
     if (isCurrent) reasons.unshift(valid ? "CURRENT_SHOT_VALID" : "CURRENT_SHOT_INVALID");
     const avoided = input.avoid?.has(p.steamId) === true;
     if (avoided) reasons.push("MAIN_OBSERVER_ON_IT");
+    const clutch = input.clutchMode ? input.round.clutch : null;
+    const clutchShift = !clutch ? 0 : clutch.steamId === p.steamId ? CLUTCH_BONUS : -CLUTCH_OPPONENT_PENALTY;
     const urgent = sig.reasons.includes("BOMB_CRITICAL") || sig.reasons.includes("BOMB_DEFUSE_PRESSURE") || (f?.contact["0.5"] ?? 0) >= 0.7;
     out.push({
       candidateId: `cand:${key}`,
@@ -219,7 +227,7 @@ export function generateCandidates(input: CandidateInput): ScoredCandidate[] {
       clusterId: f?.clusterId ?? null,
       regionIds: cluster?.regionIds ?? [],
       components,
-      utility: valid ? utilityOf(components, w) - (avoided ? AVOID_PENALTY : 0) : -1,
+      utility: valid ? utilityOf(components, w) - (avoided ? AVOID_PENALTY : 0) + clutchShift : -1,
       reasonCodes: [...new Set(reasons)],
       valid,
       invalidReason,

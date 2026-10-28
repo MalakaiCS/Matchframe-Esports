@@ -39,6 +39,8 @@ export interface LiveSessionOptions {
   recordEvidence?: (key: keyof ControlCapabilities, support: "supported" | "partial", detail: string) => void;
   /** The third-person chase view for plants, defuses and round wins (default on). */
   chaseEnabled?: () => boolean;
+  /** Clutch mode (default off here; the engine passes the Auto Director setting, on by default). */
+  clutchEnabled?: () => boolean;
   simulated?: boolean;
   /** Per-type utility profiles (measured where available, defaults otherwise). */
   utilityProfiles?: ProfileSet;
@@ -293,6 +295,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     const now = this.opts.now();
     const t0 = performance.now();
     const pending = this.arbiter.pending();
+    this.director.controls.clutchMode = this.opts.clutchEnabled?.() === true;
     const output = this.director.evaluate(this.store.snapshot(now), now, {
       ownership: this.arbiter.state(),
       adapterAvailable: !!this.arbiter.getAdapter() && this.arbiter.getAdapter()!.kind !== "none",
@@ -536,7 +539,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
       this.viewTarget = id;
       this.viewSince = 0;
     }
-    const want: PlayerView = this.opts.chaseEnabled?.() !== false && chaseMoment(s) ? "chase" : "in_eye";
+    const want: PlayerView = this.opts.chaseEnabled?.() !== false && chaseMoment(s, { chasing: this.view === "chase" }) ? "chase" : "in_eye";
     if (want === this.view || now - this.viewSince < LiveSession.CHASE_MIN_MS) return;
     const p = s.players.find((x) => x.steamId === id);
     const before = this.view;

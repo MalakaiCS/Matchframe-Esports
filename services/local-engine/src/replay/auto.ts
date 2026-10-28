@@ -47,6 +47,8 @@ export interface AutoReplayStatus {
 }
 
 const PRIORITY: Record<ReplayPlay["kind"], number> = { big_play: 3, missed: 2, other_angle: 1 };
+/** A won clutch (1v2 or more) plays before anything else. */
+const CLUTCH_PRIORITY = 4;
 /** Return to live this long before freeze time ends. */
 const END_MARGIN_MS = 1500;
 /** Freeze time assumed until the game reports it (CS2's competitive default is 20 s, many servers use 15). */
@@ -63,6 +65,11 @@ export class AutoReplay {
   private breakStartedAt: number | null = null;
   private playedThisBreak = 0;
   private abort = false;
+  private bufferStartTried = false;
+  /** The clutch of the live round (the last player alive on a side against 2+), while it lasts. */
+  private clutch: { steamId: string; name: string; side: "T" | "CT"; versus: number; startedAt: number; round: number | null; shown: boolean } | null = null;
+  /** A clutch that was still on when the round ended, waiting for the round result. */
+  private endedClutch: (NonNullable<AutoReplay["clutch"]> & { endedAt: number }) | null = null;
   private ownKills = new Map<string, { round: number | null; kills: number; firstAt: number; lastAt: number; victims: string[]; weapon: string | null; headshot: boolean; name: string; timer: ReturnType<typeof setTimeout> | null }>();
   private readonly cleanup: (() => void)[] = [];
 
@@ -127,15 +134,24 @@ export class AutoReplay {
         this.breakRound = null;
         this.breakStartedAt = null;
         this.playedThisBreak = 0;
+        this.trackClutch(s);
       } else if (this.phase === "live" || (this.breakStartedAt === null && s.roundPhase === "over")) {
         this.breakRound = this.liveRound;
         this.breakStartedAt = this.e.now();
         this.playedThisBreak = 0;
+        if (this.clutch) this.endedClutch = { ...this.clutch, endedAt: this.e.now() };
+        this.clutch = null;
       }
       this.phase = s.roundPhase;
+      if (this.endedClutch && s.roundPhase !== "live") this.settleClutch(s);
     }
     if (this.busy) return;
     if (!st.enabled) return this.setStatus("off", "Automatic replays are off.");
+    // Big plays and clutches come from this computer's replay buffer: start it once if it isn't running.
+    if (st.ownBigPlays && !this.bufferStartTried && this.e.obs.state.connected && this.e.obs.state.replayBuffer === false) {
+      this.bufferStartTried = true;
+      void this.e.obs.setOutput("replay", true).catch((err) => this.e.logger.warn("automatic replays: could not start the OBS replay buffer", { error: String(err) }));
+    }
     const why = this.blocked();
     if (why) return this.setStatus("blocked", why);
     if (!s || s.roundPhase === "live" || this.breakStartedAt === null) return this.setStatus("waiting", "Waiting for the round to end.");
@@ -216,6 +232,46 @@ export class AutoReplay {
       this.e.logger.warn("automatic replay failed", { id: it.id, error });
       this.setStatus("blocked", `The last replay didn't play: ${error}`);
     }
+  }
+
+  // ------------------------------------------------------------------ clutches
+
+  private trackClutch(s: MatchState): void {
+    const alive = s.players.filter((p) => p.lifeState === "alive" && p.side);
+    const sides = { T: alive.filter((p) => p.side === "T"), CT: alive.filter((p) => p.side === "CT") };
+    const side = sides.T.length === 1 && sides.CT.length >= 1 ? "T" : sides.CT.length === 1 && sides.T.length >= 1 ? "CT" : null;
+    if (!side) {
+      // The clutcher killed the last opponent: the clutch stands until the round result is in.
+      const c = this.clutch;
+      if (!(c && sides[c.side].length === 1 && sides[c.side][0]!.steamId === c.steamId)) this.clutch = null;
+      return;
+    }
+    const p = sides[side][0]!;
+    const versus = sides[side === "T" ? "CT" : "T"].length;
+    const shown = s.observer.observedSteamId === p.steamId;
+    if (this.clutch?.steamId === p.steamId) {
+      this.clutch.versus = Math.max(this.clutch.versus, versus);
+      this.clutch.shown ||= shown;
+    } else this.clutch = { steamId: p.steamId, name: p.name, side, versus, startedAt: this.e.now(), round: s.roundNumber, shown };
+  }
+
+  /** Once the round result is in: a won 1v2+ that the main camera showed is replayed first. */
+  private settleClutch(s: MatchState): void {
+    const c = this.endedClutch!;
+    const result = s.roundHistory[s.roundHistory.length - 1];
+    const fresh = result && c.round !== null && result.roundNumber >= c.round - 1;
+    if (!fresh) {
+      if (this.e.now() - c.endedAt > 4000) this.endedClutch = null;
+      return;
+    }
+    this.endedClutch = null;
+    const st = this.settings();
+    if (!st.enabled || !st.ownBigPlays || result.winnerSide !== c.side || c.versus < 2 || !c.shown) return;
+    const playMs = Math.min(20000, Math.round(c.endedAt - c.startedAt + 1500));
+    for (const old of this.e.replays.list()) if (old.play?.kind === "big_play" && old.play.killer?.steamId === c.steamId && old.roundNumber === c.round && (old.state === "prepared" || old.state === "capturing")) this.e.replays.reject(old.id);
+    const play: ReplayPlay = { kind: "big_play", killer: { steamId: c.steamId, name: c.name }, victims: [], kills: c.versus, weapon: null, headshot: false };
+    const item = this.e.replays.bookmark(`Clutch 1v${c.versus}: ${c.name}`, "clutch", c.round, { priority: CLUTCH_PRIORITY, playMs, play });
+    void this.e.replays.capture(item.id, { preRollMs: playMs, postRollMs: 0, sourceIds: null, matchTimeMs: s.time.matchTimeMs ?? null, timeUncertaintyMs: s.time.timeUncertaintyMs ?? null, epoch: s.epoch, roundNumber: c.round });
   }
 
   // ------------------------------------------------------------------ this computer's big plays
