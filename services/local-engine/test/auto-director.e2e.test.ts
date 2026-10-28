@@ -204,6 +204,8 @@ describe("Auto Director: one button, checks and fixes by itself", () => {
     const adapter = (await api("/api/v1/observer/adapter")).json.settings as { kind: string; templates: Record<string, string> };
     expect(adapter.kind).toBe("netcon");
     expect(adapter.templates.modeRoaming).toBe("spec_mode 4");
+    // The map's free-space grid is loaded with its pack (sightlines for the director, room for the follow camera).
+    expect(engine.maps.get("de_dust2")?.grid?.header).toMatchObject({ map: "de_dust2", cell: 12 });
     expect(cs2.lines).toContain("spec_autodirector 0");
     expect(cs2.lines.some((l) => l.startsWith("spec_player "))).toBe(true);
     const ownership = (await api("/api/v1/director/status")).json.ownership as { owner: string; manualSticky: boolean };

@@ -9,7 +9,16 @@ export interface SpatialContext {
   pathDistance?(a: Vec3, b: Vec3): number | null;
   /** True only when verified visibility geometry exists for this map revision. */
   hasVisibilityGeometry?: boolean;
+  /** Whether two eye positions see each other in the map's collision geometry (the map's free-space grid). */
+  lineOfSight?(a: Vec3, b: Vec3): boolean;
 }
+
+/** Eye height above a player's position (standing). */
+const EYE = 64;
+/** Sightlines are only tested between players this close (across): beyond it a sighting doesn't mean a fight soon. */
+const SIGHT_RANGE = 3000;
+/** Where the players will be (at their current speed) when testing whether a sightline opens soon. */
+const SOON_SEC = [0.4, 0.8, 1.2, 1.6] as const;
 
 export interface PairFeature {
   t: string;
@@ -24,6 +33,11 @@ export interface PairFeature {
   sameLevel: boolean | null;
   /** Heuristic separation by floors/elevation. Unknown obstruction is NOT treated as clear. */
   separated: boolean;
+  /**
+   * From the map's geometry: they see each other now, will within the next ~1.6 s at their current
+   * speed (seconds until then), or neither. Null without geometry or when too far apart.
+   */
+  sight: { now: boolean; soonSec: number | null } | null;
   dataAgeMs: number;
   /** Probability of contact within each horizon (keys are horizon seconds as strings). */
   contact: Record<string, number>;
@@ -115,6 +129,19 @@ export function computePair(
   }
   const fT = facing(t, b);
   const fC = facing(ct, a);
+
+  // Sightlines from the map's geometry: now, and where the players will be over the next 1.6 s.
+  let sight: PairFeature["sight"] = null;
+  if (spatial?.lineOfSight && horiz <= SIGHT_RANGE) {
+    const eye = (p: Vec3, v: Vec3 | null, s: number) => ({ x: p.x + (v?.x ?? 0) * s, y: p.y + (v?.y ?? 0) * s, z: p.z + EYE });
+    const now = spatial.lineOfSight(eye(a, null, 0), eye(b, null, 0));
+    let soonSec: number | null = null;
+    if (!now && (va || vb)) for (const s of SOON_SEC) if (spatial.lineOfSight(eye(a, va, s), eye(b, vb, s))) {
+      soonSec = s;
+      break;
+    }
+    sight = { now, soonSec };
+  }
   const ageT = t.positionObservedAtMonotonicMs !== null ? now - t.positionObservedAtMonotonicMs : 5000;
   const ageC = ct.positionObservedAtMonotonicMs !== null ? now - ct.positionObservedAtMonotonicMs : 5000;
   const dataAgeMs = Math.max(0, ageT, ageC);
@@ -139,7 +166,20 @@ export function computePair(
       const ttc = (dEff - engage) / speed;
       p = sigmoid(2.2 * (h - ttc)) * (0.5 + 0.5 * mutualFacing);
     }
-    if (separated) p *= 0.3;
+    if (separated && !sight?.now) p *= 0.3;
+    if (sight) {
+      const looking = Math.max(fT ?? 0, fC ?? 0, 0);
+      if (sight.now) {
+        // In each other's sight: someone shoots within a second, sooner when one is looking.
+        p = Math.max(p, 1 - Math.exp(-(1.2 + 2.4 * looking) * h));
+      } else if (sight.soonSec !== null) {
+        // A sightline opens in soonSec at their current speed: a fight is about to start.
+        p = h >= sight.soonSec ? Math.max(p, 0.8) : Math.max(p * 0.6, 0.5 * (h / sight.soonSec));
+      } else {
+        // Walls between them, and none opening soon.
+        p *= h <= 1 ? 0.35 : 0.65;
+      }
+    }
     p = Math.min(cap, p) * staleness;
     contact[key(h)] = Math.max(0, Math.min(1, p));
   }
@@ -148,7 +188,7 @@ export function computePair(
     (spatial?.hasVisibilityGeometry ? 1 : 0.6) *
     (closingSpeed !== null ? 1 : 0.8) *
     (pathDistance !== null ? 1 : 0.85);
-  return { t: t.steamId, ct: ct.steamId, distance, pathDistance, dz, closingSpeed, facingTtoCT: fT, facingCTtoT: fC, sameLevel, separated, dataAgeMs, contact, confidence };
+  return { t: t.steamId, ct: ct.steamId, distance, pathDistance, dz, closingSpeed, facingTtoCT: fT, facingCTtoT: fC, sameLevel, separated, sight, dataAgeMs, contact, confidence };
 }
 
 function centroidOf(players: PlayerState[]): Vec3 {

@@ -1,5 +1,6 @@
 import type { CameraPath, CameraRecord, MapLevel, MapPack, RadarCalibration, Region, Vec3 } from "@matchframe/contracts";
 import { cellKey, cellOf, pointInPolygon } from "./geometry.ts";
+import type { VisibilityGrid } from "./grid.ts";
 
 export interface RadarPoint {
   /** Normalized 0..1 radar coordinates (x right, y down). */
@@ -32,6 +33,8 @@ export class MapRuntime {
    * are usable alongside operator-validated ones, unless switched off. Invalidated ones never are.
    */
   builtInCameras = true;
+  /** Free-space grid from CS2's collision geometry (line of sight, camera clearance), when the map has one. */
+  grid: VisibilityGrid | null = null;
   private readonly cellIndexes: CellIndex[] = [];
   private readonly polygonRegions: Region[] = [];
   private readonly floors = new Map<string, number[]>();

@@ -1,5 +1,6 @@
 import type { MapPack } from "@matchframe/contracts";
 import { MapPack as MapPackSchema } from "@matchframe/contracts";
+import type { VisibilityGrid } from "./grid.ts";
 import { MapRuntime } from "./runtime.ts";
 
 export interface MapProfile {
@@ -34,6 +35,7 @@ export interface LoadIssue {
 
 export class MapRegistry {
   private readonly runtimes = new Map<string, MapRuntime>();
+  private readonly grids = new Map<string, VisibilityGrid>();
   readonly issues: LoadIssue[] = [];
   private builtIn = true;
 
@@ -47,9 +49,17 @@ export class MapRegistry {
     return this.builtIn;
   }
 
+  /** A map's free-space grid; it stays with the map when its pack is registered again. */
+  setGrid(grid: VisibilityGrid): void {
+    this.grids.set(grid.map, grid);
+    const rt = this.runtimes.get(grid.map);
+    if (rt) rt.grid = grid;
+  }
+
   register(pack: MapPack): MapRuntime {
     const rt = new MapRuntime(pack);
     rt.builtInCameras = this.builtIn;
+    rt.grid = this.grids.get(pack.mapName) ?? null;
     this.runtimes.set(pack.mapName, rt);
     return rt;
   }

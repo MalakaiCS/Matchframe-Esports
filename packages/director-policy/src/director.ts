@@ -11,6 +11,7 @@ import type {
   ShotClass,
   Side,
   SourceCapabilities,
+  Vec3,
 } from "@matchframe/contracts";
 import { actionClassOfShot, OBSERVER_MODE_ACTIONS } from "@matchframe/contracts";
 import type { ProfileSet } from "@matchframe/cs2-state";
@@ -282,7 +283,8 @@ export class Director {
     if (!(activeCine && state.observer.cameraMode === "roaming")) this.planner.observeShot(observed, now);
 
     const map = this.map && this.map.mapName === state.mapName ? this.map : undefined;
-    const spatial: SpatialContext | undefined = map ? { levelAt: (p) => map.levelAt(p), regionsAt: (p) => map.regionsAt(p), hasVisibilityGeometry: false } : undefined;
+    const grid = map?.grid ?? null;
+    const spatial: SpatialContext | undefined = map ? { levelAt: (p) => map.levelAt(p), regionsAt: (p) => map.regionsAt(p), hasVisibilityGeometry: !!grid, ...(grid ? { lineOfSight: (a: Vec3, b: Vec3) => grid.lineOfSight(a, b) } : {}) } : undefined;
     const interactions = computeInteractions(state, now, this.cfg, spatial, this.history);
     const round = roundContext(state, now, map ? (p) => map.siteAt(p) : undefined);
     const opportunities = findUtilityOpportunities(state, now, {

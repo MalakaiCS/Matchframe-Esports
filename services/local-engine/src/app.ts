@@ -1,4 +1,5 @@
 import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { inflateSync } from "node:zlib";
 import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 import type { AutomationRule, ProgramMode, TriggerEvent, TriggerKind } from "@matchframe/automation";
@@ -10,7 +11,7 @@ import { DEFAULT_PROFILES, profilesFromMeasured } from "@matchframe/cs2-state";
 import type { UtilityScenarioRule } from "@matchframe/director-policy";
 import { INFERNO_BOTTOM_BANANA_RULE } from "@matchframe/director-policy";
 import type { HudKillfeedEntry, HudState } from "@matchframe/hud-sdk";
-import { MapRegistry, syntheticMapPack } from "@matchframe/map-runtime";
+import { MapRegistry, syntheticMapPack, VisibilityGrid } from "@matchframe/map-runtime";
 import { ObsManager } from "@matchframe/obs-adapter";
 import { loadWindowsInputBackend, KeyboardObserverAdapter, NetconObserverAdapter, NoControlAdapter, SimulationObserverAdapter } from "@matchframe/observer-agent";
 import type { ReplayProvider } from "@matchframe/replay-agent";
@@ -298,6 +299,14 @@ export class Engine {
     const dirs = [this.cfg.mapPackDir, join(this.cfg.dataDir, "map-packs")].filter((d): d is string => !!d && existsSync(d));
     for (const dir of dirs) {
       for (const f of readdirSync(dir)) {
+        if (f.endsWith(".grid")) {
+          try {
+            this.maps.setGrid(VisibilityGrid.parse(readFileSync(join(dir, f)), (b) => inflateSync(b)));
+          } catch (e) {
+            this.maps.issues.push({ file: join(dir, f), error: e instanceof Error ? e.message : String(e) });
+          }
+          continue;
+        }
         if (!f.endsWith(".json") || f.endsWith(".graph.json")) continue;
         try {
           const rt = this.maps.registerRaw(JSON.parse(readFileSync(join(dir, f), "utf8")), join(dir, f));
