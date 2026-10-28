@@ -46,7 +46,12 @@ describe("Director over a round: freeze time cinematics, then first person once 
   let servers: Awaited<ReturnType<typeof startServers>>;
   let cs2: TimedCs2;
   let api: (path: string, init?: { method?: string; body?: unknown }) => Promise<{ status: number; json: Record<string, unknown> }>;
-  const commands: { at: number; request: Record<string, unknown> }[] = [];
+  // Each command with the round and phase the engine was in when it sent it (under load the engine
+  // sees the game a little late, so the fake game's own clock can't say which phase a command is for).
+  const commands: { at: number; request: Record<string, unknown>; round: number | null; phase: string | null }[] = [];
+  const results: { at: number; result: Record<string, unknown> }[] = [];
+  const samples: { at: number; round: number | null; phase: string | null }[] = [];
+  let sampler: ReturnType<typeof setInterval> | null = null;
 
   beforeAll(async () => {
     process.env.MATCHFRAME_LOG_STDOUT = "0";
@@ -59,6 +64,8 @@ describe("Director over a round: freeze time cinematics, then first person once 
       gsiUrl: `http://127.0.0.1:${ports.gsi}/gsi`,
       token: engine.secrets.gsiToken,
       map: "de_mirage",
+      // The game data shows a camera change a quarter of a second after the console made it.
+      gsiLagMs: 250,
       // A warm-up live stretch first (the Auto Director starts, proves the camera), then round 5: freeze time, then live.
       phase: (t) => {
         if (t < 8000) return { phase: "live", endsInSec: 60, round: 3 };
@@ -84,15 +91,22 @@ describe("Director over a round: freeze time cinematics, then first person once 
       return { status: res.status, json: (await res.json()) as Record<string, unknown> };
     };
     engine.session.on("arbiter", (e: { kind: string; detail: Record<string, unknown> }) => {
-      if (e.kind === "command") commands.push({ at: cs2.now(), request: e.detail.request as Record<string, unknown> });
+      const st = engine.session.state();
+      if (e.kind === "command") commands.push({ at: cs2.now(), request: e.detail.request as Record<string, unknown>, round: st?.roundNumber ?? null, phase: st?.roundPhase ?? null });
+      if (e.kind === "result") results.push({ at: cs2.now(), result: e.detail });
     });
     await api("/api/v1/setup/detect-cs2", { method: "POST", body: { manualInstallDir: cs2Dir } });
     await api("/api/v1/game/launch-profile", { method: "PUT", body: { mode: "tools", netconPort: consolePort } });
     await api("/api/v1/director/auto/start", { method: "POST", body: { cinematic: true, returnAfterSec: 1 } });
     cs2.start();
+    sampler = setInterval(() => {
+      const st = engine.session.state();
+      samples.push({ at: cs2.now(), round: st?.roundNumber ?? null, phase: st?.roundPhase ?? null });
+    }, 100);
   });
 
   afterAll(async () => {
+    if (sampler) clearInterval(sampler);
     await cs2?.stop();
     await servers?.close();
     await engine?.shutdown();
@@ -103,21 +117,26 @@ describe("Director over a round: freeze time cinematics, then first person once 
 
   /** Each freeze time: the two spawns, each shot once and held in full, then first person from the start of the live round. */
   function checkRound(w: (typeof WINDOWS)[number], kind: "play_camera_path" | "activate_static_camera") {
-    const inFreeze = commands.filter((c) => c.at >= w.freeze[0] && c.at < w.freeze[1]);
+    // The round as the engine numbers it (seen in the middle of this freeze time), and when the engine saw its freeze time end.
+    const round = samples.find((x) => x.at >= (w.freeze[0] + w.freeze[1]) / 2 && x.phase === "freezetime")!.round;
+    const liveAt = samples.find((x) => x.round === round && x.phase === "live")!.at;
+    const inFreeze = commands.filter((c) => c.round === round && c.phase === "freezetime");
     const cine = inFreeze.filter(cinematic);
+    const why = JSON.stringify({ round, liveAt, cine, results: results.filter((r) => r.at >= w.freeze[0] - 2000 && r.at < liveAt) });
     expect(cine.length, JSON.stringify(inFreeze)).toBeGreaterThanOrEqual(1);
-    expect(cine.length).toBeLessThanOrEqual(2);
-    expect(cine.every((c) => c.request.kind === kind)).toBe(true);
-    expect(new Set(cine.map(idOf)).size).toBe(cine.length);
-    expect(cine.every((c) => /(^|-)(t|ct)_spawn-/.test(idOf(c)))).toBe(true);
-    if (cine.length === 2) expect(new Set(cine.map((c) => idOf(c).includes("ct_spawn")))).toEqual(new Set([true, false]));
+    expect(cine.length, why).toBeLessThanOrEqual(2);
+    expect(cine.every((c) => c.request.kind === kind), why).toBe(true);
+    expect(new Set(cine.map(idOf)).size, why).toBe(cine.length);
+    expect(cine.every((c) => /(^|-)(t|ct)_spawn-/.test(idOf(c))), why).toBe(true);
+    if (cine.length === 2) expect(new Set(cine.map((c) => idOf(c).includes("ct_spawn"))), why).toEqual(new Set([true, false]));
     // Held: nothing else is sent for at least 4 s after each (no 1 s repeats of the same shot).
     for (const c of cine) {
       const next = commands.find((x) => x.at > c.at);
-      if (next && next.at < w.freeze[1]) expect(next.at - c.at, `${idOf(c)} then ${JSON.stringify(next.request)}`).toBeGreaterThanOrEqual(4000);
+      if (next && next.at < liveAt) expect(next.at - c.at, `${idOf(c)} then ${JSON.stringify(next.request)}`).toBeGreaterThanOrEqual(4000);
     }
     // Live: no camera in the round's first 10 s, and on a player.
-    expect(commands.filter((c) => c.at >= w.live[0] && c.at < w.live[0] + 10000).filter(cinematic)).toHaveLength(0);
+    const early = commands.filter((c) => c.round === round && c.phase === "live" && c.at < liveAt + 10000).filter(cinematic);
+    expect(early, JSON.stringify({ liveAt, early })).toHaveLength(0);
   }
 
   it("round 1: the spawn paths in freeze time, then first person", async () => {

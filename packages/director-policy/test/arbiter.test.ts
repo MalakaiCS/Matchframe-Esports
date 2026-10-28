@@ -60,6 +60,28 @@ describe("ControlArbiter", () => {
     expect(arbiter.pending()?.result?.failureReason).toBe("confirmation_timeout");
   });
 
+  it("a camera the console confirms itself (getpos) is not taken for a human change when the game data catches up", async () => {
+    const { arbiter, adapter, clock } = setup();
+    // Like the console adapter: the camera's pose is read back and matches, so it confirms at once.
+    adapter.activateStaticCamera = async (camera, ctx) => ({ ...(await adapter.selectPlayer(camera.id, null, ctx)), status: "confirmed", precision: "observed_exact", confirmedAtMonotonicMs: clock.get() });
+    const events: string[] = [];
+    const a2 = new ControlArbiter({ now: clock.get, newId: (() => { let i = 0; return () => `c-${i++}`; })(), onEvent: (e) => events.push(e.kind) });
+    a2.setAdapter(adapter);
+    a2.setTimeline("session", 1);
+    a2.resumeAutomation();
+    a2.observe(observed("7"));
+    const r = await a2.submit({ kind: "activate_static_camera", camera: { id: "cam1" } as never, plannedDurationMs: 5000 }, { owner: "director" });
+    expect(r.status).toBe("confirmed");
+    // The game data lags the console: first a packet from before the cut, then the free camera.
+    clock.advance(120);
+    a2.observe(observed("7"), { activeCinematic: "camera:cam1" });
+    clock.advance(100);
+    a2.observe(observed(null), { activeCinematic: "camera:cam1" });
+    expect(events).not.toContain("external_change");
+    expect(a2.state().owner).toBe("director");
+    void arbiter;
+  });
+
   it("A13: human takeover cancels pending commands and automation stays disarmed until resume", async () => {
     const { arbiter, adapter } = setup();
     arbiter.resumeAutomation();

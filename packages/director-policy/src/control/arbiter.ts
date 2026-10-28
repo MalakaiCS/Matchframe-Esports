@@ -69,6 +69,8 @@ export class ControlArbiter {
   private epoch = 0;
   private inFlight: InFlight | null = null;
   private lastConfirmedAt = 0;
+  /** The shot of the last confirmed command (the game data may show it only a moment later). */
+  private lastConfirmedShot: ShotKey | null = null;
   private lastObservedShot: ShotKey | null = null;
   private lastObserveAt = -Infinity;
   private resumeTimer: { at: number; owner: ControllerOwner } | null = null;
@@ -285,6 +287,10 @@ export class ControlArbiter {
     }
     if (!changed || prev === null) return;
     if (now - this.lastConfirmedAt < this.opts.feedbackGraceMs) return;
+    // The game data catching up with a command already confirmed another way (the console's getpos
+    // readback confirms a camera before the game data shows the free camera): not a human change.
+    const confirmed = this.lastConfirmedShot;
+    if (confirmed !== null && (shot === confirmed || (observer.cameraMode === "roaming" && parseShot(confirmed).kind !== "pov"))) return;
     if (opts.previousTargetDied) {
       this.emit("game_autoswitch", { from: prev, to: shot });
       return;
@@ -364,6 +370,11 @@ export class ControlArbiter {
   private finish(f: InFlight, result: CommandResult): CommandResult {
     f.status = result.status;
     f.result = result;
+    if (result.status === "confirmed") {
+      // Game data from before the change can still arrive for a moment, however it was confirmed.
+      this.lastConfirmedAt = this.opts.now();
+      this.lastConfirmedShot = f.expectedShot;
+    }
     this.emit("result", { commandId: f.context.commandId, status: result.status, precision: result.precision, failureReason: result.failureReason, detail: result.detail });
     return result;
   }

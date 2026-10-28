@@ -114,6 +114,49 @@ describe("freeze-time establishing shots and the start of the round", () => {
     expect(new Set(cine.map((s) => s.id)).size).toBe(cine.length);
   });
 
+  it("never repeats an action when the same game data is evaluated again (a camera confirmed at once isn't sent twice)", () => {
+    const rt = new MapRuntime(pack());
+    const sim = new Sim("de_mirage", rt);
+    const director = new Director({ newId: (() => { let i = 0; return () => `d${i++}`; })() });
+    director.setMode("automatic");
+    director.setObserverMode("observer_cinematics");
+    director.setMap(rt);
+    director.setCapabilities(capsWithCameraControl("supported"));
+    let intent = null as ReturnType<Director["evaluate"]>["intent"];
+    let state = sim.push(players(CT_SPAWN), { mapName: "de_mirage", observed: T(1), roundPhase: "freezetime", phase: "freezetime", phaseEndsIn: 18 });
+    for (let i = 0; i < 40 && !intent; i++) {
+      state = sim.push(players(CT_SPAWN), { mapName: "de_mirage", observed: T(1), roundPhase: "freezetime", phase: "freezetime", phaseEndsIn: 18 - i / 10 });
+      intent = director.evaluate(state, sim.now, control).intent;
+    }
+    expect(intent?.kind).toBe("activate_static_camera");
+    // The console confirms it at once; the same packet is evaluated again a moment later.
+    director.cinematicStarted(cameraShot(intent!.cameraId!), sim.now, intent!.plannedDurationMs ?? 3000, null, false, intent!.shotClass);
+    const again = director.evaluate(state, sim.now + 20, control);
+    expect(again.intent).toBeNull();
+  });
+
+  it("keeps a camera on air when game data from before the cut arrives just after it was confirmed", () => {
+    const rt = new MapRuntime(pack());
+    const sim = new Sim("de_mirage", rt);
+    const director = new Director({ newId: (() => { let i = 0; return () => `d${i++}`; })() });
+    director.setMode("automatic");
+    director.setObserverMode("observer_cinematics");
+    director.setMap(rt);
+    director.setCapabilities(capsWithCameraControl("supported"));
+    const freeze = (left: number, observed: string | null) => sim.push(players(CT_SPAWN), { mapName: "de_mirage", observed, roundPhase: "freezetime", phase: "freezetime", phaseEndsIn: left });
+    let intent = null as ReturnType<Director["evaluate"]>["intent"];
+    for (let i = 0; i < 40 && !intent; i++) intent = director.evaluate(freeze(18 - i / 10, T(1)), sim.now, control).intent;
+    expect(intent?.kind).toBe("activate_static_camera");
+    const shot = cameraShot(intent!.cameraId!);
+    director.cinematicStarted(shot, sim.now, intent!.plannedDurationMs ?? 3000, null, false, intent!.shotClass);
+    // A packet still showing the player, then the free camera: the camera stays, nothing new is sent.
+    const stale = director.evaluate(freeze(15, T(1)), sim.now, control);
+    expect(stale.intent).toBeNull();
+    expect(director.shotPlanner.shot).toBe(shot);
+    for (let i = 0; i < 20; i++) expect(director.evaluate(freeze(14.8 - i / 10, null), sim.now, control).intent).toBeNull();
+    expect(director.shotPlanner.activeCinematic?.shotKey).toBe(shot);
+  });
+
   it("cuts from an establishing shot still playing to first person when the round goes live", () => {
     // Freeze time ends while the second shot plays: the cut to a player comes at once.
     const { shots, freezeMs } = play({ ctAt: CT_SPAWN, liveMs: 3000 });

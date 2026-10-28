@@ -34,8 +34,24 @@ export class TimedCs2 {
       freeMode?: string;
       phase: (t: number) => { phase: "freezetime" | "live" | "over"; endsInSec: number; round: number };
       positions: (t: number, p: SyntheticPlayer) => { x: number; y: number; z: number };
+      /** How far the game data lags the console (like CS2's: the camera changes before the game data says so). */
+      gsiLagMs?: number;
     },
   ) {}
+
+  /** What the camera showed at each moment (for game data that lags the console). */
+  private readonly views: { at: number; free: boolean; observed: string | null }[] = [];
+
+  private viewAt(t: number): { free: boolean; observed: string | null } {
+    let v = { free: this.free, observed: this.observed };
+    for (let i = this.views.length - 1; i >= 0; i--) {
+      if (this.views[i]!.at <= t) {
+        v = this.views[i]!;
+        break;
+      }
+    }
+    return v;
+  }
 
   /** Starts the console on `port`. */
   async listen(port: number): Promise<void> {
@@ -86,11 +102,14 @@ export class TimedCs2 {
     const t = this.now();
     const ph = this.opts.phase(t);
     for (const p of this.roster) p.position = this.opts.positions(t, p);
+    this.views.push({ at: t, free: this.free, observed: this.observed });
+    if (this.views.length > 100) this.views.shift();
+    const view = this.opts.gsiLagMs ? this.viewAt(t - this.opts.gsiLagMs) : { free: this.free, observed: this.observed };
     const payload = buildSyntheticGsiPayload({
       mapName: this.opts.map,
       round: ph.round,
       players: this.roster,
-      observed: this.free ? null : this.observed,
+      observed: view.free ? null : view.observed,
       roundPhase: ph.phase,
       phase: ph.phase,
       phaseEndsIn: Math.round(ph.endsInSec * 10) / 10,

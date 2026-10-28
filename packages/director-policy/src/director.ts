@@ -32,6 +32,9 @@ import { parseShot, povShot } from "./shots.ts";
 import type { UtilityOpportunity, UtilityScenarioRule } from "./utility/opportunities.ts";
 import { findUtilityOpportunities, INFERNO_BOTTOM_BANANA_RULE } from "./utility/opportunities.ts";
 
+/** How long after a cinematic is confirmed a player's view in the game data is taken as data from before the cut. */
+export const CINEMATIC_SETTLE_MS = 600;
+
 /** What the engine should do with a decision. The director never talks to the game directly. */
 export interface DirectorIntent {
   kind: "select_player" | "activate_static_camera" | "play_camera_path" | "follow_player";
@@ -311,10 +314,11 @@ export class Director {
 
   evaluate(state: MatchState, now: number, control: ControlStatus): DirectorOutput {
     // No repeated decision pretending to be new evidence: unchanged telemetry within the cadence
-    // window returns the previous output.
+    // window returns the previous output, without its intent: that was acted on already (sending
+    // it again re-sent the same camera, or restarted a path on air, right after it was confirmed).
     const minInterval = 1000 / this.cfg.maxAnalysisHz;
     if (this.lastOutput && state.sequence === this.lastSequence && now - this.lastEvalAt < minInterval && !this.controls.followActionRequested) {
-      return this.lastOutput;
+      return this.lastOutput.intent ? { ...this.lastOutput, intent: null } : this.lastOutput;
     }
     this.lastEvalAt = now;
     this.lastSequence = state.sequence;
@@ -326,9 +330,12 @@ export class Director {
     if (this.follows.map !== state.mapName) this.follows = { map: state.mapName, count: 0 };
     this.planner.setRound(state.roundAttemptId);
     const observed: ShotKey | null = state.observer.observedSteamId ? povShot(state.observer.observedSteamId) : null;
-    // Keep the planner on a confirmed cinematic; otherwise follow observed POV feedback.
+    // Keep the planner on a confirmed cinematic; otherwise follow observed POV feedback. Just after a
+    // cinematic is confirmed (the console confirms a camera at once), game data from before the cut
+    // can still show the old player: that doesn't end the shot.
     const activeCine = this.planner.activeCinematic;
-    if (!(activeCine && state.observer.cameraMode === "roaming")) this.planner.observeShot(observed, now);
+    const settling = !!activeCine && now - activeCine.startedAt < CINEMATIC_SETTLE_MS;
+    if (!(activeCine && (state.observer.cameraMode === "roaming" || settling))) this.planner.observeShot(observed, now);
 
     const map = this.map && this.map.mapName === state.mapName ? this.map : undefined;
     const grid = map?.grid ?? null;
