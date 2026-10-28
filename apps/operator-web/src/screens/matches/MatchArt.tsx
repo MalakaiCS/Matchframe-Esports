@@ -75,10 +75,10 @@ export function MatchArtPanel({ matchId, teams }: { matchId: string; teams: stri
                 {ART_ORDER.map((kind) => {
                   const item = byKind.get(kind);
                   if (!item) return null;
-                  const video = kind.startsWith("stinger");
+                  // A stinger (QuickTime, PNG frames) shows its frame at the cut; download it for the video.
                   return (
                     <figure key={kind} className="art-card">
-                      {video ? <video className="art-preview art-checker" src={item.url} autoPlay loop muted playsInline aria-label={`${item.label} preview`} /> : <img className="art-preview" src={item.url} alt={`${item.label} preview`} />}
+                      <img className={`art-preview ${item.still ? "art-checker" : ""}`} src={item.still ?? item.url} alt={`${item.label} preview`} />
                       <figcaption>
                         <span>
                           <strong>{item.label}</strong> <span className="muted small">{fmtBytes(item.bytes)}</span>

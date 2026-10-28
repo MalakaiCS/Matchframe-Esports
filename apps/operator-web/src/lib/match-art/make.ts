@@ -7,7 +7,7 @@ import type { EventRecord, MatchDetail, TeamRow } from "../../api/types.ts";
 import { assetUrl } from "../../components/AssetUpload.tsx";
 import type { ArtInput, ArtTeam } from "./draw.ts";
 import { drawStingerFrame, drawThumbnail, drawVersus, STINGER, THUMBNAILS } from "./draw.ts";
-import { canEncodeVideo, encodeAlphaWebm } from "./encode.ts";
+import { writePngMov } from "./mov.ts";
 
 /** The graphics made for every match (engine kinds, see services/local-engine/src/domain/match-art.ts). */
 export type ArtKind = "thumb-highlights" | "thumb-replay" | "thumb-live" | "up-next" | "stinger" | "stinger-replay";
@@ -168,7 +168,6 @@ export function makeMatchArt(matchId: string, only?: ArtKind[]): Promise<ArtJob>
   const job: ArtJob = { matchId, state: "working", step: "Loading team logos", progress: 0, made: [], error: null };
   setJob({ ...job });
   const run = (async (): Promise<ArtJob> => {
-    const skipped: string[] = [];
     try {
       const input = await artInput(matchId);
       // Weights for the progress bar: a stinger takes far longer than a picture.
@@ -187,27 +186,28 @@ export function makeMatchArt(matchId: string, only?: ArtKind[]): Promise<ArtJob>
         } else {
           const replay = kind === "stinger-replay";
           const label = replay ? "Replay stinger" : "Stinger";
-          if (!(await canEncodeVideo(STINGER.width, STINGER.height))) {
-            skipped.push(`${label}: this computer can't encode video here (WebCodecs VP8).`);
-            done += weight(kind);
-            continue;
+          // One PNG per frame in a QuickTime file: no video encoder needed (the browser's VP8
+          // encoder crawled on Windows machines without a usable GPU), only the canvas's PNG export.
+          const count = Math.round((STINGER.durationMs / 1000) * STINGER.fps);
+          const canvas = new OffscreenCanvas(STINGER.width, STINGER.height);
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          if (!ctx) throw new Error("This computer can't draw the stinger (no 2D canvas).");
+          const frames: Uint8Array[] = [];
+          for (let i = 0; i < count; i++) {
+            ctx.clearRect(0, 0, STINGER.width, STINGER.height);
+            ctx.save();
+            drawStingerFrame(ctx, STINGER.width, STINGER.height, (i * 1000) / STINGER.fps, input, replay);
+            ctx.restore();
+            frames.push(new Uint8Array(await (await canvas.convertToBlob({ type: "image/png" })).arrayBuffer()));
+            step(label, (i + 1) / count, kind);
           }
-          const frames = Math.round((STINGER.durationMs / 1000) * STINGER.fps);
-          const bytes = await encodeAlphaWebm({
-            width: STINGER.width,
-            height: STINGER.height,
-            fps: STINGER.fps,
-            frames,
-            draw: (ctx, i) => drawStingerFrame(ctx, STINGER.width, STINGER.height, (i * 1000) / STINGER.fps, input, replay),
-            onProgress: (n, of) => step(label, n / of, kind),
-          });
-          await store(matchId, kind, bytes, "video/webm");
+          await store(matchId, kind, writePngMov({ width: STINGER.width, height: STINGER.height, fps: STINGER.fps, frames }), "video/quicktime");
         }
         job.made.push(kind);
         done += weight(kind);
         step("Saved");
       }
-      const final: ArtJob = { ...job, state: skipped.length ? "failed" : "done", step: skipped.length ? "Made the pictures; not the stingers" : "Done", progress: 1, error: skipped.length ? skipped.join(" ") : null };
+      const final: ArtJob = { ...job, state: "done", step: "Done", progress: 1, error: null };
       setJob(final);
       return final;
     } catch (err) {

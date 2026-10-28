@@ -3,6 +3,7 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { writePngMov } from "../../../apps/operator-web/src/lib/match-art/mov.ts";
 import { Engine } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
 import { startServers } from "../src/servers.ts";
@@ -25,7 +26,8 @@ async function freePort(): Promise<number> {
   });
 }
 
-const WEBM = Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), Buffer.alloc(64)]);
+const PNG_FRAME = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(16)]);
+const MOV = Buffer.from(writePngMov({ width: 1920, height: 1080, fps: 60, frames: [PNG_FRAME, PNG_FRAME] }));
 
 describe.skipIf(!url || !password)("match stingers in a real OBS", () => {
   let e: Engine;
@@ -57,7 +59,7 @@ describe.skipIf(!url || !password)("match stingers in a real OBS", () => {
     const b = await api("/api/v1/teams", { body: { name: "Redline", shortName: "RED" } });
     const m = await api("/api/v1/matches", { body: { teamAId: a.json.id, teamBId: b.json.id, format: { bestOf: 1, regulationRounds: 24, overtimeEnabled: true, overtimeRounds: 6 }, mapPool: ["de_mirage"] } });
     const id = m.json.id as string;
-    for (const kind of ["stinger", "stinger-replay"]) expect((await api(`/api/v1/matches/${id}/art/${kind}`, { raw: WEBM })).status).toBe(200);
+    for (const kind of ["stinger", "stinger-replay"]) expect((await api(`/api/v1/matches/${id}/art/${kind}`, { raw: MOV })).status).toBe(200);
     const before = kinds.current;
     const r = await api(`/api/v1/matches/${id}/art/obs`, { body: { useStinger: false } });
     expect(r.status, JSON.stringify(r.json)).toBe(200);
@@ -68,7 +70,7 @@ describe.skipIf(!url || !password)("match stingers in a real OBS", () => {
     if (!names.includes(want[0]!)) return;
     // Read back from OBS itself.
     const settings = await e.obs.setTransitionSettings(want[0]!, {});
-    expect(String(settings.settings.path)).toBe(join(e.cfg.dataDir, "graphics", id, "stinger.webm"));
+    expect(String(settings.settings.path)).toBe(join(e.cfg.dataDir, "graphics", id, "stinger.mov"));
     expect(settings.settings.transition_point).toBe(900);
     const used = await api(`/api/v1/matches/${id}/art/obs`, { body: { useStinger: true } });
     expect(used.json.current).toBe(want[0]);

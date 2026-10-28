@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { z } from "zod";
 import type { Engine } from "../app.ts";
@@ -41,7 +40,7 @@ export function registerMatchArtRoutes(r: Router, e: Engine): void {
     return e.matchArt.setSettings(id, { backgroundAssetId: assetId });
   });
 
-  /** (After the fixed paths above: `:kind` would match them too.) One file made by the program (PNG or WebM), stored for the match. */
+  /** (After the fixed paths above: `:kind` would match them too.) One file made by the program (PNG, or a QuickTime stinger of PNG frames), stored for the match. */
   r.post("/api/v1/matches/:id/art/:kind", { permission: "metadata.write", maxBodyBytes: ART_MAX_BYTES }, (req) => {
     const kind = ArtKind.safeParse(req.params.kind);
     if (!kind.success) throw new HttpError(400, `unknown graphic ${req.params.kind}`, "bad_kind");
@@ -55,6 +54,6 @@ export function registerMatchArtRoutes(r: Router, e: Engine): void {
   r.get("/api/v1/match-art/:id/:file", { permission: "public" }, (req) => {
     const f = e.matchArt.file(req.params.id!, req.params.file!);
     if (!f) throw new HttpError(404, "not found", "not_found");
-    return { body: readFileSync(f.path), contentType: f.type, headers: { "cache-control": "no-cache" } };
+    return { body: f.body, contentType: f.type, headers: { "cache-control": "no-cache" } };
   });
 }

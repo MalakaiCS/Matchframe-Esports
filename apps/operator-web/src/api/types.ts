@@ -1005,7 +1005,7 @@ export type MatchArtKind = "thumb-highlights" | "thumb-replay" | "thumb-live" | 
 /** GET /api/v1/matches/:id/art */
 export interface MatchArtResponse {
   folder: string;
-  items: { kind: MatchArtKind; label: string; file: string; url: string; bytes: number; updatedAt: string }[];
+  items: { kind: MatchArtKind; label: string; file: string; url: string; still: string | null; bytes: number; updatedAt: string }[];
   settings: { backgroundAssetId: string | null };
   kinds: { kind: MatchArtKind; label: string; file: string }[];
   obs: { transitions: { stinger: string; "stinger-replay": string }; cutMs: number };

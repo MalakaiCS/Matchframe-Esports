@@ -328,17 +328,18 @@ They also asked for a visible way to create matches, and for thumbnails and stin
 **Decision (matches).** A Create match button whenever the form isn't open. The team pickers have **New team…**: the team is created with the match, once, so a match can be made from nothing.
 
 **Decision (match graphics).**
-- **Where they're made:** in the program's window (canvas and WebCodecs, a secure context under `app://`), not in the engine. Node has no canvas or video encoder; native ones would complicate the Windows build. The engine stores, serves and checks the files (`domain/match-art.ts`), in `<data>/graphics/<match id>/`.
+- **Where they're made:** in the program's window (canvas), not in the engine. Node has no canvas; a native one would complicate the Windows build. The engine stores, serves and checks the files (`domain/match-art.ts`), in `<data>/graphics/<match id>/`.
 - **When:** on create, on **Make again**, and on first opening the tab of a match made elsewhere.
 - **What:** three 1280×720 thumbnails (Highlights, Full replay, Live), a 1920×1080 Up next card, and two 1920×1080 60 fps stingers.
   - **Designs:** original Matchframe designs — team-colour halves, slanted logo cards with name bars, *VS*, a two-tone outlined headline in Barlow Condensed (OFL, already bundled for the HUD renderer).
   - **Logos:** a "?" hexagon for a team without a logo, and a plate behind a logo whose average colour is near its card's.
   - **Background:** optionally a picture (uploaded, or OBS's program frame).
 - **Stingers with alpha:**
-  - OBS's Stinger plays the video's own alpha (its track matte only blends the two scenes), so the WebM needs real alpha.
-  - Chromium's WebCodecs refuses alpha encoding, so each frame is encoded twice with VP8: the colour (BT.601 limited range, with chroma averaged over visible pixels only) and the alpha as the brightness of a grey picture (full range, made directly as I420).
-  - A small WebM writer (`lib/match-art/webm.ts`) puts the colour in each Block and the alpha in BlockAdditions (BlockAddID 1), on a track with AlphaMode 1 and MaxBlockAdditionID 1.
-  - Keyframes are aligned, with a ReferenceBlock on the frames between them. FFmpeg's libvpx decoder, which OBS uses for alpha WebM, combines the two.
+  - OBS's Stinger plays the video's own alpha (its track matte only blends the two scenes), so the file needs real alpha.
+  - Each frame is the canvas's own PNG export, stored in a QuickTime file (`lib/match-art/mov.ts`: one `png ` track, 32-bit depth, 60 fps). FFmpeg, which OBS uses for stingers, plays it with its alpha. No video encoder is involved.
+  - The design is flat (solid team colours, flat bands instead of gradients and stripes), so the 96 PNG frames are about 15 MB per stinger; with gradients they were 75 MB.
+  - **First tried:** WebCodecs VP8, encoding each frame twice (colour, and alpha as a grey picture) into one WebM with BlockAdditions. It worked in Chromium on Linux, but on the Windows build machine (no usable GPU) the encoder stalled after about 10 frames, every time, after several fixes (no timer throttling, software encoding, CPU canvases). PNG export needs nothing the machine may lack.
+  - The engine accepts only PNG and QuickTime-of-PNG files, and serves a stinger's frame at the cut as `<file>.png` for the previews.
 - **Stinger timing:**
   - OBS times a stinger from the transition start, with duration = video length + 250 ms, and cuts at a fixed fraction of it, but the video starts a little late (by ~0.2–0.6 s on a loaded machine).
   - So the screen is covered 0.4–1.0 s and the cut is at 0.9 s, late in the covered part: safe for up to ~0.5 s of lateness.
@@ -351,19 +352,19 @@ They also asked for a visible way to create matches, and for thumbnails and stin
 **Consequences.**
 - The director holds its shots through the console/game-data race, and freeze time shows the players' spawns once each.
 - Every match has its broadcast graphics without any design tool.
-- They depend on WebCodecs VP8 in the program's Chromium (checked in Electron), and the stingers depend on OBS running on the same computer as the program, or the files copied there.
+- They depend only on the canvas in the program's Chromium. The stingers depend on OBS running on the same computer as the program, or the files copied there.
 
 **Checked.**
-- **Unit tests:** establishing shots on the real Mirage pack, the repeat and stale-data cases (each fails without its fix), the arbiter catch-up, OBS's late transition switch, the WebM structure, the pixel conversion, LHM coalescing.
+- **Unit tests:** establishing shots on the real Mirage pack, the repeat and stale-data cases (each fails without its fix), the arbiter catch-up, OBS's late transition switch, the QuickTime structure, LHM coalescing.
 - **E2e tests:**
   - two Mirage rounds with a stand-in CS2 whose game data lags 250 ms (fails without the settle window);
   - match art routes and the OBS setup with a stand-in OBS;
   - creating a match from no teams in the UI.
-- **Real Chromium:** the built UI against a real engine made all six; ffmpeg/libvpx decodes the alpha.
+- **Real Chromium:** the built UI against a real engine made all six; FFmpeg decodes the stingers' alpha.
 - **Real OBS 30 (Xvfb):**
   - both transitions set and read back;
-  - with OBS keeping up, the stinger plays in full, the scenes show through its transparent parts, and the cut is never visible;
+  - with OBS keeping up, the .mov stinger plays in full, the scenes show through its transparent parts, and the cut is never visible (covered from 0.23 s to 1.23 s after the transition starts);
   - 50 alternating settings changes through the adapter all landed on the right transition.
-- **Electron:** the desktop smoke test made all six.
+- **Electron:** the desktop smoke test made all six in 7.5 s without a GPU.
 
-**Not checked.** Real CS2 with these director changes, Windows OBS (hardware decoding of the stingers), and generation speed on a gaming PC.
+**Not checked.** Real CS2 with these director changes, and OBS on Windows.

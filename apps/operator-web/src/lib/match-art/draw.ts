@@ -522,7 +522,7 @@ export function drawStingerFrame(ctx: Ctx, w: number, h: number, t: number, inpu
   const layers: { lag: number; fill: (side: 0 | 1) => string | CanvasGradient; extra: number }[] = [
     { lag: -50, fill: () => input.accent, extra: 0.06 },
     { lag: -25, fill: () => "#ffffff", extra: 0.03 },
-    { lag: 0, fill: (side) => panelGradient(ctx, side ? cb : ca, side, w, h), extra: 0 },
+    { lag: 0, fill: (side) => mix(side ? cb : ca, "#000000", 0.08), extra: 0 },
   ];
   for (const layer of layers) {
     const r = reach(layer.lag);
@@ -539,11 +539,21 @@ export function drawStingerFrame(ctx: Ctx, w: number, h: number, t: number, inpu
   }
   const full = reach(0);
   if (full <= 0) return;
-  // Texture on the panels.
+  // Depth on the panels: two flat darker bands, parallel to the seam, only on what is already drawn
+  // (never on the transparent part). Flat shapes, not gradients or fine texture: the stinger is
+  // stored as one PNG per frame, and flat colour keeps each frame small.
   ctx.save();
-  // Only on what is already drawn (never on the transparent part).
   ctx.globalCompositeOperation = "source-atop";
-  stripes(ctx, w, h, 60 * u, "rgba(255,255,255,0.05)");
+  ctx.fillStyle = "rgba(0,0,0,0.22)";
+  for (const x of [w * 0.12, w * 0.88 - lean * 0.4]) {
+    poly(ctx, [[x + lean, 0], [x + lean + w * 0.07, 0], [x - lean + w * 0.07, h], [x - lean, h]]);
+    ctx.fill();
+  }
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  for (const x of [w * 0.2, w * 0.8 - lean * 0.4]) {
+    poly(ctx, [[x + lean, 0], [x + lean + w * 0.02, 0], [x - lean + w * 0.02, h], [x - lean, h]]);
+    ctx.fill();
+  }
   ctx.restore();
   // The seam where the panels meet.
   if (full > 0.98) {
@@ -655,11 +665,4 @@ export function drawStingerFrame(ctx: Ctx, w: number, h: number, t: number, inpu
     drawLogoImage(ctx, input.eventLogo, w / 2, h * 0.82, 140 * u);
     ctx.restore();
   }
-}
-
-function panelGradient(ctx: Ctx, color: string, side: 0 | 1, w: number, h: number): CanvasGradient {
-  const g = side ? ctx.createLinearGradient(w, 0, w * 0.45, h) : ctx.createLinearGradient(0, 0, w * 0.55, h);
-  g.addColorStop(0, mix(color, "#ffffff", 0.05));
-  g.addColorStop(1, mix(color, "#000000", 0.45));
-  return g;
 }

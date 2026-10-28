@@ -6,16 +6,17 @@ import { HttpError } from "../http/router.ts";
 
 /**
  * Match graphics: the thumbnails, "Up next" screen and stinger transitions the program draws for each
- * match (the drawing and video encoding happen in the program's window; the engine keeps the files,
- * serves them and points OBS at them). Files live in `<data>/graphics/<match id>/`.
+ * match (the drawing happens in the program's window; the engine keeps the files, serves them and
+ * points OBS at them). Files live in `<data>/graphics/<match id>/`. A stinger is a QuickTime file of
+ * PNG frames with transparency (apps/operator-web/src/lib/match-art/mov.ts).
  */
 export const ART_KINDS = {
   "thumb-highlights": { file: "thumbnail-highlights.png", type: "image/png", label: "Highlights thumbnail" },
   "thumb-replay": { file: "thumbnail-replay.png", type: "image/png", label: "Full replay thumbnail" },
   "thumb-live": { file: "thumbnail-live.png", type: "image/png", label: "Live thumbnail" },
   "up-next": { file: "up-next.png", type: "image/png", label: "Up next screen" },
-  stinger: { file: "stinger.webm", type: "video/webm", label: "Stinger" },
-  "stinger-replay": { file: "stinger-replay.webm", type: "video/webm", label: "Replay stinger" },
+  stinger: { file: "stinger.mov", type: "video/quicktime", label: "Stinger" },
+  "stinger-replay": { file: "stinger-replay.mov", type: "video/quicktime", label: "Replay stinger" },
 } as const;
 export type ArtKind = keyof typeof ART_KINDS;
 export const ArtKind = z.enum(Object.keys(ART_KINDS) as [ArtKind, ...ArtKind[]]);
@@ -27,8 +28,8 @@ export const OBS_STINGERS = { stinger: "Matchframe Stinger", "stinger-replay": "
  * the screen, since OBS starts the video a little late (see apps/operator-web/src/lib/match-art/draw.ts).
  */
 export const STINGER_CUT_MS = 900;
-/** Largest file accepted (a 1.6 s 1080p60 stinger is about 3 MB). */
-export const ART_MAX_BYTES = 40 * 1024 * 1024;
+/** Largest file accepted (a 1.6 s 1080p60 stinger of PNG frames is about 15 MB; logos add to it). */
+export const ART_MAX_BYTES = 120 * 1024 * 1024;
 
 export const ArtSettings = z.object({
   /** An uploaded picture (asset id) behind the thumbnails and "Up next" screen, or null. */
@@ -37,16 +38,43 @@ export const ArtSettings = z.object({
 export type ArtSettings = z.infer<typeof ArtSettings>;
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const EBML = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]);
+
+/** A QuickTime file whose video track is PNG frames ("png " sample entry). */
+function isPngMov(b: Buffer): boolean {
+  return b.length > 16 && b.toString("latin1", 4, 8) === "ftyp" && b.includes("moov") && b.includes("png ");
+}
+
+/**
+ * One frame of a PNG QuickTime file (as written by the program: one sample per chunk), `at` from 0 to
+ * 1 through the video; null if the file isn't laid out that way.
+ */
+export function movFrame(b: Buffer, at: number): Buffer | null {
+  const stsz = b.lastIndexOf("stsz");
+  const stco = b.lastIndexOf("stco");
+  if (stsz < 4 || stco < 4) return null;
+  const count = b.readUInt32BE(stsz + 12);
+  if (!count || b.readUInt32BE(stco + 8) !== count) return null;
+  const i = Math.min(count - 1, Math.max(0, Math.round(at * (count - 1))));
+  const size = b.readUInt32BE(stsz + 16 + i * 4);
+  const offset = b.readUInt32BE(stco + 12 + i * 4);
+  if (offset + size > b.length) return null;
+  const frame = b.subarray(offset, offset + size);
+  return frame.subarray(0, 8).equals(PNG) ? Buffer.from(frame) : null;
+}
 
 export interface ArtItem {
   kind: ArtKind;
   label: string;
   file: string;
   url: string;
+  /** A still of a stinger (its frame where it covers the screen), as a PNG URL. */
+  still: string | null;
   bytes: number;
   updatedAt: string;
 }
+
+/** The still of a stinger is served as `<stinger file>.png` (e.g. stinger.mov.png). */
+const STILL_SUFFIX = ".png";
 
 export class MatchArt {
   constructor(private readonly e: Engine) {}
@@ -69,15 +97,18 @@ export class MatchArt {
       const f = join(dir, k.file);
       if (!existsSync(f)) continue;
       const st = statSync(f);
-      out.push({ kind, label: k.label, file: f, url: `/api/v1/match-art/${encodeURIComponent(matchId)}/${k.file}?v=${Math.round(st.mtimeMs)}`, bytes: st.size, updatedAt: st.mtime.toISOString() });
+      const base = `/api/v1/match-art/${encodeURIComponent(matchId)}/${k.file}`;
+      const v = `?v=${Math.round(st.mtimeMs)}`;
+      out.push({ kind, label: k.label, file: f, url: base + v, still: k.type === "video/quicktime" ? base + STILL_SUFFIX + v : null, bytes: st.size, updatedAt: st.mtime.toISOString() });
     }
     return out;
   }
 
-  /** Stores one file, checked to be what its kind says (a PNG, or a WebM). */
+  /** Stores one file, checked to be what its kind says (a PNG, or a QuickTime file of PNG frames). */
   save(matchId: string, kind: ArtKind, body: Buffer): ArtItem {
-    const want = ART_KINDS[kind].type === "image/png" ? PNG : EBML;
-    if (body.length < want.length || !body.subarray(0, want.length).equals(want)) throw new HttpError(400, `${ART_KINDS[kind].label} must be a ${ART_KINDS[kind].type === "image/png" ? "PNG" : "WebM"} file`, "bad_type");
+    const picture = ART_KINDS[kind].type === "image/png";
+    const ok = picture ? body.length > 8 && body.subarray(0, 8).equals(PNG) : isPngMov(body);
+    if (!ok) throw new HttpError(400, `${ART_KINDS[kind].label} must be a ${picture ? "PNG" : "QuickTime file of PNG frames"}`, "bad_type");
     const dir = this.dir(matchId);
     mkdirSync(dir, { recursive: true });
     const f = join(dir, ART_KINDS[kind].file);
@@ -88,12 +119,18 @@ export class MatchArt {
     return this.list(matchId).find((i) => i.kind === kind)!;
   }
 
-  /** The file behind a public URL (`/api/v1/match-art/<id>/<file>`), or null. */
-  file(matchId: string, file: string): { path: string; type: string } | null {
-    const k = Object.values(ART_KINDS).find((x) => x.file === file);
+  /** What a public URL (`/api/v1/match-art/<id>/<file>`) serves: a file, or a stinger's still; or null. */
+  file(matchId: string, file: string): { body: Buffer; type: string } | null {
+    const exact = Object.values(ART_KINDS).find((x) => x.file === file);
+    const still = !exact && file.endsWith(STILL_SUFFIX) ? file.slice(0, -STILL_SUFFIX.length) : null;
+    const k = exact ?? Object.values(ART_KINDS).find((x) => x.file === still && x.type === "video/quicktime");
     if (!k || !this.e.matches.get(matchId)) return null;
     const f = join(this.dir(matchId), k.file);
-    return existsSync(f) ? { path: f, type: k.type } : null;
+    if (!existsSync(f)) return null;
+    if (!still) return { body: readFileSync(f), type: k.type };
+    // The frame at the cut, where the stinger covers the screen.
+    const frame = movFrame(readFileSync(f), STINGER_CUT_MS / 1600);
+    return frame ? { body: frame, type: "image/png" } : null;
   }
 
   settings(matchId: string): ArtSettings {

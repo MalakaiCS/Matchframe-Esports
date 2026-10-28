@@ -1,13 +1,10 @@
 // Match graphics in the running program (desktop and packaged smoke tests): a match is created, its
 // "Thumbnails & stingers" tab is opened, and the program draws the thumbnails and encodes the two
-// stingers itself (WebCodecs in the program's window). Checks the six files the engine then holds:
-// PNGs of the right size, and WebM VP8 stingers marked with an alpha channel.
+// stingers itself (one PNG per frame, in a QuickTime file). Checks the six files the engine then
+// holds: PNGs of the right size, and stingers made of 32-bit (alpha) PNG frames, with their stills.
 
 const { AbortSignal } = globalThis;
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const EBML = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]);
-// AlphaMode (0x53C0), size 1, value 1.
-const ALPHA_MODE = Buffer.from([0x53, 0xc0, 0x81, 0x01]);
 const SIZES = { "thumb-highlights": [1280, 720], "thumb-replay": [1280, 720], "thumb-live": [1280, 720], "up-next": [1920, 1080] };
 
 /** Rejects after `ms` (a Playwright evaluate has no timeout of its own). */
@@ -53,14 +50,11 @@ async function checkMatchArt({ app, win, base, waitFor, assert, shot }) {
     const r = await call(`/api/v1/matches/${m.id}/art`);
     if (r.items.length >= 6) return r;
     // What the panel says (progress, or a failed run's reason: stop early with it).
-    const panel = await within(win.evaluate(() => ({ failed: document.querySelector(".note.tone-warn")?.textContent ?? null, progress: [...document.querySelectorAll(".small")].map((e) => e.textContent).find((t) => t.startsWith("Making")) ?? null, encode: window.__matchframeEncode ?? null })), 10000, "the panel");
+    const panel = await within(win.evaluate(() => ({ failed: document.querySelector(".note.tone-warn")?.textContent ?? null, progress: [...document.querySelectorAll(".small")].map((e) => e.textContent).find((t) => t.startsWith("Making")) ?? null })), 10000, "the panel");
     // Logged when a file is added, and every 15 s otherwise.
     const made = r.items.map((i) => i.kind).join(",") || "none";
     if (made !== last || Date.now() - lastAt > 15000) {
-      const e = panel.encode;
-      // The stinger encoder: frames submitted / encoded (colour, alpha), queues, and where the time went.
-      const enc = e ? ` · encoder ${e.submitted}/${e.frames} submitted, ${e.encoded.join("+")} encoded, queues ${e.queue.join("+")}, ms draw ${Math.round(e.ms.draw)} read ${Math.round(e.ms.read)} convert ${Math.round(e.ms.convert)} submit ${Math.round(e.ms.submit)} wait ${Math.round(e.ms.wait)}, last frame ${e.lastFrameAt ? Math.round((Date.now() - e.lastFrameAt) / 1000) : "-"} s ago` : "";
-      log(`${made} · ${panel.progress ?? "-"}${await cpu()}${enc}`);
+      log(`${made} · ${panel.progress ?? "-"}${await cpu()}`);
       last = made;
       lastAt = Date.now();
     }
@@ -77,10 +71,14 @@ async function checkMatchArt({ app, win, base, waitFor, assert, shot }) {
       const [w, h] = [bytes.readUInt32BE(16), bytes.readUInt32BE(20)];
       assert(w === SIZES[item.kind][0] && h === SIZES[item.kind][1], `${item.kind} is ${SIZES[item.kind].join("×")} (${w}×${h})`);
     } else {
-      assert(bytes.subarray(0, 4).equals(EBML), `${item.kind} is a WebM file`);
-      const head = bytes.subarray(0, 512);
-      assert(head.includes(Buffer.from("V_VP8")) && head.includes(ALPHA_MODE), `${item.kind} is VP8 with an alpha channel`);
-      assert(bytes.length > 100000, `${item.kind} has its frames (${bytes.length} bytes)`);
+      // QuickTime: "ftyp" first, PNG frames ("png " sample entry) of 32 bits (with alpha), 96 of them.
+      assert(bytes.toString("latin1", 4, 8) === "ftyp", `${item.kind} is a QuickTime file`);
+      const entry = bytes.lastIndexOf("png ");
+      assert(entry > 0 && bytes.readUInt16BE(entry + 4 + 74) === 32, `${item.kind} is made of 32-bit (alpha) PNG frames`);
+      const stsz = bytes.lastIndexOf("stsz");
+      assert(bytes.readUInt32BE(stsz + 12) === 96, `${item.kind} has 96 frames (${bytes.readUInt32BE(stsz + 12)})`);
+      const still = Buffer.from(await (await fetch(base + item.still, { signal: AbortSignal.timeout(30000) })).arrayBuffer());
+      assert(still.subarray(0, 8).equals(PNG) && still.readUInt32BE(16) === 1920 && still.readUInt32BE(20) === 1080, `${item.kind} still is a 1920×1080 PNG`);
     }
   }
   log(`all six made in ${seconds} s`);

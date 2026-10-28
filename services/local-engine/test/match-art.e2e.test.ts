@@ -3,6 +3,7 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { writePngMov } from "../../../apps/operator-web/src/lib/match-art/mov.ts";
 import { Engine } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
 import { startServers } from "../src/servers.ts";
@@ -23,6 +24,9 @@ async function freePort(): Promise<number> {
 }
 
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from("picture")]);
+// A stinger as the program writes it: a QuickTime file of PNG frames (here three tiny "frames").
+const frame = (n: number) => Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from([n, n, n])]);
+const MOV = Buffer.from(writePngMov({ width: 1920, height: 1080, fps: 60, frames: [frame(1), frame(2), frame(3)] }));
 const WEBM = Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), Buffer.from("video")]);
 
 describe("match graphics: storing, serving and OBS stingers", () => {
@@ -73,11 +77,12 @@ describe("match graphics: storing, serving and OBS stingers", () => {
     expect(empty.json).toMatchObject({ items: [], obs: { transitions: { stinger: "Matchframe Stinger", "stinger-replay": "Matchframe Replay Stinger" }, cutMs: 900 } });
     expect((await api(`/api/v1/matches/${matchId}/art/thumb-highlights`, { raw: PNG })).status).toBe(200);
     // A video where a picture belongs, or a picture where a stinger belongs, is refused.
-    expect((await api(`/api/v1/matches/${matchId}/art/thumb-replay`, { raw: WEBM })).status).toBe(400);
+    expect((await api(`/api/v1/matches/${matchId}/art/thumb-replay`, { raw: MOV })).status).toBe(400);
+    expect((await api(`/api/v1/matches/${matchId}/art/stinger`, { raw: WEBM })).status).toBe(400);
     expect((await api(`/api/v1/matches/${matchId}/art/stinger`, { raw: PNG })).status).toBe(400);
     expect((await api(`/api/v1/matches/${matchId}/art/poster`, { raw: PNG })).status).toBe(400);
-    expect((await api(`/api/v1/matches/${matchId}/art/stinger`, { raw: WEBM })).status).toBe(200);
-    expect((await api(`/api/v1/matches/nope/art/stinger`, { raw: WEBM })).status).toBe(404);
+    expect((await api(`/api/v1/matches/${matchId}/art/stinger`, { raw: MOV })).status).toBe(200);
+    expect((await api(`/api/v1/matches/nope/art/stinger`, { raw: MOV })).status).toBe(404);
     const list = await api(`/api/v1/matches/${matchId}/art`);
     const items = list.json!.items as { kind: string; url: string; bytes: number; file: string }[];
     expect(items.map((i) => i.kind)).toEqual(["thumb-highlights", "stinger"]);
@@ -88,8 +93,13 @@ describe("match graphics: storing, serving and OBS stingers", () => {
     expect(pic.type).toBe("image/png");
     expect(pic.bytes!.equals(PNG)).toBe(true);
     const vid = await api(items[1]!.url, { auth: false });
-    expect(vid.type).toBe("video/webm");
-    expect(readFileSync(items[1]!.file).equals(WEBM)).toBe(true);
+    expect(vid.type).toBe("video/quicktime");
+    expect(readFileSync(items[1]!.file).equals(MOV)).toBe(true);
+    // A stinger's still: its frame at the cut (900 ms of 1600: the middle one of three).
+    const still = await api((items[1] as unknown as { still: string }).still, { auth: false });
+    expect(still.type).toBe("image/png");
+    expect(still.bytes!.equals(frame(2))).toBe(true);
+    expect((await api(`/api/v1/match-art/${matchId}/thumbnail-highlights.png.png`, { auth: false })).status).toBe(404);
     expect((await api(`/api/v1/match-art/${matchId}/settings.json`, { auth: false })).status).toBe(404);
     expect((await api(`/api/v1/match-art/${matchId}/..%2F..%2Fsecrets.json`, { auth: false })).status).toBe(404);
   });
@@ -108,11 +118,11 @@ describe("match graphics: storing, serving and OBS stingers", () => {
     expect(first.status, JSON.stringify(first.json)).toBe(200);
     expect(first.json).toMatchObject({ set: [{ kind: "stinger", transition: "Matchframe Stinger", confirmed: true }], missing: ["Matchframe Replay Stinger"], current: "Matchframe Stinger" });
     expect(obs.changes[0]).toMatchObject({ name: "Matchframe Stinger", keepCurrent: true, settings: { transition_point: 900, tp_type: 0 } });
-    expect(String(obs.changes[0]!.settings.path)).toMatch(/stinger\.webm$/);
+    expect(String(obs.changes[0]!.settings.path)).toMatch(/stinger\.mov$/);
     expect(existsSync(String(obs.changes[0]!.settings.path))).toBe(true);
     // The replay transition is added in OBS and the replay stinger made: both go in.
     obs.transitions.push({ name: "Matchframe Replay Stinger", kind: "obs_stinger_transition" });
-    expect((await api(`/api/v1/matches/${matchId}/art/stinger-replay`, { raw: WEBM })).status).toBe(200);
+    expect((await api(`/api/v1/matches/${matchId}/art/stinger-replay`, { raw: MOV })).status).toBe(200);
     obs.changes.length = 0;
     const second = await api(`/api/v1/matches/${matchId}/art/obs`, { body: { useStinger: false } });
     expect(second.json).toMatchObject({ missing: [], replayTransition: "Matchframe Replay Stinger" });
@@ -120,7 +130,7 @@ describe("match graphics: storing, serving and OBS stingers", () => {
       ["Matchframe Stinger", false],
       ["Matchframe Replay Stinger", false],
     ]);
-    expect(String(obs.changes[1]!.settings.path)).toMatch(/stinger-replay\.webm$/);
+    expect(String(obs.changes[1]!.settings.path)).toMatch(/stinger-replay\.mov$/);
     // A replay transition the operator chose is kept.
     e.obsAuto.setSettings({ replayTransition: "Fade" });
     expect((await api(`/api/v1/matches/${matchId}/art/obs`, { body: {} })).json).toMatchObject({ replayTransition: "Fade" });
