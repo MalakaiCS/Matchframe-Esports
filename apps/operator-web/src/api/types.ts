@@ -116,7 +116,7 @@ export interface CandidateSummary {
 }
 
 export type ControlRequest =
-  | { kind: "select_player"; steamId: string; observerSlot: number | null }
+  | { kind: "select_player"; steamId: string; observerSlot: number | null; view?: "in_eye" | "chase" }
   | { kind: "activate_static_camera"; camera: CameraRecord; plannedDurationMs: number }
   | { kind: "play_camera_path"; path: { id: string; displayName: string } }
   | { kind: "cancel_path" };
@@ -981,7 +981,7 @@ export interface AutoDirectorStatus {
   on: boolean;
   phase: "off" | "starting" | "waiting" | "running" | "paused" | "error";
   headline: string;
-  settings: { cinematic: boolean; nadeCams: boolean; returnAfterSec: number };
+  settings: { cinematic: boolean; nadeCams: boolean; returnAfterSec: number; chase: boolean };
   observerMode: ObserverMode;
   checks: AutoDirectorCheck[];
   resumesInMs: number | null;

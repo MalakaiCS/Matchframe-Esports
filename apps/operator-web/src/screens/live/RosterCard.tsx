@@ -21,7 +21,7 @@ export function telemetryMissing(p: PlayerState): boolean {
   return p.health === null && p.armor === null && p.money === null && p.activeWeapon === null && p.weapons.length === 0;
 }
 
-export function RosterCard({ p, roles, onRequest, disabledReason, busy }: { p: PlayerState; roles: PovRole[]; onRequest: () => void; disabledReason: string | null; busy: boolean }) {
+export function RosterCard({ p, roles, onRequest, disabledReason, busy }: { p: PlayerState; roles: PovRole[]; onRequest: (chase: boolean) => void; disabledReason: string | null; busy: boolean }) {
   const life = LIFE[p.lifeState] ?? LIFE.unknown!;
   const missing = telemetryMissing(p);
   const grenades = p.weapons.filter((w) => (w.type ?? "").toLowerCase() === "grenade");
@@ -36,10 +36,10 @@ export function RosterCard({ p, roles, onRequest, disabledReason, busy }: { p: P
     <button
       type="button"
       className={`pcard side-${p.side ?? "none"} ${dead ? "is-dead" : ""} ${roles.includes("confirmed") ? "is-onair" : ""} ${roles.includes("pending") ? "is-pending" : ""}`}
-      onClick={onRequest}
+      onClick={(e) => onRequest(e.shiftKey)}
       aria-disabled={reason !== null || busy}
       disabled={busy}
-      title={reason ?? `Request this player's POV on the observer client${key ? ` (key ${key})` : ""}. This card shows telemetry, not a video feed.`}
+      title={reason ?? `Request this player's POV on the observer client${key ? ` (key ${key})` : ""}. Shift-click for the chase view. This card shows telemetry, not a video feed.`}
       aria-label={`${p.name}, ${p.side ?? "no side"}, ${life.text}. ${reason ?? "Activate to request this POV."}`}
     >
       <div className="pcard-head">

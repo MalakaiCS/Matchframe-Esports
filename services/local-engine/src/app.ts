@@ -212,6 +212,8 @@ export class Engine {
       },
       verifiedControl: () => this.settings.get("observer.verifiedControl", {}),
       recordEvidence: (key, support, detail) => this.recordControlEvidence(key, support, detail),
+      // Read when used: the Auto Director is created after the session.
+      chaseEnabled: () => this.autoDirector?.settings().chase ?? true,
       armGate: (simulated, observerMode) => this.cloud.canArm(simulated || this.simulationRunning, observerMode),
     });
     this.refreshScenarios();

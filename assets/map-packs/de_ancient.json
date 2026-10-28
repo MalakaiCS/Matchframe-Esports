@@ -2834,7 +2834,7 @@
         "z": 394.0
       },
       "pitch": 43.57,
-      "yaw": 46.26,
+      "yaw": 46.25,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3157,6 +3157,918 @@
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
       "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 385 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 91% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-alley-1",
+      "displayName": "Alley #1",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 1320.0,
+        "y": 936.0,
+        "z": 379.5
+      },
+      "pitch": 23.81,
+      "yaw": -160.7,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": 672.0,
+          "y": 800.0,
+          "z": 166.2
+        },
+        "radiusUnits": 1664.7,
+        "zMin": -75.3,
+        "zMax": 385.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 662 units from the Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 70% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-alley-2",
+      "displayName": "Alley #2",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 168.0,
+        "y": 840.0,
+        "z": 351.4
+      },
+      "pitch": 25.73,
+      "yaw": 6.65,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": 672.0,
+          "y": 800.0,
+          "z": 166.2
+        },
+        "radiusUnits": 1664.7,
+        "zMin": -75.3,
+        "zMax": 385.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Alley), 260 units up, 506 units from the Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 70% of the area, and 76% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-main_hall-1",
+      "displayName": "Main Hall #1",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -2101.5,
+        "y": 210.9,
+        "z": 216.3
+      },
+      "pitch": 22.48,
+      "yaw": -68.59,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "main_hall"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1760.0,
+          "y": 32.0,
+          "z": 123.6
+        },
+        "radiusUnits": 2717.6,
+        "zMin": -76.5,
+        "zMax": 365.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Main Hall), 140 units up, 386 units from the Main Hall centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 52% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-outside-1",
+      "displayName": "Outside #1",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -1128.0,
+        "y": -1656.0,
+        "z": 226.7
+      },
+      "pitch": 23.17,
+      "yaw": 120.09,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "outside"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1312.0,
+          "y": -1056.0,
+          "z": 51.6
+        },
+        "radiusUnits": 3718.9,
+        "zMin": -205.1,
+        "zMax": 323.5,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Outside), 260 units up, 628 units from the Outside centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 77% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-outside-2",
+      "displayName": "Outside #2",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -1752.0,
+        "y": -1272.0,
+        "z": 234.3
+      },
+      "pitch": 30.42,
+      "yaw": 2.75,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "outside"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1312.0,
+          "y": -1056.0,
+          "z": 51.6
+        },
+        "radiusUnits": 3718.9,
+        "zMin": -205.1,
+        "zMax": 323.5,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 490 units from the Outside centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 80% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-ramp-1",
+      "displayName": "Ramp from Site  B",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 1101.0,
+        "y": 335.6,
+        "z": 386.3
+      },
+      "pitch": 18.31,
+      "yaw": -78.93,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1184.0,
+          "y": -288.0,
+          "z": 158.7
+        },
+        "radiusUnits": 3088.0,
+        "zMin": -94.0,
+        "zMax": 366.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 629 units from the Ramp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 78% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-ramp-2",
+      "displayName": "Ramp #2",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 1176.0,
+        "y": -840.0,
+        "z": 267.0
+      },
+      "pitch": 28.75,
+      "yaw": 72.48,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1184.0,
+          "y": -288.0,
+          "z": 158.7
+        },
+        "radiusUnits": 3088.0,
+        "zMin": -94.0,
+        "zMax": 366.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Ramp), 260 units up, 552 units from the Ramp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-ruins-1",
+      "displayName": "Ruins #1",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 1230.0,
+        "y": -1075.6,
+        "z": 269.0
+      },
+      "pitch": 31.95,
+      "yaw": -134.24,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ruins"
+      ],
+      "coverage": {
+        "center": {
+          "x": 992.0,
+          "y": -1312.0,
+          "z": 53.9
+        },
+        "radiusUnits": 688.2,
+        "zMin": -168.4,
+        "zMax": 313.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Ruins), 260 units up, 335 units from the Ruins centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 96% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-ruins-2",
+      "displayName": "Ruins #2",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 1250.0,
+        "y": -1465.1,
+        "z": 279.0
+      },
+      "pitch": 38.13,
+      "yaw": 141.55,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ruins"
+      ],
+      "coverage": {
+        "center": {
+          "x": 992.0,
+          "y": -1312.0,
+          "z": 53.9
+        },
+        "radiusUnits": 688.2,
+        "zMin": -168.4,
+        "zMax": 313.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Ruins), 260 units up, 300 units from the Ruins centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-side_hall-1",
+      "displayName": "Side Hall #1",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -1187.5,
+        "y": -331.6,
+        "z": 247.0
+      },
+      "pitch": 20.75,
+      "yaw": 120.68,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "side_hall"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1312.0,
+          "y": 96.0,
+          "z": 152.5
+        },
+        "radiusUnits": 2332.4,
+        "zMin": -76.5,
+        "zMax": 359.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Side Hall), 140 units up, 445 units from the Side Hall centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 61% of the area, and 58% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-side_hall-2",
+      "displayName": "Side Hall #2",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -1608.0,
+        "y": -264.0,
+        "z": 247.0
+      },
+      "pitch": 21.71,
+      "yaw": 28.29,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "side_hall"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1312.0,
+          "y": 96.0,
+          "z": 152.5
+        },
+        "radiusUnits": 2332.4,
+        "zMin": -76.5,
+        "zMax": 359.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 466 units from the Side Hall centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 45% of the area, and 60% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-t_side_lower-1",
+      "displayName": "TSide Lower from Ramp",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 1175.5,
+        "y": -647.1,
+        "z": 381.0
+      },
+      "pitch": 39.2,
+      "yaw": -165.46,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_side_lower"
+      ],
+      "coverage": {
+        "center": {
+          "x": 672.0,
+          "y": -544.0,
+          "z": 176.9
+        },
+        "radiusUnits": 3112.8,
+        "zMin": -95.0,
+        "zMax": 378.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Ramp), 260 units up, 514 units from the TSide Lower centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 78% of the area, and 82% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-t_side_lower-2",
+      "displayName": "TSide Lower #2",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 600.0,
+        "y": -840.0,
+        "z": 366.0
+      },
+      "pitch": 43.33,
+      "yaw": 23.42,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_side_lower"
+      ],
+      "coverage": {
+        "center": {
+          "x": 672.0,
+          "y": -544.0,
+          "z": 176.9
+        },
+        "radiusUnits": 3112.8,
+        "zMin": -95.0,
+        "zMax": 378.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSide Lower), 260 units up, 305 units from the TSide Lower centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 78% of the area, and 78% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-topof_mid-1",
+      "displayName": "Topof Mid from Middle",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -282.8,
+        "y": -487.0,
+        "z": 427.0
+      },
+      "pitch": 19.68,
+      "yaw": 110.44,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "topof_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": -544.0,
+          "y": 96.0,
+          "z": 192.4
+        },
+        "radiusUnits": 500.0,
+        "zMin": -8.7,
+        "zMax": 421.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 639 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-topof_mid-2",
+      "displayName": "Topof Mid from Middle",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -744.0,
+        "y": -264.0,
+        "z": 328.2
+      },
+      "pitch": 17.67,
+      "yaw": 56.55,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "topof_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": -544.0,
+          "y": 96.0,
+          "z": 192.4
+        },
+        "radiusUnits": 500.0,
+        "zMin": -8.7,
+        "zMax": 421.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 412 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 81% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-tunnel-1",
+      "displayName": "Tunnel #1",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 744.0,
+        "y": -1800.0,
+        "z": -18.5
+      },
+      "pitch": 8.6,
+      "yaw": -175.43,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": 96.0,
+          "y": -1824.0,
+          "z": -111.2
+        },
+        "radiusUnits": 500.0,
+        "zMin": -266.4,
+        "zMax": 92.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 648 units from the Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-tunnel-2",
+      "displayName": "Tunnel from TSpawn",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": -552.0,
+        "y": -1896.0,
+        "z": -32.9
+      },
+      "pitch": 6.71,
+      "yaw": 3.93,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": 96.0,
+          "y": -1824.0,
+          "z": -111.2
+        },
+        "radiusUnits": 500.0,
+        "zMin": -266.4,
+        "zMax": 92.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSpawn), 140 units up, 652 units from the Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-water-1",
+      "displayName": "Water from Ruins",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 690.5,
+        "y": -1458.1,
+        "z": 245.0
+      },
+      "pitch": 47.24,
+      "yaw": -107.8,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "water"
+      ],
+      "coverage": {
+        "center": {
+          "x": 608.0,
+          "y": -1760.0,
+          "z": -94.1
+        },
+        "radiusUnits": 500.0,
+        "zMin": -266.5,
+        "zMax": 181.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Ruins), 260 units up, 313 units from the Water centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-ancient-water-2",
+      "displayName": "Water #2",
+      "mapName": "de_ancient",
+      "mapRevision": "observed_builds:13916",
+      "position": {
+        "x": 716.5,
+        "y": -2114.6,
+        "z": 117.0
+      },
+      "pitch": 27.3,
+      "yaw": 107.86,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "water"
+      ],
+      "coverage": {
+        "center": {
+          "x": 608.0,
+          "y": -1760.0,
+          "z": -94.1
+        },
+        "radiusUnits": 500.0,
+        "zMin": -266.5,
+        "zMax": 181.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 371 units from the Water centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
@@ -3197,7 +4109,7 @@
           "yaw": 26.22
         },
         {
-          "tMs": 8123,
+          "tMs": 8124,
           "position": {
             "x": -1879.5,
             "y": 462.1,
@@ -3250,7 +4162,7 @@
             "z": 365.5
           },
           "pitch": 37.19,
-          "yaw": -7.88
+          "yaw": -7.87
         }
       ],
       "maxDurationMs": 7000,
@@ -3286,7 +4198,7 @@
             "z": 385.5
           },
           "pitch": 18.45,
-          "yaw": 96.25
+          "yaw": 96.24
         }
       ],
       "maxDurationMs": 7000,
@@ -3347,7 +4259,7 @@
             "y": -792.0,
             "z": 298.3
           },
-          "pitch": 16.02,
+          "pitch": 16.03,
           "yaw": 58.8
         },
         {
@@ -3378,7 +4290,7 @@
             "z": 427.0
           },
           "pitch": 31.38,
-          "yaw": 120.11
+          "yaw": 120.1
         }
       ],
       "maxDurationMs": 8435,
@@ -3439,7 +4351,7 @@
             "y": 1032.0,
             "z": 328.0
           },
-          "pitch": 25.53,
+          "pitch": 25.52,
           "yaw": 147.53
         },
         {
@@ -3551,7 +4463,7 @@
             "y": -1673.8,
             "z": 126.0
           },
-          "pitch": 22.79,
+          "pitch": 22.8,
           "yaw": -21.03
         }
       ],
@@ -3587,7 +4499,7 @@
             "y": -1681.2,
             "z": 112.5
           },
-          "pitch": 37.87,
+          "pitch": 37.88,
           "yaw": -42.66
         }
       ],

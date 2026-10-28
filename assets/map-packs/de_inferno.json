@@ -2783,7 +2783,7 @@
         "z": 494.0
       },
       "pitch": 32.85,
-      "yaw": 77.98,
+      "yaw": 77.99,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3138,7 +3138,7 @@
         "y": 456.0,
         "z": 363.7
       },
-      "pitch": 28.85,
+      "pitch": 28.84,
       "yaw": 165.9,
       "fov": null,
       "observerMode": "roaming_static",
@@ -3361,6 +3361,1638 @@
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
       "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 373 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 52% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-arch-1",
+      "displayName": "Arch from Site  A",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 2376.0,
+        "y": 1032.0,
+        "z": 426.5
+      },
+      "pitch": 21.82,
+      "yaw": 169.31,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "arch"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1888.0,
+          "y": 1184.0,
+          "z": 217.6
+        },
+        "radiusUnits": 640.0,
+        "zMin": 60.4,
+        "zMax": 433.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 511 units from the Arch centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-arch-2",
+      "displayName": "Arch from Topof Mid",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 1423.3,
+        "y": 1162.0,
+        "z": 436.5
+      },
+      "pitch": 26.34,
+      "yaw": -4.33,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "arch"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1888.0,
+          "y": 1184.0,
+          "z": 217.6
+        },
+        "radiusUnits": 640.0,
+        "zMin": 60.4,
+        "zMax": 433.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Topof Mid), 260 units up, 465 units from the Arch centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-back_alley-1",
+      "displayName": "Back Alley #1",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 421.6,
+        "y": -603.1,
+        "z": 380.0
+      },
+      "pitch": 42.56,
+      "yaw": -9.84,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "back_alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": 736.0,
+          "y": -608.0,
+          "z": 143.4
+        },
+        "radiusUnits": 500.0,
+        "zMin": -8.0,
+        "zMax": 350.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 314 units from the Back Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 60% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-balcony-1",
+      "displayName": "Balcony from Graveyard",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 2451.1,
+        "y": 296.9,
+        "z": 441.0
+      },
+      "pitch": 15.1,
+      "yaw": -125.12,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "balcony"
+      ],
+      "coverage": {
+        "center": {
+          "x": 2016.0,
+          "y": -224.0,
+          "z": 308.0
+        },
+        "radiusUnits": 1369.4,
+        "zMin": -0.4,
+        "zMax": 510.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Graveyard), 260 units up, 679 units from the Balcony centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 73% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-balcony-2",
+      "displayName": "Balcony #2",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 2509.2,
+        "y": -467.4,
+        "z": 365.5
+      },
+      "pitch": 11.92,
+      "yaw": 153.47,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "balcony"
+      ],
+      "coverage": {
+        "center": {
+          "x": 2016.0,
+          "y": -224.0,
+          "z": 308.0
+        },
+        "radiusUnits": 1369.4,
+        "zMin": -0.4,
+        "zMax": 510.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 550 units from the Balcony centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 73% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-banana-1",
+      "displayName": "Banana #1",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 390.1,
+        "y": 2101.4,
+        "z": 402.0
+      },
+      "pitch": 26.56,
+      "yaw": -94.17,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "banana"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": 1696.0,
+          "z": 180.5
+        },
+        "radiusUnits": 1011.9,
+        "zMin": -14.6,
+        "zMax": 480.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Banana), 260 units up, 407 units from the Banana centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 87% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-banana-2",
+      "displayName": "Banana #2",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 82.6,
+        "y": 1492.7,
+        "z": 378.5
+      },
+      "pitch": 49.1,
+      "yaw": 15.39,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "banana"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": 1696.0,
+          "z": 180.5
+        },
+        "radiusUnits": 1011.9,
+        "zMin": -14.6,
+        "zMax": 480.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Banana), 200 units up, 337 units from the Banana centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 80% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-bridge-1",
+      "displayName": "Bridge #1",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 77.0,
+        "y": -36.9,
+        "z": 488.0
+      },
+      "pitch": 27.41,
+      "yaw": -166.61,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bridge"
+      ],
+      "coverage": {
+        "center": {
+          "x": -416.0,
+          "y": -96.0,
+          "z": 244.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 96.0,
+        "zMax": 447.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 497 units from the Bridge centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 90% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-bridge-2",
+      "displayName": "Bridge from Upstairs",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": -352.0,
+        "y": 278.5,
+        "z": 336.0
+      },
+      "pitch": 12.89,
+      "yaw": -94.57,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bridge"
+      ],
+      "coverage": {
+        "center": {
+          "x": -416.0,
+          "y": -96.0,
+          "z": 244.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 96.0,
+        "zMax": 447.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Upstairs), 140 units up, 380 units from the Bridge centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 69% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-deck-1",
+      "displayName": "Deck from Second Mid",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 408.0,
+        "y": -216.0,
+        "z": 360.4
+      },
+      "pitch": 21.27,
+      "yaw": 133.56,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "deck"
+      ],
+      "coverage": {
+        "center": {
+          "x": 96.0,
+          "y": 96.0,
+          "z": 258.9
+        },
+        "radiusUnits": 500.0,
+        "zMin": -79.2,
+        "zMax": 462.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Second Mid), 260 units up, 441 units from the Deck centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-deck-2",
+      "displayName": "Deck from Second Mid",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": -264.0,
+        "y": -216.0,
+        "z": 286.9
+      },
+      "pitch": 4.25,
+      "yaw": 46.51,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "deck"
+      ],
+      "coverage": {
+        "center": {
+          "x": 96.0,
+          "y": 96.0,
+          "z": 258.9
+        },
+        "radiusUnits": 500.0,
+        "zMin": -79.2,
+        "zMax": 462.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Second Mid), 260 units up, 476 units from the Deck centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 56% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-graveyard-1",
+      "displayName": "Graveyard from Balcony",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 1992.0,
+        "y": -216.0,
+        "z": 460.0
+      },
+      "pitch": 21.99,
+      "yaw": 45.99,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "graveyard"
+      ],
+      "coverage": {
+        "center": {
+          "x": 2464.0,
+          "y": 224.0,
+          "z": 184.3
+        },
+        "radiusUnits": 500.0,
+        "zMin": 36.3,
+        "zMax": 425.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Balcony), 200 units up, 645 units from the Graveyard centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-graveyard-2",
+      "displayName": "Graveyard from Site  A",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 2040.0,
+        "y": 696.0,
+        "z": 484.0
+      },
+      "pitch": 25.72,
+      "yaw": -47.16,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "graveyard"
+      ],
+      "coverage": {
+        "center": {
+          "x": 2464.0,
+          "y": 224.0,
+          "z": 184.3
+        },
+        "radiusUnits": 500.0,
+        "zMin": 36.3,
+        "zMax": 425.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 634 units from the Graveyard centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-kitchen-1",
+      "displayName": "Kitchen #1",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 24.0,
+        "y": -24.0,
+        "z": 369.7
+      },
+      "pitch": 24.12,
+      "yaw": 105.26,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "kitchen"
+      ],
+      "coverage": {
+        "center": {
+          "x": -96.0,
+          "y": 288.0,
+          "z": 244.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 96.0,
+        "zMax": 454.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 334 units from the Kitchen centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 67% of the area, and 49% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-library-1",
+      "displayName": "Library from CTSpawn",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 2122.4,
+        "y": 1840.2,
+        "z": 280.0
+      },
+      "pitch": 6.69,
+      "yaw": -52.95,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "library"
+      ],
+      "coverage": {
+        "center": {
+          "x": 2528.0,
+          "y": 1312.0,
+          "z": 211.5
+        },
+        "radiusUnits": 500.0,
+        "zMin": 62.0,
+        "zMax": 462.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 140 units up, 666 units from the Library centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 45% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-lower_mid-1",
+      "displayName": "Lower Mid #1",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": -682.4,
+        "y": 762.8,
+        "z": 237.5
+      },
+      "pitch": 25.38,
+      "yaw": -90.73,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "lower_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": -736.0,
+          "y": 288.0,
+          "z": 49.4
+        },
+        "radiusUnits": 936.4,
+        "zMin": -129.4,
+        "zMax": 323.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Lower Mid), 260 units up, 478 units from the Lower Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-lower_mid-2",
+      "displayName": "Lower Mid #2",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": -716.7,
+        "y": -342.3,
+        "z": 260.0
+      },
+      "pitch": 23.51,
+      "yaw": 95.87,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "lower_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": -736.0,
+          "y": 288.0,
+          "z": 49.4
+        },
+        "radiusUnits": 936.4,
+        "zMin": -129.4,
+        "zMax": 323.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 631 units from the Lower Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 69% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-pit-1",
+      "displayName": "Pit from Site  A",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 2041.2,
+        "y": 261.2,
+        "z": 472.0
+      },
+      "pitch": 26.99,
+      "yaw": -58.34,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "pit"
+      ],
+      "coverage": {
+        "center": {
+          "x": 2400.0,
+          "y": -288.0,
+          "z": 144.4
+        },
+        "radiusUnits": 500.0,
+        "zMin": -6.0,
+        "zMax": 398.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 656 units from the Pit centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 85% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-pit-2",
+      "displayName": "Pit #2",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 2633.0,
+        "y": -59.8,
+        "z": 361.0
+      },
+      "pitch": 33.04,
+      "yaw": -142.19,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "pit"
+      ],
+      "coverage": {
+        "center": {
+          "x": 2400.0,
+          "y": -288.0,
+          "z": 144.4
+        },
+        "radiusUnits": 500.0,
+        "zMin": -6.0,
+        "zMax": 398.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 326 units from the Pit centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-quad-1",
+      "displayName": "Quad from Site  A",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 2136.0,
+        "y": -24.0,
+        "z": 384.7
+      },
+      "pitch": 15.95,
+      "yaw": 176.2,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "quad"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1504.0,
+          "y": 32.0,
+          "z": 183.9
+        },
+        "radiusUnits": 500.0,
+        "zMin": 34.9,
+        "zMax": 526.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 634 units from the Quad centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-quad-2",
+      "displayName": "Quad from Topof Mid",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 1358.4,
+        "y": 661.6,
+        "z": 391.0
+      },
+      "pitch": 15.95,
+      "yaw": -82.03,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "quad"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1504.0,
+          "y": 32.0,
+          "z": 183.9
+        },
+        "radiusUnits": 500.0,
+        "zMin": 34.9,
+        "zMax": 526.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Topof Mid), 260 units up, 646 units from the Quad centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 70% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-ruins-1",
+      "displayName": "Ruins #1",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 1944.0,
+        "y": 2760.0,
+        "z": 388.7
+      },
+      "pitch": 19.65,
+      "yaw": 173.87,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ruins"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1248.0,
+          "y": 2976.0,
+          "z": 180.0
+        },
+        "radiusUnits": 792.0,
+        "zMin": 28.0,
+        "zMax": 407.8,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 729 units from the Ruins centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 64% of the area, and 89% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-ruins-2",
+      "displayName": "Ruins #2",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 1100.0,
+        "y": 2682.0,
+        "z": 393.3
+      },
+      "pitch": 37.04,
+      "yaw": 29.38,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ruins"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1248.0,
+          "y": 2976.0,
+          "z": 180.0
+        },
+        "radiusUnits": 792.0,
+        "zMin": 28.0,
+        "zMax": 407.8,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Ruins), 260 units up, 329 units from the Ruins centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 69% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-second_mid-1",
+      "displayName": "Second Mid from Balcony",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 929.5,
+        "y": -77.0,
+        "z": 460.0
+      },
+      "pitch": 30.3,
+      "yaw": 177.99,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "second_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": -32.0,
+          "z": 116.4
+        },
+        "radiusUnits": 1223.8,
+        "zMin": -92.5,
+        "zMax": 407.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Balcony), 200 units up, 579 units from the Second Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 98% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-second_mid-2",
+      "displayName": "Second Mid from Bridge",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": -360.0,
+        "y": -120.0,
+        "z": 456.0
+      },
+      "pitch": 26.34,
+      "yaw": -0.6,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "second_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": -32.0,
+          "z": 116.4
+        },
+        "radiusUnits": 1223.8,
+        "zMin": -92.5,
+        "zMax": 407.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Bridge), 260 units up, 717 units from the Second Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 67% of the area, and 89% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-t_ramp-1",
+      "displayName": "TRamp from Middle",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 139.2,
+        "y": 874.0,
+        "z": 344.5
+      },
+      "pitch": 35.58,
+      "yaw": -172.78,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": -288.0,
+          "y": 800.0,
+          "z": 64.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -128.4,
+        "zMax": 334.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 434 units from the TRamp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 86% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-t_ramp-2",
+      "displayName": "TRamp from TSpawn",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": -844.0,
+        "y": 662.1,
+        "z": 239.0
+      },
+      "pitch": 18.21,
+      "yaw": 16.72,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": -288.0,
+          "y": 800.0,
+          "z": 64.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -128.4,
+        "zMax": 334.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 573 units from the TRamp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 79% of the area, and 78% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-topof_mid-1",
+      "displayName": "Topof Mid #1",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 1439.8,
+        "y": -38.8,
+        "z": 418.0
+      },
+      "pitch": 21.55,
+      "yaw": 91.14,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "topof_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1440.0,
+          "y": 544.0,
+          "z": 172.0
+        },
+        "radiusUnits": 804.0,
+        "zMin": 20.7,
+        "zMax": 431.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 583 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 98% of the area, and 87% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-topof_mid-2",
+      "displayName": "Topof Mid from Arch",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 1466.4,
+        "y": 1220.5,
+        "z": 439.5
+      },
+      "pitch": 21.99,
+      "yaw": -94.64,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "topof_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1440.0,
+          "y": 544.0,
+          "z": 172.0
+        },
+        "radiusUnits": 804.0,
+        "zMin": 20.7,
+        "zMax": 431.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Arch), 260 units up, 677 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 87% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-underpass-1",
+      "displayName": "Underpass from Apartments",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 341.0,
+        "y": -561.0,
+        "z": 240.0
+      },
+      "pitch": 13.72,
+      "yaw": 93.92,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "underpass"
+      ],
+      "coverage": {
+        "center": {
+          "x": 288.0,
+          "y": 352.0,
+          "z": 42.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -106.0,
+        "zMax": 339.4,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Apartments), 140 units up, 915 units from the Underpass centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 47% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-bottom_banana-1",
+      "displayName": "Bottom Banana (derived) from Banana",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 390.1,
+        "y": 2101.4,
+        "z": 402.0
+      },
+      "pitch": 20.4,
+      "yaw": -107.16,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bottom_banana"
+      ],
+      "coverage": {
+        "center": {
+          "x": 224.0,
+          "y": 1440.0,
+          "z": 159.8
+        },
+        "radiusUnits": 659.7,
+        "zMin": -14.6,
+        "zMax": 480.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Banana), 260 units up, 682 units from the Bottom Banana (derived) centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 91% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-bottom_banana-2",
+      "displayName": "Bottom Banana (derived) from Middle",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 58.2,
+        "y": 859.7,
+        "z": 344.0
+      },
+      "pitch": 16.94,
+      "yaw": 77.02,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bottom_banana"
+      ],
+      "coverage": {
+        "center": {
+          "x": 224.0,
+          "y": 1440.0,
+          "z": 159.8
+        },
+        "radiusUnits": 659.7,
+        "zMin": -14.6,
+        "zMax": 480.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 603 units from the Bottom Banana (derived) centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 73% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-top_banana-1",
+      "displayName": "Top Banana (derived) from Banana",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 972.1,
+        "y": 1879.7,
+        "z": 408.0
+      },
+      "pitch": 35.8,
+      "yaw": 144.79,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "top_banana"
+      ],
+      "coverage": {
+        "center": {
+          "x": 736.0,
+          "y": 2080.0,
+          "z": 187.7
+        },
+        "radiusUnits": 500.0,
+        "zMin": 38.7,
+        "zMax": 398.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Banana), 260 units up, 310 units from the Top Banana (derived) centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 82% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-inferno-top_banana-2",
+      "displayName": "Top Banana (derived) from Banana",
+      "mapName": "de_inferno",
+      "mapRevision": "observed_builds:13926",
+      "position": {
+        "x": 312.0,
+        "y": 1944.0,
+        "z": 398.7
+      },
+      "pitch": 27.0,
+      "yaw": 10.35,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "top_banana"
+      ],
+      "coverage": {
+        "center": {
+          "x": 736.0,
+          "y": 2080.0,
+          "z": 187.7
+        },
+        "radiusUnits": 500.0,
+        "zMin": 38.7,
+        "zMax": 398.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Banana), 260 units up, 445 units from the Top Banana (derived) centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 86% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
@@ -3378,17 +5010,17 @@
             "z": 494.0
           },
           "pitch": 30.71,
-          "yaw": 84.36
+          "yaw": 84.37
         },
         {
           "tMs": 6000,
           "position": {
-            "x": 1814.4,
+            "x": 1814.5,
             "y": -98.9,
             "z": 494.0
           },
           "pitch": 28.32,
-          "yaw": 59.5
+          "yaw": 59.51
         }
       ],
       "maxDurationMs": 7000,
@@ -3414,7 +5046,7 @@
             "z": 494.0
           },
           "pitch": 30.71,
-          "yaw": 84.36
+          "yaw": 84.37
         },
         {
           "tMs": 6000,
@@ -3423,8 +5055,8 @@
             "y": 92.1,
             "z": 480.5
           },
-          "pitch": 45.8,
-          "yaw": 84.36
+          "pitch": 45.79,
+          "yaw": 84.37
         }
       ],
       "maxDurationMs": 7000,
@@ -3610,11 +5242,11 @@
           "tMs": 6000,
           "position": {
             "x": 2314.7,
-            "y": 2104.4,
+            "y": 2104.3,
             "z": 414.5
           },
-          "pitch": 35.33,
-          "yaw": 135.38
+          "pitch": 35.32,
+          "yaw": 135.37
         }
       ],
       "maxDurationMs": 7000,
@@ -3685,7 +5317,7 @@
             "y": 457.2,
             "z": 227.3
           },
-          "pitch": 39.07,
+          "pitch": 39.06,
           "yaw": -52.28
         }
       ],

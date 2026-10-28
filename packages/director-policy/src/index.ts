@@ -7,6 +7,7 @@ export * from "./features/significance.ts";
 export * from "./utility/opportunities.ts";
 export * from "./candidates.ts";
 export * from "./cinematics.ts";
+export * from "./chase.ts";
 export * from "./planner.ts";
 export * from "./director.ts";
 export * from "./control/adapter.ts";

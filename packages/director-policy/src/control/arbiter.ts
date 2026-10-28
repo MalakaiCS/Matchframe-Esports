@@ -9,11 +9,11 @@ import type {
 } from "@matchframe/contracts";
 import type { ShotKey } from "../shots.ts";
 import { cameraShot, parseShot, pathShot, povShot } from "../shots.ts";
-import type { ObserverControlAdapter } from "./adapter.ts";
+import type { ObserverControlAdapter, PlayerView } from "./adapter.ts";
 import { failedResult } from "./adapter.ts";
 
 export type ControlRequest =
-  | { kind: "select_player"; steamId: string; observerSlot: number | null }
+  | { kind: "select_player"; steamId: string; observerSlot: number | null; view?: PlayerView }
   | { kind: "activate_static_camera"; camera: CameraRecord; plannedDurationMs: number }
   | { kind: "play_camera_path"; path: CameraPath }
   | { kind: "cancel_path" };
@@ -321,7 +321,7 @@ export class ControlArbiter {
       const r = f.request;
       result =
         r.kind === "select_player"
-          ? await adapter.selectPlayer(r.steamId, r.observerSlot, ctx)
+          ? await adapter.selectPlayer(r.steamId, r.observerSlot, ctx, r.view)
           : r.kind === "activate_static_camera"
             ? await adapter.activateStaticCamera(r.camera, ctx)
             : r.kind === "play_camera_path"
@@ -384,7 +384,7 @@ export class ControlArbiter {
   private describe(r: ControlRequest): Record<string, unknown> {
     switch (r.kind) {
       case "select_player":
-        return { kind: r.kind, steamId: r.steamId, slot: r.observerSlot };
+        return { kind: r.kind, steamId: r.steamId, slot: r.observerSlot, view: r.view ?? "in_eye" };
       case "activate_static_camera":
         return { kind: r.kind, cameraId: r.camera.id, plannedDurationMs: r.plannedDurationMs };
       case "play_camera_path":

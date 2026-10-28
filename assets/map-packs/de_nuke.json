@@ -3641,7 +3641,7 @@
         "z": -152.0
       },
       "pitch": 24.02,
-      "yaw": 102.12,
+      "yaw": 102.13,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3945,7 +3945,7 @@
         "z": -88.0
       },
       "pitch": 19.97,
-      "yaw": -155.48,
+      "yaw": -155.49,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3991,7 +3991,7 @@
         "z": -88.0
       },
       "pitch": 22.12,
-      "yaw": -14.58,
+      "yaw": -14.57,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -4117,6 +4117,1446 @@
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
       "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 493 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 77% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-admin-1",
+      "displayName": "Admin from Ramp",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 456.0,
+        "y": 216.0,
+        "z": -120.0
+      },
+      "pitch": 20.09,
+      "yaw": -14.87,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "admin"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1120.0,
+          "y": -32.0,
+          "z": -364.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Ramp), 260 units up, 709 units from the Admin centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 53% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-admin-2",
+      "displayName": "Admin #2",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 744.0,
+        "y": 456.0,
+        "z": -265.5
+      },
+      "pitch": 9.16,
+      "yaw": -55.32,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "admin"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1120.0,
+          "y": -32.0,
+          "z": -364.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 616 units from the Admin centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 47% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-catwalk-1",
+      "displayName": "Catwalk from Heaven",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 966.0,
+        "y": -481.8,
+        "z": 16.0
+      },
+      "pitch": 49.0,
+      "yaw": -174.71,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "catwalk"
+      ],
+      "coverage": {
+        "center": {
+          "x": 608.0,
+          "y": -544.0,
+          "z": -360.6
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -153.4,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Heaven), 140 units up, 363 units from the Catwalk centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-catwalk-2",
+      "displayName": "Catwalk from Crane",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 310.0,
+        "y": -841.5,
+        "z": 14.0
+      },
+      "pitch": 38.77,
+      "yaw": 44.96,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "catwalk"
+      ],
+      "coverage": {
+        "center": {
+          "x": 608.0,
+          "y": -544.0,
+          "z": -360.6
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -153.4,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Crane), 140 units up, 421 units from the Catwalk centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-control-1",
+      "displayName": "Control #1",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 769.5,
+        "y": 370.2,
+        "z": -120.0
+      },
+      "pitch": 19.67,
+      "yaw": -149.17,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "control"
+      ],
+      "coverage": {
+        "center": {
+          "x": 160.0,
+          "y": -32.0,
+          "z": -364.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 730 units from the Control centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 61% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-garage-1",
+      "displayName": "Garage #1",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1992.0,
+        "y": -1896.0,
+        "z": -152.0
+      },
+      "pitch": 39.22,
+      "yaw": -167.55,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "garage"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1696.0,
+          "y": -1952.0,
+          "z": -364.0
+        },
+        "radiusUnits": 565.7,
+        "zMin": -512.0,
+        "zMax": -162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Garage), 260 units up, 301 units from the Garage centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-garage-2",
+      "displayName": "Garage #2",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1689.8,
+        "y": -1651.0,
+        "z": -212.0
+      },
+      "pitch": 25.71,
+      "yaw": -74.63,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "garage"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1696.0,
+          "y": -1952.0,
+          "z": -364.0
+        },
+        "radiusUnits": 565.7,
+        "zMin": -512.0,
+        "zMax": -162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Garage), 200 units up, 301 units from the Garage centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-heaven-1",
+      "displayName": "Heaven from Site  A",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 537.8,
+        "y": -536.7,
+        "z": -146.5
+      },
+      "pitch": -6.74,
+      "yaw": 15.64,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "heaven"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1120.0,
+          "y": -352.0,
+          "z": -76.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -224.0,
+        "zMax": 126.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 611 units from the Heaven centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-heaven-2",
+      "displayName": "Heaven from Outside",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1704.0,
+        "y": -408.0,
+        "z": -88.0
+      },
+      "pitch": -1.12,
+      "yaw": 177.32,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "heaven"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1120.0,
+          "y": -352.0,
+          "z": -76.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -224.0,
+        "zMax": 126.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Outside), 260 units up, 587 units from the Heaven centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 89% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-hell-1",
+      "displayName": "Hell from Outside",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1896.0,
+        "y": -552.0,
+        "z": -208.0
+      },
+      "pitch": 13.97,
+      "yaw": 173.86,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "hell"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1248.0,
+          "y": -416.0,
+          "z": -364.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Outside), 140 units up, 662 units from the Hell centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 54% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-hut-1",
+      "displayName": "Hut from Site  A",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 456.0,
+        "y": -360.0,
+        "z": -152.0
+      },
+      "pitch": 19.79,
+      "yaw": -98.08,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "hut"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": -992.0,
+          "z": -340.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -138.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 640 units from the Hut centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 53% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-hut_roof-1",
+      "displayName": "Hut Roof #1",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 512.6,
+        "y": -372.3,
+        "z": -76.0
+      },
+      "pitch": 10.25,
+      "yaw": -98.04,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "hut_roof"
+      ],
+      "coverage": {
+        "center": {
+          "x": 416.0,
+          "y": -1056.0,
+          "z": -200.6
+        },
+        "radiusUnits": 500.0,
+        "zMin": -350.1,
+        "zMax": 2.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 691 units from the Hut Roof centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-hut_roof-2",
+      "displayName": "Hut Roof from Site  A",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 925.1,
+        "y": -1418.9,
+        "z": -152.0
+      },
+      "pitch": 4.47,
+      "yaw": 144.52,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "hut_roof"
+      ],
+      "coverage": {
+        "center": {
+          "x": 416.0,
+          "y": -1056.0,
+          "z": -200.6
+        },
+        "radiusUnits": 500.0,
+        "zMin": -350.1,
+        "zMax": 2.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 625 units from the Hut Roof centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-lobby-1",
+      "displayName": "Lobby #1",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -309.8,
+        "y": -1078.0,
+        "z": -272.0
+      },
+      "pitch": 14.9,
+      "yaw": 32.98,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "lobby"
+      ],
+      "coverage": {
+        "center": {
+          "x": -32.0,
+          "y": -928.0,
+          "z": -364.0
+        },
+        "radiusUnits": 536.7,
+        "zMin": -512.0,
+        "zMax": -34.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Lobby), 140 units up, 316 units from the Lobby centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 91% of the area, and 82% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-locker_room-1",
+      "displayName": "Locker Room from Hell",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1224.8,
+        "y": -319.0,
+        "z": -272.0
+      },
+      "pitch": 15.77,
+      "yaw": -80.24,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "locker_room"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1248.0,
+          "y": -672.0,
+          "z": -364.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Hell), 140 units up, 354 units from the Locker Room centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 67% of the area, and 53% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-mini-1",
+      "displayName": "Mini from Outside",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1284.5,
+        "y": -1697.0,
+        "z": -272.0
+      },
+      "pitch": 8.56,
+      "yaw": 174.3,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "mini"
+      ],
+      "coverage": {
+        "center": {
+          "x": 672.0,
+          "y": -1632.0,
+          "z": -364.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Outside), 140 units up, 616 units from the Mini centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 94% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-mini-2",
+      "displayName": "Mini from Site  A",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 648.0,
+        "y": -984.0,
+        "z": -212.0
+      },
+      "pitch": 13.2,
+      "yaw": -90.71,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "mini"
+      ],
+      "coverage": {
+        "center": {
+          "x": 672.0,
+          "y": -1632.0,
+          "z": -364.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 200 units up, 648 units from the Mini centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 75% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-observation-1",
+      "displayName": "Observation from Site  B",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 524.0,
+        "y": -539.0,
+        "z": -496.0
+      },
+      "pitch": 7.39,
+      "yaw": 2.29,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "observation"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1184.0,
+          "y": -544.0,
+          "z": -588.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -736.0,
+        "zMax": -345.6,
+        "levelId": "lower"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 140 units up, 660 units from the Observation centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 87% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-observation-2",
+      "displayName": "Observation from Site  B",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 554.0,
+        "y": -162.0,
+        "z": -496.0
+      },
+      "pitch": 6.58,
+      "yaw": -33.37,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "observation"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1184.0,
+          "y": -544.0,
+          "z": -588.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -736.0,
+        "zMax": -345.6,
+        "levelId": "lower"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 140 units up, 737 units from the Observation centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-rafters-1",
+      "displayName": "Rafters from Hut",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 366.0,
+        "y": -839.5,
+        "z": -128.0
+      },
+      "pitch": -4.54,
+      "yaw": 54.07,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "rafters"
+      ],
+      "coverage": {
+        "center": {
+          "x": 736.0,
+          "y": -288.0,
+          "z": -76.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -224.0,
+        "zMax": 126.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Hut), 260 units up, 664 units from the Rafters centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-rafters-2",
+      "displayName": "Rafters #2",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 954.8,
+        "y": -514.4,
+        "z": 12.2
+      },
+      "pitch": 16.94,
+      "yaw": 134.93,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "rafters"
+      ],
+      "coverage": {
+        "center": {
+          "x": 736.0,
+          "y": -288.0,
+          "z": -76.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -224.0,
+        "zMax": 126.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 315 units from the Rafters centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 78% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-ramp-1",
+      "displayName": "Ramp #1",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 552.0,
+        "y": 696.0,
+        "z": -216.0
+      },
+      "pitch": 22.07,
+      "yaw": -78.9,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": 672.0,
+          "y": 224.0,
+          "z": -364.0
+        },
+        "radiusUnits": 576.9,
+        "zMin": -736.0,
+        "zMax": -68.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 487 units from the Ramp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-ramp-2",
+      "displayName": "Ramp #2",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 419.6,
+        "y": -146.1,
+        "z": -12.0
+      },
+      "pitch": 41.08,
+      "yaw": 57.65,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": 672.0,
+          "y": 224.0,
+          "z": -364.0
+        },
+        "radiusUnits": 576.9,
+        "zMin": -736.0,
+        "zMax": -68.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 448 units from the Ramp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 77% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-roof-1",
+      "displayName": "Roof from Silo",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 55.0,
+        "y": -1476.0,
+        "z": 221.3
+      },
+      "pitch": 27.29,
+      "yaw": 103.94,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "roof"
+      ],
+      "coverage": {
+        "center": {
+          "x": -96.0,
+          "y": -864.0,
+          "z": -40.1
+        },
+        "radiusUnits": 787.9,
+        "zMin": -384.0,
+        "zMax": 164.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Silo), 260 units up, 630 units from the Roof centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 91% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-roof-2",
+      "displayName": "Roof #2",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -520.1,
+        "y": -1147.8,
+        "z": 108.0
+      },
+      "pitch": 22.64,
+      "yaw": 35.57,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "roof"
+      ],
+      "coverage": {
+        "center": {
+          "x": -96.0,
+          "y": -864.0,
+          "z": -40.1
+        },
+        "radiusUnits": 787.9,
+        "zMin": -384.0,
+        "zMax": 164.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 510 units from the Roof centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-silo-1",
+      "displayName": "Silo from Roof",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1.1,
+        "y": -973.0,
+        "z": 242.0
+      },
+      "pitch": 18.09,
+      "yaw": -83.33,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "silo"
+      ],
+      "coverage": {
+        "center": {
+          "x": 96.0,
+          "y": -1632.0,
+          "z": 28.2
+        },
+        "radiusUnits": 500.0,
+        "zMin": -144.8,
+        "zMax": 232.2,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Roof), 260 units up, 666 units from the Silo centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-silo-2",
+      "displayName": "Silo from Outside",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 571.1,
+        "y": -2124.3,
+        "z": -76.0
+      },
+      "pitch": -7.78,
+      "yaw": 136.49,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "silo"
+      ],
+      "coverage": {
+        "center": {
+          "x": 96.0,
+          "y": -1632.0,
+          "z": 28.2
+        },
+        "radiusUnits": 500.0,
+        "zMin": -144.8,
+        "zMax": 232.2,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Outside), 260 units up, 684 units from the Silo centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-squeaky-1",
+      "displayName": "Squeaky from Site  A",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 792.0,
+        "y": -1272.0,
+        "z": -272.0
+      },
+      "pitch": 6.71,
+      "yaw": -179.26,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "squeaky"
+      ],
+      "coverage": {
+        "center": {
+          "x": 32.0,
+          "y": -1248.0,
+          "z": -364.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 140 units up, 760 units from the Squeaky centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 83% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-trophy-1",
+      "displayName": "Trophy from Ramp",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 360.0,
+        "y": 312.0,
+        "z": -275.2
+      },
+      "pitch": 6.58,
+      "yaw": -108.94,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "trophy"
+      ],
+      "coverage": {
+        "center": {
+          "x": 96.0,
+          "y": -416.0,
+          "z": -364.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Ramp), 140 units up, 774 units from the Trophy centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 53% of the area, and 53% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-nuke-vending-1",
+      "displayName": "Vending from Lobby",
+      "mapName": "de_nuke",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -231.0,
+        "y": -1112.0,
+        "z": -272.0
+      },
+      "pitch": 8.67,
+      "yaw": 79.56,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "vending"
+      ],
+      "coverage": {
+        "center": {
+          "x": -96.0,
+          "y": -544.0,
+          "z": -364.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -512.0,
+        "zMax": -162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Lobby), 140 units up, 584 units from the Vending centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 78% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
@@ -4164,7 +5604,7 @@
             "z": -152.0
           },
           "pitch": 23.13,
-          "yaw": 120.67
+          "yaw": 120.66
         }
       ],
       "maxDurationMs": 6508,
@@ -4189,7 +5629,7 @@
             "y": -481.8,
             "z": 16.0
           },
-          "pitch": 32.83,
+          "pitch": 32.84,
           "yaw": -119.95
         },
         {
@@ -4226,7 +5666,7 @@
             "z": -496.0
           },
           "pitch": 18.9,
-          "yaw": -105.92
+          "yaw": -105.93
         },
         {
           "tMs": 2143,
@@ -4239,7 +5679,7 @@
           "yaw": -85.06
         },
         {
-          "tMs": 3716,
+          "tMs": 3717,
           "position": {
             "x": 408.0,
             "y": -312.0,
@@ -4249,7 +5689,7 @@
           "yaw": -70.08
         }
       ],
-      "maxDurationMs": 4716,
+      "maxDurationMs": 4717,
       "maxSpeedUnitsPerSec": 300,
       "collisionValidated": true,
       "validation": "unvalidated",
@@ -4272,7 +5712,7 @@
             "z": -499.5
           },
           "pitch": 19.26,
-          "yaw": -98.36
+          "yaw": -98.37
         },
         {
           "tMs": 6000,
@@ -4282,7 +5722,7 @@
             "z": -513.0
           },
           "pitch": 30.81,
-          "yaw": -98.36
+          "yaw": -98.37
         }
       ],
       "maxDurationMs": 7000,
@@ -4327,7 +5767,7 @@
             "y": -2080.8,
             "z": 44.0
           },
-          "pitch": 34.16,
+          "pitch": 34.15,
           "yaw": 131.73
         },
         {
@@ -4337,7 +5777,7 @@
             "y": -1770.5,
             "z": 41.3
           },
-          "pitch": 38.95,
+          "pitch": 38.94,
           "yaw": 163.97
         },
         {
@@ -4433,7 +5873,7 @@
           "yaw": -174.37
         },
         {
-          "tMs": 4514,
+          "tMs": 4513,
           "position": {
             "x": 3403.5,
             "y": -307.2,
@@ -4443,7 +5883,7 @@
           "yaw": -148.53
         }
       ],
-      "maxDurationMs": 5514,
+      "maxDurationMs": 5513,
       "maxSpeedUnitsPerSec": 300,
       "collisionValidated": true,
       "validation": "unvalidated",
@@ -4466,7 +5906,7 @@
             "z": -88.0
           },
           "pitch": 19.37,
-          "yaw": -154.92
+          "yaw": -154.93
         },
         {
           "tMs": 6000,
@@ -4476,7 +5916,7 @@
             "z": -101.5
           },
           "pitch": 30.88,
-          "yaw": -154.92
+          "yaw": -154.93
         }
       ],
       "maxDurationMs": 7000,

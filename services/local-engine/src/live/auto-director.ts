@@ -10,6 +10,8 @@ export const AutoDirectorSettings = z.object({
   nadeCams: z.boolean().default(false),
   /** After you pick a player yourself (in CS2 or here), the Auto Director takes over again after this long; 0 = only when you press Start. */
   returnAfterSec: z.number().int().min(0).max(120).default(8),
+  /** The third-person chase view while the spectated player plants or defuses the bomb or wins the round. */
+  chase: z.boolean().default(true),
 });
 export type AutoDirectorSettings = z.infer<typeof AutoDirectorSettings>;
 

@@ -2506,7 +2506,7 @@
         "y": 840.0,
         "z": 12014.4
       },
-      "pitch": 24.82,
+      "pitch": 24.83,
       "yaw": -12.62,
       "fov": null,
       "observerMode": "roaming_static",
@@ -2557,7 +2557,7 @@
         "y": 1054.0,
         "z": 12032.7
       },
-      "pitch": 22.75,
+      "pitch": 22.76,
       "yaw": -146.96,
       "fov": null,
       "observerMode": "roaming_static",
@@ -2608,7 +2608,7 @@
         "y": 186.6,
         "z": 12072.0
       },
-      "pitch": 28.15,
+      "pitch": 28.14,
       "yaw": 94.64,
       "fov": null,
       "observerMode": "roaming_static",
@@ -2660,7 +2660,7 @@
         "z": 12044.0
       },
       "pitch": 28.97,
-      "yaw": -40.14,
+      "yaw": -40.15,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -2932,6 +2932,1254 @@
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
       "notes": "Placed on CS2's walkable floor (TSpawn), 200 units up, 363 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 72% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-a_platform-1",
+      "displayName": "APlatform from Site  A",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -48.5,
+        "y": -1043.0,
+        "z": 12082.0
+      },
+      "pitch": 19.76,
+      "yaw": -145.01,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "a_platform"
+      ],
+      "coverage": {
+        "center": {
+          "x": -608.0,
+          "y": -1440.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11672.4,
+        "zMax": 12092.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 686 units from the APlatform centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-a_platform-2",
+      "displayName": "APlatform from Side",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -883.0,
+        "y": -706.0,
+        "z": 12040.0
+      },
+      "pitch": 14.99,
+      "yaw": -70.6,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "a_platform"
+      ],
+      "coverage": {
+        "center": {
+          "x": -608.0,
+          "y": -1440.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11672.4,
+        "zMax": 12092.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Side), 260 units up, 784 units from the APlatform centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-a_ramp-1",
+      "displayName": "ARamp from APlatform",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -911.0,
+        "y": -1477.0,
+        "z": 12040.0
+      },
+      "pitch": 32.85,
+      "yaw": 61.42,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "a_ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": -672.0,
+          "y": -1056.0,
+          "z": 11753.9
+        },
+        "radiusUnits": 758.9,
+        "zMin": 11415.2,
+        "zMax": 12030.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (APlatform), 260 units up, 484 units from the ARamp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-a_ramp-2",
+      "displayName": "ARamp from APlatform",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -198.0,
+        "y": -1413.5,
+        "z": 12102.0
+      },
+      "pitch": 38.01,
+      "yaw": 149.75,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "a_ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": -672.0,
+          "y": -1056.0,
+          "z": 11753.9
+        },
+        "radiusUnits": 758.9,
+        "zMin": 11415.2,
+        "zMax": 12030.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (APlatform), 260 units up, 594 units from the ARamp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 66% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-b_platform-1",
+      "displayName": "BPlatform from Backof B",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1384.0,
+        "y": 985.8,
+        "z": 12040.0
+      },
+      "pitch": 13.8,
+      "yaw": -101.27,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "b_platform"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1504.0,
+          "y": 544.0,
+          "z": 11926.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11763.9,
+        "zMax": 12162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Backof B), 260 units up, 458 units from the BPlatform centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-b_platform-2",
+      "displayName": "BPlatform from Mid",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1896.0,
+        "y": 24.0,
+        "z": 12040.0
+      },
+      "pitch": 9.39,
+      "yaw": 49.68,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "b_platform"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1504.0,
+          "y": 544.0,
+          "z": 11926.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11763.9,
+        "zMax": 12162.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Mid), 260 units up, 651 units from the BPlatform centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 83% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-back_door-1",
+      "displayName": "Back Door from CTSpawn",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -828.0,
+        "y": 915.0,
+        "z": 11920.0
+      },
+      "pitch": 8.33,
+      "yaw": -78.76,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "back_door"
+      ],
+      "coverage": {
+        "center": {
+          "x": -672.0,
+          "y": 288.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11680.0,
+        "zMax": 12033.4,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 140 units up, 646 units from the Back Door centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 65% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-backof_a-1",
+      "displayName": "Backof A from Site  A",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -72.0,
+        "y": -120.0,
+        "z": 12040.0
+      },
+      "pitch": 31.29,
+      "yaw": 132.02,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "backof_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": -288.0,
+          "y": 96.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11680.0,
+        "zMax": 12035.1,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 305 units from the Backof A centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 83% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-backof_a-2",
+      "displayName": "Backof A #2",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 24.0,
+        "y": 24.0,
+        "z": 11982.6
+      },
+      "pitch": 25.56,
+      "yaw": 164.93,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "backof_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": -288.0,
+          "y": 96.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11680.0,
+        "zMax": 12035.1,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 200 units up, 320 units from the Backof A centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 62% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-backof_b-1",
+      "displayName": "Backof B from Site  B",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1883.0,
+        "y": 526.5,
+        "z": 12040.0
+      },
+      "pitch": 23.37,
+      "yaw": 38.58,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "backof_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1504.0,
+          "y": 864.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11680.0,
+        "zMax": 12033.6,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 507 units from the Backof B centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 94% of the area, and 87% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-backof_b-2",
+      "displayName": "Backof B from CTSpawn",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1122.6,
+        "y": 977.5,
+        "z": 12040.0
+      },
+      "pitch": 26.93,
+      "yaw": -162.06,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "backof_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1504.0,
+          "y": 864.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11680.0,
+        "zMax": 12033.6,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 398 units from the Backof B centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 76% of the area, and 87% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-bridge-1",
+      "displayName": "Bridge #1",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -622.0,
+        "y": -324.5,
+        "z": 11632.7
+      },
+      "pitch": 14.98,
+      "yaw": 158.04,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bridge"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1056.0,
+          "y": -160.0,
+          "z": 11540.0
+        },
+        "radiusUnits": 715.5,
+        "zMin": 11392.0,
+        "zMax": 11765.9,
+        "levelId": "lower"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Bridge), 140 units up, 464 units from the Bridge centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 75% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-bridge-2",
+      "displayName": "Bridge #2",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -832.0,
+        "y": 51.0,
+        "z": 11664.0
+      },
+      "pitch": 22.92,
+      "yaw": -96.7,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bridge"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1056.0,
+          "y": -160.0,
+          "z": 11540.0
+        },
+        "radiusUnits": 715.5,
+        "zMin": 11392.0,
+        "zMax": 11765.9,
+        "levelId": "lower"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 308 units from the Bridge centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 61% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-crane-1",
+      "displayName": "Crane from APlatform",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -984.0,
+        "y": -1464.0,
+        "z": 12040.0
+      },
+      "pitch": 18.06,
+      "yaw": 38.99,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "crane"
+      ],
+      "coverage": {
+        "center": {
+          "x": -480.0,
+          "y": -1056.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11680.0,
+        "zMax": 12032.5,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (APlatform), 260 units up, 648 units from the Crane centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-crane-2",
+      "displayName": "Crane from APlatform",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -198.0,
+        "y": -1413.5,
+        "z": 12102.0
+      },
+      "pitch": 30.99,
+      "yaw": 128.27,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "crane"
+      ],
+      "coverage": {
+        "center": {
+          "x": -480.0,
+          "y": -1056.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11680.0,
+        "zMax": 12032.5,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (APlatform), 260 units up, 455 units from the Crane centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-elevator-1",
+      "displayName": "Elevator from Site  A",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -216.0,
+        "y": -216.0,
+        "z": 11920.0
+      },
+      "pitch": 8.67,
+      "yaw": -177.07,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "elevator"
+      ],
+      "coverage": {
+        "center": {
+          "x": -864.0,
+          "y": -224.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11680.0,
+        "zMax": 12030.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 140 units up, 648 units from the Elevator centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 76% of the area, and 89% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-elevator-2",
+      "displayName": "Elevator from CTSpawn",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1065.6,
+        "y": 326.5,
+        "z": 11920.0
+      },
+      "pitch": 9.68,
+      "yaw": -79.32,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "elevator"
+      ],
+      "coverage": {
+        "center": {
+          "x": -864.0,
+          "y": -224.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11680.0,
+        "zMax": 12030.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 140 units up, 586 units from the Elevator centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 62% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-ladder_bottom-1",
+      "displayName": "Ladder Bottom from Tunnels",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1507.4,
+        "y": -195.5,
+        "z": 11632.0
+      },
+      "pitch": 9.83,
+      "yaw": -69.64,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ladder_bottom"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1312.0,
+          "y": -672.0,
+          "z": 11540.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11392.0,
+        "zMax": 11742.0,
+        "levelId": "lower"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Tunnels), 140 units up, 515 units from the Ladder Bottom centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 67% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-pit-1",
+      "displayName": "Pit from Site  B",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -2616.0,
+        "y": 408.0,
+        "z": 12014.3
+      },
+      "pitch": 28.37,
+      "yaw": -60.47,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "pit"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2336.0,
+          "y": -96.0,
+          "z": 11736.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11456.0,
+        "zMax": 12002.0,
+        "levelId": "lower"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 577 units from the Pit centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 70% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-pit-2",
+      "displayName": "Pit from Site  B",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -2232.0,
+        "y": 264.0,
+        "z": 12008.0
+      },
+      "pitch": 40.84,
+      "yaw": -110.14,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "pit"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2336.0,
+          "y": -96.0,
+          "z": 11736.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11456.0,
+        "zMax": 12002.0,
+        "levelId": "lower"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 375 units from the Pit centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 72% of the area, and 78% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-scaffolding-1",
+      "displayName": "Scaffolding from APlatform",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -911.0,
+        "y": -1477.0,
+        "z": 11920.0
+      },
+      "pitch": 20.41,
+      "yaw": 96.79,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "scaffolding"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": -992.0,
+          "z": 11722.5
+        },
+        "radiusUnits": 565.7,
+        "zMin": 11496.0,
+        "zMax": 12030.9,
+        "levelId": "lower"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (APlatform), 140 units up, 492 units from the Scaffolding centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 89% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-side-1",
+      "displayName": "Side #1",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -360.0,
+        "y": -648.0,
+        "z": 12142.0
+      },
+      "pitch": 29.61,
+      "yaw": 177.16,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "side"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": -672.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 659.7,
+        "zMin": 11680.0,
+        "zMax": 12048.8,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 632 units from the Side centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 67% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-side-2",
+      "displayName": "Side from Elevator",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -792.0,
+        "y": -216.0,
+        "z": 11920.0
+      },
+      "pitch": 11.76,
+      "yaw": -103.64,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "side"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": -672.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 659.7,
+        "zMin": 11680.0,
+        "zMax": 12048.8,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Elevator), 140 units up, 498 units from the Side centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 47% of the area, and 78% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-t_corridor_up-1",
+      "displayName": "TCorridor Up #1",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1512.0,
+        "y": -24.0,
+        "z": 11920.0
+      },
+      "pitch": 21.64,
+      "yaw": -85.31,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_corridor_up"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1568.0,
+          "y": -352.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 715.5,
+        "zMin": 11680.0,
+        "zMax": 12031.5,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TCorridor Up), 140 units up, 333 units from the TCorridor Up centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 62% of the area, and 58% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-topof_mid-1",
+      "displayName": "Topof Mid from Mid",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1720.0,
+        "y": 352.4,
+        "z": 12040.0
+      },
+      "pitch": 17.78,
+      "yaw": -12.96,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "topof_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1056.0,
+          "y": 224.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11680.0,
+        "zMax": 12030.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Mid), 260 units up, 676 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 82% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-vertigo-topof_mid-2",
+      "displayName": "Topof Mid from CTSpawn",
+      "mapName": "de_vertigo",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1080.0,
+        "y": 840.0,
+        "z": 11980.0
+      },
+      "pitch": 13.44,
+      "yaw": -93.03,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "topof_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1056.0,
+          "y": 224.0,
+          "z": 11828.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 11680.0,
+        "zMax": 12030.0,
+        "levelId": "upper"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 200 units up, 616 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 69% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
@@ -2948,7 +4196,7 @@
             "y": -589.0,
             "z": 12042.7
           },
-          "pitch": 19.44,
+          "pitch": 19.45,
           "yaw": -10.25
         },
         {
@@ -2978,7 +4226,7 @@
             "y": -1320.0,
             "z": 12021.6
           },
-          "pitch": 12.48,
+          "pitch": 12.49,
           "yaw": 87.88
         },
         {
@@ -3060,7 +4308,7 @@
             "y": 1054.0,
             "z": 12032.7
           },
-          "pitch": 21.42,
+          "pitch": 21.43,
           "yaw": -148.18
         },
         {
@@ -3096,7 +4344,7 @@
             "y": 840.0,
             "z": 12014.4
           },
-          "pitch": 27.41,
+          "pitch": 27.42,
           "yaw": -14.3
         },
         {
@@ -3142,8 +4390,8 @@
             "y": 287.1,
             "z": 12030.5
           },
-          "pitch": 47.05,
-          "yaw": -42.37
+          "pitch": 47.04,
+          "yaw": -42.38
         }
       ],
       "maxDurationMs": 7000,
@@ -3178,7 +4426,7 @@
             "y": 983.8,
             "z": 12041.3
           },
-          "pitch": 27.29,
+          "pitch": 27.28,
           "yaw": -143.19
         }
       ],
@@ -3210,11 +4458,11 @@
         {
           "tMs": 6000,
           "position": {
-            "x": -794.3,
+            "x": -794.2,
             "y": 757.4,
             "z": 12033.8
           },
-          "pitch": 38.09,
+          "pitch": 38.08,
           "yaw": -175.33
         }
       ],
@@ -3241,7 +4489,7 @@
             "z": 11980.0
           },
           "pitch": 31.15,
-          "yaw": -93.25
+          "yaw": -93.24
         },
         {
           "tMs": 2631,
@@ -3251,10 +4499,10 @@
             "z": 11920.0
           },
           "pitch": 25.53,
-          "yaw": -61.83
+          "yaw": -61.82
         },
         {
-          "tMs": 4537,
+          "tMs": 4536,
           "position": {
             "x": -2472.0,
             "y": -936.0,
@@ -3264,7 +4512,7 @@
           "yaw": -38.52
         },
         {
-          "tMs": 5346,
+          "tMs": 5345,
           "position": {
             "x": -2481.5,
             "y": -1024.5,
@@ -3274,7 +4522,7 @@
           "yaw": -29.1
         }
       ],
-      "maxDurationMs": 6346,
+      "maxDurationMs": 6345,
       "maxSpeedUnitsPerSec": 300,
       "collisionValidated": true,
       "validation": "unvalidated",

@@ -69,7 +69,10 @@ describe("RosterCard", () => {
     expect(card.getAttribute("title")).toMatch(/not a video feed/);
     expect(screen.getByText("DIRECTOR PICK")).toBeTruthy();
     fireEvent.click(card);
-    expect(onRequest).toHaveBeenCalledOnce();
+    expect(onRequest).toHaveBeenCalledWith(false);
+    // Shift-click: the chase view.
+    fireEvent.click(card, { shiftKey: true });
+    expect(onRequest).toHaveBeenLastCalledWith(true);
   });
 
   it("marks dead players and missing control capability as unavailable", () => {

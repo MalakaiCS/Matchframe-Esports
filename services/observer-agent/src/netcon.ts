@@ -1,5 +1,5 @@
 import type { CameraMode, CameraPath, CameraRecord, CommandContext, CommandResult, ObservedCameraState, Vec3 } from "@matchframe/contracts";
-import type { ControlCapabilities, ObserverControlAdapter } from "@matchframe/director-policy";
+import type { ControlCapabilities, ObserverControlAdapter, PlayerView } from "@matchframe/director-policy";
 import { failedResult, transportResult } from "@matchframe/director-policy";
 import { accountIdOf, cap } from "./common.ts";
 import { NetconConnection } from "./netcon-connection.ts";
@@ -47,6 +47,8 @@ export const DEFAULT_NETCON_TEMPLATES: NetconTemplates = {
 export const CS2_ENUM_MODES = { modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" } as const;
 /** CS:GO's numbering (the built-in default). */
 const CSGO_MODES = { modeInEye: "spec_mode 4", modeChase: "spec_mode 5", modeRoaming: "spec_mode 6" } as const;
+/** The chase view puts the camera at least this far (across) from the player; first person is about 0. */
+const CHASE_MIN_DISTANCE = 40;
 
 export interface PathPose {
   position: Vec3;
@@ -154,6 +156,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   readonly id: string;
   readonly kind = "direct" as const;
   readonly simulated = false;
+  readonly supportsChase = true;
   private readonly conn: NetconConnection;
   private readonly ownsConnection: boolean;
   private readonly offLine: () => void;
@@ -168,8 +171,11 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   private pathToken = 0;
   private modesLearned = false;
   private inEyeLearned = false;
+  private chaseLearned = false;
+  /** The camera is in the third-person chase view of a player. */
+  private chase = false;
   /** The latest observer state from the game data; `seq` counts updates. */
-  private observed: { cameraMode: string; observedSteamId: string | null; seq: number } = { cameraMode: "unknown", observedSteamId: null, seq: 0 };
+  private observed: { cameraMode: string; observedSteamId: string | null; position: { x: number; y: number; z: number } | null; seq: number } = { cameraMode: "unknown", observedSteamId: null, position: null, seq: 0 };
 
   constructor(private readonly opts: NetconOptions) {
     this.id = `netcon:${opts.host}:${opts.port}`;
@@ -209,10 +215,65 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   }
 
   /** Observer state from the game data: lets player selection leave the free camera first. */
-  noteObserverState(observer: { cameraMode: string; observedSteamId: string | null }): void {
+  noteObserverState(observer: { cameraMode: string; observedSteamId: string | null; observedPosition?: { x: number; y: number; z: number } | null }): void {
     this.telemetryRoaming = observer.cameraMode === "roaming" && !observer.observedSteamId;
     if (observer.observedSteamId && !this.pathTimer) this.freeCam = false;
-    this.observed = { cameraMode: observer.cameraMode, observedSteamId: observer.observedSteamId, seq: this.observed.seq + 1 };
+    this.observed = { cameraMode: observer.cameraMode, observedSteamId: observer.observedSteamId, position: observer.observedPosition ?? null, seq: this.observed.seq + 1 };
+  }
+
+  /** Asks getpos where the camera is; null without an answer in time. */
+  private async readPose(): Promise<PathPose | null> {
+    const seq = this.poseSeq;
+    try {
+      await this.conn.write(this.templates.readPose);
+    } catch {
+      return null;
+    }
+    const end = Date.now() + (this.opts.readbackTimeoutMs ?? 800);
+    while (this.poseSeq === seq && Date.now() < end) await new Promise((r) => setTimeout(r, 20));
+    return this.poseSeq === seq ? null : this.lastPose;
+  }
+
+  /** How far (across) the camera is from the spectated player: about 0 in first person, well behind in the chase view. */
+  private async chaseDistance(steamId: string): Promise<number | null> {
+    if ((await this.waitObserved(steamId, 1000)) !== "player") return null;
+    await new Promise((r) => setTimeout(r, 120));
+    const pose = await this.readPose();
+    const at = this.observed.position;
+    if (!pose || !at) return null;
+    return Math.hypot(pose.position.x - at.x, pose.position.y - at.y);
+  }
+
+  /**
+   * After the first chase shot: getpos shows whether the camera really went behind the player. If it
+   * stayed in first person, the chase command uses the other spec_mode numbering on this build: try
+   * that once, and keep it if it works.
+   */
+  private async learnChase(steamId: string, token: number): Promise<void> {
+    const d = await this.chaseDistance(steamId);
+    if (d === null || token !== this.pathToken) return;
+    if (d >= CHASE_MIN_DISTANCE) {
+      this.chaseLearned = true;
+      this.opts.onEvidence?.("observerModeControl", "supported", `getpos showed the chase view ${Math.round(d)} units behind the player (${this.templates.modeChase})`);
+      return;
+    }
+    const alt = this.templates.modeChase === CS2_ENUM_MODES.modeChase ? CSGO_MODES.modeChase : CS2_ENUM_MODES.modeChase;
+    try {
+      await this.conn.write(alt);
+    } catch {
+      return;
+    }
+    const d2 = await this.chaseDistance(steamId);
+    if (token !== this.pathToken) return;
+    if (d2 !== null && d2 >= CHASE_MIN_DISTANCE) {
+      this.chaseLearned = true;
+      this.templates.modeChase = alt;
+      this.opts.onModesLearned?.({ modeInEye: this.templates.modeInEye, modeChase: alt, modeRoaming: this.templates.modeRoaming });
+      this.opts.onEvidence?.("observerModeControl", "supported", `getpos showed the chase view ${Math.round(d2)} units behind the player (${alt})`);
+      return;
+    }
+    // Neither number moved the camera behind the player: back to the original command.
+    await this.conn.write(this.templates.modeChase).catch(() => undefined);
   }
 
   /**
@@ -309,7 +370,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     }
   }
 
-  async selectPlayer(steamId: string, observerSlot: number | null, ctx: CommandContext): Promise<CommandResult> {
+  async selectPlayer(steamId: string, observerSlot: number | null, ctx: CommandContext, view: PlayerView = "in_eye"): Promise<CommandResult> {
     let cmd: string;
     try {
       const values: Record<string, string | number> = { accountId: safeValue(accountIdOf(steamId)), steamId: safeValue(steamId), slot: safeValue(observerSlot ?? -1) };
@@ -323,12 +384,18 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
       return failedResult(ctx, "target_invalid", e instanceof Error ? e.message : String(e));
     }
     this.stopPath();
-    // spec_player in the free camera only moves the free camera: go back to in-eye first.
+    // spec_player in the free camera only moves the free camera, and it keeps the chase view:
+    // first person is set first when leaving either; the chase view is set after the player.
     const leaveFree = this.freeCam || this.telemetryRoaming;
-    const r = await this.send(ctx, leaveFree ? `${this.templates.modeInEye}; ${cmd}` : cmd);
+    const chase = view === "chase";
+    const prefix = leaveFree || (this.chase && !chase) ? `${this.templates.modeInEye}; ` : "";
+    const suffix = chase ? `; ${this.templates.modeChase}` : "";
+    const r = await this.send(ctx, `${prefix}${cmd}${suffix}`);
     if (r.status !== "failed") {
       this.freeCam = false;
-      if (leaveFree && !this.inEyeLearned) void this.learnInEye(steamId, cmd, this.pathToken);
+      this.chase = chase;
+      if (leaveFree && !chase && !this.inEyeLearned) void this.learnInEye(steamId, cmd, this.pathToken);
+      if (chase && !this.chaseLearned) void this.learnChase(steamId, this.pathToken);
     }
     return r;
   }

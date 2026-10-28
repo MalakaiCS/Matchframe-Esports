@@ -11,6 +11,27 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.4.3",
+    title: "Cameras all over the map, and a chase cam",
+    summary: "Built-in cameras now cover almost every named area of each map, and the Auto Director shows plants, defuses and round wins from behind the player.",
+    sections: [
+      {
+        heading: "Cameras",
+        items: [
+          "391 cameras instead of 104: every named area, not only the bombsites, mid and spawns, with the same checks against CS2's own geometry. 200 of the 227 named areas on the nine active-duty maps have cameras.",
+          "Big-fight overviews and nade cams can now use a camera almost anywhere a round is played.",
+        ],
+      },
+      {
+        heading: "Chase cam",
+        items: [
+          "While a player plants or defuses the bomb, and when their team wins the round, the Auto Director shows them from behind (CS2's third-person view), then goes back to their eyes.",
+          "Switch it off with Chase cam on the Auto Director card. Hold Shift when you pick a player in Live Control to choose the chase view yourself.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.4.2",
     title: "Cameras checked against CS2's own geometry",
     summary: "The built-in cameras and camera paths are rebuilt from CS2's own map geometry, so they don't look through walls or sit inside them.",

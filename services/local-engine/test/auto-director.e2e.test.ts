@@ -36,6 +36,12 @@ class FakeCs2 {
   readonly lines: string[] = [];
   observed: string | null = this.roster[0]!.steamId;
   free = false;
+  /** Third-person chase view (spec_mode 3 on a build whose free camera is 4, else 5). */
+  chase = false;
+  roundPhase: "freezetime" | "live" = "freezetime";
+  /** The spectated T player is planting the bomb, then it is planted where they stand. */
+  bomb: "planting" | "planted" | null = null;
+  private bombAt: { x: number; y: number; z: number } | null = null;
   pose = { x: 0, y: 0, z: 0, pitch: 0, yaw: 0 };
   private seq = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -49,7 +55,10 @@ class FakeCs2 {
   onLine(line: string, sock: Socket): void {
     this.lines.push(line);
     for (const cmd of line.split(";").map((c) => c.trim())) {
-      if (/^spec_mode \d$/.test(cmd)) this.free = cmd === this.freeMode;
+      if (/^spec_mode \d$/.test(cmd)) {
+        this.free = cmd === this.freeMode;
+        this.chase = cmd === (this.freeMode === "spec_mode 4" ? "spec_mode 3" : "spec_mode 5");
+      }
       const goto = /^spec_goto (\S+) (\S+) (\S+) (\S+) (\S+)$/.exec(cmd);
       if (goto && this.free) {
         const [x, y, z, pitch, yaw] = goto.slice(1).map(Number) as [number, number, number, number, number];
@@ -66,20 +75,27 @@ class FakeCs2 {
       }
       if (cmd === "getpos") {
         const f = (n: number) => n.toFixed(6);
-        sock.write(`setpos ${f(this.pose.x)} ${f(this.pose.y)} ${f(this.pose.z)};setang ${f(this.pose.pitch)} ${f(this.pose.yaw)} 0.000000\n`);
+        // On a player: their eyes, or 100 units behind them in the chase view.
+        const at = !this.free ? this.roster.find((r) => r.steamId === this.observed)?.position : undefined;
+        const pose = at ? { x: at.x - (this.chase ? 100 : 0), y: at.y, z: at.z + 64, pitch: 10, yaw: 0 } : this.pose;
+        sock.write(`setpos ${f(pose.x)} ${f(pose.y)} ${f(pose.z)};setang ${f(pose.pitch)} ${f(pose.yaw)} 0.000000\n`);
       }
     }
     void this.post();
   }
 
   async post(): Promise<void> {
+    const planter = this.bomb === "planting" ? this.roster.find((r) => r.steamId === this.observed && r.side === "T") : undefined;
+    if (planter?.position) this.bombAt = planter.position;
     const payload = buildSyntheticGsiPayload({
       mapName: "de_dust2",
       players: this.roster,
       observed: this.observed,
-      roundPhase: "freezetime",
-      phase: "freezetime",
-      phaseEndsIn: 15,
+      roundPhase: this.roundPhase,
+      phase: this.roundPhase,
+      phaseEndsIn: this.roundPhase === "freezetime" ? 15 : 60,
+      ...(planter?.position ? { bomb: { state: "planting", player: planter.steamId, position: planter.position } } : {}),
+      ...(this.bomb === "planted" && this.bombAt ? { bomb: { state: "planted", position: this.bombAt, countdown: 40 } } : {}),
       token: this.token,
       timestamp: 1_700_001_000 + this.seq++,
     });
@@ -217,6 +233,29 @@ describe("Auto Director: one button, checks and fixes by itself", () => {
     expect(st.headline).toMatch(/You took over/);
     expect((await api("/api/v1/observer/resume", { method: "POST", body: { countdownMs: 0 } })).status).toBe(200);
     await waitFor(async () => (await auto()).phase === "running", 3000);
+  });
+
+  it("shows the planter in the chase view, confirms it with getpos, and goes back to first person", async () => {
+    // Players only, so no bomb camera takes the shot.
+    expect((await api("/api/v1/director/auto/settings", { method: "PUT", body: { cinematic: false } })).json).toMatchObject({ settings: { cinematic: false, chase: true } });
+    cs2.roster.forEach((r, i) => (r.position = { x: -400 + i * 40, y: 1200, z: 0 }));
+    cs2.roundPhase = "live";
+    // On a T (the last pick was a CT), and automation back in charge.
+    await api("/api/v1/observer/commands", { method: "POST", body: { kind: "select_player", steamId: cs2.roster[1]!.steamId } });
+    await waitFor(async () => (await auto()).phase === "paused", 3000);
+    await waitFor(async () => (await auto()).phase === "running", 5000);
+    const before = cs2.lines.length;
+    cs2.bomb = "planting";
+    await waitFor(() => cs2.lines.slice(before).some((l) => /^spec_player ".+"; spec_mode 3$/.test(l)), 10000);
+    await waitFor(async () => (await caps()).observerModeControl!.support === "supported", 5000);
+    const back = cs2.lines.length;
+    cs2.bomb = "planted";
+    await waitFor(() => cs2.lines.slice(back).some((l) => /^spec_mode 2; spec_player ".+"$/.test(l)), 5000);
+    expect(cs2.chase).toBe(false);
+    // By hand, from Live Control or the API.
+    const pick = cs2.lines.length;
+    expect((await api("/api/v1/observer/commands", { method: "POST", body: { kind: "select_player", steamId: cs2.roster[2]!.steamId, view: "chase" } })).status).toBe(200);
+    await waitFor(() => cs2.lines.slice(pick).includes(`spec_player "${cs2.roster[2]!.name}"; spec_mode 3`), 3000);
   });
 
   it("stops with the button, and the Observer switches off", async () => {

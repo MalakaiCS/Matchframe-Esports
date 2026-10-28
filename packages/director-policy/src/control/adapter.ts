@@ -8,6 +8,9 @@ import type {
   ObservedCameraState,
 } from "@matchframe/contracts";
 
+/** How a spectated player is shown: through their eyes, or from behind in the third-person chase view. */
+export type PlayerView = "in_eye" | "chase";
+
 /** Control-related capabilities reported by an adapter (never inferred from telemetry). */
 export interface ControlCapabilities {
   playerSelectionControl: Capability;
@@ -27,8 +30,11 @@ export interface ObserverControlAdapter {
   readonly id: string;
   readonly kind: "direct" | "keyboard" | "demo_playback" | "simulation" | "none";
   readonly simulated: boolean;
+  /** Can show a player in the third-person chase view (`selectPlayer(..., "chase")`). */
+  readonly supportsChase?: boolean;
   getCapabilities(): Promise<ControlCapabilities>;
-  selectPlayer(steamId: string, observerSlot: number | null, context: CommandContext): Promise<CommandResult>;
+  /** Spectate a player, first person by default or in the third-person chase view. */
+  selectPlayer(steamId: string, observerSlot: number | null, context: CommandContext, view?: PlayerView): Promise<CommandResult>;
   setObserverMode(mode: CameraMode, context: CommandContext): Promise<CommandResult>;
   activateStaticCamera(camera: CameraRecord, context: CommandContext): Promise<CommandResult>;
   playCameraPath(path: CameraPath, context: CommandContext): Promise<CommandResult>;
@@ -36,8 +42,8 @@ export interface ObserverControlAdapter {
   readState(): Promise<ObservedCameraState>;
   /** Cancel queued keypresses / pending transport work immediately. */
   cancelPending(): void;
-  /** Observer state from the game data (e.g. whether the camera is in the free camera). */
-  noteObserverState?(observer: { cameraMode: string; observedSteamId: string | null }): void;
+  /** Observer state from the game data (e.g. whether the camera is in the free camera), with the spectated player's position. */
+  noteObserverState?(observer: { cameraMode: string; observedSteamId: string | null; observedPosition?: { x: number; y: number; z: number } | null }): void;
   stopAutomation(): Promise<void>;
   dispose(): Promise<void>;
 }

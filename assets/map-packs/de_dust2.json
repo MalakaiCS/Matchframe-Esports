@@ -3389,7 +3389,7 @@
         "y": 3048.0,
         "z": 386.6
       },
-      "pitch": 21.33,
+      "pitch": 21.34,
       "yaw": -140.9,
       "fov": null,
       "observerMode": "roaming_static",
@@ -3492,7 +3492,7 @@
         "z": 390.0
       },
       "pitch": 18.84,
-      "yaw": 39.3,
+      "yaw": 39.31,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3795,7 +3795,7 @@
         "y": 2136.0,
         "z": 20.7
       },
-      "pitch": 17.05,
+      "pitch": 17.06,
       "yaw": 156.9,
       "fov": null,
       "observerMode": "roaming_static",
@@ -3968,6 +3968,2022 @@
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
       "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 650 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 78% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-a_ramp-1",
+      "displayName": "ARamp #1",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1080.0,
+        "y": 3048.0,
+        "z": 393.1
+      },
+      "pitch": 26.15,
+      "yaw": -49.6,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "a_ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1440.0,
+          "y": 2592.0,
+          "z": 118.2
+        },
+        "radiusUnits": 582.4,
+        "zMin": -101.2,
+        "zMax": 420.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 581 units from the ARamp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-a_ramp-2",
+      "displayName": "ARamp #2",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 941.8,
+        "y": 2414.2,
+        "z": 390.0
+      },
+      "pitch": 26.5,
+      "yaw": 23.02,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "a_ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1440.0,
+          "y": 2592.0,
+          "z": 118.2
+        },
+        "radiusUnits": 582.4,
+        "zMin": -101.2,
+        "zMax": 420.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 529 units from the ARamp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-b_doors-1",
+      "displayName": "BDoors from Mid Doors",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -360.0,
+        "y": 2376.0,
+        "z": 160.9
+      },
+      "pitch": 12.7,
+      "yaw": -175.79,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "b_doors"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": 2336.0,
+          "z": 8.0
+        },
+        "radiusUnits": 512.2,
+        "zMin": -211.3,
+        "zMax": 373.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Mid Doors), 260 units up, 633 units from the BDoors centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 98% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-b_doors-2",
+      "displayName": "BDoors #2",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1258.5,
+        "y": 2610.0,
+        "z": 373.3
+      },
+      "pitch": 43.37,
+      "yaw": -47.32,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "b_doors"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": 2336.0,
+          "z": 8.0
+        },
+        "radiusUnits": 512.2,
+        "zMin": -211.3,
+        "zMax": 373.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (BDoors), 260 units up, 382 units from the BDoors centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-catwalk-1",
+      "displayName": "Catwalk from Middle",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -332.9,
+        "y": 1393.1,
+        "z": 236.0
+      },
+      "pitch": 29.75,
+      "yaw": -19.3,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "catwalk"
+      ],
+      "coverage": {
+        "center": {
+          "x": -32.0,
+          "y": 1376.0,
+          "z": 51.8
+        },
+        "radiusUnits": 912.1,
+        "zMin": -97.7,
+        "zMax": 255.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 301 units from the Catwalk centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 98% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-catwalk-2",
+      "displayName": "Catwalk from Short Stairs",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 456.0,
+        "y": 1416.0,
+        "z": 338.0
+      },
+      "pitch": 33.73,
+      "yaw": 177.36,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "catwalk"
+      ],
+      "coverage": {
+        "center": {
+          "x": -32.0,
+          "y": 1376.0,
+          "z": 51.8
+        },
+        "radiusUnits": 912.1,
+        "zMin": -97.7,
+        "zMax": 255.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Short Stairs), 260 units up, 490 units from the Catwalk centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 68% of the area, and 71% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-extended_a-1",
+      "displayName": "Extended A #1",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1032.0,
+        "y": 2568.0,
+        "z": 416.0
+      },
+      "pitch": 24.83,
+      "yaw": -163.82,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "extended_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": 480.0,
+          "y": 2400.0,
+          "z": 146.2
+        },
+        "radiusUnits": 659.7,
+        "zMin": -2.0,
+        "zMax": 392.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 577 units from the Extended A centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 98% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-extended_a-2",
+      "displayName": "Extended A #2",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 459.5,
+        "y": 1998.0,
+        "z": 396.0
+      },
+      "pitch": 31.37,
+      "yaw": 87.08,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "extended_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": 480.0,
+          "y": 2400.0,
+          "z": 146.2
+        },
+        "radiusUnits": 659.7,
+        "zMin": -2.0,
+        "zMax": 392.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 403 units from the Extended A centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-hole-1",
+      "displayName": "Hole #1",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -2059.8,
+        "y": 2856.7,
+        "z": 354.0
+      },
+      "pitch": 14.05,
+      "yaw": -17.04,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "hole"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1376.0,
+          "y": 2656.0,
+          "z": 175.4
+        },
+        "radiusUnits": 500.0,
+        "zMin": 16.2,
+        "zMax": 378.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 713 units from the Hole centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-hole-2",
+      "displayName": "Hole #2",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1824.2,
+        "y": 1838.2,
+        "z": 396.0
+      },
+      "pitch": 13.83,
+      "yaw": 61.67,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "hole"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1376.0,
+          "y": 2656.0,
+          "z": 175.4
+        },
+        "radiusUnits": 500.0,
+        "zMin": 16.2,
+        "zMax": 378.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 933 units from the Hole centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 80% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-long_a-1",
+      "displayName": "Long A #1",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1416.0,
+        "y": 2232.0,
+        "z": 260.2
+      },
+      "pitch": 17.69,
+      "yaw": -86.56,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "long_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1504.0,
+          "y": 1568.0,
+          "z": 45.1
+        },
+        "radiusUnits": 989.5,
+        "zMin": -110.4,
+        "zMax": 298.5,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 670 units from the Long A centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-long_a-2",
+      "displayName": "Long A from Long Doors",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1272.0,
+        "y": 984.0,
+        "z": 262.0
+      },
+      "pitch": 19.82,
+      "yaw": 72.96,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "long_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1504.0,
+          "y": 1568.0,
+          "z": 45.1
+        },
+        "radiusUnits": 989.5,
+        "zMin": -110.4,
+        "zMax": 298.5,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Long Doors), 260 units up, 628 units from the Long A centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-long_doors-1",
+      "displayName": "Long Doors from Side",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1608.0,
+        "y": 600.0,
+        "z": 344.0
+      },
+      "pitch": 24.46,
+      "yaw": 161.73,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "long_doors"
+      ],
+      "coverage": {
+        "center": {
+          "x": 992.0,
+          "y": 736.0,
+          "z": 58.7
+        },
+        "radiusUnits": 850.4,
+        "zMin": -104.6,
+        "zMax": 286.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Side), 260 units up, 631 units from the Long Doors centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 78% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-long_doors-2",
+      "displayName": "Long Doors #2",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 944.8,
+        "y": 1167.7,
+        "z": 300.0
+      },
+      "pitch": 32.19,
+      "yaw": -83.56,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "long_doors"
+      ],
+      "coverage": {
+        "center": {
+          "x": 992.0,
+          "y": 736.0,
+          "z": 58.7
+        },
+        "radiusUnits": 850.4,
+        "zMin": -104.6,
+        "zMax": 286.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Long Doors), 260 units up, 434 units from the Long Doors centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 83% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-lower_tunnel-1",
+      "displayName": "Lower Tunnel #1",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1176.0,
+        "y": 1464.0,
+        "z": 68.0
+      },
+      "pitch": 20.55,
+      "yaw": -6.5,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "lower_tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": -800.0,
+          "y": 1440.0,
+          "z": -61.3
+        },
+        "radiusUnits": 500.0,
+        "zMin": -218.3,
+        "zMax": 178.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Lower Tunnel), 140 units up, 377 units from the Lower Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 96% of the area, and 73% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-lower_tunnel-2",
+      "displayName": "Lower Tunnel from Catwalk",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -168.0,
+        "y": 1368.0,
+        "z": 144.0
+      },
+      "pitch": 22.71,
+      "yaw": 171.15,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "lower_tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": -800.0,
+          "y": 1440.0,
+          "z": -61.3
+        },
+        "radiusUnits": 500.0,
+        "zMin": -218.3,
+        "zMax": 178.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Catwalk), 140 units up, 636 units from the Lower Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 57% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-mid_doors-1",
+      "displayName": "Mid Doors #1",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -625.4,
+        "y": 2499.4,
+        "z": 179.0
+      },
+      "pitch": 30.03,
+      "yaw": -70.09,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "mid_doors"
+      ],
+      "coverage": {
+        "center": {
+          "x": -480.0,
+          "y": 2016.0,
+          "z": -74.6
+        },
+        "radiusUnits": 715.5,
+        "zMin": -224.9,
+        "zMax": 170.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Mid Doors), 260 units up, 505 units from the Mid Doors centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-mid_doors-2",
+      "displayName": "Mid Doors #2",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -438.3,
+        "y": 1669.9,
+        "z": 137.0
+      },
+      "pitch": 26.89,
+      "yaw": 93.32,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "mid_doors"
+      ],
+      "coverage": {
+        "center": {
+          "x": -480.0,
+          "y": 2016.0,
+          "z": -74.6
+        },
+        "radiusUnits": 715.5,
+        "zMin": -224.9,
+        "zMax": 170.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 349 units from the Mid Doors centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 77% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-outside_long-1",
+      "displayName": "Outside Long from TSpawn",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 104.0,
+        "y": -768.0,
+        "z": 255.5
+      },
+      "pitch": 17.33,
+      "yaw": 70.29,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "outside_long"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": -160.0,
+          "z": 46.5
+        },
+        "radiusUnits": 754.7,
+        "zMin": -101.5,
+        "zMax": 262.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 657 units from the Outside Long centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-outside_long-2",
+      "displayName": "Outside Long #2",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 264.0,
+        "y": 408.0,
+        "z": 263.0
+      },
+      "pitch": 20.89,
+      "yaw": -80.99,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "outside_long"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": -160.0,
+          "z": 46.5
+        },
+        "radiusUnits": 754.7,
+        "zMin": -101.5,
+        "zMax": 262.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Outside Long), 260 units up, 575 units from the Outside Long centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 91% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-outside_tunnel-1",
+      "displayName": "Outside Tunnel from TSpawn",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1773.5,
+        "y": -345.5,
+        "z": 425.3
+      },
+      "pitch": 30.82,
+      "yaw": 83.46,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "outside_tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1696.0,
+          "y": 224.0,
+          "z": 54.9
+        },
+        "radiusUnits": 609.3,
+        "zMin": -98.2,
+        "zMax": 322.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 575 units from the Outside Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 98% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-outside_tunnel-2",
+      "displayName": "Outside Tunnel #2",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1464.0,
+        "y": 648.0,
+        "z": 297.4
+      },
+      "pitch": 27.09,
+      "yaw": -121.13,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "outside_tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1696.0,
+          "y": 224.0,
+          "z": 54.9
+        },
+        "radiusUnits": 609.3,
+        "zMin": -98.2,
+        "zMax": 322.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Outside Tunnel), 260 units up, 483 units from the Outside Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-pit-1",
+      "displayName": "Pit from Long A",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1368.0,
+        "y": 1176.0,
+        "z": 254.3
+      },
+      "pitch": 23.81,
+      "yaw": -84.82,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "pit"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1440.0,
+          "y": 544.0,
+          "z": -41.3
+        },
+        "radiusUnits": 500.0,
+        "zMin": -278.1,
+        "zMax": 286.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Long A), 260 units up, 636 units from the Pit centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 98% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-pit-2",
+      "displayName": "Pit from Long Doors",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1128.0,
+        "y": 600.0,
+        "z": 269.8
+      },
+      "pitch": 43.65,
+      "yaw": -13.09,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "pit"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1440.0,
+          "y": 544.0,
+          "z": -41.3
+        },
+        "radiusUnits": 500.0,
+        "zMin": -278.1,
+        "zMax": 286.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Long Doors), 260 units up, 317 units from the Pit centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 90% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-ramp-1",
+      "displayName": "Ramp #1",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 735.5,
+        "y": 2436.0,
+        "z": 402.0
+      },
+      "pitch": 21.32,
+      "yaw": 29.37,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1312.0,
+          "y": 2784.0,
+          "z": 166.5
+        },
+        "radiusUnits": 645.0,
+        "zMin": -88.8,
+        "zMax": 420.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 673 units from the Ramp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-ramp-2",
+      "displayName": "Ramp from Long A",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1565.2,
+        "y": 2185.0,
+        "z": 257.3
+      },
+      "pitch": 9.42,
+      "yaw": 115.98,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1312.0,
+          "y": 2784.0,
+          "z": 166.5
+        },
+        "radiusUnits": 645.0,
+        "zMin": -88.8,
+        "zMax": 420.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Long A), 260 units up, 650 units from the Ramp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-short-1",
+      "displayName": "Short from Site  A",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1094.4,
+        "y": 2309.2,
+        "z": 390.0
+      },
+      "pitch": 19.78,
+      "yaw": 160.71,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "short"
+      ],
+      "coverage": {
+        "center": {
+          "x": 480.0,
+          "y": 2528.0,
+          "z": 146.2
+        },
+        "radiusUnits": 536.7,
+        "zMin": -2.0,
+        "zMax": 379.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 652 units from the Short centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-short-2",
+      "displayName": "Short #2",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 459.5,
+        "y": 1998.0,
+        "z": 396.0
+      },
+      "pitch": 24.74,
+      "yaw": 88.94,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "short"
+      ],
+      "coverage": {
+        "center": {
+          "x": 480.0,
+          "y": 2528.0,
+          "z": 146.2
+        },
+        "radiusUnits": 536.7,
+        "zMin": -2.0,
+        "zMax": 379.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 530 units from the Short centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-short_stairs-1",
+      "displayName": "Short Stairs from Extended A",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 456.0,
+        "y": 2280.0,
+        "z": 358.4
+      },
+      "pitch": 22.28,
+      "yaw": -97.31,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "short_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": 1632.0,
+          "z": 56.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -96.0,
+        "zMax": 353.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Extended A), 260 units up, 656 units from the Short Stairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-short_stairs-2",
+      "displayName": "Short Stairs from Catwalk",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 72.0,
+        "y": 1368.0,
+        "z": 262.5
+      },
+      "pitch": 30.65,
+      "yaw": 26.23,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "short_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": 1632.0,
+          "z": 56.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -96.0,
+        "zMax": 353.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Catwalk), 260 units up, 385 units from the Short Stairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 58% of the area, and 62% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-side-1",
+      "displayName": "Side from Long Doors",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1128.0,
+        "y": 408.0,
+        "z": 271.2
+      },
+      "pitch": 17.65,
+      "yaw": 29.49,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "side"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1696.0,
+          "y": 736.0,
+          "z": 71.3
+        },
+        "radiusUnits": 500.0,
+        "zMin": -157.1,
+        "zMax": 309.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Long Doors), 260 units up, 656 units from the Side centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-side-2",
+      "displayName": "Side #2",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1175.5,
+        "y": 1183.2,
+        "z": 262.5
+      },
+      "pitch": 15.92,
+      "yaw": -41.76,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "side"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1696.0,
+          "y": 736.0,
+          "z": 71.3
+        },
+        "radiusUnits": 500.0,
+        "zMin": -157.1,
+        "zMax": 309.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 686 units from the Side centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-t_ramp-1",
+      "displayName": "TRamp from TSpawn",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1552.5,
+        "y": -135.0,
+        "z": 428.7
+      },
+      "pitch": 22.13,
+      "yaw": -128.13,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1952.0,
+          "y": -672.0,
+          "z": 177.9
+        },
+        "radiusUnits": 737.6,
+        "zMin": -89.6,
+        "zMax": 430.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 669 units from the TRamp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-t_ramp-2",
+      "displayName": "TRamp from TSpawn",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1405.5,
+        "y": -1038.3,
+        "z": 390.0
+      },
+      "pitch": 18.75,
+      "yaw": 147.45,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1952.0,
+          "y": -672.0,
+          "z": 177.9
+        },
+        "radiusUnits": 737.6,
+        "zMin": -89.6,
+        "zMax": 430.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 658 units from the TRamp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 91% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-topof_mid-1",
+      "displayName": "Topof Mid #1",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -456.0,
+        "y": 744.0,
+        "z": 260.5
+      },
+      "pitch": 23.97,
+      "yaw": -80.29,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "topof_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": -416.0,
+          "y": 224.0,
+          "z": 50.0
+        },
+        "radiusUnits": 1181.2,
+        "zMin": -100.1,
+        "zMax": 266.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 522 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 80% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-topof_mid-2",
+      "displayName": "Topof Mid #2",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -120.0,
+        "y": 456.0,
+        "z": 262.6
+      },
+      "pitch": 43.22,
+      "yaw": -176.77,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "topof_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": -416.0,
+          "y": 224.0,
+          "z": 50.0
+        },
+        "radiusUnits": 1181.2,
+        "zMin": -100.1,
+        "zMax": 266.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Topof Mid), 260 units up, 376 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 66% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-tunnel_stairs-1",
+      "displayName": "Tunnel Stairs from Upper Tunnel",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1413.6,
+        "y": 1102.9,
+        "z": 299.0
+      },
+      "pitch": 46.88,
+      "yaw": 5.26,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1120.0,
+          "y": 1184.0,
+          "z": -16.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -208.0,
+        "zMax": 285.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Upper Tunnel), 260 units up, 305 units from the Tunnel Stairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 77% of the area, and 73% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-tunnel_stairs-2",
+      "displayName": "Tunnel Stairs from Lower Tunnel",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -976.5,
+        "y": 1512.0,
+        "z": 32.7
+      },
+      "pitch": 5.82,
+      "yaw": -115.05,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1120.0,
+          "y": 1184.0,
+          "z": -16.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -208.0,
+        "zMax": 285.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Lower Tunnel), 140 units up, 358 units from the Tunnel Stairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 77% of the area, and 64% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-under_a-1",
+      "displayName": "Under A from Long A",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1512.0,
+        "y": 2088.0,
+        "z": 253.8
+      },
+      "pitch": 19.14,
+      "yaw": 169.39,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "under_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": 864.0,
+          "y": 2208.0,
+          "z": 21.5
+        },
+        "radiusUnits": 506.0,
+        "zMin": -217.0,
+        "zMax": 380.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Long A), 260 units up, 659 units from the Under A centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 98% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-under_a-2",
+      "displayName": "Under A from Extended A",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 615.1,
+        "y": 2512.1,
+        "z": 358.5
+      },
+      "pitch": 39.94,
+      "yaw": -51.03,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "under_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": 864.0,
+          "y": 2208.0,
+          "z": 21.5
+        },
+        "radiusUnits": 506.0,
+        "zMin": -217.0,
+        "zMax": 380.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Extended A), 260 units up, 393 units from the Under A centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-upper_tunnel-1",
+      "displayName": "Upper Tunnel #1",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -2083.8,
+        "y": 1099.9,
+        "z": 299.0
+      },
+      "pitch": 32.42,
+      "yaw": 22.21,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "upper_tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1760.0,
+          "y": 1184.0,
+          "z": 83.9
+        },
+        "radiusUnits": 894.4,
+        "zMin": -108.2,
+        "zMax": 324.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Upper Tunnel), 260 units up, 335 units from the Upper Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 81% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-dust2-upper_tunnel-2",
+      "displayName": "Upper Tunnel #2",
+      "mapName": "de_dust2",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1209.6,
+        "y": 1216.1,
+        "z": 308.0
+      },
+      "pitch": 23.34,
+      "yaw": -171.54,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "upper_tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1760.0,
+          "y": 1184.0,
+          "z": 83.9
+        },
+        "radiusUnits": 894.4,
+        "zMin": -108.2,
+        "zMax": 324.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Upper Tunnel), 200 units up, 551 units from the Upper Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 59% of the area, and 76% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
@@ -4008,7 +6024,7 @@
           "yaw": 58.65
         },
         {
-          "tMs": 5111,
+          "tMs": 5112,
           "position": {
             "x": 1032.0,
             "y": 2088.0,
@@ -4024,7 +6040,7 @@
             "y": 2088.0,
             "z": 260.5
           },
-          "pitch": 10.29,
+          "pitch": 10.3,
           "yaw": 114.93
         },
         {
@@ -4045,7 +6061,7 @@
             "z": 348.0
           },
           "pitch": 23.17,
-          "yaw": 179.97
+          "yaw": 179.96
         }
       ],
       "maxDurationMs": 11000,
@@ -4070,7 +6086,7 @@
             "y": 3048.0,
             "z": 386.6
           },
-          "pitch": 21.74,
+          "pitch": 21.75,
           "yaw": -139.32
         },
         {
@@ -4208,7 +6224,7 @@
             "y": 504.0,
             "z": 267.4
           },
-          "pitch": 26.74,
+          "pitch": 26.73,
           "yaw": 74.6
         },
         {

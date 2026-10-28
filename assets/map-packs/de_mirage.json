@@ -2954,7 +2954,7 @@
         "y": 264.0,
         "z": 96.2
       },
-      "pitch": 38.71,
+      "pitch": 38.7,
       "yaw": -3.96,
       "fov": null,
       "observerMode": "roaming_static",
@@ -3105,7 +3105,7 @@
         "y": -2376.0,
         "z": 18.5
       },
-      "pitch": 18.61,
+      "pitch": 18.6,
       "yaw": 91.67,
       "fov": null,
       "observerMode": "roaming_static",
@@ -3152,7 +3152,7 @@
         "z": 76.0
       },
       "pitch": 27.18,
-      "yaw": -79.87,
+      "yaw": -79.88,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3278,6 +3278,1638 @@
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
       "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 432 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-apartments-1",
+      "displayName": "Apartments from Truck",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -2184.0,
+        "y": 744.0,
+        "z": 75.3
+      },
+      "pitch": 7.14,
+      "yaw": -0.14,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "apartments"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1376.0,
+          "y": 736.0,
+          "z": -22.6
+        },
+        "radiusUnits": 720.0,
+        "zMin": -177.4,
+        "zMax": 206.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Truck), 200 units up, 808 units from the Apartments centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 53% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-back_alley-1",
+      "displayName": "Back Alley #1",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -158.9,
+        "y": 374.4,
+        "z": 213.0
+      },
+      "pitch": 36.21,
+      "yaw": 129.54,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "back_alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": -416.0,
+          "y": 608.0,
+          "z": -29.2
+        },
+        "radiusUnits": 645.0,
+        "zMin": -233.0,
+        "zMax": 192.5,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Back Alley), 260 units up, 347 units from the Back Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 83% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-back_alley-2",
+      "displayName": "Back Alley #2",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -168.0,
+        "y": 840.0,
+        "z": 128.0
+      },
+      "pitch": 35.94,
+      "yaw": -126.83,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "back_alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": -416.0,
+          "y": 608.0,
+          "z": -29.2
+        },
+        "radiusUnits": 645.0,
+        "zMin": -233.0,
+        "zMax": 192.5,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Back Alley), 260 units up, 340 units from the Back Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 75% of the area, and 89% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-balcony-1",
+      "displayName": "Balcony #1",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -2007.6,
+        "y": 95.4,
+        "z": 174.0
+      },
+      "pitch": 14.69,
+      "yaw": 92.39,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "balcony"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2016.0,
+          "y": 736.0,
+          "z": 4.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -144.0,
+        "zMax": 209.5,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 641 units from the Balcony centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-balcony-2",
+      "displayName": "Balcony from Truck",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -2371.5,
+        "y": 722.0,
+        "z": 224.0
+      },
+      "pitch": 32.87,
+      "yaw": 2.38,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "balcony"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2016.0,
+          "y": 736.0,
+          "z": 4.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -144.0,
+        "zMax": 209.5,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Truck), 260 units up, 356 units from the Balcony centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-catwalk-1",
+      "displayName": "Catwalk #1",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -892.5,
+        "y": -519.0,
+        "z": 214.0
+      },
+      "pitch": 38.4,
+      "yaw": 34.09,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "catwalk"
+      ],
+      "coverage": {
+        "center": {
+          "x": -736.0,
+          "y": -224.0,
+          "z": -108.6
+        },
+        "radiusUnits": 1011.9,
+        "zMin": -278.2,
+        "zMax": 93.4,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 334 units from the Catwalk centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 83% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-catwalk-2",
+      "displayName": "Catwalk from Middle",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -163.0,
+        "y": -850.5,
+        "z": 96.0
+      },
+      "pitch": 19.75,
+      "yaw": 124.52,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "catwalk"
+      ],
+      "coverage": {
+        "center": {
+          "x": -736.0,
+          "y": -224.0,
+          "z": -108.6
+        },
+        "radiusUnits": 1011.9,
+        "zMin": -278.2,
+        "zMax": 93.4,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Middle), 260 units up, 849 units from the Catwalk centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 70% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-connector-1",
+      "displayName": "Connector from Site  A",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -537.2,
+        "y": -1774.7,
+        "z": 87.5
+      },
+      "pitch": 17.43,
+      "yaw": 103.43,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "connector"
+      ],
+      "coverage": {
+        "center": {
+          "x": -672.0,
+          "y": -1120.0,
+          "z": -128.7
+        },
+        "radiusUnits": 500.0,
+        "zMin": -360.0,
+        "zMax": 132.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 668 units from the Connector centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 70% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-connector-2",
+      "displayName": "Connector from Middle",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -744.0,
+        "y": -552.0,
+        "z": -124.4
+      },
+      "pitch": 1.59,
+      "yaw": -78.58,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "connector"
+      ],
+      "coverage": {
+        "center": {
+          "x": -672.0,
+          "y": -1120.0,
+          "z": -128.7
+        },
+        "radiusUnits": 500.0,
+        "zMin": -360.0,
+        "zMax": 132.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Middle), 140 units up, 573 units from the Connector centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 65% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-jungle-1",
+      "displayName": "Jungle from Stairs",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -504.0,
+        "y": -1608.0,
+        "z": 164.0
+      },
+      "pitch": 27.07,
+      "yaw": 158.18,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "jungle"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1056.0,
+          "y": -1376.0,
+          "z": -115.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -267.6,
+        "zMax": 98.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Stairs), 200 units up, 599 units from the Jungle centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-jungle-2",
+      "displayName": "Jungle from Connector",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -670.4,
+        "y": -1326.2,
+        "z": 96.0
+      },
+      "pitch": 34.67,
+      "yaw": -159.87,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "jungle"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1056.0,
+          "y": -1376.0,
+          "z": -115.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -267.6,
+        "zMax": 98.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Connector), 260 units up, 389 units from the Jungle centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 67% of the area, and 76% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-palace_alley-1",
+      "displayName": "Palace Alley from TSpawn",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1320.0,
+        "y": -984.0,
+        "z": 96.0
+      },
+      "pitch": 39.72,
+      "yaw": -164.2,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "palace_alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": 864.0,
+          "y": -1248.0,
+          "z": -58.0
+        },
+        "radiusUnits": 754.7,
+        "zMin": -360.0,
+        "zMax": 144.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 527 units from the Palace Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-palace_alley-2",
+      "displayName": "Palace Alley #2",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 569.4,
+        "y": -1336.7,
+        "z": 9.0
+      },
+      "pitch": 42.17,
+      "yaw": -9.91,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "palace_alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": 864.0,
+          "y": -1248.0,
+          "z": -58.0
+        },
+        "radiusUnits": 754.7,
+        "zMin": -360.0,
+        "zMax": 144.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 308 units from the Palace Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 69% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-palace_interior-1",
+      "displayName": "Palace Interior #1",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1033.5,
+        "y": -2115.0,
+        "z": 72.0
+      },
+      "pitch": 16.31,
+      "yaw": 160.69,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "palace_interior"
+      ],
+      "coverage": {
+        "center": {
+          "x": 672.0,
+          "y": -2016.0,
+          "z": 12.0
+        },
+        "radiusUnits": 1249.6,
+        "zMin": -264.0,
+        "zMax": 266.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Palace Interior), 140 units up, 375 units from the Palace Interior centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 67% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-palace_interior-2",
+      "displayName": "Palace Interior #2",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 648.0,
+        "y": -2328.0,
+        "z": 104.0
+      },
+      "pitch": 39.0,
+      "yaw": 124.55,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "palace_interior"
+      ],
+      "coverage": {
+        "center": {
+          "x": 672.0,
+          "y": -2016.0,
+          "z": 12.0
+        },
+        "radiusUnits": 1249.6,
+        "zMin": -264.0,
+        "zMax": 266.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Palace Interior), 140 units up, 313 units from the Palace Interior centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 53% of the area, and 51% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-scaffolding-1",
+      "displayName": "Scaffolding from Stairs",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -411.0,
+        "y": -1554.5,
+        "z": 224.0
+      },
+      "pitch": 18.07,
+      "yaw": -48.16,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "scaffolding"
+      ],
+      "coverage": {
+        "center": {
+          "x": 32.0,
+          "y": -2016.0,
+          "z": 12.5
+        },
+        "radiusUnits": 500.0,
+        "zMin": -136.0,
+        "zMax": 216.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Stairs), 260 units up, 640 units from the Scaffolding centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-scaffolding-2",
+      "displayName": "Scaffolding from Site  A",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -552.0,
+        "y": -2280.0,
+        "z": 87.3
+      },
+      "pitch": 6.79,
+      "yaw": 24.28,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "scaffolding"
+      ],
+      "coverage": {
+        "center": {
+          "x": 32.0,
+          "y": -2016.0,
+          "z": 12.5
+        },
+        "radiusUnits": 500.0,
+        "zMin": -136.0,
+        "zMax": 216.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 641 units from the Scaffolding centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-side_alley-1",
+      "displayName": "Side Alley #1",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 257.4,
+        "y": 608.0,
+        "z": 6.5
+      },
+      "pitch": 30.13,
+      "yaw": -29.0,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "side_alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": 608.0,
+          "y": 480.0,
+          "z": -208.5
+        },
+        "radiusUnits": 737.6,
+        "zMin": -361.0,
+        "zMax": 40.8,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 373 units from the Side Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 94% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-side_alley-2",
+      "displayName": "Side Alley from TSpawn",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1224.5,
+        "y": 437.0,
+        "z": 2.0
+      },
+      "pitch": 24.44,
+      "yaw": 172.12,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "side_alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": 608.0,
+          "y": 480.0,
+          "z": -208.5
+        },
+        "radiusUnits": 737.6,
+        "zMin": -361.0,
+        "zMax": 40.8,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 618 units from the Side Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 59% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-snipers_nest-1",
+      "displayName": "Snipers Nest from Jungle",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1236.0,
+        "y": -1474.5,
+        "z": -15.3
+      },
+      "pitch": 13.31,
+      "yaw": 86.44,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "snipers_nest"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1184.0,
+          "y": -928.0,
+          "z": -116.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -264.0,
+        "zMax": 86.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Jungle), 140 units up, 549 units from the Snipers Nest centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 77% of the area, and 58% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-snipers_nest-2",
+      "displayName": "Snipers Nest #2",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1128.0,
+        "y": -552.0,
+        "z": -24.0
+      },
+      "pitch": 13.0,
+      "yaw": -100.41,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "snipers_nest"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1184.0,
+          "y": -928.0,
+          "z": -116.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -264.0,
+        "zMax": 86.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Snipers Nest), 140 units up, 380 units from the Snipers Nest centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 47% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-stairs-1",
+      "displayName": "Stairs #1",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -648.0,
+        "y": -2136.0,
+        "z": 210.0
+      },
+      "pitch": 19.76,
+      "yaw": 73.06,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": -480.0,
+          "y": -1568.0,
+          "z": 12.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -260.3,
+        "zMax": 214.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 592 units from the Stairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-stairs-2",
+      "displayName": "Stairs from Scaffolding",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 42.9,
+        "y": -1950.2,
+        "z": 224.0
+      },
+      "pitch": 19.37,
+      "yaw": 144.5,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": -480.0,
+          "y": -1568.0,
+          "z": 12.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -260.3,
+        "zMax": 214.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Scaffolding), 260 units up, 648 units from the Stairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 80% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-t_ramp-1",
+      "displayName": "TRamp #1",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -119.5,
+        "y": -1434.5,
+        "z": 70.0
+      },
+      "pitch": 26.01,
+      "yaw": -16.33,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": -1568.0,
+          "z": -143.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -360.0,
+        "zMax": 122.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 490 units from the TRamp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 85% of the area, and 71% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-t_ramp-2",
+      "displayName": "TRamp #2",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 696.7,
+        "y": -1687.7,
+        "z": -113.5
+      },
+      "pitch": 9.27,
+      "yaw": 165.71,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_ramp"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": -1568.0,
+          "z": -143.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -360.0,
+        "zMax": 122.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 365 units from the TRamp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 65% of the area, and 49% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-ticket_booth-1",
+      "displayName": "Ticket Booth from Site  A",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -380.1,
+        "y": -2194.7,
+        "z": 87.0
+      },
+      "pitch": 18.05,
+      "yaw": -159.84,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ticket_booth"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": -2400.0,
+          "z": -116.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -276.0,
+        "zMax": 153.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 645 units from the Ticket Booth centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-ticket_booth-2",
+      "displayName": "Ticket Booth from CTSpawn",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1623.0,
+        "y": -2220.5,
+        "z": 8.7
+      },
+      "pitch": 10.62,
+      "yaw": -16.85,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ticket_booth"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": -2400.0,
+          "z": -116.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -276.0,
+        "zMax": 153.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 656 units from the Ticket Booth centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-topof_mid-1",
+      "displayName": "Topof Mid #1",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 96.1,
+        "y": -909.6,
+        "z": 224.0
+      },
+      "pitch": 37.89,
+      "yaw": 66.12,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "topof_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": 288.0,
+          "y": -544.0,
+          "z": -36.0
+        },
+        "radiusUnits": 724.4,
+        "zMin": -313.8,
+        "zMax": 166.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 413 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-topof_mid-2",
+      "displayName": "Topof Mid #2",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 423.0,
+        "y": -58.5,
+        "z": 100.0
+      },
+      "pitch": 24.9,
+      "yaw": -108.72,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "topof_mid"
+      ],
+      "coverage": {
+        "center": {
+          "x": 288.0,
+          "y": -544.0,
+          "z": -36.0
+        },
+        "radiusUnits": 724.4,
+        "zMin": -313.8,
+        "zMax": 166.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Topof Mid), 260 units up, 504 units from the Topof Mid centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-truck-1",
+      "displayName": "Truck #1",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -2007.6,
+        "y": 95.4,
+        "z": 174.0
+      },
+      "pitch": 18.41,
+      "yaw": 106.11,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "truck"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2144.0,
+          "y": 736.0,
+          "z": -82.6
+        },
+        "radiusUnits": 500.0,
+        "zMin": -262.3,
+        "zMax": 214.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 655 units from the Truck centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 87% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-truck-2",
+      "displayName": "Truck #2",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -2473.0,
+        "y": 281.8,
+        "z": 158.0
+      },
+      "pitch": 21.06,
+      "yaw": 57.98,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "truck"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2144.0,
+          "y": 736.0,
+          "z": -82.6
+        },
+        "radiusUnits": 500.0,
+        "zMin": -262.3,
+        "zMax": 214.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 561 units from the Truck centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 87% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-tunnel-1",
+      "displayName": "Tunnel from Middle",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1032.0,
+        "y": -744.0,
+        "z": -120.0
+      },
+      "pitch": 22.99,
+      "yaw": 84.17,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": -96.0,
+          "z": -316.0
+        },
+        "radiusUnits": 800.0,
+        "zMin": -464.0,
+        "zMax": 36.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Middle), 140 units up, 649 units from the Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 67% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-tunnel_stairs-1",
+      "displayName": "Tunnel Stairs from Back Alley",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -165.6,
+        "y": 387.9,
+        "z": 146.5
+      },
+      "pitch": 33.44,
+      "yaw": 177.5,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": -672.0,
+          "y": 416.0,
+          "z": -191.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -464.0,
+        "zMax": 172.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Back Alley), 200 units up, 507 units from the Tunnel Stairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 64% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-mirage-tunnel_stairs-2",
+      "displayName": "Tunnel Stairs from Back Alley",
+      "mapName": "de_mirage",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -385.8,
+        "y": 574.4,
+        "z": 123.0
+      },
+      "pitch": 45.02,
+      "yaw": -145.14,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": -672.0,
+          "y": 416.0,
+          "z": -191.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -464.0,
+        "zMax": 172.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Back Alley), 200 units up, 327 units from the Tunnel Stairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 54% of the area, and 69% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
@@ -3298,14 +4930,14 @@
           "yaw": 169.78
         },
         {
-          "tMs": 2363,
+          "tMs": 2362,
           "position": {
             "x": 29.4,
             "y": -1784.9,
             "z": 200.0
           },
           "pitch": 34.49,
-          "yaw": -159.43
+          "yaw": -159.44
         },
         {
           "tMs": 5195,
@@ -3340,7 +4972,7 @@
             "y": -2472.0,
             "z": 93.8
           },
-          "pitch": 18.98,
+          "pitch": 18.97,
           "yaw": 54.13
         },
         {
@@ -3350,7 +4982,7 @@
             "y": -2238.0,
             "z": 80.3
           },
-          "pitch": 30.41,
+          "pitch": 30.4,
           "yaw": 54.13
         }
       ],
@@ -3418,12 +5050,12 @@
         {
           "tMs": 6000,
           "position": {
-            "x": -2134.3,
+            "x": -2134.2,
             "y": 470.5,
             "z": 210.5
           },
           "pitch": 43.79,
-          "yaw": -69.15
+          "yaw": -69.16
         }
       ],
       "maxDurationMs": 7000,
@@ -3448,7 +5080,7 @@
             "y": -880.0,
             "z": 97.0
           },
-          "pitch": 26.52,
+          "pitch": 26.53,
           "yaw": 160.89
         },
         {
@@ -3468,7 +5100,7 @@
             "y": -334.0,
             "z": 90.7
           },
-          "pitch": 25.51,
+          "pitch": 25.52,
           "yaw": -148.73
         }
       ],
@@ -3504,7 +5136,7 @@
             "y": -655.5,
             "z": 163.2
           },
-          "pitch": 47.0,
+          "pitch": 47.01,
           "yaw": -177.35
         }
       ],
@@ -3576,7 +5208,7 @@
             "y": -2098.8,
             "z": 5.0
           },
-          "pitch": 33.09,
+          "pitch": 33.08,
           "yaw": 90.74
         }
       ],
@@ -3649,7 +5281,7 @@
             "z": 204.5
           },
           "pitch": 36.6,
-          "yaw": 90.7
+          "yaw": 90.69
         }
       ],
       "maxDurationMs": 7000,

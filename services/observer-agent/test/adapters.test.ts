@@ -303,3 +303,83 @@ describe("NetconObserverAdapter cameras on a stand-in CS2 console", () => {
     c.server.close();
   });
 });
+
+/** A console where getpos is the player's eyes in first person and 100 units behind them in the chase view. */
+async function chaseCs2(chaseMode: number) {
+  const lines: string[] = [];
+  const player = { x: 1000, y: 200, z: 0 };
+  let mode = 4;
+  const server = createServer((sock) =>
+    sock.on("data", (d) => {
+      for (const line of d.toString().split("\n").filter(Boolean)) {
+        lines.push(line);
+        for (const cmd of line.split(";").map((c) => c.trim())) {
+          const m = /^spec_mode (\d+)$/.exec(cmd);
+          if (m) mode = Number(m[1]);
+          const back = mode === chaseMode ? 100 : 0;
+          if (cmd === "getpos") sock.write(`setpos ${(player.x - back).toFixed(6)} ${player.y.toFixed(6)} ${(player.z + 64).toFixed(6)};setang 10.000000 0.000000 0.000000\n`);
+        }
+      }
+    }),
+  );
+  await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
+  return { lines, player, server, port: (server.address() as { port: number }).port };
+}
+
+describe("chase view", () => {
+  const id = "76561198000000001";
+  const until = async (ok: () => boolean) => {
+    for (let i = 0; i < 80 && !ok(); i++) await new Promise((res) => setTimeout(res, 25));
+  };
+
+  it("sets the chase view after the player, confirms it with getpos and goes back to first person", async () => {
+    const c = await chaseCs2(5);
+    const evidence: string[] = [];
+    const learned: unknown[] = [];
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => 0, playerName: () => "nova", onEvidence: (k, s, d) => evidence.push(`${k}:${s}:${d}`), onModesLearned: (m) => learned.push(m) });
+    const feed = setInterval(() => a.noteObserverState({ cameraMode: "in_eye", observedSteamId: id, observedPosition: c.player }), 20);
+    expect(a.supportsChase).toBe(true);
+    expect((await a.selectPlayer(id, 1, ctx(), "chase")).status).toBe("transport_acknowledged");
+    await until(() => evidence.length > 0);
+    expect(c.lines[0]).toBe('spec_player "nova"; spec_mode 5');
+    expect(evidence).toEqual(["observerModeControl:supported:getpos showed the chase view 100 units behind the player (spec_mode 5)"]);
+    expect(learned).toEqual([]);
+    await a.selectPlayer(id, 1, ctx());
+    await new Promise((res) => setTimeout(res, 50));
+    expect(c.lines.at(-1)).toBe('spec_mode 4; spec_player "nova"');
+    clearInterval(feed);
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("learns CS2's chase number when the CS:GO one leaves the camera in the player's eyes", async () => {
+    const c = await chaseCs2(3);
+    const learned: unknown[] = [];
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => 0, playerName: () => "nova", onModesLearned: (m) => learned.push(m) });
+    const feed = setInterval(() => a.noteObserverState({ cameraMode: "in_eye", observedSteamId: id, observedPosition: c.player }), 20);
+    await a.selectPlayer(id, 1, ctx(), "chase");
+    await until(() => learned.length > 0);
+    expect(c.lines).toEqual(['spec_player "nova"; spec_mode 5', "getpos", "spec_mode 3", "getpos"]);
+    expect(learned).toEqual([{ modeInEye: "spec_mode 4", modeChase: "spec_mode 3", modeRoaming: "spec_mode 6" }]);
+    await a.selectPlayer(id, 1, ctx(), "chase");
+    await new Promise((res) => setTimeout(res, 50));
+    expect(c.lines.at(-1)).toBe('spec_player "nova"; spec_mode 3');
+    clearInterval(feed);
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("goes back to the chase command it had when neither number moves the camera", async () => {
+    const c = await chaseCs2(99);
+    const learned: unknown[] = [];
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => 0, playerName: () => "nova", onModesLearned: (m) => learned.push(m) });
+    const feed = setInterval(() => a.noteObserverState({ cameraMode: "in_eye", observedSteamId: id, observedPosition: c.player }), 20);
+    await a.selectPlayer(id, 1, ctx(), "chase");
+    await until(() => c.lines.length >= 5);
+    expect(c.lines).toEqual(['spec_player "nova"; spec_mode 5', "getpos", "spec_mode 3", "getpos", "spec_mode 5"]);
+    expect(learned).toEqual([]);
+    clearInterval(feed);
+    await a.dispose();
+    c.server.close();
+  });
+});

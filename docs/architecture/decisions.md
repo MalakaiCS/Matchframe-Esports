@@ -136,3 +136,23 @@ What remains:
 - **Regenerating:** needs the awpy-data release for the new build.
 
 **Revisit if.** A CS2 update changes a map: regenerate from the new awpy-data release and compare.
+
+## ADR-026 — Cameras for every named area, and a chase view for plants, defuses and round wins (extends ADR-025)
+**Context.** The 0.4.2 cameras covered only the bombsites, mid and spawns, so a fight or a grenade anywhere else had no camera, and big-fight overviews and nade cams went unused for most of a round. Every POV was first person. The owner asked for cameras on the remaining areas and for a third-person chase cam.
+**Decision.**
+- **Area cameras.** `scripts/generate-map-cameras.py` also films every other named region of each pack, with the ADR-025 placement and checks. Each area gets two cameras: at least 45 % of the area in view, with the narrow-area openness fallback (45 %) when two spots don't pass at 55 %. They carry `actionClasses: ["tactical", "utility"]` and `allowedPhases: ["live", "over"]`, and have no paths: paths fly in freeze time, where the sites, mid and spawns are the story. An area where no spot passes gets no camera.
+- **Chase view (adapter).** `ObserverControlAdapter.selectPlayer` takes an optional `view` (`"in_eye"` or `"chase"`), and `supportsChase` says whether the adapter can show it. The arbiter's `select_player` request carries the view; confirmation is unchanged (the game data shows the player).
+  - **Commands:** the console adapter sends the chase command after `spec_player`, and the in-eye command before it when leaving the chase view or the free camera.
+  - **Evidence:** the game data now gives the adapter the spectated player's position. After the first chase shot, `getpos` must put the camera at least 40 units across from the player; in first person it is about 0. This records `observerModeControl: supported`. If the camera stayed in first person, the adapter tries the other numbering's chase command once (`spec_mode 3` or `5`), keeps it when `getpos` agrees, and otherwise restores the original command.
+- **Chase view (director).** `chaseMoment(state)` (director-policy) is `BOMB_PLANT` for the planter, `BOMB_DEFUSE` for the defuser (the reported player, or a CT within 120 units of the bomb while it is being defused), and `ROUND_WON` for an alive player of the team that won the round that just ended. Otherwise it is null, so gunfights stay in first person.
+  - **When it switches:** the live session asks for the chase view on the player already shown, and for first person once the moment ends. It does so only when the director made no cut of its own, the director is automatic and owns the camera, no command is in flight and no cinematic is on.
+  - **Limits:** each view is held at least 1.5 s, and a failed switch waits 5 s before the next.
+  - **Setting:** settings `autoDirector.chase` (default on).
+  - **By hand:** an operator gets the view with `view: "chase"` on `POST /api/v1/observer/commands` (Shift-click or Shift + number key in Live Control).
+
+**Consequences.**
+- **Cameras:** 391 cameras (287 new) cover 200 of the 227 named areas. Big-fight overviews and nade cams have a camera almost anywhere a round is played. 27 small or enclosed areas (tunnels, ladders, small rooms) have none.
+- **Chase view:** plants, defuses and round wins get a broadcast-style third-person shot without operator input.
+- **Not yet seen in a real CS2:** which `spec_mode` number is the chase view on the current build. The adapter learns it from `getpos`.
+
+**Revisit if.** Operators find the chase view distracting at round end, a CS2 update changes `spec_mode`, or an area camera looks bad on air (invalidate it).

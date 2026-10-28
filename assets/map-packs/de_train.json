@@ -2681,6 +2681,1206 @@
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
       "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 689 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 98% of the area, and 89% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-alley-1",
+      "displayName": "Alley #1",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -416.6,
+        "y": 1609.1,
+        "z": 47.5
+      },
+      "pitch": 17.59,
+      "yaw": -4.16,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": 224.0,
+          "y": 1504.0,
+          "z": -164.0
+        },
+        "radiusUnits": 973.2,
+        "zMin": -314.0,
+        "zMax": 80.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 649 units from the Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 81% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-alley-2",
+      "displayName": "Alley #2",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 553.0,
+        "y": 1716.0,
+        "z": -9.3
+      },
+      "pitch": 29.34,
+      "yaw": -143.16,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": 224.0,
+          "y": 1504.0,
+          "z": -164.0
+        },
+        "radiusUnits": 973.2,
+        "zMin": -314.0,
+        "zMax": 80.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Alley), 200 units up, 391 units from the Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-b_platform-1",
+      "displayName": "BPlatform #1",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -216.5,
+        "y": -1045.5,
+        "z": 67.3
+      },
+      "pitch": 29.01,
+      "yaw": 15.55,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "b_platform"
+      ],
+      "coverage": {
+        "center": {
+          "x": 416.0,
+          "y": -864.0,
+          "z": -221.0
+        },
+        "radiusUnits": 1202.7,
+        "zMin": -418.0,
+        "zMax": 22.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 658 units from the BPlatform centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 84% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-b_platform-2",
+      "displayName": "BPlatform #2",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 629.5,
+        "y": -1092.5,
+        "z": 84.0
+      },
+      "pitch": 41.38,
+      "yaw": 147.97,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "b_platform"
+      ],
+      "coverage": {
+        "center": {
+          "x": 416.0,
+          "y": -864.0,
+          "z": -221.0
+        },
+        "radiusUnits": 1202.7,
+        "zMin": -418.0,
+        "zMax": 22.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 313 units from the BPlatform centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 86% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-backof_b-1",
+      "displayName": "Backof B #1",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1032.0,
+        "y": -1560.0,
+        "z": 48.0
+      },
+      "pitch": 17.15,
+      "yaw": 85.49,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "backof_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": -928.0,
+          "y": -1120.0,
+          "z": -104.0
+        },
+        "radiusUnits": 861.6,
+        "zMin": -416.0,
+        "zMax": 163.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Backof B), 200 units up, 452 units from the Backof B centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 75% of the area, and 82% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-backof_b-2",
+      "displayName": "Backof B #2",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1008.8,
+        "y": -793.5,
+        "z": 48.0
+      },
+      "pitch": 31.12,
+      "yaw": -84.8,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "backof_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": -928.0,
+          "y": -1120.0,
+          "z": -104.0
+        },
+        "radiusUnits": 861.6,
+        "zMin": -416.0,
+        "zMax": 163.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Backof B), 200 units up, 336 units from the Backof B centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 80% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-dumpster-1",
+      "displayName": "Dumpster from Alley",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 168.0,
+        "y": 1512.0,
+        "z": 48.0
+      },
+      "pitch": 18.78,
+      "yaw": -177.13,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "dumpster"
+      ],
+      "coverage": {
+        "center": {
+          "x": -480.0,
+          "y": 1440.0,
+          "z": -162.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -314.0,
+        "zMax": 39.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Alley), 260 units up, 652 units from the Dumpster centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-dumpster-2",
+      "displayName": "Dumpster from TSpawn",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -1276.1,
+        "y": 1328.2,
+        "z": 13.5
+      },
+      "pitch": 12.2,
+      "yaw": 9.68,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "dumpster"
+      ],
+      "coverage": {
+        "center": {
+          "x": -480.0,
+          "y": 1440.0,
+          "z": -162.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -314.0,
+        "zMax": 39.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSpawn), 200 units up, 804 units from the Dumpster centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-electrical_box-1",
+      "displayName": "Electrical Box #1",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 408.0,
+        "y": -168.0,
+        "z": 174.0
+      },
+      "pitch": 28.41,
+      "yaw": 164.64,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "electrical_box"
+      ],
+      "coverage": {
+        "center": {
+          "x": -224.0,
+          "y": -32.0,
+          "z": -164.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -312.0,
+        "zMax": 38.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 200 units up, 646 units from the Electrical Box centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 93% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-electrical_box-2",
+      "displayName": "Electrical Box #2",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -72.0,
+        "y": 264.0,
+        "z": 164.0
+      },
+      "pitch": 48.33,
+      "yaw": -115.26,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "electrical_box"
+      ],
+      "coverage": {
+        "center": {
+          "x": -224.0,
+          "y": -32.0,
+          "z": -164.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -312.0,
+        "zMax": 38.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 200 units up, 333 units from the Electrical Box centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-ivy-1",
+      "displayName": "Ivy #1",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 379.0,
+        "y": 1733.0,
+        "z": 49.3
+      },
+      "pitch": 15.79,
+      "yaw": -11.3,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ivy"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1120.0,
+          "y": 1568.0,
+          "z": -164.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -312.0,
+        "zMax": 40.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 759 units from the Ivy centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-ivy-2",
+      "displayName": "Ivy #2",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1032.0,
+        "y": 1032.0,
+        "z": -73.2
+      },
+      "pitch": 9.21,
+      "yaw": 85.48,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ivy"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1120.0,
+          "y": 1568.0,
+          "z": -164.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -312.0,
+        "zMax": 40.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 543 units from the Ivy centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 73% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-locker_room-1",
+      "displayName": "Locker Room from Ladder Top",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -572.5,
+        "y": -243.0,
+        "z": 160.0
+      },
+      "pitch": 10.72,
+      "yaw": 99.17,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "locker_room"
+      ],
+      "coverage": {
+        "center": {
+          "x": -672.0,
+          "y": 288.0,
+          "z": 66.7
+        },
+        "radiusUnits": 565.7,
+        "zMin": -82.0,
+        "zMax": 338.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Ladder Top), 140 units up, 540 units from the Locker Room centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 84% of the area, and 47% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-pop_dog-1",
+      "displayName": "Pop Dog #1",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -312.0,
+        "y": 264.0,
+        "z": 198.0
+      },
+      "pitch": 35.29,
+      "yaw": -100.92,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "pop_dog"
+      ],
+      "coverage": {
+        "center": {
+          "x": -416.0,
+          "y": -288.0,
+          "z": -164.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -312.0,
+        "zMax": 40.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 562 units from the Pop Dog centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 56% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-scaffolding-1",
+      "displayName": "Scaffolding #1",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -72.0,
+        "y": -1272.0,
+        "z": 108.0
+      },
+      "pitch": 23.74,
+      "yaw": -41.9,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "scaffolding"
+      ],
+      "coverage": {
+        "center": {
+          "x": 416.0,
+          "y": -1696.0,
+          "z": -116.0
+        },
+        "radiusUnits": 1122.9,
+        "zMin": -417.8,
+        "zMax": 86.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 646 units from the Scaffolding centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 98% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-scaffolding-2",
+      "displayName": "Scaffolding #2",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 705.5,
+        "y": -1055.0,
+        "z": 87.3
+      },
+      "pitch": 20.33,
+      "yaw": -114.8,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "scaffolding"
+      ],
+      "coverage": {
+        "center": {
+          "x": 416.0,
+          "y": -1696.0,
+          "z": -116.0
+        },
+        "radiusUnits": 1122.9,
+        "zMin": -417.8,
+        "zMax": 86.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 703 units from the Scaffolding centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 84% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-t_main-1",
+      "displayName": "TMain from TSpawn",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -606.8,
+        "y": 1414.1,
+        "z": 49.0
+      },
+      "pitch": 19.88,
+      "yaw": -103.36,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_main"
+      ],
+      "coverage": {
+        "center": {
+          "x": -736.0,
+          "y": 736.0,
+          "z": -164.0
+        },
+        "radiusUnits": 582.4,
+        "zMin": -312.0,
+        "zMax": 38.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 690 units from the TMain centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 61% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-t_main-2",
+      "displayName": "TMain #2",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -831.5,
+        "y": 352.0,
+        "z": -72.0
+      },
+      "pitch": 15.08,
+      "yaw": 76.39,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_main"
+      ],
+      "coverage": {
+        "center": {
+          "x": -736.0,
+          "y": 736.0,
+          "z": -164.0
+        },
+        "radiusUnits": 582.4,
+        "zMin": -312.0,
+        "zMax": 38.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TMain), 140 units up, 396 units from the TMain centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 83% of the area, and 89% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-t_stairs-1",
+      "displayName": "TStairs #1",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -984.0,
+        "y": 552.0,
+        "z": 156.0
+      },
+      "pitch": 30.96,
+      "yaw": 87.06,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": 864.0,
+          "z": -21.5
+        },
+        "radiusUnits": 500.0,
+        "zMin": -312.0,
+        "zMax": 266.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TStairs), 140 units up, 312 units from the TStairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 49% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-tunnel-1",
+      "displayName": "Tunnel from TStairs",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -984.0,
+        "y": 840.0,
+        "z": 148.3
+      },
+      "pitch": 6.05,
+      "yaw": -90.3,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": 32.0,
+          "z": 66.0
+        },
+        "radiusUnits": 640.0,
+        "zMin": -83.3,
+        "zMax": 272.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TStairs), 200 units up, 808 units from the Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 76% of the area, and 47% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-tunnel-2",
+      "displayName": "Tunnel from Backof B",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": -987.5,
+        "y": -1000.3,
+        "z": 48.0
+      },
+      "pitch": -0.99,
+      "yaw": 90.03,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": 32.0,
+          "z": 66.0
+        },
+        "radiusUnits": 640.0,
+        "zMin": -83.3,
+        "zMax": 272.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Backof B), 200 units up, 1032 units from the Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 76% of the area, and 82% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-tunnel1-1",
+      "displayName": "Tunnel1 from Site  A",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 984.0,
+        "y": 456.0,
+        "z": 50.0
+      },
+      "pitch": 34.45,
+      "yaw": 4.45,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel1"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1312.0,
+          "y": 480.0,
+          "z": -162.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -310.0,
+        "zMax": 40.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 329 units from the Tunnel1 centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 87% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-tunnel1-2",
+      "displayName": "Tunnel1 #2",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1607.0,
+        "y": 423.5,
+        "z": -70.0
+      },
+      "pitch": 16.05,
+      "yaw": 169.83,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel1"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1312.0,
+          "y": 480.0,
+          "z": -162.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -310.0,
+        "zMax": 40.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Tunnel1), 140 units up, 300 units from the Tunnel1 centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 87% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-tunnel2-1",
+      "displayName": "Tunnel2 from Site  A",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 840.0,
+        "y": -24.0,
+        "z": 50.0
+      },
+      "pitch": 24.89,
+      "yaw": -11.31,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel2"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1312.0,
+          "y": -96.0,
+          "z": -162.0
+        },
+        "radiusUnits": 536.7,
+        "zMin": -310.0,
+        "zMax": 40.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 477 units from the Tunnel2 centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 91% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-train-tunnel2-2",
+      "displayName": "Tunnel2 #2",
+      "mapName": "de_train",
+      "mapRevision": "navmesh:awpy-1.3.1",
+      "position": {
+        "x": 1656.0,
+        "y": -72.0,
+        "z": -70.0
+      },
+      "pitch": 14.74,
+      "yaw": -171.03,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel2"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1312.0,
+          "y": -96.0,
+          "z": -162.0
+        },
+        "radiusUnits": 536.7,
+        "zMin": -310.0,
+        "zMax": 40.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Tunnel2), 140 units up, 345 units from the Tunnel2 centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
@@ -2697,7 +3897,7 @@
             "y": -171.5,
             "z": 117.3
           },
-          "pitch": 26.99,
+          "pitch": 26.98,
           "yaw": 143.13
         },
         {
@@ -2830,7 +4030,7 @@
             "z": 66.0
           },
           "pitch": 37.37,
-          "yaw": -101.72
+          "yaw": -101.73
         },
         {
           "tMs": 8306,
@@ -2918,11 +4118,11 @@
           "tMs": 6000,
           "position": {
             "x": 341.3,
-            "y": -608.6,
+            "y": -608.5,
             "z": 34.5
           },
-          "pitch": 44.2,
-          "yaw": 0.16
+          "pitch": 44.19,
+          "yaw": 0.14
         }
       ],
       "maxDurationMs": 7000,
@@ -2958,7 +4158,7 @@
             "z": 18.0
           },
           "pitch": 34.64,
-          "yaw": -22.28
+          "yaw": -22.29
         }
       ],
       "maxDurationMs": 7000,

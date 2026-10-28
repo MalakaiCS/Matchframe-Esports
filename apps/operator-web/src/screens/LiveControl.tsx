@@ -136,7 +136,7 @@ function PovStatus({ snap }: { snap: OperatorSnapshot }) {
   const lastResult = [...arbiterLog].reverse().find((e) => e.kind === "result" || e.kind === "rejected" || e.kind === "external_change");
   const p = snap.pending;
   const inFlight = isInFlight(p?.status);
-  const pendingTarget = p ? (p.request.kind === "select_player" ? `POV · ${nameOf(p.request.steamId)}` : p.request.kind === "activate_static_camera" ? `Camera · ${p.request.camera.displayName}` : p.request.kind.replace(/_/g, " ")) : null;
+  const pendingTarget = p ? (p.request.kind === "select_player" ? `${p.request.view === "chase" ? "Chase" : "POV"} · ${nameOf(p.request.steamId)}` : p.request.kind === "activate_static_camera" ? `Camera · ${p.request.camera.displayName}` : p.request.kind.replace(/_/g, " ")) : null;
   return (
     <>
       <div className="pov">
@@ -469,10 +469,10 @@ export function LiveControlScreen() {
   const threshold = typeof status.data?.config.advantageThreshold === "number" ? status.data.config.advantageThreshold : null;
   const nameOf = useMemo(() => makeNameOf(snap?.state), [snap?.state]);
 
-  const request = async (p: PlayerState) => {
+  const request = async (p: PlayerState, chase = false) => {
     setBusy(p.steamId);
     try {
-      const r = await api.post<CommandResult>("/api/v1/observer/commands", { kind: "select_player", steamId: p.steamId });
+      const r = await api.post<CommandResult>("/api/v1/observer/commands", { kind: "select_player", steamId: p.steamId, ...(chase ? { view: "chase" } : {}) });
       const d = describeCommandResult(r, p.name);
       toast.push(d.tone === "danger" ? "danger" : d.tone === "ok" ? "ok" : "info", d.text);
       if (r && isInFlight(r.status)) void followConfirmation(r.commandId, p.name, toast.push);
@@ -493,7 +493,8 @@ export function LiveControlScreen() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return;
-      const slot = slotFromKey(e.key);
+      // Shift + number key: the chase view (Shift changes e.key on most layouts, not e.code).
+      const slot = slotFromKey(e.shiftKey && /^Digit\d$/.test(e.code) ? e.code.slice(5) : e.key);
       if (slot === null) return;
       const st = liveStore.state.snapshot?.state;
       const p = st?.players.find((x) => x.observerSlot === slot);
@@ -503,7 +504,7 @@ export function LiveControlScreen() {
         return;
       }
       e.preventDefault();
-      void requestRef.current(p);
+      void requestRef.current(p, e.shiftKey);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -556,7 +557,7 @@ export function LiveControlScreen() {
       </h2>
       {sides[side].length === 0 ? <p className="muted small">No {side} players reported.</p> : null}
       {sides[side].map((p) => (
-        <RosterCard key={p.steamId} p={p} roles={rolesOf(p)} onRequest={() => (cardReason ? toast.push("warn", "POV request unavailable", cardReason) : void request(p))} disabledReason={cardReason} busy={busy === p.steamId} />
+        <RosterCard key={p.steamId} p={p} roles={rolesOf(p)} onRequest={(chase) => (cardReason ? toast.push("warn", "POV request unavailable", cardReason) : void request(p, chase))} disabledReason={cardReason} busy={busy === p.steamId} />
       ))}
     </div>
   );
@@ -574,7 +575,7 @@ export function LiveControlScreen() {
         {column("CT")}
         <div className="live-center">
           <AutoDirectorCard compact />
-          <Panel title="Camera" subtitle="Click a player, or press their number key, to switch POV">
+          <Panel title="Camera" subtitle="Click a player, or press their number key, to switch POV. Hold Shift for the chase view.">
             <PovStatus snap={snap} />
           </Panel>
           <Panel title="Observer">

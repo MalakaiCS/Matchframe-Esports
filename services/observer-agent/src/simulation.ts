@@ -1,5 +1,5 @@
 import type { CameraMode, CameraPath, CameraRecord, CommandContext, CommandResult, ObservedCameraState } from "@matchframe/contracts";
-import type { ControlCapabilities, ObserverControlAdapter } from "@matchframe/director-policy";
+import type { ControlCapabilities, ObserverControlAdapter, PlayerView } from "@matchframe/director-policy";
 import { transportResult } from "@matchframe/director-policy";
 import { cap } from "./common.ts";
 
@@ -19,6 +19,7 @@ export class SimulationObserverAdapter implements ObserverControlAdapter {
   readonly id = "simulation";
   readonly kind = "simulation" as const;
   readonly simulated = true;
+  readonly supportsChase = true;
   readonly observer: SimulatedObserver = { observedSteamId: null, activeCameraId: null, mode: "in_eye" };
   private timers = new Set<ReturnType<typeof setTimeout>>();
 
@@ -51,13 +52,13 @@ export class SimulationObserverAdapter implements ObserverControlAdapter {
     return null;
   }
 
-  async selectPlayer(steamId: string, _slot: number | null, ctx: CommandContext): Promise<CommandResult> {
+  async selectPlayer(steamId: string, _slot: number | null, ctx: CommandContext, view: PlayerView = "in_eye"): Promise<CommandResult> {
     const f = this.maybeFail(ctx);
     if (f) return f;
     this.later(() => {
       this.observer.observedSteamId = steamId;
       this.observer.activeCameraId = null;
-      this.observer.mode = "in_eye";
+      this.observer.mode = view;
     });
     return transportResult(ctx, true, "simulated", this.now());
   }

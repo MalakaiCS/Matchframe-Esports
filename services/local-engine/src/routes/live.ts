@@ -106,7 +106,7 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
   });
 
   // ---- Auto Director (one button) --------------------------------------------------------
-  const AutoPatch = z.object({ cinematic: z.boolean().optional(), nadeCams: z.boolean().optional(), returnAfterSec: z.number().int().min(0).max(120).optional() });
+  const AutoPatch = z.object({ cinematic: z.boolean().optional(), nadeCams: z.boolean().optional(), returnAfterSec: z.number().int().min(0).max(120).optional(), chase: z.boolean().optional() });
   r.get("/api/v1/director/auto", { permission: "state.read" }, () => e.autoDirector.status());
   r.post("/api/v1/director/auto/start", { permission: "director.control", body: AutoPatch }, async (req) => {
     e.audit.record(req.principal!.label, "director.auto_start_requested", null, req.body);
@@ -154,7 +154,7 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
     {
       permission: "camera.control",
       body: z.discriminatedUnion("kind", [
-        z.object({ kind: z.literal("select_player"), steamId: z.string() }),
+        z.object({ kind: z.literal("select_player"), steamId: z.string(), view: z.enum(["in_eye", "chase"]).optional() }),
         z.object({ kind: z.literal("activate_static_camera"), cameraId: z.string(), durationMs: z.number().int().positive().max(10000).default(3000) }),
         z.object({ kind: z.literal("return_to_pov") }),
       ]),
@@ -164,7 +164,7 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
       const owner = req.principal!.role === "observer" || req.principal!.role === "owner" ? "operator" : "remote";
       const b = req.body;
       e.audit.record(holder, "observer.command", b.kind, b);
-      if (b.kind === "select_player") return s.manualSelectPlayer(b.steamId, holder, owner);
+      if (b.kind === "select_player") return s.manualSelectPlayer(b.steamId, holder, owner, b.view);
       if (b.kind === "activate_static_camera") return s.manualCamera(b.cameraId, holder, b.durationMs);
       return s.returnToPov(holder);
     },

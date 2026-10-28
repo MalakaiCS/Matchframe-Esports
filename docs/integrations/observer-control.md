@@ -21,7 +21,8 @@ While it runs:
 - **Take over** in the top bar keeps the camera yours until you press **Resume automation** or Start.
 - After a gap in the game data, it takes the camera back as soon as data flows again.
 - **Stop**, the emergency stop, or switching the Observer to Off stops it. It also stops when the hours run out at a map change.
-- `GET /api/v1/director/auto` returns the status and checks, and `PUT /api/v1/director/auto/settings` sets `cinematic`, `nadeCams` and `returnAfterSec`.
+- **Chase cam** (on unless unticked): while the spectated player plants or defuses the bomb, and when their team wins the round with them alive, the camera goes behind them (CS2's third-person chase view). It goes back to first person when the moment ends. Each view is held at least 1.5 s, and never during a cinematic shot (ADR-026).
+- `GET /api/v1/director/auto` returns the status and checks, and `PUT /api/v1/director/auto/settings` sets `cinematic`, `nadeCams`, `returnAfterSec` and `chase`.
 
 ## Adapters
 
@@ -37,6 +38,7 @@ While it runs:
 | Operation | Built-in command |
 |---|---|
 | Select player | `spec_player "{name}"`, with the player's in-game name from the game data. CS2 has no `spec_player_by_accountid` (CS:GO only). Names containing `"`, `;`, `\` or line breaks, and names two players share, are refused rather than sent. Other placeholders: `{slot}` (number key), `{steamId}`, `{accountId}`. When the camera is free, the in-eye mode is sent first: `spec_player` alone only moves a free camera. |
+| Chase view | `spec_player "{name}"; spec_mode 5` (the chase command after the player). After the first one, `getpos` must put the camera at least 40 units across from the player. If it doesn't, the adapter tries the other numbering's chase command (`spec_mode 3`) once and keeps it if `getpos` agrees. Leaving the chase view sends the in-eye command before `spec_player`. By hand: `view: "chase"` on `POST /api/v1/observer/commands`, or Shift-click / Shift + number key in Live Control. |
 | In-eye / chase / free camera | `spec_mode 4` / `5` / `6` (CS:GO numbering). On a build where `getpos` shows that this numbering doesn't move the camera, the adapter tries CS2's enum numbering (`2` / `3` / `4`). It keeps whichever works and saves it to the templates. The in-eye command is checked the same way: when leaving the free camera for a player, if the game data still shows the free camera, the adapter tries the other numbering's in-eye command once and keeps it if the player then shows. |
 | Static camera | `{roaming}; spec_goto {x} {y} {z} {pitch} {yaw}` (`{roaming}` is the free-camera command), then `getpos`. |
 | Camera path | The first pose as a static camera, then `spec_goto {x} {y} {z} {pitch} {yaw}` 60 times a second along the path (Catmull-Rom positions, eased timing, the shorter way round for yaw), then `getpos` at the end. |
@@ -55,7 +57,7 @@ Each kind of control is recorded per CS2 build in `observer.verifiedControl`, fr
 | Player selection | The game data shows the requested player after a request, from the Auto Director's check, a click in Live Control or the setup test. |
 | Static cameras | `getpos` answers with the camera's pose (within 16 units across, 72 up or down, 3° of pitch and yaw). |
 | Camera readback | Same as static cameras. |
-| Observer mode | `partial`, with the first confirmed free camera. |
+| Observer mode | `partial`, with the first confirmed free camera; `supported` when `getpos` confirms the first chase view. |
 | Camera paths | `partial` once static cameras are confirmed (the same command, streamed), then `supported` when `getpos` confirms the end of the first path. |
 
 Automatic POV cuts need player selection confirmed. Cinematic shots need static cameras confirmed, and paths need camera paths at least `partial`. Manual requests (player cards, camera requests) are allowed before that, because each one is itself the check.
@@ -64,7 +66,7 @@ The setup tests remain available: `POST /api/v1/setup/test-player-selection`, `t
 
 ## Cameras
 
-- **Built-in cameras and paths** for all nine active-duty maps (Ancient, Anubis, Dust II, Inferno, Mirage, Nuke, Overpass, Train, Vertigo) ship in the map packs: 104 cameras and 81 paths (ADR-025). `scripts/generate-map-cameras.py` placed them on CS2's own walkable floor (navigation meshes) and checked each one against CS2's collision geometry (build 26144732). A camera has clear space around it, sees its area's centre and at least half of the area (more than 70 % for most), and most of its view is open (no wall right in front). The real flight curve of each path is clear of geometry and keeps the area in view. Collision geometry leaves out see-through and non-solid things (glass, fences, foliage), so a shot can still show one of those in front of the action. They are used without validation unless switched off (Maps & Cameras → **Built-in cameras**, or `PUT /api/v1/cameras/built-in`). They were not checked by eye in CS2; validate or invalidate each one after a look.
+- **Built-in cameras and paths** for all nine active-duty maps (Ancient, Anubis, Dust II, Inferno, Mirage, Nuke, Overpass, Train, Vertigo) ship in the map packs: 391 cameras and 81 paths (ADR-025, ADR-026). The bombsites, mid and spawns have three or two cameras each and the paths. Every other named area has two cameras for live play (big-fight overviews and nade cams, no paths): 200 of the 227 named areas have cameras, and 27 small or enclosed ones (tunnels, ladders, small rooms) have none. `scripts/generate-map-cameras.py` placed them on CS2's own walkable floor (navigation meshes) and checked each one against CS2's collision geometry (build 26144732). A camera has clear space around it, sees its area's centre and at least half of the area (45 % for the extra areas; more than 70 % for most cameras), and most of its view is open (no wall right in front). The real flight curve of each path is clear of geometry and keeps the area in view. Collision geometry leaves out see-through and non-solid things (glass, fences, foliage), so a shot can still show one of those in front of the action. They are used without validation unless switched off (Maps & Cameras → **Built-in cameras**, or `PUT /api/v1/cameras/built-in`). They were not checked by eye in CS2; validate or invalidate each one after a look.
 - **Your own cameras** from `getpos` (Maps & Cameras → Add camera) are used once validated (`/maps/:map/cameras/:id/validation`). An invalidated camera is never used, built-in or not.
 - In freeze time, Observer & Cinematics flies one camera path per round, taking turns through the map's paths, when it fits in the time left. Paths and establishing shots don't count against the round's cinematic budget.
 

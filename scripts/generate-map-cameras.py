@@ -17,10 +17,14 @@ For each bombsite, the mid area (or the map's equivalent) and each spawn:
   space around it and above its floor, it sees the area's centre, and it sees most of the area's
   target points. Two or three spots far apart in angle are chosen, preferring the ones that see
   the most, from a good distance and a little above;
-* paths: an orbit through neighbouring good spots and a slow push-in from the best one. The curve
-  the console adapter actually flies (Catmull-Rom through the keyframes, as samplePath in
-  services/observer-agent/src/netcon.ts) is sampled every few units: every step must be clear of
-  geometry and keep the centre in view.
+* paths: an orbit through neighbouring good spots (or a sideways drift) and a slow push-in from the
+  best one. The curve the console adapter actually flies (Catmull-Rom through the keyframes, as
+  samplePath in services/observer-agent/src/netcon.ts) is sampled every few units: every step must
+  be clear of geometry and keep the centre in view.
+
+Every other named area of the pack gets two cameras the same way, for live play only (fight
+overviews and nade cameras), and no paths: paths fly in freeze time, where the sites, mid and
+spawns are the story. Areas no spot frames well (ladders, vents, narrow tunnels) get none.
 
 Collision geometry is what players collide with: glass, fences, foliage and other see-through or
 non-solid props are not in it. So a camera can still look through a fence the tests treat as a
@@ -64,7 +68,7 @@ MAX_ORBIT_MS = 10000  # a path has to fit in freeze time
 PUSH_MS = 6000
 DRIFT = 220.0  # sideways move of a drift path
 PATH_STEP = 24.0  # path curve checked every this many units
-MIN_COVER = {"bombsite": 0.5, "mid": 0.45, "spawn": 0.4}
+MIN_COVER = {"bombsite": 0.5, "mid": 0.45, "spawn": 0.4, "area": 0.45}
 # Framing: rays across the picture (16:9, CS2's default 90 degree spectator view) that run this far
 # without hitting anything; a wall or pillar right in front of the camera fills the frame.
 OPEN_RANGE = 220.0
@@ -90,6 +94,10 @@ def angles(cam: tuple[float, float, float], target: tuple[float, float, float]) 
     yaw = math.degrees(math.atan2(dy, dx))
     pitch = -math.degrees(math.atan2(dz, math.hypot(dx, dy)))  # Source: positive pitch looks down
     return round(pitch, 2), round(yaw, 2)
+
+
+def r1(p: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (round(p[0], 1), round(p[1], 1), round(p[2], 1))
 
 
 def plane(corners: list[tuple[float, float, float]]):
@@ -181,8 +189,9 @@ class Map:
         return 1 - hits / total
 
     def clear_around(self, p: tuple[float, float, float], r: float = CLEAR) -> bool:
+        """Free space in the six axis directions, checked at two lengths (a ray can graze a triangle edge at one length only)."""
         x, y, z = p
-        return all(self.vc.is_visible(p, (x + dx, y + dy, z + dz)) for dx, dy, dz in ((r, 0, 0), (-r, 0, 0), (0, r, 0), (0, -r, 0), (0, 0, r), (0, 0, -r)))
+        return all(self.vc.is_visible(p, (x + dx * k, y + dy * k, z + dz * k)) for k in (r * 0.6, r) for dx, dy, dz in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)))
 
 
 def region_targets(m: Map, region: dict) -> dict | None:
@@ -225,7 +234,7 @@ def candidates(m: Map, t: dict, kind: str, min_open: float = MIN_OPEN) -> list[d
         seen.add(key)
         best = None
         for h in HEIGHTS:
-            cam = (x, y, z + h)
+            cam = r1((x, y, z + h))  # tested exactly as it is written to the pack
             # Room above the floor and around the camera: not inside a wall, prop or ceiling.
             if not m.visible((x, y, z + 16), (x, y, z + h + CLEAR)) or not m.clear_around(cam):
                 continue
@@ -345,7 +354,7 @@ def drift(m: Map, t: dict, c: dict) -> list[dict]:
     n = math.hypot(dx, dy) or 1.0
     side = (-dy / n, dx / n)
     for sign in (1, -1):
-        end = (c["pos"][0] + side[0] * DRIFT * sign, c["pos"][1] + side[1] * DRIFT * sign, c["pos"][2])
+        end = r1((c["pos"][0] + side[0] * DRIFT * sign, c["pos"][1] + side[1] * DRIFT * sign, c["pos"][2]))
         pts = [c["pos"], end]
         if flyable(m, pts, t["centre"]) == 1:
             return path_keys(pts, t["centre"], [PUSH_MS])
@@ -356,7 +365,7 @@ def push_in(m: Map, t: dict, c: dict) -> list[dict]:
     """A slow dolly from the best spot toward the centre, stopping well short of it."""
     cx, cy, cz = t["centre"]
     for frac in (0.45, 0.35, 0.25):
-        end = (c["pos"][0] + (cx - c["pos"][0]) * frac, c["pos"][1] + (cy - c["pos"][1]) * frac, c["pos"][2] - 30 * frac)
+        end = r1((c["pos"][0] + (cx - c["pos"][0]) * frac, c["pos"][1] + (cy - c["pos"][1]) * frac, c["pos"][2] - 30 * frac))
         if math.dist(end, t["centre"]) < 250:
             continue
         pts = [c["pos"], end]
@@ -413,11 +422,18 @@ def generate(map_name: str, navs: Path, meshes: Path, build: str) -> dict:
     paths = [p for p in pack["paths"] if p.get("source") != "derived_navmesh"]
     report = []
     mid_done = False
-    for region, kind in targets_for(pack):
+    filmed: set[str] = set()
+    main = targets_for(pack)
+    main_ids = {r["id"] for r, k in main if k != "mid?"}
+    # Every other named area gets cameras too, for fight overviews and nade cameras in live play.
+    areas = [(r, "area") for r in pack["regions"] if r["id"] not in main_ids]
+    for region, kind in main + areas:
         if kind == "mid?":
             if mid_done:
                 continue
             kind = "mid"
+        if region["id"] in filmed:
+            continue
         t = region_targets(m, region)
         if not t:
             report.append(f"{region['id']}: no walkable CS2 floor under the region")
@@ -428,17 +444,18 @@ def generate(map_name: str, navs: Path, meshes: Path, build: str) -> dict:
         if len(chosen) < want:
             cands = candidates(m, t, kind, MIN_OPEN_TIGHT)
             chosen = pick_spread(cands, want)
+        if not chosen:
+            report.append(f"{region['id']}: no spot frames it well")
+            continue
         if kind == "mid":
-            if not chosen:
-                report.append(f"{region['id']}: no spot frames it well")
-                continue
             mid_done = True
+        filmed.add(region["id"])
         label = LABEL.get(region["id"]) or ("Mid" if kind == "mid" and region["id"] in ("middle", "mid") else human(region["name"]))
         for n, c in enumerate(chosen, 1):
             pitch, yaw = angles(c["pos"], c["aim"])
             spot = place_of(pack, (c["x"], c["y"], c["floor"]))
             name = f"{label} from {human(spot)}" if spot and spot != region["name"] else f"{label} #{n}"
-            classes = {"bombsite": ["bomb", "tactical", "establishing", "utility"], "mid": ["tactical", "establishing", "utility"], "spawn": ["establishing"]}[kind]
+            classes = {"bombsite": ["bomb", "tactical", "establishing", "utility"], "mid": ["tactical", "establishing", "utility"], "spawn": ["establishing"], "area": ["tactical", "utility"]}[kind]
             cameras.append({
                 "id": f"cs2-{short}-{region['id']}-{n}",
                 "displayName": name,
@@ -457,11 +474,11 @@ def generate(map_name: str, navs: Path, meshes: Path, build: str) -> dict:
                     "zMax": round(t["zmax"] + 250, 1),
                     "levelId": level_of(pack["levels"], t["centre"][2] - AIM),
                 },
-                "allowedPhases": ["freezetime"] if kind == "spawn" else ["freezetime", "live", "over"],
+                "allowedPhases": {"spawn": ["freezetime"], "area": ["live", "over"]}.get(kind, ["freezetime", "live", "over"]),
                 "actionClasses": classes,
                 "grenadeTypes": [],
                 "minAcquisitionMs": 150,
-                "normalDurationMs": 5000 if kind == "spawn" else 4000,
+                "normalDurationMs": {"spawn": 5000, "area": 3500}.get(kind, 4000),
                 "maxDurationMs": 7000,
                 # Line of sight checked against CS2's collision geometry; not yet seen by eye.
                 "occlusionValidation": "validated",
@@ -473,6 +490,10 @@ def generate(map_name: str, navs: Path, meshes: Path, build: str) -> dict:
                 "notes": f"Placed on CS2's walkable floor ({human(spot) if spot else 'no named area'}), {round(c['h'])} units up, {round(c['d'])} units from the {label} centre. In CS2's collision geometry (build {build}) it has clear space around it, sees the centre and {round(c['cover'] * 100)}% of the area, and {round(c['open'] * 100)}% of its view is open for at least {round(OPEN_RANGE)} units. Not seen in game yet.",
             })
         made = []
+        if kind == "area":
+            # Paths fly in freeze time only, where the sites, mid and spawns are the story.
+            report.append(f"{region['id']}: {len(chosen)} cameras")
+            continue
         orb = orbit(m, t, cands)
         if orb:
             made.append(("orbit", "orbit", orb))

@@ -3215,7 +3215,7 @@
         "y": 456.0,
         "z": 252.6
       },
-      "pitch": 36.66,
+      "pitch": 36.67,
       "yaw": 162.68,
       "fov": null,
       "observerMode": "roaming_static",
@@ -3266,7 +3266,7 @@
         "y": 1608.0,
         "z": 234.8
       },
-      "pitch": 27.71,
+      "pitch": 27.7,
       "yaw": -95.62,
       "fov": null,
       "observerMode": "roaming_static",
@@ -3539,6 +3539,2166 @@
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
       "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 651 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-alley-1",
+      "displayName": "Alley from Site  B",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1196.9,
+        "y": 642.7,
+        "z": 261.0
+      },
+      "pitch": 19.34,
+      "yaw": 92.17,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1248.0,
+          "y": 1312.0,
+          "z": 20.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -128.0,
+        "zMax": 270.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 671 units from the Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 98% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-alley-2",
+      "displayName": "Alley from Snipers Nest",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1176.0,
+        "y": 1944.0,
+        "z": 252.0
+      },
+      "pitch": 17.98,
+      "yaw": -94.14,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1248.0,
+          "y": 1312.0,
+          "z": 20.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -128.0,
+        "zMax": 270.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Snipers Nest), 200 units up, 636 units from the Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 94% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-backof_b-1",
+      "displayName": "Backof B from Site  B",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1107.2,
+        "y": 947.5,
+        "z": 282.0
+      },
+      "pitch": 24.3,
+      "yaw": -22.9,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "backof_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": -736.0,
+          "y": 736.0,
+          "z": 86.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -71.1,
+        "zMax": 330.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 427 units from the Backof B centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 81% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-backof_b-2",
+      "displayName": "Backof B #2",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -888.0,
+        "y": 456.0,
+        "z": 252.6
+      },
+      "pitch": 25.52,
+      "yaw": 58.68,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "backof_b"
+      ],
+      "coverage": {
+        "center": {
+          "x": -736.0,
+          "y": 736.0,
+          "z": 86.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": -71.1,
+        "zMax": 330.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 319 units from the Backof B centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 69% of the area, and 60% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-bricks-1",
+      "displayName": "Bricks from Palace Interior",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -264.0,
+        "y": 1224.0,
+        "z": 264.0
+      },
+      "pitch": 14.96,
+      "yaw": -169.14,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bricks"
+      ],
+      "coverage": {
+        "center": {
+          "x": -928.0,
+          "y": 1056.0,
+          "z": 86.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -62.0,
+        "zMax": 289.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Palace Interior), 200 units up, 685 units from the Bricks centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 86% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-bricks-2",
+      "displayName": "Bricks from Site  B",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -936.0,
+        "y": 408.0,
+        "z": 229.2
+      },
+      "pitch": 12.07,
+      "yaw": 90.23,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bricks"
+      ],
+      "coverage": {
+        "center": {
+          "x": -928.0,
+          "y": 1056.0,
+          "z": 86.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -62.0,
+        "zMax": 289.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 648 units from the Bricks centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 86% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-bridge-1",
+      "displayName": "Bridge #1",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -235.0,
+        "y": -401.5,
+        "z": 264.0
+      },
+      "pitch": 30.14,
+      "yaw": 83.19,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bridge"
+      ],
+      "coverage": {
+        "center": {
+          "x": -160.0,
+          "y": 32.0,
+          "z": 52.0
+        },
+        "radiusUnits": 865.3,
+        "zMin": -247.9,
+        "zMax": 318.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Bridge), 260 units up, 440 units from the Bridge centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-bridge-2",
+      "displayName": "Bridge #2",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -120.0,
+        "y": 600.0,
+        "z": 264.0
+      },
+      "pitch": 22.97,
+      "yaw": -86.7,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bridge"
+      ],
+      "coverage": {
+        "center": {
+          "x": -160.0,
+          "y": 32.0,
+          "z": 52.0
+        },
+        "radiusUnits": 865.3,
+        "zMin": -247.9,
+        "zMax": 318.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Bridge), 260 units up, 569 units from the Bridge centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 62% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-ct_side_upper-1",
+      "displayName": "CTSide Upper from CTSpawn",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -851.4,
+        "y": 2492.8,
+        "z": 268.0
+      },
+      "pitch": 22.06,
+      "yaw": -48.75,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ct_side_upper"
+      ],
+      "coverage": {
+        "center": {
+          "x": -544.0,
+          "y": 2144.0,
+          "z": 69.0
+        },
+        "radiusUnits": 576.9,
+        "zMin": -192.0,
+        "zMax": 322.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 465 units from the CTSide Upper centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 94% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-ct_side_upper-2",
+      "displayName": "CTSide Upper from Snipers Nest",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1128.0,
+        "y": 1896.0,
+        "z": 312.0
+      },
+      "pitch": 20.1,
+      "yaw": 17.41,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ct_side_upper"
+      ],
+      "coverage": {
+        "center": {
+          "x": -544.0,
+          "y": 2144.0,
+          "z": 69.0
+        },
+        "radiusUnits": 576.9,
+        "zMin": -192.0,
+        "zMax": 322.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Snipers Nest), 260 units up, 634 units from the CTSide Upper centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 84% of the area, and 82% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-canal-1",
+      "displayName": "Canal #1",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 1129.0,
+        "y": 893.0,
+        "z": 174.0
+      },
+      "pitch": 33.88,
+      "yaw": -114.2,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "canal"
+      ],
+      "coverage": {
+        "center": {
+          "x": 736.0,
+          "y": 288.0,
+          "z": -94.0
+        },
+        "radiusUnits": 1697.1,
+        "zMin": -286.0,
+        "zMax": 252.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Canal), 260 units up, 721 units from the Canal centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 62% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-canal-2",
+      "displayName": "Canal #2",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 1128.0,
+        "y": 168.0,
+        "z": 74.0
+      },
+      "pitch": 25.16,
+      "yaw": 134.83,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "canal"
+      ],
+      "coverage": {
+        "center": {
+          "x": 736.0,
+          "y": 288.0,
+          "z": -94.0
+        },
+        "radiusUnits": 1697.1,
+        "zMin": -286.0,
+        "zMax": 252.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Canal), 260 units up, 410 units from the Canal centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 73% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-connector-1",
+      "displayName": "Connector from Site  B",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1032.0,
+        "y": 504.0,
+        "z": 142.7
+      },
+      "pitch": 20.96,
+      "yaw": -38.57,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "connector"
+      ],
+      "coverage": {
+        "center": {
+          "x": -608.0,
+          "y": 224.0,
+          "z": -43.2
+        },
+        "radiusUnits": 500.0,
+        "zMin": -218.0,
+        "zMax": 198.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 140 units up, 508 units from the Connector centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 73% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-fountain-1",
+      "displayName": "Fountain from Site  A",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 1036.4,
+        "y": 1794.9,
+        "z": 70.0
+      },
+      "pitch": 11.35,
+      "yaw": 0.8,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "fountain"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1696.0,
+          "y": 1824.0,
+          "z": -24.2
+        },
+        "radiusUnits": 500.0,
+        "zMin": -248.0,
+        "zMax": 177.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 660 units from the Fountain centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-fountain-2",
+      "displayName": "Fountain from Main",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 1704.0,
+        "y": 1032.0,
+        "z": 54.2
+      },
+      "pitch": 8.8,
+      "yaw": 91.19,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "fountain"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1696.0,
+          "y": 1824.0,
+          "z": -24.2
+        },
+        "radiusUnits": 500.0,
+        "zMin": -248.0,
+        "zMax": 177.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Main), 200 units up, 792 units from the Fountain centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 85% of the area, and 82% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-heaven-1",
+      "displayName": "Heaven #1",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 984.0,
+        "y": 2328.0,
+        "z": 102.0
+      },
+      "pitch": 16.84,
+      "yaw": -113.78,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "heaven"
+      ],
+      "coverage": {
+        "center": {
+          "x": 864.0,
+          "y": 2016.0,
+          "z": 11.9
+        },
+        "radiusUnits": 500.0,
+        "zMin": -150.5,
+        "zMax": 214.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Heaven), 140 units up, 334 units from the Heaven centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 96% of the area, and 73% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-heaven-2",
+      "displayName": "Heaven from Walkway",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 744.0,
+        "y": 1272.0,
+        "z": 116.0
+      },
+      "pitch": 9.07,
+      "yaw": 85.19,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "heaven"
+      ],
+      "coverage": {
+        "center": {
+          "x": 864.0,
+          "y": 2016.0,
+          "z": 11.9
+        },
+        "radiusUnits": 500.0,
+        "zMin": -150.5,
+        "zMax": 214.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Walkway), 200 units up, 754 units from the Heaven centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 54% of the area, and 56% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-lower_tunnel-1",
+      "displayName": "Lower Tunnel from CTSide Upper",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -660.5,
+        "y": 2284.2,
+        "z": 272.0
+      },
+      "pitch": 20.06,
+      "yaw": -105.85,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "lower_tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": -864.0,
+          "y": 1632.0,
+          "z": 20.1
+        },
+        "radiusUnits": 500.0,
+        "zMin": -128.0,
+        "zMax": 271.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (CTSide Upper), 200 units up, 683 units from the Lower Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 81% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-lower_tunnel-2",
+      "displayName": "Lower Tunnel from Alley",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1325.0,
+        "y": 1366.5,
+        "z": 144.0
+      },
+      "pitch": 15.75,
+      "yaw": 27.29,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "lower_tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": -864.0,
+          "y": 1632.0,
+          "z": 20.1
+        },
+        "radiusUnits": 500.0,
+        "zMin": -128.0,
+        "zMax": 271.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Alley), 140 units up, 532 units from the Lower Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 48% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-main-1",
+      "displayName": "Main from Fountain",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 1744.0,
+        "y": 1763.4,
+        "z": 105.0
+      },
+      "pitch": 20.63,
+      "yaw": -100.69,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "main"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1632.0,
+          "y": 1184.0,
+          "z": -98.9
+        },
+        "radiusUnits": 624.8,
+        "zMin": -248.0,
+        "zMax": 108.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Fountain), 200 units up, 590 units from the Main centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 86% of the area, and 82% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-main-2",
+      "displayName": "Main #2",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 1519.4,
+        "y": 837.9,
+        "z": 112.0
+      },
+      "pitch": 31.63,
+      "yaw": 75.01,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "main"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1632.0,
+          "y": 1184.0,
+          "z": -98.9
+        },
+        "radiusUnits": 624.8,
+        "zMin": -248.0,
+        "zMax": 108.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Main), 260 units up, 364 units from the Main centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 82% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-mid_doors-1",
+      "displayName": "Mid Doors #1",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -200.0,
+        "y": 470.5,
+        "z": 273.3
+      },
+      "pitch": 34.63,
+      "yaw": 14.75,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "mid_doors"
+      ],
+      "coverage": {
+        "center": {
+          "x": 160.0,
+          "y": 544.0,
+          "z": 20.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -128.0,
+        "zMax": 258.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 367 units from the Mid Doors centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 82% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-mid_doors-2",
+      "displayName": "Mid Doors from Bridge",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -120.0,
+        "y": 696.0,
+        "z": 144.0
+      },
+      "pitch": 23.56,
+      "yaw": -39.4,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "mid_doors"
+      ],
+      "coverage": {
+        "center": {
+          "x": 160.0,
+          "y": 544.0,
+          "z": 20.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -128.0,
+        "zMax": 258.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Bridge), 140 units up, 319 units from the Mid Doors centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 52% of the area, and 47% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-outside_long-1",
+      "displayName": "Outside Long #1",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1920.9,
+        "y": 258.1,
+        "z": 322.0
+      },
+      "pitch": 26.24,
+      "yaw": -30.57,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "outside_long"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1440.0,
+          "y": -32.0,
+          "z": 49.7
+        },
+        "radiusUnits": 850.4,
+        "zMin": -99.7,
+        "zMax": 321.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Outside Long), 260 units up, 562 units from the Outside Long centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-outside_long-2",
+      "displayName": "Outside Long #2",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1019.5,
+        "y": -415.0,
+        "z": 264.0
+      },
+      "pitch": 19.6,
+      "yaw": 137.21,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "outside_long"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1440.0,
+          "y": -32.0,
+          "z": 49.7
+        },
+        "radiusUnits": 850.4,
+        "zMin": -99.7,
+        "zMax": 321.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Outside Long), 260 units up, 569 units from the Outside Long centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-palace_interior-1",
+      "displayName": "Palace Interior #1",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -168.0,
+        "y": 1032.0,
+        "z": 264.0
+      },
+      "pitch": 25.06,
+      "yaw": 129.78,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "palace_interior"
+      ],
+      "coverage": {
+        "center": {
+          "x": -352.0,
+          "y": 1312.0,
+          "z": 162.8
+        },
+        "radiusUnits": 737.6,
+        "zMin": -127.6,
+        "zMax": 406.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 200 units up, 335 units from the Palace Interior centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 82% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-palace_interior-2",
+      "displayName": "Palace Interior #2",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -465.5,
+        "y": 1033.5,
+        "z": 260.7
+      },
+      "pitch": 27.69,
+      "yaw": 54.88,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "palace_interior"
+      ],
+      "coverage": {
+        "center": {
+          "x": -352.0,
+          "y": 1312.0,
+          "z": 162.8
+        },
+        "radiusUnits": 737.6,
+        "zMin": -127.6,
+        "zMax": 406.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Palace Interior), 200 units up, 301 units from the Palace Interior centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 52% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-ruins-1",
+      "displayName": "Ruins #1",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -696.0,
+        "y": -600.0,
+        "z": 334.4
+      },
+      "pitch": 36.23,
+      "yaw": -174.05,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ruins"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": -672.0,
+          "z": 116.0
+        },
+        "radiusUnits": 850.4,
+        "zMin": -96.2,
+        "zMax": 372.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Ruins), 260 units up, 305 units from the Ruins centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 75% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-ruins-2",
+      "displayName": "Ruins #2",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1112.0,
+        "y": -1165.0,
+        "z": 328.0
+      },
+      "pitch": 28.82,
+      "yaw": 55.8,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "ruins"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": -672.0,
+          "z": 116.0
+        },
+        "radiusUnits": 850.4,
+        "zMin": -96.2,
+        "zMax": 372.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 507 units from the Ruins centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 59% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-snipers_nest-1",
+      "displayName": "Snipers Nest from CTSide Upper",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -552.0,
+        "y": 2184.0,
+        "z": 283.7
+      },
+      "pitch": 16.82,
+      "yaw": -151.49,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "snipers_nest"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1120.0,
+          "y": 1824.0,
+          "z": 100.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -128.0,
+        "zMax": 302.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (CTSide Upper), 260 units up, 672 units from the Snipers Nest centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 83% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-snipers_nest-2",
+      "displayName": "Snipers Nest from Alley",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1272.0,
+        "y": 1176.0,
+        "z": 251.8
+      },
+      "pitch": 14.34,
+      "yaw": 82.57,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "snipers_nest"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1120.0,
+          "y": 1824.0,
+          "z": 100.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -128.0,
+        "zMax": 302.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Alley), 260 units up, 666 units from the Snipers Nest centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 65% of the area, and 82% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-street-1",
+      "displayName": "Street #1",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 470.9,
+        "y": -769.0,
+        "z": 260.0
+      },
+      "pitch": 39.93,
+      "yaw": 44.41,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "street"
+      ],
+      "coverage": {
+        "center": {
+          "x": 672.0,
+          "y": -544.0,
+          "z": 40.0
+        },
+        "radiusUnits": 989.5,
+        "zMin": -128.0,
+        "zMax": 290.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Street), 260 units up, 302 units from the Street centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 94% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-street-2",
+      "displayName": "Street #2",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 1224.0,
+        "y": -312.0,
+        "z": 236.6
+      },
+      "pitch": 22.48,
+      "yaw": -147.27,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "street"
+      ],
+      "coverage": {
+        "center": {
+          "x": 672.0,
+          "y": -544.0,
+          "z": 40.0
+        },
+        "radiusUnits": 989.5,
+        "zMin": -128.0,
+        "zMax": 290.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Street), 260 units up, 599 units from the Street centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 73% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-t_side_upper-1",
+      "displayName": "TSide Upper #1",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 1345.0,
+        "y": -492.6,
+        "z": 238.5
+      },
+      "pitch": 17.25,
+      "yaw": 85.66,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_side_upper"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1376.0,
+          "y": 160.0,
+          "z": 52.0
+        },
+        "radiusUnits": 536.7,
+        "zMin": -247.3,
+        "zMax": 255.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 653 units from the TSide Upper centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-t_side_upper-2",
+      "displayName": "TSide Upper #2",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 1464.0,
+        "y": 456.0,
+        "z": 264.0
+      },
+      "pitch": 34.24,
+      "yaw": -103.86,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_side_upper"
+      ],
+      "coverage": {
+        "center": {
+          "x": 1376.0,
+          "y": 160.0,
+          "z": 52.0
+        },
+        "radiusUnits": 536.7,
+        "zMin": -247.3,
+        "zMax": 255.6,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TSide Upper), 260 units up, 309 units from the TSide Upper centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 87% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-t_stairs-1",
+      "displayName": "TStairs from Street",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 936.0,
+        "y": -552.0,
+        "z": 232.0
+      },
+      "pitch": 35.6,
+      "yaw": 105.41,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": 864.0,
+          "y": -224.0,
+          "z": -11.5
+        },
+        "radiusUnits": 500.0,
+        "zMin": -227.6,
+        "zMax": 222.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Street), 260 units up, 336 units from the TStairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-t_stairs-2",
+      "displayName": "TStairs from Canal",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 744.0,
+        "y": 264.0,
+        "z": 118.0
+      },
+      "pitch": 16.4,
+      "yaw": -79.07,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": 864.0,
+          "y": -224.0,
+          "z": -11.5
+        },
+        "radiusUnits": 500.0,
+        "zMin": -227.6,
+        "zMax": 222.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Canal), 260 units up, 503 units from the TStairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 89% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-tunnel-1",
+      "displayName": "Tunnel from Water",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 216.0,
+        "y": 2904.0,
+        "z": 89.2
+      },
+      "pitch": 15.31,
+      "yaw": -79.45,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": 2272.0,
+          "z": -97.7
+        },
+        "radiusUnits": 500.0,
+        "zMin": -257.6,
+        "zMax": 214.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Water), 260 units up, 646 units from the Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 91% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-tunnel-2",
+      "displayName": "Tunnel from Tunnel Stairs",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 392.1,
+        "y": 1896.9,
+        "z": 104.0
+      },
+      "pitch": 27.59,
+      "yaw": 97.32,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel"
+      ],
+      "coverage": {
+        "center": {
+          "x": 352.0,
+          "y": 2272.0,
+          "z": -97.7
+        },
+        "radiusUnits": 500.0,
+        "zMin": -257.6,
+        "zMax": 214.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Tunnel Stairs), 140 units up, 377 units from the Tunnel centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-tunnel_stairs-1",
+      "displayName": "Tunnel Stairs #1",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 264.0,
+        "y": 2088.0,
+        "z": 105.0
+      },
+      "pitch": 16.65,
+      "yaw": -28.1,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": 544.0,
+          "y": 1952.0,
+          "z": 0.7
+        },
+        "radiusUnits": 500.0,
+        "zMin": -200.1,
+        "zMax": 214.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 311 units from the Tunnel Stairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 80% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-tunnel_stairs-2",
+      "displayName": "Tunnel Stairs from Tunnel",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 264.0,
+        "y": 2376.0,
+        "z": 54.0
+      },
+      "pitch": 5.29,
+      "yaw": -63.73,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "tunnel_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": 544.0,
+          "y": 1952.0,
+          "z": 0.7
+        },
+        "radiusUnits": 500.0,
+        "zMin": -200.1,
+        "zMax": 214.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Tunnel), 200 units up, 508 units from the Tunnel Stairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 47% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-walkway-1",
+      "displayName": "Walkway from Site  A",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 1219.8,
+        "y": 1882.6,
+        "z": 160.0
+      },
+      "pitch": 20.28,
+      "yaw": -126.8,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "walkway"
+      ],
+      "coverage": {
+        "center": {
+          "x": 800.0,
+          "y": 1440.0,
+          "z": -36.0
+        },
+        "radiusUnits": 506.0,
+        "zMin": -248.0,
+        "zMax": 270.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 610 units from the Walkway centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 70% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-walkway-2",
+      "displayName": "Walkway from Site  A",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 1115.5,
+        "y": 1418.0,
+        "z": 139.3
+      },
+      "pitch": 32.68,
+      "yaw": 177.87,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "walkway"
+      ],
+      "coverage": {
+        "center": {
+          "x": 800.0,
+          "y": 1440.0,
+          "z": -36.0
+        },
+        "radiusUnits": 506.0,
+        "zMin": -248.0,
+        "zMax": 270.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 316 units from the Walkway centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 86% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-water-1",
+      "displayName": "Water from CTSpawn",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -602.5,
+        "y": 2497.0,
+        "z": 178.7
+      },
+      "pitch": 25.05,
+      "yaw": 46.02,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "water"
+      ],
+      "coverage": {
+        "center": {
+          "x": -160.0,
+          "y": 2976.0,
+          "z": -116.3
+        },
+        "radiusUnits": 737.6,
+        "zMin": -290.0,
+        "zMax": 110.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 652 units from the Water centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-anubis-water-2",
+      "displayName": "Water from CTSpawn",
+      "mapName": "de_anubis",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": 360.0,
+        "y": 2568.0,
+        "z": 114.0
+      },
+      "pitch": 19.63,
+      "yaw": 143.62,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "water"
+      ],
+      "coverage": {
+        "center": {
+          "x": -160.0,
+          "y": 2976.0,
+          "z": -116.3
+        },
+        "radiusUnits": 737.6,
+        "zMin": -290.0,
+        "zMax": 110.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 661 units from the Water centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
@@ -3608,11 +5768,11 @@
           "tMs": 6000,
           "position": {
             "x": 1378.9,
-            "y": 2057.7,
+            "y": 2057.8,
             "z": 98.5
           },
           "pitch": 41.76,
-          "yaw": -119.25
+          "yaw": -119.24
         }
       ],
       "maxDurationMs": 7000,
@@ -3673,7 +5833,7 @@
             "y": 648.0,
             "z": 300.0
           },
-          "pitch": 32.91,
+          "pitch": 32.9,
           "yaw": -15.46
         },
         {
@@ -3683,7 +5843,7 @@
             "y": 601.2,
             "z": 286.5
           },
-          "pitch": 48.08,
+          "pitch": 48.07,
           "yaw": -15.46
         }
       ],
@@ -3765,7 +5925,7 @@
             "y": 3051.0,
             "z": 76.7
           },
-          "pitch": 10.88,
+          "pitch": 10.89,
           "yaw": -133.0
         },
         {
@@ -3842,17 +6002,17 @@
             "z": 232.0
           },
           "pitch": 22.78,
-          "yaw": 13.22
+          "yaw": 13.21
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -575.9,
+            "x": -575.8,
             "y": 2509.4,
             "z": 218.5
           },
           "pitch": 35.99,
-          "yaw": 13.22
+          "yaw": 13.21
         }
       ],
       "maxDurationMs": 7000,

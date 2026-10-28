@@ -4,8 +4,8 @@ import type { CameraPath, CameraRecord, DirectorDecision, DirectorMode, MatchSta
 import { emptySourceCapabilities } from "@matchframe/contracts";
 import type { DerivedEvent, GsiObservation, IngestResult, ProfileSet, UtilityTrackerEvent } from "@matchframe/cs2-state";
 import { CapabilitySampler, hash53, MatchStateStore, normalizeGsi, parseGsiPayload, stripAuth } from "@matchframe/cs2-state";
-import type { ArbiterEvent, ControlCapabilities, DirectorOutput, ObserverControlAdapter, Pin } from "@matchframe/director-policy";
-import { cameraShot, ControlArbiter, Director, parseShot, pathShot, povShot } from "@matchframe/director-policy";
+import type { ArbiterEvent, ControlCapabilities, DirectorOutput, ObserverControlAdapter, Pin, PlayerView } from "@matchframe/director-policy";
+import { cameraShot, chaseMoment, ControlArbiter, Director, parseShot, pathShot, povShot } from "@matchframe/director-policy";
 import type { MapRegistry } from "@matchframe/map-runtime";
 import type { Logger } from "../logger.ts";
 import type { LiveContactModel } from "./model-runtime.ts";
@@ -37,6 +37,8 @@ export interface LiveSessionOptions {
    * player after a switch). The engine records it per game build, like the setup tests.
    */
   recordEvidence?: (key: keyof ControlCapabilities, support: "supported" | "partial", detail: string) => void;
+  /** The third-person chase view for plants, defuses and round wins (default on). */
+  chaseEnabled?: () => boolean;
   simulated?: boolean;
   /** Per-type utility profiles (measured where available, defaults otherwise). */
   utilityProfiles?: ProfileSet;
@@ -78,6 +80,12 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   private pendingCinematic: { commandId: string; shot: string; plannedDurationMs: number; opportunityId: string | null; countsTowardBudget: boolean } | null = null;
   /** Freeze-time establishing shots (static or a camera path) don't use the round's cinematic budget. */
   private static readonly OFF_BUDGET = new Set(["establishing", "camera_path"]);
+  /** The chase view and first person each last at least this long. */
+  private static readonly CHASE_MIN_MS = 1500;
+  private view: PlayerView = "in_eye";
+  private viewTarget: string | null = null;
+  private viewSince = 0;
+  private chaseBlockedUntil = 0;
   private stats = { packets: 0, rejected: 0, invalid: 0, cuts: 0, recommendations: 0, ingestMsTotal: 0, evalMsTotal: 0, evals: 0, maxIngestMs: 0, maxEvalMs: 0 };
   private ingestSamples: number[] = [];
   private evalSamples: number[] = [];
@@ -236,7 +244,8 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     this.lastState = state;
     this.shadowModel?.observe(state);
     if (result.epochChanged) this.arbiter.setTimeline(this.sessionId, state.epoch);
-    this.arbiter.getAdapter()?.noteObserverState?.(state.observer);
+    const observedPlayer = state.observer.observedSteamId ? state.players.find((p) => p.steamId === state.observer.observedSteamId) : undefined;
+    this.arbiter.getAdapter()?.noteObserverState?.({ ...state.observer, observedPosition: observedPlayer?.position ?? null });
     // Observer feedback: confirms commands, detects human POV changes vs game auto-switch.
     const prevObserved = prev?.observer.observedSteamId ?? null;
     const prevTargetDied = prevObserved !== null && state.players.find((p) => p.steamId === prevObserved)?.lifeState === "dead";
@@ -306,6 +315,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
       this.shadow.record(now, s.roundNumber, this.shadowModel.predict(s, output.interactions));
     }
     const intent = output.intent;
+    if (!intent) this.presentChase(now);
     if (!intent || this.director.currentMode === "shadow") return;
     if (intent.kind === "select_player") {
       const sel = this.caps.playerSelectionControl.support;
@@ -314,6 +324,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
         return;
       }
       this.stats.cuts++;
+      this.noteView(intent.targetSteamId!, "in_eye", now);
       void this.arbiter.submit(
         { kind: "select_player", steamId: intent.targetSteamId!, observerSlot: intent.observerSlot },
         { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs },
@@ -491,10 +502,51 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     this.director.disableCinematics(scope, this.lastState, disabled);
   }
 
-  async manualSelectPlayer(steamId: string, holder: string, owner: "operator" | "device" | "remote" = "operator") {
+  async manualSelectPlayer(steamId: string, holder: string, owner: "operator" | "device" | "remote" = "operator", view: PlayerView = "in_eye") {
     const p = this.lastState?.players.find((x) => x.steamId === steamId);
     if (!p) throw Object.assign(new Error("unknown player"), { status: 404 });
-    return this.arbiter.submit({ kind: "select_player", steamId, observerSlot: p.observerSlot }, { owner, holder, expiresInMs: 1500 });
+    if (view === "chase" && !this.arbiter.getAdapter()?.supportsChase) throw Object.assign(new Error("this camera control can't show the chase view"), { status: 409 });
+    this.noteView(steamId, view, this.opts.now());
+    return this.arbiter.submit({ kind: "select_player", steamId, observerSlot: p.observerSlot, view }, { owner, holder, expiresInMs: 1500 });
+  }
+
+  private noteView(steamId: string, view: PlayerView, now: number): void {
+    if (steamId !== this.viewTarget || view !== this.view) this.viewSince = now;
+    this.viewTarget = steamId;
+    this.view = view;
+  }
+
+  /**
+   * The third-person chase view for the moments that suit it (chaseMoment: a plant, a defuse, a round
+   * the player's team won), on the player the director is already showing, and back to first person
+   * after. Only while the director owns the camera, never during a cinematic, at most one view change
+   * per CHASE_MIN_MS.
+   */
+  private presentChase(now: number): void {
+    const s = this.lastState;
+    const adapter = this.arbiter.getAdapter();
+    if (!s || !adapter?.supportsChase || this.director.currentMode !== "automatic" || !this.arbiter.automationAllowed) return;
+    if (this.director.shotPlanner.activeCinematic || now < this.chaseBlockedUntil) return;
+    const pending = this.arbiter.pending();
+    if (pending && (pending.status === "pending" || pending.status === "sent" || pending.status === "transport_acknowledged")) return;
+    const id = s.observer.observedSteamId;
+    if (!id) return;
+    if (id !== this.viewTarget) {
+      // The game moved on (after a death, or a pick in CS2) and keeps the view it had: free to change it now.
+      this.viewTarget = id;
+      this.viewSince = 0;
+    }
+    const want: PlayerView = this.opts.chaseEnabled?.() !== false && chaseMoment(s) ? "chase" : "in_eye";
+    if (want === this.view || now - this.viewSince < LiveSession.CHASE_MIN_MS) return;
+    const p = s.players.find((x) => x.steamId === id);
+    const before = this.view;
+    this.noteView(id, want, now);
+    void this.arbiter.submit({ kind: "select_player", steamId: id, observerSlot: p?.observerSlot ?? null, view: want }, { owner: "director", expiresInMs: 1500 }).then((r) => {
+      if (r.status === "failed" || r.status === "cancelled") {
+        this.view = before;
+        this.chaseBlockedUntil = this.opts.now() + 5000;
+      }
+    });
   }
 
   async manualCamera(cameraId: string, holder: string, plannedDurationMs = 3000) {

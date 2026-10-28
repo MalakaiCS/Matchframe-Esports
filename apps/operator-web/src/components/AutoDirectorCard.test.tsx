@@ -7,7 +7,7 @@ import { SessionContext } from "../state/session.tsx";
 import { AutoDirectorCard } from "./AutoDirectorCard.tsx";
 import { ToastProvider } from "./toasts.tsx";
 
-const off: AutoDirectorStatus = { on: false, phase: "off", headline: "The Auto Director is off.", settings: { cinematic: true, nadeCams: false, returnAfterSec: 8 }, observerMode: "off", checks: [], resumesInMs: null, startedAt: null };
+const off: AutoDirectorStatus = { on: false, phase: "off", headline: "The Auto Director is off.", settings: { cinematic: true, nadeCams: false, returnAfterSec: 8, chase: true }, observerMode: "off", checks: [], resumesInMs: null, startedAt: null };
 const running: AutoDirectorStatus = {
   ...off,
   on: true,
@@ -67,12 +67,22 @@ describe("Auto Director card", () => {
   });
 
   it("saves what it films; nade cams bring the cinematic cameras along", async () => {
-    const calls = serve({ "GET /api/v1/director/auto": off, "PUT /api/v1/director/auto/settings": { ...off, settings: { cinematic: true, nadeCams: true, returnAfterSec: 8 } } });
+    const calls = serve({ "GET /api/v1/director/auto": off, "PUT /api/v1/director/auto/settings": { ...off, settings: { cinematic: true, nadeCams: true, returnAfterSec: 8, chase: true } } });
     renderCard();
     const nade = await screen.findByLabelText("Nade cams");
     await waitFor(() => expect((nade as HTMLInputElement).disabled).toBe(false));
     fireEvent.click(nade);
     await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ nadeCams: true, cinematic: true }));
+  });
+
+  it("switches the chase cam off and keeps it off", async () => {
+    const calls = serve({ "GET /api/v1/director/auto": off, "PUT /api/v1/director/auto/settings": { ...off, settings: { ...off.settings, chase: false } } });
+    renderCard();
+    await waitFor(() => expect((screen.getByLabelText("Chase cam") as HTMLInputElement).disabled).toBe(false));
+    expect((screen.getByLabelText("Chase cam") as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByLabelText("Chase cam"));
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ chase: false }));
+    await waitFor(() => expect((screen.getByLabelText("Chase cam") as HTMLInputElement).checked).toBe(false));
   });
 
   it("can't be started without director control", async () => {

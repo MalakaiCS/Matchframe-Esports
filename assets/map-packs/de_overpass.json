@@ -2899,7 +2899,7 @@
         "z": 748.0
       },
       "pitch": 16.83,
-      "yaw": 177.61,
+      "yaw": 177.6,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3001,7 +3001,7 @@
         "z": 799.5
       },
       "pitch": 38.29,
-      "yaw": -99.57,
+      "yaw": -99.56,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3335,6 +3335,1542 @@
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
       "notes": "Placed on CS2's walkable floor (Side Alley), 260 units up, 641 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-alley-1",
+      "displayName": "Alley #1",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -647.0,
+        "y": -1297.0,
+        "z": 411.3
+      },
+      "pitch": 26.28,
+      "yaw": -85.21,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": -608.0,
+          "y": -1760.0,
+          "z": 200.0
+        },
+        "radiusUnits": 737.6,
+        "zMin": -42.3,
+        "zMax": 406.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Alley), 260 units up, 465 units from the Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-alley-2",
+      "displayName": "Alley #2",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -408.0,
+        "y": -2184.0,
+        "z": 412.0
+      },
+      "pitch": 26.36,
+      "yaw": 119.51,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": -608.0,
+          "y": -1760.0,
+          "z": 200.0
+        },
+        "radiusUnits": 737.6,
+        "zMin": -42.3,
+        "zMax": 406.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 469 units from the Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-bridge-1",
+      "displayName": "Bridge from Walkway",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1752.0,
+        "y": -120.0,
+        "z": 396.0
+      },
+      "pitch": 23.15,
+      "yaw": -10.51,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bridge"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1248.0,
+          "y": -224.0,
+          "z": 156.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": 5.3,
+        "zMax": 398.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Walkway), 260 units up, 515 units from the Bridge centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-bridge-2",
+      "displayName": "Bridge from Construction",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -881.0,
+        "y": -470.5,
+        "z": 446.0
+      },
+      "pitch": 32.63,
+      "yaw": 143.91,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "bridge"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1248.0,
+          "y": -224.0,
+          "z": 156.8
+        },
+        "radiusUnits": 500.0,
+        "zMin": 5.3,
+        "zMax": 398.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Construction), 260 units up, 442 units from the Bridge centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 95% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-canal-1",
+      "displayName": "Canal #1",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -303.4,
+        "y": -1293.9,
+        "z": 283.5
+      },
+      "pitch": 40.63,
+      "yaw": 119.91,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "canal"
+      ],
+      "coverage": {
+        "center": {
+          "x": -544.0,
+          "y": -608.0,
+          "z": 66.0
+        },
+        "radiusUnits": 1202.7,
+        "zMin": -103.7,
+        "zMax": 366.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Canal), 260 units up, 727 units from the Canal centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 52% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-canal-2",
+      "displayName": "Canal #2",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -512.0,
+        "y": 160.0,
+        "z": 210.7
+      },
+      "pitch": 47.53,
+      "yaw": -63.43,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "canal"
+      ],
+      "coverage": {
+        "center": {
+          "x": -544.0,
+          "y": -608.0,
+          "z": 66.0
+        },
+        "radiusUnits": 1202.7,
+        "zMin": -103.7,
+        "zMax": 366.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Canal), 200 units up, 769 units from the Canal centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-construction-1",
+      "displayName": "Construction from Water",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1608.0,
+        "y": -744.0,
+        "z": 363.6
+      },
+      "pitch": 20.43,
+      "yaw": 16.36,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "construction"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": -544.0,
+          "z": 152.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -70.7,
+        "zMax": 355.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Water), 260 units up, 648 units from the Construction centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 75% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-construction-2",
+      "displayName": "Construction from Site  B",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -824.3,
+        "y": 17.7,
+        "z": 357.3
+      },
+      "pitch": 21.01,
+      "yaw": -105.66,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "construction"
+      ],
+      "coverage": {
+        "center": {
+          "x": -992.0,
+          "y": -544.0,
+          "z": 152.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": -70.7,
+        "zMax": 355.3,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 586 units from the Construction centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 69% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-pipe-1",
+      "displayName": "Pipe from Canal",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -216.0,
+        "y": -984.0,
+        "z": 167.6
+      },
+      "pitch": 8.69,
+      "yaw": 175.61,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "pipe"
+      ],
+      "coverage": {
+        "center": {
+          "x": -864.0,
+          "y": -928.0,
+          "z": 73.1
+        },
+        "radiusUnits": 500.0,
+        "zMin": -92.0,
+        "zMax": 275.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Canal), 140 units up, 650 units from the Pipe centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-pipe-2",
+      "displayName": "Pipe from Water",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1512.0,
+        "y": -984.0,
+        "z": 164.7
+      },
+      "pitch": 11.61,
+      "yaw": 6.55,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "pipe"
+      ],
+      "coverage": {
+        "center": {
+          "x": -864.0,
+          "y": -928.0,
+          "z": 73.1
+        },
+        "radiusUnits": 500.0,
+        "zMin": -92.0,
+        "zMax": 275.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Water), 140 units up, 650 units from the Pipe centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 55% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-snipers_nest-1",
+      "displayName": "Snipers Nest from Water",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1360.0,
+        "y": 352.0,
+        "z": 285.0
+      },
+      "pitch": -2.42,
+      "yaw": 155.36,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "snipers_nest"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1952.0,
+          "y": 672.0,
+          "z": 312.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 129.3,
+        "zMax": 514.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Water), 260 units up, 673 units from the Snipers Nest centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 86% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-t_stairs-1",
+      "displayName": "TStairs from Side Alley",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -250.4,
+        "y": -2018.8,
+        "z": 412.0
+      },
+      "pitch": 10.82,
+      "yaw": -160.78,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": -800.0,
+          "y": -2208.0,
+          "z": 295.3
+        },
+        "radiusUnits": 500.0,
+        "zMin": 80.0,
+        "zMax": 579.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Side Alley), 260 units up, 581 units from the TStairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-t_stairs-2",
+      "displayName": "TStairs #2",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -724.8,
+        "y": -2804.4,
+        "z": 506.0
+      },
+      "pitch": 23.62,
+      "yaw": 97.85,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "t_stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": -800.0,
+          "y": -2208.0,
+          "z": 295.3
+        },
+        "radiusUnits": 500.0,
+        "zMin": 80.0,
+        "zMax": 579.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 601 units from the TStairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 71% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-walkway-1",
+      "displayName": "Walkway from Site  B",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1080.0,
+        "y": 24.0,
+        "z": 365.6
+      },
+      "pitch": 17.38,
+      "yaw": -166.36,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "walkway"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1696.0,
+          "y": -96.0,
+          "z": 184.0
+        },
+        "radiusUnits": 512.2,
+        "zMin": -8.0,
+        "zMax": 386.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  B), 260 units up, 628 units from the Walkway centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 78% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-walkway-2",
+      "displayName": "Walkway #2",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1992.0,
+        "y": -168.0,
+        "z": 396.0
+      },
+      "pitch": 37.01,
+      "yaw": 9.98,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "walkway"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1696.0,
+          "y": -96.0,
+          "z": 184.0
+        },
+        "radiusUnits": 512.2,
+        "zMin": -8.0,
+        "zMax": 386.9,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 305 units from the Walkway centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 93% of the area, and 87% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-water-1",
+      "displayName": "Water from Construction",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -881.0,
+        "y": -470.5,
+        "z": 446.0
+      },
+      "pitch": 29.18,
+      "yaw": 163.96,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "water"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1440.0,
+          "y": -160.0,
+          "z": 183.6
+        },
+        "radiusUnits": 1122.9,
+        "zMin": -91.9,
+        "zMax": 386.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Construction), 260 units up, 639 units from the Water centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 69% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-water-2",
+      "displayName": "Water #2",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1725.2,
+        "y": -414.9,
+        "z": 392.0
+      },
+      "pitch": 42.53,
+      "yaw": 20.07,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "water"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1440.0,
+          "y": -160.0,
+          "z": 183.6
+        },
+        "radiusUnits": 1122.9,
+        "zMin": -91.9,
+        "zMax": 386.2,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 383 units from the Water centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 94% of the area, and 91% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-backof_a-1",
+      "displayName": "Backof A from Site  A",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -2234.1,
+        "y": 970.0,
+        "z": 748.0
+      },
+      "pitch": 42.16,
+      "yaw": 32.41,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "backof_a"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1952.0,
+          "y": 1120.0,
+          "z": 408.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 198.1,
+        "zMax": 738.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 320 units from the Backof A centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 80% of the area, and 87% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-fountain-1",
+      "displayName": "Fountain #1",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -2033.2,
+        "y": -1943.8,
+        "z": 732.7
+      },
+      "pitch": 24.81,
+      "yaw": -160.51,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "fountain"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2528.0,
+          "y": -2080.0,
+          "z": 560.0
+        },
+        "radiusUnits": 1024.5,
+        "zMin": 306.0,
+        "zMax": 762.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Fountain), 260 units up, 513 units from the Fountain centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 94% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-fountain-2",
+      "displayName": "Fountain #2",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -3136.0,
+        "y": -2219.8,
+        "z": 739.5
+      },
+      "pitch": 20.72,
+      "yaw": 16.8,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "fountain"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2528.0,
+          "y": -2080.0,
+          "z": 560.0
+        },
+        "radiusUnits": 1024.5,
+        "zMin": 306.0,
+        "zMax": 762.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Fountain), 260 units up, 624 units from the Fountain centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 80% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-lobby-1",
+      "displayName": "Lobby from Site  A",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -2254.4,
+        "y": 620.1,
+        "z": 740.0
+      },
+      "pitch": 18.4,
+      "yaw": 112.24,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "lobby"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2464.0,
+          "y": 1248.0,
+          "z": 536.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 249.2,
+        "zMax": 738.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 662 units from the Lobby centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 56% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-lobby-2",
+      "displayName": "Lobby from Site  A",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -2698.0,
+        "y": 793.4,
+        "z": 744.0
+      },
+      "pitch": 24.72,
+      "yaw": 57.22,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "lobby"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2464.0,
+          "y": 1248.0,
+          "z": 536.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 249.2,
+        "zMax": 738.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Site  A), 260 units up, 511 units from the Lobby centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 48% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-lower_park-1",
+      "displayName": "Lower Park #1",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -2100.0,
+        "y": -733.5,
+        "z": 654.0
+      },
+      "pitch": 28.35,
+      "yaw": -170.9,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "lower_park"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2400.0,
+          "y": -544.0,
+          "z": 486.0
+        },
+        "radiusUnits": 1475.1,
+        "zMin": 293.0,
+        "zMax": 739.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Lower Park), 260 units up, 355 units from the Lower Park centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 75% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-lower_park-2",
+      "displayName": "Lower Park #2",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -2747.5,
+        "y": -1187.0,
+        "z": 581.5
+      },
+      "pitch": 23.85,
+      "yaw": -6.81,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "lower_park"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2400.0,
+          "y": -544.0,
+          "z": 486.0
+        },
+        "radiusUnits": 1475.1,
+        "zMin": 293.0,
+        "zMax": 739.1,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Lower Park), 140 units up, 731 units from the Lower Park centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 53% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-playground-1",
+      "displayName": "Playground from Fountain",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -3192.0,
+        "y": -2280.0,
+        "z": 739.1
+      },
+      "pitch": 20.37,
+      "yaw": -30.98,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "playground"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2720.0,
+          "y": -2592.0,
+          "z": 534.6
+        },
+        "radiusUnits": 737.6,
+        "zMin": 378.8,
+        "zMax": 738.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Fountain), 260 units up, 566 units from the Playground centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 86% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-playground-2",
+      "displayName": "Playground #2",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -2370.5,
+        "y": -2629.5,
+        "z": 743.3
+      },
+      "pitch": 34.81,
+      "yaw": 170.76,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "playground"
+      ],
+      "coverage": {
+        "center": {
+          "x": -2720.0,
+          "y": -2592.0,
+          "z": 534.6
+        },
+        "radiusUnits": 737.6,
+        "zMin": 378.8,
+        "zMax": 738.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Playground), 260 units up, 352 units from the Playground centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-side_alley-1",
+      "displayName": "Side Alley from TStairs",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -781.0,
+        "y": -2295.9,
+        "z": 468.0
+      },
+      "pitch": 22.23,
+      "yaw": 28.58,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "side_alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": -224.0,
+          "y": -2016.0,
+          "z": 200.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 52.0,
+        "zMax": 446.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (TStairs), 260 units up, 623 units from the Side Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 87% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-side_alley-2",
+      "displayName": "Side Alley #2",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -792.0,
+        "y": -1800.0,
+        "z": 413.0
+      },
+      "pitch": 18.67,
+      "yaw": -19.66,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "side_alley"
+      ],
+      "coverage": {
+        "center": {
+          "x": -224.0,
+          "y": -2016.0,
+          "z": 200.0
+        },
+        "radiusUnits": 500.0,
+        "zMin": 52.0,
+        "zMax": 446.0,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 608 units from the Side Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 87% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-stairs-1",
+      "displayName": "Stairs from Backof A",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -1940.5,
+        "y": 1303.0,
+        "z": 560.0
+      },
+      "pitch": 40.58,
+      "yaw": -56.05,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1760.0,
+          "y": 1056.0,
+          "z": 302.6
+        },
+        "radiusUnits": 500.0,
+        "zMin": 39.2,
+        "zMax": 590.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Backof A), 200 units up, 306 units from the Stairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 69% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-stairs-2",
+      "displayName": "Stairs from Backof A",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -2162.0,
+        "y": 1110.5,
+        "z": 626.7
+      },
+      "pitch": 36.45,
+      "yaw": 1.43,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "stairs"
+      ],
+      "coverage": {
+        "center": {
+          "x": -1760.0,
+          "y": 1056.0,
+          "z": 302.6
+        },
+        "radiusUnits": 500.0,
+        "zMin": 39.2,
+        "zMax": 590.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Backof A), 260 units up, 406 units from the Stairs centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 46% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-upper_park-1",
+      "displayName": "Upper Park #1",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -3672.0,
+        "y": -264.0,
+        "z": 780.9
+      },
+      "pitch": 17.57,
+      "yaw": -84.73,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "upper_park"
+      ],
+      "coverage": {
+        "center": {
+          "x": -3616.0,
+          "y": -928.0,
+          "z": 543.6
+        },
+        "radiusUnits": 1933.3,
+        "zMin": 379.0,
+        "zMax": 793.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Upper Park), 260 units up, 666 units from the Upper Park centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 92% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+    },
+    {
+      "id": "cs2-overpass-upper_park-2",
+      "displayName": "Upper Park #2",
+      "mapName": "de_overpass",
+      "mapRevision": "observed_builds:13914",
+      "position": {
+        "x": -3568.0,
+        "y": -1568.0,
+        "z": 772.0
+      },
+      "pitch": 32.8,
+      "yaw": 108.47,
+      "fov": null,
+      "observerMode": "roaming_static",
+      "targetRegionIds": [
+        "upper_park"
+      ],
+      "coverage": {
+        "center": {
+          "x": -3616.0,
+          "y": -928.0,
+          "z": 543.6
+        },
+        "radiusUnits": 1933.3,
+        "zMin": 379.0,
+        "zMax": 793.7,
+        "levelId": "ground"
+      },
+      "allowedPhases": [
+        "live",
+        "over"
+      ],
+      "actionClasses": [
+        "tactical",
+        "utility"
+      ],
+      "grenadeTypes": [],
+      "minAcquisitionMs": 150,
+      "normalDurationMs": 3500,
+      "maxDurationMs": 7000,
+      "occlusionValidation": "validated",
+      "validation": "unvalidated",
+      "exitStrategy": "most_relevant_player",
+      "lastTestedGameBuild": null,
+      "lastTestedMapVersion": null,
+      "capturedFrom": "derived_navmesh",
+      "notes": "Placed on CS2's walkable floor (Upper Park), 260 units up, 642 units from the Upper Park centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 84% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
@@ -3434,7 +4970,7 @@
             "z": 285.0
           },
           "pitch": 11.9,
-          "yaw": -31.76
+          "yaw": -31.75
         },
         {
           "tMs": 2476,
@@ -3546,7 +5082,7 @@
             "z": 268.5
           },
           "pitch": 23.06,
-          "yaw": -14.59
+          "yaw": -14.58
         }
       ],
       "maxDurationMs": 7000,
@@ -3585,7 +5121,7 @@
           "yaw": 57.75
         },
         {
-          "tMs": 3245,
+          "tMs": 3246,
           "position": {
             "x": -954.0,
             "y": -2903.5,
@@ -3595,7 +5131,7 @@
           "yaw": 60.75
         }
       ],
-      "maxDurationMs": 4245,
+      "maxDurationMs": 4246,
       "maxSpeedUnitsPerSec": 300,
       "collisionValidated": true,
       "validation": "unvalidated",
