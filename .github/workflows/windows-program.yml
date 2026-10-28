@@ -138,6 +138,7 @@ jobs:
           "INSTALLED_EXE=$installed" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Smoke-test the installed program
+        timeout-minutes: 20
         shell: pwsh
         run: |
           npm install --no-save --no-audit --no-fund --prefix "$env:RUNNER_TEMP\pw" playwright-core@1.63.0
@@ -154,8 +155,11 @@ jobs:
 
       - name: Uninstall
         if: always()
+        timeout-minutes: 5
         shell: pwsh
         run: |
+          # A program left running by a failed check would make the uninstaller wait for ever.
+          Get-Process -Name 'Matchframe Esports' -ErrorAction SilentlyContinue | Stop-Process -Force
           $uninstaller = Join-Path $env:LOCALAPPDATA 'Programs\Matchframe Esports\Uninstall Matchframe Esports.exe'
           if (Test-Path $uninstaller) { Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait }
 

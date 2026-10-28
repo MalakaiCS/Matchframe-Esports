@@ -73,6 +73,24 @@ async function run(cloud) {
     env: { ...process.env, MATCHFRAME_DATA_DIR: dataDir, MATCHFRAME_GSI_PORT: ports.gsi, MATCHFRAME_API_PORT: ports.api, MATCHFRAME_OVERLAY_PORT: ports.overlay, MATCHFRAME_LOG_STDOUT: "0", MATCHFRAME_CLOUD_URL: cloud.base, MATCHFRAME_CLOUD_PUBLIC_KEYS: JSON.stringify(cloud.keys), MATCHFRAME_SIGN_IN: "" },
     timeout: 120000,
   });
+  try {
+    await check(app, ports, shot);
+  } catch (e) {
+    // What the program showed when it failed.
+    if (shot) await app.firstWindow().then((w) => w.screenshot({ path: shot.replace(/(\.png)?$/, "-failed.png") })).catch(() => undefined);
+    throw e;
+  } finally {
+    // Always close the program: one left running blocks the uninstaller.
+    await Promise.race([app.close(), new Promise((r) => setTimeout(r, 15000))]).catch(() => undefined);
+    try {
+      app.process().kill();
+    } catch {
+      // already gone
+    }
+  }
+}
+
+async function check(app, ports, shot) {
   const win = await app.firstWindow({ timeout: 120000 });
   const errors = [];
   win.on("pageerror", (e) => errors.push(String(e)));
@@ -130,5 +148,4 @@ async function run(cloud) {
   assert(update && update.status !== "disabled" && update.status !== "idle" && update.currentVersion === meta.version && update.autoDownload === false, `the updater checked for updates (${JSON.stringify(update)})`);
   if (shot) await win.screenshot({ path: shot });
   console.log(JSON.stringify({ ok: true, platform: process.platform, meta, url: info.url, navItems: info.nav.length, huds, role: info.me.role, signIn: info.signIn, website, health: { ok: health.ok, version: health.version, schemaVersion: health.schemaVersion }, engineRoot: root.status, captain: captain.status, hudOutput: overlay?.status ?? null, update, matchArt, errors }, null, 1));
-  await app.close();
 }
