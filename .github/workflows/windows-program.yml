@@ -36,6 +36,7 @@ on:
       - "scripts/packaged-smoke.cjs"
       - "scripts/overlay-check.cjs"
       - "scripts/smoke-cloud.cjs"
+      - "scripts/smoke-match-art.cjs"
       - "scripts/write-cloud-config.mjs"
       - "services/cloud-api/**"
       - "pnpm-lock.yaml"
