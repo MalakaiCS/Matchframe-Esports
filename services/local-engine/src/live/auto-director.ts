@@ -7,7 +7,7 @@ export const AutoDirectorSettings = z.object({
   /** Cinematic cameras: establishing shots and camera paths in freeze time, the bomb, big fights. */
   cinematic: z.boolean().default(true),
   /** Nade cameras (Full Action Observer, top plan). Includes the cinematic cameras. */
-  nadeCams: z.boolean().default(false),
+  nadeCams: z.boolean().default(true),
   /** After you pick a player yourself (in CS2 or here), the Auto Director takes over again after this long; 0 = only when you press Start. */
   returnAfterSec: z.number().int().min(0).max(120).default(8),
   /** The third-person chase view while the spectated player plants or defuses the bomb or wins the round. */

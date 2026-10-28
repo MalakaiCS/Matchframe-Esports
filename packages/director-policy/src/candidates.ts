@@ -259,7 +259,10 @@ export function generateCandidates(input: CandidateInput): ScoredCandidate[] {
       invalidReason = "static camera control not verified for this environment";
       reasons.push("CAMERA_UNVERIFIED");
     }
-    if (opp.value < cfg.cinematic.minValue) {
+    // Coordinated utility (an entry flash, a smoked execute, fire pushing players off a spot, a volley) is the
+    // story of the moment: it gets a camera at a lower value than a lone grenade.
+    const teamUtility = opp.scenarioId !== null || opp.kind === "volley" || opp.kind === "flash_entry" || opp.kind === "smoke_execute" || opp.kind === "fire_displacement";
+    if (opp.value < cfg.cinematic.utilityMinValue * (teamUtility ? 0.8 : 1)) {
       valid = false;
       invalidReason = "utility value below cinematic threshold";
       reasons.push("UTILITY_LOW_VALUE");

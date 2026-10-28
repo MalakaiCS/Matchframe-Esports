@@ -167,7 +167,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   /** The camera is in the free camera (after a static camera or path, or as the game data shows). */
   private freeCam = false;
   private telemetryRoaming = false;
-  private pathTimer: ReturnType<typeof setInterval> | null = null;
+  private pathTimer: ReturnType<typeof setTimeout> | null = null;
   private pathToken = 0;
   private modesLearned = false;
   private inEyeLearned = false;
@@ -351,8 +351,30 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
 
   private stopPath(): void {
     this.pathToken++;
-    if (this.pathTimer) clearInterval(this.pathTimer);
+    if (this.pathTimer) clearTimeout(this.pathTimer);
     this.pathTimer = null;
+  }
+
+  /**
+   * Calls `frame(elapsedMs)` about 64 times a second, evenly spaced, until it returns false or the
+   * path is stopped. Windows timers tick every 15.6 ms: asking for 16.7 ms frames gives 15.6 and
+   * 31.2 ms gaps in turn, which shows as judder. Asking for the next tick and sending once a frame's
+   * time has passed keeps the frames one tick apart there, and ~15 ms apart elsewhere.
+   */
+  private runFrames(token: number, frame: (elapsedMs: number) => boolean): void {
+    const start = performance.now();
+    const gap = 1000 / (this.opts.pathHz ?? 64) - 1;
+    let last = -Infinity;
+    const tick = () => {
+      if (token !== this.pathToken) return;
+      const now = performance.now();
+      if (now - last >= gap) {
+        last = now;
+        if (!frame(now - start)) return;
+      }
+      this.pathTimer = setTimeout(tick, 1);
+    };
+    tick();
   }
 
   private async send(ctx: CommandContext, command: string): Promise<CommandResult> {
@@ -453,29 +475,27 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     this.freeCam = true;
     const token = this.pathToken;
     const dur = path.keyframes[path.keyframes.length - 1]!.tMs;
-    const start = Date.now();
     const last = samplePath(path, dur);
-    this.pathTimer = setInterval(() => {
-      if (token !== this.pathToken) return;
-      const t = Math.min(dur, Date.now() - start);
+    this.runFrames(token, (elapsed) => {
+      const t = Math.min(dur, elapsed);
       try {
         void this.conn.write(this.cameraCommand(samplePath(path, t), this.templates.pathFrame)).catch(() => this.stopPath());
       } catch {
         this.stopPath();
-        return;
+        return false;
       }
-      if (t >= dur) {
-        this.stopPath();
-        void this.readback(last).then((res) => {
-          if (res === "match") this.opts.onEvidence?.("cameraPathControl", "supported", `getpos confirmed the end of path ${path.id}`);
-        });
-      }
-    }, 1000 / (this.opts.pathHz ?? 60));
+      if (t < dur) return true;
+      this.stopPath();
+      void this.readback(last).then((res) => {
+        if (res === "match") this.opts.onEvidence?.("cameraPathControl", "supported", `getpos confirmed the end of path ${path.id}`);
+      });
+      return false;
+    });
     return r;
   }
 
   /**
-   * Follow cam: the first pose as a static camera (the free camera), then spec_goto 60 times a
+   * Follow cam: the first pose as a static camera (the free camera), then spec_goto ~64 times a
    * second to wherever `poses` says, until it returns null or `durationMs` passes. A player
    * selection or another camera stops it, like a path.
    */
@@ -493,21 +513,20 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     if (r.status === "failed") return r;
     this.freeCam = true;
     const token = this.pathToken;
-    const start = Date.now();
-    this.pathTimer = setInterval(() => {
-      if (token !== this.pathToken) return;
-      const t = Date.now() - start;
+    this.runFrames(token, (t) => {
       const pose = t <= durationMs ? poses(t) : null;
       if (!pose) {
         this.stopPath();
-        return;
+        return false;
       }
       try {
         void this.conn.write(this.cameraCommand(pose, this.templates.pathFrame)).catch(() => this.stopPath());
+        return true;
       } catch {
         this.stopPath();
+        return false;
       }
-    }, 1000 / (this.opts.pathHz ?? 60));
+    });
     return r;
   }
 

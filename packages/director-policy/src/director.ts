@@ -121,6 +121,10 @@ export class Director {
   private lastSequence = -1;
   private lastOutput: DirectorOutput | null = null;
   private lastEvalAt = -Infinity;
+  /** When the current live round went live (monotonic ms), or null outside one. */
+  private liveSince: number | null = null;
+  /** Follow cams played on the current map. */
+  private follows = { map: null as string | null, count: 0 };
   readonly controls: DirectorControls = {
     hold: null,
     pin: null,
@@ -243,8 +247,33 @@ export class Director {
     this.planner.observeShot(shot, at);
   }
 
-  cinematicStarted(shot: ShotKey, at: number, plannedDurationMs: number, opportunityId: string | null, countsTowardBudget = true): void {
-    this.planner.cinematicStarted(shot, at, plannedDurationMs, opportunityId, countsTowardBudget);
+  /**
+   * A cinematic became active (confirmed by the controller). Freeze-time establishing shots run their
+   * full length (up to `establishingMaxMs`), follow cams up to their planned length, other cameras up
+   * to `maxDurationMs`.
+   */
+  cinematicStarted(shot: ShotKey, at: number, plannedDurationMs: number, opportunityId: string | null, countsTowardBudget = true, shotClass: string | null = null): void {
+    const kind = parseShot(shot).kind;
+    const long = shotClass === "establishing" || shotClass === "camera_path";
+    const maxMs = long ? this.cfg.cinematic.establishingMaxMs : kind === "follow" ? Math.max(this.cfg.cinematic.maxDurationMs, plannedDurationMs) : this.cfg.cinematic.maxDurationMs;
+    if (kind === "follow" && this.planner.activeCinematic?.shotKey !== shot) this.follows.count++;
+    this.planner.cinematicStarted(shot, at, plannedDurationMs, opportunityId, countsTowardBudget, maxMs);
+  }
+
+  /**
+   * A cinematic command failed or was never confirmed: it is not tried again this round (sending it
+   * again would restart a path or a camera on air, over and over).
+   */
+  cinematicFailed(shot: ShotKey): void {
+    this.planner.cinematicFailed(shot);
+  }
+
+  /** Follow cam material now: while this map's follow cams are used up, only the one on air (so it finishes). */
+  private followableNow(state: MatchState): { steamId: string; speed: number; alone: boolean }[] {
+    const all = this.followable(state);
+    if (this.follows.count < this.cfg.cinematic.followPerMap) return all;
+    const cur = parseShot(this.planner.shot);
+    return cur.kind === "follow" ? all.filter((f) => f.steamId === cur.id) : [];
   }
 
   /** Moving players with their speed, and whether a teammate is near (follow cam material). */
@@ -292,6 +321,9 @@ export class Director {
     if (this.controls.hold?.until !== null && this.controls.hold?.until !== undefined && now >= this.controls.hold.until) this.controls.hold = null;
 
     this.history.push(state);
+    if (state.roundPhase !== "live") this.liveSince = null;
+    else this.liveSince ??= now;
+    if (this.follows.map !== state.mapName) this.follows = { map: state.mapName, count: 0 };
     this.planner.setRound(state.roundAttemptId);
     const observed: ShotKey | null = state.observer.observedSteamId ? povShot(state.observer.observedSteamId) : null;
     // Keep the planner on a confirmed cinematic; otherwise follow observed POV feedback.
@@ -333,7 +365,7 @@ export class Director {
       clutchMode: this.controls.clutchMode,
     });
     if (scope?.has("cinematic")) {
-      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, followable: this.controls.followCams && grid ? this.followable(state) : undefined, currentShotSinceMs: this.planner.shotSince }));
+      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, followable: this.controls.followCams && grid ? this.followableNow(state) : undefined, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, sight: grid ? (a, b) => grid.lineOfSight(a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince }));
       candidates.sort((a, b) => b.utility - a.utility);
     }
 

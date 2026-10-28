@@ -9,6 +9,10 @@ import type { VisibilityGrid } from "@matchframe/map-runtime";
  * to the player's eyes in the map's free-space grid wins (closer and higher ones when a wall is
  * behind them). Position and aim follow it smoothly. When no spot works, or the player dies, the
  * shot ends (the stream returns null) and the director cuts back to a POV.
+ *
+ * Game data brings positions about ten times a second, but the camera moves ~64 times a second:
+ * between updates the player's position is carried forward at their speed (up to 200 ms), so the
+ * camera glides instead of stepping.
  */
 
 const EYE = 64;
@@ -29,6 +33,8 @@ const AIM_TAU = 0.18;
 const LOOK_AHEAD = 140;
 /** Below this speed (units/s) the player's view direction is used instead of their movement. */
 const MOVING = 60;
+/** A position is carried forward at most this long after it arrived (ms). */
+const PREDICT_MAX_MS = 200;
 
 const angleDiff = (a: number, b: number) => ((((b - a) % 360) + 540) % 360) - 180;
 
@@ -38,9 +44,9 @@ export class FollowCam {
   private pitch = 0;
   private heading: { x: number; y: number } | null = null;
   private lastT = 0;
-  private lastPlayer: Vec3 | null = null;
-  private lastPlayerAt = 0;
-  private velocity = { x: 0, y: 0 };
+  /** The last position the game data gave, and when it arrived (ms into the shot). */
+  private sample: { at: Vec3; t: number } | null = null;
+  private velocity = { x: 0, y: 0, z: 0 };
 
   constructor(
     private readonly state: () => MatchState | null,
@@ -55,8 +61,8 @@ export class FollowCam {
     if (!s || s.mapName !== this.grid.map || !p || p.lifeState !== "alive" || !p.position) return null;
     const dt = this.lastT === 0 && elapsedMs === 0 ? 0 : Math.max(0, (elapsedMs - this.lastT) / 1000);
     this.lastT = elapsedMs;
-    this.track(p.position, elapsedMs);
-    const eye = { x: p.position.x, y: p.position.y, z: p.position.z + EYE };
+    const at = this.track(p.position, elapsedMs);
+    const eye = { x: at.x, y: at.y, z: at.z + EYE };
     const dir = this.direction(p.forward);
     const want = this.spot(eye, dir);
     if (!want) {
@@ -87,21 +93,21 @@ export class FollowCam {
     return { position: { ...this.pos }, pitch: round(this.pitch), yaw: round(((this.yaw + 540) % 360) - 180) };
   }
 
-  /** Velocity from successive positions (game data positions arrive every ~20 ms). */
-  private track(at: Vec3, t: number): void {
-    if (this.lastPlayer && t > this.lastPlayerAt) {
-      const dt = (t - this.lastPlayerAt) / 1000;
-      if (dt >= 0.05) {
-        const vx = (at.x - this.lastPlayer.x) / dt;
-        const vy = (at.y - this.lastPlayer.y) / dt;
-        this.velocity = { x: this.velocity.x * 0.5 + vx * 0.5, y: this.velocity.y * 0.5 + vy * 0.5 };
-        this.lastPlayer = at;
-        this.lastPlayerAt = t;
+  /** The player's position now: the last one from the game data, carried forward at their speed. */
+  private track(at: Vec3, t: number): Vec3 {
+    const s = this.sample;
+    if (!s || at.x !== s.at.x || at.y !== s.at.y || at.z !== s.at.z) {
+      // A new position: the speed from the last two (smoothed).
+      if (s && t > s.t) {
+        const dt = (t - s.t) / 1000;
+        const v = { x: (at.x - s.at.x) / dt, y: (at.y - s.at.y) / dt, z: (at.z - s.at.z) / dt };
+        this.velocity = { x: this.velocity.x * 0.4 + v.x * 0.6, y: this.velocity.y * 0.4 + v.y * 0.6, z: this.velocity.z * 0.4 + v.z * 0.6 };
       }
-    } else {
-      this.lastPlayer = at;
-      this.lastPlayerAt = t;
+      this.sample = { at, t };
+      return at;
     }
+    const ahead = Math.min(PREDICT_MAX_MS, t - s.t) / 1000;
+    return { x: at.x + this.velocity.x * ahead, y: at.y + this.velocity.y * ahead, z: at.z + this.velocity.z * ahead };
   }
 
   /** Where the player is heading: their movement when running, else where they look; smoothed. */

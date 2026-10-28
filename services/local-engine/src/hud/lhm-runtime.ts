@@ -15,7 +15,9 @@ import { hudConfig, isPanelAction, parsePanel, type LhmLookup, type LhmPanel } f
  * served by Matchframe's HUD server.
  *
  * - socket.io at /socket.io: "readyToRegister" → the HUD's "register" → "hud_config" (its panel
- *   settings); "update" with every game-data packet as CS2 sent it (auth token removed);
+ *   settings); "update" with the game data as CS2 sent it (auth token removed): at once when
+ *   something a viewer sees switch changes (see lhmUrgentKey), else the latest packet at most ten
+ *   times a second (UPDATE_MS);
  *   "hud_action" for panel buttons; "match" when the current match changes.
  * - GET /api/... (match, teams and logos, players and avatars, tournament, camera, radar maps) from
  *   Matchframe's own data.
@@ -26,6 +28,64 @@ import { hudConfig, isPanelAction, parsePanel, type LhmLookup, type LhmPanel } f
  */
 
 export const lhmCookieName = (hudId: string) => `mf_lhm_${hudId}`;
+
+/**
+ * Game data reaches LHM HUDs at most this often (ms), apart from urgent changes. CS2 sends up to 50
+ * packets a second at Matchframe's setting (for instant POV switches), and an LHM HUD redraws its
+ * whole page for each: kaiHUD's main thread was 25 % busy at that rate, and on a slower or busy
+ * machine (CPU 6× slower) 97 % busy at 32 fps, so its baseboard stuttered. LHM HUDs are made for
+ * about ten updates a second.
+ */
+export const UPDATE_MS = 100;
+
+/**
+ * What must reach an LHM HUD at once: the spectated player, round and countdown phase, bomb state,
+ * who is alive, the score and the round number. Positions, the clock and money can wait for the next
+ * tick.
+ */
+/**
+ * Passes game data on: urgent packets at once, others as the latest one at most every `everyMs`
+ * (a packet in between replaces the waiting one).
+ */
+export function updateCoalescer(emit: (payload: Record<string, unknown>) => void, everyMs = UPDATE_MS, now: () => number = Date.now): { push: (payload: Record<string, unknown>) => void; dispose: () => void } {
+  let pending: Record<string, unknown> | null = null;
+  let lastSent = -Infinity;
+  let lastKey = "";
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const flush = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    if (!pending) return;
+    emit(pending);
+    pending = null;
+    lastSent = now();
+  };
+  return {
+    push: (payload) => {
+      pending = payload;
+      const key = lhmUrgentKey(payload);
+      const urgent = key !== lastKey;
+      lastKey = key;
+      const wait = everyMs - (now() - lastSent);
+      if (urgent || wait <= 0) flush();
+      else timer ??= setTimeout(flush, wait);
+    },
+    dispose: () => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+    },
+  };
+}
+
+export function lhmUrgentKey(p: Record<string, unknown>): string {
+  const o = (v: unknown) => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
+  const all = Object.values(o(p.allplayers)).map((x) => {
+    const st = o(o(x).state);
+    return `${st.health === 0 ? 0 : 1}`;
+  });
+  const map = o(p.map);
+  return [o(p.player).steamid, o(p.round).phase, o(p.phase_countdowns).phase, o(p.bomb).state, all.join(""), map.round, map.phase, o(map.team_ct).score, o(map.team_t).score].join("|");
+}
 
 /**
  * A killfeed entry as an HLAE player_death game event (what LHM relays as "update_mirv"). Only
@@ -153,7 +213,9 @@ export class LhmRuntime {
       // Everything else the HUD sends ("started", camera signalling, ...) is ignored: read-only.
       socket.emit("readyToRegister");
     });
-    this.cleanup.push(this.e.onRawGsi((payload) => io.emit("update", payload)));
+    const updates = updateCoalescer((payload) => io.emit("update", payload));
+    this.cleanup.push(this.e.onRawGsi(updates.push));
+    this.cleanup.push(updates.dispose);
     // The template's killfeed only listens to HLAE game events: Matchframe's paired kills, in that form.
     this.cleanup.push(
       this.e.onKill((k) => {

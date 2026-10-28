@@ -340,6 +340,13 @@ export class ControlArbiter {
       // Superseded or cancelled while sending: never report it as the active command.
       return { ...result, status: "cancelled" };
     }
+    // Already confirmed from observed state while the adapter was still working (e.g. the game data
+    // showed the free camera during a getpos readback): that confirmation stands, and the adapter's
+    // own exact confirmation (getpos matched the pose) refines it.
+    if (this.isFinal(f.status) && f.result) {
+      if ((f.status as string) === "confirmed" && result.status === "confirmed" && result.precision === "observed_exact") f.result = result;
+      return f.result;
+    }
     f.result = result;
     if (result.status === "failed") {
       if (f.retries < this.opts.maxRetries && result.failureReason === "transport_error" && this.opts.now() < ctx.expiresAtMonotonicMs) {

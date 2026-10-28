@@ -44,6 +44,24 @@ describe("follow cam", () => {
     expect(pose.position.x).toBeLessThan(x - 100);
   });
 
+  it("glides between game-data updates: positions every 100 ms, camera frames every 15.6 ms, no steps", () => {
+    let x = 0;
+    const cam = new FollowCam(() => stateWith(player(x)), "p1", grid());
+    const xs: number[] = [];
+    // The player runs +x at 250 u/s; the game data brings their position every 100 ms.
+    for (let t = 0; t <= 3000; t += 15.6) {
+      x = Math.floor(t / 100) * 25;
+      xs.push(cam.pose(t)!.position.x);
+    }
+    // Once the camera has caught up (after 1.5 s), each frame moves it about the same distance (within
+    // 10 %). Without carrying positions forward, the frame after each update jumps ~18 % above average.
+    const steps = xs.slice(96).map((v, i, a) => (i ? v - a[i - 1]! : 0)).slice(1);
+    const mean = steps.reduce((a, b) => a + b, 0) / steps.length;
+    expect(mean).toBeGreaterThan(3);
+    expect(Math.max(...steps)).toBeLessThan(mean * 1.1);
+    expect(Math.min(...steps)).toBeGreaterThan(mean * 0.9);
+  });
+
   it("comes in closer when a wall is right behind the player, never through it", () => {
     const wall = (wx: number) => wx > -130 && wx < -110;
     const cam = new FollowCam(() => stateWith(player(0)), "p1", grid(wall));

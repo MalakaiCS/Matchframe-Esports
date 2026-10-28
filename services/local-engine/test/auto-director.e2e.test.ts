@@ -192,8 +192,9 @@ describe("Auto Director: one button, checks and fixes by itself", () => {
     await waitFor(async () => (await auto()).phase === "running", 15000);
     const st = await auto();
     const check = (id: string) => st.checks.find((c) => c.id === id)?.status;
-    expect([check("console"), check("data"), check("account"), check("pov"), check("cameras"), check("director")]).toEqual(["ok", "ok", "ok", "ok", "ok", "ok"]);
-    expect(st.observerMode).toBe("observer_cinematics");
+    expect([check("console"), check("data"), check("account"), check("pov"), check("cameras"), check("director")], JSON.stringify(st.checks)).toEqual(["ok", "ok", "ok", "ok", "ok", "ok"]);
+    // Nade cams are on by default: the Full Action Observer.
+    expect(st.observerMode).toBe("full_action");
     // No setup tests needed: the game showed the player, and getpos showed the camera.
     const c = await caps();
     expect(c.playerSelectionControl!.support).toBe("supported");
@@ -213,6 +214,8 @@ describe("Auto Director: one button, checks and fixes by itself", () => {
   });
 
   it("flies a built-in camera path in freeze time over the console", async () => {
+    // Freeze time: Ts in T spawn and CTs in CT spawn, where the spawn cameras and paths look.
+    cs2.roster.forEach((r, i) => (r.position = r.side === "T" ? { x: -800 + (i % 5) * 40, y: -736, z: 40 } : { x: 224 + (i % 5) * 40, y: 2272, z: -64 }));
     const before = cs2.lines.length;
     // Freeze time on Dust II with 15 s left: the director's freeze-time shot is a path or a camera.
     await waitFor(() => cs2.lines.slice(before).filter((l) => /^spec_goto /.test(l)).length >= 20, 12000);

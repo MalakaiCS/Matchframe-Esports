@@ -28,7 +28,7 @@ function rotation(step: number): SyntheticPlayer[] {
   ];
 }
 
-function run(opts: { follow: boolean; grid: boolean }) {
+function run(opts: { follow: boolean; grid: boolean; steps?: number; timeline?: { at: number; intent: string }[] }) {
   const sim = new Sim("de_inferno");
   const director = new Director({ newId: (() => { let i = 0; return () => `d${i++}`; })() });
   director.setMode("automatic");
@@ -42,9 +42,12 @@ function run(opts: { follow: boolean; grid: boolean }) {
   director.controls.followCams = opts.follow;
   let observed: string | null = T(1);
   const intents: string[] = [];
-  for (let i = 0; i < 80; i++) {
-    const out = director.evaluate(sim.push(rotation(i), { mapName: "de_inferno", observed, dtMs: 100 }), sim.now, ctl);
+  // The round has been live a while (no cinematic in a round's first seconds).
+  for (let i = 0; i < 80; i++) director.evaluate(sim.push(rotation(0), { mapName: "de_inferno", observed, dtMs: 150 }), sim.now, ctl);
+  for (let i = 0; i < (opts.steps ?? 80); i++) {
+    const out = director.evaluate(sim.push(rotation(i % 160), { mapName: "de_inferno", observed, dtMs: 100 }), sim.now, ctl);
     if (out.intent) intents.push(`${out.intent.kind}:${out.intent.targetSteamId ?? out.intent.cameraId ?? out.intent.pathId}`);
+    if (out.intent) opts.timeline?.push({ at: i * 100, intent: out.intent.kind });
     if (out.intent?.kind === "select_player") observed = out.intent.targetSteamId;
     if (out.intent?.kind === "follow_player") {
       observed = null;
@@ -58,6 +61,18 @@ describe("follow cam choice", () => {
   it("flies a follow cam behind a lone player on a quiet rotation", () => {
     const intents = run({ follow: true, grid: true });
     expect(intents).toContain(`follow_player:${T(1)}`);
+  });
+
+  it("flies one follow cam per map at most, and hands back to a player when it ends", () => {
+    const timeline: { at: number; intent: string }[] = [];
+    const intents = run({ follow: true, grid: true, steps: 600, timeline });
+    expect(intents.filter((i) => i.startsWith("follow_player"))).toHaveLength(1);
+    const f = timeline.findIndex((t) => t.intent === "follow_player");
+    const back = timeline[f + 1];
+    expect(back?.intent).toBe("select_player");
+    // Its planned 4.5 s, give or take one update.
+    expect(back!.at - timeline[f]!.at).toBeGreaterThanOrEqual(4000);
+    expect(back!.at - timeline[f]!.at).toBeLessThanOrEqual(5000);
   });
 
   it("never without the map's grid, or with follow cams off", () => {

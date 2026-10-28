@@ -62,6 +62,15 @@ export interface IngestOutcome {
 
 const MAX_EVENT_LOG = 2000;
 
+/** A cinematic the director sent: what the planner needs once it is on air. */
+interface CinematicNote {
+  shot: string;
+  plannedDurationMs: number;
+  opportunityId: string | null;
+  countsTowardBudget: boolean;
+  shotClass: string;
+}
+
 /**
  * One authoritative live match session. Telemetry flows in through `ingestGsi`; the director
  * evaluates on fresh state; only the control arbiter writes to the observer.
@@ -82,7 +91,9 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   readonly decisionLog: DirectorDecision[] = [];
   private lastEvaluatedSequence = -1;
   private tickTimer: ReturnType<typeof setInterval> | null = null;
-  private pendingCinematic: { commandId: string; shot: string; plannedDurationMs: number; opportunityId: string | null; countsTowardBudget: boolean } | null = null;
+  private pendingCinematic: ({ commandId: string } & CinematicNote) | null = null;
+  /** The cinematic being submitted right now: bound to its command id when the arbiter accepts it. */
+  private submittingCinematic: CinematicNote | null = null;
   /** Freeze-time establishing shots (static or a camera path) don't use the round's cinematic budget. */
   private static readonly OFF_BUDGET = new Set(["establishing", "camera_path"]);
   /** The chase view and first person each last at least this long. */
@@ -341,24 +352,16 @@ export class LiveSession extends EventEmitter<SessionEvents> {
       const cam = this.findCamera(intent.cameraId!);
       if (!cam) return;
       this.stats.cuts++;
-      void this.arbiter
-        .submit({ kind: "activate_static_camera", camera: cam, plannedDurationMs: intent.plannedDurationMs ?? 2000 }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs })
-        .then((r) => {
-          if (r.status !== "failed" && r.status !== "cancelled") {
-            this.pendingCinematic = { commandId: r.commandId, shot: cameraShot(cam.id), plannedDurationMs: intent.plannedDurationMs ?? 2000, opportunityId: intent.opportunityId, countsTowardBudget: !LiveSession.OFF_BUDGET.has(intent.shotClass) };
-          }
-        });
+      this.submitCinematic({ shot: cameraShot(cam.id), plannedDurationMs: intent.plannedDurationMs ?? 2000, opportunityId: intent.opportunityId, countsTowardBudget: !LiveSession.OFF_BUDGET.has(intent.shotClass), shotClass: intent.shotClass }, () =>
+        this.arbiter.submit({ kind: "activate_static_camera", camera: cam, plannedDurationMs: intent.plannedDurationMs ?? 2000 }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs }),
+      );
     } else if (intent.kind === "play_camera_path") {
       const path = this.findPath(intent.pathId ?? "");
       if (!path) return;
       this.stats.cuts++;
-      void this.arbiter
-        .submit({ kind: "play_camera_path", path }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs, confirmationTimeoutMs: 2500 })
-        .then((r) => {
-          if (r.status !== "failed" && r.status !== "cancelled") {
-            this.pendingCinematic = { commandId: r.commandId, shot: pathShot(path.id), plannedDurationMs: intent.plannedDurationMs ?? 4000, opportunityId: null, countsTowardBudget: !LiveSession.OFF_BUDGET.has(intent.shotClass) };
-          }
-        });
+      this.submitCinematic({ shot: pathShot(path.id), plannedDurationMs: intent.plannedDurationMs ?? 4000, opportunityId: null, countsTowardBudget: !LiveSession.OFF_BUDGET.has(intent.shotClass), shotClass: intent.shotClass }, () =>
+        this.arbiter.submit({ kind: "play_camera_path", path }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs, confirmationTimeoutMs: 2500 }),
+      );
     } else if (intent.kind === "follow_player") {
       const grid = s.mapName ? (this.opts.maps.get(s.mapName)?.grid ?? null) : null;
       const target = intent.targetSteamId;
@@ -367,14 +370,29 @@ export class LiveSession extends EventEmitter<SessionEvents> {
       const duration = intent.plannedDurationMs ?? 4500;
       this.stats.cuts++;
       this.noteView(target, "in_eye", now);
-      void this.arbiter
-        .submit({ kind: "stream_camera", shot: followShot(target), poses: (t) => cam.pose(t), durationMs: duration }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs, confirmationTimeoutMs: 2500 })
-        .then((r) => {
-          if (r.status !== "failed" && r.status !== "cancelled") {
-            this.pendingCinematic = { commandId: r.commandId, shot: followShot(target), plannedDurationMs: duration, opportunityId: null, countsTowardBudget: true };
-          }
-        });
+      this.submitCinematic({ shot: followShot(target), plannedDurationMs: duration, opportunityId: null, countsTowardBudget: true, shotClass: intent.shotClass }, () =>
+        this.arbiter.submit({ kind: "stream_camera", shot: followShot(target), poses: (t) => cam.pose(t), durationMs: duration }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs, confirmationTimeoutMs: 2500 }),
+      );
     }
+  }
+
+  /**
+   * Sends a cinematic. It is noted before it is sent: the arbiter's "command" event binds it to its
+   * command id, so whichever confirms it first (the game data showing the free camera, or the
+   * console's getpos readback before the command returns) makes it the director's active cinematic.
+   * Noted only after the command returned, a confirmation from the game data during the readback
+   * was missed, and the director sent the same shot again (a path restarted on air, over and over).
+   */
+  private submitCinematic(c: CinematicNote, submit: () => Promise<{ commandId: string; status: string; failureReason?: string | null }>): void {
+    this.submittingCinematic = c;
+    const sent = submit();
+    // Accepted commands were bound by the "command" event inside submit(); a refused one left it here.
+    this.submittingCinematic = null;
+    void sent.then((r) => {
+      if (r.status === "confirmed") this.director.cinematicStarted(c.shot, this.opts.now(), c.plannedDurationMs, c.opportunityId, c.countsTowardBudget, c.shotClass);
+      else if (r.status === "failed" && r.failureReason !== "superseded") this.director.cinematicFailed(c.shot);
+      if (this.pendingCinematic?.commandId === r.commandId && (r.status === "confirmed" || r.status === "failed")) this.pendingCinematic = null;
+    });
   }
 
   findPath(pathId: string): CameraPath | undefined {
@@ -403,6 +421,10 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   }
 
   private onArbiterEvent(e: ArbiterEvent): void {
+    if (e.kind === "command" && e.detail.owner === "director" && this.submittingCinematic) {
+      this.pendingCinematic = { commandId: String(e.detail.commandId), ...this.submittingCinematic };
+      this.submittingCinematic = null;
+    }
     if (e.kind === "result" && e.detail.status === "confirmed" && e.detail.precision === "observed_exact") {
       // The game data showed the requested player: player selection works on this build.
       const f = this.arbiter.pending();
@@ -412,10 +434,15 @@ export class LiveSession extends EventEmitter<SessionEvents> {
       }
     }
     if (e.kind === "result" && e.detail.status === "confirmed" && this.pendingCinematic && e.detail.commandId === this.pendingCinematic.commandId) {
-      this.director.cinematicStarted(this.pendingCinematic.shot, this.opts.now(), this.pendingCinematic.plannedDurationMs, this.pendingCinematic.opportunityId, this.pendingCinematic.countsTowardBudget);
+      this.director.cinematicStarted(this.pendingCinematic.shot, this.opts.now(), this.pendingCinematic.plannedDurationMs, this.pendingCinematic.opportunityId, this.pendingCinematic.countsTowardBudget, this.pendingCinematic.shotClass);
       this.pendingCinematic = null;
     }
     if (e.kind === "external_change") this.alertOnce("external_takeover", "warn", "Observer POV changed outside Matchframe: manual takeover engaged. Resume automation explicitly when ready.");
+    if (e.kind === "result" && (e.detail.status === "failed" || e.detail.status === "cancelled") && this.pendingCinematic && e.detail.commandId === this.pendingCinematic.commandId) {
+      // Never confirmed on air (or replaced before it was): not tried again this round.
+      this.director.cinematicFailed(this.pendingCinematic.shot);
+      this.pendingCinematic = null;
+    }
     if (e.kind === "takeover" || e.kind === "emergency_stop") this.pendingCinematic = null;
     this.emit("arbiter", e);
   }

@@ -45,6 +45,10 @@ function bananaStack(): SyntheticPlayer[] {
     player(CT(0), "CT", 0, { x: 2200, y: 3000, z: 0 }),
   ];
 }
+/** Freeze time: three Ts waiting in mid, where the establishing camera and the path look. */
+function midWait(): SyntheticPlayer[] {
+  return bananaStack().map((p, i) => (i < 3 ? { ...p, position: { x: -150 + i * 150, y: 1950 + i * 40, z: 0 } } : p));
+}
 const incomingHe: SyntheticGrenade = { id: "500", type: "frag", owner: CT(6), position: { x: -650, y: -250, z: 120 }, velocity: { x: 80, y: 250, z: 40 }, lifetime: 0.6 };
 
 /** Closed loop: the simulated observer follows executed intents; static cameras are confirmed at once. */
@@ -93,7 +97,7 @@ describe("Observer modes: what the auto director may do on its own", () => {
   });
 
   it("Observer & Cinematics takes an establishing shot in freeze time without using the round's cinematic budget; Observer does not", () => {
-    const freeze = (n: number) => Array.from({ length: n }, () => ({ players: bananaStack(), roundPhase: "freezetime" as const, phase: "freezetime", phaseEndsIn: 15 }));
+    const freeze = (n: number) => Array.from({ length: n }, () => ({ players: midWait(), roundPhase: "freezetime" as const, phase: "freezetime", phaseEndsIn: 15 }));
     const cine = setup("observer_cinematics");
     const outs = run(cine.sim, cine.director, freeze(30));
     const cut = outs.find((o) => o.intent?.kind === "activate_static_camera");
@@ -108,7 +112,7 @@ describe("Observer modes: what the auto director may do on its own", () => {
 
   it("no establishing shot when freeze time is about to end", () => {
     const { sim, director } = setup("observer_cinematics");
-    const outs = run(sim, director, Array.from({ length: 30 }, () => ({ players: bananaStack(), roundPhase: "freezetime" as const, phase: "freezetime", phaseEndsIn: 2 })));
+    const outs = run(sim, director, Array.from({ length: 30 }, () => ({ players: midWait(), roundPhase: "freezetime" as const, phase: "freezetime", phaseEndsIn: 2 })));
     expect(outs.at(-1)!.candidates.some((c) => c.shotClass === "establishing")).toBe(false);
   });
 
@@ -131,7 +135,7 @@ describe("Observer modes: what the auto director may do on its own", () => {
       p.paths.push({ id: "nav-synthetic-mid-orbit", displayName: "Mid orbit", mapName: MAP, mapRevision: p.mapRevision, keyframes: [{ tMs: 0, position: { x: -400, y: 1600, z: 150 }, pitch: 15, yaw: 45 }, { tMs: 6000, position: { x: 400, y: 1600, z: 150 }, pitch: 15, yaw: 135 }], maxDurationMs: 7000, maxSpeedUnitsPerSec: 300, collisionValidated: false, validation: "unvalidated", targetRegionIds: ["mid"], source: "derived_navmesh" });
       return new MapRuntime(p);
     };
-    const freeze = (left: number) => Array.from({ length: 30 }, () => ({ players: bananaStack(), roundPhase: "freezetime" as const, phase: "freezetime", phaseEndsIn: left }));
+    const freeze = (left: number) => Array.from({ length: 30 }, () => ({ players: midWait(), roundPhase: "freezetime" as const, phase: "freezetime", phaseEndsIn: left }));
     const caps = (path: "supported" | "unverified") => {
       const c = capsWithCameraControl("supported");
       c.cameraPathControl = { ...c.cameraPathControl, support: path };
@@ -144,11 +148,11 @@ describe("Observer modes: what the auto director may do on its own", () => {
     const cut = run(ok.sim, ok.director, freeze(15)).find((o) => o.intent && o.intent.kind !== "select_player");
     expect(cut?.intent).toMatchObject({ kind: "play_camera_path", shotClass: "camera_path", pathId: "nav-synthetic-mid-orbit", plannedDurationMs: 6000 });
 
-    // Not enough freeze time left for a 6 s path.
+    // Not enough freeze time left for most of the path.
     const late = setup("observer_cinematics");
     late.director.setMap(withPath());
     late.director.setCapabilities(caps("supported"));
-    expect(run(late.sim, late.director, freeze(5)).at(-1)!.candidates.some((c) => c.shotClass === "camera_path")).toBe(false);
+    expect(run(late.sim, late.director, freeze(3.5)).at(-1)!.candidates.some((c) => c.shotClass === "camera_path")).toBe(false);
 
     // Path control not confirmed yet: offered, but not valid.
     const unverified = setup("observer_cinematics");
@@ -170,7 +174,7 @@ describe("Observer modes: what the auto director may do on its own", () => {
   it("cinematics stay subject to the camera-control capability", () => {
     const { sim, director } = setup("observer_cinematics");
     director.setCapabilities(capsWithCameraControl("unverified"));
-    const outs = run(sim, director, Array.from({ length: 30 }, () => ({ players: bananaStack(), roundPhase: "freezetime" as const, phase: "freezetime", phaseEndsIn: 15 })));
+    const outs = run(sim, director, Array.from({ length: 30 }, () => ({ players: midWait(), roundPhase: "freezetime" as const, phase: "freezetime", phaseEndsIn: 15 })));
     const est = outs.at(-1)!.candidates.find((c) => c.shotClass === "establishing");
     expect(est?.valid).toBe(false);
     expect(est?.reasonCodes).toContain("CAMERA_UNVERIFIED");

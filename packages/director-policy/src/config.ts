@@ -45,6 +45,16 @@ export interface DirectorConfig {
     enabled: boolean;
     perRoundBudget: number;
     maxDurationMs: number;
+    /** Freeze-time establishing shots (spawn cameras and paths) run their full length up to this. */
+    establishingMaxMs: number;
+    /** Establishing shots per freeze time (one per spawn). */
+    establishingPerRound: number;
+    /** Follow cams per map. */
+    followPerMap: number;
+    /** No cinematic in the first this-many ms of a live round: first person from the start. */
+    liveStartPovMs: number;
+    /** Nade cameras: the least utility value for a camera (coordinated utility needs 80 % of it). */
+    utilityMinValue: number;
     minValue: number;
     leadMarginMs: number;
     maxUtilityAgeMs: number;
@@ -78,6 +88,11 @@ export const DEFAULT_DIRECTOR_CONFIG: DirectorConfig = {
     enabled: true,
     perRoundBudget: 2,
     maxDurationMs: 3000,
+    establishingMaxMs: 7000,
+    establishingPerRound: 2,
+    followPerMap: 1,
+    liveStartPovMs: 10000,
+    utilityMinValue: 0.28,
     minValue: 0.35,
     leadMarginMs: 250,
     maxUtilityAgeMs: 400,
