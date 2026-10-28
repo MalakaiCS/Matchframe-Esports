@@ -220,6 +220,7 @@ export class Engine {
       // Read when used: the Auto Director is created after the session.
       chaseEnabled: () => this.autoDirector?.settings().chase ?? true,
       clutchEnabled: () => this.autoDirector?.settings().clutch ?? true,
+      followCamsEnabled: () => this.autoDirector?.settings().followCams ?? true,
       armGate: (simulated, observerMode) => this.cloud.canArm(simulated || this.simulationRunning, observerMode),
     });
     this.refreshScenarios();

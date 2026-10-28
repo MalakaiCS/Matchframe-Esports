@@ -1,5 +1,5 @@
 import type { CameraMode, CameraPath, CameraRecord, CommandContext, CommandResult, ObservedCameraState, Vec3 } from "@matchframe/contracts";
-import type { ControlCapabilities, ObserverControlAdapter, PlayerView } from "@matchframe/director-policy";
+import type { ControlCapabilities, ObserverControlAdapter, PlayerView, PoseStream } from "@matchframe/director-policy";
 import { failedResult, transportResult } from "@matchframe/director-policy";
 import { accountIdOf, cap } from "./common.ts";
 import { NetconConnection } from "./netcon-connection.ts";
@@ -469,6 +469,43 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
         void this.readback(last).then((res) => {
           if (res === "match") this.opts.onEvidence?.("cameraPathControl", "supported", `getpos confirmed the end of path ${path.id}`);
         });
+      }
+    }, 1000 / (this.opts.pathHz ?? 60));
+    return r;
+  }
+
+  /**
+   * Follow cam: the first pose as a static camera (the free camera), then spec_goto 60 times a
+   * second to wherever `poses` says, until it returns null or `durationMs` passes. A player
+   * selection or another camera stops it, like a path.
+   */
+  async streamCamera(poses: PoseStream, durationMs: number, ctx: CommandContext): Promise<CommandResult> {
+    const first = poses(0);
+    if (!first) return failedResult(ctx, "target_invalid", "no pose to start from");
+    let cmd: string;
+    try {
+      cmd = this.cameraCommand(first);
+    } catch (e) {
+      return failedResult(ctx, "target_invalid", e instanceof Error ? e.message : String(e));
+    }
+    this.stopPath();
+    const r = await this.send(ctx, cmd);
+    if (r.status === "failed") return r;
+    this.freeCam = true;
+    const token = this.pathToken;
+    const start = Date.now();
+    this.pathTimer = setInterval(() => {
+      if (token !== this.pathToken) return;
+      const t = Date.now() - start;
+      const pose = t <= durationMs ? poses(t) : null;
+      if (!pose) {
+        this.stopPath();
+        return;
+      }
+      try {
+        void this.conn.write(this.cameraCommand(pose, this.templates.pathFrame)).catch(() => this.stopPath());
+      } catch {
+        this.stopPath();
       }
     }, 1000 / (this.opts.pathHz ?? 60));
     return r;

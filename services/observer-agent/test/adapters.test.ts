@@ -383,3 +383,35 @@ describe("chase view", () => {
     c.server.close();
   });
 });
+
+describe("streamed camera (follow cam)", () => {
+  it("starts in the free camera at the first pose, then streams spec_goto until the poses end", async () => {
+    const c = await fakeCs2Console(6);
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => 0, playerName: () => "nova", pathHz: 50 });
+    let calls = 0;
+    const poses = (t: number) => (t > 400 ? null : (calls++, { position: { x: 100 + t / 10, y: 0, z: 80 }, pitch: 10, yaw: 0 }));
+    const r = await a.streamCamera(poses, 2000, ctx());
+    expect(r.status).toBe("transport_acknowledged");
+    await new Promise((res) => setTimeout(res, 700));
+    expect(c.lines[0]).toBe("spec_mode 6; spec_goto 100 0 80 10 0");
+    expect(a.playingPath).toBe(false);
+    const frames = c.lines.filter((l) => /^spec_goto /.test(l));
+    expect(frames.length).toBeGreaterThan(10);
+    expect(frames.length).toBeLessThan(40);
+    expect(calls).toBeGreaterThan(10);
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("stops streaming when a player is selected", async () => {
+    const c = await fakeCs2Console(6);
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => 0, playerName: () => "nova" });
+    await a.streamCamera(() => ({ position: { x: 0, y: 0, z: 80 }, pitch: 0, yaw: 0 }), 10000, ctx());
+    await new Promise((res) => setTimeout(res, 100));
+    expect(a.playingPath).toBe(true);
+    await a.selectPlayer("76561198000000001", 1, ctx());
+    expect(a.playingPath).toBe(false);
+    await a.dispose();
+    c.server.close();
+  });
+});

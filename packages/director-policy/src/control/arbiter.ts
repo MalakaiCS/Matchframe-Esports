@@ -9,13 +9,15 @@ import type {
 } from "@matchframe/contracts";
 import type { ShotKey } from "../shots.ts";
 import { cameraShot, parseShot, pathShot, povShot } from "../shots.ts";
-import type { ObserverControlAdapter, PlayerView } from "./adapter.ts";
+import type { ObserverControlAdapter, PlayerView, PoseStream } from "./adapter.ts";
 import { failedResult } from "./adapter.ts";
 
 export type ControlRequest =
   | { kind: "select_player"; steamId: string; observerSlot: number | null; view?: PlayerView }
   | { kind: "activate_static_camera"; camera: CameraRecord; plannedDurationMs: number }
   | { kind: "play_camera_path"; path: CameraPath }
+  /** A free camera flown along live poses; `shot` is its shot key (e.g. follow:<steamId>). */
+  | { kind: "stream_camera"; shot: ShotKey; poses: PoseStream; durationMs: number }
   | { kind: "cancel_path" };
 
 export interface SubmitOptions {
@@ -326,7 +328,11 @@ export class ControlArbiter {
             ? await adapter.activateStaticCamera(r.camera, ctx)
             : r.kind === "play_camera_path"
               ? await adapter.playCameraPath(r.path, ctx)
-              : await adapter.cancelPath(ctx);
+              : r.kind === "stream_camera"
+                ? adapter.streamCamera
+                  ? await adapter.streamCamera(r.poses, r.durationMs, ctx)
+                  : failedResult(ctx, "unsupported", "this camera control can't fly a free camera live")
+                : await adapter.cancelPath(ctx);
     } catch (e) {
       result = failedResult(ctx, "transport_error", e instanceof Error ? e.message : String(e));
     }
@@ -376,6 +382,8 @@ export class ControlArbiter {
         return cameraShot(r.camera.id);
       case "play_camera_path":
         return pathShot(r.path.id);
+      case "stream_camera":
+        return r.shot;
       default:
         return null;
     }
@@ -389,6 +397,8 @@ export class ControlArbiter {
         return { kind: r.kind, cameraId: r.camera.id, plannedDurationMs: r.plannedDurationMs };
       case "play_camera_path":
         return { kind: r.kind, pathId: r.path.id };
+      case "stream_camera":
+        return { kind: r.kind, shot: r.shot, durationMs: r.durationMs };
       default:
         return { kind: r.kind };
     }

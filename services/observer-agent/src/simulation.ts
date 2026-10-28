@@ -1,5 +1,5 @@
 import type { CameraMode, CameraPath, CameraRecord, CommandContext, CommandResult, ObservedCameraState } from "@matchframe/contracts";
-import type { ControlCapabilities, ObserverControlAdapter, PlayerView } from "@matchframe/director-policy";
+import type { ControlCapabilities, ObserverControlAdapter, PlayerView, PoseStream } from "@matchframe/director-policy";
 import { transportResult } from "@matchframe/director-policy";
 import { cap } from "./common.ts";
 
@@ -87,6 +87,19 @@ export class SimulationObserverAdapter implements ObserverControlAdapter {
       this.observer.observedSteamId = null;
       this.observer.activeCameraId = path.id;
       this.observer.mode = "camera_path";
+    });
+    return transportResult(ctx, true, "simulated", this.now());
+  }
+
+  /** Follow cam: the simulated observer flies the free camera (no pose to show, so just the free camera). */
+  async streamCamera(poses: PoseStream, _durationMs: number, ctx: CommandContext): Promise<CommandResult> {
+    const f = this.maybeFail(ctx);
+    if (f) return f;
+    if (!poses(0)) return transportResult(ctx, false, "no pose to start from", this.now(), "target_invalid");
+    this.later(() => {
+      this.observer.observedSteamId = null;
+      this.observer.activeCameraId = null;
+      this.observer.mode = "roaming";
     });
     return transportResult(ctx, true, "simulated", this.now());
   }

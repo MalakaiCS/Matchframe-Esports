@@ -118,7 +118,8 @@
           "MAIN_STORY",
           "ESTABLISHING",
           "NO_VALID_CANDIDATE",
-          "MAIN_OBSERVER_ON_IT"
+          "MAIN_OBSERVER_ON_IT",
+          "FOLLOW_CAM"
         ]
       }
     },
@@ -179,7 +180,8 @@
               "static_utility",
               "camera_path",
               "bomb_resolution",
-              "establishing"
+              "establishing",
+              "follow_cam"
             ]
           },
           "shotKey": {
@@ -316,7 +318,8 @@
                 "MAIN_STORY",
                 "ESTABLISHING",
                 "NO_VALID_CANDIDATE",
-                "MAIN_OBSERVER_ON_IT"
+                "MAIN_OBSERVER_ON_IT",
+                "FOLLOW_CAM"
               ]
             }
           },

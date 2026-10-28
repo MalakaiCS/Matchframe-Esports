@@ -25,6 +25,8 @@ export const ShotClass = z.enum([
   "camera_path",
   "bomb_resolution",
   "establishing",
+  /** A free camera flying behind and above a moving player (follow cam). */
+  "follow_cam",
 ]);
 export type ShotClass = z.infer<typeof ShotClass>;
 
@@ -104,6 +106,7 @@ export const REASON_CODES = [
   "ESTABLISHING",
   "NO_VALID_CANDIDATE",
   "MAIN_OBSERVER_ON_IT",
+  "FOLLOW_CAM",
 ] as const;
 export const ReasonCode = z.enum(REASON_CODES);
 export type ReasonCode = z.infer<typeof ReasonCode>;

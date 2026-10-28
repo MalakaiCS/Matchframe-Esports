@@ -11,6 +11,16 @@ import type {
 /** How a spectated player is shown: through their eyes, or from behind in the third-person chase view. */
 export type PlayerView = "in_eye" | "chase";
 
+/** A free-camera pose (Hammer units, degrees). */
+export interface CameraPose {
+  position: { x: number; y: number; z: number };
+  pitch: number;
+  yaw: number;
+}
+
+/** Where the free camera is `elapsedMs` into a streamed shot; null ends the shot. */
+export type PoseStream = (elapsedMs: number) => CameraPose | null;
+
 /** Control-related capabilities reported by an adapter (never inferred from telemetry). */
 export interface ControlCapabilities {
   playerSelectionControl: Capability;
@@ -38,6 +48,8 @@ export interface ObserverControlAdapter {
   setObserverMode(mode: CameraMode, context: CommandContext): Promise<CommandResult>;
   activateStaticCamera(camera: CameraRecord, context: CommandContext): Promise<CommandResult>;
   playCameraPath(path: CameraPath, context: CommandContext): Promise<CommandResult>;
+  /** Flies the free camera along poses computed live (follow cam), up to `durationMs`. */
+  streamCamera?(poses: PoseStream, durationMs: number, context: CommandContext): Promise<CommandResult>;
   cancelPath(context: CommandContext): Promise<CommandResult>;
   readState(): Promise<ObservedCameraState>;
   /** Cancel queued keypresses / pending transport work immediately. */

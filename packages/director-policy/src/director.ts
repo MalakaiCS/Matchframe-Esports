@@ -34,7 +34,7 @@ import { findUtilityOpportunities, INFERNO_BOTTOM_BANANA_RULE } from "./utility/
 
 /** What the engine should do with a decision. The director never talks to the game directly. */
 export interface DirectorIntent {
-  kind: "select_player" | "activate_static_camera" | "play_camera_path";
+  kind: "select_player" | "activate_static_camera" | "play_camera_path" | "follow_player";
   /** Kind of shot (a static camera can be a nade camera, a fight overview, the bomb or an establishing shot). */
   shotClass: ShotClass;
   targetSteamId: string | null;
@@ -81,6 +81,8 @@ export interface DirectorControls {
   avoid: { steamIds: string[]; until: number } | null;
   /** Clutch mode: in a 1vX, stay with the last player alive on their side; no cutaways to cameras. */
   clutchMode: boolean;
+  /** Follow cams (needs the map's free-space grid): a free camera behind a running player in quiet moments. */
+  followCams: boolean;
 }
 
 export interface DirectorOptions {
@@ -130,6 +132,7 @@ export class Director {
     cinematicRequested: false,
     avoid: null,
     clutchMode: false,
+    followCams: false,
   };
 
   constructor(opts: DirectorOptions = {}) {
@@ -244,6 +247,19 @@ export class Director {
     this.planner.cinematicStarted(shot, at, plannedDurationMs, opportunityId, countsTowardBudget);
   }
 
+  /** Moving players with their speed, and whether a teammate is near (follow cam material). */
+  private followable(state: MatchState): { steamId: string; speed: number; alone: boolean }[] {
+    const out: { steamId: string; speed: number; alone: boolean }[] = [];
+    const alive = state.players.filter((p) => p.lifeState === "alive" && p.position && p.side);
+    for (const p of alive) {
+      const v = this.history.velocity(p.steamId);
+      if (!v) continue;
+      const alone = !alive.some((m) => m !== p && m.side === p.side && Math.hypot(m.position!.x - p.position!.x, m.position!.y - p.position!.y) < 1000);
+      out.push({ steamId: p.steamId, speed: Math.hypot(v.x, v.y), alone });
+    }
+    return out;
+  }
+
   private cinematicsAllowed(state: MatchState, round?: RoundContext): { allowed: boolean; reason: ReasonCode | null } {
     // Mid-clutch, a camera would cut away from the player the whole round is about.
     if (this.controls.clutchMode && round?.clutch) return { allowed: false, reason: "CLUTCH" };
@@ -317,7 +333,7 @@ export class Director {
       clutchMode: this.controls.clutchMode,
     });
     if (scope?.has("cinematic")) {
-      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map }));
+      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, followable: this.controls.followCams && grid ? this.followable(state) : undefined, currentShotSinceMs: this.planner.shotSince }));
       candidates.sort((a, b) => b.utility - a.utility);
     }
 
@@ -412,6 +428,19 @@ export class Director {
               basedOnSequence: state.sequence,
               expiresInMs: 450,
             }
+          : shot.kind === "follow"
+            ? {
+                kind: "follow_player",
+                shotClass: desired.shotClass,
+                targetSteamId: shot.id,
+                observerSlot: null,
+                cameraId: null,
+                plannedDurationMs: desired.plannedDurationMs,
+                opportunityId: null,
+                decisionId,
+                basedOnSequence: state.sequence,
+                expiresInMs: 450,
+              }
           : shot.kind === "path"
             ? {
                 kind: "play_camera_path",

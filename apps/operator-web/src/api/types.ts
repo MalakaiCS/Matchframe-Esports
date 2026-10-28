@@ -985,7 +985,7 @@ export interface AutoDirectorStatus {
   on: boolean;
   phase: "off" | "starting" | "waiting" | "running" | "paused" | "error";
   headline: string;
-  settings: { cinematic: boolean; nadeCams: boolean; returnAfterSec: number; chase: boolean; clutch: boolean };
+  settings: { cinematic: boolean; nadeCams: boolean; returnAfterSec: number; chase: boolean; clutch: boolean; followCams: boolean };
   observerMode: ObserverMode;
   checks: AutoDirectorCheck[];
   resumesInMs: number | null;

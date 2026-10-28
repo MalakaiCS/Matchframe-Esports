@@ -1,11 +1,12 @@
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
 import type { CameraPath, CameraRecord, DirectorDecision, DirectorMode, MatchState, ObserverMode, ReasonCode, Side, SourceCapabilities } from "@matchframe/contracts";
+import { FollowCam } from "./follow.ts";
 import { emptySourceCapabilities } from "@matchframe/contracts";
 import type { DerivedEvent, GsiObservation, IngestResult, ProfileSet, UtilityTrackerEvent } from "@matchframe/cs2-state";
 import { CapabilitySampler, hash53, MatchStateStore, normalizeGsi, parseGsiPayload, stripAuth } from "@matchframe/cs2-state";
 import type { ArbiterEvent, ControlCapabilities, DirectorOutput, ObserverControlAdapter, Pin, PlayerView } from "@matchframe/director-policy";
-import { cameraShot, chaseMoment, ControlArbiter, Director, parseShot, pathShot, povShot } from "@matchframe/director-policy";
+import { cameraShot, chaseMoment, ControlArbiter, Director, followShot, parseShot, pathShot, povShot } from "@matchframe/director-policy";
 import type { MapRegistry } from "@matchframe/map-runtime";
 import type { Logger } from "../logger.ts";
 import type { LiveContactModel } from "./model-runtime.ts";
@@ -41,6 +42,8 @@ export interface LiveSessionOptions {
   chaseEnabled?: () => boolean;
   /** Clutch mode (default off here; the engine passes the Auto Director setting, on by default). */
   clutchEnabled?: () => boolean;
+  /** Follow cams (default off here; the engine passes the Auto Director setting, on by default). */
+  followCamsEnabled?: () => boolean;
   simulated?: boolean;
   /** Per-type utility profiles (measured where available, defaults otherwise). */
   utilityProfiles?: ProfileSet;
@@ -296,6 +299,8 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     const t0 = performance.now();
     const pending = this.arbiter.pending();
     this.director.controls.clutchMode = this.opts.clutchEnabled?.() === true;
+    // Follow cams fly a free camera live: only with an adapter that can stream poses.
+    this.director.controls.followCams = this.opts.followCamsEnabled?.() === true && !!this.arbiter.getAdapter()?.streamCamera;
     const output = this.director.evaluate(this.store.snapshot(now), now, {
       ownership: this.arbiter.state(),
       adapterAvailable: !!this.arbiter.getAdapter() && this.arbiter.getAdapter()!.kind !== "none",
@@ -352,6 +357,21 @@ export class LiveSession extends EventEmitter<SessionEvents> {
         .then((r) => {
           if (r.status !== "failed" && r.status !== "cancelled") {
             this.pendingCinematic = { commandId: r.commandId, shot: pathShot(path.id), plannedDurationMs: intent.plannedDurationMs ?? 4000, opportunityId: null, countsTowardBudget: !LiveSession.OFF_BUDGET.has(intent.shotClass) };
+          }
+        });
+    } else if (intent.kind === "follow_player") {
+      const grid = s.mapName ? (this.opts.maps.get(s.mapName)?.grid ?? null) : null;
+      const target = intent.targetSteamId;
+      if (!grid || !target) return;
+      const cam = new FollowCam(() => this.lastState, target, grid);
+      const duration = intent.plannedDurationMs ?? 4500;
+      this.stats.cuts++;
+      this.noteView(target, "in_eye", now);
+      void this.arbiter
+        .submit({ kind: "stream_camera", shot: followShot(target), poses: (t) => cam.pose(t), durationMs: duration }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs, confirmationTimeoutMs: 2500 })
+        .then((r) => {
+          if (r.status !== "failed" && r.status !== "cancelled") {
+            this.pendingCinematic = { commandId: r.commandId, shot: followShot(target), plannedDurationMs: duration, opportunityId: null, countsTowardBudget: true };
           }
         });
     }
