@@ -14,7 +14,8 @@ import { failedResult } from "./adapter.ts";
 
 export type ControlRequest =
   | { kind: "select_player"; steamId: string; observerSlot: number | null; view?: PlayerView }
-  | { kind: "activate_static_camera"; camera: CameraRecord; plannedDurationMs: number }
+  /** `panDegPerSec`: the camera turns slowly while on air (positive to the left); 0 or absent: still. */
+  | { kind: "activate_static_camera"; camera: CameraRecord; plannedDurationMs: number; panDegPerSec?: number }
   | { kind: "play_camera_path"; path: CameraPath }
   /** A free camera flown along live poses; `shot` is its shot key (e.g. follow:<steamId>). */
   | { kind: "stream_camera"; shot: ShotKey; poses: PoseStream; durationMs: number }
@@ -331,7 +332,7 @@ export class ControlArbiter {
         r.kind === "select_player"
           ? await adapter.selectPlayer(r.steamId, r.observerSlot, ctx, r.view)
           : r.kind === "activate_static_camera"
-            ? await adapter.activateStaticCamera(r.camera, ctx)
+            ? await adapter.activateStaticCamera(r.camera, ctx, r.panDegPerSec ? { panDegPerSec: r.panDegPerSec, durationMs: r.plannedDurationMs } : undefined)
             : r.kind === "play_camera_path"
               ? await adapter.playCameraPath(r.path, ctx)
               : r.kind === "stream_camera"
@@ -412,7 +413,7 @@ export class ControlArbiter {
       case "select_player":
         return { kind: r.kind, steamId: r.steamId, slot: r.observerSlot, view: r.view ?? "in_eye" };
       case "activate_static_camera":
-        return { kind: r.kind, cameraId: r.camera.id, plannedDurationMs: r.plannedDurationMs };
+        return { kind: r.kind, cameraId: r.camera.id, plannedDurationMs: r.plannedDurationMs, ...(r.panDegPerSec ? { panDegPerSec: r.panDegPerSec } : {}) };
       case "play_camera_path":
         return { kind: r.kind, pathId: r.path.id };
       case "stream_camera":

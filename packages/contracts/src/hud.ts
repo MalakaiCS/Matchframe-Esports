@@ -103,6 +103,19 @@ export const HUD_OUTPUT_MODES = ["obs", "desktop", "preview"] as const;
 export type HudOutputMode = (typeof HUD_OUTPUT_MODES)[number];
 
 /** A HUD installed in the local library (GET /api/v1/hud/library). */
+/**
+ * How smoothly a HUD output draws, measured by the output page itself where it runs (OBS's browser
+ * source, the desktop HUD): over the last minute.
+ */
+export interface HudOutputSmoothness {
+  /** Frames a second (the lowest of the reports). */
+  fps: number;
+  /** The longest the page stopped drawing (ms). */
+  worstPauseMs: number;
+  /** How many times it stopped drawing for more than 100 ms. */
+  pauses: number;
+}
+
 export interface HudLibraryEntry {
   id: string;
   name: string;
@@ -133,6 +146,8 @@ export interface HudLibraryEntry {
   stopped: boolean;
   /** Connected runtime outputs by mode. */
   outputs: Record<HudOutputMode, number>;
+  /** How smoothly the connected outputs of each mode draw where they run (the last minute; the worst output of a mode). */
+  smoothness: Partial<Record<HudOutputMode, HudOutputSmoothness>>;
   /** OBS browser source URL per implemented variant. */
   urls: Partial<Record<HudVariant, string>>;
   /**

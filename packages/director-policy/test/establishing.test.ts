@@ -35,10 +35,14 @@ interface Shot {
   id: string | null;
   regions: string[];
   durationMs: number | null;
+  pan: number;
 }
 
-/** Plays 18 s of freeze time then `liveMs` of live round; the "camera" does what the director says. */
-function play(opts: { ctAt: { x: number; y: number; z: number }; liveMs: number; neverConfirmed?: boolean }) {
+/**
+ * Plays 18 s of freeze time then `liveMs` of live round; the "camera" does what the director says.
+ * `pause`: a timeout from `at` ms into freeze time, `ms` long (freeze time is longer by as much).
+ */
+function play(opts: { ctAt: { x: number; y: number; z: number }; liveMs: number; neverConfirmed?: boolean; pause?: { at: number; ms: number; phase: "timeout_t" | "timeout_ct" | "paused" } }) {
   const rt = new MapRuntime(pack());
   const sim = new Sim("de_mirage", rt);
   const director = new Director({ newId: (() => { let i = 0; return () => `d${i++}`; })() });
@@ -51,20 +55,25 @@ function play(opts: { ctAt: { x: number; y: number; z: number }; liveMs: number;
   let observed: string | null = T(1);
   const shots: Shot[] = [];
   const t0 = sim.now;
-  const freezeMs = 18000;
+  const pauseMs = opts.pause?.ms ?? 0;
+  const freezeMs = 18000 + pauseMs;
   for (let t = 0; t < freezeMs + opts.liveMs; t += 100) {
     const live = t >= freezeMs;
-    const state = sim.push(players(opts.ctAt), { mapName: "de_mirage", observed, roundPhase: live ? "live" : "freezetime", phase: live ? "live" : "freezetime", phaseEndsIn: live ? 115 - (t - freezeMs) / 1000 : (freezeMs - t) / 1000 });
+    const p = opts.pause;
+    const paused = !!p && t >= p.at && t < p.at + p.ms;
+    // The freeze time's clock stops during the pause; the pause has its own.
+    const left = paused ? (p!.at + p!.ms - t) / 1000 : (freezeMs - t - (p && t < p.at ? 0 : 0)) / 1000;
+    const state = sim.push(players(opts.ctAt), { mapName: "de_mirage", observed, roundPhase: live ? "live" : "freezetime", phase: live ? "live" : paused ? p!.phase : "freezetime", phaseEndsIn: live ? 115 - (t - freezeMs) / 1000 : left });
     const out = director.evaluate(state, sim.now, control);
     const i = out.intent;
     if (!i) continue;
     if (i.kind === "select_player") {
       observed = i.targetSteamId;
-      shots.push({ at: sim.now - t0, kind: "pov", id: i.targetSteamId, regions: [], durationMs: null });
+      shots.push({ at: sim.now - t0, kind: "pov", id: i.targetSteamId, regions: [], durationMs: null, pan: 0 });
     } else if (i.kind === "activate_static_camera" || i.kind === "play_camera_path") {
       const key = i.kind === "activate_static_camera" ? cameraShot(i.cameraId!) : pathShot(i.pathId!);
       const regions = i.kind === "activate_static_camera" ? rt.pack.cameras.find((c) => c.id === i.cameraId)!.targetRegionIds : rt.pack.paths.find((p) => p.id === i.pathId)!.targetRegionIds;
-      shots.push({ at: sim.now - t0, kind: i.kind, id: i.cameraId ?? i.pathId ?? null, regions, durationMs: i.plannedDurationMs });
+      shots.push({ at: sim.now - t0, kind: i.kind, id: i.cameraId ?? i.pathId ?? null, regions, durationMs: i.plannedDurationMs, pan: i.panDegPerSec ?? 0 });
       // Confirmed at once, like a camera the console's getpos confirms; or never confirmed (the camera stays on the player).
       if (opts.neverConfirmed) director.cinematicFailed(key);
       else {
@@ -98,6 +107,57 @@ describe("freeze-time establishing shots and the start of the round", () => {
     expect(shots.filter((s) => s.at >= freezeMs && s.kind !== "pov")).toHaveLength(0);
   });
 
+  it("fills the freeze time: shot after shot with no player view between, each turning slowly, the last until the round goes live", () => {
+    const { shots, freezeMs } = play({ ctAt: CT_SPAWN, liveMs: 3000 });
+    const first = shots.findIndex((s) => s.kind !== "pov");
+    const inFreeze = shots.slice(first).filter((s) => s.at < freezeMs);
+    // From the first shot to the end of freeze time: only cameras, never a player.
+    expect(inFreeze.every((s) => s.kind === "activate_static_camera"), JSON.stringify(inFreeze)).toBe(true);
+    for (const [i, s] of inFreeze.entries()) {
+      const end = s.at + s.durationMs!;
+      const next = inFreeze[i + 1];
+      // Each one ends when the next starts; the last runs past the end of freeze time.
+      if (next) expect(Math.abs(next.at - end)).toBeLessThanOrEqual(300);
+      else expect(end).toBeGreaterThanOrEqual(freezeMs);
+      // Turning slowly, one way then the other: at most 30° over the shot.
+      expect(Math.abs(s.pan)).toBeGreaterThan(0);
+      expect(Math.abs(s.pan) * (s.durationMs! / 1000)).toBeLessThanOrEqual(30.01);
+      if (i > 0) expect(Math.sign(s.pan)).toBe(-Math.sign(inFreeze[i - 1]!.pan));
+    }
+    // Then first person straight away.
+    const afterLive = shots.filter((s) => s.at >= freezeMs);
+    expect(afterLive[0]?.kind).toBe("pov");
+    expect(afterLive[0]!.at - freezeMs).toBeLessThan(400);
+  });
+
+  it("in a tactical timeout, cuts to a still shot of the spawn of the team that called it and holds it until the round goes live", () => {
+    for (const [phase, spawn] of [["timeout_ct", "ct_spawn"], ["timeout_t", "t_spawn"]] as const) {
+      const { shots, freezeMs } = play({ ctAt: CT_SPAWN, liveMs: 2000, pause: { at: 6000, ms: 30000, phase } });
+      const pauseShot = shots.find((s) => s.at >= 6000 && s.kind !== "pov");
+      expect(pauseShot, JSON.stringify(shots)).toBeTruthy();
+      // At once (the shot on air when the pause began gives way), still, of that team's spawn.
+      expect(pauseShot!.at - 6000).toBeLessThan(400);
+      expect(pauseShot!.kind).toBe("activate_static_camera");
+      expect(pauseShot!.pan).toBe(0);
+      expect(pauseShot!.regions).toContain(spawn);
+      // Nothing else until the round goes live (also after the pause ends, in the rest of freeze time); then first person.
+      const after = shots.filter((s) => s.at > pauseShot!.at);
+      expect(after[0]?.kind).toBe("pov");
+      expect(after[0]!.at).toBeGreaterThanOrEqual(freezeMs);
+      expect(after[0]!.at - freezeMs).toBeLessThan(400);
+    }
+  });
+
+  it("in a technical pause, holds a still shot of a team until the round goes live", () => {
+    const { shots, freezeMs } = play({ ctAt: CT_SPAWN, liveMs: 2000, pause: { at: 4000, ms: 60000, phase: "paused" } });
+    const pauseShot = shots.find((s) => s.at >= 4000 && s.kind !== "pov")!;
+    expect(pauseShot.pan).toBe(0);
+    expect(pauseShot.regions.some((r) => r === "t_spawn" || r === "ct_spawn")).toBe(true);
+    const after = shots.filter((s) => s.at > pauseShot.at);
+    expect(after[0]?.kind).toBe("pov");
+    expect(after[0]!.at - freezeMs).toBeLessThan(400);
+  });
+
   it("leaves out a spawn nobody is in", () => {
     const { shots } = play({ ctAt: MID, liveMs: 1000 });
     const cine = shots.filter((s) => s.kind !== "pov");
@@ -110,7 +170,7 @@ describe("freeze-time establishing shots and the start of the round", () => {
     const { shots } = play({ ctAt: CT_SPAWN, liveMs: 1000, neverConfirmed: true });
     const cine = shots.filter((s) => s.kind !== "pov");
     expect(cine.length).toBeGreaterThanOrEqual(1);
-    expect(cine.length).toBeLessThanOrEqual(2);
+    expect(cine.length).toBeLessThanOrEqual(4);
     expect(new Set(cine.map((s) => s.id)).size).toBe(cine.length);
   });
 

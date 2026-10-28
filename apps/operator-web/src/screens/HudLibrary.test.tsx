@@ -32,6 +32,7 @@ function hud(over: Partial<HudLibraryEntry> & Pick<HudLibraryEntry, "id" | "name
     error: null,
     stopped: false,
     outputs: { obs: 0, desktop: 0, preview: 0 },
+    smoothness: {},
     urls: { live: `${ORIGIN}/hud/${over.id}/live?t=tok` },
     views: [],
     settings: {},
@@ -184,6 +185,21 @@ describe("HUD Library screen", () => {
     expect(calls.filter((c) => c.path.startsWith("/api/v1/hud/library/import")).map((c) => c.path)).toEqual(["/api/v1/hud/library/import?onConflict=fail", "/api/v1/hud/library/import?onConflict=replace"]);
     expect(await screen.findByText(/updated to 1.1.0/)).toBeTruthy();
     expect(await screen.findByTestId("hud-details")).toBeTruthy();
+  });
+
+  it("shows an output that stops drawing in amber, and in its Outputs tab what helps", async () => {
+    const stutter = { ...PRO, smoothness: { obs: { fps: 31, worstPauseMs: 620, pauses: 3 } } };
+    serve((m, p) => (m === "GET" && p === "/api/v1/hud/library" ? { status: 200, json: library([stutter]) } : undefined));
+    renderScreen();
+    const card = await screen.findByRole("article", { name: PRO.name });
+    const obs = card.querySelector('[data-output="obs"]') as HTMLElement;
+    expect(obs.className).toContain("is-stutter");
+    expect(obs.title).toMatch(/31 fps, longest pause 620 ms/);
+    fireEvent.click(card);
+    const details = await screen.findByTestId("hud-details");
+    fireEvent.click(within(details).getByRole("tab", { name: "Outputs" }));
+    expect(within(details).getByText(/stopped drawing for up to/).textContent).toMatch(/OBS browser source stopped drawing for up to 620 ms \(3 times in the last minute, 31 fps\)/);
+    expect(within(details).getByText(/Enable Browser Source Hardware Acceleration/)).toBeTruthy();
   });
 
   it("opens the details panel with package info, variants and the settings form", async () => {

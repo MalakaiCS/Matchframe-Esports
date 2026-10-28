@@ -50,6 +50,10 @@ export interface ScoredCandidate extends ShotCandidate {
   opportunity: UtilityOpportunity | null;
   plannedDurationMs: number | null;
   urgent: boolean;
+  /** May follow a cinematic straight away, with no player view between (freeze-time shots, the pause shot). */
+  chain?: boolean;
+  /** A static camera that turns slowly while it is on air (degrees a second, positive to the left); 0 or absent: still. */
+  panDegPerSec?: number;
 }
 
 function clamp01(x: number): number {

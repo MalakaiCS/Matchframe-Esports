@@ -2,7 +2,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { zipSync } from "fflate";
-import type { HudLibrary, HudLibraryEntry, HudManifest, HudOutputMode, HudRuntimeControl, HudVariant } from "@matchframe/contracts";
+import type { HudLibrary, HudLibraryEntry, HudManifest, HudOutputMode, HudOutputSmoothness, HudRuntimeControl, HudVariant } from "@matchframe/contracts";
 import { HUD_OUTPUT_MODES, HUD_VARIANTS, HudSettingField, RESERVED_HUD_IDS } from "@matchframe/contracts";
 import type { Database } from "../db/database.ts";
 import type { SettingsRepo } from "../db/store.ts";
@@ -31,6 +31,8 @@ export type LibraryEvent =
 /** Live output counts, provided by the HUD server while it runs. */
 export interface LibraryRuntime {
   outputs(hudId: string): Record<HudOutputMode, number>;
+  /** How smoothly each mode's outputs draw (reported by the output pages). */
+  smoothness?(hudId: string): Partial<Record<HudOutputMode, HudOutputSmoothness>>;
   /** Sends a panel button press to an LHM-format HUD; false when it is not one of its buttons. */
   action?(hudId: string, key: string, value: string): boolean;
 }
@@ -358,6 +360,7 @@ export class HudLibraryService {
     const schema = normalizeSettingsSchema(rawSchemaOf(pkg), m.runtime);
     const variants = HUD_VARIANTS.filter((v) => m.entryPoints[v]);
     const outputs = this.runtime?.outputs(pkg.id) ?? zeroOutputs();
+    const smoothness = this.runtime?.smoothness?.(pkg.id) ?? {};
     const error = this.problem(pkg);
     const connected = HUD_OUTPUT_MODES.reduce((n, mode) => n + outputs[mode], 0);
     const urls: Partial<Record<HudVariant, string>> = {};
@@ -387,6 +390,7 @@ export class HudLibraryService {
       error,
       stopped: row.stopped,
       outputs,
+      smoothness,
       urls,
       settings: { ...defaultsOf(schema), ...row.settings },
       settingsSchema: schema,

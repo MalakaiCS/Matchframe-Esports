@@ -49,6 +49,10 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
   - **Now:** 104 cameras and 81 paths (orbits of at most 10 s, push-ins, and sideways drifts where there is no orbit).
   - **Gaps filled:** Train CT spawn, Vertigo T spawn, and a mid stand-in on Nuke (Outside), Train and Overpass (Connector).
   - **Generator:** `scripts/generate-map-cameras.py`; the old CS:GO-nav generator is now `scripts/generate-map-regions-csgo-nav.py`.
+- **Freeze time all cinematic and smooth, pauses, HUD smoothness** (version 0.6.1, ADR-033):
+  - **Director:** freeze-time spawn shots share the whole freeze time (4–12 s each, at most four, the last until live) and chain with no player view between (`chain` on candidates). Each turns in the game (`panDegPerSec`, ≤ 3°/s, ≤ 30°). No camera paths in freeze time unless `cinematic.freezeTimePaths`. In a tactical or technical pause: a still shot of the calling team's spawn until live (reason `PAUSE`).
+  - **Console adapter:** pans with `cl_yawspeed` and `+left`/`+right`, centred on the camera's aim, released at the planned end or before the next command, checked once with `getpos`; streamed paths and follow cams at 128 poses a second, evenly paced.
+  - **HUD outputs** report how smoothly they draw (frames a second, longest pause) every 5 s; the HUD Library shows a stuttering output in amber with what helps; pauses of 250 ms or more go to the director log.
 - **Out of the freeze-time shot on time** (version 0.6.1, ADR-032):
   - **Fixed:** the camera staying on a freeze-time shot into the live round. Game data from just before a camera no longer clears the adapter's free-camera flag (1.5 s), and the in-eye numbering is switched only after 2 s of game data still showing the free camera across the director's retries; the numbering the game data confirms is kept, repairing a wrong one saved by 0.6.0.
   - **Run behind other windows** game option (default on): `engine_no_focus_sleep 0`, `snd_mute_losefocus 0`.

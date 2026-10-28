@@ -291,6 +291,15 @@ describe("HUD Library (real HTTP/WS servers)", () => {
     const control = (m: Record<string, unknown>) => m.type === "control";
     await Promise.all([aDesktop.next(control), aObs.next(control), bObs.next(control), aEmbedded.next(control)]);
     expect((await entry("test.sample"))!.outputs).toEqual({ obs: 1, desktop: 1, preview: 0 });
+    // The output pages report how smoothly they draw where they run: the worst of each mode, a stall in the director log.
+    aObs.ws.send(JSON.stringify({ type: "perf", fps: 31, worstMs: 620, pauses: 3 }));
+    aDesktop.ws.send(JSON.stringify({ type: "perf", fps: 60, worstMs: 21, pauses: 0 }));
+    aEmbedded.ws.send(JSON.stringify({ type: "perf", fps: 1, worstMs: 9000, pauses: 99 }));
+    aDesktop.ws.send(JSON.stringify({ type: "perf", fps: "x", worstMs: 1, pauses: 0 }));
+    await sleep(200);
+    expect((await entry("test.sample"))!.smoothness).toEqual({ obs: { fps: 31, worstPauseMs: 620, pauses: 3 }, desktop: { fps: 60, worstPauseMs: 21, pauses: 0 } });
+    const stalls = readFileSync(join(dataDir, "logs", "director.log"), "utf8").trim().split("\n").map((l) => JSON.parse(l) as { msg: string; data?: Record<string, unknown> }).filter((l) => l.msg === "hud stall");
+    expect(stalls.map((l) => l.data)).toEqual([{ hud: "test.sample", mode: "obs", worstMs: 620, pauses: 3, fps: 31 }]);
     aEmbedded.ws.close();
     expect((await entry("test.sample"))!.status).toBe("running");
 

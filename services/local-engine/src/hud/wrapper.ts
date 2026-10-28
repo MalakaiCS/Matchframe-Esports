@@ -65,7 +65,9 @@ ${o.testDataBadge ? '<div id="mf-test">TEST DATA</div>' : ""}
  * - connects to the control socket with backoff; hides the frame while hidden, removes it while
  *   stopped (recreates it on start) and reloads it when reloadSeq changes;
  * - window.__mfOverlay.setEdit(true|false) shows the edit outline and size label (desktop mode
- *   only); window.__mfOverlay.status() reports the state for automated checks.
+ *   only); window.__mfOverlay.status() reports the state for automated checks;
+ * - times its own frames (the HUD frame shares its main thread) and reports every 5 s how smoothly
+ *   it draws where it runs: frames a second, the longest pause, pauses over 100 ms.
  */
 export const WRAPPER_JS = String.raw`(function () {
   "use strict";
@@ -165,6 +167,36 @@ export const WRAPPER_JS = String.raw`(function () {
     }
   }
 
+  // Frame timing where the output runs (OBS's browser source, the desktop HUD). A gap over 10 s is
+  // a paused source (hidden in OBS), not a stall.
+  var ctl = null;
+  var perf = { frames: 0, worst: 0, pauses: 0, last: 0, since: 0 };
+  function frameTick(t) {
+    if (perf.last && document.visibilityState !== "hidden") {
+      var gap = t - perf.last;
+      if (gap < 10000) {
+        perf.frames += 1;
+        if (gap > perf.worst) perf.worst = gap;
+        if (gap > 100) perf.pauses += 1;
+      }
+    }
+    perf.last = t;
+    window.requestAnimationFrame(frameTick);
+  }
+  function reportPerf() {
+    var now = performance.now();
+    var secs = (now - perf.since) / 1000;
+    if (ctl && ctl.readyState === 1 && perf.frames > 0 && secs > 0 && frame && !st.hidden) {
+      try {
+        ctl.send(JSON.stringify({ type: "perf", fps: Math.round(perf.frames / secs), worstMs: Math.round(perf.worst), pauses: perf.pauses }));
+      } catch (e) {}
+    }
+    perf.frames = 0;
+    perf.worst = 0;
+    perf.pauses = 0;
+    perf.since = now;
+  }
+
   var attempt = 0;
   function schedule() {
     var delay = Math.min(8000, 500 * Math.pow(2, attempt));
@@ -184,6 +216,7 @@ export const WRAPPER_JS = String.raw`(function () {
     ws.onopen = function () {
       attempt = 0;
       st.connected = true;
+      ctl = ws;
     };
     ws.onmessage = function (ev) {
       var msg = null;
@@ -196,6 +229,7 @@ export const WRAPPER_JS = String.raw`(function () {
     };
     ws.onclose = function () {
       st.connected = false;
+      if (ctl === ws) ctl = null;
       schedule();
     };
   }
@@ -220,6 +254,9 @@ export const WRAPPER_JS = String.raw`(function () {
   window.addEventListener("resize", layout);
   layout();
   connect();
+  perf.since = performance.now();
+  window.requestAnimationFrame(frameTick);
+  setInterval(reportPerf, 5000);
   // Without a control message (socket unavailable), show the HUD anyway after a short wait.
   setTimeout(function () {
     if (!gotControl && !frame) createFrame();

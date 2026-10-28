@@ -27,8 +27,8 @@ const waitFor = async (fn: () => boolean | Promise<boolean>, ms = 15000) => {
 
 /**
  * Mirage, two rounds after a warm-up: Ts in T spawn and CTs in CT spawn in freeze time, out towards
- * mid once live. The second freeze time has only the spawn cameras (no paths): cameras the console's
- * getpos confirms at once.
+ * mid once live. Freeze time is filled with spawn cameras the console's getpos confirms at once, each
+ * turning slowly in the game.
  */
 const WINDOWS = [
   { freeze: [8000, 24000], live: [24000, 36000], round: 4 },
@@ -115,18 +115,20 @@ describe("Director over a round: freeze time cinematics, then first person once 
   const cinematic = (c: { request: Record<string, unknown> }) => c.request.kind === "activate_static_camera" || c.request.kind === "play_camera_path";
   const idOf = (c: { request: Record<string, unknown> }) => String(c.request.cameraId ?? c.request.pathId);
 
-  /** Each freeze time: the two spawns, each shot once and held in full, then first person from the start of the live round. */
-  function checkRound(w: (typeof WINDOWS)[number], kind: "play_camera_path" | "activate_static_camera") {
+  /** Each freeze time: the spawns, one shot after another until the round goes live, each camera once; then first person from the start of the live round. */
+  function checkRound(w: (typeof WINDOWS)[number]) {
     // The round as the engine numbers it (seen in the middle of this freeze time), and when the engine saw its freeze time end.
     const round = samples.find((x) => x.at >= (w.freeze[0] + w.freeze[1]) / 2 && x.phase === "freezetime")!.round;
     const liveAt = samples.find((x) => x.round === round && x.phase === "live")!.at;
     const inFreeze = commands.filter((c) => c.round === round && c.phase === "freezetime");
     const cine = inFreeze.filter(cinematic);
     const why = JSON.stringify({ round, liveAt, cine, results: results.filter((r) => r.at >= w.freeze[0] - 2000 && r.at < liveAt) });
-    expect(cine.length, JSON.stringify(inFreeze)).toBeGreaterThanOrEqual(1);
-    expect(cine.length, why).toBeLessThanOrEqual(2);
-    expect(cine.every((c) => c.request.kind === kind), why).toBe(true);
+    expect(cine.length, JSON.stringify(inFreeze)).toBeGreaterThanOrEqual(2);
+    expect(cine.length, why).toBeLessThanOrEqual(4);
+    expect(cine.every((c) => c.request.kind === "activate_static_camera" && c.request.panDegPerSec !== 0), why).toBe(true);
     expect(new Set(cine.map(idOf)).size, why).toBe(cine.length);
+    // From the first shot to the end of freeze time: no player view between the shots.
+    expect(inFreeze.filter((c) => c.at > cine[0]!.at && c.request.kind === "select_player"), why).toEqual([]);
     expect(cine.every((c) => /(^|-)(t|ct)_spawn-/.test(idOf(c))), why).toBe(true);
     if (cine.length === 2) expect(new Set(cine.map((c) => idOf(c).includes("ct_spawn"))), why).toEqual(new Set([true, false]));
     // Held: nothing else is sent for at least 4 s after each (no 1 s repeats of the same shot).
@@ -139,22 +141,19 @@ describe("Director over a round: freeze time cinematics, then first person once 
     expect(early, JSON.stringify({ liveAt, early })).toHaveLength(0);
   }
 
-  it("round 1: the spawn paths in freeze time, then first person", async () => {
+  it("round 1: the spawns in freeze time, then first person", async () => {
     await waitFor(async () => ((await api("/api/v1/director/auto")).json as { phase: string }).phase === "running", 8000);
     await waitFor(() => cs2.now() > WINDOWS[0].live[0] + 1500, 60000);
     expect(cs2.free).toBe(false);
     expect(cs2.observed).not.toBeNull();
     await waitFor(() => cs2.now() > WINDOWS[0].live[1] - 1000, 30000);
-    checkRound(WINDOWS[0], "play_camera_path");
-    // The next freeze time has only the spawn cameras.
-    const rt = engine.maps.get("de_mirage")!;
-    rt.pack.paths.length = 0;
+    checkRound(WINDOWS[0]);
   }, 90000);
 
-  it("round 2: spawn cameras the console confirms at once are held, not sent again and again", async () => {
+  it("round 2: the same again, each camera held, not sent again and again", async () => {
     await waitFor(() => cs2.now() > WINDOWS[1].live[0] + 1500, 60000);
     expect(cs2.free).toBe(false);
     await waitFor(() => cs2.now() > WINDOWS[1].live[1] - 1000, 30000);
-    checkRound(WINDOWS[1], "activate_static_camera");
+    checkRound(WINDOWS[1]);
   }, 90000);
 });

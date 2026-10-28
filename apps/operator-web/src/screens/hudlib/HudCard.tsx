@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
-import type { HudLibraryEntry, HudOutputMode } from "@matchframe/contracts";
+import type { HudLibraryEntry, HudOutputMode, HudOutputSmoothness } from "@matchframe/contracts";
 import type { OverlayState } from "../../api/desktop.ts";
 import { Icon } from "../../components/icons.tsx";
 import { Badge, Button } from "../../components/ui.tsx";
 import type { HudDisplayStatus } from "../../lib/hudLibrary.ts";
-import { KIND_LABEL, OUTPUT_LABEL, OUTPUT_MODES, STATUS_INFO, resolutionLabel } from "../../lib/hudLibrary.ts";
+import { KIND_LABEL, OUTPUT_LABEL, OUTPUT_MODES, STATUS_INFO, resolutionLabel, STUTTER_MS } from "../../lib/hudLibrary.ts";
 
 /** Actions on one HUD, shared by the card, the list row and the details panel. */
 export interface HudActions {
@@ -112,17 +112,22 @@ export function StatusBadge({ status, detail }: { status: HudDisplayStatus; deta
   );
 }
 
-/** Desktop / OBS / Preview indicators with the number of connected outputs of each kind. */
-export function OutputIndicators({ outputs }: { outputs: Record<HudOutputMode, number> }) {
+/** Desktop / OBS / Preview indicators with the number of connected outputs of each kind, amber when one stutters. */
+export function OutputIndicators({ outputs, smoothness = {} }: { outputs: Record<HudOutputMode, number>; smoothness?: Partial<Record<HudOutputMode, HudOutputSmoothness>> }) {
   return (
     <span className="hud-outputs" aria-label="Active outputs">
-      {OUTPUT_MODES.map((m) => (
-        <span key={m} className={`hud-output ${outputs[m] ? "is-on" : ""}`} title={`${OUTPUT_LABEL[m]}: ${outputs[m] ? `${outputs[m]} connected` : "not connected"}`} data-output={m}>
-          <span className="hud-output-dot" aria-hidden />
-          {OUTPUT_LABEL[m]}
-          {outputs[m] > 1 ? <span className="num"> {outputs[m]}</span> : null}
-        </span>
-      ))}
+      {OUTPUT_MODES.map((m) => {
+        const s = outputs[m] ? smoothness[m] : undefined;
+        const stutters = !!s && s.worstPauseMs >= STUTTER_MS;
+        const timing = s ? ` · ${s.fps} fps, longest pause ${s.worstPauseMs} ms in the last minute` : "";
+        return (
+          <span key={m} className={`hud-output ${outputs[m] ? "is-on" : ""} ${stutters ? "is-stutter" : ""}`} title={`${OUTPUT_LABEL[m]}: ${outputs[m] ? `${outputs[m]} connected${timing}` : "not connected"}`} data-output={m}>
+            <span className="hud-output-dot" aria-hidden />
+            {OUTPUT_LABEL[m]}
+            {outputs[m] > 1 ? <span className="num"> {outputs[m]}</span> : null}
+          </span>
+        );
+      })}
     </span>
   );
 }
@@ -235,7 +240,7 @@ export function HudCard(p: HudItemProps) {
           {entry.category ? <span className="hud-category">{entry.category}</span> : null}
           {entry.description || "No description."}
         </p>
-        <OutputIndicators outputs={p.outputs} />
+        <OutputIndicators outputs={p.outputs} smoothness={p.entry.smoothness} />
       </div>
       <div className="hud-card-actions">
         <PrimaryAction overlay={p.overlay} actions={p.actions} reasons={p.reasons} />
@@ -288,7 +293,7 @@ export function HudRow(p: HudItemProps) {
         <Meta entry={entry} />
       </div>
       <StatusBadge status={p.status} detail={p.statusDetail} />
-      <OutputIndicators outputs={p.outputs} />
+      <OutputIndicators outputs={p.outputs} smoothness={p.entry.smoothness} />
       <div className="hud-row-actions">
         <IconAction icon="settings" label="Settings" onClick={p.actions.settings} reason={p.reasons.settings} />
         <IconAction icon="eye" label="Preview" onClick={p.actions.preview} reason={p.reasons.preview} />

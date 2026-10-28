@@ -136,16 +136,20 @@ export class ShotPlanner {
       return best ? cut(best, ["NO_VALID_CANDIDATE"]) : hold(["NO_VALID_CANDIDATE"]);
     }
 
-    // Active cinematic: bounded duration, interruption for urgent action or vanished target.
+    // Active cinematic: bounded duration, interruption for urgent action or vanished target. A shot
+    // that may follow it directly (the next freeze-time shot, the pause shot) comes next with no
+    // player view between; otherwise back to a player.
     if (this.cinematic && isCinematic(this.currentShot)) {
-      const exit = bestPovAlt;
+      const chained = valid.find((c) => c.chain && c.shotKey !== this.currentShot) ?? null;
+      const exit = chained ?? bestPovAlt;
       if (!current || !current.valid) {
         return exit ? cut(exit, ["CINEMATIC_INTERRUPTED", "CURRENT_SHOT_INVALID"], true) : hold(["NO_VALID_CANDIDATE"]);
       }
       if (now >= this.cinematic.plannedEndAt || now - this.cinematic.startedAt >= this.cinematic.maxMs) {
-        return exit ? cut(exit, ["POST_EVENT_HOLD"]) : hold(["NO_VALID_CANDIDATE"]);
+        return exit ? cut(exit, chained ? chained.reasonCodes.slice(0, 2) : ["POST_EVENT_HOLD"]) : hold(["NO_VALID_CANDIDATE"]);
       }
-      if (exit && exit.urgent) return cut(exit, ["CINEMATIC_INTERRUPTED", ...exit.reasonCodes.filter((r) => r === "CONTACT_IMMINENT" || r === "BOMB_CRITICAL" || r === "BOMB_DEFUSE_PRESSURE")], true);
+      if (chained?.urgent) return cut(chained, chained.reasonCodes.slice(0, 2), true);
+      if (bestPovAlt && bestPovAlt.urgent) return cut(bestPovAlt, ["CINEMATIC_INTERRUPTED", ...bestPovAlt.reasonCodes.filter((r) => r === "CONTACT_IMMINENT" || r === "BOMB_CRITICAL" || r === "BOMB_DEFUSE_PRESSURE")], true);
       return hold(["CURRENT_SHOT_VALID"]);
     }
 

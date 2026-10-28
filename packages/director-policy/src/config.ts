@@ -45,10 +45,12 @@ export interface DirectorConfig {
     enabled: boolean;
     perRoundBudget: number;
     maxDurationMs: number;
-    /** Freeze-time establishing shots (spawn cameras and paths) run their full length up to this. */
+    /** A freeze-time shot is at most this long (the time is shared between shots; the last runs until live). */
     establishingMaxMs: number;
-    /** Establishing shots per freeze time (one per spawn). */
+    /** Shots per freeze time (each camera at most once a round). */
     establishingPerRound: number;
+    /** Camera paths in freeze time (streamed from Matchframe, less smooth than a camera turning in the game). */
+    freezeTimePaths: boolean;
     /** Follow cams per map. */
     followPerMap: number;
     /** No cinematic in the first this-many ms of a live round: first person from the start. */
@@ -88,8 +90,9 @@ export const DEFAULT_DIRECTOR_CONFIG: DirectorConfig = {
     enabled: true,
     perRoundBudget: 2,
     maxDurationMs: 3000,
-    establishingMaxMs: 7000,
-    establishingPerRound: 2,
+    establishingMaxMs: 14000,
+    establishingPerRound: 4,
+    freezeTimePaths: false,
     followPerMap: 1,
     liveStartPovMs: 10000,
     utilityMinValue: 0.28,

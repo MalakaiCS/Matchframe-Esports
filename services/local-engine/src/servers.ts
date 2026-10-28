@@ -3,7 +3,7 @@ import { APP_VERSION } from "./config.ts";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { join } from "node:path";
 import { GSI_MAX_BODY_BYTES } from "@matchframe/cs2-state";
-import type { EventEnvelope, HudOutputMode } from "@matchframe/contracts";
+import type { EventEnvelope, HudOutputMode, HudOutputSmoothness } from "@matchframe/contracts";
 import type { HudState } from "@matchframe/hud-sdk";
 import { HUD_OUTPUT_MODES, RESERVED_HUD_IDS } from "@matchframe/contracts";
 import type { Engine } from "./app.ts";
@@ -31,6 +31,18 @@ import { overlayCsp, safeResolve, serveFile, serveStatic } from "./http/static.t
 import type { HubClient } from "./http/ws-hub.ts";
 import { WsHub } from "./http/ws-hub.ts";
 
+
+/** A HUD output page's frame report: frames a second, longest pause (ms), pauses over 100 ms. */
+interface PerfReport {
+  at: number;
+  fps: number;
+  worstMs: number;
+  pauses: number;
+}
+/** Frame reports are kept this long. */
+const PERF_KEEP_MS = 60_000;
+/** A pause this long in a HUD output is written to the director log. */
+const HUD_STALL_MS = 250;
 export interface RunningServers {
   gsi: Server;
   api: Server;
@@ -320,7 +332,23 @@ export async function startServers(e: Engine): Promise<RunningServers> {
 
   // Library output pages (/hud/<id>/<variant>) keep a read-only control socket: the server sends
   // a HudRuntimeControl on connect and whenever stopped, hidden or reloadSeq change.
-  const runtimeHub = new WsHub();
+  // The output pages report how smoothly they draw where they run (every 5 s); kept for a minute.
+  const runtimeHub = new WsHub({
+    onMessage: (c, msg) => {
+      const m = msg as { type?: unknown; fps?: unknown; worstMs?: unknown; pauses?: unknown } | null;
+      if (m?.type !== "perf" || c.meta.embedded) return;
+      const num = (v: unknown, max: number) => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.round(v))) : null);
+      const fps = num(m.fps, 1000);
+      const worstMs = num(m.worstMs, 60_000);
+      const pauses = num(m.pauses, 10_000);
+      if (fps === null || worstMs === null || pauses === null) return;
+      const now = Date.now();
+      const kept = ((c.meta.perf as PerfReport[] | undefined) ?? []).filter((r) => now - r.at < PERF_KEEP_MS);
+      kept.push({ at: now, fps, worstMs, pauses });
+      c.meta.perf = kept;
+      if (worstMs >= HUD_STALL_MS) e.directorLog.info("hud stall", { hud: c.meta.hudId, mode: c.meta.mode, worstMs, pauses, fps });
+    },
+  });
   const sendControl = (c: HubClient) => {
     const ctl = e.hudLibrary.control(String(c.meta.hudId));
     if (ctl) runtimeHub.sendTo(c, { ...ctl, testData: e.simulationRunning }, { snapshot: true });
@@ -333,6 +361,21 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       // The manager's own embedded preview (details panel) is not an output.
       for (const c of runtimeHub.clients) if (c.meta.hudId === hudId && !c.meta.embedded) counts[c.meta.mode as HudOutputMode]++;
       return counts;
+    },
+    smoothness: (hudId) => {
+      const now = Date.now();
+      const out: Partial<Record<HudOutputMode, HudOutputSmoothness>> = {};
+      for (const c of runtimeHub.clients) {
+        if (c.meta.hudId !== hudId || c.meta.embedded) continue;
+        const reports = ((c.meta.perf as PerfReport[] | undefined) ?? []).filter((r) => now - r.at < PERF_KEEP_MS);
+        if (!reports.length) continue;
+        const mode = c.meta.mode as HudOutputMode;
+        const mine = { fps: Math.min(...reports.map((r) => r.fps)), worstPauseMs: Math.max(...reports.map((r) => r.worstMs)), pauses: reports.reduce((n, r) => n + r.pauses, 0) };
+        const prev = out[mode];
+        // The worst output of each mode.
+        if (!prev || mine.worstPauseMs > prev.worstPauseMs) out[mode] = mine;
+      }
+      return out;
     },
   });
   const offLibrary = e.hudLibrary.onChange((ev) => {

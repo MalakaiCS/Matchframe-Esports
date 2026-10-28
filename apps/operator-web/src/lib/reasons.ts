@@ -61,6 +61,7 @@ export const REASON_INFO: Record<ReasonCode, ReasonInfo> = {
   DISTANCE_CLOSING: { label: "Distance closing", tone: "info", hint: "Opponents are closing distance." },
   MAIN_STORY: { label: "Main story", tone: "info", hint: "Part of the round's main storyline." },
   ESTABLISHING: { label: "Establishing shot", tone: "neutral", hint: "An establishing shot to orient viewers." },
+  PAUSE: { label: "Pause shot", tone: "neutral", hint: "A tactical or technical pause: a still shot of one team's spawn until the round goes live." },
   NO_VALID_CANDIDATE: { label: "No valid candidate", tone: "warn", hint: "No usable shot was found; holding." },
   MAIN_OBSERVER_ON_IT: { label: "Main camera has them", tone: "neutral", hint: "Replay PC: the main PC already shows this player, so this computer films someone else." },
   FOLLOW_CAM: { label: "Follow cam", tone: "info", hint: "A player is running somewhere with no fight close: a free camera can fly behind them." },

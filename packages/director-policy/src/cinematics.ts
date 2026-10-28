@@ -35,6 +35,12 @@ export interface CinematicInput {
   sight?: ((a: Vec3, b: Vec3) => boolean) | undefined;
   /** How long the round has been live (ms), or null outside a live round. */
   liveForMs?: number | null | undefined;
+  /**
+   * A tactical or technical pause in this freeze time (from when it began until the round goes live):
+   * the side whose spawn to hold on (the team that called the timeout; null for a technical pause),
+   * and when it began (monotonic ms).
+   */
+  pause?: { side: "T" | "CT" | null; since: number } | null | undefined;
 }
 
 /** Follow cam: a player running (units/s) with no fight expected within 2 s. */
@@ -47,6 +53,17 @@ const FOLLOW_VARIETY_BONUS = 0.2;
 
 /** Freeze time shorter than this is not worth an establishing shot. */
 const ESTABLISHING_MIN_LEFT_SEC = 3;
+/** Freeze time is shared between shots of at most this long (a long freeze time gets more of them)... */
+const ESTABLISHING_SHOT_MAX_SEC = 12;
+/** ...and at least this long. */
+const ESTABLISHING_SHOT_MIN_SEC = 4;
+/** The last shot of a freeze time is planned past its end: the cut to first person comes when the round goes live. */
+const ESTABLISHING_OVERRUN_MS = 1500;
+/** The shot a pause (tactical or technical timeout) is held on lasts until the round goes live, up to this. */
+export const PAUSE_HOLD_MS = 180_000;
+/** Freeze-time shots turn slowly (in the game, every frame): degrees a second, and at most this far in a shot. */
+const PAN_DEG_PER_SEC = 3;
+const PAN_MAX_DEG = 30;
 /** An establishing shot must show at least this many players (fewer when fewer are alive). */
 const ESTABLISHING_MIN_PLAYERS = 2;
 /** A player this far from a camera (units) is too small in the shot to count. */
@@ -200,12 +217,16 @@ export function cinematicCandidates(input: CinematicInput): ScoredCandidate[] {
 }
 
 /**
- * Freeze-time establishing shots: the spawns where the players are. Every spawn camera and camera
- * path of the map is scored by how many alive players it shows (standing in the regions it is aimed
- * at, or in clear view within range in the free-space grid). Shots showing fewer than two players are
- * left out, a shot already played this round is never played again, a spawn not yet shown this
- * freeze time is preferred, and at most `establishingPerRound` play per freeze time, each for its
- * full length (a path flies all the way).
+ * Freeze-time establishing shots: the spawns where the players are, for the whole freeze time.
+ * Every spawn camera of the map is scored by how many alive players it shows (standing in the regions
+ * it is aimed at, or in clear view within range in the free-space grid). Shots showing fewer than two
+ * players are left out, a shot already played this round is never played again, and a spawn not yet
+ * shown this freeze time is preferred. The time left is shared between shots of 4–12 s, each turning
+ * slowly in the game, and the last one runs until the round goes live. Each may follow the one before
+ * directly. Camera paths (streamed from Matchframe, so less smooth) only with `freezeTimePaths`.
+ *
+ * In a pause (tactical or technical timeout) the camera cuts to a still shot of one team's spawn (the
+ * team that called it) and stays there until the round goes live.
  */
 function establishingCandidates(input: CinematicInput, seen: Set<string>): ScoredCandidate[] {
   const { state, map, cfg } = input;
@@ -223,6 +244,12 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
       const eye = { x: p.position!.x, y: p.position!.y, z: p.position!.z + 64 };
       return !!input.sight && Math.hypot(eye.x - from.x, eye.y - from.y) < ESTABLISHING_VIEW_RANGE && input.sight(from, eye);
     });
+  // The next shot's length: the time left shared out, the last one running until the round goes live.
+  const shotsLeft = left === null ? 2 : Math.max(1, Math.ceil(left / ESTABLISHING_SHOT_MAX_SEC));
+  const nextMs = Math.min(
+    cfg.cinematic.establishingMaxMs,
+    left === null ? 8000 : shotsLeft === 1 ? left * 1000 + ESTABLISHING_OVERRUN_MS : Math.max(ESTABLISHING_SHOT_MIN_SEC * 1000, (left * 1000) / shotsLeft),
+  );
   interface Option {
     key: ShotKey;
     shotClass: "establishing" | "camera_path";
@@ -235,21 +262,26 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
   const options: Option[] = [];
   for (const m of map.camerasWith?.({ actionClass: "establishing", phase: "freezetime" }) ?? []) {
     const cam = m.camera;
-    options.push({ key: cameraShot(cam.id), shotClass: "establishing", camera: cam, path: null, regionIds: cam.targetRegionIds, durationMs: Math.min(cam.normalDurationMs, cam.maxDurationMs, cfg.cinematic.establishingMaxMs), players: inView(cam.position, cam.targetRegionIds) });
+    options.push({ key: cameraShot(cam.id), shotClass: "establishing", camera: cam, path: null, regionIds: cam.targetRegionIds, durationMs: nextMs, players: inView(cam.position, cam.targetRegionIds) });
   }
-  for (const path of map.pathsFor?.() ?? []) {
-    const mid = path.keyframes[Math.floor(path.keyframes.length / 2)]!;
-    options.push({ key: pathShot(path.id), shotClass: "camera_path", camera: null, path, regionIds: path.targetRegionIds, durationMs: Math.min(pathDurationMs(path), cfg.cinematic.establishingMaxMs), players: inView(mid.position, path.targetRegionIds) });
+  if (cfg.cinematic.freezeTimePaths && !input.pause) {
+    for (const path of map.pathsFor?.() ?? []) {
+      const mid = path.keyframes[Math.floor(path.keyframes.length / 2)]!;
+      options.push({ key: pathShot(path.id), shotClass: "camera_path", camera: null, path, regionIds: path.targetRegionIds, durationMs: Math.min(pathDurationMs(path), nextMs), players: inView(mid.position, path.targetRegionIds) });
+    }
   }
+  if (input.pause) return pauseCandidates(input, options, need, seen);
   // The side of the spawn each shot already played this round showed (the other spawn comes next).
   const shownSides = new Set<string>();
   for (const o of options) if (shown.has(o.key)) for (const p of o.players) shownSides.add(p.side!);
+  // Turning one way, then the other.
+  const panSign = playedEstablishing % 2 === 0 ? 1 : -1;
   const out: ScoredCandidate[] = [];
   for (const o of options) {
     const isCurrent = input.currentShot === o.key;
     if (seen.has(o.key) || (shown.has(o.key) && !isCurrent) || o.players.length < need) continue;
     // A new shot needs the time to play it, and fits the freeze time's quota.
-    if (!isCurrent && (playedEstablishing >= cfg.cinematic.establishingPerRound || (left !== null && (left < ESTABLISHING_MIN_LEFT_SEC || left * 1000 < Math.min(o.durationMs, 4000))))) continue;
+    if (!isCurrent && (playedEstablishing >= cfg.cinematic.establishingPerRound || (left !== null && left < ESTABLISHING_MIN_LEFT_SEC))) continue;
     seen.add(o.key);
     const sides = new Set(o.players.map((p) => p.side!));
     const fresh = [...sides].some((x) => !shownSides.has(x));
@@ -271,7 +303,7 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
       invalidReason = "pinned/one-side profile active";
     }
     if (valid) reasons.push("CINEMATIC_ELIGIBLE");
-    // More players in the shot, a spawn not shown yet, and a moving path over a still camera.
+    // More players in the shot, a spawn not shown yet, and a path (when they are on) over a still camera.
     const coverage = clamp01(0.45 + 0.08 * o.players.length + (fresh ? 0.12 : 0) + (o.path ? 0.04 : 0));
     const components: ScoreComponents = {
       actionCoverage: coverage,
@@ -303,6 +335,67 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
       opportunity: null,
       plannedDurationMs: o.durationMs,
       urgent: false,
+      chain: true,
+      panDegPerSec: o.camera ? panSign * Math.min(PAN_DEG_PER_SEC, PAN_MAX_DEG / (o.durationMs / 1000)) : 0,
+    });
+  }
+  return out;
+}
+
+/**
+ * In a pause: a still shot of the spawn of the team that called it (for a technical pause, the team
+ * the camera already shows, else the Ts), held until the round goes live. A shot that was on air
+ * before the pause gives way to it at once; the pause shot may be one already played this round.
+ */
+function pauseCandidates(input: CinematicInput, options: { key: ShotKey; camera: CameraRecord | null; regionIds: string[]; players: MatchState["players"] }[], need: number, seen: Set<string>): ScoredCandidate[] {
+  const { cfg, pause } = input;
+  const cams = options.filter((o) => o.camera && o.players.length >= need);
+  const current = cams.find((o) => o.key === input.currentShot);
+  const majority = (o: { players: MatchState["players"] }) => (o.players.filter((p) => p.side === "CT").length > o.players.length / 2 ? "CT" : "T");
+  const side = pause!.side ?? (current ? majority(current) : "T");
+  const ofSide = cams.filter((o) => majority(o) === side);
+  // The pause shot on air: started after the pause began.
+  const holding = !!current && majority(current) === side && input.currentShotSinceMs != null && input.currentShotSinceMs >= pause!.since;
+  const pick = holding ? [current] : ofSide.filter((o) => o.key !== input.currentShot).concat(ofSide.filter((o) => o.key === input.currentShot)).slice(0, 1);
+  const out: ScoredCandidate[] = [];
+  for (const o of pick) {
+    if (seen.has(o.key)) continue;
+    seen.add(o.key);
+    const isCurrent = input.currentShot === o.key;
+    const valid = cameraControlUsable(input.capabilities) && !input.oneSide && !(input.pin && input.pin.kind !== "cluster");
+    const components: ScoreComponents = {
+      actionCoverage: 0.9,
+      imminence: 0.5,
+      readiness: 0.5,
+      significance: 0.5,
+      narrative: 0.8,
+      framing: 1,
+      continuity: isCurrent ? 1 : 0,
+      mainStory: 0,
+      switchCost: isCurrent ? 0 : cfg.baseSwitchCost,
+      stalenessPenalty: 0,
+      cinematicOpportunityCost: 0,
+    };
+    out.push({
+      candidateId: `cand:${o.key}:pause`,
+      shotClass: "establishing",
+      shotKey: o.key,
+      targetSteamId: null,
+      cameraId: o.camera!.id,
+      clusterId: null,
+      regionIds: o.regionIds,
+      components,
+      utility: valid ? utilityOf(components, cfg.weights) + 0.5 : -1,
+      reasonCodes: valid ? ["PAUSE", "CINEMATIC_ELIGIBLE"] : ["PAUSE", "CAMERA_UNVERIFIED"],
+      valid,
+      invalidReason: valid ? null : "static camera control not verified, or pinned/one-side profile active",
+      evidenceType: "estimated",
+      opportunity: null,
+      plannedDurationMs: PAUSE_HOLD_MS,
+      // A shot from before the pause gives way at once.
+      urgent: !holding,
+      chain: true,
+      panDegPerSec: 0,
     });
   }
   return out;

@@ -12,12 +12,14 @@ interface Release {
 const RELEASES: Release[] = [
   {
     version: "0.6.1",
-    title: "Back to the players after the freeze-time shots",
-    summary: "Fixes the camera staying on a freeze-time shot into the live round. CS2 keeps running and playing sound behind Matchframe and OBS, and a director log records what the camera was told.",
+    title: "Smooth freeze-time cinematics, and back to the players on time",
+    summary: "Freeze time is cinematic all the way, with shots CS2 itself turns smoothly; pauses hold on one team; first person when the round goes live. Fixes the camera staying on a freeze-time shot into the live round. A HUD that lags now says so, and why.",
     sections: [
       {
         heading: "Auto Director",
         items: [
+          "Freeze time filled with shots of both spawns, one after another, each turning slowly and smoothly, the last until the round goes live.",
+          "Tactical and technical pauses: a still shot of the team that called it, held until the round starts; then first person.",
           "Fixed: the camera could stay on a freeze-time shot well into the live round. Matchframe read CS2's game data too early, could save the wrong camera-mode numbering and then never leave a shot. It now waits for the game data, and repairs a wrong saved setting by itself.",
           "A director log of every console command, decision and game data change, included in the support file.",
         ],
@@ -25,6 +27,10 @@ const RELEASES: Release[] = [
       {
         heading: "CS2",
         items: ["New game option, on by default: Run behind other windows. CS2 keeps every frame and its sound while you use Matchframe or OBS."],
+      },
+      {
+        heading: "HUDs",
+        items: ["Each HUD output measures how smoothly it draws; an output that stutters shows in amber with what helps (in OBS: browser source hardware acceleration)."],
       },
     ],
   },

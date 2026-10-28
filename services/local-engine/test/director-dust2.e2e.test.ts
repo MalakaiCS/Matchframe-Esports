@@ -31,10 +31,15 @@ const waitFor = async (fn: () => boolean | Promise<boolean>, ms = 15000) => {
  * live and the Ts run for B. CS2's game data lags its console by a quarter of a second, and only the
  * build's own spec_mode numbers (CS:GO's) take the camera out of the free camera: in 0.6.0 the lag
  * made Matchframe think the camera was out of a shot that wasn't, and save CS2's numbering instead,
- * so the camera stayed on the freeze-time shot through the live round.
+ * so the camera stayed on the freeze-time shot through the live round. The next round's freeze
+ * time has a CT tactical timeout in the middle.
  */
 const LIVE_START = 33000;
 const LIVE_END = 51000;
+const FREEZE2 = 55000;
+const TIMEOUT = [59000, 69000] as const;
+const LIVE2_START = 75000;
+const LIVE2_END = 88000;
 const T_SPAWN = { x: -296, y: -1136, z: 60 };
 const CT_SPAWN = { x: 88, y: 2448, z: -60 };
 const B_SITE = { x: -1768, y: 2384, z: 60 };
@@ -48,6 +53,7 @@ describe("Dust2: out of the freeze-time shot and into first person when the roun
   let servers: Awaited<ReturnType<typeof startServers>>;
   let cs2: TimedCs2;
   const samples: { at: number; free: boolean; phase: string | null; round: number | null }[] = [];
+  const commands: { at: number; request: Record<string, unknown> }[] = [];
   let sampler: ReturnType<typeof setInterval> | null = null;
 
   beforeAll(async () => {
@@ -68,10 +74,15 @@ describe("Dust2: out of the freeze-time shot and into first person when the roun
         if (t < 9000) return { phase: "live", endsInSec: 60, round: 13 };
         if (t < 13000) return { phase: "over", endsInSec: (13000 - t) / 1000, round: 13 };
         if (t < LIVE_START) return { phase: "freezetime", endsInSec: (LIVE_START - t) / 1000, round: 14 };
-        return { phase: "live", endsInSec: 115 - (t - LIVE_START) / 1000, round: 14 };
+        if (t < LIVE_END) return { phase: "live", endsInSec: 115 - (t - LIVE_START) / 1000, round: 14 };
+        if (t < FREEZE2) return { phase: "over", endsInSec: (FREEZE2 - t) / 1000, round: 14 };
+        // A CT tactical timeout in the middle of freeze time (its own countdown), then the rest of freeze time.
+        if (t >= TIMEOUT[0] && t < TIMEOUT[1]) return { phase: "freezetime", countdown: "timeout_ct", endsInSec: (TIMEOUT[1] - t) / 1000, round: 15 };
+        if (t < LIVE2_START) return { phase: "freezetime", endsInSec: (LIVE2_START - t) / 1000, round: 15 };
+        return { phase: "live", endsInSec: 115 - (t - LIVE2_START) / 1000, round: 15 };
       },
       positions: (t, p) => {
-        const live = Math.max(0, t - LIVE_START) / 1000;
+        const live = Math.max(0, t - (t >= LIVE_END ? LIVE2_START : LIVE_START)) / 1000;
         const i = p.slot % 5;
         const [from, to, secs] = p.side === "T" ? [T_SPAWN, B_SITE, 14] : [CT_SPAWN, MID_CT, 10];
         const k = Math.min(1, live / secs);
@@ -86,6 +97,9 @@ describe("Dust2: out of the freeze-time shot and into first person when the roun
     };
     await api("/api/v1/setup/detect-cs2", { method: "POST", body: { manualInstallDir: cs2Dir } });
     await api("/api/v1/game/launch-profile", { method: "PUT", body: { mode: "tools", netconPort: consolePort } });
+    engine.session.on("arbiter", (e: { kind: string; detail: Record<string, unknown> }) => {
+      if (e.kind === "command") commands.push({ at: cs2.now(), request: e.detail.request as Record<string, unknown> });
+    });
     await api("/api/v1/director/auto/start", { method: "POST", body: { cinematic: true } });
     cs2.start();
     sampler = setInterval(() => {
@@ -101,13 +115,19 @@ describe("Dust2: out of the freeze-time shot and into first person when the roun
     await engine?.shutdown();
   });
 
-  it("films the spawns in freeze time, is on a player from the start of the live round, and keeps CS2's spec_mode numbers", async () => {
+  it("fills freeze time with turning spawn shots, is on a player from the start of the live round, and keeps CS2's spec_mode numbers", async () => {
     await waitFor(() => cs2.now() > LIVE_END, 70000);
     const freezeRound = samples.find((s) => s.at > 20000 && s.phase === "freezetime")!.round;
     const liveAt = samples.find((s) => s.round === freezeRound && s.phase === "live")!.at;
     const why = JSON.stringify(cs2.lines.filter((l) => l.at > 12000 && !/spec_goto/.test(l.line) || /^spec_mode/.test(l.line)).map((l) => `${(l.at / 1000).toFixed(1)} ${l.line}`));
-    // A freeze-time shot played.
-    expect(samples.some((s) => s.phase === "freezetime" && s.free), why).toBe(true);
+    // Freeze time: spawn cameras one after another (no player view between), each turned in the game.
+    const inFreeze = commands.filter((c) => c.at > 13000 && c.at < LIVE_START);
+    const cams = inFreeze.filter((c) => c.request.kind === "activate_static_camera");
+    expect(cams.length, why).toBeGreaterThanOrEqual(2);
+    expect(inFreeze.filter((c) => c.at > cams[0]!.at && c.request.kind !== "activate_static_camera"), why).toEqual([]);
+    expect(cams.every((c) => /(t|ct)_spawn/.test(String(c.request.cameraId)) && c.request.panDegPerSec !== 0), why).toBe(true);
+    expect(cs2.lines.filter((l) => l.at < LIVE_START && /^cl_yawspeed [\d.]+; \+(left|right)$/.test(l.line)).length, why).toBe(cams.length);
+    expect(samples.filter((s) => s.at > cams[0]!.at + 500 && s.at < liveAt - 300).every((s) => s.free), why).toBe(true);
     // On a player within a second of the engine seeing the round go live, and for the rest of it.
     const late = samples.filter((s) => s.at > liveAt + 1000 && s.at < LIVE_END - 500 && s.free);
     expect(late.map((s) => s.at), why).toEqual([]);
@@ -120,5 +140,27 @@ describe("Dust2: out of the freeze-time shot and into first person when the roun
     expect(log.filter((l) => l.msg === "console" && /^spec_goto /.test(String(l.data?.line)))).toEqual([]);
     for (const msg of ["command", "result", "decision", "game"]) expect(log.some((l) => l.msg === msg), msg).toBe(true);
     expect(log.some((l) => l.msg === "game" && l.data?.phase === "live" && l.data?.round === freezeRound)).toBe(true);
+  }, 90000);
+
+  it("in a CT tactical timeout, holds a still shot of the CT spawn until the round goes live, then first person", async () => {
+    await waitFor(() => cs2.now() > LIVE2_END, 60000);
+    // When the engine saw the round go live (its game data is a moment behind the stand-in's clock).
+    const liveAt = samples.find((s) => s.at > LIVE2_START - 1000 && s.phase === "live")!.at;
+    const why = JSON.stringify(commands.filter((c) => c.at > FREEZE2).map((c) => [Math.round(c.at), c.request]));
+    // Within a second of the timeout, a still shot of the CT spawn.
+    const hold = commands.find((c) => c.at > TIMEOUT[0] && c.request.kind === "activate_static_camera");
+    expect(hold, why).toBeTruthy();
+    expect(hold!.at - TIMEOUT[0], why).toBeLessThan(1000);
+    expect(String(hold!.request.cameraId), why).toMatch(/ct_spawn/);
+    expect(hold!.request.panDegPerSec ?? 0, why).toBe(0);
+    // Nothing else until the round goes live (the timeout ends at 69 s, the round goes live at 75 s); no turning.
+    expect(commands.filter((c) => c.at > hold!.at && c.at < LIVE2_START), why).toEqual([]);
+    expect(cs2.lines.filter((l) => l.at > hold!.at && l.at < LIVE2_START && /\+(left|right)/.test(l.line)), why).toEqual([]);
+    // Then first person.
+    const next = commands.find((c) => c.at > hold!.at);
+    expect(next?.request.kind, why).toBe("select_player");
+    expect(next!.at - LIVE2_START, why).toBeGreaterThanOrEqual(0);
+    expect(next!.at - liveAt, why).toBeLessThan(1000);
+    expect(samples.filter((s) => s.at > liveAt + 1000 && s.at < LIVE2_END - 500 && s.free).map((s) => s.at), why).toEqual([]);
   }, 90000);
 });

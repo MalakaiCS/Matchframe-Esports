@@ -19,6 +19,8 @@ export class TimedCs2 {
   observed: string | null = this.roster[0]!.steamId;
   free = false;
   pose = { x: 0, y: 0, z: 0, pitch: 0, yaw: 0 };
+  /** Turning the free camera (+left/+right held): degrees a second, -1/0/1, since when. */
+  turn = { speed: 210, dir: 0, since: 0 };
   t0 = 0;
   private seq = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -34,7 +36,8 @@ export class TimedCs2 {
       freeMode?: string;
       /** The spec_modes that reach a player (first person, chase) on this "build"; others leave the camera where it is. Default: every one but the free camera's. */
       playerModes?: string[];
-      phase: (t: number) => { phase: "freezetime" | "live" | "over"; endsInSec: number; round: number };
+      /** `countdown`: the countdown's phase when it isn't the round's (a timeout in freeze time: "timeout_ct"). */
+      phase: (t: number) => { phase: "freezetime" | "live" | "over"; endsInSec: number; round: number; countdown?: string };
       positions: (t: number, p: SyntheticPlayer) => { x: number; y: number; z: number };
       /** How far the game data lags the console (like CS2's: the camera changes before the game data says so). */
       gsiLagMs?: number;
@@ -87,7 +90,14 @@ export class TimedCs2 {
       if (goto && this.free) {
         const [x, y, z, pitch, yaw] = goto.slice(1).map(Number) as [number, number, number, number, number];
         this.pose = { x, y, z, pitch, yaw };
+        this.turn.since = Date.now();
         this.observed = null;
+      }
+      const speed = /^cl_yawspeed (\S+)$/.exec(cmd);
+      if (speed) this.turn.speed = Number(speed[1]);
+      if (/^[+-](left|right)$/.test(cmd)) {
+        this.pose.yaw = this.yawNow();
+        this.turn = { ...this.turn, dir: cmd === "+left" ? 1 : cmd === "+right" ? -1 : 0, since: Date.now() };
       }
       const player = /^spec_player "(.+)"$/.exec(cmd);
       if (player) {
@@ -97,10 +107,15 @@ export class TimedCs2 {
       if (cmd === "getpos") {
         const f = (n: number) => n.toFixed(6);
         const at = !this.free ? this.roster.find((r) => r.steamId === this.observed)?.position : undefined;
-        const pose = at ? { x: at.x, y: at.y, z: at.z + 64, pitch: 10, yaw: 0 } : this.pose;
+        const pose = at ? { x: at.x, y: at.y, z: at.z + 64, pitch: 10, yaw: 0 } : { ...this.pose, yaw: this.yawNow() };
         sock.write(`setpos ${f(pose.x)} ${f(pose.y)} ${f(pose.z)};setang ${f(pose.pitch)} ${f(pose.yaw)} 0.000000\n`);
       }
     }
+  }
+
+  /** The free camera's yaw now (it turns while +left or +right is held). */
+  yawNow(): number {
+    return this.pose.yaw + (this.free ? this.turn.dir * this.turn.speed * ((Date.now() - this.turn.since) / 1000) : 0);
   }
 
   private async post(): Promise<void> {
@@ -116,7 +131,7 @@ export class TimedCs2 {
       players: this.roster,
       observed: view.free ? null : view.observed,
       roundPhase: ph.phase,
-      phase: ph.phase,
+      phase: ph.countdown ?? ph.phase,
       phaseEndsIn: Math.round(ph.endsInSec * 10) / 10,
       token: this.opts.token,
       timestamp: 1_700_002_000 + this.seq++,

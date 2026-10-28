@@ -353,7 +353,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
       if (!cam) return;
       this.stats.cuts++;
       this.submitCinematic({ shot: cameraShot(cam.id), plannedDurationMs: intent.plannedDurationMs ?? 2000, opportunityId: intent.opportunityId, countsTowardBudget: !LiveSession.OFF_BUDGET.has(intent.shotClass), shotClass: intent.shotClass }, () =>
-        this.arbiter.submit({ kind: "activate_static_camera", camera: cam, plannedDurationMs: intent.plannedDurationMs ?? 2000 }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs }),
+        this.arbiter.submit({ kind: "activate_static_camera", camera: cam, plannedDurationMs: intent.plannedDurationMs ?? 2000, panDegPerSec: intent.panDegPerSec ?? 0 }, { owner: "director", decisionId: intent.decisionId, basedOnSequence: intent.basedOnSequence, expiresInMs: intent.expiresInMs }),
       );
     } else if (intent.kind === "play_camera_path") {
       const path = this.findPath(intent.pathId ?? "");

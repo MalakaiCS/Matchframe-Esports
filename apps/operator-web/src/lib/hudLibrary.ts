@@ -19,6 +19,9 @@ export const STATUS_ORDER: HudDisplayStatus[] = ["ready", "starting", "running",
 export const OUTPUT_LABEL: Record<HudOutputMode, string> = { desktop: "Desktop", obs: "OBS", preview: "Preview" };
 export const OUTPUT_MODES: HudOutputMode[] = ["desktop", "obs", "preview"];
 
+/** An output that stopped drawing this long (ms) in the last minute is shown as stuttering. */
+export const STUTTER_MS = 250;
+
 export const KIND_LABEL: Record<HudLibraryEntry["kind"], string> = { builtin: "Built-in", sample: "Sample", imported: "Imported" };
 
 export const VARIANT_LABEL: Record<HudVariant, string> = {

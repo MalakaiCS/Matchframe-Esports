@@ -18,7 +18,7 @@ import type { ProfileSet } from "@matchframe/cs2-state";
 import type { MapRuntime } from "@matchframe/map-runtime";
 import type { Pin, ScoredCandidate } from "./candidates.ts";
 import { generateCandidates } from "./candidates.ts";
-import { cinematicCandidates } from "./cinematics.ts";
+import { cinematicCandidates, PAUSE_HOLD_MS } from "./cinematics.ts";
 import type { DirectorConfig } from "./config.ts";
 import { mergeConfig } from "./config.ts";
 import type { InteractionFeatures, SpatialContext } from "./features/interactions.ts";
@@ -46,6 +46,8 @@ export interface DirectorIntent {
   /** The camera path for play_camera_path. */
   pathId?: string | null;
   plannedDurationMs: number | null;
+  /** activate_static_camera: turn slowly while on air (degrees a second, positive to the left); 0 or absent: still. */
+  panDegPerSec?: number | null;
   opportunityId: string | null;
   decisionId: string;
   basedOnSequence: number;
@@ -128,6 +130,8 @@ export class Director {
   private liveSince: number | null = null;
   /** Follow cams played on the current map. */
   private follows = { map: null as string | null, count: 0 };
+  /** A pause (tactical or technical timeout) in this round's freeze time: held on one team's spawn until live. */
+  private pause: { round: string | null; side: "T" | "CT" | null; since: number } | null = null;
   readonly controls: DirectorControls = {
     hold: null,
     pin: null,
@@ -251,14 +255,14 @@ export class Director {
   }
 
   /**
-   * A cinematic became active (confirmed by the controller). Freeze-time establishing shots run their
-   * full length (up to `establishingMaxMs`), follow cams up to their planned length, other cameras up
-   * to `maxDurationMs`.
+   * A cinematic became active (confirmed by the controller). Freeze-time shots run their planned
+   * length (their share of the freeze time, or a pause until live), follow cams up to their planned
+   * length, other cameras up to `maxDurationMs`.
    */
   cinematicStarted(shot: ShotKey, at: number, plannedDurationMs: number, opportunityId: string | null, countsTowardBudget = true, shotClass: string | null = null): void {
     const kind = parseShot(shot).kind;
     const long = shotClass === "establishing" || shotClass === "camera_path";
-    const maxMs = long ? this.cfg.cinematic.establishingMaxMs : kind === "follow" ? Math.max(this.cfg.cinematic.maxDurationMs, plannedDurationMs) : this.cfg.cinematic.maxDurationMs;
+    const maxMs = long ? Math.min(PAUSE_HOLD_MS, Math.max(this.cfg.cinematic.establishingMaxMs, plannedDurationMs)) : kind === "follow" ? Math.max(this.cfg.cinematic.maxDurationMs, plannedDurationMs) : this.cfg.cinematic.maxDurationMs;
     if (kind === "follow" && this.planner.activeCinematic?.shotKey !== shot) this.follows.count++;
     this.planner.cinematicStarted(shot, at, plannedDurationMs, opportunityId, countsTowardBudget, maxMs);
   }
@@ -303,6 +307,22 @@ export class Director {
     return { allowed: true, reason: null };
   }
 
+  /**
+   * A tactical or technical pause during freeze time: noted for the rest of this round's freeze time
+   * (the camera stays on the pause shot until the round goes live, also after the pause ends).
+   */
+  private notePause(state: MatchState, now: number): void {
+    if (state.roundPhase !== "freezetime") {
+      this.pause = null;
+      return;
+    }
+    if (this.pause && this.pause.round !== state.roundAttemptId) this.pause = null;
+    const g = state.gamePhase;
+    const pausedNow = state.paused || g === "timeout_t" || g === "timeout_ct" || g === "paused";
+    if (!pausedNow || this.pause) return;
+    this.pause = { round: state.roundAttemptId, side: g === "timeout_t" ? "T" : g === "timeout_ct" ? "CT" : null, since: now };
+  }
+
   private controlHealth(control: ControlStatus): ControlHealth {
     if (control.ownership.emergencyStopped) return "emergency_stopped";
     if (this.mode === "off" || this.mode === "advisory" || this.mode === "shadow" || this.mode === "demo_review") return "disarmed";
@@ -329,6 +349,7 @@ export class Director {
     else this.liveSince ??= now;
     if (this.follows.map !== state.mapName) this.follows = { map: state.mapName, count: 0 };
     this.planner.setRound(state.roundAttemptId);
+    this.notePause(state, now);
     const observed: ShotKey | null = state.observer.observedSteamId ? povShot(state.observer.observedSteamId) : null;
     // Keep the planner on a confirmed cinematic; otherwise follow observed POV feedback. Just after a
     // cinematic is confirmed (the console confirms a camera at once), game data from before the cut
@@ -372,7 +393,7 @@ export class Director {
       clutchMode: this.controls.clutchMode,
     });
     if (scope?.has("cinematic")) {
-      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, followable: this.controls.followCams && grid ? this.followableNow(state) : undefined, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, sight: grid ? (a, b) => grid.lineOfSight(a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince }));
+      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, followable: this.controls.followCams && grid ? this.followableNow(state) : undefined, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, sight: grid ? (a, b) => grid.lineOfSight(a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince, pause: this.pause }));
       candidates.sort((a, b) => b.utility - a.utility);
     }
 
@@ -501,6 +522,7 @@ export class Director {
                 observerSlot: null,
                 cameraId: shot.id,
                 plannedDurationMs: desired.plannedDurationMs,
+                panDegPerSec: desired.panDegPerSec ?? 0,
                 opportunityId: desired.opportunity?.id ?? null,
                 decisionId,
                 basedOnSequence: state.sequence,

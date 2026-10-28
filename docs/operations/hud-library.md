@@ -123,6 +123,13 @@ All three show the same match information and the same settings, and run indepen
 2. Add a **Browser Source** above it: URL from **Copy OBS Browser URL**, width and height as shown (1920×1080 for the included HUDs), *Shutdown source when not visible* off, *Refresh browser when scene becomes active* off. No custom CSS is needed; the background is transparent.
 3. The desktop HUD window is a separate window and is **not** included in Game Capture. Use the browser source for the stream; use the desktop HUD to see the graphics while you play or observe.
 4. The URL contains a key for that HUD. **New access key** (details → Outputs) makes old URLs stop working.
+5. In OBS, **Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration** must be on (then restart OBS). Without it OBS draws the HUD on the CPU, and a heavy HUD (like kaiHUD) stops drawing for a moment whenever a big panel comes or goes.
+
+### How smoothly an output draws
+
+Each output (the OBS browser source, the desktop HUD) times its own frames where it runs and reports every 5 s. When one stopped drawing for 250 ms or more in the last minute, its indicator turns amber (the tooltip gives its frames a second and longest pause), and the HUD's details → **Outputs** says where and what helps. Each such pause is also written to the director log (`logs/director.log`, `hud stall`).
+
+A pause there is the computer drawing the HUD being too busy, not the game data: Matchframe passes game data to an LHM-format HUD at least every 100 ms, and at once for what the audience notices first. Checked with kaiHUD in Chromium: its clock ticks within 0.1 s of each second, and within 0.18 s with the CPU slowed six times.
 
 ## Settings
 
@@ -152,6 +159,7 @@ The header shows the game-data state. If CS2 stops sending data (game closed, ma
 | LHM-format HUD stays empty | Opened through Matchframe's URL (Preview, Desktop or Copy OBS Browser URL), not by opening `index.html`; game data arriving or Test data on; after **New access key**, copy the URL again |
 | LHM-format HUD shows no team names or logos | Teams entered in **Teams** with logos, and the match active in **Matches** |
 | Hotkey not working | Registration failure in the HUD's details; choose another combination |
+| HUD laggy or choppy in OBS (an amber OBS indicator) | OBS **Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration** on, OBS restarted; the browser source's *Use custom frame rate* and *Shutdown source when not visible* off |
 | Console never connects | CS2 Workshop Tools installed; CS2 started with Start CS2 (not already running); the same console port in Setup and in CS2's launch options |
 | HLAE could not start CS2 | Latest HLAE installed (CS2 updates break older versions); Steam running; the HLAE folder still has `x64\AfxHookSource2.dll` |
 | Update stuck or failing | **Settings → General → Program** shows the error; **Check for updates** again, or download the installer from the website and install over the current version (HUDs and settings are kept) |

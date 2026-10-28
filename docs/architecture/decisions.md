@@ -393,3 +393,54 @@ The recording also showed CS2's own picture and sound stopping for 8 s (identica
 - **The same replay** with game data 500 and 900 ms late and with CS2's numbering: first person within 0.2 s of live, no free camera in the live round.
 
 **Not checked.** A real CS2 (which numbering the current build uses, how late its game data is), and whether the owner's 8 s freeze came from a window taking focus; the director log will show it next time.
+
+## ADR-033 — Freeze time filled with shots the game turns, pauses held on one team, and how smoothly a HUD draws
+
+**Context.** After 0.6.0 the owner asked for:
+- smoother cinematics;
+- cinematics for all of freeze time;
+- a still shot of one team during a tactical or technical pause;
+- first person when the round starts.
+
+They also found the HUD laggy in their recording. Measured in that recording:
+- The kaiHUD scoreboard's fade stops partway for 0.55 s as freeze time starts and for 0.25 s as the round goes live: the page stops drawing.
+- Its clock ticks 0.43–1.50 s apart instead of every second.
+- CS2 itself ran at 215–280 FPS (its own frame counter in the picture).
+
+Through Matchframe in Chromium, the same kaiHUD ticks within 0.1 s of each second, within 0.18 s with the CPU slowed six times, and never stops for more than 67 ms at 4× slower. So the lag is in drawing the HUD on that computer (OBS's browser source), not in the game data.
+
+**Decision (freeze time).**
+- **Planning:** shots of the spawns with players, sharing the time left: shots of 4–12 s, the last planned 1.5 s past the end so the cut to first person comes at live. At most four per freeze time, each camera once a round.
+- **Chaining:** a candidate may carry `chain`; the planner then goes from a cinematic straight to it (at the planned end, or at once when it is also `urgent`) instead of back to a player. Freeze-time shots and the pause shot chain.
+- **Motion:** freeze-time shots are static cameras turned in the game. The intent carries `panDegPerSec` (3°/s or less, at most 30° over the shot, alternating direction). The adapter places the camera half the turn to one side, sends `cl_yawspeed <speed>; +left|+right`, and releases with `-left; -right; cl_yawspeed 210` at the planned end or with the next command. The first pan is checked with `getpos` after 0.7 s; a build where it doesn't turn gets still shots.
+- **Paths in freeze time:** camera paths are left out unless `cinematic.freezeTimePaths`.
+- **Pacing:** streamed paths and follow cams send 128 poses a second with a `setImmediate` wait between frames (busy while they play). Windows' 15.6 ms timer made 64-a-second poses uneven (judder).
+- **Pauses:** the game data's `timeout_t`, `timeout_ct` or `paused` phase (or its `paused` flag) during freeze time marks the round's freeze time as paused. The director then offers only a still camera of that team's spawn (technical pause: the team on screen, else T). It is `urgent` and `chain` when a shot from before the pause is on air, planned for up to 180 s, with reason `PAUSE`. It holds until live, also after the pause ends.
+- **Live:** unchanged. The freeze-time candidates disappear, so the current shot is invalid and the planner cuts to a player at once.
+
+**Decision (HUD).**
+- The output page (wrapper) times its own `requestAnimationFrame` gaps (the HUD frame shares its main thread) and sends `{type:"perf", fps, worstMs, pauses}` every 5 s on its control socket. Gaps over 10 s, a hidden page and a hidden or stopped HUD are not counted.
+- The HUD server keeps each output's reports for a minute. `HudLibraryEntry.smoothness` has the worst output per mode. Pauses of 250 ms or more go to the director log as `hud stall`.
+- The UI shows that output's indicator amber and, in Outputs, where the pause was and what helps (OBS browser source hardware acceleration; for the desktop HUD, Fullscreen Windowed and a frame cap).
+
+**Consequences.**
+- Freeze time is all cinematic, with motion the game draws every frame. Every cut between shots is a cut: there is no player view between them.
+- A HUD that stutters says so, where it runs, with the fix; the logs tell lag in drawing from lag in data.
+
+**Checked.**
+- **Director unit tests (Mirage pack):**
+  - freeze time filled shot after shot with no player view between, turning alternately at most 30°, the last until live, then first person within 0.4 s;
+  - in a CT or T timeout, a still shot of that team's spawn within 0.4 s, held until live, then first person;
+  - a technical pause held the same way.
+- **Adapter unit tests (stand-in console that turns while +left/+right is held):**
+  - a pan centred on the camera's aim, about 3°/s, released before the next command and at the planned end;
+  - a build that ignores +left gets still shots after one check;
+  - path poses at 128 a second: median 6–10 ms apart, 95 % under 14 ms.
+- **E2e:**
+  - Dust2 against the real engine with game data 250 ms late: spawn shots one after another, each turned, then first person, the camera never free in the live round;
+  - a CT tactical timeout: a still CT-spawn shot within 1 s, nothing else until live, then first person;
+  - the Auto Director with a stand-in CS2 that turns its camera;
+  - output frame reports reaching the library and the director log.
+- **Chromium with kaiHUD through the output page:** 57 fps with an 83 ms worst gap, and a 600 ms block in kaiHUD's page reported as a 583 ms pause.
+
+**Not checked.** A real CS2: whether `+left`/`+right` turn the spectator free camera on the current build (the check with `getpos` falls back to still shots); OBS's browser source on the owner's computer.

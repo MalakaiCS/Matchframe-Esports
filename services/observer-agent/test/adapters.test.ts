@@ -259,6 +259,129 @@ describe("leaving the free camera", () => {
   });
 });
 
+/**
+ * A console whose free camera (spec_mode 6) also turns while +left or +right is held, at cl_yawspeed
+ * degrees a second, the way CS2 turns it every frame. `turns: false`: a build that ignores them.
+ */
+async function turningCs2(turns = true) {
+  const lines: { at: number; line: string }[] = [];
+  const cam = { mode: 4, x: 0, y: 0, z: 0, pitch: 0, yaw: 0, speed: 210, dir: 0, since: 0 };
+  const yawNow = () => cam.yaw + cam.dir * cam.speed * ((performance.now() - cam.since) / 1000);
+  const settle = () => {
+    cam.yaw = yawNow();
+    cam.since = performance.now();
+  };
+  const server = createServer((sock) =>
+    sock.on("data", (d) => {
+      for (const line of d.toString().split("\n").filter(Boolean)) {
+        lines.push({ at: performance.now(), line });
+        for (const cmd of line.split(";").map((c) => c.trim())) {
+          const m = /^spec_mode (\d+)$/.exec(cmd);
+          if (m) cam.mode = Number(m[1]);
+          const g = /^spec_goto (\S+) (\S+) (\S+) (\S+) (\S+)$/.exec(cmd);
+          if (g && cam.mode === 6) Object.assign(cam, { x: Number(g[1]), y: Number(g[2]), z: Number(g[3]), pitch: Number(g[4]), yaw: Number(g[5]), since: performance.now() });
+          const sp = /^cl_yawspeed (\S+)$/.exec(cmd);
+          if (sp) {
+            settle();
+            cam.speed = Number(sp[1]);
+          }
+          if (turns && /^[+-](left|right)$/.test(cmd)) {
+            settle();
+            cam.dir = cmd === "+left" ? 1 : cmd === "+right" ? -1 : 0;
+          }
+          if (cmd === "getpos") sock.write(`setpos ${cam.x.toFixed(6)} ${cam.y.toFixed(6)} ${cam.z.toFixed(6)};setang ${cam.pitch.toFixed(6)} ${yawNow().toFixed(6)} 0.000000\n`);
+        }
+      }
+    }),
+  );
+  await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
+  return { lines, cam, yawNow, server, port: (server.address() as { port: number }).port };
+}
+
+describe("smooth camera motion", () => {
+  it("turns a freeze-time camera in the game, centred on its aim, and lets go before the next command", async () => {
+    const c = await turningCs2();
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova" });
+    // 3° a second for 10 s: starts 15° to the right of the camera's aim (-135°).
+    const r = await a.activateStaticCamera(camera(), ctx(), { panDegPerSec: 3, durationMs: 10000 });
+    expect(r.status).toBe("confirmed");
+    expect(c.lines.map((l) => l.line)).toContain("spec_mode 6; spec_goto 1200.5 -340 256 18 -150");
+    await sleep(1500);
+    expect(c.lines.map((l) => l.line)).toContain("cl_yawspeed 3; +left");
+    // Turning: about 3° a second, in the game.
+    expect(c.yawNow()).toBeGreaterThan(-150 + 2.5);
+    expect(c.yawNow()).toBeLessThan(-150 + 6);
+    await a.selectPlayer("76561198000000002", 2, ctx());
+    for (let i = 0; i < 20 && !c.lines.some((l) => /spec_player/.test(l.line)); i++) await sleep(25);
+    const tail = c.lines.map((l) => l.line).slice(-2);
+    expect(tail).toEqual(["-left; -right; cl_yawspeed 210", 'spec_mode 4; spec_player "nova"']);
+    expect(c.cam.dir).toBe(0);
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("stops turning at the end of the shot's planned length", async () => {
+    const c = await turningCs2();
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now() });
+    await a.activateStaticCamera(camera(), ctx(), { panDegPerSec: -4, durationMs: 1200 });
+    await sleep(1600);
+    expect(c.lines.map((l) => l.line)).toContain("cl_yawspeed 4; +right");
+    expect(c.lines.at(-1)!.line).toBe("-left; -right; cl_yawspeed 210");
+    expect(c.cam.dir).toBe(0);
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("shows cameras still on a build where +left doesn't turn the free camera", async () => {
+    const c = await turningCs2(false);
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now() });
+    await a.activateStaticCamera(camera(), ctx(), { panDegPerSec: 3, durationMs: 10000 });
+    await sleep(1200);
+    // Checked with getpos, let go.
+    expect(c.lines.map((l) => l.line).slice(-2)).toEqual(["getpos", "-left; -right; cl_yawspeed 210"]);
+    const before = c.lines.length;
+    // The next one is shown still, at the camera's own aim.
+    await a.activateStaticCamera(camera({ id: "cam-b" }), ctx(), { panDegPerSec: 3, durationMs: 10000 });
+    await sleep(900);
+    const after = c.lines.slice(before).map((l) => l.line);
+    expect(after[0]).toBe("spec_mode 6; spec_goto 1200.5 -340 256 18 -135");
+    expect(after.some((l) => /\+left|\+right/.test(l))).toBe(false);
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("sends a camera path's poses evenly, about 128 a second", async () => {
+    const c = await turningCs2();
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now() });
+    const p = {
+      id: "push",
+      displayName: "push",
+      mapName: "m",
+      mapRevision: "r",
+      keyframes: [
+        { tMs: 0, position: { x: 0, y: 0, z: 200 }, pitch: 20, yaw: 0 },
+        { tMs: 1500, position: { x: 300, y: 0, z: 200 }, pitch: 20, yaw: 30 },
+      ],
+      maxDurationMs: 2000,
+      maxSpeedUnitsPerSec: 300,
+      collisionValidated: false,
+      validation: "unvalidated",
+      targetRegionIds: [],
+    } satisfies CameraPath;
+    await a.playCameraPath(p, ctx());
+    await sleep(1800);
+    const t = c.lines.filter((l) => /^spec_goto /.test(l.line)).map((l) => l.at);
+    const gaps = t.slice(1).map((x, i) => x - t[i]!).sort((x, y) => x - y);
+    const q = (f: number) => gaps[Math.floor(f * (gaps.length - 1))]!;
+    expect(t.length).toBeGreaterThan(150);
+    expect(q(0.5)).toBeGreaterThan(6);
+    expect(q(0.5)).toBeLessThan(10);
+    expect(q(0.95)).toBeLessThan(14);
+    await a.dispose();
+    c.server.close();
+  });
+});
+
 describe("camera paths", () => {
   const path = {
     id: "p",
