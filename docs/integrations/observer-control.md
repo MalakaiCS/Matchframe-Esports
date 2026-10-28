@@ -27,7 +27,10 @@ While it runs:
   - No cuts to cameras until the clutch ends.
   - The chase view while no opponent is within 1800 units, first person again from 1400.
   - With automatic replays on, a won 1v2+ is replayed first in the break (ADR-028).
-- **Follow cams** (on, with cinematic cameras): a free camera flies behind and a little above a player running somewhere with no fight close (a lurk, a rotation, the bomb carrier walking onto a site), for about 4.5 s, and cuts away when a fight starts. It needs the map's free-space grid, which keeps the camera clear of walls (ADR-028).
+- **Freeze time** (Observer & Cinematics and up): up to two establishing shots, of the spawns where the players are (a shot needs at least two players in its area or in view within 2600 units). Each is held for its full length (up to 7 s) and never shown twice in a round, whether it played or CS2 didn't take it; the second one shows the other side. A shot only starts with enough freeze time left for it (ADR-031).
+- **Start of the round:** first person when the round goes live (a shot still playing is cut), and no overviews or follow cams in the first 10 s. Bomb shots can still come.
+- **Follow cams** (on, with cinematic cameras): a free camera flies behind and a little above a player running somewhere with no fight close (a lurk, a rotation, the bomb carrier walking onto a site), for about 4.5 s, then back to first person, and cuts away when a fight starts. **At most one per map.** It needs the map's free-space grid, which keeps the camera clear of walls (ADR-028). The camera is sent 64 times a second and carries each player's movement forward between game-data updates, so it doesn't stutter.
+- **Nade cams** (Full Action Observer, on by default): a camera on a smoke, flash, molotov or HE that matters; coordinated utility (an execute, a flash entry) is taken more readily.
 - **Fights before they start:** with the map's free-space grid, the director knows whether two opponents see each other now, or will in the next 1.6 s at their current speed, and cuts to the player before the shooting (ADR-028).
 - **HUD graphics** and **OBS scenes** follow the shots too: see [OBS integration](obs.md) and ADR-029.
 - `GET /api/v1/director/auto` returns the status and checks, and `PUT /api/v1/director/auto/settings` sets `cinematic`, `nadeCams`, `returnAfterSec`, `chase`, `clutch` and `followCams`.
@@ -78,7 +81,7 @@ The setup tests remain available: `POST /api/v1/setup/test-player-selection`, `t
 
 - **Built-in cameras and paths** for all nine active-duty maps (Ancient, Anubis, Dust II, Inferno, Mirage, Nuke, Overpass, Train, Vertigo) ship in the map packs: 391 cameras and 81 paths (ADR-025, ADR-026). The bombsites, mid and spawns have three or two cameras each and the paths. Every other named area has two cameras for live play (big-fight overviews and nade cams, no paths): 200 of the 227 named areas have cameras, and 27 small or enclosed ones (tunnels, ladders, small rooms) have none. `scripts/generate-map-cameras.py` placed them on CS2's own walkable floor (navigation meshes) and checked each one against CS2's collision geometry (build 26144732). A camera has clear space around it, sees its area's centre and at least half of the area (45 % for the extra areas; more than 70 % for most cameras), and most of its view is open (no wall right in front). The real flight curve of each path is clear of geometry and keeps the area in view. Collision geometry leaves out see-through and non-solid things (glass, fences, foliage), so a shot can still show one of those in front of the action. They are used without validation unless switched off (Maps & Cameras → **Built-in cameras**, or `PUT /api/v1/cameras/built-in`). They were not checked by eye in CS2; validate or invalidate each one after a look.
 - **Your own cameras** from `getpos` (Maps & Cameras → Add camera) are used once validated (`/maps/:map/cameras/:id/validation`). An invalidated camera is never used, built-in or not.
-- In freeze time, Observer & Cinematics flies one camera path per round, taking turns through the map's paths, when it fits in the time left. Paths and establishing shots don't count against the round's cinematic budget.
+- In freeze time, the spawn cameras and paths are the establishing shots described above. They don't count against the round's cinematic budget.
 - **Free-space grids** (`assets/map-packs/<map>.grid`, ADR-028): 12-unit cells from CS2's collision meshes for the nine maps.
   - Used for sightlines between players, and for room around the follow camera.
   - Checked against the exact geometry: they miss 5–13 % of clear sightlines, and saw through a wall at most once in about 1,350 blocked ones.
@@ -87,3 +90,8 @@ The setup tests remain available: `POST /api/v1/setup/test-player-selection`, `t
 ## Confirmation semantics
 
 Writing bytes or sending a key is `transport_only`. A command is `confirmed` when the game data shows the requested player (`observed_exact`) or the console's `getpos` matches the camera pose (`observed_exact`). A free-camera state in the game data that is consistent with a camera or path gives `observed_consistent`. If feedback keeps arriving but never shows the target, the command fails with `confirmation_timeout`. One bounded retry is allowed, for transport errors only.
+
+The game data lags the console: `getpos` confirms a camera before the game data shows the free camera. So, after a confirmation (from either):
+- for 400 ms, a change in the game data is not taken for a human taking over, and the game data catching up with the confirmed command's shot never is;
+- for the first 600 ms of a cinematic, a player's view in the game data is taken as data from before the cut: the shot stays on air;
+- the same game data evaluated again never sends the same command again.

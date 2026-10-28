@@ -291,3 +291,79 @@ What remains:
 - **Measuring across a jump:** after going back, PC 2's round clock reads moments the main PC reported before PC 2 was linked, so the clocks can't be matched for a few seconds. The estimator now carries the delay across a jump in PC 2's own clock (delay before + jump) until readings match again. Without this, going back right after linking was wrongly judged to have failed.
 
 **Update (0.5.3).** The owner gave the relative forms in use: `demo_gototick -448 relative` goes back 448 ticks (about 7 s) from the current playback position, and `demo_gototick 448 relative` goes forward 448 ticks. Both are now sent in exactly that form: back for staying behind and for each missed kill, forward to return to live. 0.5.1/0.5.2 sent the forward skip with `1` instead of `relative`.
+
+## ADR-031 — Cinematics that hold, lighter LHM updates, and match graphics made by the program
+
+**Context.** After 0.5.3 the owner reported, on a real match:
+- pre-round cinematics about 1 s long that repeat (a Mirage van shot played five times);
+- the camera not going back to the players once the round is live;
+- follow cams choppy and not handing back;
+- few nade cams;
+- pre-round shots of empty spawns;
+- kaiHUD's baseboard laggy enough to ruin a production.
+
+They also asked for a visible way to create matches, and for thumbnails and stinger transitions made for every match from the two teams' logos, similar to but not copies of the reference thumbnails.
+
+**Decision (director).**
+- **A cinematic's lifecycle** (`planner.ts`): each shot has its own maximum (`maxMs`). A shot is noted in `shownThisRound` when it starts *or* when it fails, and is never sent again in that round. Re-starting the shot already on air does nothing.
+- **Noting before sending** (`session.ts`): the session notes a cinematic before submitting it, bound to its command id by the arbiter's synchronous `command` event. Whichever confirmation comes first (getpos during the readback, or the game data) starts it. Before this, a camera confirmed during the readback was never noted, and the director sent it again on every evaluation: the repeating 1 s shot.
+- **Freeze time** (`cinematics.ts`, `establishingCandidates`):
+  - candidates are the spawn cameras and paths with at least two players in their target regions or in sight within 2600 units;
+  - at most two a round (`establishingPerRound`), the second preferring the other side;
+  - each played in full, up to 7 s (`establishingMaxMs`);
+  - only with the time left to play it.
+- **Live start:** for the first 10 s live (`liveStartPovMs`) there are no fight overviews or follow cams. Establishing shots stop being candidates at live, so the director cuts to a player.
+- **Follow cams:** at most one per map (`followPerMap`), held their planned 4.5 s. Poses are streamed with a 1 ms timer loop sending every 1000/64 − 1 ms, with player positions carried forward at their velocity for up to 200 ms between game-data updates.
+- **Nade cams:** on by default; the threshold drops to 0.28 (×0.8 for coordinated utility).
+- **Game data lags the console** (found by the two-round e2e test under load, then made deterministic with a stand-in CS2 whose game data is 250 ms behind its console):
+  - for the first 600 ms of a cinematic (`CINEMATIC_SETTLE_MS`), a player's view in the game data is data from before the cut and doesn't end the shot (without this, the spawn camera was dropped after 0.4 s);
+  - every confirmation, not only one from the game data, starts the arbiter's 400 ms feedback grace;
+  - the game data catching up with the last confirmed command's shot is never an external change (without this, a getpos-confirmed camera turned into a manual takeover, and the Auto Director came back 1 s later on another shot);
+  - repeated director output for unchanged game data carries no intent (it re-sent the same camera, which restarts a path on air).
+
+**Decision (LHM HUDs).** `lhm-runtime.ts` sends the newest game data at most every 100 ms. An "urgent" change is sent at once: the spectated player, round or countdown phase, bomb state, alive players, map round/phase or score. CS2 sends up to 50 packets a second, and kaiHUD re-renders on each. Measured with kaiHUD's baseboard on a timeout:
+- before: 50 updates a second and 25 % busy; at a sixth of the CPU's speed, 32 fps;
+- after: 10 updates a second and 10 % busy; at a sixth of the CPU's speed, 55 fps.
+
+**Decision (matches).** A Create match button whenever the form isn't open. The team pickers have **New team…**: the team is created with the match, once, so a match can be made from nothing.
+
+**Decision (match graphics).**
+- **Where they're made:** in the program's window (canvas and WebCodecs, a secure context under `app://`), not in the engine. Node has no canvas or video encoder; native ones would complicate the Windows build. The engine stores, serves and checks the files (`domain/match-art.ts`), in `<data>/graphics/<match id>/`.
+- **When:** on create, on **Make again**, and on first opening the tab of a match made elsewhere.
+- **What:** three 1280×720 thumbnails (Highlights, Full replay, Live), a 1920×1080 Up next card, and two 1920×1080 60 fps stingers.
+  - **Designs:** original Matchframe designs — team-colour halves, slanted logo cards with name bars, *VS*, a two-tone outlined headline in Barlow Condensed (OFL, already bundled for the HUD renderer).
+  - **Logos:** a "?" hexagon for a team without a logo, and a plate behind a logo whose average colour is near its card's.
+  - **Background:** optionally a picture (uploaded, or OBS's program frame).
+- **Stingers with alpha:**
+  - OBS's Stinger plays the video's own alpha (its track matte only blends the two scenes), so the WebM needs real alpha.
+  - Chromium's WebCodecs refuses alpha encoding, so each frame is encoded twice with VP8: the colour (BT.601 limited range, with chroma averaged over visible pixels only) and the alpha as the brightness of a grey picture (full range, made directly as I420).
+  - A small WebM writer (`lib/match-art/webm.ts`) puts the colour in each Block and the alpha in BlockAdditions (BlockAddID 1), on a track with AlphaMode 1 and MaxBlockAdditionID 1.
+  - Keyframes are aligned, with a ReferenceBlock on the frames between them. FFmpeg's libvpx decoder, which OBS uses for alpha WebM, combines the two.
+- **Stinger timing:**
+  - OBS times a stinger from the transition start, with duration = video length + 250 ms, and cuts at a fixed fraction of it, but the video starts a little late (by ~0.2–0.6 s on a loaded machine).
+  - So the screen is covered 0.4–1.0 s and the cut is at 0.9 s, late in the covered part: safe for up to ~0.5 s of lateness.
+  - The animation ends by 1.3 s, leaving a see-through tail that OBS may cut short.
+- **OBS:**
+  - obs-websocket v5 can't create transitions. The operator creates two Stinger transitions once, named `Matchframe Stinger` and `Matchframe Replay Stinger`.
+  - Matchframe sets their `path`, `transition_point` (900) and `tp_type` (time) by making each current, setting it, reading it back, and restoring the previous one. The replay one becomes the replay transition if none is chosen. Activating a match points them at its files.
+  - OBS applies `SetCurrentSceneTransition` asynchronously: 91 of 200 immediate reads in OBS 30 still returned the previous transition. `setTransition` therefore polls until OBS reports the new one. Otherwise a settings change could go to the wrong transition, and a replay could be cut with the previous transition (a 0.5.0 bug).
+
+**Consequences.**
+- The director holds its shots through the console/game-data race, and freeze time shows the players' spawns once each.
+- Every match has its broadcast graphics without any design tool.
+- They depend on WebCodecs VP8 in the program's Chromium (checked in Electron), and the stingers depend on OBS running on the same computer as the program, or the files copied there.
+
+**Checked.**
+- **Unit tests:** establishing shots on the real Mirage pack, the repeat and stale-data cases (each fails without its fix), the arbiter catch-up, OBS's late transition switch, the WebM structure, the pixel conversion, LHM coalescing.
+- **E2e tests:**
+  - two Mirage rounds with a stand-in CS2 whose game data lags 250 ms (fails without the settle window);
+  - match art routes and the OBS setup with a stand-in OBS;
+  - creating a match from no teams in the UI.
+- **Real Chromium:** the built UI against a real engine made all six; ffmpeg/libvpx decodes the alpha.
+- **Real OBS 30 (Xvfb):**
+  - both transitions set and read back;
+  - with OBS keeping up, the stinger plays in full, the scenes show through its transparent parts, and the cut is never visible;
+  - 50 alternating settings changes through the adapter all landed on the right transition.
+- **Electron:** the desktop smoke test made all six.
+
+**Not checked.** Real CS2 with these director changes, Windows OBS (hardware decoding of the stingers), and generation speed on a gaming PC.

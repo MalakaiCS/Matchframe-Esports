@@ -11,6 +11,33 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.6.0",
+    title: "Cinematics that hold, and graphics for every match",
+    summary: "Pre-round shots of the spawns where the players are, played once and in full, then first person when the round goes live. Smooth LHM HUDs. Create matches with new teams, and get thumbnails and stinger transitions made from both teams' logos.",
+    sections: [
+      {
+        heading: "Auto Director",
+        items: [
+          "Fixed: freeze-time shots that lasted a second and repeated. Up to two shots of the spawns with players, each in full, never repeated.",
+          "First person as soon as the round goes live, with no overviews or follow cams in the first 10 seconds.",
+          "Follow cams at most once per map, smoother, and always handing back. Nade cams on by default and more frequent.",
+        ],
+      },
+      {
+        heading: "HUDs",
+        items: ["LHM-format HUDs (like kaiHUD) get game data at most 10 times a second unless something on screen changes: no more laggy baseboard."],
+      },
+      {
+        heading: "Matches and graphics",
+        items: [
+          "Create match is always at the top of Matches, and new teams can be made in the form.",
+          "Every match gets Highlights, Full replay and Live thumbnails, an Up next screen, and a stinger and replay stinger with the teams' logos (a ? without one).",
+          "One click puts the stingers in OBS; replays use the replay stinger.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.5.3",
     title: "Back to live, the right way",
     summary: "The replay PC goes back and forward in CSTV with the relative commands broadcasters use.",

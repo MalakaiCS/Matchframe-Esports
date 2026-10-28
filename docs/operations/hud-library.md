@@ -88,6 +88,7 @@ Limits:
 
 - **Killfeed**: CS2's game data has no kill events. The killfeed shows Matchframe's paired kills (killer, weapon in hand, headshot, assister, blind killer), so wallbang, no-scope, through-smoke and flash-assist icons never appear. Kills made before the HUD opened don't appear either.
 - No output delay: LHM-format HUDs always show live data.
+- **Update rate**: CS2 sends game data up to 50 times a second, more than an LHM-format HUD redraws smoothly (kaiHUD's baseboard stuttered). Matchframe sends the HUD the newest data at most 10 times a second, and at once when something on screen changes: the spectated player, the round or countdown phase, the bomb, who is alive, the score. Measured on kaiHUD's baseboard at a sixth of the CPU's speed: 55 frames a second instead of 32.
 - Not supported: the HUD's keyboard shortcuts (`keybinds.json`), player cameras, and anything that needs LHM's cloud. The rest of the HUD still works.
 - kaiHUD's Player Highlight shows the selected player *or* the spectated one, whichever comes first in the game data. So Matchframe shows it for the MVP only when the camera isn't on another player.
 - Fonts from Google Fonts load from the internet. Offline, the HUD falls back to other fonts.
