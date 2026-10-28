@@ -368,3 +368,28 @@ They also asked for a visible way to create matches, and for thumbnails and stin
 - **Electron:** the desktop smoke test made all six in 7.5 s without a GPU.
 
 **Not checked.** Real CS2 with these director changes, and OBS on Windows.
+
+## ADR-032 — Leaving the free camera with game data that lags, the director log, and CS2 behind other windows
+
+**Context.** The owner's 0.6.0 recording (Dust2, 107 s) showed the second freeze-time shot on air for 35 s: through freeze time and 12 s into the live round, while five players died off screen. A Dust2 replay against the real engine, with a stand-in CS2 whose game data lags its console by 250 ms and whose camera leaves the free camera only on the build's own `spec_mode` numbers, reproduced it: after the shot the director tried a player every 1.6 s for the whole live round, and every try sent `spec_mode 2; spec_player …` to a build whose first person is `spec_mode 4`. Two races with the lag caused it:
+- the adapter cleared its free-camera flag when game data showed a player, including game data from just before a camera, so a selection right after a shot went without the in-eye command and only moved the free camera;
+- after leaving the free camera it judged the in-eye command 0.3 s later. The game data still showed the free camera, so the adapter "learned" the other numbering, saved it, and from then on could never leave a shot.
+
+The recording also showed CS2's own picture and sound stopping for 8 s (identical frames, digital silence), then jumping 9 s on: what CS2 does in full screen when another window takes focus.
+
+**Decision.**
+- **Free camera:** a free-camera command (camera, path, follow cam) makes the camera free for at least 1.5 s whatever older game data says.
+- **In-eye numbering:** leaving the free camera keeps the same in-eye command until the game data has shown the free camera for 2 s since the first try, across the director's retries. Then the other numbering is tried for as long, and so on. The command after which the game data shows a player is kept and saved, also over a numbering saved before, so a wrong saved numbering repairs itself on the next shot.
+- **Director log:** `logs/director.log` (4 MB × 3): every console line the adapter sends except streamed path frames, every arbiter event (commands, results, takeovers, external changes), each change of decision (action, desired shot, reasons, control health), and each change in what the game data shows (map, round, phase, spectated player, camera mode, stale). The support file carries its last 400 entries.
+- **Behind other windows:** a console game option, on by default in the console modes, sends `engine_no_focus_sleep 0` and `snd_mute_losefocus 0` (off restores 20 and 1). The docs recommend Fullscreen Windowed on the observer computer.
+
+**Consequences.**
+- A shot is left on the first try on a build whose numbering is known, and within about 2 s the first time on a build whose numbering isn't.
+- The next recording of a wrong shot comes with what Matchframe sent and saw.
+
+**Checked.**
+- **Unit tests (stand-in console):** the other numbering only after 2 s of free-camera game data across retries; out of the free camera when game data from before the camera still shows the old player; a working in-eye command never changed by game data 700 ms late; a wrongly saved numbering repaired. The first three fail on the 0.6.0 adapter.
+- **E2e (Dust2, real engine, game data 250 ms late, CS:GO numbering):** the spawns in freeze time, on a player within 1 s of the round going live and for the rest of it, only the build's own numbers sent, and the director log holding the console lines, results, decisions and game data. It fails on the 0.6.0 adapter exactly like the recording.
+- **The same replay** with game data 500 and 900 ms late and with CS2's numbering: first person within 0.2 s of live, no free camera in the live round.
+
+**Not checked.** A real CS2 (which numbering the current build uses, how late its game data is), and whether the owner's 8 s freeze came from a window taking focus; the director log will show it next time.

@@ -49,6 +49,14 @@ export const CS2_ENUM_MODES = { modeInEye: "spec_mode 2", modeChase: "spec_mode 
 const CSGO_MODES = { modeInEye: "spec_mode 4", modeChase: "spec_mode 5", modeRoaming: "spec_mode 6" } as const;
 /** The chase view puts the camera at least this far (across) from the player; first person is about 0. */
 const CHASE_MIN_DISTANCE = 40;
+/** Game data lags the console: just after a free-camera command it can still show the player from before. */
+const FREE_FEEDBACK_MS = 1500;
+/**
+ * Leaving the free camera counts as failed only when the game data still shows the free camera this
+ * long after the first try (a shorter wait misreads a camera that did leave as one that didn't).
+ */
+const LEAVE_FREE_VERDICT_MS = 2000;
+const otherModes = (inEye: string) => (inEye === CS2_ENUM_MODES.modeInEye ? CSGO_MODES : CS2_ENUM_MODES);
 
 export interface PathPose {
   position: Vec3;
@@ -96,6 +104,8 @@ export interface NetconOptions {
   /** Evidence recorded so far (a function reads the latest, e.g. evidence this adapter reported). */
   verified?: VerifiedControl | (() => VerifiedControl);
   onLine?: (line: string) => void;
+  /** Every console line the adapter sends, except the frames of a playing camera path or follow cam. */
+  onCommand?: (line: string) => void;
   /** The engine's shared console connection (also used for game options); otherwise the adapter opens its own. */
   connection?: NetconConnection;
   /**
@@ -166,11 +176,17 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   private poseSeq = 0;
   /** The camera is in the free camera (after a static camera or path, or as the game data shows). */
   private freeCam = false;
+  /** When the last free-camera command was sent (monotonic ms). */
+  private freeAt = -Infinity;
   private telemetryRoaming = false;
+  /**
+   * Leaving the free camera, until the game data shows a player: when the tries began, and the in-eye
+   * command they use (switched to the other numbering when the first doesn't leave).
+   */
+  private leaving: { since: number; modeInEye: string } | null = null;
   private pathTimer: ReturnType<typeof setTimeout> | null = null;
   private pathToken = 0;
   private modesLearned = false;
-  private inEyeLearned = false;
   private chaseLearned = false;
   /** The camera is in the third-person chase view of a player. */
   private chase = false;
@@ -217,15 +233,59 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   /** Observer state from the game data: lets player selection leave the free camera first. */
   noteObserverState(observer: { cameraMode: string; observedSteamId: string | null; observedPosition?: { x: number; y: number; z: number } | null }): void {
     this.telemetryRoaming = observer.cameraMode === "roaming" && !observer.observedSteamId;
-    if (observer.observedSteamId && !this.pathTimer) this.freeCam = false;
+    // A player in game data from just after a free-camera command is from before it: still free.
+    if (observer.observedSteamId && !this.pathTimer && this.opts.now() - this.freeAt > FREE_FEEDBACK_MS) this.freeCam = false;
+    const l = this.leaving;
+    if (l && observer.observedSteamId) {
+      // Out of the free camera: the in-eye command that did it is the one for this build.
+      this.leaving = null;
+      if (l.modeInEye !== this.templates.modeInEye) {
+        const set = l.modeInEye === CS2_ENUM_MODES.modeInEye ? CS2_ENUM_MODES : CSGO_MODES;
+        this.templates.modeInEye = set.modeInEye;
+        this.templates.modeChase = set.modeChase;
+        this.opts.onModesLearned?.({ modeInEye: set.modeInEye, modeChase: set.modeChase, modeRoaming: this.templates.modeRoaming });
+      }
+    }
     this.observed = { cameraMode: observer.cameraMode, observedSteamId: observer.observedSteamId, position: observer.observedPosition ?? null, seq: this.observed.seq + 1 };
+  }
+
+  /** A free-camera command was sent: the camera is free now, whatever older game data says. */
+  private wentFree(): void {
+    this.freeCam = true;
+    this.freeAt = this.opts.now();
+    this.leaving = null;
+  }
+
+  /**
+   * The in-eye command for leaving the free camera now. Tries keep the same command until the game
+   * data has shown the free camera for LEAVE_FREE_VERDICT_MS since the first; then the other spec_mode
+   * numbering is tried for as long again, and so on. The first one the game data confirms (it shows
+   * the player) is kept, also over a numbering learned earlier.
+   */
+  private leaveFreeMode(): string {
+    const now = this.opts.now();
+    const l = this.leaving;
+    if (!l) {
+      this.leaving = { since: now, modeInEye: this.templates.modeInEye };
+      return this.templates.modeInEye;
+    }
+    if (this.telemetryRoaming && now - l.since >= LEAVE_FREE_VERDICT_MS) {
+      l.modeInEye = otherModes(l.modeInEye).modeInEye;
+      l.since = now;
+    }
+    return l.modeInEye;
+  }
+
+  private write(line: string): Promise<void> {
+    this.opts.onCommand?.(line);
+    return this.conn.write(line);
   }
 
   /** Asks getpos where the camera is; null without an answer in time. */
   private async readPose(): Promise<PathPose | null> {
     const seq = this.poseSeq;
     try {
-      await this.conn.write(this.templates.readPose);
+      await this.write(this.templates.readPose);
     } catch {
       return null;
     }
@@ -259,7 +319,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     }
     const alt = this.templates.modeChase === CS2_ENUM_MODES.modeChase ? CSGO_MODES.modeChase : CS2_ENUM_MODES.modeChase;
     try {
-      await this.conn.write(alt);
+      await this.write(alt);
     } catch {
       return;
     }
@@ -273,32 +333,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
       return;
     }
     // Neither number moved the camera behind the player: back to the original command.
-    await this.conn.write(this.templates.modeChase).catch(() => undefined);
-  }
-
-  /**
-   * After leaving the free camera for a player: if the game data still shows the free camera, the
-   * in-eye command uses the other spec_mode numbering on this build. Try that once, and keep it if the
-   * game data then shows the player.
-   */
-  private async learnInEye(steamId: string, selectCmd: string, token: number): Promise<void> {
-    const first = await this.waitObserved(steamId, 1000);
-    if (first === "player") {
-      this.inEyeLearned = true;
-      return;
-    }
-    if (first !== "free" || token !== this.pathToken) return;
-    const alt = this.templates.modeInEye === CS2_ENUM_MODES.modeInEye ? CSGO_MODES : CS2_ENUM_MODES;
-    try {
-      await this.conn.write(`${alt.modeInEye}; ${selectCmd}`);
-    } catch {
-      return;
-    }
-    if ((await this.waitObserved(steamId, 1500)) !== "player") return;
-    this.inEyeLearned = true;
-    this.templates.modeInEye = alt.modeInEye;
-    this.templates.modeChase = alt.modeChase;
-    this.opts.onModesLearned?.({ modeInEye: alt.modeInEye, modeChase: alt.modeChase, modeRoaming: this.templates.modeRoaming });
+    await this.write(this.templates.modeChase).catch(() => undefined);
   }
 
   /** Waits for game data showing the player, or a fresh update (at least 300 ms after the command) still in the free camera. */
@@ -325,7 +360,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     const seq = this.poseSeq;
     await new Promise((r) => setTimeout(r, 60));
     try {
-      await this.conn.write(this.templates.readPose);
+      await this.write(this.templates.readPose);
     } catch {
       return "none";
     }
@@ -385,7 +420,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
       return failedResult(ctx, "transport_error", `netcon unavailable: ${e instanceof Error ? e.message : String(e)}`);
     }
     try {
-      await this.conn.write(command);
+      await this.write(command);
       return transportResult(ctx, true, command, this.opts.now());
     } catch (e) {
       return failedResult(ctx, "transport_error", e instanceof Error ? e.message : "write failed");
@@ -410,13 +445,16 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     // first person is set first when leaving either; the chase view is set after the player.
     const leaveFree = this.freeCam || this.telemetryRoaming;
     const chase = view === "chase";
-    const prefix = leaveFree || (this.chase && !chase) ? `${this.templates.modeInEye}; ` : "";
+    // Into first person from the free camera: the in-eye command that the game data confirms on this build.
+    // (Out of it into the chase view, the chase command moves the camera: that says nothing about in-eye.)
+    if (chase) this.leaving = null;
+    const inEye = leaveFree && !chase ? this.leaveFreeMode() : this.templates.modeInEye;
+    const prefix = leaveFree || (this.chase && !chase) ? `${inEye}; ` : "";
     const suffix = chase ? `; ${this.templates.modeChase}` : "";
     const r = await this.send(ctx, `${prefix}${cmd}${suffix}`);
     if (r.status !== "failed") {
       this.freeCam = false;
       this.chase = chase;
-      if (leaveFree && !chase && !this.inEyeLearned) void this.learnInEye(steamId, cmd, this.pathToken);
       if (chase && !this.chaseLearned) void this.learnChase(steamId, this.pathToken);
     }
     return r;
@@ -439,7 +477,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     this.stopPath();
     const r = await this.send(ctx, cmd);
     if (r.status === "failed") return r;
-    this.freeCam = true;
+    this.wentFree();
     let check = await this.readback(pose);
     if (check === "mismatch" && !this.modesLearned && this.usesDefaultModes()) {
       // The camera didn't move: this build may use the CS2 spec_mode numbering.
@@ -472,7 +510,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     this.stopPath();
     const r = await this.send(ctx, cmd);
     if (r.status === "failed") return r;
-    this.freeCam = true;
+    this.wentFree();
     const token = this.pathToken;
     const dur = path.keyframes[path.keyframes.length - 1]!.tMs;
     const last = samplePath(path, dur);
@@ -511,7 +549,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     this.stopPath();
     const r = await this.send(ctx, cmd);
     if (r.status === "failed") return r;
-    this.freeCam = true;
+    this.wentFree();
     const token = this.pathToken;
     this.runFrames(token, (t) => {
       const pose = t <= durationMs ? poses(t) : null;

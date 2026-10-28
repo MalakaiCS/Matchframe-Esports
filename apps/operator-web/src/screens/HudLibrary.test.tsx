@@ -289,7 +289,7 @@ describe("HUD Library screen", () => {
     };
     const consoleStatus = (mode: string) => ({
       profile: { mode, netconPort: 2121, extraArgs: "", insecureAcknowledgedAt: null },
-      options: { hideGameHud: true, xray: true, noFlash: false, killfeedTeamColours: false, hideEndOfMatch: false, hideGameKillfeed: false },
+      options: { hideGameHud: true, xray: true, runInBackground: true, noFlash: false, killfeedTeamColours: false, hideEndOfMatch: false, hideGameKillfeed: false },
       console: "connected",
       port: 2121,
       connectedAt: "2026-10-27T10:00:00.000Z",
@@ -325,7 +325,7 @@ describe("HUD Library screen", () => {
     (window as { matchframe?: unknown }).matchframe = { hlae: { info: async () => ({ path: "C:\\HLAE\\HLAE.exe", ok: true, problem: null }), choose: async () => null } };
     const status = {
       profile: { mode: "hlae", netconPort: 2121, extraArgs: "", insecureAcknowledgedAt: "2026-10-27T10:00:00.000Z" },
-      options: { hideGameHud: true, xray: true, noFlash: false, killfeedTeamColours: false, hideEndOfMatch: true, hideGameKillfeed: false },
+      options: { hideGameHud: true, xray: true, runInBackground: true, noFlash: false, killfeedTeamColours: false, hideEndOfMatch: true, hideGameKillfeed: false },
       console: "connected",
       port: 2121,
       connectedAt: "2026-10-27T10:00:00.000Z",

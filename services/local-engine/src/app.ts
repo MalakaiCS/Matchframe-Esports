@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 import type { AutomationRule, ProgramMode, TriggerEvent, TriggerKind } from "@matchframe/automation";
 import { AutomationRule as RuleSchema, exampleRules, RuleEngine } from "@matchframe/automation";
-import type { HudManifest, MapPack, MatchState, Side } from "@matchframe/contracts";
+import type { DirectorDecision, HudManifest, MapPack, MatchState, Side } from "@matchframe/contracts";
 import { EventRecord, EventStage, Match, Player, RundownCue, Sponsor, StatCorrection, Team } from "@matchframe/contracts";
 import type { DerivedEvent, MeasuredProfilesFile, ProfileSet } from "@matchframe/cs2-state";
 import { DEFAULT_PROFILES, profilesFromMeasured } from "@matchframe/cs2-state";
@@ -98,6 +98,11 @@ interface Cue {
 
 export class Engine {
   readonly logger: Logger;
+  /**
+   * What the camera was asked and did, for finding out afterwards why a shot looked wrong:
+   * `<data>/logs/director.log` (console commands, command results, decisions, game data changes).
+   */
+  readonly directorLog: Logger;
   readonly db: Database;
   readonly secrets: SecretStore;
   readonly settings: SettingsRepo;
@@ -173,6 +178,7 @@ export class Engine {
 
   constructor(readonly cfg: EngineConfig) {
     this.logger = new Logger(cfg.logLevel, join(cfg.dataDir, "logs"));
+    this.directorLog = new Logger("info", join(cfg.dataDir, "logs"), { name: "director", maxBytes: 4 * 1024 * 1024, keep: 3, stdout: false });
     this.db = new Database(join(cfg.dataDir, "matchframe.sqlite"));
     this.migration = this.db.migrate(join(cfg.dataDir, "backups"));
     if (this.migration.to !== this.migration.from) this.logger.info("database migrated", this.migration);
@@ -234,6 +240,7 @@ export class Engine {
       armGate: (simulated, observerMode) => this.cloud.canArm(simulated || this.simulationRunning, observerMode),
     });
     this.refreshScenarios();
+    this.recordDirection();
 
     this.obs = new ObsManager();
     this.obs.on("disconnected", () => {
@@ -732,6 +739,27 @@ export class Engine {
     return ObserverAdapterSettings.parse(this.settings.get("observer.adapter", {}));
   }
 
+  /** Writes the director log: commands and their results, decisions when they change, and changes in what the game data shows. */
+  private recordDirection(): void {
+    const log = this.directorLog;
+    this.session.on("arbiter", (e: { kind: string; detail: Record<string, unknown> }) => log.info(e.kind, e.detail));
+    let lastDecision = "";
+    this.session.on("decision", (d: DirectorDecision) => {
+      const key = `${d.action}|${d.desiredShot}|${d.reasonCodes.join(",")}|${d.controlHealth}`;
+      if (key === lastDecision) return;
+      lastDecision = key;
+      log.info("decision", { action: d.action, current: d.currentShot, desired: d.desiredShot, reasons: d.reasonCodes, health: d.controlHealth, mode: d.mode });
+    });
+    let lastGame = "";
+    this.session.on("state", (s: MatchState) => {
+      const g = { map: s.mapName, round: s.roundNumber, phase: s.roundPhase, observed: s.observer.observedSteamId, camera: s.observer.cameraMode, stale: s.sources[0]?.stale ?? null };
+      const key = JSON.stringify(g);
+      if (key === lastGame) return;
+      lastGame = key;
+      log.info("game", g);
+    });
+  }
+
   async applyObserverAdapter(): Promise<void> {
     if (this.sim) return; // simulation owns the adapter while running
     const s = this.observerSettings();
@@ -750,11 +778,13 @@ export class Engine {
           connection,
           playerName: (steamId) => this.playerNameFor(steamId),
           onEvidence: (key, support, detail) => this.recordControlEvidence(key, support, detail),
+          onCommand: (line) => this.directorLog.info("console", { line }),
           // Keep the spec_mode numbering that moved the camera on this build.
           onModesLearned: (modes) => {
             const cur = this.observerSettings();
             this.settings.set("observer.adapter", { ...cur, templates: { ...cur.templates, ...modes } });
-            this.logger.info("console camera modes learned from getpos readback", modes);
+            this.logger.info("console camera modes learned", modes);
+            this.directorLog.info("modes learned", modes);
           },
         }),
       );

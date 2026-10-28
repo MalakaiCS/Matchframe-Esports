@@ -141,10 +141,14 @@ async function fakeCs2Console(freeMode: number) {
   return { lines, server, port: (server.address() as { port: number }).port };
 }
 
-/** A console where the free camera is spec_mode 6 but in-eye is spec_mode 2, with game data following the camera. */
-async function mixedNumberingCs2() {
+/**
+ * A console whose free camera and first person are the spec_mode numbers given (6 and 2: the free
+ * camera from CS:GO's numbering, first person from CS2's), with game data following the camera:
+ * spec_player only reaches the player from first person.
+ */
+async function numberedCs2(free = 6, inEye = 2) {
   const lines: string[] = [];
-  const game = { mode: 2, observed: "76561198000000001" as string | null };
+  const game = { mode: inEye, observed: "76561198000000001" as string | null };
   const server = createServer((sock) =>
     sock.on("data", (d) => {
       for (const line of d.toString().split("\n").filter(Boolean)) {
@@ -152,8 +156,8 @@ async function mixedNumberingCs2() {
         for (const cmd of line.split(";").map((c) => c.trim())) {
           const m = /^spec_mode (\d+)$/.exec(cmd);
           if (m) game.mode = Number(m[1]);
-          if (/^spec_goto /.test(cmd) && game.mode === 6) game.observed = null;
-          if (/^spec_player /.test(cmd) && game.mode === 2) game.observed = "76561198000000002";
+          if (/^spec_goto /.test(cmd) && game.mode === free) game.observed = null;
+          if (/^spec_player /.test(cmd) && game.mode === inEye) game.observed = "76561198000000002";
           if (cmd === "getpos") sock.write("setpos 1200.500000 -340.000000 256.000000;setang 18.000000 -135.000000 0.000000\n");
         }
       }
@@ -164,22 +168,92 @@ async function mixedNumberingCs2() {
 }
 
 const camera = (over: Record<string, unknown> = {}) => ({ id: "cam-a", position: { x: 1200.5, y: -340, z: 256 }, pitch: 18, yaw: -135, ...over }) as never;
+const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
-describe("in-eye numbering", () => {
-  it("learns the in-eye spec_mode from the game data when leaving the free camera doesn't reach the player", async () => {
-    const c = await mixedNumberingCs2();
+/** Game data every 100 ms showing what the game showed `lagMs` earlier (CS2's lags its console). */
+function gameData(a: NetconObserverAdapter, game: { observed: string | null }, lagMs = 0) {
+  const past: { at: number; observed: string | null }[] = [];
+  return setInterval(() => {
+    const now = performance.now();
+    past.push({ at: now, observed: game.observed });
+    const seen = [...past].reverse().find((p) => p.at <= now - lagMs) ?? past[0]!;
+    a.noteObserverState({ cameraMode: seen.observed ? "unknown" : "roaming", observedSteamId: seen.observed });
+  }, 100);
+}
+
+describe("leaving the free camera", () => {
+  it("tries the other in-eye spec_mode when the game data still shows the free camera 2 s on, and keeps the one that works", async () => {
+    const c = await numberedCs2();
     const learned: unknown[] = [];
-    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => 0, playerName: () => "nova", onModesLearned: (m) => learned.push(m) });
-    // The game data, every 100 ms.
-    const feed = setInterval(() => a.noteObserverState({ cameraMode: c.game.observed ? "unknown" : "roaming", observedSteamId: c.game.observed }), 100);
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova", onModesLearned: (m) => learned.push(m) });
+    const feed = gameData(a, c.game);
     expect((await a.activateStaticCamera(camera(), ctx())).status).toBe("confirmed");
     await a.selectPlayer("76561198000000002", 2, ctx());
-    for (let i = 0; i < 60 && !learned.length; i++) await new Promise((res) => setTimeout(res, 50));
+    // The director tries again after each confirmation timeout: the same command for the first 2 s.
+    await sleep(1600);
+    await a.selectPlayer("76561198000000002", 2, ctx());
+    await sleep(600);
+    await a.selectPlayer("76561198000000002", 2, ctx());
+    for (let i = 0; i < 40 && !learned.length; i++) await sleep(50);
     clearInterval(feed);
-    expect(c.lines).toContain('spec_mode 4; spec_player "nova"');
+    expect(c.lines.filter((l) => l === 'spec_mode 4; spec_player "nova"')).toHaveLength(2);
     expect(c.lines).toContain('spec_mode 2; spec_player "nova"');
     expect(learned).toEqual([{ modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 6" }]);
     expect(c.game.observed).toBe("76561198000000002");
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("leaves the free camera even when game data from before the camera still shows the old player", async () => {
+    const c = await numberedCs2(6, 4);
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova" });
+    // The game data is a quarter of a second behind the console.
+    const feed = gameData(a, c.game, 250);
+    await sleep(300);
+    expect((await a.activateStaticCamera(camera(), ctx())).status).toBe("confirmed");
+    // Straight back to a player, while the game data still shows the one from before the camera.
+    await a.selectPlayer("76561198000000002", 2, ctx());
+    for (let i = 0; i < 20 && !c.lines.some((l) => /spec_player/.test(l)); i++) await sleep(25);
+    clearInterval(feed);
+    expect(c.lines.filter((l) => /spec_player/.test(l))).toEqual(['spec_mode 4; spec_player "nova"']);
+    expect(c.game.observed).toBe("76561198000000002");
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("never changes a working in-eye spec_mode because the game data is slow to show the player", async () => {
+    const c = await numberedCs2(6, 4);
+    const learned: unknown[] = [];
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova", onModesLearned: (m) => learned.push(m) });
+    const feed = gameData(a, c.game, 700);
+    await sleep(800);
+    expect((await a.activateStaticCamera(camera(), ctx())).status).toBe("confirmed");
+    await sleep(2000);
+    await a.selectPlayer("76561198000000002", 2, ctx());
+    await sleep(1600);
+    // A retry before the game data caught up: still the same command.
+    await a.selectPlayer("76561198000000002", 2, ctx());
+    await sleep(1500);
+    clearInterval(feed);
+    expect(c.lines.filter((l) => /spec_player/.test(l))).toEqual(['spec_mode 4; spec_player "nova"', 'spec_player "nova"']);
+    expect(learned).toEqual([]);
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("corrects an in-eye spec_mode saved wrongly earlier", async () => {
+    const c = await numberedCs2(6, 4);
+    const learned: unknown[] = [];
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova", templates: { modeInEye: "spec_mode 2", modeChase: "spec_mode 3" }, onModesLearned: (m) => learned.push(m) });
+    const feed = gameData(a, c.game);
+    expect((await a.activateStaticCamera(camera(), ctx())).status).toBe("confirmed");
+    await a.selectPlayer("76561198000000002", 2, ctx());
+    await sleep(2100);
+    await a.selectPlayer("76561198000000002", 2, ctx());
+    for (let i = 0; i < 40 && !learned.length; i++) await sleep(50);
+    clearInterval(feed);
+    expect(c.lines).toContain('spec_mode 4; spec_player "nova"');
+    expect(learned).toEqual([{ modeInEye: "spec_mode 4", modeChase: "spec_mode 5", modeRoaming: "spec_mode 6" }]);
     await a.dispose();
     c.server.close();
   });

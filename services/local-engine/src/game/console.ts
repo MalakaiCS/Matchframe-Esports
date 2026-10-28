@@ -54,6 +54,11 @@ export const ConsoleOptions = z.object({
   hideGameHud: z.boolean().default(true),
   /** `spec_show_xray`: players seen through walls while spectating (the game's default is on). */
   xray: z.boolean().default(true),
+  /**
+   * `engine_no_focus_sleep 0; snd_mute_losefocus 0`: CS2 keeps drawing every frame and playing its
+   * sound while Matchframe, OBS or another window has focus (by default it slows down and goes silent).
+   */
+  runInBackground: z.boolean().default(true),
   /** HLAE `mirv_noflash 1`: no white-out from flashbangs on the observer's screen. */
   noFlash: z.boolean().default(false),
   /** HLAE `mirv_deathmsg colors`: CT and T names in the kill feed in the teams' colours. */
@@ -72,6 +77,7 @@ export type ConsoleOptions = z.infer<typeof ConsoleOptions>;
 export const ConsoleOptionsPatch = z.object({
   hideGameHud: z.boolean().optional(),
   xray: z.boolean().optional(),
+  runInBackground: z.boolean().optional(),
   noFlash: z.boolean().optional(),
   killfeedTeamColours: z.boolean().optional(),
   hideEndOfMatch: z.boolean().optional(),
@@ -99,6 +105,8 @@ export function killfeedColourCommands(on: boolean, colours: SideColours): strin
 export function consoleCommands(o: ConsoleOptions, mode: GameLaunchMode, colours: SideColours): string[] {
   if (mode === "standard") return [];
   const out = [`cl_draw_only_deathnotices ${o.hideGameHud ? 1 : 0}`, `spec_show_xray ${o.xray ? 1 : 0}`];
+  // Off: the game's own defaults (sleep 20 ms a frame and mute while another window has focus).
+  out.push(`engine_no_focus_sleep ${o.runInBackground ? 0 : 20}`, `snd_mute_losefocus ${o.runInBackground ? 0 : 1}`);
   if (mode === "hlae") {
     out.push(`mirv_noflash ${o.noFlash ? 1 : 0}`, `mirv_endofmatch ${o.hideEndOfMatch ? 0 : 1}`, ...killfeedColourCommands(o.killfeedTeamColours, colours));
     // A rule with no player match applies to every kill notice. Cleared first so applying again never stacks rules.

@@ -32,6 +32,8 @@ export class TimedCs2 {
       map: string;
       /** The free camera's spec_mode on this "build". */
       freeMode?: string;
+      /** The spec_modes that reach a player (first person, chase) on this "build"; others leave the camera where it is. Default: every one but the free camera's. */
+      playerModes?: string[];
       phase: (t: number) => { phase: "freezetime" | "live" | "over"; endsInSec: number; round: number };
       positions: (t: number, p: SyntheticPlayer) => { x: number; y: number; z: number };
       /** How far the game data lags the console (like CS2's: the camera changes before the game data says so). */
@@ -77,7 +79,10 @@ export class TimedCs2 {
     this.lines.push({ at: this.now(), line });
     const freeMode = this.opts.freeMode ?? "spec_mode 6";
     for (const cmd of line.split(";").map((c) => c.trim())) {
-      if (/^spec_mode \d$/.test(cmd)) this.free = cmd === freeMode;
+      if (/^spec_mode \d$/.test(cmd)) {
+        if (cmd === freeMode) this.free = true;
+        else if (!this.opts.playerModes || this.opts.playerModes.includes(cmd)) this.free = false;
+      }
       const goto = /^spec_goto (\S+) (\S+) (\S+) (\S+) (\S+)$/.exec(cmd);
       if (goto && this.free) {
         const [x, y, z, pitch, yaw] = goto.slice(1).map(Number) as [number, number, number, number, number];

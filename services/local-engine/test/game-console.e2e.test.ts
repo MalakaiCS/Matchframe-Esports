@@ -39,16 +39,20 @@ describe("console commands and launch plan", () => {
   it("maps the options to console lines per launch mode", () => {
     const o = ConsoleOptions.parse({ noFlash: true, killfeedTeamColours: true, hideEndOfMatch: true });
     expect(consoleCommands(o, "standard", { ct: null, t: null })).toEqual([]);
-    expect(consoleCommands(o, "tools", { ct: null, t: null })).toEqual(["cl_draw_only_deathnotices 1", "spec_show_xray 1"]);
+    expect(consoleCommands(o, "tools", { ct: null, t: null })).toEqual(["cl_draw_only_deathnotices 1", "spec_show_xray 1", "engine_no_focus_sleep 0", "snd_mute_losefocus 0"]);
     expect(consoleCommands(o, "hlae", { ct: "#1e90ff", t: "#ff8800" })).toEqual([
       "cl_draw_only_deathnotices 1",
       "spec_show_xray 1",
+      "engine_no_focus_sleep 0",
+      "snd_mute_losefocus 0",
       "mirv_noflash 1",
       "mirv_endofmatch 0",
       "mirv_deathmsg colors ct 30 144 255 255",
       "mirv_deathmsg colors t 255 136 0 255",
       "mirv_deathmsg filter clear",
     ]);
+    // Off: back to the game's own behaviour behind other windows.
+    expect(consoleCommands(ConsoleOptions.parse({ runInBackground: false }), "tools", { ct: null, t: null }).slice(2)).toEqual(["engine_no_focus_sleep 20", "snd_mute_losefocus 1"]);
     // Hide CS2's kill feed: one rule with no player match blocks every notice (cleared first, so it never stacks).
     expect(consoleCommands(ConsoleOptions.parse({ hideGameKillfeed: true }), "hlae", { ct: null, t: null }).slice(-3)).toEqual(["mirv_deathmsg filter clear", "mirv_deathmsg filter add block=1", "mirv_deathmsg clear"]);
     expect(consoleCommands(ConsoleOptions.parse({ hideGameKillfeed: true }), "tools", { ct: null, t: null }).some((l) => l.startsWith("mirv_"))).toBe(false);

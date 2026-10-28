@@ -29,13 +29,15 @@ export class Logger {
   private readonly file: string | null;
   private readonly maxBytes: number;
   private readonly keep: number;
+  private readonly stdout: boolean;
   readonly recent: { at: string; level: LogLevel; msg: string; data?: unknown }[] = [];
 
   constructor(
     private readonly level: LogLevel,
     logDir: string | null,
-    opts: { maxBytes?: number; keep?: number; name?: string } = {},
+    opts: { maxBytes?: number; keep?: number; name?: string; stdout?: boolean } = {},
   ) {
+    this.stdout = opts.stdout ?? true;
     this.maxBytes = opts.maxBytes ?? 5 * 1024 * 1024;
     this.keep = opts.keep ?? 5;
     if (logDir) {
@@ -68,7 +70,7 @@ export class Logger {
         // Logging must never take down the engine.
       }
     }
-    if (process.env.MATCHFRAME_LOG_STDOUT !== "0") (level === "error" || level === "warn" ? process.stderr : process.stdout).write(line + "\n");
+    if (this.stdout && process.env.MATCHFRAME_LOG_STDOUT !== "0") (level === "error" || level === "warn" ? process.stderr : process.stdout).write(line + "\n");
   }
 
   debug(msg: string, data?: unknown) {
