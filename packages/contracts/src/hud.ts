@@ -83,10 +83,11 @@ export const RESERVED_HUD_IDS = ["assets", "sdk", "thumbnail.webp", "index.html"
 /**
  * One field of a HUD's settings form (manifest `settingsSchema` values). Unknown shapes are edited as
  * JSON. "player" and "team" store a Steam ID or team id chosen from Matchframe's data; "action" is a
- * row of buttons (`options`) that send a one-off action to the HUD and store nothing.
+ * row of buttons (`options`) that send a one-off action to the HUD and store nothing; "images" stores
+ * a list of uploaded image asset ids (LHM-format HUDs' image inputs).
  */
 export const HudSettingField = z.object({
-  type: z.enum(["boolean", "number", "string", "color", "select", "player", "team", "action"]),
+  type: z.enum(["boolean", "number", "string", "color", "select", "player", "team", "action", "images"]),
   label: z.string().max(80).optional(),
   description: z.string().max(200).optional(),
   default: z.unknown().optional(),
@@ -134,6 +135,11 @@ export interface HudLibraryEntry {
   outputs: Record<HudOutputMode, number>;
   /** OBS browser source URL per implemented variant. */
   urls: Partial<Record<HudVariant, string>>;
+  /**
+   * An LHM-format HUD's own pages (hud.json `variants`, such as kaiHUD's player-stats), each opened
+   * with `?view=<id>` on the live page. Empty for other HUDs.
+   */
+  views: { id: string; label: string; url: string }[];
   settings: Record<string, unknown>;
   settingsSchema: Record<string, HudSettingField>;
   presets: { id: string; name: string }[];

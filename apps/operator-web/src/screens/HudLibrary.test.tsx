@@ -33,6 +33,7 @@ function hud(over: Partial<HudLibraryEntry> & Pick<HudLibraryEntry, "id" | "name
     stopped: false,
     outputs: { obs: 0, desktop: 0, preview: 0 },
     urls: { live: `${ORIGIN}/hud/${over.id}/live?t=tok` },
+    views: [],
     settings: {},
     settingsSchema: {},
     presets: [],
@@ -205,6 +206,38 @@ describe("HUD Library screen", () => {
     fireEvent.click(within(details).getByRole("tab", { name: "Outputs" }));
     expect(within(details).getByText(`${ORIGIN}/hud/${SAMPLE.id}/live?t=tok`)).toBeTruthy();
     expect(within(details).getByText("1920")).toBeTruthy();
+  });
+
+  it("lists an LHM HUD's own pages with their OBS addresses, and edits its image inputs", async () => {
+    const KAI = hud({
+      id: "lhm.kaihud",
+      name: "KaiHUD",
+      runtime: "lhm",
+      category: "LHM",
+      views: [
+        { id: "player-stats", label: "Player stats", url: `${ORIGIN}/hud/lhm.kaihud/live?t=tok&view=player-stats` },
+        { id: "match-stats", label: "Match stats", url: `${ORIGIN}/hud/lhm.kaihud/live?t=tok&view=match-stats` },
+      ],
+      settingsSchema: { "ads.images": { type: "images" as const, label: "Baseboard sponsors", group: "Baseboard", default: [] } },
+      settings: { "ads.images": ["aaaaaaaaaaaaaaaaaaaaaaaa.png", "bbbbbbbbbbbbbbbbbbbbbbbb.png"] },
+    });
+    const calls = serve((m, p) => {
+      if (m === "GET" && p === "/api/v1/hud/library") return { status: 200, json: library([KAI]) };
+      if (m === "PUT" && p === `/api/v1/hud/library/${KAI.id}/settings`) return { status: 200, json: KAI };
+      return undefined;
+    });
+    renderScreen();
+    fireEvent.click(await screen.findByRole("article", { name: "KaiHUD" }));
+    const details = await screen.findByTestId("hud-details");
+    const pages = within(details).getByRole("list", { name: "HUD pages" });
+    expect(within(pages).getAllByRole("listitem").map((li) => li.textContent)).toEqual([expect.stringContaining("Player stats"), expect.stringContaining("Match stats")]);
+    expect(within(pages).getByText("player-stats")).toBeTruthy();
+    fireEvent.click(within(details).getByRole("tab", { name: "Appearance" }));
+    expect(within(details).getByAltText("Baseboard sponsors 2").getAttribute("src")).toBe("/assets/bbbbbbbbbbbbbbbbbbbbbbbb.png");
+    fireEvent.click(within(details).getByRole("button", { name: "Remove image 1" }));
+    fireEvent.click(within(details).getByRole("button", { name: "Save settings" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
+    expect(JSON.parse(String(calls.find((c) => c.method === "PUT")!.body))).toMatchObject({ settings: { "ads.images": ["bbbbbbbbbbbbbbbbbbbbbbbb.png"] } });
   });
 
   it("launches the transparent desktop HUD through the program bridge", async () => {

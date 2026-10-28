@@ -44,9 +44,11 @@ const PANEL = [
   { label: "Advertising", name: "ads", inputs: [{ type: "images", name: "baseboard_image", label: "Baseboard image" }] },
 ];
 
+const PNG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82]);
+
 const lhmZip = () =>
   zipSync({
-    "KaiHUD/hud.json": strToU8(JSON.stringify({ name: "KaiHUD", version: "1.0.0", author: "misterrhh", legacy: false, radar: true, killfeed: true, game: "cs2", variants: ["veto"] })),
+    "KaiHUD/hud.json": strToU8(JSON.stringify({ name: "KaiHUD", version: "1.0.0", author: "misterrhh", legacy: false, radar: true, killfeed: true, game: "cs2", variants: ["player-stats", "match-stats", "match-preview", "veto", "baseboard"] })),
     "KaiHUD/panel.json": strToU8(JSON.stringify(PANEL)),
     "KaiHUD/keybinds.json": strToU8("[]"),
     "KaiHUD/index.html": strToU8('<!doctype html><html><body><div id="root"></div><script type="module" src="./assets/index.js"></script></body></html>'),
@@ -58,14 +60,18 @@ describe("LHM package conversion", () => {
   it("turns panel.json into settings fields and back into LHM's hud_config shape", () => {
     const panel = parsePanel(JSON.stringify(PANEL));
     const { schema, skipped } = panelSettings(panel);
-    expect(Object.keys(schema)).toEqual(["tournament.header_primary", "tournament.header_state", "player_stats.selected_player", "player_stats.selected_map"]);
+    expect(Object.keys(schema)).toEqual(["tournament.header_primary", "tournament.header_state", "player_stats.selected_player", "player_stats.selected_map", "ads.baseboard_image"]);
     expect(schema["tournament.header_state"]).toMatchObject({ type: "action", group: "Tournament", options: [{ value: "header_toggle", label: "Toggle Header" }] });
     expect(schema["player_stats.selected_player"]!.type).toBe("player");
-    expect(skipped).toEqual(["ads.baseboard_image (images)"]);
-    const cfg = hudConfig(panel, { "tournament.header_primary": "Grand final", "player_stats.selected_player": "76561198000000001", "player_stats.selected_map": "de_nuke" }, { player: (id) => ({ steamid: id, username: "nova" }), team: () => null });
+    expect(schema["ads.baseboard_image"]).toMatchObject({ type: "images", default: [] });
+    expect(skipped).toEqual([]);
+    const lookup = { player: (id: string) => ({ steamid: id, username: "nova" }), team: () => null, image: (id: string) => (id === "missing.png" ? null : `b64:${id}`) };
+    const cfg = hudConfig(panel, { "tournament.header_primary": "Grand final", "player_stats.selected_player": "76561198000000001", "player_stats.selected_map": "de_nuke", "ads.baseboard_image": ["a.png", "missing.png", "b.png"] }, lookup);
     expect(cfg).toEqual({
       tournament: { header_primary: "Grand final" },
       player_stats: { selected_player: { type: "player", id: "76561198000000001", player: { steamid: "76561198000000001", username: "nova" } }, selected_map: "de_nuke" },
+      // Image inputs arrive as LHM sends them: base64 strings.
+      ads: { baseboard_image: ["b64:a.png", "b64:b.png"] },
     });
   });
 
@@ -152,6 +158,24 @@ describe("LHM-format HUD in the library (engine)", () => {
     token = new URL(entry.urls.live!).searchParams.get("t")!;
   });
 
+  it("offers the HUD's own pages (kaiHUD's player highlight, match stats, ...) and opens each one", async () => {
+    expect(entry.views.map((v) => [v.id, v.label])).toEqual([
+      ["player-stats", "Player stats"],
+      ["match-stats", "Match stats"],
+      ["match-preview", "Match preview"],
+      ["veto", "Veto"],
+      ["baseboard", "Baseboard"],
+    ]);
+    const url = new URL(entry.views[0]!.url);
+    expect(url.pathname).toBe(`/hud/${entry.id}/live`);
+    expect(url.searchParams.get("view")).toBe("player-stats");
+    const page = await overlay(`${url.pathname}${url.search}`);
+    expect(page.status).toBe(200);
+    // The HUD picks its page from the variant parameter.
+    expect(await page.text()).toContain("variant=player-stats");
+    expect((await overlay(`/hud/${entry.id}/live?t=${token}&view=nope`)).status).toBe(404);
+  });
+
   it("sets the HUD's cookie on its page, loads it with isProd, and shows a test-data badge slot", async () => {
     const page = await overlay(`/hud/${entry.id}/live?t=${token}`);
     expect(page.status).toBe(200);
@@ -172,8 +196,16 @@ describe("LHM-format HUD in the library (engine)", () => {
     expect((await overlay("/api/teams", `mf_lhm_${entry.id}=wrong`)).status).toBe(401);
     const team = await api("/api/v1/teams", { method: "POST", body: { name: "Northern Lights", shortName: "NOR", primaryColor: "#1e90ff" } });
     expect(team.status).toBeLessThan(300);
-    const teams = (await (await overlay("/api/teams", cookie)).json()) as { _id: string; name: string; extra: { TeamColor: string } }[];
+    const teams = (await (await overlay("/api/teams", cookie)).json()) as { _id: string; name: string; logo: string | null; extra: { TeamColor: string } }[];
     expect(teams.find((t) => t.name === "Northern Lights")?.extra.TeamColor).toBe("#1e90ff");
+    // A team logo is an address the HUD can load directly (kaiHUD uses it as the image source).
+    const logo = await api(`/api/v1/assets?name=logo.png`, { method: "POST", raw: PNG });
+    const teamId = (team.json as { id: string }).id;
+    await api(`/api/v1/teams/${teamId}`, { method: "PATCH", body: { logoAssetId: (logo.json as { assetId: string }).assetId } });
+    const withLogo = (await (await overlay(`/api/teams/${teamId}`, cookie)).json()) as { logo: string };
+    expect(withLogo.logo).toBe(`/api/teams/logo/${teamId}`);
+    const img = await overlay(withLogo.logo, cookie);
+    expect(img.status).toBe(302);
     expect(await (await overlay("/api/match/current", cookie)).json()).toBeNull();
     expect(await (await overlay("/api/camera", cookie)).json()).toMatchObject({ availablePlayers: [] });
     expect((await overlay("/api/unknown", cookie)).status).toBe(404);
@@ -184,9 +216,9 @@ describe("LHM-format HUD in the library (engine)", () => {
       ["upper", -450, null],
       ["lower", null, -450],
     ]);
-    const img = await overlay("/api/game-maps/cs2/image/de_dust2/radar", cookie);
-    expect(img.status).toBe(200);
-    expect(img.headers.get("content-type")).toBe("image/png");
+    const radar = await overlay("/api/game-maps/cs2/image/de_dust2/radar", cookie);
+    expect(radar.status).toBe(200);
+    expect(radar.headers.get("content-type")).toBe("image/png");
 
     const refused = connect();
     await expect(next(refused, "connect")).rejects.toThrow();
@@ -212,6 +244,14 @@ describe("LHM-format HUD in the library (engine)", () => {
     expect((got.map as { name: string }).name).toBe("de_dust2");
     expect(got.allplayers).toBeTruthy();
     expect(got.auth).toBeUndefined();
+
+    // Image inputs (kaiHUD's baseboard sponsors): uploaded images, sent as base64 like LHM does.
+    const asset = await api(`/api/v1/assets?name=sponsor.png`, { method: "POST", raw: PNG });
+    const assetId = (asset.json as { assetId: string }).assetId;
+    const withImages = next<Record<string, Record<string, unknown>>>(s, "hud_config");
+    expect((await api(`/api/v1/hud/library/${entry.id}/settings`, { method: "PUT", body: { settings: { "ads.baseboard_image": [assetId] } } })).status).toBe(200);
+    expect((await withImages).ads).toEqual({ baseboard_image: [Buffer.from(PNG).toString("base64")] });
+    expect((await api(`/api/v1/hud/library/${entry.id}/settings`, { method: "PUT", body: { settings: { "ads.baseboard_image": ["../secret.png"] } } })).status).toBe(400);
 
     const action = next<{ action: string; data: string }>(s, "hud_action");
     expect((await api(`/api/v1/hud/library/${entry.id}/action`, { method: "POST", body: { key: "tournament.header_state", value: "header_toggle" } })).status).toBe(200);

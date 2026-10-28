@@ -927,9 +927,13 @@ kbd {
   border-color: transparent;
   color: var(--text-dim);
 }
-.btn:disabled {
+.btn:disabled,
+.btn.is-disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+.btn.is-disabled {
+  pointer-events: none;
 }
 .btn-wrap {
   display: inline-flex;

@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { z } from "zod";
 import type { HudSettingField } from "@matchframe/contracts";
 
@@ -96,6 +98,9 @@ export function panelSettings(panel: LhmPanel): { schema: Record<string, HudSett
         case "action":
           if (options.length) field = { type: "action", label, group, options };
           break;
+        case "images":
+          field = { type: "images", label, group, default: [] };
+          break;
       }
       if (!field) {
         skipped.push(`${key} (${input.type})`);
@@ -166,10 +171,38 @@ export function convertLhmPackage(files: Map<string, Uint8Array>): { files: Map<
   return { files: out, converted: true, skipped };
 }
 
-/** Values LHM sends for a "player" or "team" input; Matchframe stores just the id. */
+/** Values LHM sends for a "player", "team" or "images" input; Matchframe stores just the ids. */
 export interface LhmLookup {
   player(steamId: string): Record<string, unknown> | null;
   team(teamId: string): Record<string, unknown> | null;
+  /** An uploaded image as base64 without a data: prefix (what LHM sends for image inputs), or null. */
+  image(assetId: string): string | null;
+}
+
+/** A page name an LHM HUD declares in hud.json `variants` (used in a URL query). */
+const VIEW_RE = /^[a-z0-9][a-z0-9_-]{0,39}$/i;
+
+/**
+ * An LHM HUD's own pages: hud.json `variants` (kaiHUD: player-stats, match-stats, match-preview,
+ * veto, baseboard). The HUD reads the page name from its `variant` query parameter.
+ */
+export function lhmViews(installDir: string | null): { id: string; label: string }[] {
+  if (!installDir) return [];
+  const file = join(installDir, "hud.json");
+  if (!existsSync(file)) return [];
+  try {
+    const r = HudJson.safeParse(JSON.parse(readFileSync(file, "utf8").replace(/^\uFEFF/, "")));
+    const names = r.success ? (r.data.variants ?? []) : [];
+    return [...new Set(names.filter((v) => VIEW_RE.test(v) && v !== "default"))].slice(0, 20).map((id) => ({ id, label: viewLabel(id) }));
+  } catch {
+    return [];
+  }
+}
+
+/** "player-stats" → "Player stats". */
+export function viewLabel(id: string): string {
+  const words = id.replace(/[_-]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 /** The HUD's settings in LHM's hud_config shape: `{ [section]: { [input]: value } }`. */
@@ -181,6 +214,10 @@ export function hudConfig(panel: LhmPanel, settings: Record<string, unknown>, lo
     let value: unknown = v ?? null;
     if (ref.type === "player") value = typeof v === "string" && v ? { type: "player", id: v, player: lookup.player(v) } : null;
     else if (ref.type === "team") value = typeof v === "string" && v ? { type: "team", id: v, team: lookup.team(v) } : null;
+    else if (ref.type === "images") {
+      const images = Array.isArray(v) ? v.filter((id): id is string => typeof id === "string").map((id) => lookup.image(id)).filter((b): b is string => !!b) : [];
+      value = images.length ? images : null;
+    }
     if (value === null && ref.type !== "checkbox") continue;
     (out[ref.section] ??= {})[ref.input] = value ?? false;
   }

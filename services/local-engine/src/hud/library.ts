@@ -1,5 +1,5 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { zipSync } from "fflate";
 import type { HudLibrary, HudLibraryEntry, HudManifest, HudOutputMode, HudRuntimeControl, HudVariant } from "@matchframe/contracts";
@@ -10,7 +10,7 @@ import { HttpError } from "../http/router.ts";
 import type { Logger } from "../logger.ts";
 import type { OutputService } from "./outputs.ts";
 import type { HudPackageManager, InstalledPackage } from "./packages.ts";
-import { convertLhmPackage } from "./lhm.ts";
+import { convertLhmPackage, lhmViews, panelSettings, parsePanel } from "./lhm.ts";
 import { PackageError, readDirectory, safeEntryPath, validateManifest } from "./packages.ts";
 
 export type LibraryKind = HudLibraryEntry["kind"];
@@ -75,6 +75,8 @@ const HIDDEN_ALL_KEY = "hud.library.hiddenAll";
 const SAMPLES_KEY = "hud.library.samples";
 const ID_RE = /^[a-z0-9][a-z0-9.-]{2,63}$/;
 const COLOR_RE = /^(#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|(rgb|rgba|hsl|hsla)\([0-9.,%\s/+-]+\)|transparent)$/i;
+/** An uploaded image asset id (POST /api/v1/assets): content hash plus extension. */
+const IMAGE_ASSET_RE = /^[0-9a-f]{24}\.(png|jpe?g|webp|svg|gif)$/i;
 
 const newToken = () => randomBytes(12).toString("hex");
 const zeroOutputs = (): Record<HudOutputMode, number> => ({ obs: 0, desktop: 0, preview: 0 });
@@ -142,7 +144,22 @@ function coerceSetting(key: string, f: HudSettingField, v: unknown): Coerced {
       return { ok: false, message: `${name} must be a ${f.type === "player" ? "player" : "team"} from Matchframe` };
     case "action":
       return { ok: false, message: `${name} is a button: it sends an action and stores nothing` };
+    case "images":
+      if (!Array.isArray(v) || v.length > 20 || !v.every((id) => typeof id === "string" && IMAGE_ASSET_RE.test(id))) return { ok: false, message: `${name} must be a list of up to 20 uploaded images` };
+      return { ok: true, value: v };
   }
+}
+
+/**
+ * A HUD's settings fields as written: the manifest's, or for an LHM-format HUD its panel.json read
+ * again, so HUDs imported before an input type was supported get it without importing them again.
+ */
+function rawSchemaOf(pkg: InstalledPackage): Record<string, unknown> | undefined {
+  if (pkg.manifest.runtime === "lhm" && pkg.classification !== "builtin") {
+    const file = join(pkg.installDir, "panel.json");
+    if (existsSync(file)) return panelSettings(parsePanel(readFileSync(file, "utf8"))).schema;
+  }
+  return pkg.manifest.settingsSchema;
 }
 
 /**
@@ -338,13 +355,14 @@ export class HudLibraryService {
   private toEntry(pkg: InstalledPackage, row: LibraryRow): HudLibraryEntry {
     const m = pkg.manifest;
     const builtin = pkg.classification === "builtin";
-    const schema = normalizeSettingsSchema(m.settingsSchema, m.runtime);
+    const schema = normalizeSettingsSchema(rawSchemaOf(pkg), m.runtime);
     const variants = HUD_VARIANTS.filter((v) => m.entryPoints[v]);
     const outputs = this.runtime?.outputs(pkg.id) ?? zeroOutputs();
     const error = this.problem(pkg);
     const connected = HUD_OUTPUT_MODES.reduce((n, mode) => n + outputs[mode], 0);
     const urls: Partial<Record<HudVariant, string>> = {};
     for (const v of variants) urls[v] = `${this.overlayOrigin}/hud/${encodeURIComponent(pkg.id)}/${v}?t=${row.token}`;
+    const views = m.runtime === "lhm" && !builtin ? lhmViews(pkg.installDir).map((v) => ({ ...v, url: `${this.overlayOrigin}/hud/${encodeURIComponent(pkg.id)}/live?t=${row.token}&view=${encodeURIComponent(v.id)}` })) : [];
     return {
       id: pkg.id,
       name: m.name,
@@ -359,6 +377,7 @@ export class HudLibraryService {
       runtime: m.runtime ?? "matchframe",
       thumbnailUrl: this.thumbnailUrl(pkg),
       variants,
+      views,
       designResolution: designResolutionOf(m),
       folder: builtin ? null : pkg.installDir,
       installedAt: pkg.installedAt,
@@ -445,7 +464,7 @@ export class HudLibraryService {
     if (!pkg || !row) return null;
     const m = pkg.manifest;
     return {
-      settings: { ...defaultsOf(normalizeSettingsSchema(m.settingsSchema)), ...row.settings },
+      settings: { ...defaultsOf(normalizeSettingsSchema(rawSchemaOf(pkg))), ...row.settings },
       presetId: this.presetOf(m, row),
       variants: HUD_VARIANTS.filter((v) => m.entryPoints[v]),
       entryPoints: m.entryPoints,
@@ -469,7 +488,7 @@ export class HudLibraryService {
   /** A settings-form button ("action" field) pressed for this HUD. */
   action(id: string, key: string, value: string): void {
     const { pkg } = this.require(id);
-    const field = normalizeSettingsSchema(pkg.manifest.settingsSchema, pkg.manifest.runtime)[key];
+    const field = normalizeSettingsSchema(rawSchemaOf(pkg), pkg.manifest.runtime)[key];
     if (!field || field.type !== "action" || !field.options?.some((o) => o.value === value)) throw new HttpError(400, `${key} has no button ${value}`, "unknown_action");
     if (!this.runtime?.action?.(id, key, value)) throw new HttpError(409, "the HUD is not running: open it first", "not_running");
   }
@@ -591,7 +610,7 @@ export class HudLibraryService {
 
   setSettings(id: string, settings: Record<string, unknown>, presetId?: string | null): HudLibraryEntry {
     const { pkg } = this.require(id);
-    const clean = validateSettings(normalizeSettingsSchema(pkg.manifest.settingsSchema), settings);
+    const clean = validateSettings(normalizeSettingsSchema(rawSchemaOf(pkg)), settings);
     const presets = pkg.manifest.presets;
     if (presetId && presets.length > 0 && !presets.some((p) => p.id === presetId)) {
       throw new HttpError(400, `unknown preset ${presetId}; this HUD has ${presets.map((p) => p.id).join(", ")}`, "unknown_preset");

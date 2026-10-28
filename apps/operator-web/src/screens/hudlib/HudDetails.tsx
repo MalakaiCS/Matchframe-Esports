@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { HudLibraryEntry, HudOutputMode, HudSettingField, HudVariant } from "@matchframe/contracts";
 import { api, describeError } from "../../api/index.ts";
 import type { DesktopHudBridge, DisplayInfo, HotkeyState, OverlayState } from "../../api/desktop.ts";
+import { assetUrl, uploadAsset } from "../../components/AssetUpload.tsx";
 import { Icon } from "../../components/icons.tsx";
 import { useToast } from "../../components/toasts.tsx";
 import { Button, Checkbox, CopyButton, Details, Field, JsonEditor, KV, Note, parseJsonOr, Tabs } from "../../components/ui.tsx";
@@ -155,6 +156,22 @@ function Overview(p: Props) {
           ))}
         </ul>
       </section>
+      {entry.views.length ? (
+        <section>
+          <h3 className="hud-section-title">HUD pages</h3>
+          <p className="muted small">This HUD's own pages. Add each one you use as another OBS Browser Source, and show it when you need it.</p>
+          <ul className="hud-variants" aria-label="HUD pages">
+            {entry.views.map((v) => (
+              <li key={v.id}>
+                <span>
+                  {v.label} <span className="muted small mono">{v.id}</span>
+                </span>
+                <CopyButton text={v.url} label="Copy URL" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       </div>
     </div>
   );
@@ -202,6 +219,55 @@ function TeamPicker({ label, hint, value, onChange, disabled }: { label: string;
   );
 }
 
+/** Uploaded images (LHM image inputs, e.g. kaiHUD's baseboard sponsors), in order. */
+function ImagesInput({ label, hint, value, onChange, disabled }: { label: string; hint?: string; value: unknown; onChange: (v: unknown) => void; disabled: boolean }) {
+  const ids = Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <Field label={label} hint={hint ?? "PNG, JPG, WebP, SVG or GIF; up to 20."}>
+      <div className="row">
+        {ids.map((id, i) => (
+          <span key={`${id}-${i}`} className="row">
+            <img className="thumb" src={assetUrl(id)!} alt={`${label} ${i + 1}`} />
+            <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onChange(ids.filter((_, j) => j !== i))} aria-label={`Remove image ${i + 1}`}>
+              Remove
+            </Button>
+          </span>
+        ))}
+        <label className={`btn btn-sm ${disabled || busy || ids.length >= 20 ? "is-disabled" : ""}`}>
+          {busy ? "Uploading…" : "Add images"}
+          <input
+            type="file"
+            multiple
+            accept=".png,.jpg,.jpeg,.webp,.svg,.gif"
+            className="sr-only"
+            aria-label={`Add ${label}`}
+            disabled={disabled || busy || ids.length >= 20}
+            onChange={async (e) => {
+              const files = [...(e.target.files ?? [])];
+              e.target.value = "";
+              if (!files.length) return;
+              setBusy(true);
+              setError(null);
+              try {
+                const added: string[] = [];
+                for (const f of files) added.push((await uploadAsset(f)).assetId);
+                onChange([...ids, ...added].slice(0, 20));
+              } catch (err) {
+                setError(describeError(err));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          />
+        </label>
+      </div>
+      {error ? <span className="action-error">{error}</span> : null}
+    </Field>
+  );
+}
+
 /** Panel buttons (LHM-format HUDs): each sends a one-off action to the running HUD. */
 function ActionButtons({ hudId, name, label, field, disabled }: { hudId: string; name: string; label: string; field: HudSettingField; disabled: boolean }) {
   const run = useRun();
@@ -224,6 +290,7 @@ function SettingInput({ hudId, name, field, value, onChange, disabled }: { hudId
   if (field.type === "player") return <PlayerPicker label={label} hint={hint} value={value} onChange={onChange} disabled={disabled} />;
   if (field.type === "team") return <TeamPicker label={label} hint={hint} value={value} onChange={onChange} disabled={disabled} />;
   if (field.type === "action") return <ActionButtons hudId={hudId} name={name} label={label} field={field} disabled={disabled} />;
+  if (field.type === "images") return <ImagesInput label={label} hint={hint} value={value} onChange={onChange} disabled={disabled} />;
   if (field.type === "boolean") return <Checkbox checked={value === true} onChange={onChange} label={label} hint={hint} disabled={disabled} />;
   if (field.type === "select")
     return (

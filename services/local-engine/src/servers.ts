@@ -17,6 +17,7 @@ import { registerHudLibraryRoutes } from "./routes/hud-library.ts";
 import { libraryHudId, libraryOutputId } from "./hud/library.ts";
 import { WRAPPER_JS, wrapperPage } from "./hud/wrapper.ts";
 import { LhmRuntime, lhmSetCookie } from "./hud/lhm-runtime.ts";
+import { lhmViews } from "./hud/lhm.ts";
 import { registerLiveRoutes } from "./routes/live.ts";
 import { registerDemoRoutes } from "./routes/demos.ts";
 import { registerDeviceRoutes, tally } from "./routes/devices.ts";
@@ -400,8 +401,11 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       const m = url.searchParams.get("mode") ?? "obs";
       const mode: HudOutputMode = (HUD_OUTPUT_MODES as readonly string[]).includes(m) ? (m as HudOutputMode) : "obs";
       const lhmHud = rt.runtime === "lhm";
+      // An LHM HUD's own page (hud.json variants, e.g. kaiHUD's player-stats): the HUD reads it from `variant`.
+      const view = lhmHud ? url.searchParams.get("view") : null;
+      if (view && !lhmViews(rt.installDir).some((v) => v.id === view)) return json(res, 404, { error: "not_found", message: `this HUD has no ${view} page` });
       // LHM-format HUDs use relative addresses with isProd set, and reach /socket.io and /api with a cookie.
-      const q = `output=${libraryOutputId(hudId)}&variant=${variant}&t=${encodeURIComponent(token!)}${lhmHud ? "&isProd=1" : ""}`;
+      const q = `output=${libraryOutputId(hudId)}&variant=${encodeURIComponent(view ?? variant)}&t=${encodeURIComponent(token!)}${lhmHud ? "&isProd=1" : ""}`;
       const frameUrl = rt.builtin ? `/hud/index.html?${q}` : `/huds/${encodeURIComponent(hudId)}/${entry.split("/").map(encodeURIComponent).join("/")}?${q}`;
       const embed = mode === "preview" && url.searchParams.get("embed") === "1" ? "&embed=1" : "";
       const html = wrapperPage({ hudId, name: rt.name, variant, mode, checker: url.searchParams.get("checker") === "1", testDataBadge: lhmHud, frameUrl, controlPath: `/hud-runtime-ws?hud=${encodeURIComponent(hudId)}&variant=${variant}&mode=${mode}${embed}&t=${encodeURIComponent(token!)}`, ...rt.designResolution });

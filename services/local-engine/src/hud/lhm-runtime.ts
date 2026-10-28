@@ -1,10 +1,12 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import type { IncomingMessage, Server as HttpServer, ServerResponse } from "node:http";
 import { join } from "node:path";
 import { Server as IoServer } from "socket.io";
 import type { Player, Team } from "@matchframe/contracts";
 import type { HudKillfeedEntry } from "@matchframe/hud-sdk";
 import type { Engine } from "../app.ts";
+import { assetDir } from "../routes/domain.ts";
+import { safeResolve } from "../http/static.ts";
 import { libraryOutputId } from "./library.ts";
 import { hudConfig, isPanelAction, parsePanel, type LhmLookup, type LhmPanel } from "./lhm.ts";
 
@@ -113,7 +115,15 @@ export class LhmRuntime {
       const t = this.e.teams.get(teamId)?.data;
       return t ? this.team(t) : null;
     },
+    image: (assetId) => {
+      if (!/\.(png|jpe?g|webp|svg|gif)$/i.test(assetId)) return null;
+      const f = safeResolve(assetDir(this.e), assetId);
+      if (!f || !existsSync(f) || statSync(f).size > LhmRuntime.IMAGE_MAX) return null;
+      return readFileSync(f).toString("base64");
+    },
   };
+  /** Image inputs are sent inside hud_config as base64: each image at most this big. */
+  private static readonly IMAGE_MAX = 4 * 1024 * 1024;
 
   config(hudId: string): Record<string, Record<string, unknown>> {
     const rt = this.e.hudLibrary.runtimeConfig(hudId);
@@ -200,8 +210,9 @@ export class LhmRuntime {
       name: t.name,
       shortName: t.shortName,
       country: t.countryCode,
-      // Truthy when there is a logo: LHM HUDs then load /api/teams/logo/<id>.
-      logo: t.logoAssetId ? t.id : null,
+      // A path that serves the logo: template HUDs only test it and load /api/teams/logo/<id>
+      // themselves, others (kaiHUD) use it as the image address.
+      logo: t.logoAssetId ? `/api/teams/logo/${encodeURIComponent(t.id)}` : null,
       extra: { TeamColor: t.primaryColor ?? "", SecondaryColor: t.secondaryColor ?? "", ...t.sponsorMetadata },
     };
   }
