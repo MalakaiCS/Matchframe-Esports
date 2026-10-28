@@ -810,6 +810,29 @@ body,
 .mf-cue-economy small {
   color: var(--mf-ink-dim);
 }
+/* Clutch banner: who is alone against how many, in their side's colour. */
+.mf-cue-clutch {
+  left: 50%;
+  top: 150px;
+  transform: translateX(-50%);
+  padding: 10px 30px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-top: 4px solid var(--mf-ct);
+}
+.mf-cue-clutch.side-t {
+  border-top-color: var(--mf-t);
+}
+.mf-cue-versus {
+  font-weight: 900;
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+.mf-cue-mvp {
+  border-left-color: #f2c94c;
+}
 
 .mf-annotations {
   position: absolute;

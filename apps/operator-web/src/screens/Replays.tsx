@@ -9,6 +9,7 @@ import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
 import "../styles/group-b.css";
 import { AutoReplaysPanel, ReplayPcPanel } from "./replays/AutoReplays.tsx";
+import { GraphicsPanel, ObsAutomationPanel } from "./replays/ProductionAutomation.tsx";
 
 const STATE_TONE: Record<ClipState, "ok" | "info" | "warn" | "danger" | "neutral" | "accent"> = {
   bookmarked: "neutral",
@@ -119,7 +120,7 @@ export function ReplaysScreen() {
   return (
     <div className="page">
       <div className="page-head">
-        <h1 className="page-title">Replays &amp; Highlights</h1>
+        <h1 className="page-title">Replays &amp; Production</h1>
         <ActionButton variant="primary" action={() => api.post<{ to: string; detail: string | null }>("/api/v1/program/return-live")} success={(t) => `Program → ${t.to.replace(/_/g, " ").toLowerCase()}${t.detail ? ` (${t.detail})` : ""}`} disabledReason={programReason ?? (programMode === "LIVE" ? "Program is already live" : null)}>
           Return live
         </ActionButton>
@@ -128,6 +129,8 @@ export function ReplaysScreen() {
       <div className="grid-2">
         <AutoReplaysPanel />
         <ReplayPcPanel />
+        <ObsAutomationPanel />
+        <GraphicsPanel />
       </div>
       <Async state={replays}>
         {(r) => {

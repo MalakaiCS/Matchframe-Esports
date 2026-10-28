@@ -28,6 +28,24 @@ export function Cues({ state }: { state: HudState }) {
             </div>
           );
         }
+        if (c.kind === "clutch") {
+          const side = c.data.side === "T" ? "t" : "ct";
+          return (
+            <div key={c.id} className={`mf-cue mf-cue-clutch side-${side}`}>
+              <span className="mf-cue-eyebrow">CLUTCH</span>
+              <span className="mf-cue-versus">{c.title}</span>
+              {c.subtitle ? <span className="mf-cue-title">{c.subtitle}</span> : null}
+            </div>
+          );
+        }
+        if (c.kind === "mvp") {
+          return (
+            <div key={c.id} className="mf-cue mf-cue-lower mf-cue-mvp">
+              <span className="mf-cue-eyebrow">{c.subtitle ?? "ROUND MVP"}</span>
+              <span className="mf-cue-title">{c.title}</span>
+            </div>
+          );
+        }
         if (c.kind === "economy") {
           const money = (side: "left" | "right") => state[side].players.reduce((s, p) => s + (p.money ?? 0), 0);
           const equip = (side: "left" | "right") => state[side].players.reduce((s, p) => s + (p.equipValue ?? 0), 0);

@@ -1016,3 +1016,17 @@ export interface NetworkInfo {
   reachable: boolean;
   addresses: string[];
 }
+
+export interface ObsAutoResponse {
+  settings: { timeouts: boolean; mapEnd: boolean; replayTransition: string };
+  scenes: { LIVE: string | null; REPLAY: string | null; STUDIO: string | null; BREAK: string | null };
+  transitions: { current: string | null; names: string[] } | null;
+}
+export interface GraphicsSettings {
+  enabled: boolean;
+  economy: boolean;
+  mvp: boolean;
+  playerCards: boolean;
+  clutch: boolean;
+  pages: { hudId: string; scene: string; playerSource: string; matchSource: string };
+}

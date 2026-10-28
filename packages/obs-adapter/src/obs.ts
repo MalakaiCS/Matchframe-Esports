@@ -224,6 +224,18 @@ export class ObsManager extends EventEmitter {
     return { confirmed: r.currentProgramSceneName === sceneName, programScene: r.currentProgramSceneName };
   }
 
+  /** Scene transitions in OBS and the current one (a stinger can be chosen for replays). */
+  async transitions(): Promise<{ current: string | null; names: string[] }> {
+    this.requireConnected();
+    const r = await this.obs.call("GetSceneTransitionList");
+    return { current: r.currentSceneTransitionName ?? null, names: (r.transitions as { transitionName: string }[]).map((t) => t.transitionName) };
+  }
+
+  async setTransition(name: string): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("SetCurrentSceneTransition", { transitionName: name });
+  }
+
   /** Idempotent visibility set; confirmed by read-back. */
   async setSourceVisible(sceneName: string, sourceName: string, visible: boolean): Promise<{ confirmed: boolean }> {
     this.requireConnected();

@@ -37,6 +37,8 @@ import { buildHudState } from "./live/projection.ts";
 import { refreshGsiConfig } from "@matchframe/game-adapters";
 import { AutoDirector } from "./live/auto-director.ts";
 import { AutoReplay } from "./replay/auto.ts";
+import { GraphicsDirector } from "./live/graphics.ts";
+import { ObsAutomation } from "./live/obs-auto.ts";
 import { ReplayLink } from "./replay/link.ts";
 import { LiveSession } from "./live/session.ts";
 import { TeamSideTracker } from "./live/team-sides.ts";
@@ -144,6 +146,8 @@ export class Engine {
   readonly autoDirector: AutoDirector;
   readonly replayLink: ReplayLink;
   readonly autoReplay: AutoReplay;
+  readonly graphics: GraphicsDirector;
+  readonly obsAuto: ObsAutomation;
   private meterTimer: ReturnType<typeof setInterval> | null = null;
   private readonly rawGsiListeners = new Set<(payload: Record<string, unknown>, simulated: boolean) => void>();
   private readonly killListeners = new Set<(entry: HudKillfeedEntry) => void>();
@@ -267,6 +271,8 @@ export class Engine {
     this.autoDirector = new AutoDirector(this);
     this.replayLink = new ReplayLink(this);
     this.autoReplay = new AutoReplay(this);
+    this.graphics = new GraphicsDirector(this);
+    this.obsAuto = new ObsAutomation(this);
     this.radars = BuiltinRadars.load(cfg.radarDir, (msg, data) => this.logger.warn(msg, data));
 
     this.session.on("events", (evs) => this.onDerivedEvents(evs));
@@ -866,6 +872,8 @@ export class Engine {
     this.configureReplay();
     this.replayLink.start();
     this.autoReplay.start();
+    this.graphics.start();
+    this.obsAuto.start();
     this.gameConsole.sync();
     this.gameConsole.onConnectionChange(() => void this.applyObserverAdapter());
     await this.applyObserverAdapter();
@@ -896,6 +904,8 @@ export class Engine {
     this.autoDirector.dispose();
     this.replayLink.stop();
     this.autoReplay.dispose();
+    this.graphics.dispose();
+    this.obsAuto.dispose();
     await this.stopSimulation().catch(() => undefined);
     this.demos.stop();
     this.session.stop();

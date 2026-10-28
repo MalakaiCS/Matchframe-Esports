@@ -8,6 +8,8 @@ import type { Engine } from "../app.ts";
 import { APP_VERSION } from "../config.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
+import { GraphicsPatch } from "../live/graphics.ts";
+import { ObsAutoPatch } from "../live/obs-auto.ts";
 import { AutoReplayPatch, playPriority } from "../replay/auto.ts";
 import { ReplayPcSettings, replayLabel } from "../replay/link.ts";
 
@@ -104,6 +106,26 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
     }
     e.audit.record(req.principal!.label, "replay_pc.settings", null, { ...req.body, token: req.body.token ? "(set)" : req.body.token });
     return { settings: e.replayLink.settings(), hasToken: e.replayLink.hasToken(), status: e.replayLink.getStatus() };
+  });
+
+  // ---- HUD graphics timed to the shots ---------------------------------------------------------
+  r.get("/api/v1/graphics/auto", { permission: "state.read" }, () => e.graphics.settings());
+  r.put("/api/v1/graphics/auto", { permission: "hud.publish", body: GraphicsPatch }, (req) => {
+    const next = e.graphics.setSettings(req.body);
+    e.audit.record(req.principal!.label, "graphics.auto_settings", null, req.body);
+    return next;
+  });
+
+  // ---- OBS scene automation ----------------------------------------------------------------------
+  r.get("/api/v1/obs/auto", { permission: "state.read" }, async () => ({
+    settings: e.obsAuto.settings(),
+    scenes: e.program.sceneMap,
+    transitions: e.obs.state.connected ? await e.obs.transitions().catch(() => null) : null,
+  }));
+  r.put("/api/v1/obs/auto", { permission: "program.control", body: ObsAutoPatch }, (req) => {
+    const next = e.obsAuto.setSettings(req.body);
+    e.audit.record(req.principal!.label, "obs.auto_settings", null, req.body);
+    return { settings: next, scenes: e.program.sceneMap, transitions: null };
   });
 
   // ---- this computer on the network --------------------------------------------------------------

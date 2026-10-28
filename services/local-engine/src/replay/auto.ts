@@ -191,6 +191,7 @@ export class AutoReplay {
     try {
       if (it.state === "prepared") this.e.replays.approve(it.id);
       await this.e.obs.setMediaFile(input, it.clip!.media.path!, { speedPercent: st.speedPercent });
+      await this.e.obsAuto.useReplayTransition();
       await this.e.program.request("REPLAY_PREPARED", "automation", holder, { replayItemId: it.id });
       await this.e.program.request("REPLAY_PLAYING", "automation", holder, { replayItemId: it.id });
       await this.e.obs.mediaAction(input, "restart");
@@ -221,6 +222,7 @@ export class AutoReplay {
         if (this.e.now() > deadline) break;
       }
       await this.e.program.request("LIVE", "automation", holder);
+      void this.e.obsAuto.restoreAfterReplay();
       this.e.replays.markPlayed(it.id);
       this.status = { ...this.status, lastPlayed: { id: it.id, label: it.label, at: new Date().toISOString() } };
       this.e.audit.record(holder, "replay.auto_played", it.id, { label: it.label, origin: it.origin });
@@ -229,6 +231,7 @@ export class AutoReplay {
       this.e.replays.markPlaybackFailed(it.id, error);
       if (it.state === "approved") this.e.replays.reject(it.id);
       if (this.e.program.mode === "REPLAY_PLAYING" || this.e.program.mode === "REPLAY_PREPARED") await this.e.program.request("LIVE", "automation", holder).catch(() => undefined);
+      void this.e.obsAuto.restoreAfterReplay();
       this.e.logger.warn("automatic replay failed", { id: it.id, error });
       this.setStatus("blocked", `The last replay didn't play: ${error}`);
     }
