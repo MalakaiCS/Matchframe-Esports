@@ -74,6 +74,23 @@ export function rgbaToI420Pair(rgba: Uint8ClampedArray, w: number, h: number): {
   return { color, alpha };
 }
 
+/** The next turn of the event loop, through a message rather than a timer (messages aren't throttled). */
+function nextTask(): Promise<void> {
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => {
+      channel.port1.close();
+      resolve();
+    };
+    channel.port2.postMessage(null);
+  });
+}
+
+/** Until the encoder takes the next frame off its queue (its "dequeue" event). */
+function dequeued(enc: VideoEncoder): Promise<void> {
+  return new Promise((resolve) => enc.addEventListener("dequeue", () => resolve(), { once: true }));
+}
+
 interface Chunk {
   data: Uint8Array;
   key: boolean;
@@ -98,6 +115,8 @@ export async function encodeAlphaWebm(o: AlphaVideoOptions): Promise<Uint8Array>
       },
       error: (err) => {
         failure = err instanceof Error ? err : new Error(String(err));
+        // A failed encoder takes nothing more off its queue: wake the loop waiting for it.
+        e.dispatchEvent(new Event("dequeue"));
       },
     });
     e.configure({ codec: "vp8", width: w, height: h, bitrate, framerate: fps, latencyMode: "quality" });
@@ -124,9 +143,11 @@ export async function encodeAlphaWebm(o: AlphaVideoOptions): Promise<Uint8Array>
         enc.encode(frame, { keyFrame: key });
         frame.close();
       }
-      // Don't run ahead of the encoders, and let the window breathe between frames.
-      do await new Promise((r) => setTimeout(r, 0));
-      while (colorEnc.encodeQueueSize > 4 || alphaEnc.encodeQueueSize > 4);
+      // Let the window breathe between frames, and don't run ahead of the encoders. Neither waits on
+      // a timer: a window the system reports as hidden (covered by OBS, minimised) gets its chained
+      // timers held back to one a minute after a few minutes, which stalled a stinger half way.
+      await nextTask();
+      for (const enc of [colorEnc, alphaEnc]) while (enc.encodeQueueSize > 4 && !failure) await dequeued(enc);
       o.onProgress?.(i + 1, o.frames);
     }
     await Promise.all([colorEnc.flush(), alphaEnc.flush()]);
