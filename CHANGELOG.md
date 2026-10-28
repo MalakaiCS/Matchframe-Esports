@@ -49,6 +49,23 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
   - **Now:** 104 cameras and 81 paths (orbits of at most 10 s, push-ins, and sideways drifts where there is no orbit).
   - **Gaps filled:** Train CT spawn, Vertigo T spawn, and a mid stand-in on Nuke (Outside), Train and Overpass (Connector).
   - **Generator:** `scripts/generate-map-cameras.py`; the old CS:GO-nav generator is now `scripts/generate-map-regions-csgo-nav.py`.
+- **Replay PC and automatic replays** (version 0.5.0, ADR-027):
+  - **Replay PC:** a second computer with its own CS2, OBS and Matchframe, linked to the main PC by address and code. Its director avoids the main PC's player. It sends the kills the main camera missed (or showed only from the victim) as clips from its OBS replay buffer.
+  - **Automatic replays:** the main PC plays them between rounds by itself, best first, never during a live round or over the operator's program choice. They come with slow motion, a replay transition and a one-click OBS replay scene.
+  - **Big plays on the main PC:** it can replay 3K+ and won clutches its own camera showed.
+  - **Network:** the program's switch lets other computers connect.
+- **Clutch mode** (version 0.5.0, ADR-028): in a 1vX the director stays with the clutcher, with no cameras mid-clutch, the chase view while no opponent is near, a 1v3 banner and a replay of a won clutch. Setting `autoDirector.clutch`, on.
+- **Sightlines and follow cams** (version 0.5.0, ADR-028):
+  - **Grids:** free-space grids for the nine maps, from CS2's collision meshes (`scripts/generate-map-grids.py`, 12-unit cells, 1.5 MB).
+  - **Cuts before the fight:** the director knows when opponents see each other now or in the next 1.6 s, and cuts before the shooting.
+  - **Follow cams:** a free camera behind a running player in quiet moments, streamed over the console at 60 Hz and kept clear of walls with the grid. Setting `autoDirector.followCams`, on.
+- **HUD graphics timed to the shots and OBS scene automation** (version 0.5.0, ADR-029):
+  - **Graphics:** economy and round MVP in freeze time, player cards on long holds (player views only), the clutch banner, and LHM HUD pages (kaiHUD's Player Highlight and Match stats) through OBS sources.
+  - **OBS:** timeouts and pauses to the break scene, map end to the studio scene, and a replay transition.
+- **LHM HUD pages, logos and image inputs** (version 0.5.0):
+  - an LHM HUD's own pages (hud.json variants) open with `?view=` and are listed with their OBS addresses;
+  - team logos are sent as an address kaiHUD can use directly;
+  - image inputs (kaiHUD's baseboard sponsors) are supported.
 - **Cameras for every named area** (version 0.4.3, ADR-026): `scripts/generate-map-cameras.py` now also places cameras on every named area beyond the bombsites, mid and spawns, with the same CS2 collision checks (at least 45 % of the area in view, median 86 %). 391 cameras (287 new) cover 200 of the 227 named areas; 27 small or enclosed areas (tunnels, ladders, small rooms) have no spot that passes. They are tactical and utility cameras for the live round and round end, so big-fight overviews and nade cams work across the whole map; they have no paths.
 - **Chase cam** (version 0.4.3, ADR-026): the Auto Director shows the spectated player in CS2's third-person chase view while they plant or defuse the bomb and when their team wins the round, then goes back to first person. It holds each view at least 1.5 s, never during a cinematic, and only while the director has the camera. Toggle **Chase cam** on the Auto Director card (`chase` in `PUT /api/v1/director/auto/settings`, default on). By hand: Shift-click a player card or Shift + number key in Live Control, or `view: "chase"` on `POST /api/v1/observer/commands`. The console adapter sends the chase command after `spec_player`, confirms it with `getpos` (the camera at least 40 units across from the player), tries the other `spec_mode` numbering once if not, and keeps whichever works.
 - **Hide CS2 kill feed** (version 0.4.1, HLAE): a switch on the Counter-Strike 2 card that blocks CS2's own kill feed with `mirv_deathmsg filter add block=1`, so only the HUD's kill feed shows. With Hide game HUD on (`cl_draw_only_deathnotices 1`), the crosshair stays. Checked against HLAE's CS2 source: a filter rule with no player match applies to every kill notice.

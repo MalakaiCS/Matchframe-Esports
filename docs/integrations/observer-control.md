@@ -22,7 +22,15 @@ While it runs:
 - After a gap in the game data, it takes the camera back as soon as data flows again.
 - **Stop**, the emergency stop, or switching the Observer to Off stops it. It also stops when the hours run out at a map change.
 - **Chase cam** (on unless unticked): while the spectated player plants or defuses the bomb, and when their team wins the round with them alive, the camera goes behind them (CS2's third-person chase view). It goes back to first person when the moment ends. Each view is held at least 1.5 s, and never during a cinematic shot (ADR-026).
-- `GET /api/v1/director/auto` returns the status and checks, and `PUT /api/v1/director/auto/settings` sets `cinematic`, `nadeCams`, `returnAfterSec` and `chase`.
+- **Clutch mode** (on unless unticked): when one player is left alone against two or more (any 1vX), the director stays with them.
+  - Their score gets +0.45 and each opponent's −0.25.
+  - No cuts to cameras until the clutch ends.
+  - The chase view while no opponent is within 1800 units, first person again from 1400.
+  - With automatic replays on, a won 1v2+ is replayed first in the break (ADR-028).
+- **Follow cams** (on, with cinematic cameras): a free camera flies behind and a little above a player running somewhere with no fight close (a lurk, a rotation, the bomb carrier walking onto a site), for about 4.5 s, and cuts away when a fight starts. It needs the map's free-space grid, which keeps the camera clear of walls (ADR-028).
+- **Fights before they start:** with the map's free-space grid, the director knows whether two opponents see each other now, or will in the next 1.6 s at their current speed, and cuts to the player before the shooting (ADR-028).
+- **HUD graphics** and **OBS scenes** follow the shots too: see [OBS integration](obs.md) and ADR-029.
+- `GET /api/v1/director/auto` returns the status and checks, and `PUT /api/v1/director/auto/settings` sets `cinematic`, `nadeCams`, `returnAfterSec`, `chase`, `clutch` and `followCams`.
 
 ## Adapters
 
@@ -42,6 +50,7 @@ While it runs:
 | In-eye / chase / free camera | `spec_mode 4` / `5` / `6` (CS:GO numbering). On a build where `getpos` shows that this numbering doesn't move the camera, the adapter tries CS2's enum numbering (`2` / `3` / `4`). It keeps whichever works and saves it to the templates. The in-eye command is checked the same way: when leaving the free camera for a player, if the game data still shows the free camera, the adapter tries the other numbering's in-eye command once and keeps it if the player then shows. |
 | Static camera | `{roaming}; spec_goto {x} {y} {z} {pitch} {yaw}` (`{roaming}` is the free-camera command), then `getpos`. |
 | Camera path | The first pose as a static camera, then `spec_goto {x} {y} {z} {pitch} {yaw}` 60 times a second along the path (Catmull-Rom positions, eased timing, the shorter way round for yaw), then `getpos` at the end. |
+| Follow cam | The same streaming, with each pose worked out live from the player's position (`streamCamera`). A player selection stops it. |
 | Pose readback | `getpos` → `setpos x y z;setang pitch yaw roll`. |
 
 Since the CS2 update of 2026-10-15, demo playback ignores `spec_goto`'s position while the demo free camera is on. `cl_demo_freecam 0` is the workaround reported by players (Valve issue #4660). Live servers and GOTV are not affected.
@@ -69,6 +78,10 @@ The setup tests remain available: `POST /api/v1/setup/test-player-selection`, `t
 - **Built-in cameras and paths** for all nine active-duty maps (Ancient, Anubis, Dust II, Inferno, Mirage, Nuke, Overpass, Train, Vertigo) ship in the map packs: 391 cameras and 81 paths (ADR-025, ADR-026). The bombsites, mid and spawns have three or two cameras each and the paths. Every other named area has two cameras for live play (big-fight overviews and nade cams, no paths): 200 of the 227 named areas have cameras, and 27 small or enclosed ones (tunnels, ladders, small rooms) have none. `scripts/generate-map-cameras.py` placed them on CS2's own walkable floor (navigation meshes) and checked each one against CS2's collision geometry (build 26144732). A camera has clear space around it, sees its area's centre and at least half of the area (45 % for the extra areas; more than 70 % for most cameras), and most of its view is open (no wall right in front). The real flight curve of each path is clear of geometry and keeps the area in view. Collision geometry leaves out see-through and non-solid things (glass, fences, foliage), so a shot can still show one of those in front of the action. They are used without validation unless switched off (Maps & Cameras → **Built-in cameras**, or `PUT /api/v1/cameras/built-in`). They were not checked by eye in CS2; validate or invalidate each one after a look.
 - **Your own cameras** from `getpos` (Maps & Cameras → Add camera) are used once validated (`/maps/:map/cameras/:id/validation`). An invalidated camera is never used, built-in or not.
 - In freeze time, Observer & Cinematics flies one camera path per round, taking turns through the map's paths, when it fits in the time left. Paths and establishing shots don't count against the round's cinematic budget.
+- **Free-space grids** (`assets/map-packs/<map>.grid`, ADR-028): 12-unit cells from CS2's collision meshes for the nine maps.
+  - Used for sightlines between players, and for room around the follow camera.
+  - Checked against the exact geometry: they miss 5–13 % of clear sightlines, and saw through a wall at most once in about 1,350 blocked ones.
+- **Replay PC:** a second computer's director avoids the main PC's player (`avoid`, reason `MAIN_OBSERVER_ON_IT`); see [Replay PC](../operations/replay-pc.md).
 
 ## Confirmation semantics
 

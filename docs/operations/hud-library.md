@@ -79,14 +79,17 @@ HUDs made for Lexogrine HUD Manager (LHM) can be imported as they are: a ZIP or 
 3. The HUD's control panel (`panel.json`) becomes its **Appearance** settings, grouped by panel section: text, checkboxes, colours and lists. Player and team choices are lists of Matchframe's players (and the players in the game) and teams. **Save settings** sends them to the running HUD.
 4. Panel buttons (for example *Toggle Header* or *Show veto*) appear as buttons in **Appearance** and act straight away. They work only while the HUD is running (desktop, preview or OBS); otherwise the program says the HUD isn't running.
 5. Show it like any other HUD: the **Desktop** switch, **Preview**, or **Copy OBS Browser URL**. The OBS size is 1920×1080.
+6. **The HUD's own pages** (its `hud.json` variants) are listed under **HUD pages** in its details, each with **Copy URL**. kaiHUD has *Player stats* (its Player Highlight panel), *Match stats*, *Match preview*, *Veto* and *Baseboard*. Add each one you use as another OBS Browser Source. In **Replays & Production → HUD graphics → LHM HUD pages**, Matchframe can show Player stats for the round MVP in freeze time and Match stats at half time and at the end of the map.
+7. **Image inputs** (for example kaiHUD's baseboard sponsors) are **Add images** fields in **Appearance**. The images are sent to the HUD the way LHM sends them.
 
-What works: everything the HUD draws from game data (scoreboard, players, bomb, utility, its own minimap and killfeed), its fonts, its settings and buttons, teams, players and the current match, and Matchframe's built-in radars for HUDs that ask for them. During **Test data**, a purple **TEST DATA** label appears at the top of the HUD.
+What works: everything the HUD draws from game data (scoreboard, players, bomb, utility, its own minimap and killfeed), its fonts, its settings, buttons and image inputs, its own pages, teams (names, logos, colours as `TeamColor`), players (real names, photos), the current match and veto, and Matchframe's built-in radars for HUDs that ask for them. kaiHUD 1.0.2 was checked page by page in a browser against test data: Player Highlight, Match stats, match preview and baseboard showed the right players, stats, logos, colours and sponsor images. During **Test data**, a purple **TEST DATA** label appears at the top of the HUD.
 
 Limits:
 
 - **Killfeed**: CS2's game data has no kill events. The killfeed shows Matchframe's paired kills (killer, weapon in hand, headshot, assister, blind killer), so wallbang, no-scope, through-smoke and flash-assist icons never appear. Kills made before the HUD opened don't appear either.
 - No output delay: LHM-format HUDs always show live data.
-- Not supported: image inputs in the panel (for example sponsor boards), the HUD's keyboard shortcuts (`keybinds.json`), player cameras, and anything that needs LHM's cloud. The rest of the HUD still works.
+- Not supported: the HUD's keyboard shortcuts (`keybinds.json`), player cameras, and anything that needs LHM's cloud. The rest of the HUD still works.
+- kaiHUD's Player Highlight shows the selected player *or* the spectated one, whichever comes first in the game data. So Matchframe shows it for the MVP only when the camera isn't on another player.
 - Fonts from Google Fonts load from the internet. Offline, the HUD falls back to other fonts.
 - Only CS2 (and CS:GO-format) HUDs are accepted.
 

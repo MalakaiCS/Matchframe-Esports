@@ -49,6 +49,7 @@ The weapon and equipment icons in the Pro CS2 HUD (also used by the Matchframe B
   - **Data:** CS2's navigation meshes and collision meshes, as extracted from the game files by awpy-data (https://github.com/pnxenopoulos/awpy-data, release for CS2 build 26144732 / ClientVersion 2000935, scripts © 2025 Peter Xenopoulos, MIT licence).
   - **Reader:** awpy 3.1.1 (https://github.com/pnxenopoulos/awpy, MIT licence).
   - **Ownership:** the meshes are Valve's game assets. Neither the meshes nor the extracted files are committed or shipped; only the derived camera poses and paths are.
+- **Free-space grids:** `assets/map-packs/<map>.grid` (which 12-unit cells collision geometry passes through) were computed by `scripts/generate-map-grids.py` from the same awpy-data meshes, read directly. Only the derived grids are committed and shipped.
 - **Region cells and floor grids:** the region cells and floor grids of the Dust II, Mirage, Nuke, Train and Vertigo packs, and some regions in other packs, came from the navigation areas in awpy 1.3.1 (`awpy/data/nav/nav_info.csv`, © 2020-2023 Peter Xenopoulos, MIT licence), built by `scripts/generate-map-regions-csgo-nav.py`.
 - **The maps are Valve's.**
 

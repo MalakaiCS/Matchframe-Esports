@@ -156,3 +156,78 @@ What remains:
 - **Not yet seen in a real CS2:** which `spec_mode` number is the chase view on the current build. The adapter learns it from `getpos`.
 
 **Revisit if.** Operators find the chase view distracting at round end, a CS2 update changes `spec_mode`, or an area camera looks bad on air (invalidate it).
+
+## ADR-027 — A replay PC that films what the main camera misses, and automatic replays between rounds
+**Context.** One observer can show one player. Kills elsewhere were never seen, and replays needed an operator to bookmark, approve and play each clip. The owner runs two computers and asked for the second one to catch the kills the main observer misses and replay them automatically.
+**Decision.**
+- **Two programs, linked over the network.** The main PC's engine can listen on the network: the program's network access switch sets `MATCHFRAME_HOST=0.0.0.0`, and access still needs a token. The replay PC links to it with the main PC's address and a replay PC code (a `replay` role token).
+- **Avoiding the main player.** The replay PC asks `GET /api/v1/replay-link/on-air` every 250 ms. Its director then takes 0.8 off that player's score for 1.5 s (director `avoid` control, reason `MAIN_OBSERVER_ON_IT`), so it films the other side of the same fight or another fight.
+- **Which kills count.** A kill counts when the replay PC's camera had the killer in the 1.5 s before it. It is *missed* when the main camera showed neither player in the 2.5 s before it, and *another angle* when it showed only the victim. Kills the main camera showed are not sent.
+- **Sending a clip.** 2 s after the kill (later if the same player kills again within 4 s, up to 12 s), the replay PC saves its OBS replay buffer. It uploads the clip to `POST /api/v1/replays/incoming` with what it shows and how much of its end to play. It starts its OBS replay buffer itself.
+- **Automatic replays on the main PC** (`replay/auto.ts`, setting `replay.auto`, off by default):
+  - **When:** in the break after the round the clips belong to, from 3.5 s after the round ends until 1.5 s before freeze time ends. They never play while a round is live, stop at once if it goes live, and never play over the operator's program choice.
+  - **Order:** a won clutch (4), 3K+ (3), missed (2), other angle (1); N per break (default 2).
+  - **Playback:** at the chosen speed (the media source's speed setting), seeking to the clip's end part, and back to the live scene when OBS reports the clip ended.
+  - **Big plays shown live:** with *Replay big plays shown live*, the main PC saves its own replay buffer for 3K+ and won 1v2+ clutches the main camera showed.
+- **One-click replay scene:** `POST /api/v1/replays/obs-setup` makes the replay scene with its media source and maps it. Clips from the replay PC are kept in `data/replays` (newest 120), and the queue deletes their files when they drop off.
+
+**Consequences.** Kills away from the main camera reach the broadcast as replays without an operator. The replay PC needs its own CS2 spectating the same match at the same delay, and its own OBS with a Game Capture.
+- **Checked:** two engines with a stand-in OBS, and against a real OBS under Xvfb.
+- **Not checked yet:** two real CS2 clients on two computers over a real network.
+
+**Revisit if.** A dedicated replay tool (bridge provider) is used instead, or GOTV delays differ between the two computers enough to misjudge "missed".
+
+## ADR-028 — Free-space grids from CS2's collision meshes: sightlines, follow cams; clutch mode
+**Context.** The director guessed contact from distance and facing only (no geometry at run time; the meshes are Valve's assets and are not shipped). The owner asked for cuts before the fight, a follow camera and a clutch mode.
+**Decision.**
+- **Grids:**
+  - **Content:** `scripts/generate-map-grids.py` derives `assets/map-packs/<map>.grid` for the nine maps from the awpy-data meshes of CS2 build 26144732. A cell is 12 units, over the navigation mesh's extent plus a margin, and is solid when a collision triangle passes through it (points sampled a quarter cell apart).
+  - **Size:** 80–260 KB per map, 1.5 MB in all.
+  - **Sightline test:** clear eye to eye, or 8 units higher, with no solid cell along it (one cell skipped at each end).
+  - **Accuracy:** checked against the exact mesh test on 1,500 sightlines per map, it misses 5–13 % of the clear ones and saw through a wall at most once in ~1,350. Coarser 32-unit cells missed 30 %. A grazing tolerance saw through floors on Nuke, so it was dropped.
+  - **Loading:** `VisibilityGrid` in map-runtime; the engine loads the grids with the packs.
+- **Fights before they start:** `computePair` records whether the two see each other now, or in 0.4–1.6 s at their current speed.
+  - **In sight now:** contact rises as 1 − exp(−(1.2 + 2.4·looking)·h).
+  - **A sightline opening soon:** at least 0.8 from that horizon on.
+  - **Walls and nothing opening:** it falls (×0.35 within 1 s, ×0.65 after).
+- **Follow cams:**
+  - **Shot and when:** a new shot `follow:<steamId>` (ShotClass `follow_cam`, a cinematic), for a player running at 160+ u/s with contact within 2 s at or under 0.2. A player view held 5 s gets a variety bonus. It lasts 4.5 s and is interrupted like any cinematic.
+  - **Control:** the arbiter's `stream_camera` request makes the adapter fly the free camera along poses computed live (`streamCamera`). The console adapter sends `spec_goto` at 60 Hz.
+  - **Pose:** the engine's `FollowCam` puts the camera behind, above and over the shoulder of the player's direction of travel, at the first offset with 14 units of room and a clear line to their eyes in the grid. It is smoothed, never smoothed into a wall, and ends when the player dies or nowhere works.
+  - **Setting:** `autoDirector.followCams` (default on, with cinematic cameras).
+- **Clutch mode:**
+  - **Scoring:** in a 1vX the clutcher's candidate gets +0.45 and opponents −0.25.
+  - **Cameras:** the cinematics gate answers `CLUTCH`.
+  - **Chase lead-up:** `chaseMoment` gives `CLUTCH_LEADUP` while no opponent is within 1800 units (exit at 1400).
+  - **Replay:** a won 1v2+ is replayed first.
+  - **Setting:** `autoDirector.clutch` (default on).
+
+**Consequences.**
+- **Better cuts:** the director cuts to fights before they start, and no longer over-weights players separated by walls.
+- **Follow cams:** they work on every active-duty map.
+- **What the grid can't see:** see-through and non-solid props (glass, fences, foliage) are not in collision geometry, so not in the grid either.
+- **Updates:** a CS2 map update needs the grids regenerated, like the cameras.
+
+**Revisit if.** A CS2 update changes a map, or a follow cam is seen clipping a prop the collision mesh lacks.
+
+## ADR-029 — HUD graphics timed to the shots, OBS scene automation, and LHM HUD pages
+**Context.** Graphics were operator cues or disabled example rules, and OBS scenes changed only by hand. The owner asked for graphics timed to the shots and OBS automation, and for kaiHUD's Player Highlight and Match stats panels to work.
+**Decision.**
+- **Graphics director** (`live/graphics.ts`, setting `graphics.auto`, on). It runs while the director has the camera:
+  - **Freeze time:** the economy cue, then CS2's round MVP (whose MVP count went up).
+  - **Player card:** after a player view held 6 s with no fight close. Only on a player view, removed when the view changes; 90 s cooldown per player, 25 s overall.
+  - **Clutch:** a banner until the 1v2+ ends.
+  - **LHM HUD pages:** shown by toggling their OBS browser sources. Player stats goes up for the MVP (after selecting the player in the HUD's settings), and never over another player's view, because kaiHUD shows the selected or the spectated player. Match stats goes up at half time and at the end of the map.
+- **OBS automation** (`live/obs-auto.ts`, setting `obs.auto`):
+  - **Scenes:** timeouts and pauses go to the BREAK scene, and map end to the STUDIO scene. Both go back when play resumes or the next map starts.
+  - **Ownership:** only from the live scene, and only back from a scene it chose.
+  - **Replays:** cut with a chosen OBS transition, and the previous one is restored after.
+- **LHM HUD pages:**
+  - **Pages:** hud.json `variants` are read at run time and offered as the HUD's pages, opened with `?view=<page>` (the HUD reads `variant`).
+  - **Logos:** team logos are sent as an address that serves the image, which kaiHUD uses directly.
+  - **Image inputs:** a new `images` settings field, sent as base64 like LHM.
+  - **Settings form:** an LHM HUD's form is read from its panel.json again, so already-installed HUDs get it.
+
+**Consequences.** Freeze time, clutches, long holds, timeouts and map ends get their graphics and scenes without an operator. Matchframe HUDs draw the cues, and LHM HUDs get their pages through OBS. kaiHUD 1.0.2 was checked page by page in a browser against test data.
+
+**Revisit if.** Operators want different timings, or an LHM HUD's page needs a data source the layer lacks.

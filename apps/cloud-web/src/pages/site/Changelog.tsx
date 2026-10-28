@@ -11,6 +11,35 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.5.0",
+    title: "Replay PC, automatic replays, clutch mode and follow cams",
+    summary: "A second computer catches the kills your camera misses and the program replays them between rounds. The Auto Director cuts before fights start, follows lurks with a free camera, locks onto clutches, and times HUD graphics and OBS scenes to the shots.",
+    sections: [
+      {
+        heading: "Replays",
+        items: [
+          "Replay PC: a second computer films whoever the main camera isn't showing and sends the kills it missed to the main PC.",
+          "Automatic replays between rounds, best first: won clutches, 3K+, then missed kills. Never during a live round. Slow motion and a Stinger transition are options.",
+        ],
+      },
+      {
+        heading: "Auto Director",
+        items: [
+          "Cuts to a fight before it starts, using a map of CS2's own collision geometry for every active-duty map.",
+          "Follow cams: a free camera behind a player on a lurk or rotation, kept clear of walls.",
+          "Clutch mode: stays with the last player alive, with a 1v3 banner and a replay if they win.",
+        ],
+      },
+      {
+        heading: "Graphics and OBS",
+        items: [
+          "Economy and round MVP in freeze time, player cards on long holds, and OBS break and studio scenes for timeouts and map ends.",
+          "kaiHUD's Player Highlight, Match stats and other pages now open in OBS, with team logos and sponsor images.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.4.3",
     title: "Cameras all over the map, and a chase cam",
     summary: "Built-in cameras now cover almost every named area of each map, and the Auto Director shows plants, defuses and round wins from behind the player.",

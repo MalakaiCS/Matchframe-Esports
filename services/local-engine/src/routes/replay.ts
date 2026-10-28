@@ -13,8 +13,8 @@ import { ObsAutoPatch } from "../live/obs-auto.ts";
 import { AutoReplayPatch, playPriority } from "../replay/auto.ts";
 import { ReplayPcSettings, replayLabel } from "../replay/link.ts";
 
-/** A clip from the replay PC: at most this big (about a minute of 1080p60). */
-const CLIP_MAX = 400 * 1024 * 1024;
+/** A clip from the replay PC: at most this big (the whole upload is held in memory; a 20 s 1080p60 clip is ~25 MB). */
+const CLIP_MAX = 200 * 1024 * 1024;
 const CLIP_EXT = new Set(["mp4", "mkv", "mov", "flv", "ts", "m4v"]);
 /** Clips from the replay PC kept on disk (the oldest go first). */
 const KEEP_CLIPS = 120;

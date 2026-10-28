@@ -14,9 +14,23 @@ OBS → Tools → WebSocket Server Settings: enable, set a password. In Matchfra
 - Replay buffer saves wait for OBS's `ReplayBufferSaved` event before a clip is considered to exist.
 - Program state machine (LIVE, REPLAY_PREPARED, REPLAY_PLAYING, STUDIO, BREAK, MANUAL, DEGRADED) maps modes to scenes you choose (`PUT /api/v1/settings/program.scenes`). A mode that needs a scene cannot be entered until one is mapped; OBS disconnect sets DEGRADED and recovery requires the operator.
 
+## Scene automation and replays
+
+**Replays & Production** has the OBS side of the production in one place:
+
+- **OBS scenes:** the scene for each program mode (live, replay, break, studio).
+  - Timeouts and pauses go to the break scene, and back when play resumes.
+  - Map end goes to the studio scene, and back when the next map starts.
+  - Scenes only change from the live scene, and only back from a scene Matchframe chose.
+  - **Replay transition** picks an OBS transition (a Stinger) for cuts to and from replays, then puts the previous one back.
+  - API: `GET`/`PUT /api/v1/obs/auto`.
+- **Set up OBS replay scene** (`POST /api/v1/replays/obs-setup`): a *Matchframe Replay* scene with a *Matchframe Replay Clip* media source, mapped as the replay scene.
+- **Automatic replays** and the **replay PC**: see [Replay PC and automatic replays](../operations/replay-pc.md). Replays play at the chosen speed with the media source's own speed setting, from the clip's end part (`SetMediaInputCursor`).
+- **HUD graphics:** an LHM HUD's pages are shown by toggling their OBS browser sources in a scene you pick.
+
 ## Tested
 
-Integration tests (`packages/obs-adapter/test/obs.integration.test.ts`, run with `MF_OBS_URL`/`MF_OBS_PASSWORD`) pass against **OBS 30.0.2 (obs-websocket 5.3.4) on Linux, headless under Xvfb**: wrong-password rejection, request discovery, provisioning without replacement, confirmed program cut and visibility toggles, refusal to replace another input kind, replay buffer start → confirmed save (real .mkv written) → stop → playback of the saved clip through a media source, confirmed from OBS's media status. The engine-level replay flow (`services/local-engine/test/replay-obs.integration.test.ts`: bookmark with capture → approve → play on the replay scene → return live) also passes against it. Replay playout is confirmed the same way in production: if OBS does not report playback within 2 s, the clip is marked failed and the program returns to LIVE. That OBS build has no Browser Source plugin, so browser-source provisioning was verified only as a clear failure path; it is **not yet verified on Windows OBS**.
+Integration tests (`packages/obs-adapter/test/obs.integration.test.ts`, run with `MF_OBS_URL`/`MF_OBS_PASSWORD`) pass against **OBS 30.0.2 (obs-websocket 5.3.4) on Linux, headless under Xvfb**: wrong-password rejection, request discovery, provisioning without replacement, confirmed program cut and visibility toggles, refusal to replace another input kind, replay buffer start → confirmed save (real .mkv written) → stop → playback of the saved clip through a media source, confirmed from OBS's media status. The engine-level replay flow (`services/local-engine/test/replay-obs.integration.test.ts`: bookmark with capture → approve → play on the replay scene → return live) also passes against it, and so does the replay PC flow (`replay-pc-obs.integration.test.ts`: two engines; the replay PC's buffer saved and uploaded, the one-click replay scene, the clip played after the round and back to live). Replay playout is confirmed the same way in production: if OBS does not report playback within 2 s, the clip is marked failed and the program returns to LIVE. That OBS build has no Browser Source plugin, so browser-source provisioning was verified only as a clear failure path; it is **not yet verified on Windows OBS**.
 
 ## Browser source settings
 
