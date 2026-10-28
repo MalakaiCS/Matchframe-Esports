@@ -98,7 +98,7 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
 
   // ---- replay PC: its link to the main PC -------------------------------------------------------
   r.get("/api/v1/replay-pc", { permission: "state.read" }, () => ({ settings: e.replayLink.settings(), hasToken: e.replayLink.hasToken(), status: e.replayLink.getStatus() }));
-  r.put("/api/v1/replay-pc", { permission: "settings.manage", body: z.object({ enabled: z.boolean().optional(), mainUrl: z.string().max(200).optional(), token: z.string().max(200).nullable().optional(), preRollMs: ReplayPcSettings.shape.preRollMs.unwrap().optional(), postRollMs: ReplayPcSettings.shape.postRollMs.unwrap().optional(), rewind: z.boolean().optional() }) }, (req) => {
+  r.put("/api/v1/replay-pc", { permission: "settings.manage", body: z.object({ enabled: z.boolean().optional(), mainUrl: z.string().max(200).optional(), token: z.string().max(200).nullable().optional(), preRollMs: ReplayPcSettings.shape.preRollMs.unwrap().optional(), postRollMs: ReplayPcSettings.shape.postRollMs.unwrap().optional(), sameCstv: ReplayPcSettings.shape.sameCstv.unwrap().optional(), behindMs: ReplayPcSettings.shape.behindMs.unwrap().optional() }) }, (req) => {
     try {
       e.replayLink.setSettings(req.body);
     } catch (err) {

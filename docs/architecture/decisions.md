@@ -279,3 +279,13 @@ What remains:
 - **Real CSTV+:** a real CSTV+ stream shows `demo_gototick` doesn't seek backwards.
 - **Pause instead:** pausing (`demo_pause`) a CSTV+ stream proves a simpler way to fall behind.
 - **Delay limit:** operators need delays over two minutes.
+
+**Update (0.5.2).**
+- **Going back works on CSTV:** the owner confirmed that on a live CSTV connection `demo_gototick -448` goes back 7 s (64 ticks a second), without the relative argument. ADR-030's statement that CS2 can't rewind a CSTV connection was wrong. The refusal ("Not currently playing back a demo") is now taken to mean a direct game-server connection.
+- **The command:** going back is now sent exactly as confirmed: `demo_gototick -N`.
+- **Replay PC choice** (`replayPc.sameCstv`; `replayPc.behindMs`, 7 s by default): when PC 2 is at the same time as PC 1, or ahead of it:
+  - `stay_behind` (the default): CS2 goes back once, to `behindMs` behind PC 1, and keeps playing from there. PC 2 then works behind. If a reconnect or map change brings it back to PC 1's time, it goes back again after 5 s.
+  - `each_kill`: 0.5.1's per-kill rewind. Skipping forward with `demo_gototick N 1` isn't confirmed; if CS2 stays behind, PC 2 keeps working behind.
+  - `off`: no going back.
+- **Migration:** a stored 0.5.1 `rewind: true` becomes `each_kill`.
+- **Measuring across a jump:** after going back, PC 2's round clock reads moments the main PC reported before PC 2 was linked, so the clocks can't be matched for a few seconds. The estimator now carries the delay across a jump in PC 2's own clock (delay before + jump) until readings match again. Without this, going back right after linking was wrongly judged to have failed.

@@ -19,12 +19,12 @@ import { DelayEstimator, killKey } from "./timing.ts";
  * - **Behind** (it watches a CSTV a few seconds later than the main PC): every kill the main camera
  *   missed is known here before it plays on this computer. Its director is pinned to the killer from
  *   a few seconds before the kill until just after it, then the replay buffer is saved and sent.
- * - **Live** (same time as the main PC): its director films anyone but the main camera's player, and
- *   when a kill the main camera missed happens on this computer's camera, the replay buffer is saved
- *   and sent. With rewinding on, a missed kill this camera didn't have makes CS2 go back a few
- *   seconds (only a CSTV+ "playcast" stream can), which puts this computer behind, so the kill is
- *   filmed as above, and then forward to live again.
- * - Ahead of the main PC: nothing can be caught early; it works as live.
+ * - **Live** (same time as the main PC, e.g. both on the same CSTV): by default CS2 goes back 7 s
+ *   once (`demo_gototick -448`, which a live CSTV connection can do) and this computer then works
+ *   behind, as above. Or it goes back only for each missed kill its camera didn't have, films it,
+ *   and skips forward to live again. Or it doesn't go back: its director films anyone but the main
+ *   camera's player, and a missed kill that happens on its camera is saved and sent.
+ * - Ahead of the main PC: going back (by the lead plus 7 s) puts it behind; otherwise it works as live.
  *
  * The main PC plays the clips in the next replay break (replay/auto.ts).
  */
@@ -37,8 +37,13 @@ export const ReplayPcSettings = z.object({
   preRollMs: z.number().int().min(2000).max(15000).default(5000),
   /** Seconds after the last kill (also how long the computer waits before saving). */
   postRollMs: z.number().int().min(500).max(5000).default(2000),
-  /** When live with the main PC: rewind a CSTV+ stream to film a missed kill (experimental). */
-  rewind: z.boolean().default(false),
+  /**
+   * At the same time as (or ahead of) the main PC, e.g. both on one CSTV: go back with CS2's
+   * demo_gototick and stay behind, go back for each missed kill then forward to live, or never.
+   */
+  sameCstv: z.enum(["stay_behind", "each_kill", "off"]).default("stay_behind"),
+  /** How far behind the main PC "stay behind" puts this computer. */
+  behindMs: z.number().int().min(3000).max(15000).default(7000),
 });
 export type ReplayPcSettings = z.infer<typeof ReplayPcSettings>;
 
@@ -55,7 +60,7 @@ export interface MainOnAir {
 }
 
 export type TimingState = "measuring" | "live" | "behind" | "ahead";
-export type RewindState = "off" | "ready" | "rewinding" | "rewound" | "returning" | "unsupported";
+export type RewindState = "off" | "ready" | "rewinding" | "holding" | "rewound" | "returning" | "unsupported";
 
 export interface ReplayPcStatus {
   enabled: boolean;
@@ -99,14 +104,19 @@ const LATE_MS = 15000;
 /** Ticks per second of a CSTV broadcast (demo_gototick counts in these). */
 const TICKRATE = 64;
 const REWIND_MIN_MS = 3000;
+/** Going back for one kill: at most this far. */
 const REWIND_MAX_MS = 12000;
+/** Staying behind (from ahead of the main PC): at most this far back in one go. */
+const STAY_MAX_MS = 60000;
+/** Back at the main PC's time while staying behind (a reconnect, a map change): go back again after this. */
+const STAY_RETRY_MS = 5000;
 const REWIND_MARGIN_MS = 1500;
 /** How long CS2 has to show that it went back (or forward). */
 const REWIND_CHECK_MS = 4000;
 const RETURN_CHECK_MS = 5000;
 /** Back to live once nothing has been planned for this long. */
 const RETURN_IDLE_MS = 800;
-/** What CS2's console answers to a demo command when it isn't playing a demo or a CSTV+ stream. */
+/** What CS2's console answers to a demo command when it has nothing to go back in (connected straight to the game server). */
 const REFUSED = /not currently playing back a demo|unknown command/i;
 
 interface Pending {
@@ -192,11 +202,16 @@ export class ReplayLink {
   /** Missed kills reported while the timing is still being measured: planned once it is known, if still ahead. */
   private waiting: { k: OnAirKill; tk: number }[] = [];
   private rewindRun: { requestedMs: number; checkUntil: number; idleSince: number | null; kills: { k: OnAirKill; tk: number }[] } = { requestedMs: 0, checkUntil: 0, idleSince: null, kills: [] };
+  /** Staying behind: not before this (after the last go-back, or after returning to the main PC's time). */
+  private stayNextAt = 0;
 
   constructor(private readonly e: Engine) {}
 
   settings(): ReplayPcSettings {
-    const r = ReplayPcSettings.safeParse(this.e.settings.get("replayPc", {}));
+    const raw = this.e.settings.get("replayPc", {}) as Record<string, unknown>;
+    // 0.5.1 had a rewind switch (go back for each missed kill).
+    const stored = raw && typeof raw === "object" && raw.sameCstv === undefined && raw.rewind === true ? { ...raw, sameCstv: "each_kill" } : raw;
+    const r = ReplayPcSettings.safeParse(stored);
     return r.success ? r.data : ReplayPcSettings.parse({});
   }
 
@@ -226,7 +241,11 @@ export class ReplayLink {
   restart(): void {
     this.stop();
     const st = this.settings();
-    this.status.rewind = st.rewind ? { state: "ready", detail: "On a missed kill this camera didn't have, CS2 goes back a few seconds to film it (CSTV+ streams only).", count: this.status.rewind.count } : { state: "off", detail: "", count: this.status.rewind.count };
+    this.status.rewind =
+      st.sameCstv === "off"
+        ? { state: "off", detail: "", count: this.status.rewind.count }
+        : { state: "ready", detail: st.sameCstv === "stay_behind" ? `At the main PC's time, CS2 goes back ${sec(st.behindMs)} once and stays there.` : "On a missed kill this camera didn't have, CS2 goes back a few seconds to film it.", count: this.status.rewind.count };
+    this.stayNextAt = 0;
     this.status.timing = { state: "measuring", delayMs: null, detail: "" };
     if (!st.enabled) {
       this.status = { ...this.status, enabled: false, state: "off", detail: "This computer is not a replay PC.", main: null, mainObserved: null };
@@ -338,7 +357,8 @@ export class ReplayLink {
   private updateTiming(now: number): void {
     const est = this.estimator.estimate(now);
     const d = est?.delayMs ?? null;
-    const rewinding = this.settings().rewind && this.status.rewind.state === "ready";
+    const mode = this.settings().sameCstv;
+    const rewinding = mode !== "off" && this.status.rewind.state === "ready";
     if (d === null) {
       this.status.timing = { state: "measuring", delayMs: null, detail: "Working out how far behind the main PC this computer's game is…" };
     } else if (d >= LEAD_MIN_MS) {
@@ -347,7 +367,7 @@ export class ReplayLink {
     } else if (d <= -LEAD_MIN_MS) {
       this.status.timing = { state: "ahead", delayMs: d, detail: `${sec(-d)} ahead of the main PC. The replay PC should be the later one: watch a CSTV with more delay than the main PC.` };
     } else {
-      this.status.timing = { state: "live", delayMs: d, detail: `At the same time as the main PC: this computer films someone else and sends what its camera caught.${rewinding ? " A missed kill it didn't have is rewound." : ""}` };
+      this.status.timing = { state: "live", delayMs: d, detail: rewinding && mode === "stay_behind" ? "At the same time as the main PC: going back to stay behind it…" : `At the same time as the main PC: this computer films someone else and sends what its camera caught.${rewinding ? " A missed kill it didn't have is rewound." : ""}` };
     }
   }
 
@@ -377,12 +397,16 @@ export class ReplayLink {
       if (this.waiting.length > 30) this.waiting.shift();
       return;
     }
-    if (this.status.timing.state !== "live" || !this.settings().rewind || rw !== "ready") return;
+    const st = this.settings();
+    if (this.status.timing.state !== "live" || st.sameCstv === "off" || rw !== "ready") return;
     const now = this.e.now();
     if (now - tk > 2500) return;
-    // This computer's camera had the killer: the live path sends it without rewinding.
+    // This computer's camera had the killer: the live path sends it without going back.
     if (showedDuring(this.ownHistory, k.killer.steamId, tk - 1500, now)) return;
-    void this.startRewind(k, tk);
+    // Back to the lead-up of the kill, plus time to notice the jump and cut to the killer; staying behind, at least that far.
+    const need = now - tk + st.preRollMs + REWIND_MARGIN_MS;
+    const back = st.sameCstv === "stay_behind" ? Math.min(STAY_MAX_MS, Math.max(need, st.behindMs - (d ?? 0))) : Math.min(REWIND_MAX_MS, need);
+    void this.goBack(back, { k, tk }, `for ${k.killer.name}'s kill`);
   }
 
   private plan(k: OnAirKill, t: number): void {
@@ -447,6 +471,7 @@ export class ReplayLink {
   private tick(): void {
     const now = this.e.now();
     this.checkRewind(now);
+    this.maybeStayBehind(now);
     const st = this.settings();
     const j = this.active;
     if (j) {
@@ -505,31 +530,42 @@ export class ReplayLink {
     this.e.logger.info("replay PC: kill not filmed", { label: jobLabel(j), reason });
   }
 
-  // ---- rewinding (CSTV+ streams) -----------------------------------------------------------------
+  // ---- going back in CS2 (demo_gototick on a CSTV connection) -------------------------------------
 
-  private async startRewind(k: OnAirKill, tk: number): Promise<void> {
+  /** Staying behind: at (or ahead of) the main PC's time, go back so this computer is `behindMs` behind it. */
+  private maybeStayBehind(now: number): void {
+    const st = this.settings();
+    if (st.sameCstv !== "stay_behind" || this.status.rewind.state !== "ready" || this.status.state !== "connected") return;
+    const t = this.status.timing;
+    if ((t.state !== "live" && t.state !== "ahead") || t.delayMs === null || now < this.stayNextAt) return;
+    // A clip of this camera being saved: let it finish (going back now would put the lead-up at its end).
+    if (this.pending.size) return;
+    void this.goBack(Math.min(STAY_MAX_MS, st.behindMs - t.delayMs), null, "to stay behind the main PC");
+  }
+
+  private async goBack(ms: number, kill: { k: OnAirKill; tk: number } | null, why: string): Promise<void> {
     const conn = this.e.gameConsole.connection;
+    const now = this.e.now();
     if (!conn?.connected) {
-      this.status.rewind = { ...this.status.rewind, detail: "Can't rewind: CS2's console isn't connected. Start CS2 from Matchframe in a console mode." };
+      this.status.rewind = { ...this.status.rewind, detail: "Can't go back: CS2's console isn't connected. Start CS2 from Matchframe in a console mode." };
+      this.stayNextAt = now + STAY_RETRY_MS;
       return;
     }
-    const st = this.settings();
-    const now = this.e.now();
-    // Back to the lead-up of the kill, plus time to notice the jump and cut to the killer.
-    const backMs = Math.round(Math.min(REWIND_MAX_MS, Math.max(REWIND_MIN_MS, now - tk + st.preRollMs + REWIND_MARGIN_MS)));
-    this.rewindRun = { requestedMs: backMs, checkUntil: now + REWIND_CHECK_MS, idleSince: null, kills: [{ k, tk }] };
-    this.status.rewind = { ...this.status.rewind, state: "rewinding", detail: `Going back ${sec(backMs)} for ${k.killer.name}'s kill…` };
+    const backMs = Math.round(Math.max(REWIND_MIN_MS, ms));
+    this.rewindRun = { requestedMs: backMs, checkUntil: now + REWIND_CHECK_MS, idleSince: null, kills: kill ? [kill] : [] };
+    this.status.rewind = { ...this.status.rewind, state: "rewinding", detail: `Going back ${sec(backMs)} ${why}…` };
     const lines: string[] = [];
     const off = conn.onLine((l) => lines.push(l));
     try {
-      await conn.write(`demo_gototick -${Math.round((backMs / 1000) * TICKRATE)} 1`);
+      // A negative tick count goes back from where CS2 is (64 ticks a second: -448 is 7 s).
+      await conn.write(`demo_gototick -${Math.round((backMs / 1000) * TICKRATE)}`);
       await new Promise((r) => setTimeout(r, 700));
     } catch (err) {
       lines.push(String(err));
     } finally {
       off();
     }
-    if (lines.some((l) => REFUSED.test(l))) this.rewindUnsupported("CS2 can't rewind this stream: a CSTV connection (connect ip:port) can't go back. Only a CSTV+ stream (playcast) can.");
+    if (lines.some((l) => REFUSED.test(l))) this.rewindUnsupported("CS2 can't go back here: going back works when watching CSTV, not when connected straight to the game server.");
   }
 
   private rewindUnsupported(detail: string): void {
@@ -540,15 +576,25 @@ export class ReplayLink {
 
   private checkRewind(now: number): void {
     const rw = this.status.rewind.state;
+    if (rw === "holding") {
+      // Staying behind, but back at the main PC's time (a reconnect, a map change): go back again shortly.
+      if (this.status.timing.state === "live" || this.status.timing.state === "ahead") {
+        this.status.rewind = { ...this.status.rewind, state: "ready", detail: "Back at the main PC's time (a reconnect or a map change?): going back again." };
+        this.stayNextAt = now + STAY_RETRY_MS;
+      }
+      return;
+    }
     if (rw !== "rewinding" && rw !== "rewound" && rw !== "returning") return;
     this.updateTiming(now);
     const d = this.status.timing.delayMs;
     if (rw === "rewinding") {
       if (d !== null && d >= LEAD_MIN_MS) {
-        this.status.rewind = { ...this.status.rewind, state: "rewound", detail: `Went back ${sec(d)}: filming the missed kill.`, count: this.status.rewind.count + 1 };
+        const staying = this.settings().sameCstv === "stay_behind";
+        this.status.rewind = { ...this.status.rewind, state: staying ? "holding" : "rewound", detail: staying ? `Went back ${sec(d)} and stays there: missed kills are known before they play here.` : `Went back ${sec(d)}: filming the missed kill.`, count: this.status.rewind.count + 1 };
+        this.stayNextAt = now + STAY_RETRY_MS;
         for (const { k, tk } of this.rewindRun.kills.splice(0)) this.plan(k, tk + d);
       } else if (now > this.rewindRun.checkUntil) {
-        this.rewindUnsupported("CS2 didn't go back in time: rewinding only works on a CSTV+ stream (playcast).");
+        this.rewindUnsupported("CS2 didn't go back in time (demo_gototick).");
       }
       return;
     }

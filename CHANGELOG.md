@@ -49,6 +49,12 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
   - **Now:** 104 cameras and 81 paths (orbits of at most 10 s, push-ins, and sideways drifts where there is no orbit).
   - **Gaps filled:** Train CT spawn, Vertigo T spawn, and a mid stand-in on Nuke (Outside), Train and Overpass (Connector).
   - **Generator:** `scripts/generate-map-cameras.py`; the old CS:GO-nav generator is now `scripts/generate-map-regions-csgo-nav.py`.
+- **Replay PC on the same CSTV goes back 7 s and stays there** (version 0.5.2, ADR-030 update):
+  - **Going back:** on a live CSTV connection CS2 can go back (`demo_gototick -448` is 7 s). When the replay PC is at the main PC's time, it goes back once to 7 s behind (5, 7 or 10 s) and keeps playing from there, so every missed kill is known before it plays there. It goes back again after a reconnect or map change.
+  - **Settings:** `replayPc.sameCstv`: `stay_behind` (default), `each_kill` (0.5.1's rewind, migrated), `off`; `replayPc.behindMs`.
+  - **The command:** going back is now sent as `demo_gototick -N`.
+  - **Measuring:** the delay is carried across a jump in the replay PC's own round clock, so going back right after linking is seen at once.
+  - **Corrected:** 0.5.1 said only CSTV+ streams could go back.
 - **Replay PC behind the main PC, or rewinding** (version 0.5.1, ADR-030):
   - **Measuring:** the replay PC works out how far behind the main PC its game is, from the two round clocks and the kills both see. The main PC now reports its round clock and recent kills, each judged with its exact camera history.
   - **Behind (a CSTV a few seconds later):** every kill the main camera missed is known before it plays on the replay PC. Its director is pinned to the killer for the lead-up and the kill, then the clip is sent. Of two kills it can't both film it keeps the better one, and switches to a multi-kill.

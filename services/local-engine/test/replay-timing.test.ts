@@ -64,6 +64,29 @@ describe("How far the replay PC's game is behind the main PC's", () => {
     expect(Math.abs(est.estimate(15_500)!.delayMs)).toBeLessThanOrEqual(150);
   });
 
+  it("knows the new delay at once after going back, before the main PC's matching readings arrive", () => {
+    // Linked at t = 10 s, at the same time as the main PC; the main PC's readings start then.
+    const est = new DelayEstimator();
+    run(est, 10_000, 12_000, 0);
+    expect(Math.abs(est.estimate(12_000)!.delayMs)).toBeLessThanOrEqual(120);
+    // CS2 goes back 7 s at 12 s: this computer's clock now reads what the main PC showed at 5 s, before it was linked.
+    for (let t = 12_050; t <= 13_000; t += 50) {
+      if (t % 250 === 0) est.noteMain(reading(t, clock(t)));
+      if (t % 100 === 0) est.noteOwn(reading(t, clock(t - 7000)));
+    }
+    const e = est.estimate(13_000)!;
+    expect(Math.abs(e.delayMs - 7000)).toBeLessThanOrEqual(150);
+    expect(e.readings).toBe(0);
+    // Once the clocks can be matched again (from 17 s), the measured value takes over.
+    for (let t = 13_050; t <= 20_000; t += 50) {
+      if (t % 250 === 0) est.noteMain(reading(t, clock(t)));
+      if (t % 100 === 0) est.noteOwn(reading(t, clock(t - 7000)));
+    }
+    const m = est.estimate(20_000)!;
+    expect(Math.abs(m.delayMs - 7000)).toBeLessThanOrEqual(120);
+    expect(m.readings).toBeGreaterThan(5);
+  });
+
   it("uses kills seen on both computers when the clock can't be matched", () => {
     const est = new DelayEstimator();
     for (const [i, t] of [1000, 4000, 9000].entries()) {

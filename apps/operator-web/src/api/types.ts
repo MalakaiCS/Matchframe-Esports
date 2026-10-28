@@ -1005,7 +1005,7 @@ export interface AutoReplayResponse {
   status: { enabled: boolean; state: "off" | "waiting" | "playing" | "blocked"; detail: string; waiting: number; playing: { id: string; label: string } | null; lastPlayed: { id: string; label: string; at: string } | null };
 }
 export interface ReplayPcResponse {
-  settings: { enabled: boolean; mainUrl: string; preRollMs: number; postRollMs: number; rewind: boolean };
+  settings: { enabled: boolean; mainUrl: string; preRollMs: number; postRollMs: number; sameCstv: "stay_behind" | "each_kill" | "off"; behindMs: number };
   hasToken: boolean;
   status: {
     enabled: boolean;
@@ -1016,7 +1016,7 @@ export interface ReplayPcResponse {
     obsReady: boolean;
     /** How far this computer's game is behind the main PC's. */
     timing: { state: "measuring" | "live" | "behind" | "ahead"; delayMs: number | null; detail: string };
-    rewind: { state: "off" | "ready" | "rewinding" | "rewound" | "returning" | "unsupported"; detail: string; count: number };
+    rewind: { state: "off" | "ready" | "rewinding" | "holding" | "rewound" | "returning" | "unsupported"; detail: string; count: number };
     filming: string | null;
     planned: number;
     sent: number;

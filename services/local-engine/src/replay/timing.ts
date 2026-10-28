@@ -7,6 +7,10 @@
  * to the moment the main PC showed the same one, gives D. Kills seen on both computers (same round,
  * killer and victim) give it too. The answer is the median over the last 20 s, and only when the
  * readings agree.
+ *
+ * When this computer's own clock jumps (CS2 went back or forward), its readings start over, and the
+ * main PC may not have the matching readings yet (it showed them before this computer was linked).
+ * Until enough new readings match, the answer is the delay before the jump plus the jump.
  */
 
 export interface ClockReading {
@@ -43,6 +47,8 @@ export class DelayEstimator {
   private readonly ownKills = new Map<string, number>();
   private kills: { at: number; delayMs: number }[] = [];
   private last: { delayMs: number; at: number; readings: number } | null = null;
+  /** The delay before this computer's last jump plus the jump, until readings match again. */
+  private provisional: { delayMs: number; at: number } | null = null;
 
   noteMain(r: ClockReading): void {
     push(this.main, r);
@@ -50,7 +56,12 @@ export class DelayEstimator {
 
   noteOwn(r: ClockReading): void {
     const last = this.own[this.own.length - 1];
-    if (last && jumped(last, r)) this.resetOwn();
+    const jump = last ? jumpMs(last, r) : null;
+    if (jump !== null) {
+      const before = this.last?.delayMs ?? this.provisional?.delayMs ?? null;
+      this.resetOwn();
+      this.provisional = before !== null && Number.isFinite(jump) ? { delayMs: Math.round(before + jump), at: r.at } : null;
+    }
     push(this.own, r);
   }
 
@@ -76,6 +87,7 @@ export class DelayEstimator {
     this.ownKills.clear();
     this.kills = [];
     this.last = null;
+    this.provisional = null;
   }
 
   estimate(now: number): DelayEstimate | null {
@@ -92,10 +104,12 @@ export class DelayEstimator {
       const q = (p: number) => values[Math.min(values.length - 1, Math.floor(p * values.length))]!;
       if (q(0.75) - q(0.25) <= MAX_SPREAD_MS) {
         this.last = { delayMs: Math.round(q(0.5)), at: now, readings: values.length };
+        this.provisional = null;
         return { delayMs: this.last.delayMs, readings: values.length };
       }
     }
-    return this.last && now - this.last.at < STALE_MS ? { delayMs: this.last.delayMs, readings: this.last.readings } : null;
+    if (this.last && now - this.last.at < STALE_MS) return { delayMs: this.last.delayMs, readings: this.last.readings };
+    return this.provisional && now - this.provisional.at < KEEP_MS ? { delayMs: this.provisional.delayMs, readings: 0 } : null;
   }
 
   /** When the main PC's clock showed this reading (interpolated between two of its readings), or null. */
@@ -121,16 +135,18 @@ export class DelayEstimator {
 }
 
 /**
- * This computer's game jumped in time between two readings: a rewind or a skip forward (the clock
- * moved more than a second away from where it should be), or back to an earlier round.
+ * How far this computer's game jumped in time between two readings (ms; positive: back, negative:
+ * forward), or null when it didn't. A jump is a clock that moved more than a second away from where
+ * it should be; back to an earlier round is a jump of unknown size (Infinity).
  */
-function jumped(a: ClockReading, b: ClockReading): boolean {
-  if (a.map !== b.map) return false;
-  if (a.round !== null && b.round !== null && b.round < a.round) return true;
-  if (a.round !== b.round || a.phase !== b.phase) return false;
+function jumpMs(a: ClockReading, b: ClockReading): number | null {
+  if (a.map !== b.map) return null;
+  if (a.round !== null && b.round !== null && b.round < a.round) return Infinity;
+  if (a.round !== b.round || a.phase !== b.phase) return null;
   const expected = a.endsInSec - (b.at - a.at) / 1000;
   // A paused clock stands still: only a clock that moved the wrong way, or too far, jumped.
-  return b.endsInSec > a.endsInSec + 1 || b.endsInSec < expected - 1;
+  if (b.endsInSec > a.endsInSec + 1 || b.endsInSec < expected - 1) return (b.endsInSec - expected) * 1000;
+  return null;
 }
 
 /** Kept in order; a reading equal to the last one (same clock value) adds nothing. */

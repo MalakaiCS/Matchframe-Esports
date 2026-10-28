@@ -52,7 +52,7 @@ While it runs:
 | Camera path | The first pose as a static camera, then `spec_goto {x} {y} {z} {pitch} {yaw}` 60 times a second along the path (Catmull-Rom positions, eased timing, the shorter way round for yaw), then `getpos` at the end. |
 | Follow cam | The same streaming, with each pose worked out live from the player's position (`streamCamera`). A player selection stops it. |
 | Pose readback | `getpos` → `setpos x y z;setang pitch yaw roll`. |
-| Replay PC rewind (experimental) | `demo_gototick -{ticks} 1` to go back (64 ticks a second), `demo_gototick {ticks} 1` to skip forward to live again. Only a CSTV+ stream (`playcast`) may seek; on a CSTV connection CS2 answers "Not currently playing back a demo" and the replay PC stops trying. Whether it went back is measured from the game data's round clock, not assumed. See [Replay PC](../operations/replay-pc.md). |
+| Replay PC going back | `demo_gototick -{ticks}` goes back from where CS2 is, 64 ticks a second (`demo_gototick -448` is 7 s; this works on a live CSTV connection). **Go back and stay behind** sends it once; **Go back for each missed kill** skips forward again with `demo_gototick {ticks} 1`. Connected straight to the game server, CS2 answers "Not currently playing back a demo" and the replay PC stops trying. Whether CS2 went back is measured from the jump in the game data's round clock, not assumed. See [Replay PC](../operations/replay-pc.md). |
 
 Since the CS2 update of 2026-10-15, demo playback ignores `spec_goto`'s position while the demo free camera is on. `cl_demo_freecam 0` is the workaround reported by players (Valve issue #4660). Live servers and GOTV are not affected.
 

@@ -11,9 +11,10 @@ import { startServers } from "../src/servers.ts";
 
 /**
  * Two programs, one game seen at two moments: the replay PC's game runs some seconds behind the
- * main PC's (a CSTV with more delay), or goes back when it rewinds. A stand-in plays the game on both
- * (game data every 100 ms with a running round clock) and the replay PC's camera follows its
- * director's pin, as CS2 does over the console.
+ * main PC's (a CSTV with more delay), or goes back with demo_gototick (a live CSTV connection can).
+ * A stand-in plays the game on both (game data every 100 ms with a running round clock; the round
+ * started 10 s before each test, so there is something to go back to) and the replay PC's camera
+ * follows its director's pin, as CS2 does over the console.
  */
 
 async function freePort(): Promise<number> {
@@ -67,8 +68,10 @@ const CT6 = ct(6);
 const CT7 = ct(7);
 const CT8 = ct(8);
 const CT9 = ct(9);
-/** The game's kills, `at` ms into the round. Unless a test says otherwise: T4 kills CT9 at 4 s. */
-const KILL_AT = 4000;
+/** The round was this far in when a test starts. */
+const PRE = 10_000;
+/** The game's kills, `at` ms into the round. Unless a test says otherwise: T4 kills CT9 4 s into the test. */
+const KILL_AT = PRE + 4000;
 let script: { at: number; killer: SyntheticPlayer; victim: SyntheticPlayer }[] = [];
 function playersAt(t: number): SyntheticPlayer[] {
   const done = script.filter((k) => k.at <= t);
@@ -105,7 +108,7 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
   const clipFile = join(mkdtempSync(join(tmpdir(), "mf-clip-")), "Replay.mkv");
   writeFileSync(clipFile, Buffer.alloc(32 * 1024, 7));
 
-  async function setup(opts: { offsetMs: number; rewind?: boolean; consoleRefuses?: boolean; kills?: typeof script }) {
+  async function setup(opts: { offsetMs: number; sameCstv?: "stay_behind" | "each_kill" | "off"; consoleRefuses?: boolean; kills?: typeof script }) {
     process.env.MATCHFRAME_LOG_STDOUT = "0";
     script = opts.kills ?? [{ at: KILL_AT, killer: T4!, victim: CT9 }];
     main = await pc("main");
@@ -115,15 +118,18 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     written.length = 0;
     Object.assign(replay.e.obs.state, { connected: true, replayBuffer: true });
     replay.e.obs.saveReplayBuffer = async () => ({ savedPath: clipFile });
-    // The replay PC's CS2 console (a CSTV+ stream, unless it refuses demo commands).
+    // The replay PC's CS2 console on a CSTV connection (unless it refuses demo commands, as when connected straight to the game server):
+    // `demo_gototick -N` goes back N ticks, `demo_gototick N 1` forward.
     const lines = new Set<(l: string) => void>();
     const conn = {
       connected: true,
       write: async (line: string) => {
         written.push(line);
-        const m = /^demo_gototick (-?\d+) 1$/.exec(line);
-        if (opts.consoleRefuses) for (const fn of lines) fn("Error - Not currently playing back a demo.");
-        else if (m) offset = Math.max(0, offset - (Number(m[1]) / 64) * 1000);
+        if (opts.consoleRefuses) return void lines.forEach((fn) => fn("Error - Not currently playing back a demo."));
+        const back = /^demo_gototick -(\d+)$/.exec(line);
+        const forward = /^demo_gototick (\d+) 1$/.exec(line);
+        if (back) offset += (Number(back[1]) / 64) * 1000;
+        if (forward) offset = Math.max(0, offset - (Number(forward[1]) / 64) * 1000);
       },
       onLine: (fn: (l: string) => void) => {
         lines.add(fn);
@@ -133,19 +139,22 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     Object.defineProperty(replay.e.gameConsole, "connection", { get: () => conn, configurable: true });
     replay.e.session.setMode("automatic");
     const code = (await main.api("/api/v1/tokens", { method: "POST", body: { role: "replay", label: "Replay PC" } })).json as { token: string };
-    const r = await replay.api("/api/v1/replay-pc", { method: "PUT", body: { enabled: true, mainUrl: `127.0.0.1:${main.ports.api}`, token: code.token, preRollMs: 2000, postRollMs: 500, rewind: opts.rewind ?? false } });
+    const r = await replay.api("/api/v1/replay-pc", { method: "PUT", body: { enabled: true, mainUrl: `127.0.0.1:${main.ports.api}`, token: code.token, preRollMs: 2000, postRollMs: 500, ...(opts.sameCstv ? { sameCstv: opts.sameCstv } : {}) } });
     expect(r.status).toBe(200);
     // The game runs: the main camera stays on T1; the replay PC's camera on CT6 unless its director is pinned.
     t0 = Date.now();
     void (async () => {
       while (!stop) {
-        const t = Date.now() - t0;
+        const t = now();
         const pin = replay.e.session.director.controls.pin;
         await Promise.all([feed(main, t, T1!.steamId), t - offset >= 0 ? feed(replay, t - offset, pin?.kind === "player" ? pin.steamId : CT6.steamId) : Promise.resolve()]);
         await new Promise((res) => setTimeout(res, 100));
       }
     })();
   }
+
+  /** Game time on the main PC (ms into the round). */
+  const now = () => Date.now() - t0 + PRE;
 
   afterEach(async () => {
     stop = true;
@@ -159,13 +168,13 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
   const status = async () => (await replay.api("/api/v1/replay-pc")).json.status as { timing: { state: string; delayMs: number | null }; rewind: { state: string; count: number; detail: string }; sent: number; skipped: number; lastSkip: { reason: string } | null; filming: string | null };
   const clips = async () => (await main.api("/api/v1/replays")).json.items as Clip[];
 
-  it("3 s behind: knows the missed kill is coming, gets on the killer first and sends the clip", async () => {
+  it("3 s behind (a second CSTV): knows the missed kill is coming, gets on the killer first and sends the clip", async () => {
     await setup({ offsetMs: 3000 });
     await waitFor(async () => (await status()).timing.state === "behind");
     expect(Math.abs((await status()).timing.delayMs! - 3000)).toBeLessThan(400);
     // The kill happens on the main PC at 4 s: on the replay PC it plays at 7 s, and the director is pinned to T4 before that.
     await waitFor(() => replay.e.session.director.controls.pin?.kind === "player");
-    const pinnedAt = Date.now() - t0;
+    const pinnedAt = now();
     expect(replay.e.session.director.controls.pin).toEqual({ kind: "player", steamId: T4!.steamId });
     expect(pinnedAt).toBeGreaterThan(KILL_AT);
     expect(pinnedAt).toBeLessThan(KILL_AT + 3000 - 1500);
@@ -183,7 +192,7 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
 
   it("two missed kills at once, one of them a 2K: films the 2K, even after starting on the other", async () => {
     // T2 kills CT7 at 4.0 s; T4 kills CT9 at 4.4 s and CT8 at 5.2 s. The main camera has T1 throughout.
-    await setup({ offsetMs: 3000, kills: [{ at: 4000, killer: T2!, victim: CT7 }, { at: 4400, killer: T4!, victim: CT9 }, { at: 5200, killer: T4!, victim: CT8 }] });
+    await setup({ offsetMs: 3000, kills: [{ at: PRE + 4000, killer: T2!, victim: CT7 }, { at: PRE + 4400, killer: T4!, victim: CT9 }, { at: PRE + 5200, killer: T4!, victim: CT8 }] });
     await waitFor(async () => (await status()).timing.state === "behind");
     // It starts on T2's kill (planned first) ...
     await waitFor(() => (replay.e.session.director.controls.pin as { steamId?: string } | null)?.steamId === T2!.steamId);
@@ -200,11 +209,33 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     expect(st.sent).toBe(1);
   }, 30000);
 
-  it("live with rewinding on: goes back for a missed kill its camera didn't have, films it, and comes back to live", async () => {
-    await setup({ offsetMs: 0, rewind: true });
+  it("same CSTV, default: goes back 7 s once (demo_gototick -448), stays there, and films the missed kill before it plays there", async () => {
+    await setup({ offsetMs: 0 });
+    await waitFor(async () => (await status()).rewind.state === "holding");
+    expect(written[0]).toMatch(/^demo_gototick -44[789]$/);
+    expect(Math.abs((await status()).timing.delayMs! - 7000)).toBeLessThan(400);
+    // T4's kill at 4 s on the main PC plays here 7 s later: the director is on T4 before it.
+    await waitFor(() => (replay.e.session.director.controls.pin as { steamId?: string } | null)?.steamId === T4!.steamId);
+    expect(now()).toBeLessThan(KILL_AT + 7000 - 1500);
+    await waitFor(async () => (await clips()).length > 0);
+    const clip = (await clips())[0]!;
+    expect(clip).toMatchObject({ origin: "replay_pc", play: { kind: "missed", kills: 1 } });
+    expect(clip.label).toBe(`${T4!.name} ▸ ${CT9.name} (AK47)`);
+    expect(clip.playMs).toBeGreaterThanOrEqual(2300);
+    // No going forward: it stays 7 s behind.
+    expect(written).toHaveLength(1);
+    // CS2 back at the main PC's time (a reconnect): it goes back again.
+    offset = 0;
+    await waitFor(() => written.length === 2, 20000);
+    expect(written[1]).toMatch(/^demo_gototick -44[789]$/);
+    await waitFor(async () => (await status()).rewind.state === "holding");
+  }, 45000);
+
+  it("same CSTV, each missed kill: goes back for a kill its camera didn't have, films it, and comes back to live", async () => {
+    await setup({ offsetMs: 0, sameCstv: "each_kill" });
     await waitFor(async () => (await status()).timing.state === "live");
     await waitFor(async () => (await status()).rewind.count === 1);
-    expect(written[0]).toMatch(/^demo_gototick -\d+ 1$/);
+    expect(written[0]).toMatch(/^demo_gototick -\d+$/);
     const back = (Number(/-(\d+)/.exec(written[0]!)![1]) / 64) * 1000;
     expect(back).toBeGreaterThanOrEqual(3000);
     await waitFor(async () => (await clips()).length > 0);
@@ -220,10 +251,10 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     expect(offset).toBeLessThan(1000);
   }, 30000);
 
-  it("a CSTV connection that can't go back: says so and keeps filming someone else", async () => {
-    await setup({ offsetMs: 0, rewind: true, consoleRefuses: true });
+  it("connected straight to the game server (CS2 refuses to go back): says so and keeps filming someone else", async () => {
+    await setup({ offsetMs: 0, consoleRefuses: true });
     await waitFor(async () => (await status()).rewind.state === "unsupported");
-    expect((await status()).rewind.detail).toMatch(/CSTV\+/);
+    expect((await status()).rewind.detail).toMatch(/game server/);
     expect(written).toHaveLength(1);
     expect(await clips()).toHaveLength(0);
   }, 30000);

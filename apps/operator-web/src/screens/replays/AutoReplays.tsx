@@ -82,6 +82,12 @@ function timingLabel(t: ReplayPcResponse["status"]["timing"]): string {
 
 const SECOND_CSTV = "tv_enable1 1\ntv_port1 27021\ntv_delay1 17";
 
+const SAME_CSTV_HINT = {
+  stay_behind: "When this computer is at the main PC's time, CS2 goes back once (demo_gototick) and stays behind: every missed kill is then known before it plays here. It goes back again after a reconnect or a map change.",
+  each_kill: "When a kill the main camera missed wasn't on this camera, CS2 goes back a few seconds, films it, then skips forward to live again.",
+  off: "This computer films someone else and sends what its camera happens to catch.",
+} as const;
+
 /** The best setup: this computer a few seconds behind the main PC, so it knows each missed kill before it plays here. */
 function BehindHelp() {
   return (
@@ -90,6 +96,7 @@ function BehindHelp() {
       <div className="stack-sm">
         <p>Then every kill the main camera misses is known here before it happens on this computer: the camera gets on the killer first and the whole kill is filmed. The program measures how far behind it is by itself.</p>
         <ul>
+          <li>Both on the same CSTV: nothing to set up. This computer goes back 7 s by itself (demo_gototick -448) and stays there (below).</li>
           <li>Main PC in the server as a spectator: watch the server's CSTV here, with a CSTV delay of about 7 s (tv_delay 7).</li>
           <li>
             Main PC on CSTV: give the server a second CSTV, 7 s later than the first, and connect to it here (connect server-address:27021). With the main CSTV at tv_delay 10:
@@ -248,13 +255,26 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
         ) : null}
       </div>
       {enabled ? (
-        <Checkbox
-          checked={data?.settings.rewind ?? false}
-          disabled={!!reason}
-          label="Rewind to film a missed kill (experimental)"
-          hint="When this computer is at the same time as the main PC and its camera didn't have the killer, CS2 goes back a few seconds, films the kill and skips forward to live again. Only a CSTV+ stream (playcast) can go back; with a CSTV connection the program says so and films someone else."
-          onChange={(v) => void api.put("/api/v1/replay-pc", { rewind: v }).then(reload)}
-        />
+        <div className="form-grid">
+          <Field label="On the same CSTV as the main PC" hint={SAME_CSTV_HINT[data?.settings.sameCstv ?? "stay_behind"]}>
+            <select value={data?.settings.sameCstv ?? "stay_behind"} disabled={!!reason} onChange={(e) => void api.put("/api/v1/replay-pc", { sameCstv: e.target.value }).then(reload)}>
+              <option value="stay_behind">Go back and stay behind (recommended)</option>
+              <option value="each_kill">Go back for each missed kill, then live</option>
+              <option value="off">Don't go back</option>
+            </select>
+          </Field>
+          {data?.settings.sameCstv === "stay_behind" ? (
+            <Field label="How far behind">
+              <select value={data.settings.behindMs} disabled={!!reason} onChange={(e) => void api.put("/api/v1/replay-pc", { behindMs: Number(e.target.value) }).then(reload)}>
+                {[5000, 7000, 10000].map((ms) => (
+                  <option key={ms} value={ms}>
+                    {ms / 1000} s (demo_gototick -{(ms / 1000) * 64})
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
+        </div>
       ) : null}
       {st && st.enabled ? (
         <div className="stack-sm small" role="status">
@@ -269,7 +289,7 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
             </div>
           ) : null}
           {st.state === "connected" && st.timing.state !== "behind" ? <span>The main camera shows {nameOf(st.mainObserved)}: this computer's Auto Director films someone else.</span> : null}
-          {data?.settings.rewind && st.rewind.detail ? <span className={st.rewind.state === "unsupported" ? "text-warn" : ""}>Rewinding: {st.rewind.detail}</span> : null}
+          {data?.settings.sameCstv !== "off" && st.rewind.detail ? <span className={st.rewind.state === "unsupported" ? "text-warn" : ""}>Going back: {st.rewind.detail}</span> : null}
           {st.filming ? <span>Filming now: {st.filming}{st.planned ? ` (${st.planned} more planned)` : ""}</span> : null}
           <span className={st.obsReady ? "" : "text-warn"}>{st.obsReady ? "OBS replay buffer is running." : "Connect OBS on this computer (Settings → Devices); its replay buffer starts by itself."}</span>
           <span>

@@ -8067,8 +8067,18 @@
                     "minimum": 500,
                     "maximum": 5000
                   },
-                  "rewind": {
-                    "type": "boolean"
+                  "sameCstv": {
+                    "type": "string",
+                    "enum": [
+                      "stay_behind",
+                      "each_kill",
+                      "off"
+                    ]
+                  },
+                  "behindMs": {
+                    "type": "integer",
+                    "minimum": 3000,
+                    "maximum": 15000
                   }
                 }
               }

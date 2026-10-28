@@ -11,6 +11,21 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.5.2",
+    title: "Same CSTV, 7 seconds behind",
+    summary: "With both computers on the same CSTV, the replay PC goes back 7 seconds by itself and stays there, so it knows every missed kill before it plays on its screen.",
+    sections: [
+      {
+        heading: "Replays",
+        items: [
+          "The replay PC goes back 7 s once on CSTV (demo_gototick -448) and keeps playing from there: no second CSTV needed. 5, 7 or 10 s.",
+          "After a reconnect or map change it goes back again by itself.",
+          "Going back for each missed kill and then returning to live is still a choice.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.5.1",
     title: "A replay PC that knows the kill is coming",
     summary: "Run the replay PC a few seconds behind the main PC and it films every kill the main camera misses, from the killer, before it happens on its screen.",
@@ -20,7 +35,7 @@ const RELEASES: Release[] = [
         items: [
           "The replay PC measures how far behind the main PC it is. A few seconds behind, it gets on the killer before each missed kill plays there and films it with its lead-up.",
           "Two missed kills at once: it films the better one, and switches to a multi-kill.",
-          "Experimental: at the same time as the main PC, it can rewind a CSTV+ stream to film a missed kill, then go back to live.",
+          "Experimental: at the same time as the main PC, it can go back in CS2 to film a missed kill, then return to live.",
         ],
       },
     ],
