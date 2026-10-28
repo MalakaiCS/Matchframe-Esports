@@ -49,6 +49,7 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
   - **Now:** 104 cameras and 81 paths (orbits of at most 10 s, push-ins, and sideways drifts where there is no orbit).
   - **Gaps filled:** Train CT spawn, Vertigo T spawn, and a mid stand-in on Nuke (Outside), Train and Overpass (Connector).
   - **Generator:** `scripts/generate-map-cameras.py`; the old CS:GO-nav generator is now `scripts/generate-map-regions-csgo-nav.py`.
+- **Replay PC: the relative forms of `demo_gototick`** (version 0.5.3): going back is sent as `demo_gototick -N relative` and going forward to live as `demo_gototick N relative`, the forms the owner uses on live CSTV (0.5.2 sent the forward skip with `1`).
 - **Replay PC on the same CSTV goes back 7 s and stays there** (version 0.5.2, ADR-030 update):
   - **Going back:** on a live CSTV connection CS2 can go back (`demo_gototick -448` is 7 s). When the replay PC is at the main PC's time, it goes back once to 7 s behind (5, 7 or 10 s) and keeps playing from there, so every missed kill is known before it plays there. It goes back again after a reconnect or map change.
   - **Settings:** `replayPc.sameCstv`: `stay_behind` (default), `each_kill` (0.5.1's rewind, migrated), `off`; `replayPc.behindMs`.

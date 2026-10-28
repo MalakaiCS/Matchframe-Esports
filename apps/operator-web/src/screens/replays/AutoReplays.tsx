@@ -96,7 +96,7 @@ function BehindHelp() {
       <div className="stack-sm">
         <p>Then every kill the main camera misses is known here before it happens on this computer: the camera gets on the killer first and the whole kill is filmed. The program measures how far behind it is by itself.</p>
         <ul>
-          <li>Both on the same CSTV: nothing to set up. This computer goes back 7 s by itself (demo_gototick -448) and stays there (below).</li>
+          <li>Both on the same CSTV: nothing to set up. This computer goes back 7 s by itself (demo_gototick -448 relative) and stays there (below).</li>
           <li>Main PC in the server as a spectator: watch the server's CSTV here, with a CSTV delay of about 7 s (tv_delay 7).</li>
           <li>
             Main PC on CSTV: give the server a second CSTV, 7 s later than the first, and connect to it here (connect server-address:27021). With the main CSTV at tv_delay 10:
@@ -268,7 +268,7 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
               <select value={data.settings.behindMs} disabled={!!reason} onChange={(e) => void api.put("/api/v1/replay-pc", { behindMs: Number(e.target.value) }).then(reload)}>
                 {[5000, 7000, 10000].map((ms) => (
                   <option key={ms} value={ms}>
-                    {ms / 1000} s (demo_gototick -{(ms / 1000) * 64})
+                    {ms / 1000} s (demo_gototick -{(ms / 1000) * 64} relative)
                   </option>
                 ))}
               </select>

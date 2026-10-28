@@ -119,15 +119,15 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     Object.assign(replay.e.obs.state, { connected: true, replayBuffer: true });
     replay.e.obs.saveReplayBuffer = async () => ({ savedPath: clipFile });
     // The replay PC's CS2 console on a CSTV connection (unless it refuses demo commands, as when connected straight to the game server):
-    // `demo_gototick -N` goes back N ticks, `demo_gototick N 1` forward.
+    // `demo_gototick -N relative` goes back N ticks from where it is, `demo_gototick N relative` forward.
     const lines = new Set<(l: string) => void>();
     const conn = {
       connected: true,
       write: async (line: string) => {
         written.push(line);
         if (opts.consoleRefuses) return void lines.forEach((fn) => fn("Error - Not currently playing back a demo."));
-        const back = /^demo_gototick -(\d+)$/.exec(line);
-        const forward = /^demo_gototick (\d+) 1$/.exec(line);
+        const back = /^demo_gototick -(\d+) relative$/.exec(line);
+        const forward = /^demo_gototick (\d+) relative$/.exec(line);
         if (back) offset += (Number(back[1]) / 64) * 1000;
         if (forward) offset = Math.max(0, offset - (Number(forward[1]) / 64) * 1000);
       },
@@ -209,10 +209,10 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     expect(st.sent).toBe(1);
   }, 30000);
 
-  it("same CSTV, default: goes back 7 s once (demo_gototick -448), stays there, and films the missed kill before it plays there", async () => {
+  it("same CSTV, default: goes back 7 s once (demo_gototick -448 relative), stays there, and films the missed kill before it plays there", async () => {
     await setup({ offsetMs: 0 });
     await waitFor(async () => (await status()).rewind.state === "holding");
-    expect(written[0]).toMatch(/^demo_gototick -44[789]$/);
+    expect(written[0]).toMatch(/^demo_gototick -44[789] relative$/);
     expect(Math.abs((await status()).timing.delayMs! - 7000)).toBeLessThan(400);
     // T4's kill at 4 s on the main PC plays here 7 s later: the director is on T4 before it.
     await waitFor(() => (replay.e.session.director.controls.pin as { steamId?: string } | null)?.steamId === T4!.steamId);
@@ -227,7 +227,7 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     // CS2 back at the main PC's time (a reconnect): it goes back again.
     offset = 0;
     await waitFor(() => written.length === 2, 20000);
-    expect(written[1]).toMatch(/^demo_gototick -44[789]$/);
+    expect(written[1]).toMatch(/^demo_gototick -44[789] relative$/);
     await waitFor(async () => (await status()).rewind.state === "holding");
   }, 45000);
 
@@ -235,7 +235,7 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     await setup({ offsetMs: 0, sameCstv: "each_kill" });
     await waitFor(async () => (await status()).timing.state === "live");
     await waitFor(async () => (await status()).rewind.count === 1);
-    expect(written[0]).toMatch(/^demo_gototick -\d+$/);
+    expect(written[0]).toMatch(/^demo_gototick -\d+ relative$/);
     const back = (Number(/-(\d+)/.exec(written[0]!)![1]) / 64) * 1000;
     expect(back).toBeGreaterThanOrEqual(3000);
     await waitFor(async () => (await clips()).length > 0);
@@ -246,7 +246,7 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     expect(clip.playMs).toBeGreaterThanOrEqual(2300);
     // Then forward again, and live.
     await waitFor(async () => (await status()).rewind.state === "ready" && written.length === 2);
-    expect(written[1]).toMatch(/^demo_gototick \d+ 1$/);
+    expect(written[1]).toMatch(/^demo_gototick \d+ relative$/);
     await waitFor(async () => (await status()).timing.state === "live");
     expect(offset).toBeLessThan(1000);
   }, 30000);

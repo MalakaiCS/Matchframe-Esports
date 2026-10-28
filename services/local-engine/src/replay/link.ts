@@ -20,7 +20,7 @@ import { DelayEstimator, killKey } from "./timing.ts";
  *   missed is known here before it plays on this computer. Its director is pinned to the killer from
  *   a few seconds before the kill until just after it, then the replay buffer is saved and sent.
  * - **Live** (same time as the main PC, e.g. both on the same CSTV): by default CS2 goes back 7 s
- *   once (`demo_gototick -448`, which a live CSTV connection can do) and this computer then works
+ *   once (`demo_gototick -448 relative`, which a live CSTV connection can do) and this computer then works
  *   behind, as above. Or it goes back only for each missed kill its camera didn't have, films it,
  *   and skips forward to live again. Or it doesn't go back: its director films anyone but the main
  *   camera's player, and a missed kill that happens on its camera is saved and sent.
@@ -557,8 +557,8 @@ export class ReplayLink {
     const lines: string[] = [];
     const off = conn.onLine((l) => lines.push(l));
     try {
-      // A negative tick count goes back from where CS2 is (64 ticks a second: -448 is 7 s).
-      await conn.write(`demo_gototick -${Math.round((backMs / 1000) * TICKRATE)}`);
+      // Back from where CS2 is now (64 ticks a second: -448 is 7 s).
+      await conn.write(`demo_gototick -${Math.round((backMs / 1000) * TICKRATE)} relative`);
       await new Promise((r) => setTimeout(r, 700));
     } catch (err) {
       lines.push(String(err));
@@ -609,7 +609,7 @@ export class ReplayLink {
       this.rewindRun.checkUntil = now + RETURN_CHECK_MS;
       this.status.rewind = { ...this.status.rewind, state: "returning", detail: "Back to live…" };
       const conn = this.e.gameConsole.connection;
-      void conn?.write(`demo_gototick ${Math.round((Math.max(0, back - 300) / 1000) * TICKRATE)} 1`).catch(() => undefined);
+      void conn?.write(`demo_gototick ${Math.round((Math.max(0, back - 300) / 1000) * TICKRATE)} relative`).catch(() => undefined);
       return;
     }
     // Returning: live again, or CS2 stayed behind (then missed kills are still filmed, from behind).

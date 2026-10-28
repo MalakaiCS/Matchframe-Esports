@@ -289,3 +289,5 @@ What remains:
   - `off`: no going back.
 - **Migration:** a stored 0.5.1 `rewind: true` becomes `each_kill`.
 - **Measuring across a jump:** after going back, PC 2's round clock reads moments the main PC reported before PC 2 was linked, so the clocks can't be matched for a few seconds. The estimator now carries the delay across a jump in PC 2's own clock (delay before + jump) until readings match again. Without this, going back right after linking was wrongly judged to have failed.
+
+**Update (0.5.3).** The owner gave the relative forms in use: `demo_gototick -448 relative` goes back 448 ticks (about 7 s) from the current playback position, and `demo_gototick 448 relative` goes forward 448 ticks. Both are now sent in exactly that form: back for staying behind and for each missed kill, forward to return to live. 0.5.1/0.5.2 sent the forward skip with `1` instead of `relative`.

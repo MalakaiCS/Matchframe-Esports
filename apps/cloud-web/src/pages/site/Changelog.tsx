@@ -11,6 +11,17 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.5.3",
+    title: "Back to live, the right way",
+    summary: "The replay PC goes back and forward in CSTV with the relative commands broadcasters use.",
+    sections: [
+      {
+        heading: "Replays",
+        items: ["Going back uses demo_gototick -448 relative, and returning to live after filming a missed kill uses demo_gototick 448 relative."],
+      },
+    ],
+  },
+  {
     version: "0.5.2",
     title: "Same CSTV, 7 seconds behind",
     summary: "With both computers on the same CSTV, the replay PC goes back 7 seconds by itself and stays there, so it knows every missed kill before it plays on its screen.",
@@ -18,7 +29,7 @@ const RELEASES: Release[] = [
       {
         heading: "Replays",
         items: [
-          "The replay PC goes back 7 s once on CSTV (demo_gototick -448) and keeps playing from there: no second CSTV needed. 5, 7 or 10 s.",
+          "The replay PC goes back 7 s once on CSTV (demo_gototick -448 relative) and keeps playing from there: no second CSTV needed. 5, 7 or 10 s.",
           "After a reconnect or map change it goes back again by itself.",
           "Going back for each missed kill and then returning to live is still a choice.",
         ],

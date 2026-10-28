@@ -14,7 +14,7 @@ When PC 2's game runs a few seconds later than PC 1's, every kill the main camer
 Three ways to get there:
 
 - **Both on the same CSTV (nothing to set up):**
-  - **Going back:** when PC 2 finds itself at PC 1's time, CS2 goes back 7 s once (`demo_gototick -448`, 64 ticks a second; a live CSTV connection can do this) and keeps playing from there.
+  - **Going back:** when PC 2 finds itself at PC 1's time, CS2 goes back 7 s once (`demo_gototick -448 relative`, 64 ticks a second; a live CSTV connection can do this) and keeps playing from there.
   - **Checking:** PC 2 checks the jump in its round clock and shows *7.0 s behind*.
   - **Reconnects and map changes:** after one, if CS2 is back at PC 1's time, it goes back again.
   - **Settings:** this is **On the same CSTV as the main PC → Go back and stay behind**, the default, with 5, 7 or 10 s.
@@ -68,9 +68,9 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
 - **Sending:** when a kill happens on PC 2's camera that PC 1 missed, PC 2 waits 2 s, saves its replay buffer and sends it.
 - **On CSTV, PC 2 doesn't stay at the same time** with the default **Go back and stay behind**: it goes back 7 s and works behind, as above. A missed kill PC 2's camera didn't have, in the moment before it goes back, is filmed too: it goes back far enough for that kill's lead-up.
 - **Go back for each missed kill, then live** (the other choice):
-  - **Going back:** on a missed kill PC 2's camera didn't have, CS2 goes back far enough for the kill's lead-up (`demo_gototick -N`, 3–12 s).
+  - **Going back:** on a missed kill PC 2's camera didn't have, CS2 goes back far enough for the kill's lead-up (`demo_gototick -N relative`, 3–12 s).
   - **Filming:** that puts PC 2 behind, so the kill is filmed as above.
-  - **Back to live:** CS2 skips forward with `demo_gototick N 1`.
+  - **Back to live:** CS2 skips forward the same distance with `demo_gototick N relative`.
   - **If CS2 doesn't skip forward:** PC 2 stays behind and keeps filming missed kills from there.
 - **Connected straight to the game server:** CS2 answers that it can't go back, and the panel says so.
 
@@ -112,7 +112,7 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
 - **Two engines, behind or rewinding** (`replay-pc-timing.e2e.test.ts`): one game played to both, the replay PC's camera following its director's pin.
   - **3 s behind:** the replay PC measures 3 s, pins the killer before the kill plays there, and sends 2 s before to 0.5 s after it.
   - **A single kill and a 2K at once:** the 2K is filmed, even after the replay PC started on the single kill.
-  - **Same CSTV, the default, with a stand-in CS2 console:** it sends `demo_gototick -448`, holds 7 s behind at once, pins the killer before the missed kill plays there and sends it. It goes back again after a simulated reconnect.
+  - **Same CSTV, the default, with a stand-in CS2 console:** it sends `demo_gototick -448 relative`, holds 7 s behind at once, pins the killer before the missed kill plays there and sends it. It goes back again after a simulated reconnect.
   - **Same CSTV, each missed kill:** it goes back, films the kill with its lead-up, and comes forward to live.
   - **A console that refuses demo commands** (connected straight to the game server): going back is marked unsupported.
 - **The delay measurement** (`replay-timing.test.ts`): behind, same time, ahead, a paused clock, another round, a rewind and a skip, the delay right after going back (before the main PC's matching readings exist), kills only, readings that disagree.
@@ -123,5 +123,5 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
 - **Not checked yet:**
   - two real CS2 clients on two computers over a real network;
   - a real second CSTV;
-  - `demo_gototick` from Matchframe on a real CSTV connection (going back confirmed by hand by the owner; skipping forward with `N 1` not yet);
+  - `demo_gototick` sent by Matchframe to a real CS2 on CSTV (the owner uses `-448 relative` and `448 relative` by hand);
   - Windows OBS.
