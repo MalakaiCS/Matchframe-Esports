@@ -786,6 +786,8 @@ export class Engine {
           playerName: (steamId) => this.playerNameFor(steamId),
           onEvidence: (key, support, detail) => this.recordControlEvidence(key, support, detail),
           onCommand: (line) => this.directorLog.info("console", { line }),
+          // CS2 saying a command didn't work ("Unknown command", cheat-protected…).
+          onConsoleReply: (line) => this.directorLog.warn("console reply", { line }),
           // Keep the spec_mode numbering that moved the camera on this build.
           onModesLearned: (modes) => {
             const cur = this.observerSettings();

@@ -147,9 +147,12 @@ async function fakeCs2Console(freeMode: number) {
  * camera from CS:GO's numbering, first person from CS2's), with game data following the camera:
  * spec_player only reaches the player from first person.
  */
-async function numberedCs2(free = 6, inEye = 2) {
+/** `gotoWorks: false`: spec_goto is unknown on this "build" (it says so); `setposWorks`: setpos/setang move the free camera. */
+async function numberedCs2(free = 6, inEye = 2, opts: { gotoWorks?: boolean; setposWorks?: boolean } = {}) {
   const lines: string[] = [];
   const game = { mode: inEye, observed: "76561198000000001" as string | null };
+  // Where getpos puts the camera: at the pose a spec_goto in the free camera sent, else with the player.
+  let pose = "setpos 0.000000 0.000000 64.000000;setang 0.000000 0.000000 0.000000";
   const server = createServer((sock) =>
     sock.on("data", (d) => {
       for (const line of d.toString().split("\n").filter(Boolean)) {
@@ -157,9 +160,22 @@ async function numberedCs2(free = 6, inEye = 2) {
         for (const cmd of line.split(";").map((c) => c.trim())) {
           const m = /^spec_mode (\d+)$/.exec(cmd);
           if (m) game.mode = Number(m[1]);
-          if (/^spec_goto /.test(cmd) && game.mode === free) game.observed = null;
+          if (m && Number(m[1]) !== free) pose = "setpos 0.000000 0.000000 64.000000;setang 0.000000 0.000000 0.000000";
+          const g = /^spec_goto (\S+) (\S+) (\S+) (\S+) (\S+)$/.exec(cmd);
+          if (g && opts.gotoWorks === false) sock.write("Unknown command: spec_goto\n");
+          else if (g && game.mode === free) {
+            game.observed = null;
+            pose = `setpos ${g[1]} ${g[2]} ${g[3]};setang ${g[4]} ${g[5]} 0`;
+          }
+          const sp = /^setpos (\S+) (\S+) (\S+)$/.exec(cmd);
+          if (sp && opts.setposWorks && game.mode === free) {
+            game.observed = null;
+            pose = `setpos ${sp[1]} ${sp[2]} ${sp[3]};setang ${pose.split("setang ")[1]}`;
+          }
+          const sa = /^setang (\S+) (\S+) (\S+)$/.exec(cmd);
+          if (sa && opts.setposWorks && game.mode === free) pose = `${pose.split(";")[0]};setang ${sa[1]} ${sa[2]} 0`;
           if (/^spec_player /.test(cmd) && game.mode === inEye) game.observed = "76561198000000002";
-          if (cmd === "getpos") sock.write("setpos 1200.500000 -340.000000 256.000000;setang 18.000000 -135.000000 0.000000\n");
+          if (cmd === "getpos") sock.write(`${pose}\n`);
         }
       }
     }),
@@ -199,7 +215,8 @@ describe("leaving the free camera", () => {
     clearInterval(feed);
     expect(c.lines.filter((l) => l === 'spec_mode 4; spec_player "nova"')).toHaveLength(2);
     expect(c.lines).toContain('spec_mode 2; spec_player "nova"');
-    expect(learned).toEqual([{ modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 6" }]);
+    // One numbering for all three: CS2's free camera is 4 (it has no 6).
+    expect(learned).toEqual([{ modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" }]);
     expect(c.game.observed).toBe("76561198000000002");
     await a.dispose();
     c.server.close();
@@ -251,10 +268,12 @@ describe("leaving the free camera", () => {
     await a.selectPlayer("76561198000000002", 2, ctx());
     await sleep(2100);
     await a.selectPlayer("76561198000000002", 2, ctx());
-    for (let i = 0; i < 40 && !learned.length; i++) await sleep(50);
+    const csgo = { modeInEye: "spec_mode 4", modeChase: "spec_mode 5", modeRoaming: "spec_mode 6" };
+    for (let i = 0; i < 40 && JSON.stringify(learned.at(-1)) !== JSON.stringify(csgo); i++) await sleep(50);
     clearInterval(feed);
     expect(c.lines).toContain('spec_mode 4; spec_player "nova"');
-    expect(learned).toEqual([{ modeInEye: "spec_mode 4", modeChase: "spec_mode 5", modeRoaming: "spec_mode 6" }]);
+    // The saved mix is first made one numbering (CS2's, from its in-eye 2), then the camera that works here sets CS:GO's.
+    expect(learned).toEqual([{ modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" }, csgo]);
     await a.dispose();
     c.server.close();
   });
@@ -296,6 +315,50 @@ async function freeCamCs2(opts: { switchMs?: number; gotoWorks?: boolean } = {})
   const gotos = () => lines.filter((l) => /^spec_goto /.test(l.line)).map((l) => ({ at: l.at, v: l.line.split(" ").slice(1).map(Number) }));
   return { lines, cam, xNow, gotos, server, port: (server.address() as { port: number }).port };
 }
+
+describe("one spec_mode numbering, and other ways to move the camera", () => {
+  it("makes a saved CS2 first-person command with CS:GO's free camera 6 one numbering: cameras use CS2's 4 and move", async () => {
+    const c = await numberedCs2(4, 2);
+    const learned: unknown[] = [];
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => 0, playerName: () => "nova", templates: { modeInEye: "spec_mode 2" }, onModesLearned: (m) => learned.push(m) });
+    expect(learned).toEqual([{ modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" }]);
+    const r = await a.activateStaticCamera(camera(), ctx());
+    expect(r.status).toBe("confirmed");
+    expect(c.lines[0]).toBe("spec_mode 4; spec_goto 1200.5 -340 256 18 -135");
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("uses setpos/setang where spec_goto doesn't move the camera, keeps it, and logs CS2's answer", async () => {
+    const c = await numberedCs2(4, 2, { gotoWorks: false, setposWorks: true });
+    const learned: Record<string, string>[] = [];
+    const replies: string[] = [];
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova", templates: { modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" }, onModesLearned: (m) => learned.push(m as Record<string, string>), onConsoleReply: (l) => replies.push(l) });
+    expect((await a.activateStaticCamera(camera(), ctx())).status).toBe("confirmed");
+    expect(learned.at(-1)).toEqual({ staticCamera: "{roaming}; setpos {x} {y} {z}; setang {pitch} {yaw} 0", pathFrame: "setpos {x} {y} {z}; setang {pitch} {yaw} 0" });
+    expect(replies[0]).toBe("Unknown command: spec_goto");
+    // The next camera goes straight to setpos.
+    const n = c.lines.length;
+    expect((await a.activateStaticCamera(camera({ id: "cam-b" }), ctx())).status).toBe("confirmed");
+    expect(c.lines[n]).toBe("spec_mode 4; setpos 1200.5 -340 256; setang 18 -135 0");
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("puts a camera that didn't move back into first person, and the next player selection leaves the free camera", async () => {
+    const c = await numberedCs2(4, 2, { gotoWorks: false });
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova", templates: { modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" }, readbackTimeoutMs: 200 });
+    const r = await a.activateStaticCamera(camera(), ctx());
+    expect(r.status).toBe("failed");
+    await sleep(50);
+    expect(c.lines.at(-1)).toBe("spec_mode 2");
+    await a.selectPlayer("76561198000000002", 2, ctx());
+    await sleep(50);
+    expect(c.lines.at(-1)).toBe('spec_mode 2; spec_player "nova"');
+    await a.dispose();
+    c.server.close();
+  });
+});
 
 describe("free camera switch", () => {
   it("sends the position again when CS2 switches to the free camera a tick after the command (else it stays at the player's feet)", async () => {
@@ -618,7 +681,8 @@ describe("chase view", () => {
     await a.selectPlayer(id, 1, ctx(), "chase");
     await until(() => learned.length > 0);
     expect(c.lines).toEqual(['spec_player "nova"; spec_mode 5', "getpos", "spec_mode 3", "getpos"]);
-    expect(learned).toEqual([{ modeInEye: "spec_mode 4", modeChase: "spec_mode 3", modeRoaming: "spec_mode 6" }]);
+    // The chase number is CS2's: so are the others.
+    expect(learned).toEqual([{ modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" }]);
     await a.selectPlayer(id, 1, ctx(), "chase");
     await new Promise((res) => setTimeout(res, 50));
     expect(c.lines.at(-1)).toBe('spec_player "nova"; spec_mode 3');

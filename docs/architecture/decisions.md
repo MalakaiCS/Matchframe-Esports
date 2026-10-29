@@ -619,3 +619,30 @@ Static cameras were sent as `{roaming}; spec_goto …` on one line. CS2 applies 
 
 **Not checked.** Against a real CS2: how many ticks the switch takes when spectating a server rather than a demo or CSTV. The resends cover about 300 ms, and the second `getpos` about 1 s.
 
+## ADR-040 — One spec_mode numbering; cameras find the command that moves them on this build
+
+**Context.** ADR-039 put the "camera in the ground" report down to CS2 switching to the free camera a tick late. The owner's 0.6.7 support file (Mirage, build 14193) showed otherwise:
+- every camera was sent as `spec_mode 6; spec_goto …`;
+- `getpos` kept answering the spectated player's position, even after five resends over half a second;
+- the game data never showed the free camera;
+- every `spec_player` then went unconfirmed.
+
+The CS2-numbering fallback never ran. It needed the templates to be the built-in CS:GO set, but the saved ones weren't: an earlier session had learned a CS2 first-person or chase command and saved only that one. CS2 has no `spec_mode 6`. It put the view in a state at the player where `spec_goto` and `spec_player` did nothing, and the camera code never changed out of it.
+
+**Decision.**
+- **One numbering:** the in-eye, chase and free-camera commands always come from the same set (CS:GO 4/5/6, CS2 2/3/4). Learning from leaving the free camera, from the chase check or from a confirmed camera sets all three. At start, saved templates that mix standard values take the numbering a CS2-only value shows (in-eye 2 or chase 3). Hand-edited non-standard templates are left alone.
+- **Ways of moving the camera:** until one is confirmed in the session, a camera `getpos` doesn't confirm is tried, in order, with:
+  - the other numbering's free camera;
+  - `setpos x y z; setang pitch yaw 0` with the current free camera;
+  - `setpos`/`setang` with the other free camera.
+
+  Each is followed by the position resends and `getpos`. The first that works is kept (numbering and move command) and saved to the templates. Paths and moving shots use its frame command.
+- **Never left in the odd view:** a camera that didn't move sends the first-person command, then fails. A player selection after a free-camera command always sends the first-person command first: on this build the game data names a player even out of first person.
+- **Diagnostics:** CS2's console answers that say a command failed (`Unknown command`, cheat or `sv_cheats` messages, `Usage:`) are logged as `console reply`, at most 20 a minute. The support file includes the observer adapter's settings.
+
+**Checked.**
+- Adapter tests where the stand-in reports the camera's real position: the support file's state (in-eye 2 saved, free 6) uses 4 and moves; `spec_goto` unknown with `setpos` working is learned and used next time; a camera that never moves sends `spec_mode 2` and the next selection leaves the free camera.
+- The earlier learning tests now expect whole numberings.
+
+**Not checked.** On a real CS2: whether its free camera is `spec_mode 4` with `spec_goto` (expected), or needs `setpos` (cheat-protected outside demos and local servers).
+

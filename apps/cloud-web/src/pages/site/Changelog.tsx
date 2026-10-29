@@ -11,6 +11,21 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.6.8",
+    title: "Cameras that move on CS2",
+    summary: "Fixes cameras that never moved and automatic player switches that stopped working: Matchframe mixed CS2's and CS:GO's spectator mode numbers.",
+    sections: [
+      {
+        heading: "Auto Director",
+        items: [
+          "Fixed: the free camera command used CS:GO's number, which CS2 doesn't have, so cameras stayed at the player.",
+          "Cameras now find the command that moves them on your CS2 and remember it.",
+          "A camera that doesn't move goes straight back to first person.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.6.7",
     title: "Cinematics in the right place",
     summary: "Fixes cinematics that went into the free camera but stayed in the ground under the player instead of moving to the camera.",

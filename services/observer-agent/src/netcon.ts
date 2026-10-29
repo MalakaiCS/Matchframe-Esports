@@ -15,11 +15,12 @@ import { NetconConnection } from "./netcon-connection.ts";
  * only), and operators report the name form works. Placeholders: {name} (in-game name, see
  * safeName), {accountId}, {steamId}, {slot} (observer slot / number key).
  *
- * Cameras: `spec_mode 6; spec_goto x y z pitch yaw` (free camera at a pose) works for a live
- * spectator on current CS2 builds; `getpos` answers `setpos x y z;setang pitch yaw roll`, which
- * confirms the pose. CS2 builds have used both the CS:GO spec_mode numbers (in-eye 4, free 6) and
- * the CS2 ones (in-eye 2, free 4): when the readback shows the camera didn't move, the other
- * numbering is tried once and kept. Paths stream interpolated spec_goto frames.
+ * Cameras: `{free camera}; spec_goto x y z pitch yaw`; `getpos` answers `setpos x y z;setang pitch
+ * yaw roll`, which confirms the pose. CS2 builds have used both the CS:GO spec_mode numbers
+ * (in-eye 4, chase 5, free 6) and the CS2 ones (in-eye 2, chase 3, free 4); the three are always one
+ * numbering. Until a camera is confirmed in a session, a camera getpos doesn't confirm is tried with
+ * the other numbering's free camera, then with setpos/setang, and the first that works is kept.
+ * Paths stream interpolated frames of the same command.
  */
 export interface NetconTemplates {
   selectPlayer: string;
@@ -47,6 +48,11 @@ export const DEFAULT_NETCON_TEMPLATES: NetconTemplates = {
 export const CS2_ENUM_MODES = { modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" } as const;
 /** CS:GO's numbering (the built-in default). */
 const CSGO_MODES = { modeInEye: "spec_mode 4", modeChase: "spec_mode 5", modeRoaming: "spec_mode 6" } as const;
+const STANDARD_MODES = new Set<string>([...Object.values(CSGO_MODES), ...Object.values(CS2_ENUM_MODES)]);
+/** Moving the free camera with setpos/setang (what getpos prints), for a build where spec_goto doesn't move it. */
+const SETPOS_WAY = { staticCamera: "{roaming}; setpos {x} {y} {z}; setang {pitch} {yaw} 0", pathFrame: "setpos {x} {y} {z}; setang {pitch} {yaw} 0" } as const;
+/** CS2 console answers worth keeping in the director log: the ones that say a command didn't work. */
+const FAILED_REPLY = /unknown command|can'?t use cheat|cheat command|sv_cheats|not (?:allowed|available)|usage:|invalid|not in (?:spectator|observer)/i;
 /** The chase view puts the camera at least this far (across) from the player; first person is about 0. */
 const CHASE_MIN_DISTANCE = 40;
 /** Game data lags the console: just after a free-camera command it can still show the player from before. */
@@ -118,7 +124,9 @@ export interface NetconOptions {
   /** Evidence that a kind of control works, from getpos readback; the engine records it per game build. */
   onEvidence?: (key: keyof ControlCapabilities, support: "supported" | "partial", detail: string) => void;
   /** The spec_mode numbering that moved the camera (when it isn't the default); the engine keeps it. */
-  onModesLearned?: (modes: Pick<NetconTemplates, "modeInEye" | "modeChase" | "modeRoaming">) => void;
+  onModesLearned?: (modes: Partial<NetconTemplates>) => void;
+  /** CS2's console answers that say a command didn't work ("Unknown command", a cheat-protected command…). */
+  onConsoleReply?: (line: string) => void;
   /** Camera path frames per second. */
   pathHz?: number;
   /** How long to wait for a getpos answer. */
@@ -188,7 +196,11 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   private leaving: { since: number; modeInEye: string } | null = null;
   private pathTimer: ReturnType<typeof setTimeout> | ReturnType<typeof setImmediate> | null = null;
   private pathToken = 0;
-  private modesLearned = false;
+  /** A way of moving the free camera (mode command and spec_goto or setpos) getpos confirmed this session. */
+  private cameraLearned = false;
+  /** A free-camera command was sent and no first-person one since: the next player selection leaves it. */
+  private sentFree = false;
+  private replyTimes: number[] = [];
   private chaseLearned = false;
   /** The camera is in the third-person chase view of a player. */
   private chase = false;
@@ -201,6 +213,29 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     this.ownsConnection = !opts.connection;
     this.conn = opts.connection ?? new NetconConnection({ host: opts.host, port: opts.port, connectTimeoutMs: opts.connectTimeoutMs ?? 1500 });
     this.offLine = this.conn.onLine((line) => this.onLine(line));
+    this.normalizeNumbering();
+  }
+
+  /**
+   * The three spec_mode commands are one numbering (CS:GO: 4/5/6, CS2: 2/3/4). Saved templates that
+   * mix them (a learned CS2 first-person or chase command next to CS:GO's free camera "spec_mode 6",
+   * which CS2 doesn't have: the camera then stays at the player and spec_goto is ignored) are set to
+   * the numbering a CS2-only command shows. Templates edited by hand to other commands are left alone.
+   */
+  private normalizeNumbering(): void {
+    const t = this.templates;
+    if (![t.modeInEye, t.modeChase, t.modeRoaming].every((m) => STANDARD_MODES.has(m))) return;
+    const set = t.modeInEye === CS2_ENUM_MODES.modeInEye || t.modeChase === CS2_ENUM_MODES.modeChase ? CS2_ENUM_MODES : CSGO_MODES;
+    if (t.modeInEye === set.modeInEye && t.modeChase === set.modeChase && t.modeRoaming === set.modeRoaming) return;
+    this.applyNumbering(set);
+  }
+
+  /** Uses one numbering for all three mode commands, and saves it. */
+  private applyNumbering(set: { modeInEye: string; modeChase: string; modeRoaming: string }): void {
+    this.templates.modeInEye = set.modeInEye;
+    this.templates.modeChase = set.modeChase;
+    this.templates.modeRoaming = set.modeRoaming;
+    this.opts.onModesLearned?.({ modeInEye: set.modeInEye, modeChase: set.modeChase, modeRoaming: set.modeRoaming });
   }
 
   async getCapabilities(): Promise<ControlCapabilities> {
@@ -224,6 +259,15 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
 
   private onLine(line: string): void {
     this.opts.onLine?.(line);
+    if (FAILED_REPLY.test(line) && !/^\s*setpos/.test(line)) {
+      // At most 20 a minute in the director log.
+      const now = this.opts.now();
+      this.replyTimes = this.replyTimes.filter((t) => now - t < 60_000);
+      if (this.replyTimes.length < 20) {
+        this.replyTimes.push(now);
+        this.opts.onConsoleReply?.(line.trim().slice(0, 300));
+      }
+    }
     const m = /setpos(?:_exact)?\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s*;\s*setang\s+(-?[\d.]+)\s+(-?[\d.]+)/.exec(line);
     if (m) {
       this.lastPose = { position: { x: Number(m[1]), y: Number(m[2]), z: Number(m[3]) }, pitch: Number(m[4]), yaw: Number(m[5]), fov: null };
@@ -241,12 +285,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     if (l && observer.observedSteamId) {
       // Out of the free camera: the in-eye command that did it is the one for this build.
       this.leaving = null;
-      if (l.modeInEye !== this.templates.modeInEye) {
-        const set = l.modeInEye === CS2_ENUM_MODES.modeInEye ? CS2_ENUM_MODES : CSGO_MODES;
-        this.templates.modeInEye = set.modeInEye;
-        this.templates.modeChase = set.modeChase;
-        this.opts.onModesLearned?.({ modeInEye: set.modeInEye, modeChase: set.modeChase, modeRoaming: this.templates.modeRoaming });
-      }
+      if (l.modeInEye !== this.templates.modeInEye) this.applyNumbering(l.modeInEye === CS2_ENUM_MODES.modeInEye ? CS2_ENUM_MODES : CSGO_MODES);
     }
     this.observed = { cameraMode: observer.cameraMode, observedSteamId: observer.observedSteamId, position: observer.observedPosition ?? null, seq: this.observed.seq + 1 };
   }
@@ -254,6 +293,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   /** A free-camera command was sent: the camera is free now, whatever older game data says. */
   private wentFree(): void {
     this.freeCam = true;
+    this.sentFree = true;
     this.freeAt = this.opts.now();
     this.leaving = null;
   }
@@ -329,8 +369,11 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     if (token !== this.pathToken) return;
     if (d2 !== null && d2 >= CHASE_MIN_DISTANCE) {
       this.chaseLearned = true;
-      this.templates.modeChase = alt;
-      this.opts.onModesLearned?.({ modeInEye: this.templates.modeInEye, modeChase: alt, modeRoaming: this.templates.modeRoaming });
+      if (STANDARD_MODES.has(this.templates.modeInEye) && STANDARD_MODES.has(this.templates.modeRoaming)) this.applyNumbering(alt === CS2_ENUM_MODES.modeChase ? CS2_ENUM_MODES : CSGO_MODES);
+      else {
+        this.templates.modeChase = alt;
+        this.opts.onModesLearned?.({ modeChase: alt });
+      }
       this.opts.onEvidence?.("observerModeControl", "supported", `getpos showed the chase view ${Math.round(d2)} units behind the player (${alt})`);
       return;
     }
@@ -363,7 +406,45 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
    * starts where the player stands (in the ground under them). So the position is sent again a
    * few times over the next ~300 ms (harmless once it has landed).
    */
-  private async repeatGoto(pose: PathPose, token: number, afterMs: readonly number[] = [50, 150, 300]): Promise<void> {
+  /**
+   * The ways of putting the free camera at a pose, in order: the one in use first; until one is
+   * confirmed this session, then the other numbering's free-camera command, and setpos/setang (what
+   * getpos prints) with each.
+   */
+  private cameraWays(): { roaming: string; staticCamera: string; pathFrame: string }[] {
+    const cur = { roaming: this.templates.modeRoaming, staticCamera: this.templates.staticCamera, pathFrame: this.templates.pathFrame };
+    if (this.cameraLearned) return [cur];
+    const out = [cur];
+    const other = !STANDARD_MODES.has(cur.roaming) ? null : cur.roaming === CS2_ENUM_MODES.modeRoaming ? CSGO_MODES.modeRoaming : CS2_ENUM_MODES.modeRoaming;
+    if (other) out.push({ ...cur, roaming: other });
+    if (cur.staticCamera !== SETPOS_WAY.staticCamera) {
+      out.push({ roaming: cur.roaming, ...SETPOS_WAY });
+      if (other) out.push({ roaming: other, ...SETPOS_WAY });
+    }
+    return out;
+  }
+
+  /** Keeps the way getpos confirmed: its numbering for all mode commands, and its move command. */
+  private learnCameraWay(way: { roaming: string; staticCamera: string; pathFrame: string }): void {
+    if (way.roaming !== this.templates.modeRoaming) this.applyNumbering(way.roaming === CS2_ENUM_MODES.modeRoaming ? CS2_ENUM_MODES : CSGO_MODES);
+    if (way.staticCamera !== this.templates.staticCamera) {
+      this.templates.staticCamera = way.staticCamera;
+      this.templates.pathFrame = way.pathFrame;
+      this.opts.onModesLearned?.({ staticCamera: way.staticCamera, pathFrame: way.pathFrame });
+    }
+  }
+
+  /** After a camera that didn't move: the first-person command, so the view is on a player again. */
+  private async returnToPlayer(): Promise<void> {
+    try {
+      await this.write(this.leaveFreeMode());
+      this.sentFree = false;
+    } catch {
+      // the next player selection leaves the free camera
+    }
+  }
+
+  private async repeatGoto(pose: PathPose, token: number, afterMs: readonly number[] = [50, 150, 300], frame = this.templates.pathFrame): Promise<void> {
     let waited = 0;
     for (const at of afterMs) {
       await new Promise((r) => setTimeout(r, Math.max(0, at - waited)));
@@ -371,7 +452,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
       if (token !== this.pathToken) return;
       try {
         // Like the moving shots' frames: sent, not written to the director log line by line.
-        await this.conn.write(this.cameraCommand(pose, this.templates.pathFrame));
+        await this.conn.write(this.cameraCommand(pose, frame));
       } catch {
         return;
       }
@@ -400,11 +481,6 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   private confirmed(ctx: CommandContext, detail: string): CommandResult {
     const now = this.opts.now();
     return { commandId: ctx.commandId, status: "confirmed", precision: "observed_exact", failureReason: null, detail, transportAckAtMonotonicMs: now, confirmedAtMonotonicMs: now };
-  }
-
-  private usesDefaultModes(): boolean {
-    const d = DEFAULT_NETCON_TEMPLATES;
-    return this.templates.modeInEye === d.modeInEye && this.templates.modeChase === d.modeChase && this.templates.modeRoaming === d.modeRoaming;
   }
 
   private stopPath(): void {
@@ -509,7 +585,9 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     this.stopPath();
     // spec_player in the free camera only moves the free camera, and it keeps the chase view:
     // first person is set first when leaving either; the chase view is set after the player.
-    const leaveFree = this.freeCam || this.telemetryRoaming;
+    // Also when Matchframe sent the free camera and no first-person command since: on some builds the
+    // game data still names the player in the free camera, and spec_player alone doesn't leave it.
+    const leaveFree = this.freeCam || this.telemetryRoaming || this.sentFree;
     const chase = view === "chase";
     // Into first person from the free camera: the in-eye command that the game data confirms on this build.
     // (Out of it into the chase view, the chase command moves the camera: that says nothing about in-eye.)
@@ -520,6 +598,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     const r = await this.send(ctx, `${prefix}${cmd}${suffix}`);
     if (r.status !== "failed") {
       this.freeCam = false;
+      this.sentFree = false;
       this.chase = chase;
       if (chase && !this.chaseLearned) void this.learnChase(steamId, this.pathToken);
     }
@@ -543,36 +622,35 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     }
     this.stopPath();
     const token = this.pathToken;
-    const r = await this.send(ctx, cmd);
-    if (r.status === "failed") return r;
-    this.wentFree();
-    await this.repeatGoto(pose, token);
-    let check = await this.readback(pose);
-    if (check === "mismatch" && token === this.pathToken) {
-      // Still where the free camera started (at the player's feet): the switch took longer.
-      await this.repeatGoto(pose, token, [0, 200]);
+    let first: CommandResult | null = null;
+    let check: "match" | "mismatch" | "none" = "none";
+    const ways = this.cameraWays();
+    for (const [i, way] of ways.entries()) {
+      if (token !== this.pathToken) break;
+      const r = await this.send(ctx, i === 0 ? cmd : this.cameraCommand(pose, way.staticCamera, way.roaming));
+      if (r.status === "failed") return r;
+      first ??= r;
+      this.wentFree();
+      await this.repeatGoto(pose, token, undefined, way.pathFrame);
       check = await this.readback(pose);
-    }
-    if (check === "mismatch" && !this.modesLearned && this.usesDefaultModes()) {
-      // The camera didn't move: this build may use the CS2 spec_mode numbering.
-      const r2 = await this.send(ctx, this.cameraCommand(pose, this.templates.staticCamera, CS2_ENUM_MODES.modeRoaming));
-      if (r2.status !== "failed") await this.repeatGoto(pose, token);
-      if (r2.status !== "failed" && (await this.readback(pose)) === "match") {
-        this.templates.modeInEye = CS2_ENUM_MODES.modeInEye;
-        this.templates.modeChase = CS2_ENUM_MODES.modeChase;
-        this.templates.modeRoaming = CS2_ENUM_MODES.modeRoaming;
-        this.opts.onModesLearned?.({ ...CS2_ENUM_MODES });
-        check = "match";
+      if (check === "mismatch" && i === 0 && token === this.pathToken) {
+        // Still where the free camera started: the switch took longer.
+        await this.repeatGoto(pose, token, [0, 200], way.pathFrame);
+        check = await this.readback(pose);
       }
+      if (check === "match" && i > 0) this.learnCameraWay(way);
+      if (check !== "mismatch") break;
     }
     if (check === "mismatch") {
-      // Never left in the free camera somewhere else (where it starts: at the player's feet):
-      // failed, so the director goes back to a player.
+      // Never left away from the players (at the player's feet, or a mode spec_player can't leave):
+      // back to first person, and failed, so the director goes on with a player.
       const at = this.lastPose ? ` (getpos: ${Math.round(this.lastPose.position.x)} ${Math.round(this.lastPose.position.y)} ${Math.round(this.lastPose.position.z)})` : "";
+      await this.returnToPlayer();
       return failedResult(ctx, "confirmation_timeout", `the camera did not move to camera ${camera.id}${at}`);
     }
+    const r = first!;
     if (check !== "match") return r;
-    this.modesLearned = true;
+    this.cameraLearned = true;
     // Moved only while this is still the latest command (another one stops the move).
     if (motion && motion.durationMs > 0 && token === this.pathToken) this.playMotion(motion, token);
     this.opts.onEvidence?.("staticCameraControl", "supported", `getpos confirmed camera ${camera.id}`);
