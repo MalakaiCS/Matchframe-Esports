@@ -357,6 +357,27 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     return fill(template, { roaming, x: safeValue(pose.position.x), y: safeValue(pose.position.y), z: safeValue(pose.position.z), pitch: safeValue(pose.pitch), yaw: safeValue(pose.yaw) });
   }
 
+  /**
+   * CS2 switches to the free camera on a later tick: a spec_goto on the same line as the switch
+   * can arrive while the camera still follows the player, and is dropped. The free camera then
+   * starts where the player stands (in the ground under them). So the position is sent again a
+   * few times over the next ~300 ms (harmless once it has landed).
+   */
+  private async repeatGoto(pose: PathPose, token: number, afterMs: readonly number[] = [50, 150, 300]): Promise<void> {
+    let waited = 0;
+    for (const at of afterMs) {
+      await new Promise((r) => setTimeout(r, Math.max(0, at - waited)));
+      waited = at;
+      if (token !== this.pathToken) return;
+      try {
+        // Like the moving shots' frames: sent, not written to the director log line by line.
+        await this.conn.write(this.cameraCommand(pose, this.templates.pathFrame));
+      } catch {
+        return;
+      }
+    }
+  }
+
   /** Asks getpos and compares the answer with where the camera was sent. */
   private async readback(pose: PathPose): Promise<"match" | "mismatch" | "none"> {
     const seq = this.poseSeq;
@@ -372,7 +393,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     if (this.poseSeq === seq || !p) return "none";
     const dxy = Math.hypot(p.position.x - pose.position.x, p.position.y - pose.position.y);
     const dz = Math.abs(p.position.z - pose.position.z);
-    const ok = dxy <= 16 && dz <= 72 && Math.abs(p.pitch - pose.pitch) <= 3 && Math.abs(wrap180(p.yaw - pose.yaw)) <= 3;
+    const ok = dxy <= 16 && dz <= 72 && Math.abs(wrap180(p.pitch - pose.pitch)) <= 3 && Math.abs(wrap180(p.yaw - pose.yaw)) <= 3;
     return ok ? "match" : "mismatch";
   }
 
@@ -525,10 +546,17 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     const r = await this.send(ctx, cmd);
     if (r.status === "failed") return r;
     this.wentFree();
+    await this.repeatGoto(pose, token);
     let check = await this.readback(pose);
+    if (check === "mismatch" && token === this.pathToken) {
+      // Still where the free camera started (at the player's feet): the switch took longer.
+      await this.repeatGoto(pose, token, [0, 200]);
+      check = await this.readback(pose);
+    }
     if (check === "mismatch" && !this.modesLearned && this.usesDefaultModes()) {
       // The camera didn't move: this build may use the CS2 spec_mode numbering.
       const r2 = await this.send(ctx, this.cameraCommand(pose, this.templates.staticCamera, CS2_ENUM_MODES.modeRoaming));
+      if (r2.status !== "failed") await this.repeatGoto(pose, token);
       if (r2.status !== "failed" && (await this.readback(pose)) === "match") {
         this.templates.modeInEye = CS2_ENUM_MODES.modeInEye;
         this.templates.modeChase = CS2_ENUM_MODES.modeChase;
@@ -536,6 +564,12 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
         this.opts.onModesLearned?.({ ...CS2_ENUM_MODES });
         check = "match";
       }
+    }
+    if (check === "mismatch") {
+      // Never left in the free camera somewhere else (where it starts: at the player's feet):
+      // failed, so the director goes back to a player.
+      const at = this.lastPose ? ` (getpos: ${Math.round(this.lastPose.position.x)} ${Math.round(this.lastPose.position.y)} ${Math.round(this.lastPose.position.z)})` : "";
+      return failedResult(ctx, "confirmation_timeout", `the camera did not move to camera ${camera.id}${at}`);
     }
     if (check !== "match") return r;
     this.modesLearned = true;

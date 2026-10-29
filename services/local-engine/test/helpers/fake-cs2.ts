@@ -23,6 +23,7 @@ export class TimedCs2 {
   strafe = { dir: 0, since: 0 };
   t0 = 0;
   private seq = 0;
+  private switching: ReturnType<typeof setTimeout> | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private server: Server | null = null;
   private readonly sockets = new Set<Socket>();
@@ -41,6 +42,11 @@ export class TimedCs2 {
       positions: (t: number, p: SyntheticPlayer) => { x: number; y: number; z: number };
       /** How far the game data lags the console (like CS2's: the camera changes before the game data says so). */
       gsiLagMs?: number;
+      /**
+       * How long switching to the free camera takes (default 40 ms, a tick or two, like CS2): a
+       * spec_goto before then is dropped, and the free camera starts at the player's feet.
+       */
+      freeSwitchMs?: number;
     },
   ) {}
 
@@ -83,8 +89,19 @@ export class TimedCs2 {
     const freeMode = this.opts.freeMode ?? "spec_mode 6";
     for (const cmd of line.split(";").map((c) => c.trim())) {
       if (/^spec_mode \d$/.test(cmd)) {
-        if (cmd === freeMode) this.free = true;
-        else if (!this.opts.playerModes || this.opts.playerModes.includes(cmd)) this.free = false;
+        if (cmd === freeMode && !this.free && !this.switching) {
+          const feet = this.roster.find((r) => r.steamId === this.observed)?.position;
+          this.switching = setTimeout(() => {
+            this.switching = null;
+            this.free = true;
+            if (feet) this.pose = { x: feet.x, y: feet.y, z: feet.z, pitch: 0, yaw: 0 };
+            this.observed = null;
+          }, this.opts.freeSwitchMs ?? 40);
+        } else if (cmd !== freeMode && (!this.opts.playerModes || this.opts.playerModes.includes(cmd))) {
+          if (this.switching) clearTimeout(this.switching);
+          this.switching = null;
+          this.free = false;
+        }
       }
       const goto = /^spec_goto (\S+) (\S+) (\S+) (\S+) (\S+)$/.exec(cmd);
       if (goto && this.free) {
@@ -143,6 +160,7 @@ export class TimedCs2 {
   }
 
   async stop(): Promise<void> {
+    if (this.switching) clearTimeout(this.switching);
     if (this.timer) clearInterval(this.timer);
     for (const s of this.sockets) s.destroy();
     await new Promise<void>((r) => (this.server ? this.server.close(() => r()) : r()));

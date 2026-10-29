@@ -11,6 +11,20 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.6.7",
+    title: "Cinematics in the right place",
+    summary: "Fixes cinematics that went into the free camera but stayed in the ground under the player instead of moving to the camera.",
+    sections: [
+      {
+        heading: "Auto Director",
+        items: [
+          "Fixed: the camera stuck under the player when a cinematic started. CS2 switches to the free camera a moment late, so the camera's position is now sent again and checked.",
+          "A camera that still doesn't move is skipped, and the director goes straight back to a player.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.6.6",
     title: "Demo learning",
     summary: "The Demo Library turns pro demos into POV data (who gets a kill, dies or starts a multi-frag in the next seconds), uploads it to your FTP storage and deletes the demo. Python is set up from the program.",

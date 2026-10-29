@@ -599,3 +599,23 @@ The Demo Library already read demos into datasets, but Python and its packages d
 - RAR on Windows 10.
 - The Python setup on a real Windows computer.
 
+## ADR-039 — The free camera's position sent again after the switch; an unconfirmed camera fails
+
+**Context.** The owner reported that when cinematics start, CS2 goes into the free camera "underneath the player in the ground and not actually in the cameras you set". The earlier Mirage report ("cinematics all in the ground", 0.6.1) was put down to `+left`/`+right` strafing (ADR-034). That was real, but it wasn't the whole cause.
+
+Static cameras were sent as `{roaming}; spec_goto …` on one line. CS2 applies the switch to the free camera a tick later, so the `spec_goto` arrived while the camera still followed the player and was dropped. The free camera then started at the player's position.
+
+`getpos` saw the mismatch, but the adapter returned the command as transport-acknowledged. The game data then showed the free camera, which confirmed the shot, and the camera stayed in the ground for the whole cinematic. The stand-in CS2 applied both commands at once, so the tests never saw it.
+
+**Decision.**
+- After the camera command, `spec_goto` alone is sent again at 50, 150 and 300 ms, then `getpos`. On a mismatch it is sent once more, followed by another `getpos`.
+- A camera `getpos` places elsewhere after that is **failed** (`confirmation_timeout`, with the `getpos` position). The director marks it failed for the round and goes back to a player. A camera with no `getpos` answer is still left to the game data, as before.
+- The pitch comparison wraps like the yaw's.
+- The engine's stand-in CS2 switches to the free camera 40 ms late (`freeSwitchMs`) and starts it at the player's feet.
+
+**Checked.**
+- Against that stand-in, the 0.6.6 adapter fails the Dust2 freeze-time e2e test, and the new one passes.
+- Adapter tests: a late switch is confirmed at the camera's pose; a camera `spec_goto` never moves is reported failed; the CS2-numbering fallback still works.
+
+**Not checked.** Against a real CS2: how many ticks the switch takes when spectating a server rather than a demo or CSTV. The resends cover about 300 ms, and the second `getpos` about 1 s.
+

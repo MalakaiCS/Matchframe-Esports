@@ -160,7 +160,8 @@ describe("Dust2: out of the freeze-time shot and into first person when the roun
     expect(hold!.request.movingMs ?? 0, why).toBe(0);
     // Nothing else until the round goes live (the timeout ends at 69 s, the round goes live at 75 s); still.
     expect(commands.filter((c) => c.at > hold!.at && c.at < LIVE2_START), why).toEqual([]);
-    expect(cs2.lines.filter((l) => l.at > hold!.at + 300 && l.at < LIVE2_START && /spec_goto|\+(left|right)/.test(l.line)), why).toEqual([]);
+    // (The position is sent again for ~300 ms after the switch to the free camera, which CS2 makes a tick later.)
+    expect(cs2.lines.filter((l) => l.at > hold!.at + 800 && l.at < LIVE2_START && /spec_goto|\+(left|right)/.test(l.line)), why).toEqual([]);
     // Then first person.
     const next = commands.find((c) => c.at > hold!.at);
     expect(next?.request.kind, why).toBe("select_player");

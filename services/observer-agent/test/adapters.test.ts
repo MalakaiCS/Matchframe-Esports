@@ -264,7 +264,11 @@ describe("leaving the free camera", () => {
  * A console whose free camera (spec_mode 6) behaves like CS2's: spec_goto moves it, and +left/+right
  * (CS2's strafe keys, not turning) slide it sideways at 400 units a second while held.
  */
-async function freeCamCs2() {
+/**
+ * `switchMs`: the free camera comes a tick later (like CS2's), a spec_goto before then is dropped
+ * and the free camera starts at the player's feet (0, 0, 0). `gotoWorks: false`: spec_goto never moves it.
+ */
+async function freeCamCs2(opts: { switchMs?: number; gotoWorks?: boolean } = {}) {
   const lines: { at: number; line: string }[] = [];
   const cam = { mode: 4, x: 0, y: 0, z: 0, pitch: 0, yaw: 0, strafe: 0, since: 0 };
   const xNow = () => cam.x + cam.strafe * 400 * ((performance.now() - cam.since) / 1000);
@@ -274,9 +278,10 @@ async function freeCamCs2() {
         lines.push({ at: performance.now(), line });
         for (const cmd of line.split(";").map((c) => c.trim())) {
           const m = /^spec_mode (\d+)$/.exec(cmd);
-          if (m) cam.mode = Number(m[1]);
+          if (m && opts.switchMs && Number(m[1]) === 6 && cam.mode !== 6) setTimeout(() => Object.assign(cam, { mode: 6, x: 0, y: 0, z: 0, pitch: 0, yaw: 0 }), opts.switchMs);
+          else if (m) cam.mode = Number(m[1]);
           const g = /^spec_goto (\S+) (\S+) (\S+) (\S+) (\S+)$/.exec(cmd);
-          if (g && cam.mode === 6) Object.assign(cam, { x: Number(g[1]), y: Number(g[2]), z: Number(g[3]), pitch: Number(g[4]), yaw: Number(g[5]), since: performance.now() });
+          if (g && cam.mode === 6 && opts.gotoWorks !== false) Object.assign(cam, { x: Number(g[1]), y: Number(g[2]), z: Number(g[3]), pitch: Number(g[4]), yaw: Number(g[5]), since: performance.now() });
           if (/^[+-](left|right)$/.test(cmd)) {
             cam.x = xNow();
             cam.since = performance.now();
@@ -291,6 +296,27 @@ async function freeCamCs2() {
   const gotos = () => lines.filter((l) => /^spec_goto /.test(l.line)).map((l) => ({ at: l.at, v: l.line.split(" ").slice(1).map(Number) }));
   return { lines, cam, xNow, gotos, server, port: (server.address() as { port: number }).port };
 }
+
+describe("free camera switch", () => {
+  it("sends the position again when CS2 switches to the free camera a tick after the command (else it stays at the player's feet)", async () => {
+    const c = await freeCamCs2({ switchMs: 40 });
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova" });
+    const r = await a.activateStaticCamera(camera(), ctx());
+    expect(r.status).toBe("confirmed");
+    expect([c.cam.x, c.cam.y, c.cam.z, c.cam.pitch, c.cam.yaw]).toEqual([1200.5, -340, 256, 18, -135]);
+    c.server.close();
+  });
+
+  it("reports a camera that never moved as failed, so the director goes back to a player", async () => {
+    const c = await freeCamCs2({ gotoWorks: false });
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova" });
+    const r = await a.activateStaticCamera(camera(), ctx());
+    expect(r.status).toBe("failed");
+    expect(r.failureReason).toBe("confirmation_timeout");
+    expect(r.detail).toMatch(/did not move/);
+    c.server.close();
+  });
+});
 
 describe("smooth camera motion", () => {
   it("turns a freeze-time camera by sending its poses, centred on its aim, never with +left/+right (they strafe in CS2)", async () => {
@@ -369,13 +395,17 @@ describe("smooth camera motion", () => {
     c.server.close();
   });
 
-  it("shows a still team shot with one command", async () => {
+  it("shows a still team shot without moving it", async () => {
     const c = await freeCamCs2();
     const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now() });
     const move = { from: { x: 400, y: 0, z: 150 }, to: { x: 400, y: 0, z: 150 }, focus: { x: 0, y: 0, z: 40 } };
     expect((await a.activateStaticCamera(teamCamera("CT", "m", move, 60000), ctx(), glideMotion(move, 60000))).status).toBe("confirmed");
     await sleep(400);
-    expect(c.lines.map((l) => l.line).filter((l) => /spec_goto/.test(l))).toEqual(["spec_mode 6; spec_goto 400 0 150 15.38 -180"]);
+    const gotos = c.lines.map((l) => l.line).filter((l) => /spec_goto/.test(l));
+    expect(gotos[0]).toBe("spec_mode 6; spec_goto 400 0 150 15.38 -180");
+    // The same position sent again right after the switch (CS2 makes it a tick later), never moved.
+    expect([...new Set(gotos.slice(1))]).toEqual(["spec_goto 400 0 150 15.38 -180"]);
+    expect(gotos.length).toBeLessThanOrEqual(4);
     await a.dispose();
     c.server.close();
   });
@@ -467,7 +497,7 @@ describe("NetconObserverAdapter cameras on a stand-in CS2 console", () => {
     const r = await a.activateStaticCamera(camera(), ctx());
     expect(r.status).toBe("confirmed");
     expect(learned).toEqual([{ modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" }]);
-    expect(c.lines.filter((l) => l.includes("spec_goto"))).toEqual(["spec_mode 6; spec_goto 1200.5 -340 256 18 -135", "spec_mode 4; spec_goto 1200.5 -340 256 18 -135"]);
+    expect(c.lines.filter((l) => l.includes("spec_mode"))).toEqual(["spec_mode 6; spec_goto 1200.5 -340 256 18 -135", "spec_mode 4; spec_goto 1200.5 -340 256 18 -135"]);
     await a.selectPlayer("76561198000000001", 1, ctx());
     await new Promise((res) => setTimeout(res, 50));
     expect(c.lines.at(-1)).toBe('spec_mode 2; spec_player "nova"');
@@ -475,12 +505,13 @@ describe("NetconObserverAdapter cameras on a stand-in CS2 console", () => {
     c.server.close();
   });
 
-  it("leaves a camera it can't confirm as transport-only (the game data may still confirm it)", async () => {
+  it("reports a camera getpos shows somewhere else as failed, never left in the free camera at the player's feet", async () => {
     const c = await fakeCs2Console(9);
     const evidence: string[] = [];
     const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => 0, onEvidence: (k) => evidence.push(k), readbackTimeoutMs: 200 });
     const r = await a.activateStaticCamera(camera(), ctx());
-    expect(r.status).toBe("transport_acknowledged");
+    expect(r.status).toBe("failed");
+    expect(r.failureReason).toBe("confirmation_timeout");
     expect(evidence).toEqual([]);
     await a.dispose();
     c.server.close();
