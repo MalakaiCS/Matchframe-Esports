@@ -502,3 +502,31 @@ Through Matchframe in Chromium, the same kaiHUD ticks within 0.1 s of each secon
 - **Framing tests** use round-1 positions from the demos, plus Mirage's T spawn strung along its street.
 
 **Not checked.** On air in a real CS2.
+
+## ADR-036 — Clutches without X-ray, number keys from CS2's slots, coaches hidden
+
+**Context.** The owner asked for:
+- X-ray off in clutches such as a 1v2, so a won clutch looks like magic;
+- player names above heads whenever X-ray is on (`hud_showtargetid 1`);
+- a fix for kaiHUD's minimap numbering every player one too low;
+- coaches kept off the scoreboard: their recording showed a coach as a sixth player all match.
+
+**Decision.**
+- **Clutch X-ray** (`GameConsoleService`, option `clutchXrayOff`, default on): when a live round has one player alive (coaches aside) against two or more, the console gets `spec_show_xray 0` and `hud_showtargetid 0`. Everything applied while it is held uses X-ray off. It ends when the round attempt is no longer live or changes, or when either option goes off, and the stored option is sent again. Only in the console launch modes.
+- **Names:** `xrayCommands(on)` sends `spec_show_xray` and `hud_showtargetid` together.
+- **Number keys** (`observerKeys`): CS2 numbers observer slots 0–9, the first team on 0–4; CS:GO and the synthetic data number them like the keys (1–9, then 0). The two are told apart by slots 0 and 1: on one team when counting starts at 0, on different teams when slots are keys. `PlayerState.observerKey` is the key: CS2's slot + 1, the tenth player 0, null without a slot. HUDs, Live Control, the director's intents and the Stream Deck use it. LHM HUDs get it as `observer_slot`. LHM's own parser expects key numbering (it puts the team whose first player has the lower number on the left, with 0 counted as 10), so its left and right are now right on CS2 too.
+- **Coaches** (`PlayerState.coach`):
+  - detected by `detectCoaches`: a name with "coach" as a word, or, on a team listing more than five, a player with no slot or not alive in freeze time while five teammates are; forgotten once they are alive in a live round;
+  - also the roster role Coach;
+  - the operator's choice wins over both (`players.coaches` setting, Live Control buttons, `PUT /api/v1/live/players/:steamId/coach`).
+  - Coaches get no number key; the team projections and the minimap, LHM game data, the director's candidates, the Auto Director's test target and the device number keys leave them out.
+
+**Checked.**
+- Number keys for both numberings, and in the match state for a CS2-numbered game.
+- Coach detection, the roster coach and the operator's override.
+- LHM game data: renumbered, coaches dropped, raw packet untouched.
+- The clutch toggle against the stand-in console: off at 1v2, back at round end, not touched with the option off.
+
+**Not checked.**
+- How a real CS2 lists a coach in GSI: whether they have an observer slot and what health they report. The manual choice covers a coach the detection misses.
+

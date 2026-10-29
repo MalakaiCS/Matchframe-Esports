@@ -9,6 +9,7 @@ export type GameLaunchMode = "standard" | "tools" | "hlae";
 export interface ConsoleOptions {
   hideGameHud: boolean;
   xray: boolean;
+  clutchXrayOff: boolean;
   runInBackground: boolean;
   noFlash: boolean;
   killfeedTeamColours: boolean;

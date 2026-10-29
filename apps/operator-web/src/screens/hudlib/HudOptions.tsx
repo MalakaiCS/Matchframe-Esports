@@ -180,7 +180,15 @@ export function GameCard() {
       ) : (
         <div className="hud-game-options" aria-label="Game options">
           <Toggle label="Hide game HUD" testId="hide-game-hud" hint="cl_draw_only_deathnotices 1: the game shows only its kill feed; your HUD shows the rest. Sent when the console connects." on={o ? o.hideGameHud : null} reason={cameraReason} onChange={option("hideGameHud")} />
-          <Toggle label="X-ray" testId="xray" hint="spec_show_xray: players visible through walls on the observer's screen." on={o ? o.xray : null} reason={cameraReason} onChange={option("xray")} />
+          <Toggle label="X-ray" testId="xray" hint="spec_show_xray and hud_showtargetid: players visible through walls on the observer's screen, with their names above them." on={o ? o.xray : null} reason={cameraReason} onChange={option("xray")} />
+          <Toggle
+            label="No X-ray in clutches"
+            testId="clutch-xray-off"
+            hint="When one player is left against two or more, X-ray goes off until the round ends, so the viewer doesn't see where the other team is. It comes back on for the next round."
+            on={o ? o.clutchXrayOff : null}
+            reason={cameraReason ?? (o && !o.xray ? "X-ray is off." : null)}
+            onChange={option("clutchXrayOff")}
+          />
           <Toggle
             label="Run behind other windows"
             testId="run-in-background"

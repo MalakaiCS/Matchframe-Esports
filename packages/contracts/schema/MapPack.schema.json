@@ -542,7 +542,8 @@
               "getpos_paste",
               "netcon_readback",
               "imported",
-              "derived_navmesh"
+              "derived_navmesh",
+              "framed_live"
             ]
           },
           "notes": {

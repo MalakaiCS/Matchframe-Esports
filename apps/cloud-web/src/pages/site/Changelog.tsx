@@ -11,6 +11,27 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.6.4",
+    title: "Clutches without X-ray, and coaches hidden",
+    summary: "X-ray goes off in a clutch so a win looks like magic, and player names show above heads with X-ray on. The minimap numbers match the number keys again. Coaches are no longer shown as a sixth player.",
+    sections: [
+      {
+        heading: "Game options",
+        items: [
+          "No X-ray in clutches: when one player is left against two or more, X-ray goes off until the round is over (on by default).",
+          "With X-ray on, each player's name shows above them (hud_showtargetid).",
+        ],
+      },
+      {
+        heading: "HUDs",
+        items: [
+          "Fixed: player numbers one too low on kaiHUD's minimap (the first player showed as 0).",
+          "Coaches are left off scoreboards and the minimap. They are found automatically, or picked in Live Control when a team shows more than five players.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.6.3",
     title: "Real spawns, and Cache",
     summary: "Freeze-time team shots checked and tuned on where players really stand, from a pro match on every map in the pool. The spawn cameras now aim at the real spawns. Cache is supported.",

@@ -13,6 +13,7 @@ import type { CameraMotion, ObserverControlAdapter, PlayerView, PoseStream } fro
 import { failedResult } from "./adapter.ts";
 
 export type ControlRequest =
+  /** `observerSlot`: the player's spectator number key (1–9, 0; PlayerState.observerKey). */
   | { kind: "select_player"; steamId: string; observerSlot: number | null; view?: PlayerView }
   /** `motion`: the camera moves slowly while on air (a pan or a glide), from the move's first pose; absent: still. */
   | { kind: "activate_static_camera"; camera: CameraRecord; plannedDurationMs: number; motion?: CameraMotion }

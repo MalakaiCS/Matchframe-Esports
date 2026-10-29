@@ -45,6 +45,7 @@ export interface DirectorIntent {
   /** Kind of shot (a static camera can be a nade camera, a fight overview, the bomb or an establishing shot). */
   shotClass: ShotClass;
   targetSteamId: string | null;
+  /** select_player: the player's spectator number key (1–9, 0), for a keyboard or {slot} console command. */
   observerSlot: number | null;
   cameraId: string | null;
   /** The camera path for play_camera_path. */
@@ -514,7 +515,7 @@ export class Director {
               kind: "select_player",
               shotClass: desired.shotClass,
               targetSteamId: shot.id,
-              observerSlot: target?.observerSlot ?? null,
+              observerSlot: target?.observerKey ?? null,
               cameraId: null,
               plannedDurationMs: null,
               opportunityId: null,

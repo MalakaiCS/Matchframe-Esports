@@ -117,6 +117,7 @@
           "DISTANCE_CLOSING",
           "MAIN_STORY",
           "ESTABLISHING",
+          "PAUSE",
           "NO_VALID_CANDIDATE",
           "MAIN_OBSERVER_ON_IT",
           "FOLLOW_CAM"
@@ -317,6 +318,7 @@
                 "DISTANCE_CLOSING",
                 "MAIN_STORY",
                 "ESTABLISHING",
+                "PAUSE",
                 "NO_VALID_CANDIDATE",
                 "MAIN_OBSERVER_ON_IT",
                 "FOLLOW_CAM"

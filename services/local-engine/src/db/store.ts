@@ -203,6 +203,17 @@ export class RosterRepo {
   }
 
   /** Team for a player at a given time (null when not rostered). */
+  /** The player's role in their current team (player, substitute, coach, stand-in), or null without one. */
+  roleOf(playerId: string, at: string = nowIso()): string | null {
+    const row = this.db.get<{ role: string }>(
+      "SELECT role FROM roster_memberships WHERE player_id = ? AND valid_from <= ? AND (valid_to IS NULL OR valid_to > ?) ORDER BY valid_from DESC LIMIT 1",
+      playerId,
+      at,
+      at,
+    );
+    return row?.role ?? null;
+  }
+
   teamOf(playerId: string, at: string = nowIso()): string | null {
     const row = this.db.get<{ team_id: string }>(
       "SELECT team_id FROM roster_memberships WHERE player_id = ? AND valid_from <= ? AND (valid_to IS NULL OR valid_to > ?) ORDER BY valid_from DESC LIMIT 1",

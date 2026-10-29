@@ -114,12 +114,12 @@ const ACTIONS: DeviceAction[] = [
   },
   {
     id: "select_slot",
-    label: "Select player by observer slot (1–10)",
+    label: "Select player by number key (1–9, 0)",
     permission: "camera.control",
     params: z.object({ slot: z.number().int().min(0).max(12) }),
     run: async (e, req, p: { slot: number }) => {
-      const player = e.session.state()?.players.find((x) => x.observerSlot === p.slot);
-      if (!player) throw new HttpError(404, `no player in observer slot ${p.slot}`, "no_player");
+      const player = e.session.state()?.players.find((x) => x.observerKey === p.slot && !x.coach);
+      if (!player) throw new HttpError(404, `no player on number key ${p.slot}`, "no_player");
       return e.session.manualSelectPlayer(player.steamId, req.principal!.label, "device");
     },
   },
@@ -188,9 +188,9 @@ export function tally(e: Engine) {
     control: { owner: own.owner, holder: own.holder, automationActive: e.session.arbiter.automationAllowed, manualSticky: own.manualSticky, emergencyStopped: own.emergencyStopped, resumeInMs: e.session.arbiter.resumePendingInMs() },
     pov: observed,
     slots: (s?.players ?? [])
-      .filter((p) => p.observerSlot !== null)
+      .filter((p) => p.observerKey !== null && !p.coach)
       .sort((a, b) => (a.observerSlot ?? 0) - (b.observerSlot ?? 0))
-      .map((p) => ({ slot: p.observerSlot, steamId: p.steamId, name: p.name, side: p.side, alive: p.lifeState === "alive", onAir: p.steamId === observed })),
+      .map((p) => ({ slot: p.observerKey, steamId: p.steamId, name: p.name, side: p.side, alive: p.lifeState === "alive", onAir: p.steamId === observed })),
   };
 }
 

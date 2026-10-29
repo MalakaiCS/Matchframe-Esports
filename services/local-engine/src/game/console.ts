@@ -52,8 +52,16 @@ export type GameLaunchProfile = z.infer<typeof GameLaunchProfile>;
 export const ConsoleOptions = z.object({
   /** `cl_draw_only_deathnotices 1`: the game's HUD shows only the kill feed (your HUD shows the rest). */
   hideGameHud: z.boolean().default(true),
-  /** `spec_show_xray`: players seen through walls while spectating (the game's default is on). */
+  /**
+   * `spec_show_xray`: players seen through walls while spectating (the game's default is on), with
+   * `hud_showtargetid` (the players' names above them) going with it.
+   */
   xray: z.boolean().default(true),
+  /**
+   * X-ray (and the names) off while one player is alone against two or more in a live round, until
+   * the round ends: the viewer doesn't see the opponents coming, so a won clutch looks like magic.
+   */
+  clutchXrayOff: z.boolean().default(true),
   /**
    * `engine_no_focus_sleep 0; snd_mute_losefocus 0`: CS2 keeps drawing every frame and playing its
    * sound while Matchframe, OBS or another window has focus (by default it slows down and goes silent).
@@ -77,6 +85,7 @@ export type ConsoleOptions = z.infer<typeof ConsoleOptions>;
 export const ConsoleOptionsPatch = z.object({
   hideGameHud: z.boolean().optional(),
   xray: z.boolean().optional(),
+  clutchXrayOff: z.boolean().optional(),
   runInBackground: z.boolean().optional(),
   noFlash: z.boolean().optional(),
   killfeedTeamColours: z.boolean().optional(),
@@ -101,10 +110,27 @@ export function killfeedColourCommands(on: boolean, colours: SideColours): strin
   return [one("ct", colours.ct), one("t", colours.t)];
 }
 
+/** X-ray and the names above the players, together. */
+export function xrayCommands(on: boolean): string[] {
+  return [`spec_show_xray ${on ? 1 : 0}`, `hud_showtargetid ${on ? 1 : 0}`];
+}
+
+/**
+ * The player alone against two or more opponents in a live round, or null. Coaches and anyone dead
+ * don't count.
+ */
+export function clutchPlayer(state: MatchState): MatchState["players"][number] | null {
+  if (state.roundPhase !== "live") return null;
+  const alive = state.players.filter((p) => p.lifeState === "alive" && !p.coach);
+  const t = alive.filter((p) => p.side === "T");
+  const ct = alive.filter((p) => p.side === "CT");
+  return t.length === 1 && ct.length >= 2 ? t[0]! : ct.length === 1 && t.length >= 2 ? ct[0]! : null;
+}
+
 /** The console lines that put the game in the state the options describe. */
 export function consoleCommands(o: ConsoleOptions, mode: GameLaunchMode, colours: SideColours): string[] {
   if (mode === "standard") return [];
-  const out = [`cl_draw_only_deathnotices ${o.hideGameHud ? 1 : 0}`, `spec_show_xray ${o.xray ? 1 : 0}`];
+  const out = [`cl_draw_only_deathnotices ${o.hideGameHud ? 1 : 0}`, ...xrayCommands(o.xray)];
   // Off: the game's own defaults (sleep 20 ms a frame and mute while another window has focus).
   out.push(`engine_no_focus_sleep ${o.runInBackground ? 0 : 20}`, `snd_mute_losefocus ${o.runInBackground ? 0 : 1}`);
   if (mode === "hlae") {
@@ -161,6 +187,8 @@ export class GameConsoleService {
   private colours: SideColours = { ct: null, t: null };
   private lastApplyError: string | null = null;
   private lastAppliedAt: string | null = null;
+  /** X-ray turned off for a clutch: the round attempt it is off for, until that round is no longer live. */
+  private clutchXray: { round: string | null; steamId: string } | null = null;
   private readonly changeListeners = new Set<(conn: NetconConnection | null) => void>();
 
   constructor(
@@ -180,6 +208,17 @@ export class GameConsoleService {
   options(): ConsoleOptions {
     const r = ConsoleOptions.safeParse(this.deps.settings.get("game.consoleOptions", {}));
     return r.success ? r.data : ConsoleOptions.parse({});
+  }
+
+  /** The options as applied now: X-ray off during a clutch. */
+  private effectiveOptions(): ConsoleOptions {
+    const o = this.options();
+    return this.clutchXray ? { ...o, xray: false } : o;
+  }
+
+  /** The clutch X-ray is off for, if any. */
+  get clutchXrayOff(): { round: string | null; steamId: string } | null {
+    return this.clutchXray;
   }
 
   /** The shared console connection (null in the standard mode). */
@@ -233,7 +272,7 @@ export class GameConsoleService {
   async apply(lines?: string[]): Promise<void> {
     const conn = this.conn;
     if (!conn?.connected) return;
-    const todo = lines ?? consoleCommands(this.options(), this.profile().mode, this.colours);
+    const todo = lines ?? consoleCommands(this.effectiveOptions(), this.profile().mode, this.colours);
     try {
       for (const line of todo) await conn.write(line);
       this.lastApplyError = null;
@@ -244,14 +283,39 @@ export class GameConsoleService {
     }
   }
 
-  /** Follows which team is on CT and T (sides swap at half time) for the kill feed colours. */
+  /** Follows which team is on CT and T (sides swap at half time) for the kill feed colours, and clutches for X-ray. */
   onState(state: MatchState): void {
+    this.trackClutchXray(state);
     const colour = (id: string | null) => (id ? (this.deps.teams.get(id)?.data.primaryColor ?? null) : null);
     const next = { ct: colour(state.teams.CT.teamId), t: colour(state.teams.T.teamId) };
     if (next.ct === this.colours.ct && next.t === this.colours.t) return;
     this.colours = next;
     const p = this.profile();
     if (p.mode === "hlae" && this.options().killfeedTeamColours) void this.apply(killfeedColourCommands(true, next));
+  }
+
+  /**
+   * X-ray (with the names) off from the moment one player is alone against two or more in a live
+   * round, back on when that round is no longer live (won, lost, or a new round). Only with X-ray
+   * on and `clutchXrayOff`, in a console launch mode.
+   */
+  private trackClutchXray(state: MatchState): void {
+    const o = this.options();
+    const held = this.clutchXray;
+    if (held) {
+      if (!o.xray || !o.clutchXrayOff || state.roundPhase !== "live" || state.roundAttemptId !== held.round) {
+        this.clutchXray = null;
+        this.deps.logger.info("x-ray back on after the clutch", { steamId: held.steamId });
+        void this.apply(xrayCommands(o.xray));
+      }
+      return;
+    }
+    if (!o.xray || !o.clutchXrayOff || this.profile().mode === "standard") return;
+    const lone = clutchPlayer(state);
+    if (!lone) return;
+    this.clutchXray = { round: state.roundAttemptId, steamId: lone.steamId };
+    this.deps.logger.info("x-ray off for the clutch", { steamId: lone.steamId });
+    void this.apply(xrayCommands(false));
   }
 
   status(): GameConsoleStatus {

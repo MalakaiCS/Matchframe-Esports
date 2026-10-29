@@ -2,7 +2,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import type { IncomingMessage, Server as HttpServer, ServerResponse } from "node:http";
 import { join } from "node:path";
 import { Server as IoServer } from "socket.io";
-import type { Player, Team } from "@matchframe/contracts";
+import type { MatchState, Player, Team } from "@matchframe/contracts";
 import type { HudKillfeedEntry } from "@matchframe/hud-sdk";
 import type { Engine } from "../app.ts";
 import { assetDir } from "../routes/domain.ts";
@@ -75,6 +75,28 @@ export function updateCoalescer(emit: (payload: Record<string, unknown>) => void
       timer = null;
     },
   };
+}
+
+/**
+ * The game data as an LHM HUD gets it: coaches listed with a team left out of `allplayers`, and each
+ * player's `observer_slot` the spectator number key (1–9, 0; PlayerState.observerKey). CS2 counts
+ * slots from 0, so a HUD showing observer_slot as the player's number (kaiHUD's minimap) showed the
+ * first player as 0.
+ */
+export function lhmGamePayload(raw: Record<string, unknown>, state: MatchState | null): Record<string, unknown> {
+  if (!state || !raw.allplayers || typeof raw.allplayers !== "object") return raw;
+  const byId = new Map(state.players.map((p) => [p.steamId, p]));
+  const allplayers: Record<string, unknown> = {};
+  for (const [id, v] of Object.entries(raw.allplayers as Record<string, unknown>)) {
+    const p = byId.get(id);
+    if (p?.coach) continue;
+    allplayers[id] = p && v && typeof v === "object" ? { ...(v as Record<string, unknown>), observer_slot: p.observerKey ?? undefined } : v;
+  }
+  const out: Record<string, unknown> = { ...raw, allplayers };
+  const player = raw.player as Record<string, unknown> | undefined;
+  const spectated = typeof player?.steamid === "string" ? byId.get(player.steamid) : undefined;
+  if (player && spectated && "observer_slot" in player) out.player = { ...player, observer_slot: spectated.observerKey ?? undefined };
+  return out;
 }
 
 export function lhmUrgentKey(p: Record<string, unknown>): string {
@@ -214,7 +236,7 @@ export class LhmRuntime {
       socket.emit("readyToRegister");
     });
     const updates = updateCoalescer((payload) => io.emit("update", payload));
-    this.cleanup.push(this.e.onRawGsi(updates.push));
+    this.cleanup.push(this.e.onRawGsi((raw) => updates.push(lhmGamePayload(raw, this.e.session.state()))));
     this.cleanup.push(updates.dispose);
     // The template's killfeed only listens to HLAE game events: Matchframe's paired kills, in that form.
     this.cleanup.push(

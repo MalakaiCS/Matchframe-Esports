@@ -7,6 +7,7 @@ export * from "./epoch.ts";
 export * from "./events.ts";
 export * from "./countdown.ts";
 export * from "./reconciler.ts";
+export * from "./roles.ts";
 export * from "./capability-sampler.ts";
 export * from "./utility/profiles.ts";
 export * from "./utility/predict.ts";

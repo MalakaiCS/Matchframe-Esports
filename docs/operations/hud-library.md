@@ -48,7 +48,8 @@ Every bundled HUD shows a minimap (top left) and a killfeed (top right), each in
 Game options (console modes; sent every time the console connects, and straight away when changed):
 
 - **Hide game HUD**: `cl_draw_only_deathnotices 1`, the game shows only its kill feed and your HUD shows the rest.
-- **X-ray**: `spec_show_xray`, players visible through walls on the observer's screen.
+- **X-ray**: `spec_show_xray` and `hud_showtargetid`, players visible through walls on the observer's screen with their names above them.
+- **No X-ray in clutches** (on by default, with X-ray): when one player is left alive against two or more, X-ray and the names go off until the round is over, so viewers don't see the other team coming. They come back on for the next round.
 - **Run behind other windows** (on by default): `engine_no_focus_sleep 0` and `snd_mute_losefocus 0`. CS2 keeps drawing every frame and playing its sound while you use Matchframe or OBS. Off, CS2 slows down and goes silent whenever another window has focus (its own defaults). With CS2 in **Fullscreen** (not **Fullscreen Windowed**), clicking another window still stops the picture: use Fullscreen Windowed on the observer computer.
 - HLAE only: **No flash** (`mirv_noflash 1`), **Team colours in kill feed** (`mirv_deathmsg colors`, using each team's colour from Teams, swapped at half time), **Hide end-of-match screen** (`mirv_endofmatch 0`), **Hide CS2 kill feed** (`mirv_deathmsg filter add block=1`: CS2's own kill notices are blocked so only your HUD's kill feed shows; with **Hide game HUD** on, the crosshair stays). Matchframe clears its kill feed rule (`mirv_deathmsg filter clear`) each time it applies the options, so rules never stack; that also clears kill feed filters you added in the console yourself.
 

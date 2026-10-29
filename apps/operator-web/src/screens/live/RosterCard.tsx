@@ -29,7 +29,7 @@ export function RosterCard({ p, roles, onRequest, disabledReason, busy }: { p: P
   const w = p.activeWeapon;
   const dead = p.lifeState === "dead";
   const reason = disabledReason ?? (dead ? "Player is dead — their POV cannot be selected" : null);
-  const key = slotKey(p.observerSlot);
+  const key = slotKey(p.observerKey);
   const hp = p.health;
   const flashed = typeof p.flashed === "number" && p.flashed > 0.05 ? p.flashed : null;
   return (

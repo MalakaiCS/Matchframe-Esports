@@ -451,8 +451,9 @@ export class AutoDirector {
     const keyboard = this.e.observerSettings().kind === "keyboard";
     const ok = (p: PlayerState) =>
       (p.health ?? 0) > 0 &&
+      !p.coach &&
       p.steamId !== state.observer.observedSteamId &&
-      (keyboard ? p.observerSlot !== null : !!this.e.playerNameFor(p.steamId) && !UNSAFE_NAME.test(p.name));
+      (keyboard ? p.observerKey !== null : !!this.e.playerNameFor(p.steamId) && !UNSAFE_NAME.test(p.name));
     return [...state.players].sort((a, b) => (a.observerSlot ?? 99) - (b.observerSlot ?? 99)).find(ok) ?? null;
   }
 

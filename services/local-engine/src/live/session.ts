@@ -31,6 +31,8 @@ export interface LiveSessionOptions {
   maps: MapRegistry;
   now: () => number;
   resolveRoster?: RosterResolver;
+  /** The operator's say on whether a player is a coach (true / false), or null to detect it. */
+  coachOverride?: (steamId: string) => boolean | null;
   /** Capability evidence recorded by real setup tests (e.g. confirmed player selection). */
   verifiedControl?: () => Partial<Record<keyof ControlCapabilities, { support: "supported" | "partial"; build: string | null; at: string }>>;
   /**
@@ -128,6 +130,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     return new MatchStateStore({
       sessionId: this.sessionId,
       ...(this.opts.resolveRoster ? { resolveRoster: this.opts.resolveRoster } : {}),
+      ...(this.opts.coachOverride ? { coachOverride: this.opts.coachOverride } : {}),
       mapContextFor: (name) => this.opts.maps.get(name),
       simulated: this.opts.simulated ?? false,
       ...(this.opts.utilityProfiles ? { tracker: { profiles: this.opts.utilityProfiles } } : {}),
@@ -562,7 +565,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     if (!p) throw Object.assign(new Error("unknown player"), { status: 404 });
     if (view === "chase" && !this.arbiter.getAdapter()?.supportsChase) throw Object.assign(new Error("this camera control can't show the chase view"), { status: 409 });
     this.noteView(steamId, view, this.opts.now());
-    return this.arbiter.submit({ kind: "select_player", steamId, observerSlot: p.observerSlot, view }, { owner, holder, expiresInMs: 1500 });
+    return this.arbiter.submit({ kind: "select_player", steamId, observerSlot: p.observerKey, view }, { owner, holder, expiresInMs: 1500 });
   }
 
   private noteView(steamId: string, view: PlayerView, now: number): void {
@@ -596,7 +599,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     const p = s.players.find((x) => x.steamId === id);
     const before = this.view;
     this.noteView(id, want, now);
-    void this.arbiter.submit({ kind: "select_player", steamId: id, observerSlot: p?.observerSlot ?? null, view: want }, { owner: "director", expiresInMs: 1500 }).then((r) => {
+    void this.arbiter.submit({ kind: "select_player", steamId: id, observerSlot: p?.observerKey ?? null, view: want }, { owner: "director", expiresInMs: 1500 }).then((r) => {
       if (r.status === "failed" || r.status === "cancelled") {
         this.view = before;
         this.chaseBlockedUntil = this.opts.now() + 5000;

@@ -229,8 +229,9 @@ export class Engine {
         const playerId = this.steamIndex.lookup(steamId);
         if (!playerId) return null;
         const p = this.players.get(playerId);
-        return { playerId, teamId: this.roster.teamOf(playerId), displayName: p?.data.displayName ?? null };
+        return { playerId, teamId: this.roster.teamOf(playerId), displayName: p?.data.displayName ?? null, coach: this.roster.roleOf(playerId) === "coach" };
       },
+      coachOverride: (steamId) => this.settings.get<Record<string, boolean>>("players.coaches", {})[steamId] ?? null,
       verifiedControl: () => this.settings.get("observer.verifiedControl", {}),
       recordEvidence: (key, support, detail) => this.recordControlEvidence(key, support, detail),
       // Read when used: the Auto Director is created after the session.

@@ -347,6 +347,17 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
     maps: e.maps.list().map((m) => ({ mapName: m.mapName, cameras: m.pack.cameras.filter((c) => c.capturedFrom === "derived_navmesh").length, paths: m.pack.paths.filter((p) => p.source === "derived_navmesh").length })),
   });
   r.get("/api/v1/cameras/built-in", { permission: "metadata.read" }, () => builtIn());
+  // A coach listed with a team: left out of the HUDs and never spectated. null: detect it again.
+  r.put("/api/v1/live/players/:steamId/coach", { permission: "metadata.write", body: z.object({ coach: z.boolean().nullable() }) }, (req) => {
+    const steamId = req.params.steamId!;
+    if (!/^\d{17}$/.test(steamId)) throw new HttpError(400, "not a SteamID64", "invalid");
+    const all = { ...e.settings.get<Record<string, boolean>>("players.coaches", {}) };
+    if (req.body.coach === null) delete all[steamId];
+    else all[steamId] = req.body.coach;
+    e.settings.set("players.coaches", all);
+    e.audit.record(req.principal!.label, "players.coach", steamId, req.body);
+    return { steamId, coach: req.body.coach };
+  });
   r.put("/api/v1/cameras/built-in", { permission: "metadata.write", body: z.object({ on: z.boolean() }) }, (req) => {
     e.settings.set("cameras.builtIn", req.body.on);
     e.maps.setBuiltInCameras(req.body.on);

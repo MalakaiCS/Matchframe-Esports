@@ -20,6 +20,7 @@ import { detectEpochChange } from "./epoch.ts";
 import type { EpochChangeReason, EpochSignals } from "./epoch.ts";
 import type { DerivedEvent, EventScope } from "./events.ts";
 import { derivePlayerEvents, EventDeduper, makeEvent } from "./events.ts";
+import { detectCoaches, observerKeys } from "./roles.ts";
 import type { GsiObservation, ObservedPlayer, TeamObservation } from "./gsi/normalize.ts";
 import type { TrackerPlayerView, UtilityMapContext, UtilityTrackerEvent } from "./utility/tracker.ts";
 import { UtilityTracker } from "./utility/tracker.ts";
@@ -29,6 +30,8 @@ export interface RosterResolution {
   playerId: string;
   teamId: string | null;
   displayName: string | null;
+  /** A coach in the team's roster. */
+  coach?: boolean;
 }
 
 export interface MatchStateStoreOptions {
@@ -36,6 +39,8 @@ export interface MatchStateStoreOptions {
   /** Source whose observations form match truth. Others are tracked for health/lookahead only. */
   primarySourceId?: string | null;
   resolveRoster?: (steamId: string) => RosterResolution | null;
+  /** The operator's say on whether a player is a coach (true / false), or null to detect it. */
+  coachOverride?: (steamId: string) => boolean | null;
   mapContextFor?: (mapName: string) => (UtilityMapContext & { siteAt?(p: Vec3): "A" | "B" | null }) | undefined;
   /** Source silence (ms) after which state is marked stale. */
   staleAfterMs?: number;
@@ -126,6 +131,9 @@ export class MatchStateStore {
   private phaseObservedAt: number | null = null;
   private teams: { CT: TeamState; T: TeamState } = { CT: emptyTeam("CT"), T: emptyTeam("T") };
   private players = new Map<string, PlayerState>();
+  /** Coaches the game data showed (see detectCoaches), and the roster's coaches, by steamId. */
+  private readonly coaches = new Set<string>();
+  private readonly rosterCoaches = new Set<string>();
   private absentSince = new Map<string, number>();
   private bomb: BombState | null = null;
   private roundHistory: RoundResult[] = [];
@@ -217,6 +225,7 @@ export class MatchStateStore {
         this.bomb = null;
         if (epochChange === "map_change" || epochChange === "phase_restart" || epochChange === "provider_change") {
           this.players.clear();
+          this.coaches.clear();
           this.absentSince.clear();
         }
         if (epochChange === "map_change" || epochChange === "phase_restart") {
@@ -429,9 +438,7 @@ export class MatchStateStore {
       phaseObservedAtMonotonicMs: this.phaseObservedAt,
       paused: this.isPaused(),
       teams: { CT: { ...this.teams.CT }, T: { ...this.teams.T } },
-      players: [...this.players.values()].sort(
-        (a, b) => (a.observerSlot ?? 99) - (b.observerSlot ?? 99) || a.steamId.localeCompare(b.steamId),
-      ),
+      players: this.playerList(),
       bomb: this.bomb ? { ...this.bomb } : null,
       utility: this.tracker.items(),
       roundHistory: [...this.roundHistory],
@@ -519,9 +526,20 @@ export class MatchStateStore {
     this.roundHistory.sort((a, b) => a.roundNumber - b.roundNumber);
   }
 
+  /** The players in observer slot order, with their number keys and whether each is a coach. */
+  private playerList(): PlayerState[] {
+    const list = [...this.players.values()].sort((a, b) => (a.observerSlot ?? 99) - (b.observerSlot ?? 99) || a.steamId.localeCompare(b.steamId));
+    detectCoaches(list, this.roundPhase, this.coaches);
+    const coach = (steamId: string) => this.opts.coachOverride?.(steamId) ?? (this.rosterCoaches.has(steamId) || this.coaches.has(steamId));
+    const keys = observerKeys(list.filter((p) => !coach(p.steamId)));
+    return list.map((p) => ({ ...p, observerKey: keys.get(p.steamId) ?? null, coach: coach(p.steamId) }));
+  }
+
   private mergePlayer(steamId: string, p: ObservedPlayer, now: number): PlayerState {
     const prev = this.players.get(steamId);
     const roster = this.opts.resolveRoster?.(steamId) ?? null;
+    if (roster?.coach) this.rosterCoaches.add(steamId);
+    else this.rosterCoaches.delete(steamId);
     const position = p.presence.position ? p.position : (prev?.position ?? null);
     const forward = p.presence.forward ? p.forward : (prev?.forward ?? null);
     return {
@@ -529,6 +547,8 @@ export class MatchStateStore {
       playerId: roster?.playerId ?? null,
       name: roster?.displayName ?? p.name,
       observerSlot: p.observerSlot,
+      observerKey: prev?.observerKey ?? null,
+      coach: prev?.coach ?? false,
       side: p.side,
       teamId: roster?.teamId ?? null,
       lifeState: p.presence.state ? p.lifeState : (prev?.lifeState ?? "unknown"),

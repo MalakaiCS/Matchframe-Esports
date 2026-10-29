@@ -2598,3 +2598,6 @@ legend {
 .steps li + li {
   margin-top: 2px;
 }
+
+/* A coach listed with a team, and picking one when a team shows more than five. */
+.roster-coach { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 0; }

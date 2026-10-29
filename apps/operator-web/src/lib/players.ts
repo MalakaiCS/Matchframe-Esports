@@ -24,7 +24,7 @@ export function playersBySide(state: MatchState | null | undefined): { CT: Playe
   return out;
 }
 
-/** GSI observer_slot values correspond directly to the spectator number keys (1–9, 0). */
+/** A player's spectator number key (PlayerState.observerKey: 1–9, 0) as text. */
 export function slotKey(slot: number | null | undefined): string | null {
   if (typeof slot !== "number" || !Number.isInteger(slot) || slot < 0 || slot > 9) return null;
   return String(slot);

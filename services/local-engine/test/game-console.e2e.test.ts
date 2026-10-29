@@ -39,10 +39,11 @@ describe("console commands and launch plan", () => {
   it("maps the options to console lines per launch mode", () => {
     const o = ConsoleOptions.parse({ noFlash: true, killfeedTeamColours: true, hideEndOfMatch: true });
     expect(consoleCommands(o, "standard", { ct: null, t: null })).toEqual([]);
-    expect(consoleCommands(o, "tools", { ct: null, t: null })).toEqual(["cl_draw_only_deathnotices 1", "spec_show_xray 1", "engine_no_focus_sleep 0", "snd_mute_losefocus 0"]);
+    expect(consoleCommands(o, "tools", { ct: null, t: null })).toEqual(["cl_draw_only_deathnotices 1", "spec_show_xray 1", "hud_showtargetid 1", "engine_no_focus_sleep 0", "snd_mute_losefocus 0"]);
     expect(consoleCommands(o, "hlae", { ct: "#1e90ff", t: "#ff8800" })).toEqual([
       "cl_draw_only_deathnotices 1",
       "spec_show_xray 1",
+      "hud_showtargetid 1",
       "engine_no_focus_sleep 0",
       "snd_mute_losefocus 0",
       "mirv_noflash 1",
@@ -52,7 +53,7 @@ describe("console commands and launch plan", () => {
       "mirv_deathmsg filter clear",
     ]);
     // Off: back to the game's own behaviour behind other windows.
-    expect(consoleCommands(ConsoleOptions.parse({ runInBackground: false }), "tools", { ct: null, t: null }).slice(2)).toEqual(["engine_no_focus_sleep 20", "snd_mute_losefocus 1"]);
+    expect(consoleCommands(ConsoleOptions.parse({ runInBackground: false }), "tools", { ct: null, t: null }).slice(3)).toEqual(["engine_no_focus_sleep 20", "snd_mute_losefocus 1"]);
     // Hide CS2's kill feed: one rule with no player match blocks every notice (cleared first, so it never stacks).
     expect(consoleCommands(ConsoleOptions.parse({ hideGameKillfeed: true }), "hlae", { ct: null, t: null }).slice(-3)).toEqual(["mirv_deathmsg filter clear", "mirv_deathmsg filter add block=1", "mirv_deathmsg clear"]);
     expect(consoleCommands(ConsoleOptions.parse({ hideGameKillfeed: true }), "tools", { ct: null, t: null }).some((l) => l.startsWith("mirv_"))).toBe(false);
@@ -157,7 +158,36 @@ describe("Start CS2 and the game console (engine)", () => {
     received.length = 0;
     const opt = await api("/api/v1/game/console-options", { method: "PUT", body: { xray: false } });
     expect(opt.status).toBe(200);
-    await waitFor(() => received.includes("spec_show_xray 0"));
+    await waitFor(() => received.includes("spec_show_xray 0") && received.includes("hud_showtargetid 0"));
+  });
+
+  it("turns X-ray (and the names) off when one player is left against two or more, and back on when the round ends", async () => {
+    expect((await api("/api/v1/game/console-options", { method: "PUT", body: { xray: true } })).status).toBe(200);
+    const roster = syntheticRoster();
+    const post = async (spec: Parameters<typeof buildSyntheticGsiPayload>[0]) => {
+      const payload = buildSyntheticGsiPayload({ mapName: "de_dust2", token: engine.secrets.gsiToken, ...spec });
+      expect((await fetch(`http://127.0.0.1:${engine.cfg.gsiPort}/gsi`, { method: "POST", body: JSON.stringify(payload) })).status).toBe(200);
+    };
+    await post({ players: roster, timestamp: 1_700_000_010 });
+    received.length = 0;
+    // 1 T against 2 CTs: a clutch.
+    const clutch = roster.map((p, i) => ({ ...p, health: i === 0 || i === 5 || i === 6 ? 100 : 0 }));
+    await post({ players: clutch, timestamp: 1_700_000_011 });
+    await waitFor(() => received.includes("spec_show_xray 0") && received.includes("hud_showtargetid 0"));
+    expect(received.includes("spec_show_xray 1")).toBe(false);
+    received.length = 0;
+    await post({ players: clutch, timestamp: 1_700_000_012, roundPhase: "over", winTeam: "T" });
+    await waitFor(() => received.includes("spec_show_xray 1") && received.includes("hud_showtargetid 1"));
+
+    // Off when the option is off: no change in a clutch.
+    expect((await api("/api/v1/game/console-options", { method: "PUT", body: { clutchXrayOff: false } })).status).toBe(200);
+    await post({ players: roster, timestamp: 1_700_000_013 });
+    received.length = 0;
+    await post({ players: clutch, timestamp: 1_700_000_014 });
+    await new Promise((r) => setTimeout(r, 200));
+    expect(received.includes("spec_show_xray 0")).toBe(false);
+    expect((await api("/api/v1/game/console-options", { method: "PUT", body: { clutchXrayOff: true, xray: false } })).status).toBe(200);
+    await post({ players: roster, timestamp: 1_700_000_015, roundPhase: "over", winTeam: "T" });
   });
 
   it("selects players with spec_player and the player's in-game name (CS2 has no spec_player_by_accountid)", async () => {

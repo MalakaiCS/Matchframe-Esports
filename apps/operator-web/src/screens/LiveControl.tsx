@@ -5,7 +5,7 @@ import type { DirectorStatus, EventRecord, MapPackDetail, MatchRow, OperatorSnap
 import { AutoDirectorCard } from "../components/AutoDirectorCard.tsx";
 import { CandidateList, DecisionExplain, OpportunityList } from "../components/director.tsx";
 import { useToast } from "../components/toasts.tsx";
-import { ActionButton, Badge, Checkbox, Details, EmptyState, KV, Note, Panel } from "../components/ui.tsx";
+import { ActionButton, Badge, Button, Checkbox, Details, EmptyState, KV, Note, Panel } from "../components/ui.tsx";
 import { capabilityGate } from "../lib/capabilities.ts";
 import { phaseRemaining } from "../lib/clock.ts";
 import { MODE_INFO, OBSERVER_MODE_INFO, OBSERVER_MODES } from "../lib/director.ts";
@@ -497,7 +497,7 @@ export function LiveControlScreen() {
       const slot = slotFromKey(e.shiftKey && /^Digit\d$/.test(e.code) ? e.code.slice(5) : e.key);
       if (slot === null) return;
       const st = liveStore.state.snapshot?.state;
-      const p = st?.players.find((x) => x.observerSlot === slot);
+      const p = st?.players.find((x) => x.observerKey === slot && !x.coach);
       if (!p) return;
       if (cardReason) {
         toast.push("warn", `Key ${e.key}: POV request unavailable`, cardReason);
@@ -548,19 +548,47 @@ export function LiveControlScreen() {
     return r;
   };
   const cameras = (mapPack.data?.cameras ?? []).map((c) => ({ id: c.id, displayName: c.displayName, validation: c.validation }));
+  // A coach listed with a team: left out of the HUDs and never spectated.
+  const setCoach = (p: PlayerState, coach: boolean) =>
+    void api.put(`/api/v1/live/players/${seg(p.steamId)}/coach`, { coach }).then(
+      () => toast.push("ok", coach ? `${p.name} is the coach` : `${p.name} is a player`, coach ? "Left out of the HUDs and never spectated." : "Back in the HUDs."),
+      (e: unknown) => toast.push("danger", "Not changed", describeError(e)),
+    );
 
-  const column = (side: "CT" | "T") => (
-    <div className={`roster-col side-${side}`}>
-      <h2 className="roster-head">
-        <span className={`side-tag side-${side}`}>{side}</span> {s.teams[side].name ?? `${side} side`}
-        <span className="roster-score">{s.teams[side].score ?? MISSING}</span>
-      </h2>
-      {sides[side].length === 0 ? <p className="muted small">No {side} players reported.</p> : null}
-      {sides[side].map((p) => (
-        <RosterCard key={p.steamId} p={p} roles={rolesOf(p)} onRequest={(chase) => (cardReason ? toast.push("warn", "POV request unavailable", cardReason) : void request(p, chase))} disabledReason={cardReason} busy={busy === p.steamId} />
-      ))}
-    </div>
-  );
+  const column = (side: "CT" | "T") => {
+    const team = sides[side].filter((p) => !p.coach);
+    const coaches = sides[side].filter((p) => p.coach);
+    return (
+      <div className={`roster-col side-${side}`}>
+        <h2 className="roster-head">
+          <span className={`side-tag side-${side}`}>{side}</span> {s.teams[side].name ?? `${side} side`}
+          <span className="roster-score">{s.teams[side].score ?? MISSING}</span>
+        </h2>
+        {team.length === 0 ? <p className="muted small">No {side} players reported.</p> : null}
+        {team.map((p) => (
+          <RosterCard key={p.steamId} p={p} roles={rolesOf(p)} onRequest={(chase) => (cardReason ? toast.push("warn", "POV request unavailable", cardReason) : void request(p, chase))} disabledReason={cardReason} busy={busy === p.steamId} />
+        ))}
+        {coaches.map((p) => (
+          <p key={p.steamId} className="roster-coach small muted">
+            Coach: {p.name}
+            <Button size="sm" variant="ghost" onClick={() => setCoach(p, false)}>
+              Not a coach
+            </Button>
+          </p>
+        ))}
+        {team.length > 5 ? (
+          <div className="roster-coach small">
+            <span>More than five players. Which is the coach?</span>
+            {team.map((p) => (
+              <Button key={p.steamId} size="sm" variant="ghost" onClick={() => setCoach(p, true)}>
+                {p.name}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <div className="page page-live">

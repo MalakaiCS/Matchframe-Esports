@@ -279,6 +279,23 @@
               }
             ]
           },
+          "observerKey": {
+            "default": null,
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coach": {
+            "default": false,
+            "type": "boolean"
+          },
           "side": {
             "anyOf": [
               {

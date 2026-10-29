@@ -68,7 +68,7 @@ function toHudPlayer(p: PlayerState, observedSteamId: string | null, ctx: HudCon
     steamId: p.steamId,
     playerId: p.playerId,
     name: reg?.displayName ?? p.name,
-    slot: p.observerSlot,
+    slot: p.observerKey,
     side: p.side,
     alive: p.lifeState === "alive" ? true : p.lifeState === "dead" ? false : null,
     health: p.health,
@@ -111,7 +111,8 @@ function hudTeam(state: MatchState, side: Side, key: "left" | "right", ctx: HudC
     seriesWins,
     timeoutsRemaining: ts.timeoutsRemaining,
     consecutiveRoundLosses: ts.consecutiveRoundLosses,
-    players: state.players.filter((p) => p.side === side).map((p) => toHudPlayer(p, observed, ctx, carrier)),
+    // Coaches listed with the team are left out of it.
+    players: state.players.filter((p) => p.side === side && !p.coach).map((p) => toHudPlayer(p, observed, ctx, carrier)),
   };
 }
 
@@ -168,7 +169,7 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
   }
   const carrier = state.bomb?.state === "carried" ? state.bomb.carrierSteamId : null;
   const players = state.players
-    .filter((p) => p.position && p.side)
+    .filter((p) => p.position && p.side && !p.coach)
     .map((p) => {
       const uv = transform(p.position!);
       const yaw = p.forward ? (Math.atan2(p.forward.y, p.forward.x) * 180) / Math.PI : null;
@@ -182,7 +183,7 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
             alive: p.lifeState === "alive",
             observed: observed === p.steamId,
             levelId,
-            label: p.observerSlot !== null ? String(p.observerSlot) : null,
+            label: p.observerKey !== null ? String(p.observerKey) : null,
             yawDeg: yaw,
             flashed: (p.flashed ?? 0) > 0,
             hasBomb: carrier === p.steamId || p.weapons.some((w) => w.name === "weapon_c4"),

@@ -66,7 +66,19 @@ export const PlayerState = z.object({
   /** Internal player ID when the steamId is mapped to a roster identity. */
   playerId: z.string().nullable(),
   name: z.string(),
+  /** CS2's observer_slot as the game data gives it (CS2 counts from 0). */
   observerSlot: z.number().int().nullable(),
+  /**
+   * The spectator number key that shows this player, and the number broadcasts show for them: 1–9,
+   * then 0 for the tenth (see observerKeys in @matchframe/cs2-state).
+   */
+  observerKey: z.number().int().min(0).max(9).nullable().default(null),
+  /**
+   * A coach listed with the team (named as one, more than five on the team with this one never
+   * alive in freeze time, a coach in the team's roster, or marked by the operator): left out of the
+   * HUDs' teams and scoreboards and never spectated.
+   */
+  coach: z.boolean().default(false),
   side: Side.nullable(),
   teamId: z.string().nullable(),
   lifeState: LifeState,

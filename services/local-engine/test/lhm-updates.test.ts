@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { lhmUrgentKey, updateCoalescer } from "../src/hud/lhm-runtime.ts";
+import type { MatchState } from "@matchframe/contracts";
+import { lhmGamePayload, lhmUrgentKey, updateCoalescer } from "../src/hud/lhm-runtime.ts";
 
 /** A game-data packet: `t` changes the clock and positions only; the rest is what viewers see switch. */
 const packet = (t: number, opts: { observed?: string; phase?: string; dead?: number } = {}) => ({
@@ -50,5 +51,21 @@ describe("game data to LHM HUDs", () => {
   it("keys on what viewers see switch, not on the clock or positions", () => {
     expect(lhmUrgentKey(packet(0))).toBe(lhmUrgentKey(packet(500)));
     expect(lhmUrgentKey(packet(0))).not.toBe(lhmUrgentKey(packet(0, { observed: "765C" })));
+  });
+});
+
+describe("player numbers and coaches in LHM game data", () => {
+  it("gives each player their number key, and leaves coaches out", () => {
+    const raw = {
+      player: { steamid: "a", observer_slot: 0 },
+      allplayers: { a: { name: "A", observer_slot: 0 }, b: { name: "B", observer_slot: 9 }, c: { name: "Coach", observer_slot: 5 }, x: { name: "Unknown", observer_slot: 3 } },
+    };
+    const state = { players: [{ steamId: "a", observerKey: 1, coach: false }, { steamId: "b", observerKey: 0, coach: false }, { steamId: "c", observerKey: null, coach: true }] } as unknown as MatchState;
+    const out = lhmGamePayload(raw, state) as typeof raw;
+    expect(out.allplayers).toEqual({ a: { name: "A", observer_slot: 1 }, b: { name: "B", observer_slot: 0 }, x: { name: "Unknown", observer_slot: 3 } });
+    expect(out.player).toEqual({ steamid: "a", observer_slot: 1 });
+    // The raw packet is left as it was.
+    expect(raw.allplayers.a.observer_slot).toBe(0);
+    expect(lhmGamePayload(raw, null)).toBe(raw);
   });
 });

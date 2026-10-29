@@ -98,6 +98,12 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | GET | `/api/v1/stages/:id/bracket` | metadata.read |
 | GET | `/api/v1/export/event-package` | metadata.read |
 | POST | `/api/v1/import/event-package` | settings.manage |
+| GET | `/api/v1/matches/:id/art` | metadata.read |
+| PUT | `/api/v1/matches/:id/art/settings` | metadata.write |
+| POST | `/api/v1/matches/:id/art/obs` | program.control |
+| POST | `/api/v1/matches/:id/art/background-from-obs` | metadata.write |
+| POST | `/api/v1/matches/:id/art/:kind` | metadata.write |
+| GET | `/api/v1/match-art/:id/:file` | public |
 | GET | `/api/v1/matches/current/state` | state.read |
 | GET | `/api/v1/matches/:id/state` | state.read |
 | GET | `/api/v1/live/events` | state.read |
@@ -157,6 +163,7 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | PUT | `/api/v1/hud/annotations` | hud.publish |
 | GET | `/api/v1/maps` | metadata.read |
 | GET | `/api/v1/cameras/built-in` | metadata.read |
+| PUT | `/api/v1/live/players/:steamId/coach` | metadata.write |
 | PUT | `/api/v1/cameras/built-in` | metadata.write |
 | GET | `/api/v1/maps/:map` | metadata.read |
 | GET | `/api/v1/maps/:map/outline` | metadata.read |

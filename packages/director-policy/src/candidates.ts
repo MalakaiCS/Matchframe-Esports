@@ -108,7 +108,8 @@ export function generateCandidates(input: CandidateInput): ScoredCandidate[] {
   }
 
   for (const p of state.players) {
-    if (p.side === null) continue;
+    // Coaches listed with a team are never spectated.
+    if (p.side === null || p.coach) continue;
     const key = povShot(p.steamId);
     const isCurrent = input.currentShot === key;
     const reasons: ReasonCode[] = [];
