@@ -273,6 +273,12 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/cloud/refresh` | settings.manage |
 | POST | `/api/v1/cloud/unlink` | settings.manage |
 | GET | `/api/v1/cloud/usage` | state.read |
+| GET | `/api/v1/cams` | state.read |
+| PUT | `/api/v1/cams/settings` | settings.manage |
+| POST | `/api/v1/cams/new-link` | settings.manage |
+| POST | `/api/v1/cams/players/:steamId/approve` | hud.publish |
+| PUT | `/api/v1/cams/players/:steamId/hidden` | hud.publish |
+| POST | `/api/v1/cams/players/:steamId/kick` | hud.publish |
 | GET | `/api/v1/openapi.json` | public |
 
 ## WebSockets

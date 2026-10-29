@@ -1961,3 +1961,29 @@ input[type="radio"] {
     display: none !important;
   }
 }
+
+/* Player cams (/cam/:room) */
+.cam-players .btn {
+  justify-content: flex-start;
+}
+.cam-preview {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  max-width: 640px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #0b0f17;
+}
+.cam-preview video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cam-preview-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #c9d2e3;
+}

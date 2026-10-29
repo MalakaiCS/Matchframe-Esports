@@ -11,6 +11,21 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.8.0",
+    title: "Player cams",
+    summary: "Players send their face cam from a link on the Matchframe website; the production shows it in the HUD and OBS, delayed to match the game.",
+    sections: [
+      {
+        heading: "Player cams",
+        items: [
+          "Players open the link, pick themselves and their camera, see a preview and send it. No account or app needed.",
+          "The production sets a delay (up to 5 minutes) so faces match the game, and puts each cam on or off air.",
+          "Cams show in LHM-format HUDs such as kaiHUD, in Matchframe's HUD, and as OBS browser sources.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.7.2",
     title: "200–300 camera paths on each map",
     summary: "Camera paths built from real pro demos, where players walked and fought: 214–270 on each of the seven pool maps.",

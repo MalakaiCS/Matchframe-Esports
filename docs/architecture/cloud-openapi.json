@@ -2276,6 +2276,26 @@
         }
       }
     },
+    "/v1/cams/{room}": {
+      "get": {
+        "summary": "Player cams: the match being played and the video settings for a cam link (ADR-048)",
+        "parameters": [
+          {
+            "name": "room",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/openapi.json": {
       "get": {
         "summary": "OpenAPI description of this API",

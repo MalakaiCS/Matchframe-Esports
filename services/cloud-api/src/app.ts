@@ -12,6 +12,7 @@ import type { OrgAction } from "./domain/roles.ts";
 import { roleCan } from "./domain/roles.ts";
 import { Mailer } from "./email/sender.ts";
 import { RateLimiter } from "./auth/ratelimit.ts";
+import { CamRelay } from "./domain/cams.ts";
 import type { Ctx } from "./http/router.ts";
 import { cookie, HttpError } from "./http/router.ts";
 import { hashSecret, newSecret } from "./ids.ts";
@@ -43,7 +44,9 @@ export class CloudApp {
   publicKeys: Record<string, string>;
   kid: string;
   signingKeySource: "environment" | "database" = "environment";
-  readonly limits: { auth: RateLimiter; email: RateLimiter; deviceAuthorize: RateLimiter; deviceLink: RateLimiter; contact: RateLimiter };
+  readonly limits: { auth: RateLimiter; email: RateLimiter; deviceAuthorize: RateLimiter; deviceLink: RateLimiter; contact: RateLimiter; cams: RateLimiter };
+  /** Player cams relay (ADR-048). */
+  readonly cams: CamRelay;
   readonly origin: string;
 
   constructor(
@@ -57,6 +60,8 @@ export class CloudApp {
       deviceAuthorize: new RateLimiter(10 * k, 60_000),
       deviceLink: new RateLimiter(20 * k, 60_000),
       contact: new RateLimiter(5 * k, 15 * 60_000),
+      // Cam pages and their connections (a player refreshing, a team of five on one address at a LAN).
+      cams: new RateLimiter(60 * k, 60_000),
     };
     this.sql = deps.sql ?? openSql(cfg.databaseUrl, cfg.pgliteDir ?? undefined);
     this.mailer = new Mailer(this.sql, cfg.smtpUrl, cfg.mailFrom, cfg.devLogEmails && !cfg.smtpUrl);
@@ -68,6 +73,7 @@ export class CloudApp {
     this.publicKeys = {};
     this.useSigningKey(this.signingKeyPem, []);
     this.origin = new URL(cfg.publicUrl).origin;
+    this.cams = new CamRelay({ device: (h) => this.deviceFrom(h), allowJoin: (ip) => this.limits.cams.take(`cam-join:${ip}`) });
   }
 
   readonly now: () => Date;
@@ -108,6 +114,7 @@ export class CloudApp {
   }
 
   async close(): Promise<void> {
+    this.cams.close();
     await this.sql.close();
   }
 
@@ -187,13 +194,19 @@ export class CloudApp {
   // ------------------------------------------------------------------ devices
 
   async requireDevice(ctx: Ctx): Promise<DeviceAuth> {
-    const h = ctx.headers.authorization;
-    const token = h?.startsWith("Bearer ") ? h.slice(7) : null;
-    if (!token) throw new HttpError(401, "unauthenticated", "device token required");
+    if (!ctx.headers.authorization?.startsWith("Bearer ")) throw new HttpError(401, "unauthenticated", "device token required");
+    const d = await this.deviceFrom(ctx.headers.authorization);
+    if (!d) throw new HttpError(401, "device_revoked", "this computer is signed out: it was signed out or unlinked on the website, or the account's password was changed");
+    return d;
+  }
+
+  /** The linked computer an `Authorization: Bearer` header belongs to, or null. */
+  async deviceFrom(authorization: string | undefined): Promise<DeviceAuth | null> {
+    const token = authorization?.startsWith("Bearer ") ? authorization.slice(7) : null;
+    if (!token) return null;
     const { rows } = await this.sql.query<{ id: string; org_id: string; name: string }>("SELECT id, org_id, name FROM devices WHERE token_hash = $1 AND revoked_at IS NULL", [hashSecret(token)]);
     const d = rows[0];
-    if (!d) throw new HttpError(401, "device_revoked", "this computer is signed out: it was signed out or unlinked on the website, or the account's password was changed");
-    return { deviceId: d.id, orgId: d.org_id, name: d.name };
+    return d ? { deviceId: d.id, orgId: d.org_id, name: d.name } : null;
   }
 
   rateLimit(limiter: RateLimiter, key: string): void {

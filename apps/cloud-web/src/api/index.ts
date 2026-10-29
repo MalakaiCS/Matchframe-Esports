@@ -1,4 +1,4 @@
-import type { HourPack, OrgRole, Plan, SubscriptionStatus } from "@matchframe/cloud-contracts";
+import type { CamRoomInfo, HourPack, OrgRole, Plan, SubscriptionStatus } from "@matchframe/cloud-contracts";
 import { createClient, seg } from "./client.ts";
 import type {
   AdminCatalog,
@@ -44,6 +44,7 @@ export const api = {
   plans: () => client.get<PlansResponse>("/v1/plans", pub),
   downloads: () => client.get<DownloadsResponse>("/v1/downloads", pub),
   site: () => client.get<SiteInfo>("/v1/site", pub),
+  camRoom: (room: string) => client.get<CamRoomInfo>(`/v1/cams/${seg(room)}`, pub),
   health: () => client.get<HealthResponse>("/v1/health", pub),
   contact: (b: ContactRequest) => client.post<{ received: true }>("/v1/contact", b, pub),
 

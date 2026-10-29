@@ -1,5 +1,6 @@
 import type { HudPlayer, HudTeam } from "@matchframe/hud-sdk";
 import { ArmorIcon, BombIcon, EyeIcon, GrenadeIcon, KitIcon, SkullIcon } from "./Icons.tsx";
+import { PlayerCam } from "./PlayerCam.tsx";
 
 function hpClass(hp: number | null): string {
   if (hp === null) return "hp-unknown";
@@ -59,6 +60,7 @@ export function ObservedPanel({ p, team }: { p: HudPlayer | null; team: HudTeam 
   const w = p.activeWeapon;
   return (
     <div className={`mf-observed mf-side-${p.side ?? "none"}`} style={team?.color ? ({ "--mf-team": team.color } as React.CSSProperties) : undefined}>
+      <PlayerCam steamId={p.steamId} className="mf-observed-cam" />
       <div className="mf-observed-head">
         {p.avatarUrl ? <img className="mf-observed-avatar" src={p.avatarUrl} alt="" /> : null}
         <div className="mf-observed-name" title={p.name}>

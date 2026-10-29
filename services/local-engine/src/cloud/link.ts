@@ -91,6 +91,13 @@ export class CloudLink {
     return this.deps.fixedUrl ?? this.deps.settings.get<string | null>("cloud.url", null);
   }
 
+  /** The website address and this computer's credential, for connections other than HTTP calls (player cams); null when signed out. */
+  credentials(): { url: string; token: string; appVersion: string } | null {
+    const url = this.url;
+    const token = this.deps.secrets.getSecret("cloud.deviceToken");
+    return url && token && !this.revoked ? { url, token, appVersion: this.deps.appVersion } : null;
+  }
+
   get urlFixed(): boolean {
     return !!this.deps.fixedUrl;
   }

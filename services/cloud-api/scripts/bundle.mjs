@@ -12,7 +12,7 @@ await build({
   format: "esm",
   target: "node22",
   outfile: join(here, "..", "dist", "server.mjs"),
-  external: ["@electric-sql/pglite", "pg-native"],
+  external: ["@electric-sql/pglite", "pg-native", "bufferutil", "utf-8-validate"],
   banner: { js: "import { createRequire as __mfCreateRequire } from 'node:module'; const require = __mfCreateRequire(import.meta.url);" },
   legalComments: "linked",
 });

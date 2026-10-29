@@ -30,6 +30,7 @@ function lazyPage<P extends object>(load: () => Promise<ComponentType<P>>) {
 }
 const Download = lazyPage(() => import("./pages/Download.tsx").then((m) => m.Download));
 const LinkComputer = lazyPage(() => import("./pages/LinkComputer.tsx").then((m) => m.LinkComputer));
+const PlayerCam = lazyPage(() => import("./pages/PlayerCam.tsx").then((m) => m.PlayerCam));
 const Dashboard = lazyPage(() => import("./pages/org/Dashboard.tsx").then((m) => m.Dashboard));
 const Billing = lazyPage(() => import("./pages/org/Billing.tsx").then((m) => m.Billing));
 const Usage = lazyPage(() => import("./pages/org/Usage.tsx").then((m) => m.Usage));
@@ -104,6 +105,8 @@ export const ROUTES: RouteDef[] = [
   { path: "/confirm-email", layout: "narrow", render: () => <ConfirmEmail /> },
   { path: "/invite", layout: "narrow", render: () => <Invite /> },
   { path: "/link", layout: "narrow", auth: true, render: () => <LinkComputer /> },
+  // Player cams: the link a production sends its players (no account needed).
+  { path: "/cam/:room", layout: "narrow", render: (p) => <PlayerCam room={p.room!} /> },
   { path: "/dashboard", layout: "app", auth: true, render: () => <OrgHome /> },
   { path: "/orgs", layout: "app", auth: true, render: () => <OrgHome /> },
   { path: "/orgs/:orgId", layout: "app", auth: true, org: true, render: (_p, s) => <Dashboard scope={s!} /> },

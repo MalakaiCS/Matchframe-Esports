@@ -21,6 +21,10 @@ import { hudConfig, isPanelAction, parsePanel, type LhmLookup, type LhmPanel } f
  *   "hud_action" for panel buttons; "match" when the current match changes.
  * - GET /api/... (match, teams and logos, players and avatars, tournament, camera, radar maps) from
  *   Matchframe's own data.
+ * - Player cams (ADR-048): `/api/camera` lists the match's players; a HUD's "registerAsHUD" gets
+ *   "playersCameraStatus" and an "offerFromPlayer" for every cam on air (again every few seconds,
+ *   which the HUD ignores while it has the cam). The offers carry a marker that the page's
+ *   RTCPeerConnection (hud-runtime lhm-cams.js) answers locally with the delayed cam.
  *
  * LHM HUDs cannot pass Matchframe's HUD token, so the wrapper page (opened with the token) sets an
  * HttpOnly cookie per HUD; sockets and API requests without a valid cookie are refused. Everything
@@ -28,6 +32,11 @@ import { hudConfig, isPanelAction, parsePanel, type LhmLookup, type LhmPanel } f
  */
 
 export const lhmCookieName = (hudId: string) => `mf_lhm_${hudId}`;
+
+/** The camera room id LHM HUDs read from /api/camera and pass back in "registerAsHUD". */
+export const LHM_CAM_UUID = "matchframe-cams";
+/** An offer for a player's cam that lhm-cams.js recognises (it never reaches a real connection). */
+export const lhmCamOffer = (steamId: string) => ({ offer: { type: "offer", sdp: `v=0\r\no=matchframe 0 0 IN IP4 127.0.0.1\r\ns=matchframe-cam\r\nt=0 0\r\na=x-matchframe-cam:${steamId}\r\n` } });
 
 /**
  * Game data reaches LHM HUDs at most this often (ms), apart from urgent changes. CS2 sends up to 50
@@ -232,9 +241,29 @@ export class LhmRuntime {
         void socket.join(`hud:${id}`);
         socket.emit("hud_config", this.config(id));
       });
-      // Everything else the HUD sends ("started", camera signalling, ...) is ignored: read-only.
+      // Player cams: the HUD asks for the cams on air.
+      socket.on("registerAsHUD", (uuid: unknown) => {
+        if (uuid !== LHM_CAM_UUID) return;
+        void socket.join("cams");
+        socket.emit("playersCameraStatus", this.camStatus());
+        for (const id of this.e.cams.onAir()) socket.emit("offerFromPlayer", LHM_CAM_UUID, lhmCamOffer(id), id);
+      });
+      // Everything else the HUD sends ("started", its answers to cam offers, ...) is ignored: read-only.
       socket.emit("readyToRegister");
     });
+    let camsOnAir = "";
+    const offerCams = (all: boolean) => {
+      const on = this.e.cams.onAir().sort();
+      const sig = on.join(",");
+      const was = new Set(camsOnAir.split(",").filter(Boolean));
+      if (sig !== camsOnAir) io.to("cams").emit("playersCameraStatus", this.camStatus());
+      camsOnAir = sig;
+      for (const id of on) if (all || !was.has(id)) io.to("cams").emit("offerFromPlayer", LHM_CAM_UUID, lhmCamOffer(id), id);
+    };
+    this.cleanup.push(this.e.cams.onChange(() => offerCams(false)));
+    const camTimer = setInterval(() => offerCams(true), 3000);
+    camTimer.unref?.();
+    this.cleanup.push(() => clearInterval(camTimer));
     const updates = updateCoalescer((payload) => io.emit("update", payload));
     this.cleanup.push(this.e.onRawGsi((raw) => updates.push(lhmGamePayload(raw, this.e.session.state()))));
     this.cleanup.push(updates.dispose);
@@ -261,6 +290,12 @@ export class LhmRuntime {
     }, 2000);
     timer.unref?.();
     this.cleanup.push(() => clearInterval(timer));
+  }
+
+  /** For "playersCameraStatus": every listed player, whether their cam is on air. */
+  private camStatus(): { steamid: string; label: string; allow: boolean; active: boolean }[] {
+    const on = new Set(this.e.cams.onAir());
+    return this.e.cams.rosterPlayers().map((p) => ({ steamid: p.steamId, label: p.name, allow: true, active: on.has(p.steamId) }));
   }
 
   /** A panel button pressed in the HUD's settings. */
@@ -376,8 +411,9 @@ export class LhmRuntime {
     } else if (seg[0] === "tournament") {
       json(res, 200, null);
     } else if (seg[0] === "camera") {
-      // Player cameras (WebRTC through LHM) are not available: no players offered.
-      json(res, 200, { uuid: "matchframe", availablePlayers: [] });
+      // Player cams: the match's players (each HUD makes a place for their cam).
+      const players = this.e.cams.settings().enabled ? this.e.cams.rosterPlayers() : [];
+      json(res, 200, { uuid: LHM_CAM_UUID, availablePlayers: players.map((p) => ({ steamid: p.steamId, label: p.name })) });
     } else if (seg[0] === "radar" && seg[1] === "maps") {
       // Older template HUDs bundle their radars and only add maps they lack from here.
       json(res, 200, {});

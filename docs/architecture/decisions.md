@@ -833,3 +833,52 @@ ADR-045's `mirv_campath` option only covered paths and relied on `edit start` fo
 - Any of them in a real CS2. Collision geometry leaves out glass, fences and foliage, so a path can pass close to one; see-through scenery outside the map isn't modelled either.
 - One demo per map so far: more demos give more routes and fight places (rerun the three scripts).
 - Overpass, Train and Vertigo have no demos yet, so they keep their navigation paths only.
+
+## ADR-048 — Player cams through the website, delayed in the program
+
+**Context.** The owner: player face cams exactly like LHM. A website page opens to the match being played; the player picks themselves, then their camera, sees a preview, approves and sends. The production delays the cams as long as it needs, to cover the CSTV delay.
+
+LHM's HUD protocol (lexogrine/cs2-react-hud, MIT) is the model:
+- the HUD reads `/api/camera` (players, a room id) and emits `registerAsHUD`;
+- it receives each player's video as a WebRTC offer (`offerFromPlayer`) and plays the stream simple-peer gives it.
+
+WebRTC alone can't delay video by minutes.
+
+**Decision.**
+- **The page:** `/cam/<room>` on the Matchframe website, public, no account.
+  - It shows the match (`GET /v1/cams/<room>`); the player picks themselves (players are listed by an opaque key, never their SteamID), picks a camera and sees the preview. **Approve and send** encodes the camera in the browser with WebCodecs: VP8, the room's size and frame rate, a keyframe every 2 s or when asked.
+  - Frames go over a WebSocket (`/v1/cams/<room>/publish`): JSON hello, then binary frames (version, keyframe flag, capture time, data).
+  - Frames come from MediaStreamTrackProcessor where available (Chrome, Edge), so they keep coming while the game covers the browser; elsewhere from a canvas on a timer.
+- **The relay** (cloud-api `CamRelay`, memory only):
+  - the program hosts the room on `/v1/cams/host` with its computer's credential;
+  - each frame is passed on prefixed with the player's connection id;
+  - status, keyframe requests and kicks go the other way.
+  - **Limits:** 16 players a room, 512 kB a frame, three times the room's bitrate per player. A backed-up program connection drops frames until the next keyframe.
+  - A player who opens the page again replaces the old connection. Players wait while the program is away.
+- **The program** (`CamHub`, setting `cams`):
+  - opens the room while switched on and signed in, and keeps the roster in step with the current match (or the game data);
+  - keeps each player's frames and plays them out `delayMs` later (0–300 s), paced by the capture times against the least-delayed arrival seen recently;
+  - serves on-air cams (approved, not hidden) to HUDs and OBS pages on `/cams-ws`, and every cam live to the operator's screen on `/api/v1/cams/ws`;
+  - starts a new viewer at a keyframe.
+- **In the browser** (`hud-runtime/cams.js`): WebCodecs decodes into a canvas per player, available as a MediaStream.
+- **LHM-format HUDs:**
+  - the HUD server puts `cams.js` and `lhm-cams.js` into their pages, before their scripts;
+  - `/api/camera` lists the match's players, and `registerAsHUD` gets `playersCameraStatus` and an `offerFromPlayer` per on-air cam (repeated every 3 s, which the HUD ignores while connected);
+  - the offers carry a marker. The page's RTCPeerConnection (a wrapper) answers them locally and hands simple-peer the cam's MediaStream, with no network connection; every other use is the browser's own.
+  - A cam off air for 1.5 s fails its connection, so the HUD shows the avatar again and takes the next offer.
+- **Matchframe's HUD** shows the observed player's cam above their panel.
+- **OBS:** `/cams/observed` and `/cams/player/<id>` (cams token).
+- **The operator** (Cameras → Player cameras): switch on, the link (and a new one), delay, quality, auto-approve, and per player put on air, take off air, stop, with live previews. Plus the OBS addresses.
+
+**Why not WebRTC end to end.** The delay needs the video kept somewhere: in the program, encoded, it's about 10 MB a player for two minutes. WebRTC would also need a TURN relay for players behind strict NATs, which costs the same traffic, and LHM HUDs need a MediaStream in their own page either way.
+
+**Checked.**
+- Relay: room ownership, roster, first-keyframe rule, status and key requests, replacing and kicking, waiting for the program, bitrate cap, closing.
+- Program end to end against the real website server: link and roster, the operator's frames at once and the HUD's after the delay, at the filmed pace, off air and back from a keyframe, approval, stop, tokens, a new link.
+- Chromium:
+  - VP8 encoded in the page, through website and program, decoded on the OBS page (colour checked);
+  - the LHM shim given the calls simple-peer makes, and with simple-peer 9.11 itself (stream shown, ERR_CONNECTION_FAILURE off air), an ordinary RTCPeerConnection unaffected;
+  - the cam page with a fake camera end to end.
+- Page and screen unit tests.
+
+**Not checked.** Real players over the internet; kaiHUD itself; OBS's browser. The website needs redeploying.

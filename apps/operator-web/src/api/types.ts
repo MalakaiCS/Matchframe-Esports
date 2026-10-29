@@ -1095,3 +1095,30 @@ export interface GraphicsSettings {
   clutch: boolean;
   pages: { hudId: string; scene: string; playerSource: string; matchSource: string };
 }
+
+/** GET /api/v1/cams: player cams from the website (ADR-048). */
+export interface CamPlayerView {
+  steamId: string;
+  name: string;
+  team: string;
+  state: "offline" | "waiting_approval" | "live" | "hidden";
+  onAir: boolean;
+  camera: string | null;
+  width: number | null;
+  height: number | null;
+  fps: number | null;
+  kbps: number;
+  bufferedSec: number;
+}
+export interface CamStatusView {
+  enabled: boolean;
+  signedIn: boolean;
+  websiteConnected: boolean;
+  link: string | null;
+  delayMs: number;
+  quality: "low" | "standard" | "high";
+  autoApprove: boolean;
+  error: string | null;
+  players: CamPlayerView[];
+  outputs: { observed: string; player: string } | null;
+}

@@ -55,6 +55,7 @@ import { DirectorBench } from "./demos/bench-service.ts";
 import { PovModelService } from "./demos/pov-model.ts";
 import { CameraCapture } from "./live/camera-capture.ts";
 import { HlaeCameraServer } from "./game/hlae-camera.ts";
+import { CamHub, type CamRosterSource } from "./live/cams.ts";
 import { RoundSimulator } from "./sim/simulator.ts";
 import { GameConsoleService } from "./game/console.ts";
 import { BuiltinRadars } from "./live/builtin-radars.ts";
@@ -150,6 +151,8 @@ export class Engine {
   readonly povModel: PovModelService;
   readonly cameraCapture: CameraCapture;
   readonly hlaeCamera: HlaeCameraServer;
+  /** Player cams (ADR-048). */
+  readonly cams: CamHub;
   readonly datasetStorage: DatasetStorage;
   readonly training: TrainingService;
   /** Utility profiles in use and which types come from demo measurements. */
@@ -313,6 +316,14 @@ export class Engine {
       logger: this.logger,
       connectLines: (p) => (p.mode === "hlae" && this.autoDirector?.settings().hlaeCamera !== false ? [this.hlaeCamera.loadCommand()] : []),
     });
+    this.cams = new CamHub({
+      settings: this.settings,
+      logger: this.logger,
+      credentials: () => this.cloud.credentials(),
+      roster: () => this.camRoster(),
+      observed: () => this.session.state()?.observer.observedSteamId ?? null,
+      overlayPort: () => this.cfg.overlayPort,
+    });
     this.cameraWalkthrough = new CameraWalkthrough({ settings: this.settings, maps: this.maps, session: this.session });
     this.cameraCapture = new CameraCapture({ session: this.session, maps: this.maps, settings: this.settings, applyOverrides: (m) => this.applyCameraOverrides(m) });
     this.autoDirector = new AutoDirector(this);
@@ -443,6 +454,27 @@ export class Engine {
   onHudUpdate(fn: (outputId: string, urgent?: boolean) => void): () => void {
     this.hudListeners.add(fn);
     return () => this.hudListeners.delete(fn);
+  }
+
+  /**
+   * The match being played, for the player cams page: the current match's two teams with their
+   * players (by today's roster), else the players in the game data by side. Coaches are left out.
+   */
+  camRoster(): CamRosterSource {
+    const coaches = this.settings.get<Record<string, boolean>>("players.coaches", {});
+    const m = this.activeMatch();
+    if (m) {
+      const people = this.players.list().map((d) => d.data).filter((p) => p.steamId && !coaches[p.steamId]);
+      const teams = [m.teamAId, m.teamBId].map((id) => ({
+        name: (id && this.teams.get(id)?.data.name) || "",
+        players: people.filter((p) => id && this.roster.history(p.id).find((r) => r.validTo === null)?.teamId === id).map((p) => ({ steamId: p.steamId!, name: p.displayName })),
+      }));
+      if (teams.some((t) => t.players.length > 0)) return { title: teams.map((t) => t.name).filter(Boolean).join(" vs "), teams };
+    }
+    const st = this.session.state();
+    if (!st) return { title: "", teams: [] };
+    const teams = (["CT", "T"] as const).map((side) => ({ name: st.teams[side].name ?? side, players: st.players.filter((p) => p.side === side && !p.coach).map((p) => ({ steamId: p.steamId, name: p.name })) }));
+    return { title: teams.map((t) => t.name).join(" vs "), teams };
   }
 
   activeMatch(): Match | null {
@@ -984,6 +1016,7 @@ export class Engine {
   async shutdown(): Promise<void> {
     this.autoDirector.dispose();
     this.hlaeCamera.close();
+    this.cams.close();
     this.replayLink.stop();
     this.autoReplay.dispose();
     this.graphics.dispose();

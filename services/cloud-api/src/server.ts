@@ -4,7 +4,7 @@ import type { Server, ServerResponse } from "node:http";
 import { extname, join, normalize, resolve } from "node:path";
 import type { CloudApp } from "./app.ts";
 import { latestInstaller, serveDownload } from "./domain/downloads.ts";
-import { Router, json } from "./http/router.ts";
+import { HttpError, Router, json } from "./http/router.ts";
 import { registerAdminRoutes } from "./routes/admin.ts";
 import { registerAuthRoutes } from "./routes/auth.ts";
 import { registerBillingRoutes } from "./routes/billing.ts";
@@ -27,12 +27,13 @@ const MIME: Record<string, string> = {
   ".txt": "text/plain; charset=utf-8",
 };
 
-const SECURITY_HEADERS = {
+/** The site's security headers; connect-src also names the site's own WebSocket address (player cams), which older Safari doesn't take 'self' for. */
+const securityHeaders = (publicUrl: string) => ({
   "x-content-type-options": "nosniff",
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-frame-options": "DENY",
-  "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com",
-};
+  "content-security-policy": `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ${new URL(publicUrl).origin.replace(/^http/, "ws")}; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com`,
+});
 
 export function buildRouter(app: CloudApp): Router {
   const router = new Router({ allowedOrigins: [app.origin], onError: (e, where) => console.error(`[cloud-api] ${where.method} ${where.path}:`, e) });
@@ -56,6 +57,12 @@ export function buildRouter(app: CloudApp): Router {
   registerBillingRoutes(router, app);
   registerDeviceRoutes(router, app);
   registerAdminRoutes(router, app);
+  router.add("GET", "/v1/cams/:room", { summary: "Player cams: the match being played and the video settings for a cam link (ADR-048)" }, (ctx) => {
+    app.rateLimit(app.limits.cams, `cam-info:${ctx.ip}`);
+    const info = app.cams.info(ctx.params.room ?? "");
+    if (!info) throw new HttpError(404, "not_found", "This camera link isn't open. Ask the production for a new one.");
+    return info;
+  });
   router.add("GET", "/v1/openapi.json", { summary: "OpenAPI description of this API" }, () => router.openapi({ title: "Matchframe cloud API", version: "0.1.0" }));
   return router;
 }
@@ -73,7 +80,7 @@ function serveStatic(webDir: string, pathname: string, res: ServerResponse, publ
   }
   const ext = extname(file);
   const immutable = file.includes(`${join(root, "assets")}`);
-  res.writeHead(200, { "content-type": MIME[ext] ?? "application/octet-stream", "cache-control": immutable ? "public, max-age=31536000, immutable" : "no-cache", ...SECURITY_HEADERS });
+  res.writeHead(200, { "content-type": MIME[ext] ?? "application/octet-stream", "cache-control": immutable ? "public, max-age=31536000, immutable" : "no-cache", ...securityHeaders(publicUrl) });
   // Social preview tags need absolute URLs: index.html carries a placeholder for the public address.
   res.end(ext === ".html" ? readFileSync(file, "utf8").replaceAll("__MF_PUBLIC_URL__", publicUrl.replace(/\/$/, "")) : readFileSync(file));
   return true;
@@ -93,6 +100,10 @@ export async function startCloudServer(app: CloudApp): Promise<{ server: Server;
       console.error("[cloud-api] unhandled", e);
       json(res, 500, { error: "internal" });
     }
+  });
+  // Player cams: the program's room and the players' video (WebSocket).
+  server.on("upgrade", (req, socket, head) => {
+    if (!app.cams.upgrade(req, socket, head, (req.socket.remoteAddress ?? "unknown").replace(/^::ffff:/, ""))) socket.destroy();
   });
   await new Promise<void>((resolveListen, reject) => {
     server.once("error", reject);

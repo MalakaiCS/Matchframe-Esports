@@ -238,3 +238,112 @@ export const UsageBatchResult = z.object({
   rejected: z.array(z.object({ recordId: z.string(), reason: z.string() })),
 });
 export type UsageBatchResult = z.infer<typeof UsageBatchResult>;
+
+// ---------------------------------------------------------------------------- player cams
+
+/**
+ * Player cams (ADR-048): the production's program hosts a room on the website; players open
+ * `/cam/<room>`, pick themselves and a camera, and send their video, which the website relays to the
+ * program. Video is encoded in the player's browser (WebCodecs) and sent as binary frames
+ * (encodeCamFrame); everything else is JSON text.
+ */
+export const CAM_ROOM_RE = /^[a-z0-9]{16,32}$/;
+export const CamRoomCode = z.string().regex(CAM_ROOM_RE);
+
+/** The video every player in a room sends, set by the production. */
+export const CamQuality = z.object({
+  width: z.number().int().min(160).max(1920),
+  height: z.number().int().min(90).max(1080),
+  fps: z.number().int().min(10).max(60),
+  bitrateKbps: z.number().int().min(100).max(6000),
+  /** A keyframe at least this often (s): where a delayed or newly opened view can start. */
+  keyframeSec: z.number().min(0.5).max(10),
+});
+export type CamQuality = z.infer<typeof CamQuality>;
+
+export const CAM_QUALITY_PRESETS = {
+  low: { width: 480, height: 270, fps: 25, bitrateKbps: 400, keyframeSec: 2 },
+  standard: { width: 640, height: 360, fps: 30, bitrateKbps: 700, keyframeSec: 2 },
+  high: { width: 1280, height: 720, fps: 30, bitrateKbps: 1800, keyframeSec: 2 },
+} as const satisfies Record<string, CamQuality>;
+export type CamQualityPreset = keyof typeof CAM_QUALITY_PRESETS;
+
+/** A player as the cam page lists them: an opaque key (never the SteamID) and the name. */
+export const CamRosterPlayer = z.object({ key: z.string().regex(/^[a-z0-9]{6,32}$/), name: z.string().min(1).max(64) });
+export type CamRosterPlayer = z.infer<typeof CamRosterPlayer>;
+
+/** The match being played, as the cam page shows it. */
+export const CamRoster = z.object({
+  title: z.string().max(120),
+  teams: z.array(z.object({ name: z.string().max(64), players: z.array(CamRosterPlayer).max(12) })).max(2),
+});
+export type CamRoster = z.infer<typeof CamRoster>;
+
+/** GET /v1/cams/:room */
+export const CamRoomInfo = CamRoster.extend({
+  room: CamRoomCode,
+  quality: CamQuality,
+  /** The production's program is connected right now (cams can be sent). */
+  hostConnected: z.boolean(),
+});
+export type CamRoomInfo = z.infer<typeof CamRoomInfo>;
+
+/** The player's first message on /v1/cams/:room/publish. */
+export const CamHello = z.object({
+  type: z.literal("hello"),
+  codec: z.string().max(40),
+  width: z.number().int().min(16).max(4096),
+  height: z.number().int().min(16).max(4096),
+  fps: z.number().min(1).max(120),
+  /** The camera's name in the browser (shown to the production). */
+  camera: z.string().max(80).optional(),
+});
+export type CamHello = z.infer<typeof CamHello>;
+
+/** What the production tells a player's page. */
+export const CamPlayerStatus = z.enum(["waiting_host", "waiting_approval", "live", "hidden"]);
+export type CamPlayerStatus = z.infer<typeof CamPlayerStatus>;
+
+/** Program → website on /v1/cams/host. */
+export const CamHostMessage = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("open"), room: CamRoomCode, roster: CamRoster, quality: CamQuality }),
+  z.object({ type: z.literal("roster"), roster: CamRoster }),
+  z.object({ type: z.literal("quality"), quality: CamQuality }),
+  z.object({ type: z.literal("status"), id: z.number().int(), state: CamPlayerStatus }),
+  z.object({ type: z.literal("key"), id: z.number().int() }),
+  z.object({ type: z.literal("kick"), id: z.number().int(), reason: z.string().max(200) }),
+  z.object({ type: z.literal("close") }),
+]);
+export type CamHostMessage = z.infer<typeof CamHostMessage>;
+
+/** Website → program on /v1/cams/host (video arrives as binary: a 4-byte publisher id, then the frame). */
+export type CamRelayMessage =
+  | { type: "opened"; room: string }
+  | { type: "error"; code: "room_taken" | "bad_message" | "timeout"; message: string }
+  | { type: "join"; id: number; key: string; hello: CamHello }
+  | { type: "leave"; id: number; key: string };
+
+/** Website → player on /v1/cams/:room/publish. */
+export type CamPublisherMessage = { type: "status"; state: CamPlayerStatus } | { type: "key" } | { type: "kicked"; reason: string };
+
+/** Binary video frame: version 1, flags (1 = keyframe), the capture time in microseconds (float64), then the encoded data. */
+export const CAM_FRAME_HEADER = 10;
+
+export function encodeCamFrame(key: boolean, timestampUs: number, data: Uint8Array): Uint8Array<ArrayBuffer> {
+  const out = new Uint8Array(CAM_FRAME_HEADER + data.byteLength);
+  const v = new DataView(out.buffer);
+  v.setUint8(0, 1);
+  v.setUint8(1, key ? 1 : 0);
+  v.setFloat64(2, timestampUs);
+  out.set(data, CAM_FRAME_HEADER);
+  return out;
+}
+
+export function decodeCamFrame(buf: Uint8Array): { key: boolean; timestampUs: number; data: Uint8Array } | null {
+  if (buf.byteLength <= CAM_FRAME_HEADER) return null;
+  const v = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  if (v.getUint8(0) !== 1) return null;
+  const timestampUs = v.getFloat64(2);
+  if (!Number.isFinite(timestampUs)) return null;
+  return { key: (v.getUint8(1) & 1) === 1, timestampUs, data: buf.subarray(CAM_FRAME_HEADER) };
+}

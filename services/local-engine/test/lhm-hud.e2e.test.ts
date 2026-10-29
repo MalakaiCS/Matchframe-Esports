@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { strToU8, zipSync } from "fflate";
 import { io, type Socket } from "socket.io-client";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { HudLibraryEntry } from "@matchframe/contracts";
 import { buildSyntheticGsiPayload, syntheticRoster } from "../../../packages/cs2-state/src/testing/gsi-builder.ts";
 import { Engine } from "../src/app.ts";
@@ -257,5 +257,40 @@ describe("LHM-format HUD in the library (engine)", () => {
     expect((await api(`/api/v1/hud/library/${entry.id}/action`, { method: "POST", body: { key: "tournament.header_state", value: "header_toggle" } })).status).toBe(200);
     expect(await action).toEqual({ action: "header_state", data: "header_toggle" });
     expect((await api(`/api/v1/hud/library/${entry.id}/action`, { method: "POST", body: { key: "tournament.header_state", value: "nope" } })).status).toBe(400);
+  });
+
+  it("player cams: the cam scripts go in before the HUD's own, /api/camera lists the players, and on-air cams are offered", async () => {
+    const html = await (await overlay(`/huds/${entry.id}/index.html`)).text();
+    const tags = '<script src="/hud-runtime/cams.js"></script><script src="/hud-runtime/lhm-cams.js"></script>';
+    // Before any script of the HUD's own (in <head> when there is one, else first in the page).
+    expect(html.indexOf(tags)).toBe(html.indexOf("<script"));
+    const cookie = `mf_lhm_${entry.id}=${token}`;
+    // Off: no players offered.
+    expect(await (await overlay("/api/camera", cookie)).json()).toEqual({ uuid: "matchframe-cams", availablePlayers: [] });
+    engine.cams.setSettings({ enabled: true });
+    const nova = syntheticRoster()[0]!;
+    let cams: { uuid: string; availablePlayers: { steamid: string; label: string }[] } = { uuid: "", availablePlayers: [] };
+    for (let i = 0; i < 60 && cams.availablePlayers.length === 0; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      cams = (await (await overlay("/api/camera", cookie)).json()) as typeof cams;
+    }
+    expect(cams.availablePlayers).toHaveLength(10);
+    expect(cams.availablePlayers).toContainEqual({ steamid: nova.steamId, label: nova.name });
+    // A cam on air: offered to every HUD that registers for cams (with Matchframe's marker).
+    const onAir = vi.spyOn(engine.cams, "onAir").mockReturnValue([nova.steamId]);
+    try {
+      const s = connect(cookie);
+      await next(s, "readyToRegister");
+      const status = next<{ steamid: string; active: boolean }[]>(s, "playersCameraStatus");
+      const offer = new Promise<unknown[]>((resolve) => s.once("offerFromPlayer", (...args: unknown[]) => resolve(args)));
+      s.emit("registerAsHUD", "matchframe-cams");
+      expect((await status).find((p) => p.steamid === nova.steamId)).toMatchObject({ active: true, allow: true });
+      const [uuid, data, steamid] = await offer;
+      expect([uuid, steamid]).toEqual(["matchframe-cams", nova.steamId]);
+      expect((data as { offer: { type: string; sdp: string } }).offer).toMatchObject({ type: "offer", sdp: expect.stringContaining(`a=x-matchframe-cam:${nova.steamId}`) });
+    } finally {
+      onAir.mockRestore();
+      engine.cams.setSettings({ enabled: false });
+    }
   });
 });

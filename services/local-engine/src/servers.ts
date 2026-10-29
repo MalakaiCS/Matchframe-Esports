@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { APP_VERSION } from "./config.ts";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { join } from "node:path";
@@ -26,6 +26,8 @@ import { registerDeviceRoutes, tally } from "./routes/devices.ts";
 import { registerReportRoutes } from "./routes/reports.ts";
 import { registerIntegrationRoutes } from "./routes/integrations.ts";
 import { registerCloudRoutes } from "./routes/cloud.ts";
+import { registerCamRoutes } from "./routes/cams.ts";
+import { CAM_PAGE_JS, CAMS_JS, LHM_CAMS_JS, camPage, injectLhmCams } from "./hud/cams-runtime.ts";
 import { bearer, json, readBody, Router } from "./http/router.ts";
 import { overlayCsp, safeResolve, serveFile, serveStatic } from "./http/static.ts";
 import type { HubClient } from "./http/ws-hub.ts";
@@ -106,6 +108,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerDeviceRoutes(router, e);
   registerIntegrationRoutes(router, e);
   registerCloudRoutes(router, e);
+  registerCamRoutes(router, e);
   router.get("/api/v1/openapi.json", { permission: "public" }, () => router.openapi({ title: "Matchframe Esports local API", version: APP_VERSION }));
 
   // ------------------------------------------------------------------ GSI ingest server
@@ -250,7 +253,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     const url = new URL(req.url ?? "/", "http://local");
     // The HLAE camera script in CS2 (this computer only, token checked there).
     if (url.pathname === "/hlae") return e.hlaeCamera.upgrade(req, socket, head);
-    if (url.pathname !== "/api/v1/ws") return socket.destroy();
+    if (url.pathname !== "/api/v1/ws" && url.pathname !== "/api/v1/cams/ws") return socket.destroy();
     const principal = e.secrets.authenticate(bearer(req, url.searchParams));
     if (!principal || !can(principal.role, "state.read")) {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
@@ -261,6 +264,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
       return socket.destroy();
     }
+    // Player cams preview (every cam as it arrives) for the Player cams screen.
+    if (url.pathname === "/api/v1/cams/ws") return e.cams.upgrade(req, socket, head, { all: true });
     operatorHub.upgrade(req, socket, head, { principal: principal.label, role: principal.role });
   });
 
@@ -428,9 +433,31 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       const pkg = id ? e.hudPackages.get(decodeURIComponent(id)) : undefined;
       if (pkg && pkg.classification === "imported") {
         const f = safeResolve(pkg.installDir, rest.join("/"));
+        if (f && pkg.manifest.runtime === "lhm" && /\.html?$/i.test(f)) {
+          // The player cams scripts go in before the HUD's own (its camera protocol, ADR-048).
+          const body = injectLhmCams(readFileSync(f, "utf8"));
+          res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers, "content-security-policy": lhmCsp });
+          res.end(body);
+          return;
+        }
         if (f) return serveFile(res, f, pkg.manifest.runtime === "lhm" ? { ...headers, "content-security-policy": lhmCsp } : headers);
       }
       return json(res, 404, { error: "not_found" });
+    }
+    const camScript = p === "/hud-runtime/cams.js" ? CAMS_JS : p === "/hud-runtime/lhm-cams.js" ? LHM_CAMS_JS : p === "/hud-runtime/cam-page.js" ? CAM_PAGE_JS : null;
+    if (camScript) {
+      res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache", "x-content-type-options": "nosniff", ...headers });
+      res.end(camScript);
+      return;
+    }
+    // Player cam pages for OBS: the observed player's cam, or one player's.
+    const camPath = /^\/cams\/(observed|player\/(\d{17}))\/?$/.exec(p);
+    if (camPath) {
+      if (!e.cams.checkToken(url.searchParams.get("t"))) return json(res, 401, { error: "unauthorized", message: "invalid or missing cams token (copy the address from Player cams)" });
+      const player = camPath[2] ?? null;
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers });
+      res.end(camPage({ title: player ? `Player ${player}` : "Observed player", player }));
+      return;
     }
     if (p === "/hud-runtime/wrapper.js") {
       res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache", "x-content-type-options": "nosniff", ...headers });
@@ -505,6 +532,14 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
       socket.destroy();
     };
+    if (url.pathname === "/cams-ws") {
+      // OBS cam pages (cams token), Matchframe HUDs (their output token), LHM HUDs (their cookie).
+      const out = url.searchParams.get("output") ?? "";
+      const hudId = libraryHudId(out);
+      const ok = e.cams.checkToken(token) || (hudId !== null && e.hudLibrary.checkToken(hudId, token)) || (!!out && hudId === null && e.outputs.checkToken(out, token)) || lhm.allowedHuds(req).length > 0;
+      if (!ok) return unauthorized();
+      return e.cams.upgrade(req, socket, head, { all: false });
+    }
     if (url.pathname === "/hud-runtime-ws") {
       const hudId = url.searchParams.get("hud") ?? "";
       if (!e.hudLibrary.checkToken(hudId, token)) return unauthorized();

@@ -70,6 +70,12 @@ does not ship one.
 7. Check `https://<domain>/v1/health`: `"database":"postgres"`, `"signingKeySource":"database"`
    (or `"environment"`) and `"ephemeralSigningKey":false`.
 
+Player cams (0.8.0, ADR-048) use WebSockets on the same address (`/v1/cams/...`); Railway and the
+reverse proxies above pass them through (for nginx, add the `Upgrade`/`Connection` headers). The
+players' video goes through this server to the production's program and is not stored: about
+0.7 Mbit/s in and the same out per player at the Standard setting, so ten players for an hour is
+about 3 GB of traffic each way.
+
 Program download on Railway: a public GitHub release is the simplest host for the installer (see
 section 5): set `MF_DOWNLOAD_WINDOWS_URL`, `MF_DOWNLOAD_WINDOWS_SHA256` and `MF_DOWNLOAD_VERSION`.
 To serve it from Railway instead, attach a volume at `/downloads`, set `MF_DOWNLOAD_DIR=/downloads`
