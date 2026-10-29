@@ -26,6 +26,8 @@ export interface TeamShot {
   /** The players the shot is of (they stand together), and how many of them the camera sees. */
   steamIds: string[];
   inView: number;
+  /** How far the middle one of them is from the camera (units). */
+  range: number;
   score: number;
 }
 
@@ -45,8 +47,9 @@ const HEIGHTS: readonly [number, number][] = [
   [160, 0.95],
   [75, 0.7],
   [220, 0.75],
+  [300, 0.55],
 ];
-const AZIMUTHS = 32;
+const AZIMUTHS = 48;
 /** Room the camera needs around it, and above it. */
 const ROOM = 20;
 const HEADROOM = 28;
@@ -59,6 +62,10 @@ const PUSH_IN = 0.08;
 /** Nobody else stands this close to the camera, or in the picture nearer than this share of the way to the team. */
 const FOREGROUND_GAP = 120;
 const FOREGROUND_SHARE = 0.7;
+/** What leaving a player out of a team shot costs its score (see frameTeam). */
+const LEFT_OUT = 0.8;
+/** Players look best this far from the camera (units): big enough to read, the group still in the picture. */
+const BEST_RANGE = 380;
 /** At most this share of the picture's upper two thirds may be blocked before the team. */
 const MAX_BLOCKED = 0.45;
 
@@ -138,17 +145,23 @@ interface Placed {
 export function frameTeam(players: FramedPlayer[], space: FreeSpace, opts: FrameOptions = {}): TeamShot | null {
   let group = teamGroup(players);
   const least = Math.max(2, Math.min(3, players.length), Math.ceil(players.length / 2));
-  // When no spot shows them all, the one furthest out is left out (down to three of five).
+  // The whole group, and without the one furthest out, and so on down to three of five: a good-sized
+  // shot of four beats five far away (one standing well apart pushes the camera back), and each
+  // player left out costs the shot LEFT_OUT.
+  let best: { shot: TeamShot; value: number } | null = null;
   while (group.length >= least) {
     const left = players.filter((p) => !group.includes(p)).map((p) => p.position);
     const shot = frameGroup(group, space, { ...opts, others: [...(opts.others ?? []), ...left] });
-    if (shot) return shot;
+    const value = shot ? shot.score - LEFT_OUT * (players.length - group.length) : -Infinity;
+    if (shot && (!best || value > best.value)) best = { shot, value };
+    // Close enough already: no need to leave anyone out.
+    if (best && best.shot.range <= BEST_RANGE + 200) break;
     const cx = group.reduce((s, p) => s + p.position.x, 0) / group.length;
     const cy = group.reduce((s, p) => s + p.position.y, 0) / group.length;
     const far = group.reduce((a, p) => (Math.hypot(p.position.x - cx, p.position.y - cy) > Math.hypot(a.position.x - cx, a.position.y - cy) ? p : a));
     group = group.filter((p) => p !== far);
   }
-  return null;
+  return best?.shot ?? null;
 }
 
 export interface FrameOptions {
@@ -170,7 +183,7 @@ function frameGroup(group: FramedPlayer[], space: FreeSpace, opts: FrameOptions)
   const cy = group.reduce((s, p) => s + p.position.y, 0) / n;
   const floor = median(group.map((p) => p.position.z));
   const spread = Math.max(...group.map((p) => Math.hypot(p.position.x - cx, p.position.y - cy)));
-  const distances = [220, 320, 450, 600].map((d) => Math.min(1000, Math.max(260, spread + d)));
+  const distances = [160, 220, 320, 450, 600, 800].map((d) => Math.min(1100, Math.max(260, spread + d)));
 
   /** How many players the camera sees, and whether they all fit in the picture looking at `focus`. */
   const place = (at: Vec3, focus: Vec3): Placed | null => {
@@ -297,8 +310,11 @@ function frameGroup(group: FramedPlayer[], space: FreeSpace, opts: FrameOptions)
         const sPitch = 1 - Math.min(1, Math.abs(pitch - 12) / 18);
         const sDist = 1 - Math.min(1, Math.abs(d - 480) / 450);
         const sFace = facing(at);
+        // How big they look: the middle player's distance from the camera.
+        const range = median(group.map((p) => Math.hypot(p.position.x - at.x, p.position.y - at.y, p.position.z + CHEST - at.z)));
+        const sSize = 1 - Math.min(1, Math.abs(range - BEST_RANGE) / 350);
         // Cheap parts first: the openness rays only for a spot that could still win.
-        const partial = 3 * sVis + 1.2 * sFill + 0.8 * sPitch + 0.6 * hLike + 0.8 * sFace + 0.5 * sDist;
+        const partial = 3 * sVis + 1.2 * sFill + 0.8 * sPitch + 0.6 * hLike + 0.8 * sFace + 0.5 * sDist + sSize;
         if (best && partial + 1 <= best.score) continue;
         const blk = blocked(at, focus);
         if (blk > MAX_BLOCKED) {
@@ -307,7 +323,7 @@ function frameGroup(group: FramedPlayer[], space: FreeSpace, opts: FrameOptions)
         }
         const score = partial + (1 - blk);
         if (best && score <= best.score) continue;
-        best = { score, shot: { from: at, to: at, focus, steamIds: group.map((p) => p.steamId), inView: placed.visible, score } };
+        best = { score, shot: { from: at, to: at, focus, steamIds: group.map((p) => p.steamId), inView: placed.visible, range: Math.round(range), score } };
       }
     }
   }

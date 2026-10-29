@@ -11,6 +11,24 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.6.3",
+    title: "Real spawns, and Cache",
+    summary: "Freeze-time team shots checked and tuned on where players really stand, from a pro match on every map in the pool. The spawn cameras now aim at the real spawns. Cache is supported.",
+    sections: [
+      {
+        heading: "Auto Director",
+        items: [
+          "Team shots checked on every round of a pro match on each of the seven pool maps: every team framed, the players a good size in the picture.",
+          "Spawn cameras aim at where players really spawn (they were off by up to 500 units, and on Ancient and Anubis missed the CT spawn).",
+        ],
+      },
+      {
+        heading: "Maps",
+        items: ["Cache: areas, cameras and camera paths, checked against CS2's own geometry. The default map pool is now Ancient, Anubis, Cache, Dust II, Inferno, Mirage and Nuke."],
+      },
+    ],
+  },
+  {
     version: "0.6.2",
     title: "Broadcast team shots, and cameras that stay put",
     summary: "Freeze time shows each team the way a broadcast does: the camera framed from where the players stand, gliding slowly round them. Fixes cinematics sliding into walls and floors. Every map's cameras checked again.",

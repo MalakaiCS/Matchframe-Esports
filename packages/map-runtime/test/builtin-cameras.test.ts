@@ -5,7 +5,7 @@ import { MapPack } from "@matchframe/contracts";
 import { MapRuntime } from "../src/index.ts";
 
 const root = join(import.meta.dirname, "..", "..", "..");
-const MAPS = ["de_ancient", "de_anubis", "de_dust2", "de_inferno", "de_mirage", "de_nuke", "de_overpass", "de_train", "de_vertigo"];
+const MAPS = ["de_ancient", "de_anubis", "de_cache", "de_dust2", "de_inferno", "de_mirage", "de_nuke", "de_overpass", "de_train", "de_vertigo"];
 const pack = (m: string) => MapPack.parse(JSON.parse(readFileSync(join(root, "assets", "map-packs", `${m}.json`), "utf8")));
 
 /**

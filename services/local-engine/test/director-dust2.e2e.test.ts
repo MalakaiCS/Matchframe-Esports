@@ -40,8 +40,9 @@ const FREEZE2 = 55000;
 const TIMEOUT = [59000, 69000] as const;
 const LIVE2_START = 75000;
 const LIVE2_END = 88000;
-const T_SPAWN = { x: -296, y: -1136, z: 60 };
-const CT_SPAWN = { x: 88, y: 2448, z: -60 };
+/** Where the teams stand in freeze time: round 1 of a pro match on Dust II (HLTV demo). */
+const T_SPAWNS = [[-493, -808, 109], [-1141, -808, 117], [-533, -754, 114], [-428, -843, 95], [-367, -808, 84]] as const;
+const CT_SPAWNS = [[160, 2370, -120], [258, 2481, -121], [182, 2439, -121], [351, 2353, -120], [334, 2434, -120]] as const;
 const B_SITE = { x: -1768, y: 2384, z: 60 };
 const MID_CT = { x: -400, y: 1700, z: -60 };
 
@@ -84,9 +85,10 @@ describe("Dust2: out of the freeze-time shot and into first person when the roun
       positions: (t, p) => {
         const live = Math.max(0, t - (t >= LIVE_END ? LIVE2_START : LIVE_START)) / 1000;
         const i = p.slot % 5;
-        const [from, to, secs] = p.side === "T" ? [T_SPAWN, B_SITE, 14] : [CT_SPAWN, MID_CT, 10];
+        const [spawn, to, secs] = p.side === "T" ? [T_SPAWNS[i]!, B_SITE, 14] : [CT_SPAWNS[i]!, MID_CT, 10];
+        const from = { x: spawn[0], y: spawn[1], z: spawn[2] };
         const k = Math.min(1, live / secs);
-        return { x: from.x + (to.x - from.x) * k + i * 40, y: from.y + (to.y - from.y) * k + i * 30, z: from.z };
+        return { x: from.x + (to.x + i * 40 - from.x) * k, y: from.y + (to.y + i * 30 - from.y) * k, z: k < 1 ? from.z : to.z };
       },
     });
     await cs2.listen(consolePort);

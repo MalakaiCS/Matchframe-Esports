@@ -34,7 +34,7 @@ from pathlib import Path
 
 import numpy as np
 
-ACTIVE_DUTY = ["de_ancient", "de_anubis", "de_dust2", "de_inferno", "de_mirage", "de_nuke", "de_overpass", "de_train", "de_vertigo"]
+ACTIVE_DUTY = ["de_ancient", "de_anubis", "de_cache", "de_dust2", "de_inferno", "de_mirage", "de_nuke", "de_overpass", "de_train", "de_vertigo"]
 CELL = 12.0
 XY_MARGIN = 256.0
 Z_BELOW = 96.0

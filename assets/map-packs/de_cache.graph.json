@@ -1,0 +1,760 @@
+{
+  "schemaVersion": 1,
+  "mapName": "de_cache",
+  "source": "demo_place_name_transitions",
+  "description": "Undirected region adjacency from observed place-name transitions of alive players (consecutive samples ≤ 1 s apart within a round). Not part of the MapPack schema.",
+  "minTransitions": 2,
+  "nodes": [
+    {
+      "id": "a_boost",
+      "place": "ABoost",
+      "sampleCount": 333
+    },
+    {
+      "id": "a_halls",
+      "place": "AHalls",
+      "sampleCount": 3828
+    },
+    {
+      "id": "a_main",
+      "place": "AMain",
+      "sampleCount": 11303
+    },
+    {
+      "id": "a_stairs",
+      "place": "AStairs",
+      "sampleCount": 6674
+    },
+    {
+      "id": "b_halls",
+      "place": "BHalls",
+      "sampleCount": 30230
+    },
+    {
+      "id": "b_main",
+      "place": "BMain",
+      "sampleCount": 22050
+    },
+    {
+      "id": "bear",
+      "place": "Bear",
+      "sampleCount": 2437
+    },
+    {
+      "id": "bombsite_a",
+      "place": "BombsiteA",
+      "sampleCount": 30348
+    },
+    {
+      "id": "bombsite_b",
+      "place": "BombsiteB",
+      "sampleCount": 33810
+    },
+    {
+      "id": "boost",
+      "place": "Boost",
+      "sampleCount": 5637
+    },
+    {
+      "id": "bus_stop",
+      "place": "BusStop",
+      "sampleCount": 8987
+    },
+    {
+      "id": "ct_lane",
+      "place": "CTLane",
+      "sampleCount": 22048
+    },
+    {
+      "id": "ct_spawn",
+      "place": "CTSpawn",
+      "sampleCount": 107288
+    },
+    {
+      "id": "catwalk",
+      "place": "Catwalk",
+      "sampleCount": 7513
+    },
+    {
+      "id": "checkers",
+      "place": "Checkers",
+      "sampleCount": 15250
+    },
+    {
+      "id": "connector",
+      "place": "Connector",
+      "sampleCount": 19593
+    },
+    {
+      "id": "corner",
+      "place": "Corner",
+      "sampleCount": 4802
+    },
+    {
+      "id": "cubby",
+      "place": "Cubby",
+      "sampleCount": 4609
+    },
+    {
+      "id": "electrical_box",
+      "place": "ElectricalBox",
+      "sampleCount": 4257
+    },
+    {
+      "id": "fork_lift",
+      "place": "ForkLift",
+      "sampleCount": 9637
+    },
+    {
+      "id": "garage",
+      "place": "Garage",
+      "sampleCount": 45580
+    },
+    {
+      "id": "headshot",
+      "place": "Headshot",
+      "sampleCount": 11869
+    },
+    {
+      "id": "heaven",
+      "place": "Heaven",
+      "sampleCount": 5298
+    },
+    {
+      "id": "highway",
+      "place": "Highway",
+      "sampleCount": 24382
+    },
+    {
+      "id": "ladder",
+      "place": "Ladder",
+      "sampleCount": 1808
+    },
+    {
+      "id": "lockers",
+      "place": "Lockers",
+      "sampleCount": 845
+    },
+    {
+      "id": "long_a",
+      "place": "LongA",
+      "sampleCount": 1963
+    },
+    {
+      "id": "mid",
+      "place": "Mid",
+      "sampleCount": 43478
+    },
+    {
+      "id": "mid_roof",
+      "place": "MidRoof",
+      "sampleCount": 715
+    },
+    {
+      "id": "middle",
+      "place": "Middle",
+      "sampleCount": 315
+    },
+    {
+      "id": "outside_a",
+      "place": "OutsideA",
+      "sampleCount": 34736
+    },
+    {
+      "id": "outside_b",
+      "place": "OutsideB",
+      "sampleCount": 6191
+    },
+    {
+      "id": "quad",
+      "place": "Quad",
+      "sampleCount": 1916
+    },
+    {
+      "id": "rafters",
+      "place": "Rafters",
+      "sampleCount": 4935
+    },
+    {
+      "id": "red",
+      "place": "Red",
+      "sampleCount": 1112
+    },
+    {
+      "id": "sandbags",
+      "place": "Sandbags",
+      "sampleCount": 3058
+    },
+    {
+      "id": "squeaky",
+      "place": "Squeaky",
+      "sampleCount": 7616
+    },
+    {
+      "id": "sun_room",
+      "place": "SunRoom",
+      "sampleCount": 15632
+    },
+    {
+      "id": "t_spawn",
+      "place": "TSpawn",
+      "sampleCount": 114413
+    },
+    {
+      "id": "t_truck",
+      "place": "TTruck",
+      "sampleCount": 582
+    },
+    {
+      "id": "t_yard",
+      "place": "TYard",
+      "sampleCount": 14916
+    },
+    {
+      "id": "toxic",
+      "place": "Toxic",
+      "sampleCount": 1931
+    },
+    {
+      "id": "tree_room",
+      "place": "TreeRoom",
+      "sampleCount": 17558
+    },
+    {
+      "id": "truck",
+      "place": "Truck",
+      "sampleCount": 18495
+    },
+    {
+      "id": "useless",
+      "place": "Useless",
+      "sampleCount": 8406
+    },
+    {
+      "id": "vents",
+      "place": "Vents",
+      "sampleCount": 6241
+    }
+  ],
+  "edges": [
+    {
+      "a": "a_boost",
+      "b": "bombsite_a",
+      "transitions": 2,
+      "a_to_b": 1,
+      "b_to_a": 1
+    },
+    {
+      "a": "a_halls",
+      "b": "long_a",
+      "transitions": 11,
+      "a_to_b": 3,
+      "b_to_a": 8
+    },
+    {
+      "a": "a_halls",
+      "b": "squeaky",
+      "transitions": 8,
+      "a_to_b": 6,
+      "b_to_a": 2
+    },
+    {
+      "a": "a_main",
+      "b": "a_stairs",
+      "transitions": 48,
+      "a_to_b": 17,
+      "b_to_a": 31
+    },
+    {
+      "a": "a_main",
+      "b": "bombsite_a",
+      "transitions": 23,
+      "a_to_b": 15,
+      "b_to_a": 8
+    },
+    {
+      "a": "a_main",
+      "b": "lockers",
+      "transitions": 2,
+      "a_to_b": 1,
+      "b_to_a": 1
+    },
+    {
+      "a": "a_stairs",
+      "b": "outside_a",
+      "transitions": 42,
+      "a_to_b": 14,
+      "b_to_a": 28
+    },
+    {
+      "a": "b_halls",
+      "b": "b_main",
+      "transitions": 53,
+      "a_to_b": 41,
+      "b_to_a": 12
+    },
+    {
+      "a": "b_halls",
+      "b": "outside_b",
+      "transitions": 28,
+      "a_to_b": 2,
+      "b_to_a": 26
+    },
+    {
+      "a": "b_halls",
+      "b": "sun_room",
+      "transitions": 60,
+      "a_to_b": 30,
+      "b_to_a": 30
+    },
+    {
+      "a": "b_halls",
+      "b": "useless",
+      "transitions": 51,
+      "a_to_b": 21,
+      "b_to_a": 30
+    },
+    {
+      "a": "b_main",
+      "b": "bombsite_b",
+      "transitions": 34,
+      "a_to_b": 23,
+      "b_to_a": 11
+    },
+    {
+      "a": "b_main",
+      "b": "checkers",
+      "transitions": 15,
+      "a_to_b": 6,
+      "b_to_a": 9
+    },
+    {
+      "a": "bear",
+      "b": "ct_lane",
+      "transitions": 40,
+      "a_to_b": 5,
+      "b_to_a": 35
+    },
+    {
+      "a": "bear",
+      "b": "heaven",
+      "transitions": 40,
+      "a_to_b": 35,
+      "b_to_a": 5
+    },
+    {
+      "a": "bombsite_a",
+      "b": "catwalk",
+      "transitions": 6,
+      "a_to_b": 1,
+      "b_to_a": 5
+    },
+    {
+      "a": "bombsite_a",
+      "b": "corner",
+      "transitions": 14,
+      "a_to_b": 6,
+      "b_to_a": 8
+    },
+    {
+      "a": "bombsite_a",
+      "b": "electrical_box",
+      "transitions": 3,
+      "a_to_b": 0,
+      "b_to_a": 3
+    },
+    {
+      "a": "bombsite_a",
+      "b": "fork_lift",
+      "transitions": 27,
+      "a_to_b": 13,
+      "b_to_a": 14
+    },
+    {
+      "a": "bombsite_a",
+      "b": "highway",
+      "transitions": 7,
+      "a_to_b": 2,
+      "b_to_a": 5
+    },
+    {
+      "a": "bombsite_a",
+      "b": "quad",
+      "transitions": 46,
+      "a_to_b": 25,
+      "b_to_a": 21
+    },
+    {
+      "a": "bombsite_a",
+      "b": "squeaky",
+      "transitions": 36,
+      "a_to_b": 17,
+      "b_to_a": 19
+    },
+    {
+      "a": "bombsite_a",
+      "b": "toxic",
+      "transitions": 9,
+      "a_to_b": 4,
+      "b_to_a": 5
+    },
+    {
+      "a": "bombsite_a",
+      "b": "truck",
+      "transitions": 26,
+      "a_to_b": 11,
+      "b_to_a": 15
+    },
+    {
+      "a": "bombsite_b",
+      "b": "checkers",
+      "transitions": 31,
+      "a_to_b": 18,
+      "b_to_a": 13
+    },
+    {
+      "a": "bombsite_b",
+      "b": "headshot",
+      "transitions": 59,
+      "a_to_b": 31,
+      "b_to_a": 28
+    },
+    {
+      "a": "bombsite_b",
+      "b": "rafters",
+      "transitions": 26,
+      "a_to_b": 0,
+      "b_to_a": 26
+    },
+    {
+      "a": "bombsite_b",
+      "b": "tree_room",
+      "transitions": 46,
+      "a_to_b": 26,
+      "b_to_a": 20
+    },
+    {
+      "a": "boost",
+      "b": "mid",
+      "transitions": 2,
+      "a_to_b": 1,
+      "b_to_a": 1
+    },
+    {
+      "a": "boost",
+      "b": "middle",
+      "transitions": 27,
+      "a_to_b": 19,
+      "b_to_a": 8
+    },
+    {
+      "a": "boost",
+      "b": "outside_a",
+      "transitions": 32,
+      "a_to_b": 10,
+      "b_to_a": 22
+    },
+    {
+      "a": "bus_stop",
+      "b": "ct_lane",
+      "transitions": 102,
+      "a_to_b": 101,
+      "b_to_a": 1
+    },
+    {
+      "a": "bus_stop",
+      "b": "ct_spawn",
+      "transitions": 100,
+      "a_to_b": 0,
+      "b_to_a": 100
+    },
+    {
+      "a": "ct_lane",
+      "b": "connector",
+      "transitions": 81,
+      "a_to_b": 59,
+      "b_to_a": 22
+    },
+    {
+      "a": "ct_lane",
+      "b": "tree_room",
+      "transitions": 39,
+      "a_to_b": 20,
+      "b_to_a": 19
+    },
+    {
+      "a": "ct_lane",
+      "b": "truck",
+      "transitions": 55,
+      "a_to_b": 41,
+      "b_to_a": 14
+    },
+    {
+      "a": "ct_spawn",
+      "b": "t_spawn",
+      "transitions": 2,
+      "a_to_b": 1,
+      "b_to_a": 1
+    },
+    {
+      "a": "catwalk",
+      "b": "electrical_box",
+      "transitions": 3,
+      "a_to_b": 0,
+      "b_to_a": 3
+    },
+    {
+      "a": "catwalk",
+      "b": "fork_lift",
+      "transitions": 2,
+      "a_to_b": 2,
+      "b_to_a": 0
+    },
+    {
+      "a": "catwalk",
+      "b": "highway",
+      "transitions": 2,
+      "a_to_b": 2,
+      "b_to_a": 0
+    },
+    {
+      "a": "catwalk",
+      "b": "ladder",
+      "transitions": 14,
+      "a_to_b": 4,
+      "b_to_a": 10
+    },
+    {
+      "a": "checkers",
+      "b": "vents",
+      "transitions": 17,
+      "a_to_b": 4,
+      "b_to_a": 13
+    },
+    {
+      "a": "connector",
+      "b": "mid",
+      "transitions": 56,
+      "a_to_b": 46,
+      "b_to_a": 10
+    },
+    {
+      "a": "corner",
+      "b": "quad",
+      "transitions": 10,
+      "a_to_b": 3,
+      "b_to_a": 7
+    },
+    {
+      "a": "cubby",
+      "b": "mid",
+      "transitions": 40,
+      "a_to_b": 20,
+      "b_to_a": 20
+    },
+    {
+      "a": "cubby",
+      "b": "middle",
+      "transitions": 6,
+      "a_to_b": 0,
+      "b_to_a": 6
+    },
+    {
+      "a": "electrical_box",
+      "b": "highway",
+      "transitions": 10,
+      "a_to_b": 4,
+      "b_to_a": 6
+    },
+    {
+      "a": "electrical_box",
+      "b": "ladder",
+      "transitions": 6,
+      "a_to_b": 6,
+      "b_to_a": 0
+    },
+    {
+      "a": "electrical_box",
+      "b": "toxic",
+      "transitions": 5,
+      "a_to_b": 4,
+      "b_to_a": 1
+    },
+    {
+      "a": "electrical_box",
+      "b": "truck",
+      "transitions": 28,
+      "a_to_b": 7,
+      "b_to_a": 21
+    },
+    {
+      "a": "fork_lift",
+      "b": "toxic",
+      "transitions": 26,
+      "a_to_b": 12,
+      "b_to_a": 14
+    },
+    {
+      "a": "garage",
+      "b": "mid",
+      "transitions": 35,
+      "a_to_b": 26,
+      "b_to_a": 9
+    },
+    {
+      "a": "garage",
+      "b": "outside_a",
+      "transitions": 84,
+      "a_to_b": 41,
+      "b_to_a": 43
+    },
+    {
+      "a": "garage",
+      "b": "red",
+      "transitions": 10,
+      "a_to_b": 5,
+      "b_to_a": 5
+    },
+    {
+      "a": "garage",
+      "b": "t_yard",
+      "transitions": 49,
+      "a_to_b": 5,
+      "b_to_a": 44
+    },
+    {
+      "a": "garage",
+      "b": "useless",
+      "transitions": 64,
+      "a_to_b": 37,
+      "b_to_a": 27
+    },
+    {
+      "a": "heaven",
+      "b": "rafters",
+      "transitions": 35,
+      "a_to_b": 32,
+      "b_to_a": 3
+    },
+    {
+      "a": "highway",
+      "b": "ladder",
+      "transitions": 20,
+      "a_to_b": 8,
+      "b_to_a": 12
+    },
+    {
+      "a": "highway",
+      "b": "mid",
+      "transitions": 217,
+      "a_to_b": 107,
+      "b_to_a": 110
+    },
+    {
+      "a": "highway",
+      "b": "toxic",
+      "transitions": 5,
+      "a_to_b": 3,
+      "b_to_a": 2
+    },
+    {
+      "a": "ladder",
+      "b": "toxic",
+      "transitions": 9,
+      "a_to_b": 3,
+      "b_to_a": 6
+    },
+    {
+      "a": "ladder",
+      "b": "truck",
+      "transitions": 2,
+      "a_to_b": 0,
+      "b_to_a": 2
+    },
+    {
+      "a": "long_a",
+      "b": "outside_a",
+      "transitions": 13,
+      "a_to_b": 4,
+      "b_to_a": 9
+    },
+    {
+      "a": "mid",
+      "b": "mid_roof",
+      "transitions": 8,
+      "a_to_b": 4,
+      "b_to_a": 4
+    },
+    {
+      "a": "mid",
+      "b": "middle",
+      "transitions": 7,
+      "a_to_b": 1,
+      "b_to_a": 6
+    },
+    {
+      "a": "mid",
+      "b": "sandbags",
+      "transitions": 19,
+      "a_to_b": 10,
+      "b_to_a": 9
+    },
+    {
+      "a": "mid",
+      "b": "vents",
+      "transitions": 23,
+      "a_to_b": 17,
+      "b_to_a": 6
+    },
+    {
+      "a": "outside_a",
+      "b": "t_truck",
+      "transitions": 11,
+      "a_to_b": 0,
+      "b_to_a": 11
+    },
+    {
+      "a": "outside_a",
+      "b": "t_yard",
+      "transitions": 30,
+      "a_to_b": 2,
+      "b_to_a": 28
+    },
+    {
+      "a": "outside_b",
+      "b": "t_spawn",
+      "transitions": 24,
+      "a_to_b": 0,
+      "b_to_a": 24
+    },
+    {
+      "a": "t_spawn",
+      "b": "t_yard",
+      "transitions": 82,
+      "a_to_b": 79,
+      "b_to_a": 3
+    },
+    {
+      "a": "t_truck",
+      "b": "t_yard",
+      "transitions": 13,
+      "a_to_b": 1,
+      "b_to_a": 12
+    },
+    {
+      "a": "toxic",
+      "b": "truck",
+      "transitions": 3,
+      "a_to_b": 0,
+      "b_to_a": 3
+    }
+  ],
+  "transitionsObserved": 2221,
+  "provenance": {
+    "createdBy": "matchframe-workers 0.1.0 mf_features.map_pack",
+    "createdAt": "2026-10-28T23:42:25.626190Z",
+    "sources": [
+      "dataset:de_cache-14191-1beb3661408677d7"
+    ]
+  }
+}

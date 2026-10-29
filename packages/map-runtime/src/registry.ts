@@ -13,8 +13,9 @@ export interface MapProfile {
 }
 
 /**
- * Requested initial map-pack targets from the specification. The official active-duty pool must
- * be checked against an authoritative source at release time; this list is editable.
+ * Map-pack targets, and the default event pool: the active-duty pool as the owner gave it (seven
+ * maps, with a pro demo of each: Ancient, Anubis, Cache, Dust II, Inferno, Mirage, Nuke). Overpass,
+ * Train and Vertigo keep their packs, out of the default pool. Editable per event.
  */
 export const REQUESTED_MAP_TARGETS: readonly MapProfile[] = [
   { mapName: "de_inferno", displayName: "Inferno", requested: true, inEventPool: true },
@@ -23,9 +24,10 @@ export const REQUESTED_MAP_TARGETS: readonly MapProfile[] = [
   { mapName: "de_nuke", displayName: "Nuke", requested: true, inEventPool: true },
   { mapName: "de_ancient", displayName: "Ancient", requested: true, inEventPool: true },
   { mapName: "de_anubis", displayName: "Anubis", requested: true, inEventPool: true },
-  { mapName: "de_overpass", displayName: "Overpass", requested: true, inEventPool: true },
-  { mapName: "de_train", displayName: "Train", requested: true, inEventPool: true },
-  { mapName: "de_vertigo", displayName: "Vertigo", requested: true, inEventPool: true },
+  { mapName: "de_cache", displayName: "Cache", requested: true, inEventPool: true },
+  { mapName: "de_overpass", displayName: "Overpass", requested: true, inEventPool: false },
+  { mapName: "de_train", displayName: "Train", requested: true, inEventPool: false },
+  { mapName: "de_vertigo", displayName: "Vertigo", requested: true, inEventPool: false },
 ];
 
 export interface LoadIssue {

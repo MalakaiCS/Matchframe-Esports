@@ -4,7 +4,7 @@ import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { VisibilityGrid } from "../src/index.ts";
 
-const MAPS = ["de_ancient", "de_anubis", "de_dust2", "de_inferno", "de_mirage", "de_nuke", "de_overpass", "de_train", "de_vertigo"];
+const MAPS = ["de_ancient", "de_anubis", "de_cache", "de_dust2", "de_inferno", "de_mirage", "de_nuke", "de_overpass", "de_train", "de_vertigo"];
 const load = (m: string) => VisibilityGrid.parse(readFileSync(join(import.meta.dirname, "..", "..", "..", "assets", "map-packs", `${m}.grid`)), (b) => inflateSync(b));
 
 describe("built-in free-space grids", () => {

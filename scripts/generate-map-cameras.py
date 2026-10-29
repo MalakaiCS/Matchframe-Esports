@@ -52,7 +52,7 @@ except ImportError:  # pragma: no cover
 
 REPO = Path(__file__).resolve().parent.parent
 PACKS = REPO / "assets" / "map-packs"
-MAPS = ["de_ancient", "de_anubis", "de_dust2", "de_inferno", "de_mirage", "de_nuke", "de_overpass", "de_train", "de_vertigo"]
+MAPS = ["de_ancient", "de_anubis", "de_cache", "de_dust2", "de_inferno", "de_mirage", "de_nuke", "de_overpass", "de_train", "de_vertigo"]
 # The area each map's mid camera films: its "mid" region, or the map's equivalent where it has none.
 MID_REGIONS = {"de_nuke": ["outside"], "de_overpass": ["connector", "fountain", "playground"], "de_train": ["connector"]}
 

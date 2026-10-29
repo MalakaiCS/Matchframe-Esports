@@ -10,6 +10,7 @@ Minimap: the built-in radar image (assets/radars) when there is one, otherwise t
 | Nuke (`de_nuke`) | yes | 29 (imported) | – | yes | built-in image (2 levels) | none | 0 / 41 | – |
 | Ancient (`de_ancient`) | yes | 19 (demo_place_names, imported) | – | yes | built-in image | none | 0 / 31 | – |
 | Anubis (`de_anubis`) | yes | 28 (demo_place_names) | – | yes | generated outline | none | 0 / 55 | – |
+| Cache (`de_cache`) | yes | 46 (demo_place_names) | – | yes | generated outline | none | 0 / 87 | – |
 | Overpass (`de_overpass`) | yes | 26 (demo_place_names, imported) | – | yes | built-in image | none | 0 / 41 | – |
 | Train (`de_train`) | yes | 24 (imported) | – | yes | built-in image | none | 0 / 33 | – |
 | Vertigo (`de_vertigo`) | yes | 23 (imported) | – | yes | built-in image (2 levels) | none | 0 / 38 | – |

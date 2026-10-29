@@ -1021,288 +1021,43 @@
           "cellSize": 64.0,
           "zCellSize": 128.0,
           "cells": [
-            [20,42,0],
-            [20,42,1],
-            [20,43,0],
-            [21,42,0],
-            [21,42,1],
-            [21,43,0],
-            [22,42,0],
-            [22,43,0],
-            [23,42,0],
-            [23,42,1],
-            [23,43,0],
-            [23,43,1],
-            [24,42,1],
-            [24,43,1],
-            [25,25,1],
-            [25,26,1],
-            [25,27,1],
-            [25,28,1],
-            [25,29,1],
-            [25,30,1],
-            [25,31,1],
-            [25,32,1],
-            [25,33,1],
-            [25,34,1],
-            [25,35,1],
-            [25,36,1],
-            [25,37,1],
-            [25,38,1],
-            [25,39,1],
-            [25,40,1],
-            [25,41,1],
-            [25,42,1],
-            [25,43,0],
-            [25,43,1],
-            [25,44,0],
-            [25,44,1],
-            [25,45,0],
-            [25,45,1],
-            [26,25,1],
-            [26,26,1],
-            [26,27,1],
-            [26,28,1],
-            [26,29,1],
-            [26,30,1],
-            [26,31,1],
-            [26,32,1],
-            [26,33,1],
-            [26,34,1],
-            [26,35,1],
-            [26,36,1],
-            [26,37,1],
-            [26,38,1],
-            [26,39,1],
-            [26,40,1],
-            [26,41,1],
-            [26,42,0],
-            [26,42,1],
-            [26,43,0],
-            [26,43,1],
-            [26,44,0],
-            [26,45,1],
-            [27,24,1],
-            [27,25,1],
-            [27,26,1],
-            [27,27,1],
-            [27,28,1],
-            [27,37,1],
-            [27,38,1],
-            [27,39,1],
-            [27,40,1],
-            [27,41,1],
-            [27,42,0],
-            [27,42,1],
-            [27,43,0],
-            [27,43,1],
-            [27,44,0],
-            [27,45,1],
-            [28,24,1],
-            [28,25,1],
-            [28,26,1],
-            [28,27,1],
-            [28,37,1],
-            [28,38,0],
-            [28,38,1],
-            [28,39,0],
-            [28,39,1],
-            [28,40,0],
-            [28,40,1],
-            [28,41,0],
-            [28,41,1],
-            [28,42,0],
-            [28,42,1],
-            [28,43,0],
-            [28,44,0],
-            [28,45,0],
-            [28,45,1],
-            [29,25,1],
-            [29,26,1],
-            [29,27,1],
-            [29,28,1],
-            [29,37,0],
-            [29,37,1],
-            [29,38,0],
-            [29,39,0],
-            [29,40,0],
-            [29,41,0],
-            [29,41,1],
-            [29,42,0],
-            [29,42,1],
-            [29,43,0],
-            [29,44,0],
-            [29,45,1],
-            [30,25,1],
-            [30,26,1],
-            [30,27,1],
-            [30,28,1],
-            [30,37,0],
-            [30,38,0],
-            [30,40,0],
-            [30,40,1],
-            [30,41,0],
-            [30,41,1],
-            [30,42,0],
-            [30,43,0],
-            [30,44,0],
-            [30,44,1],
-            [30,45,1],
-            [31,25,1],
-            [31,26,1],
-            [31,27,1],
-            [31,28,1],
-            [31,36,0],
-            [31,37,0],
-            [31,38,1],
-            [31,40,0],
-            [31,40,1],
-            [31,41,0],
-            [31,41,1],
-            [31,42,0],
-            [31,43,0],
-            [31,44,0],
-            [31,44,1],
-            [31,45,1],
-            [32,25,1],
-            [32,26,1],
-            [32,27,1],
-            [32,28,1],
-            [32,35,1],
-            [32,36,0],
-            [32,36,1],
-            [32,37,0],
-            [32,38,1],
-            [32,39,1],
-            [32,40,0],
-            [32,40,1],
-            [32,41,0],
-            [32,41,1],
-            [32,42,0],
-            [32,43,0],
-            [32,43,1],
-            [32,44,1],
-            [32,45,1],
-            [33,25,1],
-            [33,26,1],
-            [33,27,1],
-            [33,28,1],
-            [33,29,1],
-            [33,34,1],
-            [33,35,1],
-            [33,36,1],
-            [33,37,0],
-            [33,37,1],
-            [33,38,0],
-            [33,38,1],
-            [33,39,0],
-            [33,39,1],
-            [33,40,0],
-            [33,40,1],
-            [33,41,0],
-            [33,42,0],
-            [33,42,1],
-            [33,43,0],
-            [33,43,1],
-            [33,44,1],
-            [34,25,1],
-            [34,26,1],
-            [34,27,1],
-            [34,28,1],
-            [34,29,1],
             [34,30,1],
-            [34,34,1],
-            [34,35,1],
-            [34,36,1],
-            [34,37,0],
-            [34,37,1],
-            [34,38,0],
-            [34,38,1],
-            [34,39,0],
-            [34,40,0],
-            [34,40,1],
-            [34,41,0],
-            [34,41,1],
-            [34,42,1],
-            [34,43,1],
-            [34,44,1],
-            [35,25,1],
-            [35,26,1],
-            [35,27,1],
-            [35,28,1],
+            [34,31,1],
+            [34,32,1],
             [35,29,1],
             [35,30,1],
             [35,31,1],
             [35,32,1],
-            [35,33,1],
-            [35,34,1],
-            [35,35,1],
-            [35,36,1],
-            [35,37,1],
-            [35,38,1],
-            [35,39,1],
-            [35,40,1],
-            [35,41,1],
-            [35,42,1],
-            [35,43,1],
-            [35,44,1],
-            [36,24,1],
-            [36,25,1],
-            [36,26,1],
-            [36,27,1],
-            [36,28,1],
             [36,29,1],
             [36,30,1],
             [36,31,1],
             [36,32,1],
             [36,33,1],
-            [36,34,1],
-            [36,35,1],
-            [36,36,1],
-            [36,37,1],
-            [36,38,1],
-            [36,39,1],
-            [36,40,1],
-            [37,25,1],
-            [37,26,1],
-            [37,27,1],
-            [37,28,1],
             [37,29,1],
             [37,30,1],
             [37,31,1],
             [37,32,1],
             [37,33,1],
             [37,34,1],
-            [37,35,1],
-            [37,36,1],
-            [37,37,1],
-            [37,38,1],
-            [38,27,1],
-            [38,28,1],
-            [38,29,1],
             [38,30,1],
             [38,31,1],
             [38,32,1],
             [38,33,1],
             [38,34,1],
-            [38,35,1],
-            [38,37,0],
             [39,30,1],
             [39,31,1],
             [39,32,1],
             [39,33,1],
-            [39,34,1],
-            [39,35,1],
-            [39,36,1],
-            [39,37,0]
+            [39,34,1]
           ]
         }
       ],
       "source": "demo_place_names",
-      "sampleCount": 42810,
+      "sampleCount": 6,
       "validated": false,
       "tags": [
-        "demo_place"
+        "demo_place",
+        "spawn_points"
       ]
     },
     {
@@ -2268,108 +2023,39 @@
           "cellSize": 64.0,
           "zCellSize": 128.0,
           "cells": [
+            [-28,4,-1],
+            [-28,5,-1],
+            [-28,6,-1],
+            [-27,3,-1],
+            [-27,4,-1],
             [-27,5,-1],
             [-27,6,-1],
             [-27,7,-1],
-            [-26,2,-1],
             [-26,3,-1],
             [-26,4,-1],
             [-26,5,-1],
             [-26,6,-1],
             [-26,7,-1],
-            [-26,8,-1],
-            [-26,9,-1],
-            [-26,10,-1],
-            [-26,11,-1],
-            [-26,12,-1],
-            [-25,-2,-1],
-            [-25,-1,-1],
-            [-25,0,-1],
-            [-25,1,-1],
-            [-25,2,-1],
             [-25,3,-1],
             [-25,4,-1],
             [-25,5,-1],
             [-25,6,-1],
             [-25,7,-1],
-            [-25,8,-1],
-            [-25,9,-1],
-            [-25,10,-1],
-            [-25,11,-1],
-            [-24,-3,-1],
-            [-24,-2,-1],
-            [-24,-1,-1],
-            [-24,0,-1],
-            [-24,1,-1],
-            [-24,2,-1],
-            [-24,3,-1],
-            [-24,4,-1],
             [-24,5,-1],
             [-24,6,-1],
             [-24,7,-1],
-            [-24,8,-1],
-            [-24,9,-1],
-            [-24,10,-1],
-            [-24,11,-1],
-            [-23,-3,-1],
-            [-23,-2,-1],
-            [-23,2,-1],
-            [-23,3,-1],
-            [-23,4,-1],
-            [-22,-3,-1],
-            [-22,-3,0],
-            [-22,-2,-1],
-            [-22,-2,0],
-            [-22,2,-1],
-            [-22,3,-1],
-            [-21,-3,0],
-            [-21,2,-1],
-            [-21,3,-1],
-            [-21,4,-1],
-            [-21,5,-1],
-            [-20,-5,0],
-            [-20,-4,0],
-            [-20,-3,0],
-            [-20,2,-1],
-            [-20,3,-1],
-            [-20,4,-1],
-            [-20,5,-1],
-            [-20,6,-1],
-            [-20,7,-1],
-            [-20,8,-1],
-            [-19,-6,0],
-            [-19,-5,0],
-            [-19,-4,0],
-            [-19,6,-1],
-            [-19,7,-1],
-            [-19,8,-1],
-            [-18,-7,0],
-            [-18,-6,0],
-            [-18,7,-1],
-            [-18,8,-1],
-            [-17,-7,0],
-            [-17,-6,0],
-            [-17,7,-1],
-            [-17,8,-1],
-            [-16,7,-1],
-            [-16,8,-1],
-            [-15,7,-1],
-            [-15,8,-1],
-            [-15,8,0],
-            [-14,7,-1],
-            [-14,8,-1],
-            [-14,8,0],
-            [-14,9,-1],
-            [-14,10,-1],
-            [-14,11,-1]
+            [-23,5,-1],
+            [-23,6,-1],
+            [-23,7,-1]
           ]
         }
       ],
       "source": "demo_place_names",
-      "sampleCount": 38460,
+      "sampleCount": 5,
       "validated": false,
       "tags": [
-        "demo_place"
+        "demo_place",
+        "spawn_points"
       ]
     },
     {
@@ -3184,12 +2870,12 @@
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": 2506.8,
-        "y": 1914.8,
-        "z": 428.0
+        "x": 2050.0,
+        "y": 1600.5,
+        "z": 448.0
       },
-      "pitch": 22.85,
-      "yaw": 136.48,
+      "pitch": 24.75,
+      "yaw": 52.5,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3197,13 +2883,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 2080.0,
-          "y": 2336.0,
-          "z": 180.8
+          "x": 2400.0,
+          "y": 2080.0,
+          "z": 187.0
         },
-        "radiusUnits": 1111.4,
-        "zMin": 28.0,
-        "zMax": 470.0,
+        "radiusUnits": 500.0,
+        "zMin": 37.0,
+        "zMax": 391.9,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3222,7 +2908,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 600 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 80% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 594 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-inferno-ct_spawn-2",
@@ -3231,11 +2917,11 @@
       "mapRevision": "observed_builds:13926",
       "position": {
         "x": 2232.0,
-        "y": 2904.0,
-        "z": 399.4
+        "y": 2712.0,
+        "z": 392.2
       },
-      "pitch": 24.06,
-      "yaw": -109.93,
+      "pitch": 16.73,
+      "yaw": -76.23,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3243,13 +2929,13 @@
       ],
       "coverage": {
         "center": {
-          "x": 2080.0,
-          "y": 2336.0,
-          "z": 180.8
+          "x": 2400.0,
+          "y": 2080.0,
+          "z": 187.0
         },
-        "radiusUnits": 1111.4,
-        "zMin": 28.0,
-        "zMax": 470.0,
+        "radiusUnits": 500.0,
+        "zMin": 37.0,
+        "zMax": 391.9,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3268,7 +2954,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 588 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 81% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 654 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-inferno-t_spawn-1",
@@ -3276,12 +2962,12 @@
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
-        "x": -1704.0,
-        "y": 648.0,
-        "z": 240.8
+        "x": -1619.5,
+        "y": 776.0,
+        "z": 200.0
       },
-      "pitch": 35.9,
-      "yaw": -64.37,
+      "pitch": 27.79,
+      "yaw": -83.78,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3289,13 +2975,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1376.0,
-          "y": 224.0,
+          "x": -1568.0,
+          "y": 352.0,
           "z": -12.0
         },
-        "radiusUnits": 894.4,
-        "zMin": -163.9,
-        "zMax": 258.0,
+        "radiusUnits": 500.0,
+        "zMin": -160.0,
+        "zMax": 235.8,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3314,7 +3000,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 536 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 53% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 427 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-inferno-t_spawn-2",
@@ -3326,8 +3012,8 @@
         "y": 63.5,
         "z": 239.3
       },
-      "pitch": 34.9,
-      "yaw": 59.32,
+      "pitch": 35.63,
+      "yaw": 66.8,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3335,13 +3021,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1376.0,
-          "y": 224.0,
+          "x": -1568.0,
+          "y": 352.0,
           "z": -12.0
         },
-        "radiusUnits": 894.4,
-        "zMin": -163.9,
-        "zMax": 258.0,
+        "radiusUnits": 500.0,
+        "zMin": -160.0,
+        "zMax": 235.8,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3360,7 +3046,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 373 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 52% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 323 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-inferno-arch-1",
@@ -3988,7 +3674,7 @@
     },
     {
       "id": "cs2-inferno-library-1",
-      "displayName": "Library from CTSpawn",
+      "displayName": "Library #1",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
@@ -4032,7 +3718,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (CTSpawn), 140 units up, 666 units from the Library centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 45% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 140 units up, 666 units from the Library centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 45% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-inferno-lower_mid-1",
@@ -4564,7 +4250,7 @@
     },
     {
       "id": "cs2-inferno-t_ramp-2",
-      "displayName": "TRamp from TSpawn",
+      "displayName": "TRamp #2",
       "mapName": "de_inferno",
       "mapRevision": "observed_builds:13926",
       "position": {
@@ -4608,7 +4294,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 573 units from the TRamp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 79% of the area, and 78% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 573 units from the TRamp centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 79% of the area, and 78% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-inferno-topof_mid-1",
@@ -5089,35 +4775,35 @@
         {
           "tMs": 0,
           "position": {
-            "x": 2458.0,
-            "y": 1945.0,
-            "z": 402.0
+            "x": 1969.2,
+            "y": 1690.0,
+            "z": 424.0
           },
-          "pitch": 22.14,
-          "yaw": 134.03
+          "pitch": 22.19,
+          "yaw": 42.15
         },
         {
-          "tMs": 1826,
+          "tMs": 1911,
           "position": {
-            "x": 2520.0,
-            "y": 2136.0,
-            "z": 398.9
+            "x": 2159.0,
+            "y": 1607.9,
+            "z": 462.0
           },
-          "pitch": 24.29,
-          "yaw": 155.56
+          "pitch": 27.42,
+          "yaw": 62.96
         },
         {
-          "tMs": 4673,
+          "tMs": 3306,
           "position": {
-            "x": 2518.5,
-            "y": 2449.0,
-            "z": 388.0
+            "x": 2304.2,
+            "y": 1638.7,
+            "z": 423.3
           },
-          "pitch": 24.59,
-          "yaw": -165.55
+          "pitch": 27.62,
+          "yaw": 77.75
         }
       ],
-      "maxDurationMs": 5673,
+      "maxDurationMs": 4306,
       "maxSpeedUnitsPerSec": 300,
       "collisionValidated": true,
       "validation": "unvalidated",
@@ -5135,22 +4821,22 @@
         {
           "tMs": 0,
           "position": {
-            "x": 2506.8,
-            "y": 1914.8,
-            "z": 428.0
+            "x": 2050.0,
+            "y": 1600.5,
+            "z": 448.0
           },
-          "pitch": 22.41,
-          "yaw": 135.38
+          "pitch": 23.73,
+          "yaw": 53.87
         },
         {
           "tMs": 6000,
           "position": {
-            "x": 2314.7,
-            "y": 2104.3,
-            "z": 414.5
+            "x": 2207.5,
+            "y": 1816.3,
+            "z": 434.5
           },
-          "pitch": 35.32,
-          "yaw": 135.37
+          "pitch": 37.17,
+          "yaw": 53.87
         }
       ],
       "maxDurationMs": 7000,
@@ -5171,22 +4857,22 @@
         {
           "tMs": 0,
           "position": {
-            "x": -1704.0,
-            "y": 648.0,
-            "z": 240.8
+            "x": -1713.0,
+            "y": 63.5,
+            "z": 239.3
           },
-          "pitch": 25.25,
-          "yaw": -52.28
+          "pitch": 37.89,
+          "yaw": 63.32
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -1878.0,
-            "y": 513.4,
-            "z": 240.8
+            "x": -1909.6,
+            "y": 162.3,
+            "z": 239.3
           },
-          "pitch": 23.57,
-          "yaw": -29.96
+          "pitch": 32.75,
+          "yaw": 29.04
         }
       ],
       "maxDurationMs": 7000,
@@ -5207,22 +4893,22 @@
         {
           "tMs": 0,
           "position": {
-            "x": -1704.0,
-            "y": 648.0,
-            "z": 240.8
+            "x": -1619.5,
+            "y": 776.0,
+            "z": 200.0
           },
-          "pitch": 25.25,
-          "yaw": -52.28
+          "pitch": 26.4,
+          "yaw": -83.07
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -1556.4,
-            "y": 457.2,
-            "z": 227.3
+            "x": -1596.3,
+            "y": 585.2,
+            "z": 186.5
           },
-          "pitch": 39.06,
-          "yaw": -52.28
+          "pitch": 40.2,
+          "yaw": -83.08
         }
       ],
       "maxDurationMs": 7000,
@@ -6828,6 +6514,7 @@
     "createdAt": "2026-10-26T14:04:31.849763Z",
     "sources": [
       "dataset:de_inferno-13926-ee700e629d47c8ea",
+      "Spawn regions (t_spawn, ct_spawn) from where players stood at the end of freeze time in CS2 demos (7 read by scripts/set-spawn-regions.py)",
       "CS2 navigation and collision meshes from awpy-data (build 26144732, read with awpy 3.1.1, MIT): built-in cameras and paths placed on walkable floor and checked for line of sight and clearance"
     ]
   }

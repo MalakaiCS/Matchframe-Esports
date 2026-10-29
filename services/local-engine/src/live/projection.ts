@@ -42,6 +42,7 @@ const MAP_DISPLAY: Record<string, string> = {
   de_nuke: "Nuke",
   de_ancient: "Ancient",
   de_anubis: "Anubis",
+  de_cache: "Cache",
   de_overpass: "Overpass",
   de_train: "Train",
   de_vertigo: "Vertigo",

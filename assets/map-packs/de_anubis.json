@@ -824,86 +824,40 @@
           "cellSize": 64.0,
           "zCellSize": 128.0,
           "cells": [
-            [-14,36,-1],
-            [-14,36,0],
-            [-14,37,-1],
-            [-14,38,0],
-            [-13,39,0],
-            [-12,36,-1],
-            [-12,39,0],
-            [-12,42,-2],
-            [-12,42,-1],
-            [-12,43,-1],
-            [-11,37,-1],
-            [-11,39,-1],
-            [-11,41,-1],
-            [-11,42,-1],
-            [-10,37,-1],
-            [-10,38,-1],
-            [-10,39,-1],
-            [-10,40,-1],
-            [-9,38,-1],
-            [-9,39,-1],
-            [-9,40,-1],
-            [-8,38,-1],
-            [-8,39,-1],
-            [-8,40,-1],
-            [-7,38,-1],
-            [-7,39,-1],
-            [-7,41,-1],
-            [-6,38,-1],
-            [-6,39,-1],
-            [-6,41,-1],
-            [-5,39,-1],
-            [-5,41,-1],
-            [-5,42,-1],
-            [-5,43,-1],
-            [-4,39,-1],
-            [-4,40,-1],
-            [-4,41,-1],
-            [-4,42,-1],
-            [-4,43,-1],
-            [-3,39,-1],
-            [-3,40,-1],
-            [-3,42,-1],
-            [-3,43,-1],
-            [-2,39,-1],
-            [-2,40,-1],
-            [-2,42,-1],
-            [-1,39,-1],
-            [-1,40,-1],
-            [-1,42,-1],
-            [0,39,-1],
-            [0,40,-1],
-            [0,41,-1],
-            [0,42,-1],
-            [1,39,-2],
-            [1,39,-1],
-            [1,40,-2],
-            [1,40,-1],
-            [1,41,-2],
-            [1,41,-1],
-            [2,39,-2],
-            [2,40,-2],
-            [2,41,-2],
-            [3,39,-2],
-            [3,39,-1],
-            [3,40,-2],
-            [4,39,-2],
-            [4,40,-2],
-            [4,41,-2],
-            [4,42,-2],
-            [4,43,-2],
-            [5,39,-2],
-            [5,40,-2]
+            [-11,32,0],
+            [-11,33,0],
+            [-11,34,0],
+            [-10,32,0],
+            [-10,33,0],
+            [-10,34,0],
+            [-10,35,0],
+            [-9,32,0],
+            [-9,33,0],
+            [-9,34,0],
+            [-9,35,0],
+            [-8,33,0],
+            [-8,34,0],
+            [-8,35,0],
+            [-7,32,0],
+            [-7,33,0],
+            [-7,34,0],
+            [-7,35,0],
+            [-6,32,0],
+            [-6,33,0],
+            [-6,34,0],
+            [-6,35,0],
+            [-5,32,0],
+            [-5,33,0],
+            [-5,34,0]
           ]
         }
       ],
       "source": "demo_place_names",
-      "sampleCount": 681,
+      "sampleCount": 5,
       "validated": false,
       "tags": [
-        "demo_place"
+        "demo_place",
+        "spawn_points"
       ]
     },
     {
@@ -2483,206 +2437,59 @@
           "cellSize": 64.0,
           "zCellSize": 128.0,
           "cells": [
-            [-15,-22,0],
-            [-14,-22,0],
-            [-14,-21,0],
-            [-14,-20,0],
-            [-14,-19,0],
-            [-13,-23,0],
-            [-13,-22,0],
-            [-13,-21,0],
-            [-13,-20,0],
-            [-12,-24,0],
-            [-12,-23,0],
-            [-12,-22,0],
-            [-12,-21,0],
-            [-12,-20,0],
-            [-12,-19,0],
-            [-11,-25,0],
-            [-11,-24,0],
-            [-11,-23,0],
-            [-11,-22,0],
-            [-11,-21,0],
-            [-11,-20,0],
-            [-10,-25,0],
-            [-10,-24,0],
-            [-10,-23,0],
-            [-10,-22,0],
-            [-10,-21,0],
-            [-9,-26,0],
-            [-9,-25,0],
-            [-9,-24,0],
-            [-9,-23,0],
-            [-9,-22,0],
+            [-8,-28,0],
             [-8,-27,0],
             [-8,-26,0],
             [-8,-25,0],
-            [-8,-24,-1],
-            [-8,-24,0],
-            [-8,-23,0],
+            [-7,-28,0],
             [-7,-27,0],
+            [-7,-26,-1],
             [-7,-26,0],
             [-7,-25,-1],
             [-7,-25,0],
             [-7,-24,-1],
-            [-7,-23,0],
-            [-7,-22,0],
+            [-7,-23,-1],
+            [-6,-28,0],
+            [-6,-27,-1],
             [-6,-27,0],
             [-6,-26,-1],
             [-6,-26,0],
             [-6,-25,-1],
+            [-6,-25,0],
             [-6,-24,-1],
-            [-6,-23,0],
-            [-6,-22,0],
-            [-5,-27,0],
+            [-6,-23,-1],
+            [-5,-27,-1],
             [-5,-26,-1],
-            [-5,-26,0],
             [-5,-25,-1],
-            [-5,-25,0],
             [-5,-24,-1],
-            [-5,-23,0],
-            [-5,-22,0],
-            [-4,-27,0],
+            [-5,-23,-1],
+            [-4,-27,-1],
             [-4,-26,-1],
-            [-4,-26,0],
             [-4,-25,-1],
             [-4,-24,-1],
             [-4,-23,-1],
-            [-4,-23,0],
-            [-4,-22,0],
-            [-3,-27,0],
+            [-3,-27,-1],
             [-3,-26,-1],
-            [-3,-26,0],
             [-3,-25,-1],
             [-3,-24,-1],
             [-3,-23,-1],
-            [-3,-23,0],
-            [-3,-22,0],
-            [-2,-27,0],
+            [-2,-27,-1],
             [-2,-26,-1],
-            [-2,-26,0],
             [-2,-25,-1],
-            [-2,-25,0],
             [-2,-24,-1],
             [-2,-23,-1],
-            [-2,-23,0],
-            [-2,-22,0],
-            [-1,-28,0],
-            [-1,-27,0],
+            [-1,-27,-1],
             [-1,-26,-1],
-            [-1,-26,0],
-            [-1,-25,-1],
-            [-1,-24,-1],
-            [-1,-24,0],
-            [-1,-23,-1],
-            [-1,-22,0],
-            [-1,-21,0],
-            [0,-28,0],
-            [0,-28,1],
-            [0,-27,0],
-            [0,-27,1],
-            [0,-26,-1],
-            [0,-26,0],
-            [0,-25,-1],
-            [0,-24,-1],
-            [0,-24,0],
-            [0,-23,-1],
-            [0,-23,0],
-            [0,-22,0],
-            [0,-21,0],
-            [1,-27,-1],
-            [1,-27,0],
-            [1,-26,-1],
-            [1,-26,0],
-            [1,-25,-1],
-            [1,-24,-1],
-            [1,-23,-1],
-            [1,-23,0],
-            [1,-22,0],
-            [1,-21,0],
-            [2,-27,0],
-            [2,-26,-1],
-            [2,-25,-1],
-            [2,-24,-1],
-            [2,-23,-1],
-            [2,-23,0],
-            [2,-22,0],
-            [2,-21,0],
-            [3,-27,0],
-            [3,-25,-1],
-            [3,-24,-1],
-            [3,-23,-1],
-            [3,-23,0],
-            [3,-22,0],
-            [3,-21,0],
-            [3,-20,0],
-            [4,-27,0],
-            [4,-25,-1],
-            [4,-24,-1],
-            [4,-23,-1],
-            [4,-23,0],
-            [4,-22,0],
-            [4,-21,0],
-            [4,-20,0],
-            [5,-26,0],
-            [5,-25,-1],
-            [5,-24,-1],
-            [5,-24,0],
-            [5,-23,-1],
-            [5,-23,0],
-            [5,-22,0],
-            [5,-21,0],
-            [5,-20,0],
-            [6,-24,-1],
-            [6,-24,0],
-            [6,-23,-1],
-            [6,-23,0],
-            [6,-22,0],
-            [6,-21,0],
-            [6,-20,0],
-            [7,-24,-1],
-            [7,-23,-1],
-            [7,-22,0],
-            [7,-21,0],
-            [7,-20,0],
-            [7,-19,0],
-            [7,-18,0],
-            [7,-17,0],
-            [7,-16,0],
-            [8,-23,-1],
-            [8,-22,-1],
-            [8,-22,0],
-            [8,-21,0],
-            [8,-20,0],
-            [8,-19,-1],
-            [8,-19,0],
-            [8,-18,-1],
-            [8,-18,0],
-            [8,-17,-1],
-            [8,-17,0],
-            [8,-16,-1],
-            [8,-16,0],
-            [9,-20,0],
-            [9,-19,-1],
-            [9,-19,0],
-            [9,-18,-1],
-            [9,-18,0],
-            [9,-17,-1],
-            [9,-17,0],
-            [9,-16,-1],
-            [9,-16,0],
-            [10,-19,-1],
-            [10,-18,-1],
-            [10,-17,-1],
-            [10,-16,-1]
+            [-1,-25,-1]
           ]
         }
       ],
       "source": "demo_place_names",
-      "sampleCount": 30193,
+      "sampleCount": 11,
       "validated": false,
       "tags": [
-        "demo_place"
+        "demo_place",
+        "spawn_points"
       ]
     },
     {
@@ -3358,16 +3165,16 @@
     },
     {
       "id": "cs2-anubis-ct_spawn-1",
-      "displayName": "CT spawn #1",
+      "displayName": "CT spawn from Snipers Nest",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -863.7,
-        "y": 2441.8,
-        "z": 232.0
+        "x": -1080.0,
+        "y": 1848.0,
+        "z": 312.0
       },
-      "pitch": 24.07,
-      "yaw": 12.7,
+      "pitch": 19.41,
+      "yaw": 27.03,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3375,13 +3182,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -224.0,
-          "y": 2592.0,
-          "z": -44.0
+          "x": -480.0,
+          "y": 2144.0,
+          "z": 69.7
         },
-        "radiusUnits": 861.6,
-        "zMin": -257.6,
-        "zMax": 258.0,
+        "radiusUnits": 500.0,
+        "zMin": -82.1,
+        "zMax": 277.7,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3400,7 +3207,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 657 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Snipers Nest), 260 units up, 669 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-anubis-ct_spawn-2",
@@ -3408,12 +3215,12 @@
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": 360.0,
-        "y": 2856.0,
-        "z": 104.2
+        "x": -779.7,
+        "y": 2512.2,
+        "z": 268.0
       },
-      "pitch": 13.63,
-      "yaw": -155.43,
+      "pitch": 22.75,
+      "yaw": -48.91,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3421,13 +3228,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -224.0,
-          "y": 2592.0,
-          "z": -44.0
+          "x": -480.0,
+          "y": 2144.0,
+          "z": 69.7
         },
-        "radiusUnits": 861.6,
-        "zMin": -257.6,
-        "zMax": 258.0,
+        "radiusUnits": 500.0,
+        "zMin": -82.1,
+        "zMax": 277.7,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3446,20 +3253,20 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 641 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 475 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-anubis-t_spawn-1",
-      "displayName": "T spawn #1",
+      "displayName": "T spawn from Ruins",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": 458.5,
-        "y": -1686.0,
-        "z": 266.0
+        "x": -852.1,
+        "y": -1294.9,
+        "z": 294.0
       },
-      "pitch": 22.06,
-      "yaw": 150.78,
+      "pitch": 20.82,
+      "yaw": -26.41,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3467,13 +3274,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -32.0,
-          "y": -1376.0,
-          "z": 54.0
+          "x": -288.0,
+          "y": -1568.0,
+          "z": 40.0
         },
-        "radiusUnits": 1052.2,
+        "radiusUnits": 500.0,
         "zMin": -108.0,
-        "zMax": 289.8,
+        "zMax": 256.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3492,7 +3299,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 580 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Ruins), 260 units up, 627 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-anubis-t_spawn-2",
@@ -3500,12 +3307,12 @@
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
-        "x": -642.0,
-        "y": -1602.5,
-        "z": 266.0
+        "x": 298.0,
+        "y": -1246.0,
+        "z": 298.0
       },
-      "pitch": 21.13,
-      "yaw": 14.28,
+      "pitch": 20.76,
+      "yaw": -149.31,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3513,13 +3320,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -32.0,
-          "y": -1376.0,
-          "z": 54.0
+          "x": -288.0,
+          "y": -1568.0,
+          "z": 40.0
         },
-        "radiusUnits": 1052.2,
+        "radiusUnits": 500.0,
         "zMin": -108.0,
-        "zMax": 289.8,
+        "zMax": 256.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3538,7 +3345,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 651 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 669 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-anubis-alley-1",
@@ -3926,7 +3733,7 @@
     },
     {
       "id": "cs2-anubis-ct_side_upper-1",
-      "displayName": "CTSide Upper from CTSpawn",
+      "displayName": "CTSide Upper #1",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
@@ -3970,7 +3777,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 465 units from the CTSide Upper centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 94% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 465 units from the CTSide Upper centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 94% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-anubis-ct_side_upper-2",
@@ -5510,7 +5317,7 @@
     },
     {
       "id": "cs2-anubis-water-1",
-      "displayName": "Water from CTSpawn",
+      "displayName": "Water #1",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
@@ -5554,11 +5361,11 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 652 units from the Water centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 652 units from the Water centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-anubis-water-2",
-      "displayName": "Water from CTSpawn",
+      "displayName": "Water #2",
       "mapName": "de_anubis",
       "mapRevision": "observed_builds:13914",
       "position": {
@@ -5602,7 +5409,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 661 units from the Water centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 661 units from the Water centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     }
   ],
   "paths": [
@@ -5805,85 +5612,45 @@
         {
           "tMs": 0,
           "position": {
-            "x": 360.0,
-            "y": 2568.0,
-            "z": 114.0
+            "x": -282.1,
+            "y": 2752.2,
+            "z": 183.0
           },
-          "pitch": 15.13,
-          "yaw": 177.65
+          "pitch": 10.05,
+          "yaw": -108.02
         },
         {
-          "tMs": 1345,
+          "tMs": 2338,
           "position": {
-            "x": 360.0,
-            "y": 2856.0,
-            "z": 104.2
+            "x": -538.5,
+            "y": 2757.8,
+            "z": 164.0
           },
-          "pitch": 13.02,
-          "yaw": -155.67
+          "pitch": 8.7,
+          "yaw": -84.56
         },
         {
-          "tMs": 2518,
+          "tMs": 5607,
           "position": {
-            "x": 204.0,
-            "y": 3051.0,
-            "z": 76.7
+            "x": -779.7,
+            "y": 2512.2,
+            "z": 268.0
           },
-          "pitch": 10.89,
-          "yaw": -133.0
+          "pitch": 22.67,
+          "yaw": -50.86
         },
         {
-          "tMs": 4092,
+          "tMs": 7438,
           "position": {
-            "x": -120.0,
-            "y": 3144.0,
-            "z": 71.5
-          },
-          "pitch": 11.62,
-          "yaw": -100.67
-        },
-        {
-          "tMs": 5791,
-          "position": {
-            "x": -479.4,
-            "y": 3086.8,
-            "z": 73.5
-          },
-          "pitch": 11.92,
-          "yaw": -62.7
-        },
-        {
-          "tMs": 7293,
-          "position": {
-            "x": -744.0,
-            "y": 2904.0,
-            "z": 81.8
-          },
-          "pitch": 11.72,
-          "yaw": -30.96
-        },
-        {
-          "tMs": 8732,
-          "position": {
-            "x": -907.6,
-            "y": 2648.8,
-            "z": 138.0
-          },
-          "pitch": 14.86,
-          "yaw": -4.75
-        },
-        {
-          "tMs": 10000,
-          "position": {
-            "x": -872.4,
-            "y": 2396.4,
+            "x": -898.6,
+            "y": 2353.6,
             "z": 232.0
           },
-          "pitch": 22.17,
-          "yaw": 16.79
+          "pitch": 19.12,
+          "yaw": -26.6
         }
       ],
-      "maxDurationMs": 11000,
+      "maxDurationMs": 8438,
       "maxSpeedUnitsPerSec": 300,
       "collisionValidated": true,
       "validation": "unvalidated",
@@ -5901,22 +5668,22 @@
         {
           "tMs": 0,
           "position": {
-            "x": -863.7,
-            "y": 2441.8,
-            "z": 232.0
+            "x": -1080.0,
+            "y": 1848.0,
+            "z": 312.0
           },
-          "pitch": 22.78,
-          "yaw": 13.21
+          "pitch": 19.91,
+          "yaw": 26.26
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -575.8,
-            "y": 2509.4,
-            "z": 218.5
+            "x": -810.0,
+            "y": 1981.2,
+            "z": 298.5
           },
-          "pitch": 35.99,
-          "yaw": 13.21
+          "pitch": 31.88,
+          "yaw": 26.26
         }
       ],
       "maxDurationMs": 7000,
@@ -5941,41 +5708,41 @@
             "y": -1739.5,
             "z": 266.0
           },
-          "pitch": 23.17,
-          "yaw": 132.79
+          "pitch": 20.12,
+          "yaw": 163.86
         },
         {
-          "tMs": 2153,
+          "tMs": 2984,
           "position": {
-            "x": 514.5,
-            "y": -1630.0,
-            "z": 266.0
+            "x": 360.0,
+            "y": -1416.0,
+            "z": 264.8
           },
-          "pitch": 19.38,
-          "yaw": 155.07
+          "pitch": 18.66,
+          "yaw": -166.8
         },
         {
-          "tMs": 5137,
+          "tMs": 5937,
           "position": {
-            "x": 638.5,
-            "y": -1326.1,
-            "z": 263.0
+            "x": 137.5,
+            "y": -1182.3,
+            "z": 302.0
           },
-          "pitch": 17.27,
-          "yaw": -175.74
+          "pitch": 24.52,
+          "yaw": -137.81
         },
         {
-          "tMs": 6858,
+          "tMs": 7653,
           "position": {
-            "x": 728.5,
-            "y": -1163.5,
-            "z": 299.0
+            "x": -41.5,
+            "y": -1136.0,
+            "z": 264.0
           },
-          "pitch": 17.24,
-          "yaw": -164.39
+          "pitch": 24.24,
+          "yaw": -119.71
         }
       ],
-      "maxDurationMs": 7858,
+      "maxDurationMs": 8653,
       "maxSpeedUnitsPerSec": 300,
       "collisionValidated": true,
       "validation": "unvalidated",
@@ -5993,22 +5760,22 @@
         {
           "tMs": 0,
           "position": {
-            "x": 458.5,
-            "y": -1686.0,
-            "z": 266.0
+            "x": -852.1,
+            "y": -1294.9,
+            "z": 294.0
           },
-          "pitch": 20.07,
-          "yaw": 147.71
+          "pitch": 22.06,
+          "yaw": -25.83
         },
         {
           "tMs": 6000,
           "position": {
-            "x": 237.8,
-            "y": -1546.5,
-            "z": 252.5
+            "x": -598.3,
+            "y": -1417.8,
+            "z": 280.5
           },
-          "pitch": 31.88,
-          "yaw": 147.71
+          "pitch": 34.9,
+          "yaw": -25.83
         }
       ],
       "maxDurationMs": 7000,
@@ -7769,6 +7536,7 @@
     "createdAt": "2026-10-26T14:04:33.147597Z",
     "sources": [
       "dataset:de_anubis-13914-fe6be1aceb1b8834",
+      "Spawn regions (t_spawn, ct_spawn) from where players stood at the end of freeze time in CS2 demos (7 read by scripts/set-spawn-regions.py)",
       "CS2 navigation and collision meshes from awpy-data (build 26144732, read with awpy 3.1.1, MIT): built-in cameras and paths placed on walkable floor and checked for line of sight and clearance"
     ]
   }

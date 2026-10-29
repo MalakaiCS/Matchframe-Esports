@@ -764,199 +764,40 @@
           "cellSize": 64.0,
           "zCellSize": 128.0,
           "cells": [
-            [-32,-32,-3],
-            [-32,-31,-3],
-            [-32,-30,-3],
-            [-32,-29,-3],
-            [-32,-28,-3],
-            [-31,-32,-3],
-            [-31,-31,-3],
-            [-31,-30,-3],
-            [-31,-29,-3],
-            [-31,-28,-3],
-            [-30,-32,-3],
-            [-30,-31,-3],
-            [-30,-30,-3],
-            [-30,-29,-3],
-            [-30,-28,-3],
             [-29,-32,-3],
             [-29,-31,-3],
             [-29,-30,-3],
             [-29,-29,-3],
             [-29,-28,-3],
-            [-28,-33,-3],
             [-28,-32,-3],
             [-28,-31,-3],
             [-28,-30,-3],
             [-28,-29,-3],
             [-28,-28,-3],
-            [-28,-27,-3],
-            [-27,-35,-2],
-            [-27,-34,-3],
-            [-27,-33,-3],
             [-27,-32,-3],
             [-27,-31,-3],
             [-27,-30,-3],
             [-27,-29,-3],
             [-27,-28,-3],
-            [-27,-27,-3],
-            [-27,-26,-3],
-            [-27,-25,-3],
-            [-27,-24,-3],
-            [-27,-23,-3],
-            [-27,-22,-3],
-            [-27,-18,-2],
-            [-27,-17,-2],
-            [-27,-16,-2],
-            [-27,-15,-2],
-            [-27,-14,-2],
-            [-27,-13,-2],
-            [-27,-12,-2],
-            [-26,-36,-2],
-            [-26,-35,-3],
-            [-26,-35,-2],
-            [-26,-34,-3],
-            [-26,-33,-3],
             [-26,-32,-3],
             [-26,-31,-3],
             [-26,-30,-3],
             [-26,-29,-3],
             [-26,-28,-3],
-            [-26,-27,-3],
-            [-26,-26,-3],
-            [-26,-25,-3],
-            [-26,-24,-3],
-            [-26,-23,-3],
-            [-26,-22,-3],
-            [-26,-21,-3],
-            [-26,-20,-3],
-            [-26,-19,-2],
-            [-26,-18,-2],
-            [-26,-17,-2],
-            [-26,-16,-2],
-            [-26,-15,-2],
-            [-26,-14,-2],
-            [-26,-13,-2],
-            [-26,-12,-2],
-            [-25,-38,-2],
-            [-25,-37,-2],
-            [-25,-36,-2],
-            [-25,-35,-3],
-            [-25,-35,-2],
-            [-25,-34,-3],
-            [-25,-34,-2],
-            [-25,-33,-3],
-            [-25,-33,-2],
             [-25,-32,-3],
             [-25,-31,-3],
             [-25,-30,-3],
             [-25,-29,-3],
-            [-25,-28,-3],
-            [-25,-27,-3],
-            [-25,-26,-3],
-            [-25,-25,-3],
-            [-25,-24,-3],
-            [-25,-23,-3],
-            [-25,-22,-3],
-            [-25,-21,-2],
-            [-25,-20,-2],
-            [-25,-19,-2],
-            [-25,-18,-2],
-            [-25,-17,-2],
-            [-25,-16,-2],
-            [-25,-15,-2],
-            [-25,-14,-2],
-            [-25,-13,-2],
-            [-25,-12,-2],
-            [-24,-38,-2],
-            [-24,-37,-2],
-            [-24,-36,-2],
-            [-24,-35,-2],
-            [-24,-34,-2],
-            [-24,-33,-3],
-            [-24,-33,-2],
-            [-24,-32,-3],
-            [-24,-31,-3],
-            [-24,-30,-3],
-            [-24,-29,-3],
-            [-24,-28,-3],
-            [-24,-27,-3],
-            [-24,-26,-3],
-            [-24,-25,-3],
-            [-24,-25,-2],
-            [-24,-24,-3],
-            [-24,-23,-3],
-            [-24,-22,-3],
-            [-24,-22,-2],
-            [-24,-21,-2],
-            [-24,-20,-2],
-            [-24,-19,-2],
-            [-24,-18,-2],
-            [-24,-17,-2],
-            [-24,-16,-2],
-            [-24,-15,-2],
-            [-24,-14,-2],
-            [-24,-13,-2],
-            [-24,-12,-2],
-            [-23,-38,-2],
-            [-23,-37,-2],
-            [-23,-36,-2],
-            [-23,-35,-2],
-            [-23,-34,-2],
-            [-23,-33,-3],
-            [-23,-33,-2],
-            [-23,-32,-3],
-            [-23,-31,-3],
-            [-23,-31,-2],
-            [-23,-30,-3],
-            [-23,-29,-3],
-            [-23,-28,-3],
-            [-23,-26,-3],
-            [-23,-25,-2],
-            [-23,-19,-2],
-            [-23,-18,-2],
-            [-23,-17,-2],
-            [-23,-16,-2],
-            [-23,-15,-2],
-            [-23,-14,-2],
-            [-23,-13,-2],
-            [-23,-12,-2],
-            [-22,-39,-2],
-            [-22,-38,-2],
-            [-22,-37,-2],
-            [-22,-36,-2],
-            [-22,-35,-2],
-            [-22,-34,-2],
-            [-22,-26,-2],
-            [-22,-25,-2],
-            [-22,-18,-2],
-            [-22,-17,-2],
-            [-22,-16,-2],
-            [-22,-15,-2],
-            [-21,-39,-2],
-            [-21,-38,-2],
-            [-21,-37,-2],
-            [-21,-36,-2],
-            [-21,-35,-2],
-            [-21,-16,-2],
-            [-21,-15,-2],
-            [-20,-39,-2],
-            [-20,-38,-2],
-            [-20,-37,-2],
-            [-20,-36,-2],
-            [-20,-35,-2],
-            [-19,-38,-2],
-            [-19,-37,-2],
-            [-19,-36,-2],
-            [-19,-35,-2]
+            [-25,-28,-3]
           ]
         }
       ],
       "source": "imported",
-      "sampleCount": 110,
+      "sampleCount": 5,
       "validated": false,
       "tags": [
-        "navmesh"
+        "navmesh",
+        "spawn_points"
       ]
     },
     {
@@ -2188,21 +2029,13 @@
           "cellSize": 64.0,
           "zCellSize": 128.0,
           "cells": [
+            [16,-5,-2],
             [16,-4,-2],
             [16,-3,-2],
             [16,-2,-2],
             [16,-1,-2],
             [16,0,-2],
             [16,1,-2],
-            [16,3,-2],
-            [16,4,-2],
-            [16,5,-2],
-            [17,-11,-2],
-            [17,-10,-2],
-            [17,-9,-2],
-            [17,-8,-2],
-            [17,-7,-2],
-            [17,-6,-2],
             [17,-5,-2],
             [17,-4,-2],
             [17,-3,-2],
@@ -2210,16 +2043,6 @@
             [17,-1,-2],
             [17,0,-2],
             [17,1,-2],
-            [17,3,-2],
-            [17,4,-3],
-            [17,4,-2],
-            [17,5,-3],
-            [17,6,-3],
-            [18,-11,-2],
-            [18,-10,-2],
-            [18,-9,-2],
-            [18,-8,-2],
-            [18,-7,-2],
             [18,-6,-2],
             [18,-5,-2],
             [18,-4,-2],
@@ -2228,29 +2051,6 @@
             [18,-1,-2],
             [18,0,-2],
             [18,1,-2],
-            [18,3,-3],
-            [18,3,-2],
-            [18,4,-3],
-            [18,4,-2],
-            [18,5,-3],
-            [18,5,-2],
-            [18,6,-3],
-            [18,6,-2],
-            [18,7,-3],
-            [18,8,-3],
-            [19,-20,-2],
-            [19,-19,-2],
-            [19,-18,-2],
-            [19,-17,-2],
-            [19,-16,-2],
-            [19,-15,-2],
-            [19,-14,-2],
-            [19,-13,-2],
-            [19,-12,-2],
-            [19,-11,-2],
-            [19,-10,-2],
-            [19,-9,-2],
-            [19,-8,-2],
             [19,-7,-2],
             [19,-6,-2],
             [19,-5,-2],
@@ -2260,26 +2060,6 @@
             [19,-1,-2],
             [19,0,-2],
             [19,1,-2],
-            [19,2,-2],
-            [19,3,-2],
-            [19,4,-2],
-            [19,5,-2],
-            [19,6,-3],
-            [19,7,-3],
-            [19,8,-3],
-            [20,-20,-2],
-            [20,-19,-2],
-            [20,-18,-2],
-            [20,-17,-2],
-            [20,-16,-2],
-            [20,-15,-2],
-            [20,-14,-2],
-            [20,-13,-2],
-            [20,-12,-2],
-            [20,-11,-2],
-            [20,-10,-2],
-            [20,-9,-2],
-            [20,-8,-2],
             [20,-7,-2],
             [20,-6,-2],
             [20,-5,-2],
@@ -2289,56 +2069,21 @@
             [20,-1,-2],
             [20,0,-2],
             [20,1,-2],
-            [20,2,-2],
-            [20,3,-2],
-            [20,4,-2],
-            [20,5,-2],
-            [20,6,-3],
-            [20,7,-3],
-            [20,8,-3],
-            [21,-20,-2],
-            [21,-19,-2],
-            [21,-18,-2],
-            [21,-17,-2],
-            [21,-16,-2],
-            [21,-15,-2],
-            [21,-14,-2],
-            [21,-13,-2],
-            [21,-12,-2],
-            [21,-11,-2],
-            [21,-10,-2],
-            [21,-9,-2],
-            [21,-8,-2],
             [21,-7,-2],
             [21,-6,-2],
             [21,-5,-2],
-            [21,-4,-2],
-            [21,-3,-2],
-            [21,-2,-2],
             [21,-1,-2],
             [21,0,-2],
-            [21,1,-2],
-            [21,2,-2],
-            [21,3,-2],
-            [21,4,-2],
-            [21,5,-2],
-            [21,6,-3],
-            [21,7,-3],
-            [21,8,-3],
-            [22,-6,-2],
-            [22,-5,-2],
-            [22,-4,-2],
-            [22,-1,-2],
-            [22,0,-2],
-            [22,1,-2]
+            [21,1,-2]
           ]
         }
       ],
       "source": "imported",
-      "sampleCount": 49,
+      "sampleCount": 10,
       "validated": false,
       "tags": [
-        "navmesh"
+        "navmesh",
+        "spawn_points"
       ]
     },
     {
@@ -3101,12 +2846,12 @@
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -1560.0,
-        "y": -2376.0,
-        "z": 18.5
+        "x": -1368.0,
+        "y": -2424.0,
+        "z": 46.7
       },
-      "pitch": 18.6,
-      "yaw": 91.67,
+      "pitch": 22.81,
+      "yaw": 120.59,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3114,13 +2859,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1568.0,
-          "y": -1760.0,
-          "z": -215.7
+          "x": -1696.0,
+          "y": -1888.0,
+          "z": -216.1
         },
-        "radiusUnits": 1210.6,
-        "zMin": -397.6,
-        "zMax": 86.0,
+        "radiusUnits": 500.0,
+        "zMin": -365.0,
+        "zMax": -11.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3139,7 +2884,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 616 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 89% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 628 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 96% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-mirage-ct_spawn-2",
@@ -3147,12 +2892,12 @@
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": -1686.6,
-        "y": -1147.7,
-        "z": 76.0
+        "x": -1557.3,
+        "y": -1505.9,
+        "z": 0.0
       },
-      "pitch": 27.18,
-      "yaw": -79.88,
+      "pitch": 27.71,
+      "yaw": -109.0,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3160,13 +2905,13 @@
       ],
       "coverage": {
         "center": {
-          "x": -1568.0,
-          "y": -1760.0,
-          "z": -215.7
+          "x": -1696.0,
+          "y": -1888.0,
+          "z": -216.1
         },
-        "radiusUnits": 1210.6,
-        "zMin": -397.6,
-        "zMax": 86.0,
+        "radiusUnits": 500.0,
+        "zMin": -365.0,
+        "zMax": -11.0,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3185,20 +2930,20 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 624 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 84% of the area, and 93% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 407 units from the CT spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-mirage-t_spawn-1",
-      "displayName": "T spawn #1",
+      "displayName": "T spawn from Palace Alley",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": 1257.5,
-        "y": -1070.5,
-        "z": 218.0
+        "x": 1259.9,
+        "y": -800.3,
+        "z": 120.0
       },
-      "pitch": 24.05,
-      "yaw": 89.64,
+      "pitch": 19.81,
+      "yaw": 91.49,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3207,12 +2952,12 @@
       "coverage": {
         "center": {
           "x": 1248.0,
-          "y": -288.0,
-          "z": -115.2
+          "y": -160.0,
+          "z": -115.5
         },
-        "radiusUnits": 1202.7,
-        "zMin": -360.0,
-        "zMax": 91.9,
+        "radiusUnits": 500.0,
+        "zMin": -264.0,
+        "zMax": 89.3,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3231,20 +2976,20 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 783 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 97% of the area, and 84% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Palace Alley), 260 units up, 640 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 87% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-mirage-t_spawn-2",
-      "displayName": "T spawn #2",
+      "displayName": "T spawn from Side Alley",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
-        "x": 1222.5,
-        "y": 143.5,
-        "z": 100.0
+        "x": 1211.0,
+        "y": 515.0,
+        "z": 0.0
       },
-      "pitch": 29.52,
-      "yaw": -85.35,
+      "pitch": 9.82,
+      "yaw": -87.24,
       "fov": null,
       "observerMode": "roaming_static",
       "targetRegionIds": [
@@ -3253,12 +2998,12 @@
       "coverage": {
         "center": {
           "x": 1248.0,
-          "y": -288.0,
-          "z": -115.2
+          "y": -160.0,
+          "z": -115.5
         },
-        "radiusUnits": 1202.7,
-        "zMin": -360.0,
-        "zMax": 91.9,
+        "radiusUnits": 500.0,
+        "zMin": -264.0,
+        "zMax": 89.3,
         "levelId": "ground"
       },
       "allowedPhases": [
@@ -3277,7 +3022,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 432 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (Side Alley), 260 units up, 676 units from the T spawn centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 100% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-mirage-apartments-1",
@@ -3809,7 +3554,7 @@
     },
     {
       "id": "cs2-mirage-palace_alley-1",
-      "displayName": "Palace Alley from TSpawn",
+      "displayName": "Palace Alley #1",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
@@ -3853,7 +3598,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 527 units from the Palace Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 527 units from the Palace Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 50% of the area, and 100% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-mirage-palace_alley-2",
@@ -4145,7 +3890,7 @@
     },
     {
       "id": "cs2-mirage-side_alley-2",
-      "displayName": "Side Alley from TSpawn",
+      "displayName": "Side Alley #2",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
@@ -4189,7 +3934,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (TSpawn), 260 units up, 618 units from the Side Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 59% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 618 units from the Side Alley centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 59% of the area, and 98% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-mirage-stairs-1",
@@ -4433,7 +4178,7 @@
     },
     {
       "id": "cs2-mirage-ticket_booth-2",
-      "displayName": "Ticket Booth from CTSpawn",
+      "displayName": "Ticket Booth #2",
       "mapName": "de_mirage",
       "mapRevision": "navmesh:awpy-1.3.1",
       "position": {
@@ -4477,7 +4222,7 @@
       "lastTestedGameBuild": null,
       "lastTestedMapVersion": null,
       "capturedFrom": "derived_navmesh",
-      "notes": "Placed on CS2's walkable floor (CTSpawn), 260 units up, 656 units from the Ticket Booth centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
+      "notes": "Placed on CS2's walkable floor (no named area), 260 units up, 656 units from the Ticket Booth centre. In CS2's collision geometry (build 26144732) it has clear space around it, sees the centre and 88% of the area, and 96% of its view is open for at least 220 units. Not seen in game yet."
     },
     {
       "id": "cs2-mirage-topof_mid-1",
@@ -5014,22 +4759,22 @@
         {
           "tMs": 0,
           "position": {
-            "x": -1560.0,
-            "y": -2376.0,
-            "z": 18.5
+            "x": -1368.0,
+            "y": -2424.0,
+            "z": 46.7
           },
-          "pitch": 20.82,
-          "yaw": 90.74
+          "pitch": 22.7,
+          "yaw": 121.46
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -1340.0,
-            "y": -2373.1,
-            "z": 18.5
+            "x": -1555.7,
+            "y": -2538.8,
+            "z": 46.7
           },
-          "pitch": 19.7,
-          "yaw": 110.4
+          "pitch": 21.54,
+          "yaw": 102.17
         }
       ],
       "maxDurationMs": 7000,
@@ -5050,22 +4795,22 @@
         {
           "tMs": 0,
           "position": {
-            "x": -1560.0,
-            "y": -2376.0,
-            "z": 18.5
+            "x": -1368.0,
+            "y": -2424.0,
+            "z": 46.7
           },
-          "pitch": 20.82,
-          "yaw": 90.74
+          "pitch": 22.7,
+          "yaw": 121.46
         },
         {
           "tMs": 6000,
           "position": {
-            "x": -1563.6,
-            "y": -2098.8,
-            "z": 5.0
+            "x": -1515.6,
+            "y": -2182.8,
+            "z": 33.2
           },
-          "pitch": 33.08,
-          "yaw": 90.74
+          "pitch": 35.81,
+          "yaw": 121.46
         }
       ],
       "maxDurationMs": 7000,
@@ -5086,22 +4831,22 @@
         {
           "tMs": 0,
           "position": {
-            "x": 1257.5,
-            "y": -1070.5,
-            "z": 218.0
+            "x": 1211.0,
+            "y": 515.0,
+            "z": 0.0
           },
-          "pitch": 23.06,
-          "yaw": 90.7
+          "pitch": 9.7,
+          "yaw": -86.86
         },
         {
           "tMs": 6000,
           "position": {
-            "x": 1037.5,
-            "y": -1073.2,
-            "z": 218.0
+            "x": 991.3,
+            "y": 503.0,
+            "z": 0.0
           },
-          "pitch": 22.29,
-          "yaw": 74.99
+          "pitch": 9.23,
+          "yaw": -68.83
         }
       ],
       "maxDurationMs": 7000,
@@ -5122,22 +4867,22 @@
         {
           "tMs": 0,
           "position": {
-            "x": 1257.5,
-            "y": -1070.5,
-            "z": 218.0
+            "x": 1259.9,
+            "y": -800.3,
+            "z": 120.0
           },
-          "pitch": 23.06,
-          "yaw": 90.7
+          "pitch": 20.19,
+          "yaw": 91.06
         },
         {
           "tMs": 6000,
           "position": {
-            "x": 1253.2,
-            "y": -718.4,
-            "z": 204.5
+            "x": 1254.5,
+            "y": -512.2,
+            "z": 106.5
           },
-          "pitch": 36.6,
-          "yaw": 90.69
+          "pitch": 32.22,
+          "yaw": 91.06
         }
       ],
       "maxDurationMs": 7000,
@@ -7121,6 +6866,7 @@
     "sources": [
       "awpy 1.3.1 nav_info.csv (MIT, (c) Peter Xenopoulos): CS:GO navigation meshes",
       "checked against the CS2 radar calibration: 99.8% of navigation areas lie on the drawn CS2 radar; the rest were dropped",
+      "Spawn regions (t_spawn, ct_spawn) from where players stood at the end of freeze time in CS2 demos (7 read by scripts/set-spawn-regions.py)",
       "CS2 navigation and collision meshes from awpy-data (build 26144732, read with awpy 3.1.1, MIT): built-in cameras and paths placed on walkable floor and checked for line of sight and clearance"
     ]
   }

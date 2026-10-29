@@ -480,3 +480,25 @@ Through Matchframe in Chromium, the same kaiHUD ticks within 0.1 s of each secon
 - **Built-in cameras:** 379, none inside geometry, none with more than 30 % of the picture within 150 units.
 
 **Not checked.** A real CS2: how the shots look on air.
+
+## ADR-035 — Real spawns from pro demos, team shots tuned on them, and Cache
+
+**Context.** The owner pointed out that the players in the team-shot previews weren't in Nuke's real spawns, and uploaded an HLTV demo for each map in the current active-duty pool: Ancient, Anubis, Cache, Dust II, Inferno, Mirage and Nuke.
+- The previews placed test players on navigation areas inside the packs' spawn regions. Those regions came from navigation place names ("TSpawn", "CTSpawn"): whole named areas whose middles were 100–500 units from where players really stand. On Ancient and Anubis the CT region missed the spawn points entirely. Spawn cameras aim at their region.
+- Cache is in the pool, but there was no map pack, grid or camera for it.
+
+**Decision.**
+- **Spawn regions from demos** (`scripts/set-spawn-regions.py`, awpy): every alive player's position as each round's freeze time ends is a spawn point. Each pool map's `t_spawn` / `ct_spawn` region becomes the cells holding those points and one cell round them, tagged `spawn_points`; the spawn cameras and paths were regenerated, and no other camera changed.
+- **Cache:** the pack is built from the demo with the workers' `build-map-pack` (46 regions from CS2 place names, `demo_place_names`). The grid and the cameras come from the same awpy-data meshes and generators as the other maps (`de_cache` added to both). On 1,500 sightlines the grid never saw through a wall, and it missed 13 of 144 clear ones. Cache is in the default event pool; Overpass, Train and Vertigo keep their packs, out of the default pool.
+- **Team shots tuned on the real positions** (every round, both teams, seven maps):
+  - spots on 48 bearings × 6 distances (the group's spread + 160–800, 260–1100 units) × 5 heights (75, 110, 160, 220, 300);
+  - a size score (the middle player 380 units from the lens);
+  - when the whole team only fits from far away (the middle player more than 580 units off), groups without the player furthest out are framed too. Each player left out costs 0.8 of score: a good-sized four beats five far away.
+
+**Checked.**
+- **Real rounds:** 272 team shots (every round of the seven demos, both teams): every one framed; all five players in 263 (six Dust II rounds leave out a T standing well apart, three Mirage rounds show four of the Ts strung along their street), gliding in 271; at most 64 ms each. Before tuning, two of Mirage's 36 had no shot: the Ts stand along a narrow street.
+- **CS2's exact geometry:** along every glide the camera is in open space and sees the players.
+- **Rendered from the collision meshes** for round 1 of each map, and looked at.
+- **Framing tests** use round-1 positions from the demos, plus Mirage's T spawn strung along its street.
+
+**Not checked.** On air in a real CS2.
