@@ -1,0 +1,255 @@
+{
+  "id": "pov_2s-builtin",
+  "task": "pov_2s",
+  "status": "built-in",
+  "created_at": "2026-10-29T08:31:27.729289Z",
+  "exported_at": "2026-10-29T08:31:47.403126Z",
+  "objective": "binary",
+  "label_definition": "1 if the player kills or dies within (t, t+2s] (their POV shows a kill)",
+  "metrics": {
+    "validation": {}
+  },
+  "feature_schema": [
+    {
+      "index": 0,
+      "name": "side_t",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 1,
+      "name": "health",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 2,
+      "name": "armor",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 3,
+      "name": "speed",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 4,
+      "name": "weapon_class",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 5,
+      "name": "alive_own",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 6,
+      "name": "alive_opp",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 7,
+      "name": "round_time_s",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 8,
+      "name": "round_kills",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 9,
+      "name": "nearest_dist",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 10,
+      "name": "nearest_facing_self",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 11,
+      "name": "nearest_facing_opp",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 12,
+      "name": "opp_within_1000",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 13,
+      "name": "opp_within_2000",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 14,
+      "name": "max_facing_self_2000",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 15,
+      "name": "max_facing_opp_2000",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 16,
+      "name": "max_closing",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 17,
+      "name": "heur_max",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    },
+    {
+      "index": 18,
+      "name": "heur_sum",
+      "capability": "gsi_compatible",
+      "dtype": "float32",
+      "missing": "null/NaN allowed"
+    }
+  ],
+  "required_capabilities": [
+    "gsi_compatible"
+  ],
+  "supported_builds": [
+    "14191"
+  ],
+  "supported_maps": [
+    "de_ancient",
+    "de_anubis",
+    "de_cache",
+    "de_dust2",
+    "de_inferno",
+    "de_mirage",
+    "de_nuke"
+  ],
+  "training": {
+    "seed": 7,
+    "params": {
+      "objective": "binary",
+      "learning_rate": 0.05,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "feature_fraction": 0.9,
+      "bagging_fraction": 0.8,
+      "bagging_freq": 1,
+      "lambda_l2": 1.0,
+      "deterministic": true,
+      "force_row_wise": true,
+      "num_threads": 4,
+      "verbose": -1,
+      "seed": 7,
+      "bagging_seed": 7,
+      "feature_fraction_seed": 7,
+      "data_random_seed": 7
+    },
+    "num_boost_round": 200,
+    "dataset_manifest_hash": "322e5c594c1d802c8443f72d53617e9628b9b0b97e134fd178a94d50b62c7d82",
+    "git_commit": "d8736c49d72b73b3e98affb3825e65b6e88984e3",
+    "lightgbm_version": "4.7.0",
+    "data": {
+      "train": {
+        "rows": 1314096,
+        "positives": 51902,
+        "maps": [
+          "de_ancient",
+          "de_anubis",
+          "de_cache",
+          "de_dust2",
+          "de_inferno",
+          "de_mirage",
+          "de_nuke"
+        ],
+        "builds": [
+          "14191"
+        ]
+      },
+      "val": {
+        "rows": 0,
+        "positives": 0,
+        "maps": [],
+        "builds": []
+      }
+    }
+  },
+  "notes": "Built in: trained on 7 professional matches (CS2 build 14191: Ancient, Anubis, Cache, Dust2, Inferno, Mirage, Nuke; 1.3 million player frames, 200 rounds, no held-out split). Held out one match at a time, the same recipe scored AUC 0.94 against 0.88 for the distance/facing rule, and in the test bench it showed 74% of kills instead of 71%.",
+  "model_sha256": "6fae6abb04c58488f469c46f6748e03d438ffbde12c4668cb99a9ad2a7354447",
+  "files": {
+    "model": "model.json",
+    "parity_vectors": "parity_vectors.json"
+  },
+  "bench": {
+    "method": "leave one match out: each match replayed through the director with a model trained on the other six (300 ms switch delay, 8 Hz frames)",
+    "blend": {
+      "weight": 0.5,
+      "ref": 0.5
+    },
+    "without_model": {
+      "kills_shown": 687,
+      "kills": 963,
+      "multi_frag_kills_shown": 80,
+      "multi_frag_kills": 178,
+      "opening_kills_shown": 96,
+      "opening_kills": 141,
+      "cuts_per_minute": 6.05
+    },
+    "with_model": {
+      "kills_shown": 715,
+      "kills": 963,
+      "multi_frag_kills_shown": 88,
+      "multi_frag_kills": 178,
+      "opening_kills_shown": 102,
+      "opening_kills": 141,
+      "cuts_per_minute": 5.48
+    },
+    "with_model_and_multi_frag": {
+      "kills_shown": 713,
+      "kills": 963,
+      "multi_frag_kills_shown": 95,
+      "multi_frag_kills": 178,
+      "opening_kills_shown": 102,
+      "opening_kills": 141,
+      "cuts_per_minute": 5.41
+    },
+    "lomo_auc": {
+      "model": 0.941,
+      "heuristic": 0.881
+    }
+  }
+}

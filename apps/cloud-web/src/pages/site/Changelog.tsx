@@ -11,6 +11,31 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.7.0",
+    title: "The Auto Director learns from demos",
+    summary: "A model trained on pro demos helps pick whose POV to show, multi-frag awareness, a test bench, and cinematics that vary like a real broadcast.",
+    sections: [
+      {
+        heading: "Auto Director",
+        items: [
+          "A built-in model trained on seven pro matches estimates whose POV is about to show a kill. On those matches the director showed 74 % of kills instead of 71 %.",
+          "Multi-frag awareness: after a kill with enemies close, the director goes to that player (53 % of multi-frags shown instead of 45 %).",
+          "Director test bench: your demos replayed through the director, scored on the kills it shows.",
+        ],
+      },
+      {
+        heading: "Cinematics",
+        items: [
+          "Freeze times differ from round to round: one longer team shot, no shot of a team on an eco, high, low and side views.",
+          "Big moments: pistol-round openers, the team on match point first, half time and the end of the map.",
+          "A short shot of the winners after the round.",
+          "Camera walkthrough with Keep/Hide, and Ctrl+Shift+F11 saves the CS2 view as your own camera.",
+          "Experimental: camera paths played by HLAE.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.6.8",
     title: "Cameras that move on CS2",
     summary: "Fixes cameras that never moved and automatic player switches that stopped working: Matchframe mixed CS2's and CS:GO's spectator mode numbers.",

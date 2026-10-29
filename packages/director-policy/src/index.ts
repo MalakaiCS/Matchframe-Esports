@@ -4,6 +4,7 @@ export * from "./history.ts";
 export * from "./features/readiness.ts";
 export * from "./features/interactions.ts";
 export * from "./features/significance.ts";
+export * from "./features/moments.ts";
 export * from "./utility/opportunities.ts";
 export * from "./candidates.ts";
 export * from "./cinematics.ts";

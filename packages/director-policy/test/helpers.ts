@@ -1,6 +1,6 @@
 import type { CameraMode, CommandContext, CommandResult, ObservedCameraState, SourceCapabilities, Vec3 } from "@matchframe/contracts";
 import { emptySourceCapabilities } from "@matchframe/contracts";
-import type { SyntheticGrenade, SyntheticPlayer } from "@matchframe/cs2-state";
+import type { SyntheticGrenade, SyntheticPayloadSpec, SyntheticPlayer } from "@matchframe/cs2-state";
 import { buildSyntheticGsiPayload, MatchStateStore, normalizeGsi, parseGsiPayload } from "@matchframe/cs2-state";
 import { MapRuntime, syntheticMapPack } from "@matchframe/map-runtime";
 import type { ControlCapabilities, ObserverControlAdapter } from "../src/index.ts";
@@ -38,7 +38,7 @@ export class Sim {
     const rt = runtime ?? new MapRuntime(syntheticMapPack({ withValidatedCamera: true, mapName }));
     this.store = new MatchStateStore({ sessionId: "sim", simulated: true, mapContextFor: () => rt });
   }
-  push(players: SyntheticPlayer[], opts: { grenades?: SyntheticGrenade[]; observed?: string | null; dtMs?: number; bomb?: { state: string; position?: Vec3; countdown?: number }; phase?: string; roundPhase?: "freezetime" | "live" | "over"; phaseEndsIn?: number; mapName?: string } = {}) {
+  push(players: SyntheticPlayer[], opts: { grenades?: SyntheticGrenade[]; observed?: string | null; dtMs?: number; bomb?: { state: string; position?: Vec3; countdown?: number }; phase?: string; roundPhase?: "freezetime" | "live" | "over"; phaseEndsIn?: number; mapName?: string; spec?: Partial<SyntheticPayloadSpec> } = {}) {
     this.now += opts.dtMs ?? 100;
     this.ts += 1;
     const raw = buildSyntheticGsiPayload({
@@ -52,6 +52,7 @@ export class Sim {
       phaseEndsIn: opts.phaseEndsIn ?? 60,
       ...(opts.roundPhase ? { roundPhase: opts.roundPhase } : {}),
       round: 3,
+      ...opts.spec,
     });
     const parsed = parseGsiPayload(raw);
     if (!parsed.ok) throw new Error(parsed.error);

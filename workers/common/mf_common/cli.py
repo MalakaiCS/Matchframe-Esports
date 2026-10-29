@@ -159,7 +159,9 @@ def _audit(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
 def _train(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
     from mf_training.train import train_model
 
-    return train_model(a.task, Path(a.dataset_manifest), Path(a.out_dir), em, seed=a.seed, feature_set=a.feature_set)
+    return train_model(
+        a.task, Path(a.dataset_manifest), Path(a.out_dir), em, seed=a.seed, feature_set=a.feature_set, max_rounds=a.max_rounds
+    )
 
 
 def _evaluate(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
@@ -190,6 +192,12 @@ def _parity_fixture(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
     from mf_training.synthetic import make_parity_fixture
 
     return make_parity_fixture(Path(a.out), em, seed=a.seed, parity_count=a.parity_count)
+
+
+def _export_replay(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
+    from mf_features.replay import export_replay
+
+    return export_replay(Path(a.dataset), Path(a.out), a.hz, em)
 
 
 def _doctor(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
@@ -227,11 +235,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     add("doctor", _doctor, "check the Python version and the pipeline's packages")
 
+    sp = add("export-replay", _export_replay, "a dataset as JSON lines the director can be replayed on (test bench)")
+    sp.add_argument("--dataset", required=True)
+    sp.add_argument("--out", required=True)
+    sp.add_argument("--hz", type=float, default=8.0)
+
     sp = add("unpack", _unpack, "take the demos out of a .zip or .rar")
     sp.add_argument("--input", required=True)
     sp.add_argument("--out-dir", required=True)
 
-    sp = add("storage-test", _storage_test, "log in to the FTP storage and write, check and delete a test file (connection from MF_STORAGE_*)")
+    sp = add(
+        "storage-test", _storage_test, "log in to the FTP storage and write, check and delete a test file (connection from MF_STORAGE_*)"
+    )
     sp.add_argument("--remote-dir", default="/matchframe")
 
     sp = add("upload-dataset", _upload_dataset, "upload a committed dataset to the FTP storage (connection from MF_STORAGE_*)")
@@ -313,11 +328,12 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--datasets", nargs="*", default=None)
 
     sp = add("train", _train, "train a LightGBM baseline and compare with the heuristic")
-    sp.add_argument("--task", required=True, choices=["contact_2s"])
+    sp.add_argument("--task", required=True, choices=["contact_2s", "pov_2s"])
     sp.add_argument("--dataset-manifest", required=True)
     sp.add_argument("--out-dir", required=True)
     sp.add_argument("--seed", type=int, default=7)
     sp.add_argument("--feature-set", choices=["gsi_compatible", "demo_rich"], default="gsi_compatible")
+    sp.add_argument("--max-rounds", type=int, default=400, help="boosting rounds (all of them when there is no validation split)")
 
     sp = add("evaluate", _evaluate, "metrics per map with match-level bootstrap CIs")
     sp.add_argument("--model-dir", required=True)

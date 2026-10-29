@@ -158,6 +158,8 @@ describe("Auto Director: one button, checks and fixes by itself", () => {
     });
     engine = new Engine(cfg);
     await engine.init();
+    // Both teams every freeze time (round-to-round variety and big moments have their own tests).
+    engine.autoDirector.setSettings({ variety: false, bigMoments: false });
     servers = await startServers(engine);
     cs2 = new FakeCs2(`http://127.0.0.1:${ports.gsi}/gsi`, engine.secrets.gsiToken, "spec_mode 4");
     fake = createServer((sock) => {

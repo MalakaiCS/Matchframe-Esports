@@ -7,6 +7,8 @@ import { useApi } from "../lib/hooks.ts";
 import { Link } from "../router.tsx";
 import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
+import { DemoModelPanel } from "./training/DemoModel.tsx";
+import { TestBench } from "./training/TestBench.tsx";
 import "../styles/group-c.css";
 
 const STATUS_TONE: Record<string, "ok" | "info" | "warn" | "danger" | "neutral" | "accent"> = {
@@ -50,6 +52,10 @@ export function summarizeStep(summary: Record<string, unknown>): string {
 }
 
 const human = (s: string) => s.replace(/_/g, " ");
+const TASKS = [
+  { id: "pov_2s", label: "POV shows a kill within 2 s", hint: "Per player: the model that helps the Auto Director pick whose POV to show" },
+  { id: "contact_2s", label: "Fight within 2 s (pairs)", hint: "Per T/CT pair: runs in shadow only, compared with the built-in estimate" },
+] as const;
 const RUN_TONE: Record<string, string> = { completed: "text-ok", failed: "text-danger" };
 
 function StepList({ run }: { run: TrainingRun }) {
@@ -79,12 +85,23 @@ function Runs() {
   const snap = useSnapshot();
   const [selected, setSelected] = useState<string[]>([]);
   const [allowLive, setAllowLive] = useState(false);
+  const [task, setTask] = useState<(typeof TASKS)[number]["id"]>("pov_2s");
   const datasets = (jobs.data?.jobs ?? []).filter((j) => j.datasetDir && ["COMMITTED", "RETENTION_ELIGIBLE", "QUARANTINED_RAW", "RAW_REMOVED"].includes(j.state));
   const liveRunning = !!snap?.state && !snap.state.simulated && !snap.state.sources[0]?.stale;
   if (reason) return <Note tone="warn">{reason}. Training requires the owner or analyst role.</Note>;
   return (
     <div className="grid-1-2">
-      <Panel title="Start a training run" subtitle="Task: contact_2s, the chance of a fight within 2 s">
+      <Panel title="Start a training run" subtitle={TASKS.find((t) => t.id === task)?.hint}>
+        <label className="small">
+          Task{" "}
+          <select value={task} onChange={(e) => setTask(e.target.value as typeof task)}>
+            {TASKS.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </label>
         {datasets.length ? (
           <fieldset>
             <legend>Datasets</legend>
@@ -110,7 +127,7 @@ function Runs() {
         <div className="form-actions">
           <ActionButton
             variant="primary"
-            action={() => api.post<TrainingRun>("/api/v1/training/runs", { task: "contact_2s", ...(selected.length ? { datasets: selected } : {}), allowDuringLive: allowLive })}
+            action={() => api.post<TrainingRun>("/api/v1/training/runs", { task, ...(selected.length ? { datasets: selected } : {}), allowDuringLive: allowLive })}
             success={(r) => `Training run ${r.id} started on ${r.datasets.length} dataset(s)`}
             onDone={() => void runs.reload()}
             confirm={liveRunning && allowLive ? { title: "Train during a live broadcast?", body: "Training competes for CPU with the live engine and OBS. Only continue on a machine with spare capacity.", danger: true, confirmLabel: "Start anyway" } : undefined}
@@ -181,7 +198,7 @@ function Runs() {
   );
 }
 
-function ModelRow({ m, shadowId, reload }: { m: RegistryEntry; shadowId: string | null; reload: () => void }) {
+function ModelRow({ m, shadowId, povId, reload }: { m: RegistryEntry; shadowId: string | null; povId: string | null; reload: () => void }) {
   const reason = usePermission("models.promote");
   const [to, setTo] = useState("");
   const targets = PROMOTION_TARGETS[m.status] ?? ["shadow", "candidate", "approved", "retired", "rolled_back"];
@@ -198,6 +215,7 @@ function ModelRow({ m, shadowId, reload }: { m: RegistryEntry; shadowId: string 
       </td>
       <td>
         <Badge tone={STATUS_TONE[m.status] ?? "neutral"}>{human(m.status)}</Badge> {isShadow ? <Badge tone="info" icon="◐">In shadow</Badge> : null}
+        {povId === m.modelId ? <Badge tone="ok">Helps the Auto Director</Badge> : null}
       </td>
       <td className="small" title={test ? `Evaluated ${fmtTime(test.at)}` : undefined}>
         {test ? (
@@ -241,7 +259,13 @@ function ModelRow({ m, shadowId, reload }: { m: RegistryEntry; shadowId: string 
           >
             Apply
           </ActionButton>
-          {isShadow ? (
+          {m.task === "pov_2s" ? (
+            povId === m.modelId ? null : (
+              <ActionButton size="sm" variant="ghost" action={() => api.put<{ active: unknown; error: string | null }>("/api/v1/models/pov", { modelId: m.modelId, enabled: true })} success={(r) => (r.active ? `${m.modelId} now helps the Auto Director` : `Not loaded: ${r.error ?? "unknown reason"}`)} onDone={reload} disabledReason={reason ?? (!m.exportAvailable ? "No exported model" : null)}>
+                Use in the Auto Director
+              </ActionButton>
+            )
+          ) : isShadow ? (
             <ActionButton size="sm" variant="ghost" action={() => api.del("/api/v1/models/shadow")} success="Shadow model unloaded" onDone={reload} disabledReason={reason}>
               Unload shadow
             </ActionButton>
@@ -317,12 +341,18 @@ function Shadow() {
 
 export function TrainingScreen() {
   const models = useApi<ModelsResponse>("/api/v1/models", { refreshMs: 10000 });
+  const pov = useApi<{ active: { modelId: string } | null; setting: { modelId: string } }>("/api/v1/models/pov", { refreshMs: 10000 });
+  const povId = pov.data?.active ? pov.data.setting.modelId : null;
   return (
     <div className="page">
       <div className="page-head">
         <h1 className="page-title">Training &amp; Evaluation</h1>
       </div>
-      <p className="page-intro">Learned models run in shadow only: they are compared with the baseline and never drive the camera.</p>
+      <p className="page-intro">The demo-trained POV model helps the Auto Director pick whose POV to show; the test bench shows what it changes. Contact models run in shadow only.</p>
+      <div className="grid-1-2">
+        <DemoModelPanel />
+        <TestBench />
+      </div>
       <Runs />
       <div className="grid-2-1">
         <Panel title="Model registry">
@@ -343,7 +373,7 @@ export function TrainingScreen() {
                     </thead>
                     <tbody>
                       {d.models.map((m) => (
-                        <ModelRow key={m.modelId} m={m} shadowId={d.shadowModelId} reload={() => void models.reload()} />
+                        <ModelRow key={m.modelId} m={m} shadowId={d.shadowModelId} povId={povId} reload={() => { void models.reload(); void pov.reload(); }} />
                       ))}
                     </tbody>
                   </table>
@@ -353,7 +383,7 @@ export function TrainingScreen() {
           </Async>
           <Details summary="Promotion and live safety">
             <p className="small muted">
-              Learned models never take over on their own. Promotion through shadow → candidate → approved is a deliberate operator decision with a recorded reason, and in this build a loaded model runs in shadow only: it is compared against the baseline but never drives the camera. If a model fails to load or is rejected, the deterministic baseline policy continues unchanged.
+              Learned models never take over on their own. A POV model you train helps the Auto Director only when you choose it (Use in the Auto Director), and then only for half of its &quot;a fight is coming&quot; score. Contact models run in shadow only: compared against the baseline, never driving the camera. Promotion through shadow → candidate → approved is a deliberate operator decision with a recorded reason. If a model fails to load, the deterministic director continues unchanged.
             </p>
           </Details>
         </Panel>

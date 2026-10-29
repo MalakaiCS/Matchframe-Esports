@@ -19,7 +19,14 @@ from mf_evaluation.metrics import summarize
 from mf_features.features import FEATURE_CAPABILITIES
 
 from .data import TASK_LABELS, SplitData, heuristic_score, load_manifest, load_split
+from .pov import POV_CAPABILITIES, POV_FEATURES, POV_TASKS
 from .registry import register_model
+
+CAPABILITIES = {**FEATURE_CAPABILITIES, **POV_CAPABILITIES}
+HEURISTIC_FORMULA = {
+    "contact_2s": "clip((facing_max + 1) / 2, 0, 1)^2 * exp(-dist_3d / 1000)",
+    "pov_2s": "max over the player's T×CT pairs of clip((facing_max + 1) / 2, 0, 1)^2 * exp(-dist_3d / 1000)",
+}
 
 DEFAULT_PARAMS: dict[str, Any] = {
     "objective": "binary",
@@ -44,14 +51,25 @@ NOTES = (
 )
 
 
-def feature_list(feature_set: str) -> list[str]:
+def notes_for(task: str, train: SplitData) -> str:
+    if task not in POV_TASKS:
+        return NOTES
+    return (
+        f"Trained on {len(set(train.groups))} match(es) ({', '.join(sorted(set(train.maps)))}). "
+        "Run the director test bench before letting it steer the director: matches it was trained on score optimistically."
+    )
+
+
+def feature_list(feature_set: str, task: str = "contact_2s") -> list[str]:
+    if task in POV_TASKS:
+        return list(POV_FEATURES)
     if feature_set == "gsi_compatible":
         return [f for f, cap in FEATURE_CAPABILITIES.items() if cap == "gsi_compatible"]
     return list(FEATURE_CAPABILITIES)
 
 
 def required_capabilities(features: list[str]) -> list[str]:
-    caps = {FEATURE_CAPABILITIES[f] for f in features}
+    caps = {CAPABILITIES[f] for f in features}
     return ["gsi_compatible"] if caps == {"gsi_compatible"} else sorted(caps)
 
 
@@ -87,14 +105,20 @@ def _describe(d: SplitData) -> dict[str, Any]:
 
 
 def train_model(
-    task: str, manifest_path: Path, out_dir: Path, emitter: Emitter, seed: int = 7, feature_set: str = "gsi_compatible"
+    task: str,
+    manifest_path: Path,
+    out_dir: Path,
+    emitter: Emitter,
+    seed: int = 7,
+    feature_set: str = "gsi_compatible",
+    max_rounds: int = MAX_ROUNDS,
 ) -> dict[str, Any]:
     t0 = time.monotonic()
     if task not in TASK_LABELS:
         raise errors.MfError(errors.INSUFFICIENT_DATA, f"unknown task {task}")
     label = TASK_LABELS[task]
     manifest = load_manifest(manifest_path)
-    feats = feature_list(feature_set)
+    feats = feature_list(feature_set, task)
     emitter.progress("load", 0.1)
     train = load_split(manifest, "train", label, feats)
     val = load_split(manifest, "val", label, feats)
@@ -110,7 +134,7 @@ def train_model(
         valid_sets = [dval]
         callbacks = [lgb.early_stopping(EARLY_STOP, verbose=False)]
     emitter.progress("fit", 0.3, rows=train.n)
-    booster = lgb.train(params, dtrain, num_boost_round=MAX_ROUNDS, valid_sets=valid_sets, callbacks=callbacks)
+    booster = lgb.train(params, dtrain, num_boost_round=max_rounds, valid_sets=valid_sets, callbacks=callbacks)
     best_iter = booster.best_iteration or booster.current_iteration()
     model_text = booster.model_to_string(num_iteration=best_iter)
     model_hash = sha256_bytes(model_text.encode())
@@ -141,7 +165,7 @@ def train_model(
         "early_stopping": {"used": use_val, "rounds": EARLY_STOP if use_val else None, "on": "val" if use_val else None},
         "feature_set": feature_set,
         "features": feats,
-        "feature_capabilities": {f: FEATURE_CAPABILITIES[f] for f in feats},
+        "feature_capabilities": {f: CAPABILITIES[f] for f in feats},
         "required_capabilities": required_capabilities(feats),
         "feature_importance_gain": importance,
         "git_commit": git_commit(Path(__file__).resolve().parent),
@@ -154,11 +178,11 @@ def train_model(
         "data": {"train": _describe(train), "val": _describe(val)},
         "validation_metrics": metrics,
         "heuristic": {
-            "formula": "clip((facing_max + 1) / 2, 0, 1)^2 * exp(-dist_3d / 1000)",
+            "formula": HEURISTIC_FORMULA[task],
             "calibration": {"method": "platt_on_train", "a": platt[0], "b": platt[1]},
         },
         "model_sha256": model_hash,
-        "notes": NOTES,
+        "notes": notes_for(task, train),
     }
     write_json_atomic(mdir / "training_record.json", record)
     register_model(Path(out_dir), model_id, {"task": task, "path": str(mdir), "model_sha256": model_hash})

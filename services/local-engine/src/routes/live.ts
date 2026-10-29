@@ -106,7 +106,7 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
   });
 
   // ---- Auto Director (one button) --------------------------------------------------------
-  const AutoPatch = z.object({ cinematic: z.boolean().optional(), nadeCams: z.boolean().optional(), returnAfterSec: z.number().int().min(0).max(120).optional(), chase: z.boolean().optional(), clutch: z.boolean().optional() });
+  const AutoPatch = z.object({ cinematic: z.boolean().optional(), nadeCams: z.boolean().optional(), returnAfterSec: z.number().int().min(0).max(120).optional(), chase: z.boolean().optional(), clutch: z.boolean().optional(), variety: z.boolean().optional(), winnerShots: z.enum(["every_round", "big_rounds", "off"]).optional(), bigMoments: z.boolean().optional(), hlaePaths: z.boolean().optional() });
   r.get("/api/v1/director/auto", { permission: "state.read" }, () => e.autoDirector.status());
   r.post("/api/v1/director/auto/start", { permission: "director.control", body: AutoPatch }, async (req) => {
     e.audit.record(req.principal!.label, "director.auto_start_requested", null, req.body);
@@ -337,6 +337,22 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
     return { onAir: req.body.onAir, count: req.body.annotations.length };
   });
 
+  // ---- camera walkthrough: every camera of the map being played, Keep / Hide ---------------
+  const walk = e.cameraWalkthrough;
+  r.get("/api/v1/cameras/walkthrough", { permission: "state.read" }, () => walk.status());
+  r.post("/api/v1/cameras/walkthrough/start", { permission: "camera.control", body: z.object({ secondsPer: z.number().int().min(2).max(10).optional(), onlyUnreviewed: z.boolean().optional() }) }, (req) => {
+    e.audit.record(req.principal!.label, "cameras.walkthrough_start", null, req.body);
+    return walk.start(req.body);
+  });
+  r.post("/api/v1/cameras/walkthrough/next", { permission: "camera.control" }, () => walk.next());
+  r.post("/api/v1/cameras/walkthrough/previous", { permission: "camera.control" }, () => walk.previous());
+  r.post("/api/v1/cameras/walkthrough/stop", { permission: "camera.control" }, () => walk.stop());
+  r.get("/api/v1/cameras/review", { permission: "state.read" }, () => walk.reviews());
+  r.put("/api/v1/cameras/review", { permission: "metadata.write", body: z.object({ mapName: z.string().min(1), cameraId: z.string().min(1), verdict: z.enum(["keep", "hide"]).nullable() }) }, (req) => {
+    e.audit.record(req.principal!.label, "cameras.review", req.body.cameraId, { mapName: req.body.mapName, verdict: req.body.verdict });
+    return walk.review(req.body.mapName, req.body.cameraId, req.body.verdict);
+  });
+
   // ---- maps & cameras -------------------------------------------------------------------
   r.get("/api/v1/maps", { permission: "metadata.read" }, () =>
     e.maps.list().map((m) => ({ mapName: m.mapName, displayName: m.pack.displayName, revision: m.pack.mapRevision, regions: m.pack.regions.length, cameras: m.pack.cameras.map((c) => ({ id: c.id, displayName: c.displayName, validation: c.validation, mapRevision: c.mapRevision })), radar: m.pack.radar, floorGrid: !!m.pack.floorGrid, synthetic: m.mapName === "de_synthetic", provenance: m.pack.provenance })),
@@ -375,6 +391,12 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
     const outline = m.schematicOutline();
     if (!outline) throw new HttpError(404, "map pack has no geometry for an outline", "no_outline");
     return outline;
+  });
+  /** Save this view: where the camera is in CS2 now becomes one of your cameras (the desktop hotkey calls this). */
+  r.post("/api/v1/cameras/capture", { permission: "metadata.write", body: z.object({ displayName: z.string().min(1).max(80).optional(), uses: z.array(z.enum(["utility", "tactical", "bomb", "establishing"])).min(1).optional() }) }, async (req) => {
+    const cam = await e.cameraCapture.capture(req.body);
+    e.audit.record(req.principal!.label, "camera.capture", cam.id, { mapName: cam.mapName, position: cam.position, pitch: cam.pitch, yaw: cam.yaw });
+    return cam;
   });
   /** Camera authoring from real captured coordinates (CS2 `getpos` output). */
   r.post("/api/v1/maps/:map/cameras/from-getpos", { permission: "metadata.write", body: z.object({ id: z.string().regex(/^[a-z0-9-]{3,64}$/), displayName: z.string().min(1), getpos: z.string(), focus: z.object({ x: z.number(), y: z.number(), z: z.number() }), coverageRadiusUnits: z.number().positive().max(3000).default(600), targetRegionIds: z.array(z.string()).default([]), uses: z.array(z.enum(["utility", "tactical", "bomb", "establishing"])).min(1).optional() }) }, (req) => {

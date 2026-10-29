@@ -22,6 +22,7 @@ export async function main(): Promise<void> {
     sampleHudsDirs: process.env.MATCHFRAME_SAMPLE_HUDS_DIR ? pathList(process.env.MATCHFRAME_SAMPLE_HUDS_DIR) : [repoPath("assets", "hud-packages"), repoPath("apps", "hud-template", "dist")].filter((p): p is string => p !== null),
     mapPackDir: process.env.MATCHFRAME_MAP_PACK_DIR ?? repoPath("assets", "map-packs"),
     utilityProfilesFile: process.env.MATCHFRAME_UTILITY_PROFILES ?? repoPath("assets", "utility-profiles", "measured.json"),
+    builtinModelsDir: process.env.MATCHFRAME_MODELS_DIR ?? repoPath("assets", "models"),
     workersDir: process.env.MATCHFRAME_WORKERS_DIR ?? repoPath("workers"),
   });
   const engine = new Engine(cfg);

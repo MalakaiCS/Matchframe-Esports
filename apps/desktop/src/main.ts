@@ -2,7 +2,7 @@ import { fork, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { delimiter, extname, join, resolve, sep } from "node:path";
-import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, net, protocol, safeStorage, shell } from "electron";
+import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, net, Notification, protocol, safeStorage, shell } from "electron";
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron";
 import { HotkeyManager } from "./hud/hotkeys.ts";
 import { registerHudIpc } from "./hud/ipc.ts";
@@ -31,6 +31,8 @@ const PORTS = { gsi: Number(process.env.MATCHFRAME_GSI_PORT ?? 37210), api: Numb
 const LOCAL_ENGINE = `http://127.0.0.1:${PORTS.api}`;
 const APP_ORIGIN = "app://matchframe";
 const EMERGENCY_HOTKEY = process.env.MATCHFRAME_STOP_HOTKEY ?? "CommandOrControl+Shift+F12";
+/** Saves where the camera is in CS2 now as one of your cameras (works while CS2 has the focus). */
+const SAVE_VIEW_HOTKEY = process.env.MATCHFRAME_SAVE_VIEW_HOTKEY ?? "CommandOrControl+Shift+F11";
 
 /** Engine data folder; the program's own settings (credential key, connection, browser storage) live in its `program` subfolder. */
 const dataDir = () => process.env.MATCHFRAME_DATA_DIR ?? join(app.getPath("appData"), "Matchframe Esports");
@@ -261,6 +263,7 @@ function startEngine(): void {
     MATCHFRAME_MAP_PACK_DIR: resourcesPath(isDev ? "assets/map-packs" : "map-packs"),
     MATCHFRAME_RADAR_DIR: resourcesPath(isDev ? "assets/radars" : "radars"),
     MATCHFRAME_UTILITY_PROFILES: resourcesPath(isDev ? "assets/utility-profiles/measured.json" : "utility-profiles/measured.json"),
+    MATCHFRAME_MODELS_DIR: resourcesPath(isDev ? "assets/models" : "models"),
     MATCHFRAME_WORKERS_DIR: resourcesPath("workers"),
     MATCHFRAME_GSI_PORT: String(PORTS.gsi),
     MATCHFRAME_API_PORT: String(PORTS.api),
@@ -393,6 +396,26 @@ async function emergencyStop(): Promise<void> {
   }
 }
 
+/** The save-view hotkey: the engine reads CS2's camera (getpos) and saves it; a notification says how it went. */
+async function saveCs2View(): Promise<void> {
+  const token = accessToken();
+  if (!token) return;
+  let title = "Camera not saved";
+  let body: string;
+  try {
+    const res = await net.fetch(`${engineOrigin()}/api/v1/cameras/capture`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: "{}", signal: AbortSignal.timeout(5000) });
+    const json = (await res.json().catch(() => ({}))) as { displayName?: string; error?: { message?: string } };
+    if (res.ok) {
+      title = "Camera saved";
+      body = `${json.displayName ?? "Your camera"}: the Auto Director can use it in freeze time and for fights.`;
+    } else body = json.error?.message ?? `HTTP ${res.status}`;
+    win?.webContents.send("mf:camera-saved", { ok: res.ok, title, body });
+  } catch (e) {
+    body = e instanceof Error ? e.message : String(e);
+  }
+  if (Notification.isSupported()) new Notification({ title, body, silent: false }).show();
+}
+
 // ------------------------------------------------------------------ desktop HUDs
 
 /** Operator API call on the local engine from the main process (desktop HUD outputs only). */
@@ -471,7 +494,7 @@ function setUpDesktopHuds(): void {
   });
   overlays = om;
   om.init();
-  const hk = new HotkeyManager({ store, reserved: [EMERGENCY_HOTKEY], onToggle: () => om.toggleAll(), onEmergencyHide: () => void toggleEmergencyHide(), log: (msg) => console.error(`[hud] ${msg}`) });
+  const hk = new HotkeyManager({ store, reserved: [EMERGENCY_HOTKEY, SAVE_VIEW_HOTKEY], onToggle: () => om.toggleAll(), onEmergencyHide: () => void toggleEmergencyHide(), log: (msg) => console.error(`[hud] ${msg}`) });
   hotkeys = hk;
   registerHudIpc({
     overlays: om,
@@ -507,7 +530,7 @@ ipcMain.on("mf:bootstrap", (event) => {
   event.returnValue = fromApp(event) ? { engineOrigin: engineOrigin(), connectionMode: connection.mode } : null;
 });
 ipcMain.handle("mf:token", (event) => (fromApp(event) && !fromApp(event, "/connect") ? accessToken() : null));
-ipcMain.handle("mf:info", () => ({ version: app.getVersion(), dataDir: dataDir(), emergencyHotkey: EMERGENCY_HOTKEY, ports: PORTS, packaged: app.isPackaged, connection: connection.mode === "remote" ? { mode: "remote", url: connection.url } : { mode: "local" } }));
+ipcMain.handle("mf:info", () => ({ version: app.getVersion(), dataDir: dataDir(), emergencyHotkey: EMERGENCY_HOTKEY, saveViewHotkey: SAVE_VIEW_HOTKEY, ports: PORTS, packaged: app.isPackaged, connection: connection.mode === "remote" ? { mode: "remote", url: connection.url } : { mode: "local" } }));
 ipcMain.handle("mf:update-state", (event) => (fromApp(event) && updater ? updater.state() : null));
 ipcMain.handle("mf:update-check", (event) => (fromApp(event) && updater ? updater.check() : null));
 ipcMain.handle("mf:update-download", (event) => (fromApp(event) && updater ? updater.download() : null));
@@ -635,10 +658,17 @@ if (!app.requestSingleInstanceLock()) {
           ],
         },
         { label: "View", submenu: [{ role: "reload" }, { role: "togglefullscreen" }, ...(isDev ? [{ role: "toggleDevTools" as const }] : [])] },
-        { label: "Automation", submenu: [{ label: `Emergency stop (${EMERGENCY_HOTKEY})`, click: () => void emergencyStop() }] },
+        {
+          label: "Automation",
+          submenu: [
+            { label: `Emergency stop (${EMERGENCY_HOTKEY})`, click: () => void emergencyStop() },
+            { label: `Save the CS2 view as a camera (${SAVE_VIEW_HOTKEY})`, click: () => void saveCs2View() },
+          ],
+        },
       ]),
     );
     if (!globalShortcut.register(EMERGENCY_HOTKEY, () => void emergencyStop())) console.error(`could not register emergency-stop hotkey ${EMERGENCY_HOTKEY}`);
+    if (!globalShortcut.register(SAVE_VIEW_HOTKEY, () => void saveCs2View())) console.error(`could not register save-view hotkey ${SAVE_VIEW_HOTKEY}`);
     setUpDesktopHuds();
     updater = createUpdater({
       autoDownload: readProgramSettings().autoDownloadUpdates,

@@ -53,7 +53,7 @@ export class HotkeyManager {
     if (acceleratorKey(next.toggle) === acceleratorKey(next.emergencyHide)) throw new Error("The toggle and emergency hide hotkeys must be different.");
     for (const r of this.d.reserved) {
       for (const [name, accel] of [["toggle", next.toggle], ["emergency hide", next.emergencyHide]] as const) {
-        if (acceleratorKey(accel) === acceleratorKey(r)) throw new Error(`The ${name} hotkey ${accel} is already the program's emergency stop.`);
+        if (acceleratorKey(accel) === acceleratorKey(r)) throw new Error(`The ${name} hotkey ${accel} is already one of the program's own hotkeys (emergency stop, save the CS2 view).`);
       }
     }
     const wasActive = this.active;

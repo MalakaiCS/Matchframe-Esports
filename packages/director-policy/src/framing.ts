@@ -164,9 +164,14 @@ export function frameTeam(players: FramedPlayer[], space: FreeSpace, opts: Frame
   return best?.shot ?? null;
 }
 
+/** How a team shot looks: a little above head height (eye), from high up, low, or from their side. */
+export type TeamShotLook = "eye" | "high" | "low" | "side";
+
 export interface FrameOptions {
   /** No glide (a pause shot). */
   still?: boolean;
+  /** The look this shot leans to (variety from round to round); `eye` when absent. */
+  look?: TeamShotLook;
   /** Counts of spots turned down, by reason (diagnostics). */
   rejected?: Record<string, number>;
   /** Other players (feet): none may stand in the foreground of the shot, between the camera and the team. */
@@ -309,12 +314,13 @@ function frameGroup(group: FramedPlayer[], space: FreeSpace, opts: FrameOptions)
         const sFill = 1 - Math.min(1, Math.abs(placed.fill - 0.55) / 0.45);
         const sPitch = 1 - Math.min(1, Math.abs(pitch - 12) / 18);
         const sDist = 1 - Math.min(1, Math.abs(d - 480) / 450);
-        const sFace = facing(at);
+        const sFace = opts.look === "side" ? Math.max(0, 1 - Math.abs(facing(at) - 0.45) * 1.6) : facing(at);
+        const like = opts.look === "high" ? (h >= 220 ? 1 : h >= 160 ? 0.7 : 0.4) : opts.look === "low" ? (h <= 75 ? 1 : h <= 110 ? 0.8 : 0.4) : hLike;
         // How big they look: the middle player's distance from the camera.
         const range = median(group.map((p) => Math.hypot(p.position.x - at.x, p.position.y - at.y, p.position.z + CHEST - at.z)));
         const sSize = 1 - Math.min(1, Math.abs(range - BEST_RANGE) / 350);
         // Cheap parts first: the openness rays only for a spot that could still win.
-        const partial = 3 * sVis + 1.2 * sFill + 0.8 * sPitch + 0.6 * hLike + 0.8 * sFace + 0.5 * sDist + sSize;
+        const partial = 3 * sVis + 1.2 * sFill + 0.8 * sPitch + (opts.look && opts.look !== "eye" ? 1.4 : 0.6) * like + 0.8 * sFace + 0.5 * sDist + sSize;
         if (best && partial + 1 <= best.score) continue;
         const blk = blocked(at, focus);
         if (blk > MAX_BLOCKED) {
@@ -377,19 +383,24 @@ export function arcPoint(from: Vec3, to: Vec3, focus: Vec3, u: number): Vec3 {
  * The camera id of a team shot ("team-T", "team-CT"; a pause's still one "team-T-still"): its shot
  * key is cameraShot(id). The still one has its own, so a pause cuts to it from the same team's glide.
  */
-export const teamCameraId = (side: "T" | "CT", still = false): string => `team-${side}${still ? "-still" : ""}`;
+/**
+ * A team shot's camera id: `team-T`, `team-T-still` (a pause), `team-T-win` (the winners after a
+ * round) or `team-T-break` (half time, map end). Each is its own shot, so a round's freeze time can
+ * still show the team after the round before ended on them.
+ */
+export const teamCameraId = (side: "T" | "CT", still = false, variant: "win" | "break" | null = null): string => `team-${side}${still ? "-still" : variant ? `-${variant}` : ""}`;
 
 /** The side of a team shot's camera id, or null for any other camera. */
 export function teamShotSide(cameraId: string | null): "T" | "CT" | null {
-  const m = /^team-(T|CT)(-still)?$/.exec(cameraId ?? "");
+  const m = /^team-(T|CT)(-still|-win|-break)?$/.exec(cameraId ?? "");
   return m ? (m[1] as "T" | "CT") : null;
 }
 
 /** The camera record a team shot is shown with (its first pose; the glide comes with the shot). */
-export function teamCamera(side: "T" | "CT", mapName: string, shot: Pick<TeamShot, "from" | "focus">, plannedDurationMs: number, still = false): CameraRecord {
+export function teamCamera(side: "T" | "CT", mapName: string, shot: Pick<TeamShot, "from" | "focus">, plannedDurationMs: number, still = false, id = teamCameraId(side, still)): CameraRecord {
   const aim = aimAt(shot.from, shot.focus);
   return {
-    id: teamCameraId(side, still),
+    id,
     displayName: side === "T" ? "Team shot: Terrorists" : "Team shot: Counter-Terrorists",
     mapName,
     mapRevision: "live",

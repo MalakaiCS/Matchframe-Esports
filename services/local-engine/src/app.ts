@@ -50,6 +50,10 @@ import { buildBracket, computeStandings } from "./domain/standings.ts";
 import { DemoLibrary, PythonWorkerRunner } from "./demos/library.ts";
 import { PythonSetup } from "./demos/python-setup.ts";
 import { DatasetStorage } from "./demos/storage.ts";
+import { CameraWalkthrough } from "./live/camera-walkthrough.ts";
+import { DirectorBench } from "./demos/bench-service.ts";
+import { PovModelService } from "./demos/pov-model.ts";
+import { CameraCapture } from "./live/camera-capture.ts";
 import { RoundSimulator } from "./sim/simulator.ts";
 import { GameConsoleService } from "./game/console.ts";
 import { BuiltinRadars } from "./live/builtin-radars.ts";
@@ -140,6 +144,10 @@ export class Engine {
   readonly demos: DemoLibrary;
   readonly workers: PythonWorkerRunner;
   readonly pythonSetup: PythonSetup;
+  readonly cameraWalkthrough: CameraWalkthrough;
+  readonly bench: DirectorBench;
+  readonly povModel: PovModelService;
+  readonly cameraCapture: CameraCapture;
   readonly datasetStorage: DatasetStorage;
   readonly training: TrainingService;
   /** Utility profiles in use and which types come from demo measurements. */
@@ -286,9 +294,14 @@ export class Engine {
     };
     this.demos = new DemoLibrary(this.demoJobs, this.settings, this.workers, this.logger, cfg.dataDir, broadcastLive);
     this.datasetStorage = new DatasetStorage({ settings: this.settings, secrets: this.secrets, repo: this.demoJobs, runner: this.workers, library: this.demos, logger: this.logger, isLive: broadcastLive });
+    this.povModel = new PovModelService({ settings: this.settings, session: this.session, builtinDir: cfg.builtinModelsDir, modelsDir: this.training.modelsDir, registry: () => this.training.registry(), logger: this.logger });
+    this.bench = new DirectorBench({ workers: this.workers, repo: this.demoJobs, maps: this.maps, settings: this.settings, logger: this.logger, dataDir: cfg.dataDir, isLive: broadcastLive, povModel: this.povModel, directorConfig: () => this.session.director.config });
 
     this.gameConsole = new GameConsoleService({ settings: this.settings, teams: this.teams, logger: this.logger });
+    this.cameraWalkthrough = new CameraWalkthrough({ settings: this.settings, maps: this.maps, session: this.session });
+    this.cameraCapture = new CameraCapture({ session: this.session, maps: this.maps, settings: this.settings, applyOverrides: (m) => this.applyCameraOverrides(m) });
     this.autoDirector = new AutoDirector(this);
+    this.autoDirector.applyCinematics();
     this.replayLink = new ReplayLink(this);
     this.onAir = new OnAirLog(() => this.now());
     this.autoReplay = new AutoReplay(this);
@@ -788,6 +801,8 @@ export class Engine {
           onCommand: (line) => this.directorLog.info("console", { line }),
           // CS2 saying a command didn't work ("Unknown command", cheat-protected…).
           onConsoleReply: (line) => this.directorLog.warn("console reply", { line }),
+          // Camera paths through HLAE's mirv_campath: the card's option, in the HLAE launch mode only.
+          hlaePaths: () => (this.autoDirector?.settings().hlaePaths && this.gameConsole.profile().mode === "hlae" ? { dir: join(this.cfg.dataDir, "campaths") } : null),
           // Keep the spec_mode numbering that moved the camera on this build.
           onModesLearned: (modes) => {
             const cur = this.observerSettings();
@@ -932,6 +947,7 @@ export class Engine {
     void this.cloud.start();
     this.demos.start();
     const shadowIssue = this.training.restore();
+    this.povModel.apply();
     if (shadowIssue) this.audit.record("system", "model.shadow_rejected", this.settings.get("models.shadowModelId", null), { reason: shadowIssue });
     // Restart always resumes in manual/disarmed mode until sources and ownership are validated.
     this.session.setMode("advisory");

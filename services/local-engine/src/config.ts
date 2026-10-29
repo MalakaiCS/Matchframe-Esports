@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { delimiter, join } from "node:path";
 
-export const APP_VERSION = "0.6.8";
+export const APP_VERSION = "0.7.0";
 
 export interface EngineConfig {
   /** Bind host. Loopback by default; LAN exposure is an explicit operator choice. */
@@ -23,6 +23,8 @@ export interface EngineConfig {
   radarDir: string | null;
   /** Measured utility profiles (workers `measure-utility` output); defaults are used when absent. */
   utilityProfilesFile: string | null;
+  /** Built-in models shipped with the app (assets/models: `pov_2s-builtin/`). */
+  builtinModelsDir: string | null;
   /** Python interpreter for workers (demo parsing, training). */
   pythonPath: string | null;
   workersDir: string | null;
@@ -67,6 +69,7 @@ export function loadConfig(overrides: Partial<EngineConfig> = {}): EngineConfig 
     mapPackDir: process.env.MATCHFRAME_MAP_PACK_DIR ?? null,
     radarDir: process.env.MATCHFRAME_RADAR_DIR ?? null,
     utilityProfilesFile: process.env.MATCHFRAME_UTILITY_PROFILES ?? null,
+    builtinModelsDir: process.env.MATCHFRAME_MODELS_DIR ?? null,
     pythonPath: process.env.MATCHFRAME_PYTHON ?? null,
     workersDir: process.env.MATCHFRAME_WORKERS_DIR ?? null,
     allowedOrigins: (process.env.MATCHFRAME_ALLOWED_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean),

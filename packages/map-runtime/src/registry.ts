@@ -40,6 +40,7 @@ export class MapRegistry {
   private readonly grids = new Map<string, VisibilityGrid>();
   readonly issues: LoadIssue[] = [];
   private builtIn = true;
+  private readonly hidden = new Map<string, ReadonlySet<string>>();
 
   /** Built-in cameras and paths on or off for every map (see MapRuntime.builtInCameras). */
   setBuiltInCameras(on: boolean): void {
@@ -49,6 +50,14 @@ export class MapRegistry {
 
   get builtInCameras(): boolean {
     return this.builtIn;
+  }
+
+  /** Cameras hidden on a map (see MapRuntime.hiddenCameras); they stay hidden when its pack is registered again. */
+  setHiddenCameras(map: string, ids: Iterable<string>): void {
+    const set = new Set(ids);
+    this.hidden.set(map, set);
+    const rt = this.runtimes.get(map);
+    if (rt) rt.hiddenCameras = set;
   }
 
   /** A map's free-space grid; it stays with the map when its pack is registered again. */
@@ -61,6 +70,7 @@ export class MapRegistry {
   register(pack: MapPack): MapRuntime {
     const rt = new MapRuntime(pack);
     rt.builtInCameras = this.builtIn;
+    rt.hiddenCameras = this.hidden.get(pack.mapName) ?? new Set();
     rt.grid = this.grids.get(pack.mapName) ?? null;
     this.runtimes.set(pack.mapName, rt);
     return rt;

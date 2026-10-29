@@ -109,6 +109,13 @@ export const REASON_CODES = [
   "MAIN_OBSERVER_ON_IT",
   /** No longer given since 0.6.5 (follow cams removed); kept so older director logs read. */
   "FOLLOW_CAM",
+  /** Just got a kill, still alive, enemies close: a multi-frag may follow. */
+  "MULTI_FRAG_CHANCE",
+  "ROUND_WINNERS",
+  "PISTOL_ROUND",
+  "MATCH_POINT",
+  "HALF_TIME",
+  "MAP_END",
 ] as const;
 export const ReasonCode = z.enum(REASON_CODES);
 export type ReasonCode = z.infer<typeof ReasonCode>;

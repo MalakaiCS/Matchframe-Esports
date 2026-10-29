@@ -59,6 +59,8 @@ describe("Director over a round: freeze time cinematics, then first person once 
     const consolePort = await freePort();
     engine = new Engine(loadConfig({ dataDir: join(work, "data"), gsiPort: ports.gsi, apiPort: ports.api, overlayPort: ports.overlay, host: "127.0.0.1", captainUiDir: null, hudRendererDir: null, mapPackDir: resolve(__dirname, "../../../assets/map-packs"), workersDir: null, pythonPath: null, sampleHudsDirs: [], cloudEnforcement: "off" }));
     await engine.init();
+    // Both teams every freeze time (round-to-round variety and big moments have their own tests).
+    engine.autoDirector.setSettings({ variety: false, bigMoments: false });
     servers = await startServers(engine);
     cs2 = new TimedCs2({
       gsiUrl: `http://127.0.0.1:${ports.gsi}/gsi`,

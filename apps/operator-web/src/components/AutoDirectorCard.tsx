@@ -119,6 +119,39 @@ export function AutoDirectorCard({ compact = false }: { compact?: boolean }) {
           hint="When one player is left alone against the other team, stay with them: no cuts to cameras, and the chase view while no opponent is near. A won clutch is replayed if automatic replays are on."
           onChange={(v) => void save({ clutch: v })}
         />
+        {compact || !(set.cinematic || set.nadeCams) ? null : (
+          <>
+            <Checkbox
+              checked={set.variety !== false}
+              disabled={!!reason || busy}
+              label="Different freeze times"
+              hint="Not the same shots every round: sometimes one longer shot of one team, from high up, low or from their side; no team shot of a team saving on an eco; cameras used in the last rounds give way to others."
+              onChange={(v) => void save({ variety: v })}
+            />
+            <Checkbox
+              checked={set.bigMoments !== false}
+              disabled={!!reason || busy}
+              label="Big moments"
+              hint="A wide opener before each pistol round, the team on match point first and longer, and slow shots of the map at half time and at the end of the map (the winners first)."
+              onChange={(v) => void save({ bigMoments: v })}
+            />
+            <label className="autodir-return">
+              <span className="small muted">After the round, show the winners</span>
+              <select value={set.winnerShots ?? "every_round"} disabled={!!reason || busy} onChange={(e) => void save({ winnerShots: e.target.value as "every_round" | "big_rounds" | "off" })}>
+                <option value="every_round">every round</option>
+                <option value="big_rounds">big rounds only</option>
+                <option value="off">never</option>
+              </select>
+            </label>
+            <Checkbox
+              checked={set.hlaePaths === true}
+              disabled={!!reason || busy}
+              label="Camera paths through HLAE (experimental)"
+              hint="In the Observer tools + HLAE launch mode, camera paths are played by HLAE (mirv_campath), which moves the camera every frame. Not yet tried live: if a path doesn't start, Matchframe moves the camera itself as before."
+              onChange={(v) => void save({ hlaePaths: v })}
+            />
+          </>
+        )}
         {compact ? null : (
           <label className="autodir-return">
             <span className="small muted">When I pick a player, take the camera back after</span>

@@ -4,9 +4,10 @@ import type { Pin, ScoredCandidate } from "./candidates.ts";
 import { utilityOf } from "./candidates.ts";
 import type { DirectorConfig } from "./config.ts";
 import type { InteractionFeatures } from "./features/interactions.ts";
+import type { MatchMoment } from "./features/moments.ts";
 import type { RoundContext } from "./features/significance.ts";
 import type { CameraMatch } from "@matchframe/map-runtime";
-import type { TeamShot } from "./framing.ts";
+import type { TeamShot, TeamShotLook } from "./framing.ts";
 import { teamCameraId } from "./framing.ts";
 import type { ShotKey } from "./shots.ts";
 import { cameraShot, pathShot } from "./shots.ts";
@@ -28,6 +29,8 @@ export interface CinematicInput {
   currentShotSinceMs?: number | null | undefined;
   /** Cinematic shots already played this round (none plays twice in a round). */
   shownThisRound?: ReadonlySet<ShotKey> | undefined;
+  /** Rounds since a shot last played (1: last round), null if not lately: recent ones give way to others. */
+  roundsSinceShown?: ((shot: ShotKey) => number | null) | undefined;
   /** Clear line between two points in the map's free-space grid, when the map has one. */
   sight?: ((a: Vec3, b: Vec3) => boolean) | undefined;
   /** How long the round has been live (ms), or null outside a live round. */
@@ -42,7 +45,11 @@ export interface CinematicInput {
    * A shot of one team from where its players stand (the map's free-space grid frames it), gliding
    * slowly round them, or still; null when no spot frames them. Absent without a grid.
    */
-  teamShot?: ((side: "T" | "CT", still: boolean) => TeamShot | null) | undefined;
+  teamShot?: ((side: "T" | "CT", still: boolean, look?: TeamShotLook) => TeamShot | null) | undefined;
+  /** How long the round has been over (ms), or null while it isn't. */
+  overForMs?: number | null | undefined;
+  /** Where the match stands: pistol round, match point, half time, map end, the last round's winner. */
+  moment?: MatchMoment | null | undefined;
 }
 
 /** Freeze time shorter than this is not worth an establishing shot. */
@@ -55,6 +62,18 @@ const ESTABLISHING_SHOT_MIN_SEC = 4;
 const ESTABLISHING_OVERRUN_MS = 1500;
 /** The shot a pause (tactical or technical timeout) is held on lasts until the round goes live, up to this. */
 export const PAUSE_HOLD_MS = 180_000;
+/** The winners' shot starts this long after the round ends (the last kill stays on air first). */
+const WINNER_DELAY_MS = 2000;
+/** A team whose players have less than this on average (money and equipment) is on an eco. */
+const ECO_VALUE = 2500;
+/** Team-shot looks, in turn from round to round (with variety on). */
+const LOOKS: readonly TeamShotLook[] = ["eye", "high", "side", "eye", "low"];
+/** A camera or path that played 1, 2 or 3 rounds ago scores this much lower (variety across rounds). */
+const RECENT_PENALTY = [0, 0.18, 0.1, 0.05];
+const recentPenalty = (input: CinematicInput, key: ShotKey): number => {
+  const r = input.roundsSinceShown?.(key);
+  return r == null ? 0 : (RECENT_PENALTY[r] ?? 0);
+};
 /** Freeze-time shots from the map's cameras turn slowly: degrees a second, and at most this far in a shot. */
 const PAN_DEG_PER_SEC = 3;
 const PAN_MAX_DEG = 30;
@@ -105,6 +124,9 @@ interface Trigger {
 export function cinematicCandidates(input: CinematicInput): ScoredCandidate[] {
   const { state, map, cfg } = input;
   if (!map || map.mapName !== state.mapName) return [];
+  const m = input.moment;
+  // Half time and the end of the map: slow shots of the map and the teams, the winners first.
+  if (m && cfg.cinematic.bigMoments && (m.halfTime || m.mapEnd)) return establishingCandidates(input, new Set(), m.mapEnd ? "map_end" : "half_time");
   const phase = state.roundPhase === "freezetime" ? "freezetime" : state.roundPhase === "live" ? "live" : state.roundPhase === "over" ? "over" : null;
   if (!phase) return [];
   const inPhase = (cam: CameraRecord) => cam.allowedPhases.includes(phase);
@@ -146,6 +168,7 @@ export function cinematicCandidates(input: CinematicInput): ScoredCandidate[] {
   const seen = new Set<string>();
 
   if (phase === "freezetime") out.push(...establishingCandidates(input, seen));
+  if (phase === "over") out.push(...winnerCandidates(input, seen));
   for (const t of triggers.sort((a, b) => b.value - a.value)) {
     const cam = t.match.camera;
     const key = cameraShot(cam.id);
@@ -175,7 +198,7 @@ export function cinematicCandidates(input: CinematicInput): ScoredCandidate[] {
     }
     if (valid) reasons.push("CINEMATIC_ELIGIBLE");
     const components: ScoreComponents = {
-      actionCoverage: t.value,
+      actionCoverage: clamp01(t.value - (isCurrent || t.shotClass === "bomb_resolution" ? 0 : recentPenalty(input, key))),
       imminence: t.imminence,
       readiness: t.readiness,
       significance: t.significance,
@@ -223,9 +246,10 @@ export function cinematicCandidates(input: CinematicInput): ScoredCandidate[] {
  * In a pause (tactical or technical timeout) the camera cuts to a still shot of one team (the team
  * that called it) and stays there until the round goes live.
  */
-function establishingCandidates(input: CinematicInput, seen: Set<string>): ScoredCandidate[] {
+function establishingCandidates(input: CinematicInput, seen: Set<string>, mode: "freeze" | "half_time" | "map_end" = "freeze"): ScoredCandidate[] {
   const { state, map, cfg } = input;
   if (!map) return [];
+  const interval = mode !== "freeze";
   const left = projectCountdown({ countdownSec: state.phaseEndsInSec, observedAtMonotonicMs: state.phaseObservedAtMonotonicMs, nowMonotonicMs: input.now, running: !state.paused }).remainingSec;
   const shown = input.shownThisRound ?? new Set<ShotKey>();
   const playedEstablishing = [...shown].filter((k) => !k.startsWith("pov:")).length;
@@ -246,14 +270,19 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
     left === null ? 8000 : shotsLeft === 1 ? left * 1000 + ESTABLISHING_OVERRUN_MS : Math.max(ESTABLISHING_SHOT_MIN_SEC * 1000, (left * 1000) / shotsLeft),
   );
   const options: EstablishingOption[] = [];
+  const plan = freezePlan(input, mode);
+  const firstSide = plan.sides[0] ?? ((state.roundNumber ?? 0) % 2 === 0 ? "T" : "CT");
+  // One longer shot of one team: most of the freeze time.
+  const longMs = left === null ? 10_000 : Math.min(cfg.cinematic.establishingMaxMs, Math.max(nextMs, left * 1000 * 0.7));
   // Team shots first (still ones in a pause).
-  const firstSide = (state.roundNumber ?? 0) % 2 === 0 ? "T" : "CT";
-  for (const side of firstSide === "T" ? (["T", "CT"] as const) : (["CT", "T"] as const)) {
-    const shot = input.teamShot?.(side, !!input.pause);
-    if (!shot) continue;
+  plan.sides.forEach((side, i) => {
+    const look = input.pause || interval || !cfg.cinematic.variety ? "eye" : LOOKS[((state.roundNumber ?? 0) + 2 * i) % LOOKS.length]!;
+    const shot = input.teamShot?.(side, !!input.pause, look);
+    if (!shot) return;
     const ids = new Set(shot.steamIds);
-    options.push({ key: cameraShot(teamCameraId(side, !!input.pause)), shotClass: "establishing", camera: null, path: null, team: { side, shot }, regionIds: [], durationMs: nextMs, players: alive.filter((p) => ids.has(p.steamId)) });
-  }
+    const key = cameraShot(teamCameraId(side, !!input.pause, interval ? "break" : null));
+    options.push({ key, shotClass: "establishing", camera: null, path: null, team: { side, shot }, regionIds: [], durationMs: plan.longSide === side ? longMs : nextMs, players: alive.filter((p) => ids.has(p.steamId)) });
+  });
   for (const m of map.camerasWith?.({ actionClass: "establishing", phase: "freezetime" }) ?? []) {
     const cam = m.camera;
     options.push({ key: cameraShot(cam.id), shotClass: "establishing", camera: cam, path: null, regionIds: cam.targetRegionIds, durationMs: nextMs, players: inView(cam.position, cam.targetRegionIds) });
@@ -268,21 +297,21 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
   // The side of the spawn each shot already played this round showed (the other spawn comes next).
   const shownSides = new Set<string>();
   for (const o of options) if (shown.has(o.key)) for (const p of o.players) shownSides.add(p.side!);
-  // Turning one way, then the other.
-  const panSign = playedEstablishing % 2 === 0 ? 1 : -1;
+  // Turning one way, then the other (starting the other way round each round).
+  const panSign = (playedEstablishing + (state.roundNumber ?? 0)) % 2 === 0 ? 1 : -1;
   const out: ScoredCandidate[] = [];
   for (const o of options) {
     const isCurrent = input.currentShot === o.key;
     if (seen.has(o.key) || (shown.has(o.key) && !isCurrent) || o.players.length < need) continue;
     // A new shot needs the time to play it, and fits the freeze time's quota.
-    if (!isCurrent && (playedEstablishing >= cfg.cinematic.establishingPerRound || (left !== null && left < ESTABLISHING_MIN_LEFT_SEC))) continue;
+    if (!isCurrent && (playedEstablishing >= (interval ? 12 : cfg.cinematic.establishingPerRound) || (left !== null && left < ESTABLISHING_MIN_LEFT_SEC))) continue;
     seen.add(o.key);
     const sides = new Set(o.players.map((p) => p.side!));
     const fresh = [...sides].some((x) => !shownSides.has(x));
-    const reasons: ReasonCode[] = ["ESTABLISHING"];
+    const reasons: ReasonCode[] = ["ESTABLISHING", ...plan.reasons];
     let valid = true;
     let invalidReason: string | null = null;
-    if (!input.cinematicsAllowed.allowed && !isCurrent) {
+    if (!input.cinematicsAllowed.allowed && !isCurrent && !(interval && input.cinematicsAllowed.reason === "CINEMATIC_BUDGET_EXHAUSTED")) {
       valid = false;
       invalidReason = "cinematics not allowed";
       if (input.cinematicsAllowed.reason) reasons.push(input.cinematicsAllowed.reason);
@@ -299,13 +328,16 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
     if (valid) reasons.push("CINEMATIC_ELIGIBLE");
     // More players in the shot, a team not shown yet, and a path (when they are on) over a still
     // camera; a team shot tells the story better than the map's cameras (the team whose turn it is first).
-    const coverage = clamp01(0.45 + 0.08 * o.players.length + (fresh ? 0.12 : 0) + (o.path ? 0.04 : 0));
+    // The map's cameras and paths that played in the last rounds give way to others (team shots are
+    // framed afresh from where the players stand, so they never repeat).
+    const coverage = clamp01(0.45 + 0.08 * o.players.length + (fresh ? 0.12 : 0) + (o.path ? 0.04 : 0) - (o.team || isCurrent ? 0 : recentPenalty(input, o.key)));
     const components: ScoreComponents = {
       actionCoverage: coverage,
       imminence: 0.5,
       readiness: 0.5,
       significance: 0.5,
-      narrative: o.team ? (o.team.side === firstSide ? 0.95 : 0.94) : 0.7,
+      // A pistol round opens wide: the map's camera first (when one shows the players), then the teams.
+      narrative: o.team ? (o.team.side === firstSide ? 0.95 : 0.94) : plan.opener && playedEstablishing === 0 ? 0.97 : 0.7,
       framing: 1,
       continuity: isCurrent ? 1 : 0,
       mainStory: 0,
@@ -318,7 +350,7 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
       shotClass: o.shotClass,
       shotKey: o.key,
       targetSteamId: null,
-      cameraId: o.camera?.id ?? (o.team ? teamCameraId(o.team.side, !!input.pause) : null),
+      cameraId: o.camera?.id ?? (o.team ? teamCameraId(o.team.side, !!input.pause, interval ? "break" : null) : null),
       clusterId: null,
       regionIds: o.regionIds,
       components,
@@ -336,6 +368,117 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>): Score
     });
   }
   return out;
+}
+
+/**
+ * Which team shots a freeze time (or half time, the map's end) has, in order: a pistol round opens
+ * with the map's camera; the team on match point comes first and longer; with variety on, a team on
+ * an eco gets no team shot and every third round has one longer shot of one team. Half time: the
+ * team ahead first; the map's end: the winners first.
+ */
+function freezePlan(input: CinematicInput, mode: "freeze" | "half_time" | "map_end"): { sides: ("T" | "CT")[]; longSide: "T" | "CT" | null; opener: boolean; reasons: ReasonCode[] } {
+  const { state, cfg } = input;
+  const m = cfg.cinematic.bigMoments ? input.moment : null;
+  const other = (s: "T" | "CT") => (s === "T" ? "CT" : "T");
+  const turn: "T" | "CT" = (state.roundNumber ?? 0) % 2 === 0 ? "T" : "CT";
+  const both = (first: "T" | "CT") => [first, other(first)];
+  if (mode !== "freeze") {
+    const t = state.teams.T.score ?? 0;
+    const ct = state.teams.CT.score ?? 0;
+    const lead = mode === "map_end" && input.moment?.lastWinner ? input.moment.lastWinner : t === ct ? turn : t > ct ? "T" : "CT";
+    return { sides: both(lead), longSide: null, opener: false, reasons: [mode === "map_end" ? "MAP_END" : "HALF_TIME"] };
+  }
+  if (input.pause) return { sides: both(turn), longSide: null, opener: false, reasons: [] };
+  if (m?.matchPoint.length === 1) return { sides: both(m.matchPoint[0]!), longSide: m.matchPoint[0]!, opener: false, reasons: ["MATCH_POINT"] };
+  if (m?.matchPoint.length === 2) return { sides: both(turn), longSide: null, opener: false, reasons: ["MATCH_POINT"] };
+  if (m?.pistol) return { sides: both(turn), longSide: null, opener: true, reasons: ["PISTOL_ROUND"] };
+  if (!cfg.cinematic.variety) return { sides: both(turn), longSide: null, opener: false, reasons: [] };
+  const value = (side: "T" | "CT") => {
+    const team = state.players.filter((p) => p.side === side && !p.coach);
+    const known = team.filter((p) => p.money !== null || p.equipValue !== null);
+    return known.length ? known.reduce((s, p) => s + (p.money ?? 0) + (p.equipValue ?? 0), 0) / known.length : null;
+  };
+  const eco = (["T", "CT"] as const).filter((s) => {
+    const v = value(s);
+    return v !== null && v < ECO_VALUE;
+  });
+  if (eco.length === 1) return { sides: [other(eco[0]!)], longSide: null, opener: false, reasons: [] };
+  if ((state.roundNumber ?? 0) % 3 === 0) return { sides: [turn], longSide: turn, opener: false, reasons: [] };
+  return { sides: both(turn), longSide: null, opener: false, reasons: [] };
+}
+
+/**
+ * After the round: the winners, framed where they stand and gliding slowly, from 2 s after the round
+ * ends (the last kill stays on air first) until the next freeze time. Every round, big rounds only
+ * (pistol rounds, the end of a half, match point, the map), or never (`winnerShots`).
+ */
+function winnerCandidates(input: CinematicInput, seen: Set<string>): ScoredCandidate[] {
+  const { cfg, state } = input;
+  const m = input.moment;
+  const mode = cfg.cinematic.winnerShots;
+  if (!m?.lastWinner || mode === "off" || (mode === "big_rounds" && !m.lastRoundBig) || !input.teamShot) return [];
+  const id = teamCameraId(m.lastWinner, false, "win");
+  const key = cameraShot(id);
+  const isCurrent = input.currentShot === key;
+  if (seen.has(key) || (!isCurrent && ((input.overForMs ?? 0) < WINNER_DELAY_MS || input.shownThisRound?.has(key)))) return [];
+  const shot = input.teamShot(m.lastWinner, false, "eye");
+  if (!shot) return [];
+  seen.add(key);
+  const left = projectCountdown({ countdownSec: state.phaseEndsInSec, observedAtMonotonicMs: state.phaseObservedAtMonotonicMs, nowMonotonicMs: input.now, running: !state.paused }).remainingSec;
+  const durationMs = Math.max(2500, Math.min(8000, left === null ? 4000 : left * 1000 + 500));
+  const reasons: ReasonCode[] = ["ROUND_WINNERS"];
+  let valid = true;
+  let invalidReason: string | null = null;
+  // The round's cinematic budget is for the live round; a disabled or clutch-only director still says no.
+  if (!input.cinematicsAllowed.allowed && !isCurrent && input.cinematicsAllowed.reason !== "CINEMATIC_BUDGET_EXHAUSTED" && input.cinematicsAllowed.reason !== "CLUTCH") {
+    valid = false;
+    invalidReason = "cinematics not allowed";
+    if (input.cinematicsAllowed.reason) reasons.push(input.cinematicsAllowed.reason);
+  }
+  if (!cameraControlUsable(input.capabilities)) {
+    valid = false;
+    invalidReason = "static camera control not verified for this environment";
+    reasons.push("CAMERA_UNVERIFIED");
+  }
+  if (input.oneSide || (input.pin && input.pin.kind !== "cluster")) {
+    valid = false;
+    invalidReason = "pinned/one-side profile active";
+  }
+  if (valid) reasons.push("CINEMATIC_ELIGIBLE");
+  const components: ScoreComponents = {
+    actionCoverage: 0.8,
+    imminence: 0.3,
+    readiness: 0.5,
+    significance: m.lastRoundBig ? 0.9 : 0.6,
+    narrative: 0.9,
+    framing: 1,
+    continuity: isCurrent ? 1 : 0,
+    mainStory: 0,
+    switchCost: isCurrent ? 0 : cfg.baseSwitchCost + 0.02,
+    stalenessPenalty: 0,
+    cinematicOpportunityCost: 0.03,
+  };
+  return [
+    {
+      candidateId: `cand:${key}:establishing`,
+      shotClass: "establishing",
+      shotKey: key,
+      targetSteamId: null,
+      cameraId: id,
+      clusterId: null,
+      regionIds: [],
+      components,
+      utility: valid ? utilityOf(components, cfg.weights) : -1,
+      reasonCodes: reasons,
+      valid,
+      invalidReason,
+      evidenceType: "estimated",
+      opportunity: null,
+      plannedDurationMs: durationMs,
+      urgent: false,
+      framing: { from: shot.from, to: shot.to, focus: shot.focus },
+    },
+  ];
 }
 
 interface EstablishingOption {

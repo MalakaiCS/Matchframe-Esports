@@ -65,6 +65,12 @@ export const REASON_INFO: Record<ReasonCode, ReasonInfo> = {
   NO_VALID_CANDIDATE: { label: "No valid candidate", tone: "warn", hint: "No usable shot was found; holding." },
   MAIN_OBSERVER_ON_IT: { label: "Main camera has them", tone: "neutral", hint: "Replay PC: the main PC already shows this player, so this computer films someone else." },
   FOLLOW_CAM: { label: "Follow cam", tone: "info", hint: "A player is running somewhere with no fight close: a free camera can fly behind them." },
+  MULTI_FRAG_CHANCE: { label: "Multi-frag chance", tone: "info", hint: "Just got a kill, still alive, with enemies close: another kill often follows, so the director stays on (or goes to) this player." },
+  ROUND_WINNERS: { label: "Round winners", tone: "info", hint: "A short shot of the team that won the round, where they stand, 2 s after the round ends." },
+  PISTOL_ROUND: { label: "Pistol round", tone: "info", hint: "Freeze time before a pistol round: it opens wide with the map's camera, then the teams." },
+  MATCH_POINT: { label: "Match point", tone: "info", hint: "A team is one round from winning the map: its team shot comes first and runs longer." },
+  HALF_TIME: { label: "Half time", tone: "info", hint: "Slow shots of the map and the teams during half time, the team ahead first." },
+  MAP_END: { label: "Map end", tone: "info", hint: "The end of the map: the winners first, then slow shots of the map." },
 };
 
 export function reasonInfo(code: string): ReasonInfo {

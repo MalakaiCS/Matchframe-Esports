@@ -27,6 +27,9 @@ interface ActiveCinematic {
   opportunityId: string | null;
 }
 
+/** Cinematic shots are remembered for this many rounds (see `roundsSinceShown`). */
+const RECENT_ROUNDS = 4;
+
 /**
  * Temporal planning with hysteresis (spec §11.3). Holds the current shot unless an alternative is
  * better by a threshold for a persistence window measured across distinct source sequences, with
@@ -42,6 +45,9 @@ export class ShotPlanner {
   private readonly abandoned = new Map<ShotKey, number>();
   /** Cinematic shots that played this round: none is shown twice in a round. */
   private readonly shownThisRound = new Set<ShotKey>();
+  /** Rounds seen so far, and the round each cinematic shot last played in (variety across rounds). */
+  private roundCount = 0;
+  private readonly lastShownRound = new Map<ShotKey, number>();
   private postEventUntil = 0;
 
   constructor(private cfg: DirectorConfig) {}
@@ -74,11 +80,20 @@ export class ShotPlanner {
     return this.shownThisRound;
   }
 
+  /** Rounds since `shot` last played (1: the round before this one), or null if not in the last few. */
+  roundsSinceShown(shot: ShotKey): number | null {
+    const r = this.lastShownRound.get(shot);
+    return r === undefined ? null : this.roundCount - r;
+  }
+
   /** New round attempt resets the per-round cinematic budget. */
   setRound(roundKey: string | null): void {
     if (roundKey !== this.roundKey) {
       this.roundKey = roundKey;
       this.cinematicsThisRound = 0;
+      for (const k of this.shownThisRound) this.lastShownRound.set(k, this.roundCount);
+      this.roundCount++;
+      for (const [k, r] of this.lastShownRound) if (this.roundCount - r > RECENT_ROUNDS) this.lastShownRound.delete(k);
       this.shownThisRound.clear();
     }
   }
@@ -165,7 +180,7 @@ export class ShotPlanner {
       return cut(bestAlt, bestAlt.reasonCodes.filter((r) => r === "CONTACT_IMMINENT" || r === "BOMB_CRITICAL" || r === "BOMB_DEFUSE_PRESSURE"), true);
     }
     if (sinceCut < this.cfg.minShotMs) return hold(["MIN_SHOT_DURATION"]);
-    if (now < this.postEventUntil && current.reasonCodes.some((r) => r === "CONTACT_LIKELY_SOON" || r === "TRADE_OPPORTUNITY")) {
+    if (now < this.postEventUntil && current.reasonCodes.some((r) => r === "CONTACT_LIKELY_SOON" || r === "TRADE_OPPORTUNITY" || r === "MULTI_FRAG_CHANCE")) {
       return hold(["POST_EVENT_HOLD", "SECOND_CONTACT_LIKELY"]);
     }
     if (!bestAlt) return hold(["CURRENT_SHOT_VALID"]);

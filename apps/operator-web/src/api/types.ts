@@ -1012,7 +1012,7 @@ export interface AutoDirectorStatus {
   on: boolean;
   phase: "off" | "starting" | "waiting" | "running" | "paused" | "error";
   headline: string;
-  settings: { cinematic: boolean; nadeCams: boolean; returnAfterSec: number; chase: boolean; clutch: boolean };
+  settings: { cinematic: boolean; nadeCams: boolean; returnAfterSec: number; chase: boolean; clutch: boolean; variety?: boolean; winnerShots?: "every_round" | "big_rounds" | "off"; bigMoments?: boolean; hlaePaths?: boolean };
   observerMode: ObserverMode;
   checks: AutoDirectorCheck[];
   resumesInMs: number | null;

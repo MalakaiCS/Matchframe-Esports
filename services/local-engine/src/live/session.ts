@@ -8,7 +8,7 @@ import type { ArbiterEvent, ControlCapabilities, DirectorOutput, ObserverControl
 import { cameraShot, chaseMoment, ControlArbiter, Director, glideMotion, panMotion, parseShot, pathShot, povShot, teamCamera, teamShotSide } from "@matchframe/director-policy";
 import type { MapRegistry } from "@matchframe/map-runtime";
 import type { Logger } from "../logger.ts";
-import type { LiveContactModel } from "./model-runtime.ts";
+import type { LiveContactModel, LivePovModel } from "./model-runtime.ts";
 import { ShadowComparison } from "./model-runtime.ts";
 
 export interface SessionEvents {
@@ -106,6 +106,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   private evalSamples: number[] = [];
   /** Optional learned model, evaluated in shadow only (never drives the camera). */
   private shadowModel: LiveContactModel | null = null;
+  private povModel: LivePovModel | null = null;
   shadow = new ShadowComparison();
   private lastShadowAt = -Infinity;
 
@@ -259,6 +260,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     const state = this.store.snapshot(receivedAtMonotonicMs);
     this.lastState = state;
     this.shadowModel?.observe(state);
+    this.povModel?.observe(state);
     if (result.epochChanged) this.arbiter.setTimeline(this.sessionId, state.epoch);
     const observedPlayer = state.observer.observedSteamId ? state.players.find((p) => p.steamId === state.observer.observedSteamId) : undefined;
     this.arbiter.getAdapter()?.noteObserverState?.({ ...state.observer, observedPosition: observedPlayer?.position ?? null });
@@ -351,7 +353,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
       // A team shot is framed live (not in the map pack); a map camera may turn slowly.
       const move = intent.move;
       const side = teamShotSide(intent.cameraId);
-      const cam = move && side ? teamCamera(side, s.mapName ?? "", move, planned, intent.cameraId!.endsWith("-still")) : this.findCamera(intent.cameraId!);
+      const cam = move && side ? teamCamera(side, s.mapName ?? "", move, planned, intent.cameraId!.endsWith("-still"), intent.cameraId!) : this.findCamera(intent.cameraId!);
       if (!cam) return;
       const motion = move ? glideMotion(move, planned) : intent.panDegPerSec ? panMotion(cam, intent.panDegPerSec, planned) : undefined;
       this.stats.cuts++;
@@ -607,6 +609,16 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   setShadowModel(model: LiveContactModel | null): void {
     this.shadowModel = model;
     this.shadow = new ShadowComparison();
+  }
+
+  /** The demo-trained POV model, blended into the director's imminence; `null` turns it off. */
+  setPovModel(model: LivePovModel | null, blend: { weight: number; ref: number } = { weight: 0.5, ref: 0.5 }): void {
+    this.povModel = model;
+    this.director.setLearnedImminence(model ? { predict: (s) => model.predictPlayers(s), weight: blend.weight, ref: blend.ref } : null);
+  }
+
+  get povModelId(): string | null {
+    return this.povModel?.id ?? null;
   }
 
   get shadowModelId(): string | null {

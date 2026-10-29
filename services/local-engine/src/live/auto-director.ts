@@ -14,6 +14,14 @@ export const AutoDirectorSettings = z.object({
   chase: z.boolean().default(true),
   /** Clutch mode: in a 1vX, stay with the last player alive on their side; no cutaways to cameras. */
   clutch: z.boolean().default(true),
+  /** Freeze times that differ from round to round (one longer team shot, high/low/side looks, no shot of a team on an eco). */
+  variety: z.boolean().default(true),
+  /** A short shot of the winners after the round: every round, big rounds only, or never. */
+  winnerShots: z.enum(["every_round", "big_rounds", "off"]).default("every_round"),
+  /** The pistol-round opener, the team on match point first, half time and the end of the map. */
+  bigMoments: z.boolean().default(true),
+  /** Camera paths played by HLAE (mirv_campath) in the HLAE launch mode, instead of positions sent from Matchframe. */
+  hlaePaths: z.boolean().default(false),
 });
 export type AutoDirectorSettings = z.infer<typeof AutoDirectorSettings>;
 
@@ -93,6 +101,12 @@ export class AutoDirector {
     });
   }
 
+  /** The cinematic choices on the card, in the director's config (at start and on every change). */
+  applyCinematics(s: AutoDirectorSettings = this.settings()): void {
+    const d = this.e.session.director;
+    d.setConfig({ cinematic: { ...d.config.cinematic, variety: s.variety, winnerShots: s.winnerShots, bigMoments: s.bigMoments } });
+  }
+
   settings(): AutoDirectorSettings {
     const r = AutoDirectorSettings.safeParse(this.e.settings.get("autoDirector", {}));
     return r.success ? r.data : AutoDirectorSettings.parse({});
@@ -102,6 +116,7 @@ export class AutoDirector {
     const given = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
     const next = AutoDirectorSettings.parse({ ...this.settings(), ...given });
     this.e.settings.set("autoDirector", next);
+    this.applyCinematics(next);
     if (this.on) void this.step();
     return next;
   }

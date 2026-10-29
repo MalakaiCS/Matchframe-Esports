@@ -75,6 +75,25 @@ Since the CS2 update of 2026-10-15, demo playback ignores `spec_goto`'s position
 
 The console channel is a documented Valve launch option, not memory reading or injection. Because the console accepts arbitrary commands, Matchframe only connects to loopback and fills templates with validated values. Do not expose the netcon port on a network. If a workshop/observer-only server setup is needed for cameras, the server operator must configure it deliberately; Matchframe never changes competitive server settings.
 
+### Camera paths through HLAE (experimental)
+
+With **Camera paths through HLAE** on (Auto Director card) and CS2 started in the **Observer tools + HLAE** mode, a camera path is played by HLAE:
+- The path is written to `<data>/campaths/<id>.xml` as an advancedfx campath: `t` in seconds from 0, `rx` roll / `ry` pitch / `rz` yaw, cubic from four keyframes, `hold`.
+- The free camera goes to the first pose.
+- Then `mirv_campath load "<file>"; mirv_campath edit start; mirv_campath enabled 1`.
+- At the end, `mirv_campath enabled 0` and the last pose; on a cut, `mirv_campath enabled 0`.
+
+If CS2 answers `Unknown command: mirv_…`, paths go back to streamed poses for the rest of the session. HLAE documents `mirv_campath` for demo playback; live spectating is not verified.
+
+### Saving the CS2 view as a camera
+
+**Ctrl+Shift+F11** (registered by the program, works while CS2 has the focus), **Automation → Save the CS2 view as a camera**, or the button on the Maps screen. These call `POST /api/v1/cameras/capture`:
+- The engine sends `getpos`.
+- It saves the pose as `mine-N` for the map being played (setting `cameras.<map>`), validated, for establishing shots and fights.
+- The focus is the first wall or floor straight ahead in the map's free-space grid (900 units without a grid).
+
+The camera walkthrough's **Hide** takes it out again.
+
 ## How control is confirmed
 
 Each kind of control is recorded per CS2 build in `observer.verifiedControl`, from the game's own feedback, never from test data or simulation. Evidence is never downgraded.

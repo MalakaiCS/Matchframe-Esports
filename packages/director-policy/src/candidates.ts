@@ -37,6 +37,14 @@ export interface CandidateInput {
   avoid?: ReadonlySet<string> | null | undefined;
   /** Clutch mode: the last player alive on their side is the shot until the clutch ends. */
   clutchMode?: boolean | undefined;
+  /** When each player last got a kill this round (monotonic ms), for multi-frag awareness. */
+  recentKills?: ReadonlyMap<string, number> | undefined;
+}
+
+/** Alive opponents within `range` units (2D) of a player. */
+function opponentsNear(state: MatchState, p: MatchState["players"][number], range: number): number {
+  if (!p.position) return 0;
+  return state.players.filter((o) => o.side && o.side !== p.side && !o.coach && o.lifeState === "alive" && o.position && Math.hypot(o.position.x - p.position!.x, o.position.y - p.position!.y) <= range).length;
 }
 
 /** Clutch mode: the clutching player's lead over everyone else, and what an opponent gives up. */
@@ -161,6 +169,20 @@ export function generateCandidates(input: CandidateInput): ScoredCandidate[] {
     if (cluster && cluster.members.some((m) => m !== p.steamId && byId.get(m)?.side === p.side)) {
       narrative = Math.max(narrative, 0.45);
       reasons.push("TRADE_OPPORTUNITY");
+    }
+    // Multi-frag awareness: just got a kill, still alive, enemies close: more kills often follow.
+    // Cut to them only when the shot on air isn't about to see a fight itself (test bench: leaving a
+    // POV that is about to fight costs more kills than the multi-frag brings).
+    const killAt = input.recentKills?.get(p.steamId);
+    if (cfg.multiFrag.enabled && killAt !== undefined && now - killAt <= cfg.multiFrag.windowMs && p.lifeState === "alive") {
+      const near = opponentsNear(state, p, cfg.multiFrag.rangeUnits);
+      const onAir = input.currentShot?.startsWith("pov:") ? interactions.byPlayer.get(input.currentShot.slice(4)) : undefined;
+      if (near > 0 && (isCurrent || (onAir?.imminence ?? 0) < cfg.multiFrag.leaveBelowImminence)) {
+        const chance = clamp01(0.4 + 0.12 * Math.min(near, 3) + 0.08 * Math.min(Math.max(0, (p.roundKills ?? 1) - 1), 3));
+        narrative = Math.max(narrative, chance);
+        actionCoverage = Math.max(actionCoverage, chance * 0.7);
+        reasons.push("MULTI_FRAG_CHANCE");
+      }
     }
     const aggressor = interactions.isolatedAggressors.find((a) => a.steamId === p.steamId || a.targetSteamId === p.steamId);
     if (aggressor) {

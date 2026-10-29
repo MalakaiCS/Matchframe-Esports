@@ -12,7 +12,10 @@ import polars as pl
 from mf_common import errors
 from mf_common.fsutil import read_json
 
-TASK_LABELS = {"contact_2s": "contact_2s"}
+from .pov import POV_LABELS, POV_TASKS, pov_frame, pov_heuristic
+
+#: Task → label column (``contact_2s``: T×CT pair rows; ``pov_2s``: player rows, see ``pov.py``).
+TASK_LABELS = {"contact_2s": "contact_2s", **POV_TASKS}
 
 
 @dataclass
@@ -45,9 +48,16 @@ def load_split(manifest: dict[str, Any], split: str, label: str, feature_names: 
     frames = []
     for m in members:
         d = Path(m["path"])
-        f = pl.read_parquet(d / "features.parquet")
-        lab = pl.read_parquet(d / "labels.parquet", columns=["dataset_id", "round_index", "tick", "a_id", "b_id", label])
-        j = f.join(lab, on=["dataset_id", "round_index", "tick", "a_id", "b_id"], how="inner").filter(pl.col(label).is_not_null())
+        if label in POV_LABELS:
+            if not (d / "pov_labels.parquet").exists():
+                raise errors.MfError(
+                    errors.FEATURES_MISSING, "run build-features again: this dataset has no POV labels", dataset=m["dataset_id"]
+                )
+            j = pov_frame(d, label)
+        else:
+            f = pl.read_parquet(d / "features.parquet")
+            lab = pl.read_parquet(d / "labels.parquet", columns=["dataset_id", "round_index", "tick", "a_id", "b_id", label])
+            j = f.join(lab, on=["dataset_id", "round_index", "tick", "a_id", "b_id"], how="inner").filter(pl.col(label).is_not_null())
         frames.append(j.with_columns(pl.lit(m["map"]).alias("_map"), pl.lit(m["build"]).alias("_build")))
     if not frames:
         empty = pl.DataFrame()
@@ -59,7 +69,10 @@ def load_split(manifest: dict[str, Any], split: str, label: str, feature_names: 
 
 
 def heuristic_score(frame: pl.DataFrame) -> np.ndarray:
-    """Deterministic distance/facing heuristic: high when close and either player faces the other."""
+    """Deterministic distance/facing heuristic: high when close and either player faces the other
+    (for player rows, the player's best pair)."""
+    if "heur_max" in frame.columns:
+        return pov_heuristic(frame).to_numpy()
     dist = frame["dist_3d"].cast(pl.Float64).fill_null(4000.0).to_numpy()
     facing = frame["facing_max"].cast(pl.Float64).fill_null(-1.0).to_numpy()
     return np.clip((facing + 1.0) / 2.0, 0.0, 1.0) ** 2 * np.exp(-dist / 1000.0)

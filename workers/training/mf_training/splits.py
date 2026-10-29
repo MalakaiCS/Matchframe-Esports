@@ -58,11 +58,13 @@ def related_groups(refs: list[DatasetRef], players: dict[str, set[str]] | None =
 
 
 def assign_splits(group_builds: dict[str, int], val_fraction: float, test_fraction: float, seed: int = 0) -> dict[str, str]:
-    """Newest build groups → test, next → val, rest → train (ties broken by a seeded hash)."""
+    """Newest build groups → test, next → val, rest → train (ties broken by a seeded hash).
+
+    A fraction of exactly 0 holds nothing back (everything trains, e.g. a shipped model)."""
     order = sorted(group_builds, key=lambda g: (-group_builds[g], sha256_bytes(f"{seed}:{g}".encode())))
     n = len(order)
-    n_test = max(1, math.ceil(n * test_fraction)) if n >= 3 else 0
-    n_val = max(1, math.ceil(n * val_fraction)) if n >= 3 else 0
+    n_test = max(1, math.ceil(n * test_fraction)) if n >= 3 and test_fraction > 0 else 0
+    n_val = max(1, math.ceil(n * val_fraction)) if n >= 3 and val_fraction > 0 else 0
     out: dict[str, str] = {}
     for i, g in enumerate(order):
         out[g] = "test" if i < n_test else ("val" if i < n_test + n_val else "train")
@@ -142,7 +144,7 @@ def freeze_dataset(
     write_json_atomic(Path(out), doc)
     warnings = []
     if not splits["test"]:
-        warnings.append("fewer than 3 match groups: no held-out test set")
+        warnings.append("no held-out test set" + (" (test fraction 0)" if test_fraction <= 0 else ": fewer than 3 match groups"))
     return {
         "out": str(out),
         "content_hash": doc["content_hash"],

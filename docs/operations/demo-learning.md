@@ -24,3 +24,10 @@ Drop demos into the ingest folder (`<data folder>/demo-ingest`): `.dem` files, o
 5. **Delete:** if chosen, the demo is deleted after its quarantine, but only once its upload is recorded.
 
 The datasets also stay on this computer (for training here). The storage holds the copy that survives.
+
+## Using what the demos teach
+
+- **The built-in POV model** (on by default) was trained on seven pro matches. Training → **What the demos teach** shows it, turns it off, and lists the POV models you trained.
+- **Train your own:** Training → Start a training run → task **POV shows a kill within 2 s**. When it finishes, press **Use in the Auto Director** in the model registry (or **Use this one** in What the demos teach).
+- **Check with the test bench:** Training → **Director test bench** → Run. It replays your newest read demos through the director as set up, and again without the demo model and without multi-frag awareness. A map marked * is one the model learned from; its score there is optimistic if it was the same match.
+- The bench and training never run during a live broadcast. Both need the datasets on this PC; demos uploaded and removed after upload keep their datasets.

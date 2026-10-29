@@ -21,12 +21,13 @@ import { generateCandidates } from "./candidates.ts";
 import { cinematicCandidates, PAUSE_HOLD_MS } from "./cinematics.ts";
 import type { DirectorConfig } from "./config.ts";
 import { mergeConfig } from "./config.ts";
-import type { FreeSpace, TeamShot } from "./framing.ts";
+import type { FreeSpace, TeamShot, TeamShotLook } from "./framing.ts";
 import { frameTeam } from "./framing.ts";
 import type { InteractionFeatures, SpatialContext } from "./features/interactions.ts";
 import { computeInteractions } from "./features/interactions.ts";
 import type { RoundContext } from "./features/significance.ts";
 import { roundContext } from "./features/significance.ts";
+import { matchMoment } from "./features/moments.ts";
 import { StateHistory } from "./history.ts";
 import { ShotPlanner } from "./planner.ts";
 import type { ShotKey } from "./shots.ts";
@@ -118,6 +119,15 @@ function toShotCandidate(c: ScoredCandidate): ShotCandidate {
  * (interaction features), editorial value (candidate scoring), temporal planning (planner) and
  * camera control (arbiter, outside this class) are separate stages.
  */
+/** See `Director.setLearnedImminence`. */
+export interface LearnedImminence {
+  predict: (state: MatchState) => ReadonlyMap<string, number>;
+  /** 0..1: how much of imminence comes from the model. */
+  weight: number;
+  /** Probability counted as fully imminent. */
+  ref: number;
+}
+
 export class Director {
   private cfg: DirectorConfig;
   private mode: DirectorMode = "advisory";
@@ -132,10 +142,14 @@ export class Director {
   private modelVersion: string | null;
   private readonly newId: () => string;
   private lastSequence = -1;
+  /** Round kills seen per player, and when each last got a kill (multi-frag awareness), for one round attempt. */
+  private learned: LearnedImminence | null = null;
+  private kills: { round: string | null; count: Map<string, number>; at: Map<string, number> } = { round: null, count: new Map(), at: new Map() };
   private lastOutput: DirectorOutput | null = null;
   private lastEvalAt = -Infinity;
   /** When the current live round went live (monotonic ms), or null outside one. */
   private liveSince: number | null = null;
+  private overSince: number | null = null;
   /** A pause (tactical or technical timeout) in this round's freeze time: held on one team's spawn until live. */
   private pause: { round: string | null; side: "T" | "CT" | null; since: number } | null = null;
   /** Team shots of this round, by side and still/gliding, with where the team stood when framed. */
@@ -219,6 +233,19 @@ export class Director {
     this.modelVersion = v;
   }
 
+  /**
+   * A learned per-player "kill on this POV within 2 s" probability (the demo-trained POV model),
+   * blended into imminence: `(1 - weight) * baseline + weight * min(1, p / ref)`. Players the
+   * model has no answer for keep the baseline. `null` turns it off.
+   */
+  setLearnedImminence(learned: LearnedImminence | null): void {
+    this.learned = learned;
+  }
+
+  get learnedImminenceOn(): boolean {
+    return this.learned !== null;
+  }
+
   hold(durationMs: number | null, now: number): void {
     this.controls.hold = { until: durationMs === null ? null : now + durationMs };
   }
@@ -280,6 +307,33 @@ export class Director {
     this.planner.cinematicFailed(shot);
   }
 
+  /** A player's round kills going up is a kill now (the game data has no kill events). */
+  private blendLearned(state: MatchState, interactions: InteractionFeatures, l: LearnedImminence): Map<string, number> | undefined {
+    let p: ReadonlyMap<string, number>;
+    try {
+      p = l.predict(state);
+    } catch {
+      return undefined; // a model that throws never stops the director
+    }
+    const out = new Map<string, number>();
+    for (const [id, prob] of p) {
+      if (!Number.isFinite(prob)) continue;
+      const base = interactions.byPlayer.get(id)?.imminence ?? 0;
+      out.set(id, (1 - l.weight) * base + l.weight * Math.min(1, Math.max(0, prob) / l.ref));
+    }
+    return out;
+  }
+
+  private noteKills(state: MatchState, now: number): void {
+    if (this.kills.round !== state.roundAttemptId) this.kills = { round: state.roundAttemptId, count: new Map(), at: new Map() };
+    for (const p of state.players) {
+      const n = p.roundKills ?? 0;
+      const prev = this.kills.count.get(p.steamId);
+      if (prev !== undefined && n > prev) this.kills.at.set(p.steamId, now);
+      this.kills.count.set(p.steamId, n);
+    }
+  }
+
   private cinematicsAllowed(state: MatchState, round?: RoundContext): { allowed: boolean; reason: ReasonCode | null } {
     // Mid-clutch, a camera would cut away from the player the whole round is about.
     if (this.controls.clutchMode && round?.clutch) return { allowed: false, reason: "CLUTCH" };
@@ -312,19 +366,19 @@ export class Director {
    * framed again when the team's middle moved (the first game data of a round can be from before
    * the respawn) or, when no spot worked, a second later.
    */
-  private teamShot(state: MatchState, space: FreeSpace, side: "T" | "CT", still: boolean, now: number): TeamShot | null {
+  private teamShot(state: MatchState, space: FreeSpace, side: "T" | "CT", still: boolean, now: number, look: TeamShotLook = "eye"): TeamShot | null {
     if (this.teamShots.round !== state.roundAttemptId) this.teamShots = { round: state.roundAttemptId, shots: new Map() };
     const team = state.players.filter((p) => p.side === side && p.lifeState === "alive" && p.position);
     if (team.length < 2) return null;
     const at = { x: team.reduce((s, p) => s + p.position!.x, 0) / team.length, y: team.reduce((s, p) => s + p.position!.y, 0) / team.length };
-    const key = `${side}:${still ? "still" : "glide"}`;
+    const key = `${side}:${still ? "still" : "glide"}:${look}`;
     const cached = this.teamShots.shots.get(key);
     if (cached && Math.hypot(cached.at.x - at.x, cached.at.y - at.y) < TEAM_MOVED && (cached.shot || now - cached.when < 1000)) return cached.shot;
     const others = state.players.filter((p) => p.side !== side && p.lifeState === "alive" && p.position).map((p) => p.position!);
     const shot = frameTeam(
       team.map((p) => ({ steamId: p.steamId, position: p.position!, forward: p.forward ?? null })),
       space,
-      { still, others },
+      { still, others, look },
     );
     this.teamShots.shots.set(key, { shot, at, when: now });
     return shot;
@@ -352,8 +406,11 @@ export class Director {
     if (this.controls.hold?.until !== null && this.controls.hold?.until !== undefined && now >= this.controls.hold.until) this.controls.hold = null;
 
     this.history.push(state);
+    this.noteKills(state, now);
     if (state.roundPhase !== "live") this.liveSince = null;
     else this.liveSince ??= now;
+    if (state.roundPhase !== "over") this.overSince = null;
+    else this.overSince ??= now;
     this.planner.setRound(state.roundAttemptId);
     this.notePause(state, now);
     const observed: ShotKey | null = state.observer.observedSteamId ? povShot(state.observer.observedSteamId) : null;
@@ -397,9 +454,11 @@ export class Director {
       scope,
       avoid: this.controls.avoid && this.controls.avoid.until > now ? new Set(this.controls.avoid.steamIds) : null,
       clutchMode: this.controls.clutchMode,
+      recentKills: this.kills.at,
+      learnedImminence: this.learned ? this.blendLearned(state, interactions, this.learned) : undefined,
     });
     if (scope?.has("cinematic")) {
-      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, sight: grid ? (a, b) => grid.lineOfSight(a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince, pause: this.pause, teamShot: grid && state.roundPhase === "freezetime" ? (side, still) => this.teamShot(state, grid, side, still, now) : undefined }));
+      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, roundsSinceShown: (k) => this.planner.roundsSinceShown(k), sight: grid ? (a, b) => grid.lineOfSight(a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince, pause: this.pause, teamShot: grid && (state.roundPhase === "freezetime" || state.roundPhase === "over" || state.gamePhase === "halftime" || state.gamePhase === "gameover") ? (side, still, look) => this.teamShot(state, grid, side, still, now, look) : undefined, overForMs: this.overSince === null ? null : now - this.overSince, moment: matchMoment(state, this.cfg.cinematic) }));
       candidates.sort((a, b) => b.utility - a.utility);
     }
 

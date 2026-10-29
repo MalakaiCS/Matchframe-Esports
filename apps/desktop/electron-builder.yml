@@ -35,6 +35,9 @@ extraResources:
     to: radars
   - from: ../../assets/utility-profiles
     to: utility-profiles
+  # Built-in models (the demo-trained POV model).
+  - from: ../../assets/models
+    to: models
   - from: ../../workers
     to: workers
     filter:

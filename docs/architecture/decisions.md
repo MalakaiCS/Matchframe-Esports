@@ -646,3 +646,119 @@ The CS2-numbering fallback never ran. It needed the templates to be the built-in
 
 **Not checked.** On a real CS2: whether its free camera is `spec_mode 4` with `spec_goto` (expected), or needs `setpos` (cheat-protected outside demos and local servers).
 
+
+## ADR-041 — A replay test bench: the director scored on read demos
+
+**Context.** Whether a director change helps was judged by watching. The owner asked for a test bench.
+
+**Decision.**
+- **Replay streams:** the worker command `export-replay` writes a committed dataset as JSON lines: alive players at 8 Hz (position, view angles, health, armor, weapon), the round phase and the planted bomb. Kills go between the frames, for scoring only.
+- **The replay:** `runBench` turns each frame into synthetic game data, runs it through `MatchStateStore` and calls `Director.evaluate` in Observer mode. A player switch goes on air 300 ms later. While it is on its way the director gets `pendingCommand`, as it does live.
+- **Scores:**
+  - kills shown (the killer's or the victim's POV on air);
+  - opening kills shown;
+  - multi-frags shown on the killer's POV (a second or later kill by the same player within 10 s);
+  - mean lead (how long the shot had been on that player, capped at 10 s);
+  - cuts per minute.
+- **In the program:** Training → Director test bench replays the newest read demos. It compares the director as set up with the same director without the demo-trained model, and without multi-frag awareness. It never runs during a live broadcast. `services/local-engine/scripts/bench-replays.ts` does the same from the command line.
+
+**Checked.**
+- Seven pro matches (Ancient, Anubis, Cache, Dust II, Inferno, Mirage, Nuke; 963 kills).
+- The first version reset the switch delay whenever the director repeated a cut, so many cuts never landed. Ancient went from 53 % to 69 % kills shown once it waited like the live session.
+- Unit tests on a synthetic round: counts, the background run equals the direct one, and a switch on its way is never re-sent.
+
+## ADR-042 — Multi-frag awareness: cut to the player who just got a kill only while the shot on air is quiet
+
+**Context.** After a kill, more kills often follow from the same player when enemies are close.
+
+**Decision.**
+- **The boost:** a player who got a kill in the last 4 s (from GSI `round_kills`), still alive with an enemy within 1600 units, gets narrative and action coverage. The boost grows with how many enemies are near and how many kills they have this round. The candidate is marked `MULTI_FRAG_CHANCE`, and the planner's post-event hold covers it.
+- **The guard:** the boost only applies to a player who is not on air when the POV on air has baseline imminence below 0.5 (`multiFrag.leaveBelowImminence`).
+
+**Checked (bench, 7 matches).**
+
+| Variant | Kills shown | Multi-frags shown on the killer's POV |
+|---|---|---|
+| Without the guard | −8 | +8 |
+| Hold-only (only for the player on air) | −4 | +1 |
+| With the guard | −5 | +8 (45 % → 49 %) |
+
+With the demo-trained model as well, multi-frags go from 49 % to 53 % at the same kills shown (ADR-043).
+
+## ADR-043 — The demo-trained POV model helps the director pick whose POV to show
+
+**Context.** "Use what the demos teach." The POV labels (ADR-038) record, for every frame and alive player, whether their POV shows a kill in the next 2 s (`action_2s`).
+
+**Decision.**
+- **Task `pov_2s`:** player rows built from the T×CT pair features (`workers/training/mf_training/pov.py`). There are 19 features, all available from live game data:
+  - side, health, armor, speed, weapon class;
+  - alive counts, round time, the player's kills this round;
+  - nearest enemy distance and facings (self and opponent);
+  - enemies within 1000 and 2000 units;
+  - best facings within 2000 units;
+  - max closing speed;
+  - the max and sum of the pair heuristic.
+- **Training:** LightGBM, as for `contact_2s`. `train --task pov_2s`, a `--max-rounds` option, and splits with a fraction of 0 hold nothing back (for a shipped model).
+- **Live:** `LivePovModel` reuses the contact model's pair vectors and aggregates them the same way. The director blends the result into imminence: `0.5 · baseline + 0.5 · min(1, p / 0.5)`. Players without a prediction keep the baseline, and a model that throws is ignored.
+- **Built in:** `assets/models/pov_2s-builtin`, trained on the seven pro matches (1.3 M player frames, 200 rounds, build 14191). It is on by default and can be switched off under Training → What the demos teach. A `pov_2s` model trained on your own demos can replace it there.
+
+**Checked.**
+- **Accuracy:** leave-one-match-out AUC 0.941 against 0.881 for the heuristic, better on every map. The pipeline's own split gives a test AUC of 0.940.
+- **Bench**, each match scored by a model trained without it:
+
+  | Metric | Baseline | With the model | Model + multi-frag awareness |
+  |---|---|---|---|
+  | Kills shown | 71.3 % | 74.2 % | 74.0 % |
+  | Opening kills shown | 96 / 141 | 102 / 141 | 102 / 141 |
+  | Multi-frags shown | 44.9 % | 49.4 % | 53.4 % |
+  | Cuts per minute | 6.05 | 5.48 | 5.41 |
+
+- **Parity:** on Anubis frames, the TypeScript features match the Python ones (correlation 1.000 except speed, 0.973: position changes against demo velocities). Model parity vectors pass at 1e-9.
+
+**Not checked.** On a live GSI feed in a real match.
+
+## ADR-044 — Freeze times that differ from round to round, and shots for big moments
+
+**Context.** Every freeze time showed the Ts, then the CTs, from the same kind of spot.
+
+**Decision.**
+- **Variety** (on by default):
+  - Every third round has one longer shot of one team (70 % of the freeze time).
+  - A team whose players average under $2,500 in money and equipment (an eco) gets no team shot.
+  - Team shots rotate between looks: eye height, high, from the side, low.
+  - The pan direction alternates from round to round.
+  - Map cameras and paths that played 1–3 rounds ago score lower (0.18 / 0.10 / 0.05). The planner remembers four rounds.
+- **Big moments** (on by default; `matchMoment`, MR12 with MR3 overtime):
+  - A pistol round opens with the map's camera.
+  - The team on match point comes first and longer.
+  - Half time and the end of the map get slow shots of the map and the teams. At half time the team ahead goes first; at the map's end, the winners.
+- **Winners after the round:** 2 s after the round ends, the winning team framed where they stand, until the next freeze time. This plays every round by default; the card can set big rounds only, or never. Big rounds are pistol rounds, the end of a half or of regulation, an overtime half, the map, and putting the winner on match point.
+- **Shot ids:** winners shots use `team-T-win`; half time and map end use `team-T-break`. So the next freeze time can still show the team.
+- **Budget:** these shots are off the live round's cinematic budget.
+- **Reason codes:** `ROUND_WINNERS`, `PISTOL_ROUND`, `MATCH_POINT`, `HALF_TIME`, `MAP_END`.
+
+**Checked.** Director tests on Mirage with its grid cover:
+- the pistol opener, match point first and longer, no team shot for an eco team;
+- one team every third round, and both teams with variety off;
+- the winners after 2 s, big rounds only and off;
+- half time with the team ahead first;
+- round memory.
+
+The engine end-to-end tests that check both team shots now run with variety off.
+
+## ADR-045 — Your own cameras: walkthrough with Keep/Hide, save the CS2 view, HLAE paths
+
+**Decision.**
+- **Walkthrough:** the Maps screen shows every camera of the map being played, a few seconds each, with Keep / Hide. Hidden cameras are never used (`MapRuntime.hiddenCameras`, setting `cameras.review`).
+- **Save the view:** Ctrl+Shift+F11 (works while CS2 has the focus), the Automation menu, or the Maps screen. The engine reads `getpos` and saves the view as `mine-N` for this map:
+  - used for freeze time and fights;
+  - counted as checked, since you looked through it;
+  - focus at the first wall or floor straight ahead in the grid.
+
+  A notification says how it went.
+- **HLAE camera paths** (experimental, off by default; only in the HLAE launch mode):
+  - The path is written as an HLAE campath file: advancedfx CamPath XML with absolute seconds, rx roll / ry pitch / rz yaw, cubic from four keyframes, and `hold`.
+  - Then `mirv_campath load "<file>"; mirv_campath edit start; mirv_campath enabled 1`, and `enabled 0` at the end or on a cut.
+  - If CS2 answers "Unknown command: mirv_…", paths go back to streamed positions for the session.
+
+**Not checked.** HLAE documents `mirv_campath` for demo playback; whether `edit start` follows the live client's time while spectating is unknown.

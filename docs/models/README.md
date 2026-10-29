@@ -1,6 +1,6 @@
 # Models: data, labels, training, evaluation
 
-Matchframe's learned components are **advisory and offline-trained**. The live director is the deterministic baseline (`baseline-1`, `packages/director-policy`); a trained model can only run in **shadow** today, next to the baseline, and never drives the camera. Nothing here uses future demo information at live time, and parsed demos are not treated as expert observer decisions (they contain player behaviour, not camera choices).
+Matchframe's learned components are **advisory and offline-trained**. The live director is the deterministic baseline (`baseline-1`, `packages/director-policy`); contact models (`contact_2s`) run in **shadow** only, next to the baseline, and never drive the camera. The demo-trained POV model (`pov_2s`, §8) is the one learned input the live director uses: half of its imminence, with the deterministic rules for everything else. Nothing here uses future demo information at live time, and parsed demos are not treated as expert observer decisions (they contain player behaviour, not camera choices).
 
 Documents:
 
@@ -8,7 +8,8 @@ Documents:
 |---|---|
 | this file | data schemas, label definitions, training/evaluation commands, promotion gates, shadow comparison, training programme status |
 | `phase0-demo-pipeline-report.md` | measured Phase 0 results on 5 real demos: throughput, memory, coverage, grenade findings, validation, capacity vs 2 TB, utility profiles, the `contact_2s` pipeline proof, and what is not verified |
-| `model-card-contact_2s.md` | model card for the only trained task |
+| `model-card-contact_2s.md` | model card for the contact task (shadow only) |
+| `model-card-pov_2s.md` | model card for the built-in POV model the director uses |
 | `../../workers/README.md` | worker CLI reference, dataset layout, JSON-lines protocol |
 
 ## 1. Data schemas
@@ -94,7 +95,7 @@ Registry statuses: `experimental → shadow → candidate → approved`; `approv
 
 - loads a model for shadow only if its registry status is `shadow`, `candidate` or `approved`, its card requires only `gsi_compatible` data, its checksum matches the card, and its structure is supported (numeric splits, single output) — otherwise it is refused with the reason and the baseline continues (A44/A45);
 - compares the model's 2 s contact probability with the baseline's for every live T × CT pair (4 Hz): mean absolute difference and agreement on the most likely pair (`GET /api/v1/models/shadow`);
-- never lets a model command the observer. Using an approved model to influence shot ranking is **planned** and will need release gates beyond a demo count (shadow agreement, operator review, per-map/type/region results).
+- never lets a contact model command the observer. The POV model (§8) informs shot ranking only through imminence; it never selects a shot on its own.
 
 ## 7. Training programme status
 
@@ -106,3 +107,12 @@ Registry statuses: `experimental → shadow → candidate → approved`; `approv
 | +1,000–2,000 demos per map | not started |
 
 No model has been approved, and the only trained model is a pipeline proof (see the model card).
+
+## 8. The POV model (`pov_2s`) in the director
+
+- **Rows:** one per live grid frame and alive player (`workers/training/mf_training/pov.py`), aggregated from that player's T×CT pair features plus GSI `round_kills`; label `pov_labels.action_2s` (the player kills or dies within 2 s).
+- **Features (19, all `gsi_compatible`):** `side_t`, `health`, `armor`, `speed`, `weapon_class`, `alive_own`, `alive_opp`, `round_time_s`, `round_kills`, `nearest_dist`, `nearest_facing_self`, `nearest_facing_opp`, `opp_within_1000`, `opp_within_2000`, `max_facing_self_2000`, `max_facing_opp_2000`, `max_closing`, `heur_max`, `heur_sum`. Missing stays missing (NaN), aggregates ignore it.
+- **Train:** `pnpm worker train --task pov_2s --dataset-manifest M --out-dir MODELS` (Training → Start a training run → "POV shows a kill within 2 s"). A shipped model uses `freeze-dataset --val-fraction 0 --test-fraction 0` and `train --max-rounds 200`.
+- **Live:** `LivePovModel` (`services/local-engine/src/live/model-runtime.ts`) computes the same features from the pair vectors. The director blends `0.5 · baseline + 0.5 · min(1, p / 0.5)` into imminence (`Director.setLearnedImminence`).
+- **Choosing the model:** `GET/PUT /api/v1/models/pov` (`{ enabled, modelId: "builtin" | <trained id> }`). A model that fails to load leaves the deterministic director in charge.
+- **Evidence:** see `model-card-pov_2s.md`. The director test bench (Training) shows what the model in use changes on your demos.

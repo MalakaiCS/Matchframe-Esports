@@ -33,6 +33,8 @@ export class MapRuntime {
    * are usable alongside operator-validated ones, unless switched off. Invalidated ones never are.
    */
   builtInCameras = true;
+  /** Cameras the operator hid after seeing them in game (camera walkthrough): never used, validated or not. */
+  hiddenCameras: ReadonlySet<string> = new Set();
   /** Free-space grid from CS2's collision geometry (line of sight, camera clearance), when the map has one. */
   grid: VisibilityGrid | null = null;
   private readonly cellIndexes: CellIndex[] = [];
@@ -243,7 +245,7 @@ export class MapRuntime {
 
   /** Validated cameras of this revision, and built-in ones while they are switched on. */
   cameraUsable(cam: CameraRecord, includeUnvalidated = false): boolean {
-    if (cam.validation === "invalidated" || cam.mapRevision !== this.pack.mapRevision) return false;
+    if (cam.validation === "invalidated" || cam.mapRevision !== this.pack.mapRevision || this.hiddenCameras.has(cam.id)) return false;
     if (cam.validation === "validated" || includeUnvalidated) return true;
     return this.builtInCameras && cam.capturedFrom === "derived_navmesh";
   }

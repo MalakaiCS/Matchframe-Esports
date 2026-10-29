@@ -140,8 +140,16 @@ export function registerDemoRoutes(r: Router, e: Engine): void {
     return { manifest: existsSync(manifest) ? JSON.parse(readFileSync(manifest, "utf8")) : null, qa: existsSync(qa) ? JSON.parse(readFileSync(qa, "utf8")) : null, validation: j.validation };
   });
 
+  // ---- replay test bench: the director replayed on read demos, scored on kills shown ----------
+  r.get("/api/v1/bench", { permission: "training.manage" }, () => e.bench.status());
+  r.post("/api/v1/bench/run", { permission: "training.manage", body: z.object({ limit: z.number().int().min(1).max(50).optional(), compare: z.boolean().optional() }) }, (req) => {
+    const run = e.bench.start(req.body);
+    e.audit.record(req.principal!.label, "bench.run", run.id, req.body);
+    return run;
+  });
+
   // ---- training & evaluation (offline; workers run at below-normal priority) ---------------
-  r.post("/api/v1/training/runs", { permission: "training.manage", body: z.object({ task: z.enum(["contact_2s"]).default("contact_2s"), datasets: z.array(z.string()).min(1).optional(), allowDuringLive: z.boolean().default(false) }) }, (req) => {
+  r.post("/api/v1/training/runs", { permission: "training.manage", body: z.object({ task: z.enum(["contact_2s", "pov_2s"]).default("contact_2s"), datasets: z.array(z.string()).min(1).optional(), allowDuringLive: z.boolean().default(false) }) }, (req) => {
     const st = e.session.state();
     if (!req.body.allowDuringLive && st && !st.simulated && !st.sources[0]?.stale) throw new HttpError(409, "training is paused while a live broadcast is running (allowDuringLive to override)", "live_protected");
     if (!e.workers.available()) throw new HttpError(409, "Python workers are not configured", "no_workers");
@@ -173,6 +181,13 @@ export function registerDemoRoutes(r: Router, e: Engine): void {
     e.training.unloadShadow();
     e.audit.record(req.principal!.label, "model.shadow_unload", null);
     return { shadowModelId: null };
+  });
+  // ---- what the demos teach: the demo-trained POV model in the live director ---------------
+  r.get("/api/v1/models/pov", { permission: "state.read" }, () => e.povModel.status());
+  r.put("/api/v1/models/pov", { permission: "models.promote", body: z.object({ enabled: z.boolean().optional(), modelId: z.string().min(1).max(200).optional() }) }, (req) => {
+    const res = e.povModel.update(req.body);
+    e.audit.record(req.principal!.label, "model.pov_set", res.setting.modelId, { ...req.body, loaded: res.active !== null, error: res.error });
+    return res;
   });
   r.get("/api/v1/models/shadow", { permission: "state.read" }, () => ({ shadowModelId: e.session.shadowModelId, summary: e.session.shadow.summary(), recent: e.session.shadow.recent.slice(-20), note: "Shadow models never drive the camera; this compares their contact estimate with the baseline." }));
 }

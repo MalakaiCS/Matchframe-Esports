@@ -19,6 +19,10 @@ from mf_common.emit import Emitter, dumps
 from mf_common.fsutil import read_json, sha256_bytes, utc_now, write_json_atomic, write_text_atomic
 
 PARITY_TOLERANCE = 1e-9
+LABEL_DEFINITION = {
+    "contact_2s": "1 if the T/CT pair exchanges attributed damage or a kill within (t, t+2s]",
+    "pov_2s": "1 if the player kills or dies within (t, t+2s] (their POV shows a kill)",
+}
 
 
 def parity_vectors(booster: lgb.Booster, X: np.ndarray, feature_names: list[str]) -> list[dict[str, Any]]:
@@ -122,7 +126,7 @@ def export_model(model_dir: Path, out: Path, emitter: Emitter, parity_count: int
         "created_at": record["created_at"],
         "exported_at": utc_now(),
         "objective": "binary",
-        "label_definition": "1 if the T/CT pair exchanges attributed damage or a kill within (t, t+2s]",
+        "label_definition": LABEL_DEFINITION.get(record["task"], record["label"]),
         "metrics": metrics,
         "feature_schema": [
             {"index": i, "name": f, "capability": record["feature_capabilities"][f], "dtype": "float32", "missing": "null/NaN allowed"}

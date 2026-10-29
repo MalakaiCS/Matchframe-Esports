@@ -8,6 +8,7 @@ import { fmtTime, GRENADE_TYPE_LABEL, MISSING } from "../lib/format.ts";
 import { useApi, usePersistentState } from "../lib/hooks.ts";
 import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
+import { CameraWalkthroughPanel, VerdictButtons, type CameraVerdict } from "./maps/CameraWalkthrough.tsx";
 import "../styles/group-c.css";
 
 const KIND_COLOR: Record<string, string> = {
@@ -189,7 +190,7 @@ const TONE_TEXT: Record<string, string> = { ok: "text-ok", warn: "text-warn", da
 const VALIDATION_LABEL: Record<CameraRecord["validation"], string> = { unvalidated: "Unvalidated", preview_only: "Preview only", validated: "Validated", invalidated: "Invalidated" };
 const human = (s: string) => s.replace(/_/g, " ");
 
-function CameraRow({ map, cam, onChanged }: { map: string; cam: CameraRecord; onChanged: () => void }) {
+function CameraRow({ map, cam, onChanged, verdict }: { map: string; cam: CameraRecord; onChanged: () => void; verdict: CameraVerdict | null }) {
   const reason = usePermission("metadata.write");
   const snap = useSnapshot();
   const [validation, setValidation] = useState(cam.validation);
@@ -230,6 +231,9 @@ function CameraRow({ map, cam, onChanged }: { map: string; cam: CameraRecord; on
             Save
           </ActionButton>
         </div>
+      </td>
+      <td>
+        <VerdictButtons mapName={map} cameraId={cam.id} verdict={verdict} onDone={onChanged} />
       </td>
       <td>
         <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/maps/${seg(map)}/cameras/${seg(cam.id)}`)} success="Camera removed" onDone={onChanged} disabledReason={reason} confirm={{ title: `Delete camera ${cam.displayName}?`, body: "Removes an operator-authored camera. Cameras shipped inside a map pack file stay in the pack.", danger: true, confirmLabel: "Delete" }}>
@@ -350,6 +354,7 @@ function PackDetails({ d }: { d: MapPackDetail }) {
 
 function MapDetail({ map, reloadList }: { map: string; reloadList: () => void }) {
   const detail = useApi<MapPackDetail>(`/api/v1/maps/${seg(map)}`);
+  const reviews = useApi<Record<string, Record<string, CameraVerdict>>>("/api/v1/cameras/review", { refreshMs: 3000 });
   const outline = useApi<MapOutline | null>(`/api/v1/maps/${seg(map)}/outline`);
   const reason = usePermission("metadata.write");
   const [highlight, setHighlight] = useState<string | null>(null);
@@ -357,6 +362,7 @@ function MapDetail({ map, reloadList }: { map: string; reloadList: () => void })
   const [adding, setAdding] = useState(false);
   const reload = () => {
     void detail.reload();
+    void reviews.reload();
     reloadList();
   };
   return (
@@ -427,12 +433,13 @@ function MapDetail({ map, reloadList }: { map: string; reloadList: () => void })
                         <th>Camera</th>
                         <th>Used for</th>
                         <th>Validation</th>
+                        <th title="Seen in CS2 (camera walkthrough): hidden cameras are never used">In game</th>
                         <th aria-label="Delete" />
                       </tr>
                     </thead>
                     <tbody>
                       {d.cameras.map((c) => (
-                        <CameraRow key={c.id} map={map} cam={c} onChanged={reload} />
+                        <CameraRow key={c.id} map={map} cam={c} onChanged={reload} verdict={reviews.data?.[map]?.[c.id] ?? null} />
                       ))}
                     </tbody>
                   </table>
@@ -586,6 +593,8 @@ export function MapsScreen() {
             return list.length === 0 ? (
               <EmptyState title="No map packs loaded">Map packs are JSON files in the app&apos;s assets/map-packs folder or the data folder&apos;s map-packs directory. The labelled simulation adds a synthetic test map when started.</EmptyState>
             ) : (
+              <div className="stack">
+              <CameraWalkthroughPanel liveMap={current} onReviewed={() => void maps.reload()} />
               <div className="grid-1-2">
                 <Panel title="Maps">
                   <ul className="select-list">
@@ -606,6 +615,7 @@ export function MapsScreen() {
                   </ul>
                 </Panel>
                 {sel ? <MapDetail key={sel} map={sel} reloadList={() => void maps.reload()} /> : null}
+              </div>
               </div>
             );
           }}

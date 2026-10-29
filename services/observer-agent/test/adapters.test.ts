@@ -1,8 +1,11 @@
-import { createServer } from "node:net";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { createServer, type Socket } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { CameraPath, CommandContext } from "@matchframe/contracts";
 import { aimAt, glideMotion, panMotion, teamCamera } from "@matchframe/director-policy";
-import { accountIdOf, KeyboardObserverAdapter, NetconObserverAdapter, safeName, samplePath, slotKey } from "../src/index.ts";
+import { accountIdOf, campathXml, KeyboardObserverAdapter, NetconObserverAdapter, safeName, samplePath, slotKey } from "../src/index.ts";
 
 const ctx = (over: Partial<CommandContext> = {}): CommandContext => ({
   commandId: "c1",
@@ -341,6 +344,16 @@ describe("one spec_mode numbering, and other ways to move the camera", () => {
     const n = c.lines.length;
     expect((await a.activateStaticCamera(camera({ id: "cam-b" }), ctx())).status).toBe("confirmed");
     expect(c.lines[n]).toBe("spec_mode 4; setpos 1200.5 -340 256; setang 18 -135 0");
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("reads where the camera is now (saving the CS2 view as a camera)", async () => {
+    const c = await numberedCs2(4, 2);
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova", templates: { modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" } });
+    expect((await a.activateStaticCamera(camera(), ctx())).status).toBe("confirmed");
+    expect(await a.readPose()).toEqual({ position: { x: 1200.5, y: -340, z: 256 }, pitch: 18, yaw: -135 });
+    expect(c.lines.at(-1)).toBe("getpos");
     await a.dispose();
     c.server.close();
   });
@@ -733,6 +746,74 @@ describe("streamed camera (follow cam)", () => {
     expect(a.playingPath).toBe(true);
     await a.selectPlayer("76561198000000001", 1, ctx());
     expect(a.playingPath).toBe(false);
+    await a.dispose();
+    c.server.close();
+  });
+});
+
+describe("camera paths through HLAE (mirv_campath)", () => {
+  const p = {
+    id: "mid push",
+    displayName: "mid push",
+    mapName: "m",
+    mapRevision: "r",
+    keyframes: [
+      { tMs: 0, position: { x: 0, y: 0, z: 200 }, pitch: 20, yaw: 0 },
+      { tMs: 400, position: { x: 300, y: 0, z: 200 }, pitch: 20, yaw: 30 },
+    ],
+    maxDurationMs: 2000,
+    maxSpeedUnitsPerSec: 300,
+    collisionValidated: false,
+    validation: "unvalidated",
+    targetRegionIds: [],
+  } satisfies CameraPath;
+
+  it("writes the path as an HLAE campath (seconds from 0; rx roll, ry pitch, rz yaw), linear below four keyframes", () => {
+    const xml = campathXml(p);
+    expect(xml).toContain('<campath positionInterp="linear" rotationInterp="sLinear" fovInterp="linear" hold="1">');
+    expect(xml).toContain('<p t="0" x="0" y="0" z="200" fov="90" rx="0" ry="20" rz="0"/>');
+    expect(xml).toContain('<p t="0.4" x="300" y="0" z="200" fov="90" rx="0" ry="20" rz="30"/>');
+    const four = { ...p, keyframes: [0, 1, 2, 3].map((i) => ({ tMs: i * 500, position: { x: i, y: 0, z: 0 }, pitch: 0, yaw: 0 })) };
+    expect(campathXml(four)).toContain('positionInterp="cubic" rotationInterp="sCubic"');
+  });
+
+  it("starts the path in HLAE, switches it off at the end and leaves the camera at the last pose", async () => {
+    const c = await numberedCs2(4, 2);
+    const dir = mkdtempSync(join(tmpdir(), "mf-campath-"));
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), templates: { modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" }, hlaePaths: () => ({ dir }) });
+    const r = await a.playCameraPath(p, ctx());
+    expect(r.detail).toMatch(/HLAE/);
+    const file = join(dir, "mid_push.xml");
+    expect(existsSync(file)).toBe(true);
+    expect(readFileSync(file, "utf8")).toContain("<campath");
+    expect(c.lines).toContain(`mirv_campath load "${file.replace(/\\/g, "/")}"; mirv_campath edit start; mirv_campath enabled 1`);
+    // HLAE moves the camera: Matchframe sends no poses meanwhile.
+    expect(c.lines.filter((l) => /^spec_goto /.test(l))).toEqual([]);
+    await sleep(500);
+    expect(c.lines.at(-1)).toBe("mirv_campath enabled 0; spec_goto 300 0 200 20 30");
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("goes back to sending the poses itself when CS2 has no HLAE", async () => {
+    const c = await numberedCs2(4, 2);
+    const answer = c.server.listeners("connection")[0] as (s: Socket) => void;
+    c.server.removeAllListeners("connection");
+    c.server.on("connection", (sock) => {
+      sock.on("data", (d) => {
+        if (d.toString().includes("mirv_campath load")) sock.write("Unknown command: mirv_campath\n");
+      });
+      answer(sock);
+    });
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), templates: { modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" }, hlaePaths: () => ({ dir: mkdtempSync(join(tmpdir(), "mf-campath-")) }) });
+    const r = await a.playCameraPath(p, ctx());
+    expect(r.detail ?? "").not.toMatch(/HLAE/);
+    await sleep(200);
+    expect(c.lines.filter((l) => /^spec_goto /.test(l)).length).toBeGreaterThan(5);
+    // Not tried again this session.
+    const n = c.lines.filter((l) => l.startsWith("mirv_campath load")).length;
+    await a.playCameraPath(p, ctx());
+    expect(c.lines.filter((l) => l.startsWith("mirv_campath load")).length).toBe(n);
     await a.dispose();
     c.server.close();
   });

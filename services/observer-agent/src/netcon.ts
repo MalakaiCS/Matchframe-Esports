@@ -1,6 +1,8 @@
 import type { CameraMode, CameraPath, CameraRecord, CommandContext, CommandResult, ObservedCameraState, Vec3 } from "@matchframe/contracts";
 import type { CameraMotion, ControlCapabilities, ObserverControlAdapter, PlayerView, PoseStream } from "@matchframe/director-policy";
 import { failedResult, transportResult } from "@matchframe/director-policy";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { accountIdOf, cap } from "./common.ts";
 import { NetconConnection } from "./netcon-connection.ts";
 
@@ -49,6 +51,26 @@ export const CS2_ENUM_MODES = { modeInEye: "spec_mode 2", modeChase: "spec_mode 
 /** CS:GO's numbering (the built-in default). */
 const CSGO_MODES = { modeInEye: "spec_mode 4", modeChase: "spec_mode 5", modeRoaming: "spec_mode 6" } as const;
 const STANDARD_MODES = new Set<string>([...Object.values(CSGO_MODES), ...Object.values(CS2_ENUM_MODES)]);
+/**
+ * A camera path as an HLAE campath file (advancedfx CamPath XML): `t` in seconds from 0, Quake
+ * angles (rx roll, ry pitch, rz yaw); cubic with four keyframes or more, linear below that; `hold`
+ * keeps the last view until the path is switched off.
+ */
+export function campathXml(path: CameraPath): string {
+  const cubic = path.keyframes.length >= 4;
+  const n = (v: number) => (Math.round(v * 1000) / 1000).toString();
+  const points = path.keyframes.map((k) => `    <p t="${n(k.tMs / 1000)}" x="${n(k.position.x)}" y="${n(k.position.y)}" z="${n(k.position.z)}" fov="90" rx="0" ry="${n(k.pitch)}" rz="${n(k.yaw)}"/>`);
+  return [
+    '<?xml version="1.0" encoding="utf-8"?>',
+    `<campath positionInterp="${cubic ? "cubic" : "linear"}" rotationInterp="${cubic ? "sCubic" : "sLinear"}" fovInterp="linear" hold="1">`,
+    "  <points>",
+    ...points,
+    "  </points>",
+    "</campath>",
+    "",
+  ].join("\n");
+}
+
 /** Moving the free camera with setpos/setang (what getpos prints), for a build where spec_goto doesn't move it. */
 const SETPOS_WAY = { staticCamera: "{roaming}; setpos {x} {y} {z}; setang {pitch} {yaw} 0", pathFrame: "setpos {x} {y} {z}; setang {pitch} {yaw} 0" } as const;
 /** CS2 console answers worth keeping in the director log: the ones that say a command didn't work. */
@@ -127,6 +149,12 @@ export interface NetconOptions {
   onModesLearned?: (modes: Partial<NetconTemplates>) => void;
   /** CS2's console answers that say a command didn't work ("Unknown command", a cheat-protected command…). */
   onConsoleReply?: (line: string) => void;
+  /**
+   * Camera paths played by HLAE (`mirv_campath`, the game moves the camera every frame) instead of
+   * streamed positions: the folder for the path files, or null while off (it needs the HLAE launch
+   * mode). A CS2 without HLAE answers "Unknown command" and paths go back to streaming.
+   */
+  hlaePaths?: () => { dir: string } | null;
   /** Camera path frames per second. */
   pathHz?: number;
   /** How long to wait for a getpos answer. */
@@ -182,6 +210,9 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   private readonly offLine: () => void;
   private readonly templates: NetconTemplates;
   private lastPose: ObservedCameraState["pose"] = null;
+  /** HLAE's campath on air, and CS2 answering that it has no mirv_campath (HLAE not loaded). */
+  private hlaePlaying = false;
+  private hlaeRefused = false;
   private lastPoseAt: number | null = null;
   private poseSeq = 0;
   /** The camera is in the free camera (after a static camera or path, or as the game data shows). */
@@ -259,6 +290,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
 
   private onLine(line: string): void {
     this.opts.onLine?.(line);
+    if (/unknown command:?\s*"?mirv_/i.test(line)) this.hlaeRefused = true;
     if (FAILED_REPLY.test(line) && !/^\s*setpos/.test(line)) {
       // At most 20 a minute in the director log.
       const now = this.opts.now();
@@ -460,6 +492,23 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   }
 
   /** Asks getpos and compares the answer with where the camera was sent. */
+  /**
+   * Where the camera is now, from CS2's `getpos` (what you see in the game): saving the current view
+   * as a camera. Null when CS2 doesn't answer.
+   */
+  async readPose(): Promise<{ position: Vec3; pitch: number; yaw: number } | null> {
+    const seq = this.poseSeq;
+    try {
+      await this.write(this.templates.readPose);
+    } catch {
+      return null;
+    }
+    const deadline = Date.now() + (this.opts.readbackTimeoutMs ?? 800);
+    while (this.poseSeq === seq && Date.now() < deadline) await new Promise((r) => setTimeout(r, 20));
+    const p = this.lastPose;
+    return this.poseSeq === seq || !p ? null : { position: { ...p.position }, pitch: p.pitch, yaw: p.yaw };
+  }
+
   private async readback(pose: PathPose): Promise<"match" | "mismatch" | "none"> {
     const seq = this.poseSeq;
     await new Promise((r) => setTimeout(r, 60));
@@ -485,6 +534,10 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
 
   private stopPath(): void {
     this.pathToken++;
+    if (this.hlaePlaying) {
+      this.hlaePlaying = false;
+      void this.conn.write("mirv_campath enabled 0").catch(() => {});
+    }
     if (this.pathTimer) {
       clearTimeout(this.pathTimer as ReturnType<typeof setTimeout>);
       clearImmediate(this.pathTimer as ReturnType<typeof setImmediate>);
@@ -661,6 +714,11 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
 
   /** Streams the path as spec_goto frames; getpos at the end confirms where it finished. */
   async playCameraPath(path: CameraPath, ctx: CommandContext): Promise<CommandResult> {
+    const hlae = this.hlaeRefused ? null : (this.opts.hlaePaths?.() ?? null);
+    if (hlae) {
+      const res = await this.playHlaePath(path, ctx, hlae.dir);
+      if (res) return res;
+    }
     const first = samplePath(path, 0);
     let cmd: string;
     try {
@@ -691,6 +749,52 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
       return false;
     });
     return r;
+  }
+
+  /**
+   * A path through HLAE: the free camera at its first pose, the path written as an HLAE campath file
+   * (absolute times from 0, Quake angles: rx roll, ry pitch, rz yaw), loaded, moved to start now and
+   * switched on; switched off at its end (the camera then stays at the last pose) or when the shot
+   * is cut. Null when HLAE isn't there (CS2 answers "Unknown command"): the caller streams instead.
+   */
+  private async playHlaePath(path: CameraPath, ctx: CommandContext, dir: string): Promise<CommandResult | null> {
+    const first = samplePath(path, 0);
+    let cmd: string;
+    let file: string;
+    try {
+      cmd = this.cameraCommand(first);
+      mkdirSync(dir, { recursive: true });
+      file = join(dir, `${path.id.replace(/[^a-zA-Z0-9_-]/g, "_")}.xml`);
+      writeFileSync(file, campathXml(path));
+    } catch {
+      return null;
+    }
+    this.stopPath();
+    const r = await this.send(ctx, cmd);
+    if (r.status === "failed") return r;
+    this.wentFree();
+    try {
+      await this.write(`mirv_campath load "${file.replace(/\\/g, "/")}"; mirv_campath edit start; mirv_campath enabled 1`);
+    } catch {
+      return null;
+    }
+    await new Promise((res) => setTimeout(res, 150));
+    if (this.hlaeRefused) return null;
+    this.hlaePlaying = true;
+    const token = this.pathToken;
+    const dur = path.keyframes[path.keyframes.length - 1]!.tMs;
+    const last = samplePath(path, dur);
+    this.pathTimer = setTimeout(() => {
+      if (token !== this.pathToken) return;
+      this.pathTimer = null;
+      this.hlaePlaying = false;
+      try {
+        void this.conn.write(`mirv_campath enabled 0; ${this.cameraCommand(last, this.templates.pathFrame)}`).catch(() => {});
+      } catch {
+        void this.conn.write("mirv_campath enabled 0").catch(() => {});
+      }
+    }, dur);
+    return { ...r, detail: `camera path ${path.id} played by HLAE (mirv_campath)` };
   }
 
   /**
