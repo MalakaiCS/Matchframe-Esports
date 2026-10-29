@@ -5742,6 +5742,23 @@
                   },
                   "clutch": {
                     "type": "boolean"
+                  },
+                  "variety": {
+                    "type": "boolean"
+                  },
+                  "winnerShots": {
+                    "type": "string",
+                    "enum": [
+                      "every_round",
+                      "big_rounds",
+                      "off"
+                    ]
+                  },
+                  "bigMoments": {
+                    "type": "boolean"
+                  },
+                  "hlaeCamera": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -5831,6 +5848,23 @@
                     "type": "boolean"
                   },
                   "clutch": {
+                    "type": "boolean"
+                  },
+                  "variety": {
+                    "type": "boolean"
+                  },
+                  "winnerShots": {
+                    "type": "string",
+                    "enum": [
+                      "every_round",
+                      "big_rounds",
+                      "off"
+                    ]
+                  },
+                  "bigMoments": {
+                    "type": "boolean"
+                  },
+                  "hlaeCamera": {
                     "type": "boolean"
                   }
                 }
@@ -7525,6 +7559,275 @@
         }
       }
     },
+    "/api/v1/cameras/walkthrough": {
+      "get": {
+        "operationId": "get_api_v1_cameras_walkthrough",
+        "summary": "GET /api/v1/cameras/walkthrough",
+        "description": "Requires permission `state.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/walkthrough/start": {
+      "post": {
+        "operationId": "post_api_v1_cameras_walkthrough_start",
+        "summary": "POST /api/v1/cameras/walkthrough/start",
+        "description": "Requires permission `camera.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "secondsPer": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 10
+                  },
+                  "onlyUnreviewed": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/walkthrough/next": {
+      "post": {
+        "operationId": "post_api_v1_cameras_walkthrough_next",
+        "summary": "POST /api/v1/cameras/walkthrough/next",
+        "description": "Requires permission `camera.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/walkthrough/previous": {
+      "post": {
+        "operationId": "post_api_v1_cameras_walkthrough_previous",
+        "summary": "POST /api/v1/cameras/walkthrough/previous",
+        "description": "Requires permission `camera.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/walkthrough/stop": {
+      "post": {
+        "operationId": "post_api_v1_cameras_walkthrough_stop",
+        "summary": "POST /api/v1/cameras/walkthrough/stop",
+        "description": "Requires permission `camera.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/review": {
+      "get": {
+        "operationId": "get_api_v1_cameras_review",
+        "summary": "GET /api/v1/cameras/review",
+        "description": "Requires permission `state.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put_api_v1_cameras_review",
+        "summary": "PUT /api/v1/cameras/review",
+        "description": "Requires permission `metadata.write`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "mapName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "cameraId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "verdict": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "keep",
+                          "hide"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "mapName",
+                  "cameraId",
+                  "verdict"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/maps": {
       "get": {
         "operationId": "get_api_v1_maps",
@@ -7767,6 +8070,67 @@
           },
           "409": {
             "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/cameras/capture": {
+      "post": {
+        "operationId": "post_api_v1_cameras_capture",
+        "summary": "POST /api/v1/cameras/capture",
+        "description": "Requires permission `metadata.write`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "uses": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "utility",
+                        "tactical",
+                        "bomb",
+                        "establishing"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -10837,6 +11201,87 @@
         }
       }
     },
+    "/api/v1/bench": {
+      "get": {
+        "operationId": "get_api_v1_bench",
+        "summary": "GET /api/v1/bench",
+        "description": "Requires permission `training.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/bench/run": {
+      "post": {
+        "operationId": "post_api_v1_bench_run",
+        "summary": "POST /api/v1/bench/run",
+        "description": "Requires permission `training.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50
+                  },
+                  "compare": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/training/runs": {
       "post": {
         "operationId": "post_api_v1_training_runs",
@@ -10877,7 +11322,8 @@
                     "default": "contact_2s",
                     "type": "string",
                     "enum": [
-                      "contact_2s"
+                      "contact_2s",
+                      "pov_2s"
                     ]
                   },
                   "datasets": {
@@ -11120,6 +11566,85 @@
           },
           "409": {
             "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/models/pov": {
+      "get": {
+        "operationId": "get_api_v1_models_pov",
+        "summary": "GET /api/v1/models/pov",
+        "description": "Requires permission `state.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put_api_v1_models_pov",
+        "summary": "PUT /api/v1/models/pov",
+        "description": "Requires permission `models.promote`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "modelId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
           }
         }
       }

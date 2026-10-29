@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync } from "node:fs";
 import { createServer, type Server, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { Engine } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
 import { buildSyntheticGsiPayload, syntheticRoster } from "../../../packages/cs2-state/src/testing/gsi-builder.ts";
@@ -291,6 +291,19 @@ describe("Auto Director: one button, checks and fixes by itself", () => {
     const pick = cs2.lines.length;
     expect((await api("/api/v1/observer/commands", { method: "POST", body: { kind: "select_player", steamId: cs2.roster[2]!.steamId, view: "chase" } })).status).toBe(200);
     await waitFor(() => cs2.lines.slice(pick).includes(`spec_player "${cs2.roster[2]!.name}"; spec_mode 3`), 3000);
+  });
+
+  it("flies camera paths in freeze time and the breaks only while the HLAE camera is connected", async () => {
+    const cfg = () => engine.session.director.config.cinematic.freezeTimePaths;
+    expect(cfg()).toBe(false); // console commands only: too jerky for paths
+    const spy = vi.spyOn(engine.hlaeCamera, "connected").mockReturnValue(true);
+    try {
+      await waitFor(async () => cfg(), 3000);
+      spy.mockReturnValue(false);
+      await waitFor(async () => !cfg(), 3000);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("stops with the button, and the Observer switches off", async () => {

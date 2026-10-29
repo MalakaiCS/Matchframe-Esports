@@ -15,6 +15,11 @@ interface CellIndex {
   map: Map<string, string[]>;
 }
 
+/** A path that ships with the map pack (from map data or demos), not authored by the operator. */
+export function isBuiltInPath(p: CameraPath): boolean {
+  return p.source === "derived_navmesh" || p.source === "derived_demos";
+}
+
 export interface CameraMatch {
   camera: CameraRecord;
   distanceUnits: number;
@@ -29,8 +34,8 @@ export interface CameraMatch {
 export class MapRuntime {
   readonly pack: MapPack;
   /**
-   * Built-in cameras and paths (`derived_navmesh`, placed from map data and not yet seen in game)
-   * are usable alongside operator-validated ones, unless switched off. Invalidated ones never are.
+   * Built-in cameras and paths (`derived_navmesh` and `derived_demos`, placed from map data and
+   * demos and not yet seen in game) are usable alongside operator-validated ones, unless switched off. Invalidated ones never are.
    */
   builtInCameras = true;
   /** Cameras the operator hid after seeing them in game (camera walkthrough): never used, validated or not. */
@@ -254,7 +259,7 @@ export class MapRuntime {
   pathsFor(opts: { regionIds?: readonly string[] } = {}): CameraPath[] {
     return this.pack.paths.filter((p) => {
       if (p.validation === "invalidated" || p.mapRevision !== this.pack.mapRevision) return false;
-      if (p.validation !== "validated" && !(this.builtInCameras && p.source === "derived_navmesh")) return false;
+      if (p.validation !== "validated" && !(this.builtInCameras && isBuiltInPath(p))) return false;
       return !opts.regionIds || p.targetRegionIds.some((r) => opts.regionIds!.includes(r));
     });
   }

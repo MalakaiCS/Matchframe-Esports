@@ -672,7 +672,8 @@
             "type": "string",
             "enum": [
               "authored",
-              "derived_navmesh"
+              "derived_navmesh",
+              "derived_demos"
             ]
           }
         },

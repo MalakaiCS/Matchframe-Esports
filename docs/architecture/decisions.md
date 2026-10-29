@@ -792,3 +792,44 @@ ADR-045's `mirv_campath` option only covered paths and relied on `edit start` fo
 - The console service sends `mirv_script_load` after the options on connect in the HLAE mode only.
 
 **Not checked.** A real CS2 with HLAE: the script API is HLAE's documented one, but it has not run in the game here. Older HLAE builds without `mirv.events` use the `mirv.on…` hooks the API still maps.
+
+## ADR-047 — Camera paths built from demos (200–300 a map)
+
+**Context.** The owner: make realistic camera paths from the demos provided, 200–300 different ones on each map. The map packs had 9–10 paths each (ADR-025), placed from navigation data round the sites, mid and spawns. HLAE now plays paths smoothly (ADR-046). No free database of CS2 campaths exists to start from.
+
+**Decision.**
+- **What the demos give** (`scripts/demo-path-anchors.py`, from committed datasets; positions only, no names or IDs):
+  - routes: 6 s stretches where a player ran or walked steadily (90–320 units a second) in a live round, at 4 Hz;
+  - where each kill happened (victim and killer) and where the bomb was planted;
+  - where every player stood at the end of freeze time;
+  - which 64-unit floor cells living players stood on.
+- **Places:** clusters of kills and plants (fights), the two spawns as teams stand in them, and the busiest floor away from those. 27–33 places a map.
+- **Shots** (`services/local-engine/scripts/generate-demo-paths.ts`):
+  - round a place (orbit, 45° or 70°, at four radii and heights);
+  - towards it (push-in), away from it (pull-out), up over it (crane), across it (slide), always looking at it;
+  - along a route players ran, smoothed, a little behind and above them, looking ahead down the route.
+- **Every candidate is flown the way the program flies it** (`samplePath`, every 60 ms and between samples) through the map's free-space grid, and kept only when:
+  - the camera has 20 units of room, nothing solid between one sample and the next, and floor within 900 units below;
+  - it stays over walkable floor or the cell next to it (navigation floor and where players stood): never out over the roofs and the scenery beyond;
+  - no wall fills the picture (never within 70 units straight ahead; only briefly within 160, or at the edges);
+  - the place it looks at is in view most of the time;
+  - speed and turning stay gentle (orbits and the rest 230 units and 40° a second; routes 320 and 60);
+  - it lasts 3–10 s, at 0.5 s keyframes.
+- **Choosing:** the best of each style per place (a few per place), then routes, leaving out near-copies. Each map ends with 200–300.
+- **In the packs** (`scripts/merge-demo-paths.py`): `source: "derived_demos"`, ids `demo-<map>-<style>-NNN`, named after the area (`Orbit: B site 3`, `Route: T spawn to Outside Long (T)`). They replace the previous demo paths only; operator and navigation paths stay. Keyframes are written one to a line by every script that writes packs. `MapRuntime.pathsFor` treats them as built in, like `derived_navmesh`: used unvalidated unless built-in cameras are switched off.
+- **Where they play:**
+  - in freeze time, half time and map end, alongside the team shots and spawn cameras, when they show at least two players;
+  - only while the HLAE camera is connected: the Auto Director sets `cinematic.freezeTimePaths` from it, because paths over console commands judder.
+  - With variety on, map cameras and paths of equal score take turns from round to round (a small shuffle from the shot id and round number). Without it, the first in the pack would always win.
+- **Speed:** the director remembers line-of-sight results by their two ends, so checking hundreds of paths against ten players costs nothing once players stand still (it took 10–20 ms a decision).
+
+**Checked.**
+- Every shipped demo path flown again in a test through its map's grid at 100 ms steps: room round the camera, nothing between samples, pitch and speed in range, built in and switched off with built-in cameras.
+- A Mirage freeze time with paths on flies demo paths round the spawns, each once.
+- The Auto Director switches paths on with the HLAE camera and off without it.
+- Radar previews of all paths per map were checked by eye.
+
+**Not checked.**
+- Any of them in a real CS2. Collision geometry leaves out glass, fences and foliage, so a path can pass close to one; see-through scenery outside the map isn't modelled either.
+- One demo per map so far: more demos give more routes and fight places (rerun the three scripts).
+- Overpass, Train and Vertigo have no demos yet, so they keep their navigation paths only.

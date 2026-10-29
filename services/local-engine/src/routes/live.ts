@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { CameraRecord } from "@matchframe/contracts";
 import { CameraRecord as CameraRecordSchema, DirectorMode, ObserverMode, Side } from "@matchframe/contracts";
-import { applyMapRevision, checkCameraPath, draftCamera, parseGetpos, phasesForUses } from "@matchframe/map-runtime";
+import { applyMapRevision, checkCameraPath, draftCamera, isBuiltInPath, parseGetpos, phasesForUses } from "@matchframe/map-runtime";
 import type { Engine } from "../app.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
@@ -357,10 +357,10 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
   r.get("/api/v1/maps", { permission: "metadata.read" }, () =>
     e.maps.list().map((m) => ({ mapName: m.mapName, displayName: m.pack.displayName, revision: m.pack.mapRevision, regions: m.pack.regions.length, cameras: m.pack.cameras.map((c) => ({ id: c.id, displayName: c.displayName, validation: c.validation, mapRevision: c.mapRevision })), radar: m.pack.radar, floorGrid: !!m.pack.floorGrid, synthetic: m.mapName === "de_synthetic", provenance: m.pack.provenance })),
   );
-  /** Built-in cameras and paths (placed from map data, see scripts/generate-map-cameras.py): on or off for every map. */
+  /** Built-in cameras and paths (from map data and demos, see scripts/generate-map-cameras.py and scripts/merge-demo-paths.py): on or off for every map. */
   const builtIn = () => ({
     on: e.maps.builtInCameras,
-    maps: e.maps.list().map((m) => ({ mapName: m.mapName, cameras: m.pack.cameras.filter((c) => c.capturedFrom === "derived_navmesh").length, paths: m.pack.paths.filter((p) => p.source === "derived_navmesh").length })),
+    maps: e.maps.list().map((m) => ({ mapName: m.mapName, cameras: m.pack.cameras.filter((c) => c.capturedFrom === "derived_navmesh").length, paths: m.pack.paths.filter(isBuiltInPath).length })),
   });
   r.get("/api/v1/cameras/built-in", { permission: "metadata.read" }, () => builtIn());
   // A coach listed with a team: left out of the HUDs and never spectated. null: detect it again.

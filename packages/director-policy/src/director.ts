@@ -15,7 +15,7 @@ import type {
 } from "@matchframe/contracts";
 import { actionClassOfShot, OBSERVER_MODE_ACTIONS } from "@matchframe/contracts";
 import type { ProfileSet } from "@matchframe/cs2-state";
-import type { MapRuntime } from "@matchframe/map-runtime";
+import type { MapRuntime, VisibilityGrid } from "@matchframe/map-runtime";
 import type { Pin, ScoredCandidate } from "./candidates.ts";
 import { generateCandidates } from "./candidates.ts";
 import { cinematicCandidates, PAUSE_HOLD_MS } from "./cinematics.ts";
@@ -39,6 +39,8 @@ import { findUtilityOpportunities, INFERNO_BOTTOM_BANANA_RULE } from "./utility/
 export const CINEMATIC_SETTLE_MS = 600;
 /** A team shot is framed again when the team's middle moved this far (units). */
 const TEAM_MOVED = 150;
+/** Sight checks remembered for the cinematics (players stand still in freeze time; the map has hundreds of paths). */
+const SIGHT_CACHE_MAX = 20_000;
 
 /** What the engine should do with a decision. The director never talks to the game directly. */
 export interface DirectorIntent {
@@ -154,6 +156,8 @@ export class Director {
   private pause: { round: string | null; side: "T" | "CT" | null; since: number } | null = null;
   /** Team shots of this round, by side and still/gliding, with where the team stood when framed. */
   private teamShots: { round: string | null; shots: Map<string, { shot: TeamShot | null; at: { x: number; y: number }; when: number }> } = { round: null, shots: new Map() };
+  /** Line of sight for the cinematics, by both ends to the unit, for the map's grid. */
+  private sightCache: { grid: VisibilityGrid | null; seen: Map<string, boolean> } = { grid: null, seen: new Map() };
   readonly controls: DirectorControls = {
     hold: null,
     pin: null,
@@ -361,6 +365,18 @@ export class Director {
     this.pause = { round: state.roundAttemptId, side: g === "timeout_t" ? "T" : g === "timeout_ct" ? "CT" : null, since: now };
   }
 
+  /** Line of sight, remembered by both ends to the unit (forgotten when the grid changes or the cache fills). */
+  private sight(grid: VisibilityGrid, a: Vec3, b: Vec3): boolean {
+    if (this.sightCache.grid !== grid || this.sightCache.seen.size >= SIGHT_CACHE_MAX) this.sightCache = { grid, seen: new Map() };
+    const key = `${Math.round(a.x)},${Math.round(a.y)},${Math.round(a.z)}|${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.z)}`;
+    let v = this.sightCache.seen.get(key);
+    if (v === undefined) {
+      v = grid.lineOfSight(a, b);
+      this.sightCache.seen.set(key, v);
+    }
+    return v;
+  }
+
   /**
    * A team's shot this round (see frameTeam): framed once (players can't move in freeze time) and
    * framed again when the team's middle moved (the first game data of a round can be from before
@@ -458,7 +474,7 @@ export class Director {
       learnedImminence: this.learned ? this.blendLearned(state, interactions, this.learned) : undefined,
     });
     if (scope?.has("cinematic")) {
-      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, roundsSinceShown: (k) => this.planner.roundsSinceShown(k), sight: grid ? (a, b) => grid.lineOfSight(a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince, pause: this.pause, teamShot: grid && (state.roundPhase === "freezetime" || state.roundPhase === "over" || state.gamePhase === "halftime" || state.gamePhase === "gameover") ? (side, still, look) => this.teamShot(state, grid, side, still, now, look) : undefined, overForMs: this.overSince === null ? null : now - this.overSince, moment: matchMoment(state, this.cfg.cinematic) }));
+      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, roundsSinceShown: (k) => this.planner.roundsSinceShown(k), sight: grid ? (a, b) => this.sight(grid, a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince, pause: this.pause, teamShot: grid && (state.roundPhase === "freezetime" || state.roundPhase === "over" || state.gamePhase === "halftime" || state.gamePhase === "gameover") ? (side, still, look) => this.teamShot(state, grid, side, still, now, look) : undefined, overForMs: this.overSince === null ? null : now - this.overSince, moment: matchMoment(state, this.cfg.cinematic) }));
       candidates.sort((a, b) => b.utility - a.utility);
     }
 

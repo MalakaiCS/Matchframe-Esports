@@ -58,7 +58,7 @@ export class CameraCapture {
     let n = mine.filter((c) => c.id.startsWith("mine-")).length + 1;
     while (mine.some((c) => c.id === `mine-${n}`)) n++;
     const regions = rt.regionsAt(focus);
-    const area = regions.map((r) => rt.pack.regions.find((x) => x.id === r)?.displayName).find(Boolean);
+    const area = regions.map((r) => rt.pack.regions.find((x) => x.id === r)?.name).find(Boolean);
     const cam: CameraRecord = {
       ...draftCamera({
         id: `mine-${n}`,

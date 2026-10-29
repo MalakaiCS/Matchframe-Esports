@@ -74,6 +74,17 @@ const recentPenalty = (input: CinematicInput, key: ShotKey): number => {
   const r = input.roundsSinceShown?.(key);
   return r == null ? 0 : (RECENT_PENALTY[r] ?? 0);
 };
+/**
+ * With variety on, up to this much is added to a map camera's or path's freeze-time score, different
+ * each round (from its id and the round): the map has hundreds of paths, and equally good ones take
+ * turns instead of the first in the pack always winning.
+ */
+const ROUND_SHUFFLE = 0.03;
+function roundShuffle(key: string, round: number): number {
+  let h = 2166136261;
+  for (const ch of `${key}#${round}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return ((h >>> 0) / 2 ** 32) * ROUND_SHUFFLE;
+}
 /** Freeze-time shots from the map's cameras turn slowly: degrees a second, and at most this far in a shot. */
 const PAN_DEG_PER_SEC = 3;
 const PAN_MAX_DEG = 30;
@@ -329,8 +340,10 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>, mode: 
     // More players in the shot, a team not shown yet, and a path (when they are on) over a still
     // camera; a team shot tells the story better than the map's cameras (the team whose turn it is first).
     // The map's cameras and paths that played in the last rounds give way to others (team shots are
-    // framed afresh from where the players stand, so they never repeat).
-    const coverage = clamp01(0.45 + 0.08 * o.players.length + (fresh ? 0.12 : 0) + (o.path ? 0.04 : 0) - (o.team || isCurrent ? 0 : recentPenalty(input, o.key)));
+    // framed afresh from where the players stand, so they never repeat), and equally good ones take
+    // turns from round to round (ROUND_SHUFFLE).
+    const shuffle = o.team || !cfg.cinematic.variety ? 0 : roundShuffle(o.key, state.roundNumber ?? 0);
+    const coverage = clamp01(0.45 + 0.08 * o.players.length + (fresh ? 0.12 : 0) + (o.path ? 0.04 : 0) + shuffle - (o.team || isCurrent ? 0 : recentPenalty(input, o.key)));
     const components: ScoreComponents = {
       actionCoverage: coverage,
       imminence: 0.5,
@@ -379,9 +392,9 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>, mode: 
 function freezePlan(input: CinematicInput, mode: "freeze" | "half_time" | "map_end"): { sides: ("T" | "CT")[]; longSide: "T" | "CT" | null; opener: boolean; reasons: ReasonCode[] } {
   const { state, cfg } = input;
   const m = cfg.cinematic.bigMoments ? input.moment : null;
-  const other = (s: "T" | "CT") => (s === "T" ? "CT" : "T");
+  const other = (s: "T" | "CT"): "T" | "CT" => (s === "T" ? "CT" : "T");
   const turn: "T" | "CT" = (state.roundNumber ?? 0) % 2 === 0 ? "T" : "CT";
-  const both = (first: "T" | "CT") => [first, other(first)];
+  const both = (first: "T" | "CT"): ("T" | "CT")[] => [first, other(first)];
   if (mode !== "freeze") {
     const t = state.teams.T.score ?? 0;
     const ct = state.teams.CT.score ?? 0;

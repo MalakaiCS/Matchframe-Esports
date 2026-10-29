@@ -45,7 +45,7 @@ interface Shot {
  * Plays 18 s of freeze time then `liveMs` of live round; the "camera" does what the director says.
  * `pause`: a timeout from `at` ms into freeze time, `ms` long (freeze time is longer by as much).
  */
-function play(opts: { ctAt: { x: number; y: number; z: number }; liveMs: number; neverConfirmed?: boolean; pause?: { at: number; ms: number; phase: "timeout_t" | "timeout_ct" | "paused" }; grid?: boolean }) {
+function play(opts: { ctAt: { x: number; y: number; z: number }; liveMs: number; neverConfirmed?: boolean; pause?: { at: number; ms: number; phase: "timeout_t" | "timeout_ct" | "paused" }; grid?: boolean; paths?: boolean }) {
   const rt = new MapRuntime(pack());
   // With Mirage's free-space grid: team shots.
   if (opts.grid) rt.grid = VisibilityGrid.parse(readFileSync(join(root, "assets", "map-packs", "de_mirage.grid")), (b) => inflateSync(b));
@@ -54,6 +54,8 @@ function play(opts: { ctAt: { x: number; y: number; z: number }; liveMs: number;
   director.setMode("automatic");
   director.setObserverMode("observer_cinematics");
   director.setMap(rt);
+  // Camera paths on (the engine does this while the HLAE camera is connected).
+  if (opts.paths) director.setConfig({ cinematic: { ...director.config.cinematic, freezeTimePaths: true } });
   const caps = capsWithCameraControl("supported");
   caps.cameraPathControl = { ...caps.cameraPathControl, support: "supported" };
   director.setCapabilities(caps);
@@ -110,6 +112,17 @@ describe("freeze-time establishing shots and the start of the round", () => {
     }
     // Live: first person, no camera, for the round's first seconds.
     expect(shots.filter((s) => s.at >= freezeMs && s.kind !== "pov")).toHaveLength(0);
+  });
+
+  it("with camera paths on, flies the paths built from demos round the spawns, each once", () => {
+    const { shots, freezeMs } = play({ ctAt: CT_SPAWN, liveMs: 2000, paths: true });
+    const cine = shots.filter((s) => s.kind !== "pov" && s.at < freezeMs);
+    const paths = cine.filter((s) => s.kind === "play_camera_path");
+    expect(paths.length, JSON.stringify(cine)).toBeGreaterThanOrEqual(1);
+    expect(paths.some((s) => s.id!.startsWith("demo-mirage-")), JSON.stringify(paths)).toBe(true);
+    for (const s of cine) expect(s.regions.some((r) => r === "t_spawn" || r === "ct_spawn"), JSON.stringify(s)).toBe(true);
+    expect(new Set(cine.map((s) => s.id)).size).toBe(cine.length);
+    expect(shots.find((s) => s.at >= freezeMs)?.kind).toBe("pov");
   });
 
   it("fills the freeze time: shot after shot with no player view between, each turning slowly, the last until the round goes live", () => {

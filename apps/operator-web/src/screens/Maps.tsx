@@ -244,7 +244,7 @@ function CameraRow({ map, cam, onChanged, verdict }: { map: string; cam: CameraR
   );
 }
 
-/** Built-in cameras and paths (placed from map data) on or off for every map. */
+/** Built-in cameras and paths (placed from map data and demos) on or off for every map. */
 function BuiltInToggle({ onChanged }: { onChanged: () => void }) {
   const state = useApi<{ on: boolean }>("/api/v1/cameras/built-in");
   const reason = usePermission("metadata.write");
@@ -255,7 +255,7 @@ function BuiltInToggle({ onChanged }: { onChanged: () => void }) {
       checked={state.data.on}
       disabled={!!reason || busy}
       label="Built-in cameras"
-      hint="Cameras and camera paths for every active-duty map, placed from the map's navigation data. Switch off to use only your own cameras."
+      hint="Cameras and camera paths for every active-duty map, placed from the map's navigation data, and 200–300 camera paths a map built from pro demos. Switch off to use only your own cameras."
       onChange={(on) => {
         setBusy(true);
         void api

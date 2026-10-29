@@ -332,19 +332,6 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     return this.conn.write(line);
   }
 
-  /** Asks getpos where the camera is; null without an answer in time. */
-  private async readPose(): Promise<PathPose | null> {
-    const seq = this.poseSeq;
-    try {
-      await this.write(this.templates.readPose);
-    } catch {
-      return null;
-    }
-    const end = Date.now() + (this.opts.readbackTimeoutMs ?? 800);
-    while (this.poseSeq === seq && Date.now() < end) await new Promise((r) => setTimeout(r, 20));
-    return this.poseSeq === seq ? null : this.lastPose;
-  }
-
   /** How far (across) the camera is from the spectated player: about 0 in first person, well behind in the chase view. */
   private async chaseDistance(steamId: string): Promise<number | null> {
     if ((await this.waitObserved(steamId, 1000)) !== "player") return null;
@@ -468,10 +455,9 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     }
   }
 
-  /** Asks getpos and compares the answer with where the camera was sent. */
   /**
    * Where the camera is now, from CS2's `getpos` (what you see in the game): saving the current view
-   * as a camera. Null when CS2 doesn't answer.
+   * as a camera, and how far the chase view is behind the player. Null when CS2 doesn't answer.
    */
   async readPose(): Promise<{ position: Vec3; pitch: number; yaw: number } | null> {
     const seq = this.poseSeq;
@@ -486,6 +472,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     return this.poseSeq === seq || !p ? null : { position: { ...p.position }, pitch: p.pitch, yaw: p.yaw };
   }
 
+  /** Asks getpos and compares the answer with where the camera was sent. */
   private async readback(pose: PathPose): Promise<"match" | "mismatch" | "none"> {
     const seq = this.poseSeq;
     await new Promise((r) => setTimeout(r, 60));

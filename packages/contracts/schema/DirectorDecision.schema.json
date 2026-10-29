@@ -120,7 +120,13 @@
           "PAUSE",
           "NO_VALID_CANDIDATE",
           "MAIN_OBSERVER_ON_IT",
-          "FOLLOW_CAM"
+          "FOLLOW_CAM",
+          "MULTI_FRAG_CHANCE",
+          "ROUND_WINNERS",
+          "PISTOL_ROUND",
+          "MATCH_POINT",
+          "HALF_TIME",
+          "MAP_END"
         ]
       }
     },
@@ -321,7 +327,13 @@
                 "PAUSE",
                 "NO_VALID_CANDIDATE",
                 "MAIN_OBSERVER_ON_IT",
-                "FOLLOW_CAM"
+                "FOLLOW_CAM",
+                "MULTI_FRAG_CHANCE",
+                "ROUND_WINNERS",
+                "PISTOL_ROUND",
+                "MATCH_POINT",
+                "HALF_TIME",
+                "MAP_END"
               ]
             }
           },

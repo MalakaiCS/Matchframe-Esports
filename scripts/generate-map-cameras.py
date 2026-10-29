@@ -82,12 +82,15 @@ MAX_NEAR = 0.25
 LABEL = {"bombsite_a": "A site", "bombsite_b": "B site", "ct_spawn": "CT spawn", "t_spawn": "T spawn"}
 
 _NUMERIC_ARRAY = re.compile(r"\[\s*(-?\d[\d.eE+-]*(?:\s*,\s*-?\d[\d.eE+-]*)*)\s*\]")
+_KEYFRAME = re.compile(r'\{\s*"tMs": ([^,\s]+),\s*"position": \{\s*"x": ([^,\s]+),\s*"y": ([^,\s]+),\s*"z": ([^,\s]+)\s*\},\s*"pitch": ([^,\s]+),\s*"yaw": ([^,\s}]+)\s*\}')
 
 
 def dumps_readable(obj: object) -> str:
-    """As workers/common/mf_common/emit.py: indented JSON with innermost numeric arrays on one line."""
+    """As workers/common/mf_common/emit.py: indented JSON with innermost numeric arrays on one line,
+    and camera path keyframes one to a line (the packs hold hundreds of paths)."""
     text = json.dumps(obj, indent=2, ensure_ascii=False, allow_nan=False)
-    return _NUMERIC_ARRAY.sub(lambda m: "[" + ",".join(x.strip() for x in m.group(1).split(",")) + "]", text)
+    text = _NUMERIC_ARRAY.sub(lambda m: "[" + ",".join(x.strip() for x in m.group(1).split(",")) + "]", text)
+    return _KEYFRAME.sub(lambda m: '{{"tMs": {}, "position": {{"x": {}, "y": {}, "z": {}}}, "pitch": {}, "yaw": {}}}'.format(*m.groups()), text)
 
 
 def human(name: str) -> str:

@@ -107,10 +107,14 @@ export class AutoDirector {
     });
   }
 
-  /** The cinematic choices on the card, in the director's config (at start and on every change). */
+  /**
+   * The cinematic choices on the card, in the director's config (at start, on every change, and when
+   * the HLAE camera connects or goes): camera paths in freeze time and the breaks while HLAE plays
+   * them, never over console commands (too jerky).
+   */
   applyCinematics(s: AutoDirectorSettings = this.settings()): void {
     const d = this.e.session.director;
-    d.setConfig({ cinematic: { ...d.config.cinematic, variety: s.variety, winnerShots: s.winnerShots, bigMoments: s.bigMoments } });
+    d.setConfig({ cinematic: { ...d.config.cinematic, variety: s.variety, winnerShots: s.winnerShots, bigMoments: s.bigMoments, freezeTimePaths: this.e.hlaeCamera.connected() } });
   }
 
   settings(): AutoDirectorSettings {
@@ -219,6 +223,7 @@ export class AutoDirector {
 
   private async step(): Promise<void> {
     if (!this.on || this.busy) return;
+    if (this.e.session.director.config.cinematic.freezeTimePaths !== this.e.hlaeCamera.connected()) this.applyCinematics();
     this.busy = true;
     try {
       await this.advance();

@@ -147,7 +147,7 @@ export function AutoDirectorCard({ compact = false }: { compact?: boolean }) {
               checked={set.hlaeCamera !== false}
               disabled={!!reason || busy}
               label="Camera shots through HLAE"
-              hint="With CS2 started in the Observer tools + HLAE mode, HLAE plays every camera shot and move: it sets the view every frame, so turns, glides and paths are smooth and don't depend on console timing (how Lexogrine HUD Manager runs its cinematics). Without HLAE, Matchframe moves the camera over the console."
+              hint="With CS2 started in the Observer tools + HLAE mode, HLAE plays every camera shot and move: it sets the view every frame, so turns, glides and paths are smooth and don't depend on console timing (how Lexogrine HUD Manager runs its cinematics). The map's camera paths (200–300 a map, from pro demos) play in freeze time only while HLAE is connected. Without HLAE, Matchframe moves the camera over the console."
               onChange={(v) => void save({ hlaeCamera: v })}
             />
             <p className="small muted">

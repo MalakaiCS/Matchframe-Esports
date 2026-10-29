@@ -11,6 +11,21 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.7.2",
+    title: "200–300 camera paths on each map",
+    summary: "Camera paths built from real pro demos, where players walked and fought: 214–270 on each of the seven pool maps.",
+    sections: [
+      {
+        heading: "Cinematics",
+        items: [
+          "Orbits, push-ins, pull-outs, cranes and slides round fight spots, bomb plants and spawns, and routes along the ways players really ran.",
+          "Every path was flown through the map's collision geometry before it was kept: room round the camera, no walls in the way, over the playable area.",
+          "They play in freeze time, half time and at the end of the map while HLAE plays the camera, and take turns from round to round.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.7.1",
     title: "Every camera shot through HLAE",
     summary: "With CS2 started through HLAE, HLAE now plays every free-camera and moving shot, like Lexogrine HUD Manager's cinematics.",

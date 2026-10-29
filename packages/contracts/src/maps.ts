@@ -142,8 +142,11 @@ export const CameraPath = z.object({
   collisionValidated: z.boolean(),
   validation: CameraValidation,
   targetRegionIds: z.array(z.string()),
-  /** Built in from navigation-mesh data; absent for operator-authored paths. */
-  source: z.enum(["authored", "derived_navmesh"]).optional(),
+  /**
+   * Built in: from navigation-mesh data (`derived_navmesh`) or from where players walked and fought
+   * in read demos (`derived_demos`); absent for operator-authored paths.
+   */
+  source: z.enum(["authored", "derived_navmesh", "derived_demos"]).optional(),
 });
 export type CameraPath = z.infer<typeof CameraPath>;
 

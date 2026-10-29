@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildSyntheticGsiPayload, MatchStateStore, normalizeGsi, parseGsiPayload } from "@matchframe/cs2-state";
+import { buildSyntheticGsiPayload, MatchStateStore, normalizeGsi, parseGsiPayload, type SyntheticPlayer } from "@matchframe/cs2-state";
 import { DEFAULT_DIRECTOR_CONFIG } from "@matchframe/director-policy";
 import { MapRegistry } from "@matchframe/map-runtime";
 import { Database } from "../src/db/database.ts";
@@ -38,7 +38,7 @@ function syntheticReplay(): ReplayLine[] {
     const players = [...alive].map((id) => {
       const [side, x, y] = pos[id]!;
       // Everyone looks toward the middle (T to +x, CT to -x).
-      return [id, side, x, y, 0, 0, side === "T" ? 0 : 180, 100, 100, side === "T" ? "AK-47" : "M4A1-S"] as [string, string, number, number, number, number, number, number, number, string | null];
+      return [id, side as "T" | "CT", x, y, 0, 0, side === "T" ? 0 : 180, 100, 100, side === "T" ? "AK-47" : "M4A1-S"] as [string, "T" | "CT", number, number, number, number, number, number, number, string | null];
     });
     lines.push({ type: "frame", tick, round: 1, phase, players, bomb: null });
   }
@@ -90,7 +90,7 @@ describe("the built-in POV model", () => {
     const m = loadPovModel(join(BUILTIN_DIR, "pov_2s-builtin"), "builtin");
     if (!m.ok) throw new Error(m.reason);
     const store = new MatchStateStore({ sessionId: "t", simulated: true });
-    const players = [
+    const players: SyntheticPlayer[] = [
       { steamId: "t1", name: "t1", slot: 1, side: "T" as const, health: 80, armor: 100, position: { x: 0, y: 0, z: 0 }, forward: { x: 1, y: 0, z: 0 }, roundKills: 2, weapons: [{ name: "weapon_awp", type: "SniperRifle", state: "active", ammoClip: 5, ammoClipMax: 5, ammoReserve: 20 }] },
       { steamId: "ct1", name: "ct1", slot: 6, side: "CT" as const, health: 100, armor: 100, position: { x: 800, y: 0, z: 0 }, forward: { x: -1, y: 0, z: 0 }, weapons: [] },
       { steamId: "ct2", name: "ct2", slot: 7, side: "CT" as const, health: 100, armor: 100, position: { x: 0, y: 1500, z: 0 }, forward: { x: 0, y: 1, z: 0 }, weapons: [] },

@@ -55,7 +55,7 @@ export interface DirectorConfig {
     establishingMaxMs: number;
     /** Shots per freeze time (each camera at most once a round). */
     establishingPerRound: number;
-    /** Camera paths in freeze time (streamed from Matchframe, less smooth than a camera turning in the game). */
+    /** Camera paths in freeze time, half time and map end (the Auto Director turns this on while HLAE plays the camera; over the console they judder). */
     freezeTimePaths: boolean;
     /**
      * Freeze times differ from round to round: sometimes one longer shot of one team, no team shot of
