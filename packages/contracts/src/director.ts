@@ -25,7 +25,7 @@ export const ShotClass = z.enum([
   "camera_path",
   "bomb_resolution",
   "establishing",
-  /** A free camera flying behind and above a moving player (follow cam). */
+  /** A free camera flying behind a moving player (follow cam). No longer chosen since 0.6.5; kept so older director logs read. */
   "follow_cam",
 ]);
 export type ShotClass = z.infer<typeof ShotClass>;
@@ -107,6 +107,7 @@ export const REASON_CODES = [
   "PAUSE",
   "NO_VALID_CANDIDATE",
   "MAIN_OBSERVER_ON_IT",
+  /** No longer given since 0.6.5 (follow cams removed); kept so older director logs read. */
   "FOLLOW_CAM",
 ] as const;
 export const ReasonCode = z.enum(REASON_CODES);

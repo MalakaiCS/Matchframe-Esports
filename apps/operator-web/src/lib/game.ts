@@ -10,6 +10,7 @@ export interface ConsoleOptions {
   hideGameHud: boolean;
   xray: boolean;
   clutchXrayOff: boolean;
+  retakeXrayOff: boolean;
   runInBackground: boolean;
   noFlash: boolean;
   killfeedTeamColours: boolean;

@@ -14,8 +14,6 @@ export const AutoDirectorSettings = z.object({
   chase: z.boolean().default(true),
   /** Clutch mode: in a 1vX, stay with the last player alive on their side; no cutaways to cameras. */
   clutch: z.boolean().default(true),
-  /** Follow cams: a free camera flying behind a running player in quiet moments (with cinematic cameras). */
-  followCams: z.boolean().default(true),
 });
 export type AutoDirectorSettings = z.infer<typeof AutoDirectorSettings>;
 

@@ -67,6 +67,10 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
   - **Spawn areas from pro demos** (`scripts/set-spawn-regions.py`): the seven pool maps' `t_spawn` / `ct_spawn` regions are where players stood at the end of freeze time (they were 100–500 units off; Ancient's and Anubis's CT spawns missed entirely). Spawn cameras and paths regenerated.
   - **Cache:** map pack from a pro demo's place names (46 areas), free-space grid and 87 cameras / 10 paths from CS2's meshes; in the default event pool with Ancient, Anubis, Dust II, Inferno, Mirage and Nuke.
   - **Team shots tuned on real positions:** finer spots (48 bearings, 6 distances, up to 300 units high), a size score, and a well-sized four over a distant five. Every round of the seven demos framed (272 shots).
+- **No X-ray in retakes, no follow cams** (version 0.6.5, ADR-037):
+  - **No X-ray in retakes** (`retakeXrayOff`, on by default; `retakeUnderway`): after the plant, X-ray goes off once a CT is within 1,600 units of the bomb (or defusing) with time to defuse (5 s with a kit, 10 s without) and both teams alive, until the round is no longer live.
+  - **Follow cams removed:** the Auto Director shows first person, cinematic cameras and nade cams. Gone: the follow cam candidates, `follow_player` intents, `FollowCam`, `followCams` (Auto Director setting and director control) and `cinematic.followPerMap`. The `follow_cam` shot class and `FOLLOW_CAM` reason stay in the contracts so older director logs read.
+  - **Tests:** retake detection (on, saving, out of time, kit, no T left) and the retake toggle against the stand-in console.
 - **Clutches without X-ray, numbers that match the keys, coaches hidden** (version 0.6.4, ADR-036):
   - **No X-ray in clutches** (`clutchXrayOff`, on by default): X-ray goes off when one player is alive against two or more in a live round and comes back when that round is no longer live.
   - **Names with X-ray:** `hud_showtargetid` follows `spec_show_xray`.

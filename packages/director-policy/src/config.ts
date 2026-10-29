@@ -51,8 +51,6 @@ export interface DirectorConfig {
     establishingPerRound: number;
     /** Camera paths in freeze time (streamed from Matchframe, less smooth than a camera turning in the game). */
     freezeTimePaths: boolean;
-    /** Follow cams per map. */
-    followPerMap: number;
     /** No cinematic in the first this-many ms of a live round: first person from the start. */
     liveStartPovMs: number;
     /** Nade cameras: the least utility value for a camera (coordinated utility needs 80 % of it). */
@@ -93,7 +91,6 @@ export const DEFAULT_DIRECTOR_CONFIG: DirectorConfig = {
     establishingMaxMs: 14000,
     establishingPerRound: 4,
     freezeTimePaths: false,
-    followPerMap: 1,
     liveStartPovMs: 10000,
     utilityMinValue: 0.28,
     minValue: 0.35,

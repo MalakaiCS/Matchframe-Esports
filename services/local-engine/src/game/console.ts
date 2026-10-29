@@ -63,6 +63,11 @@ export const ConsoleOptions = z.object({
    */
   clutchXrayOff: z.boolean().default(true),
   /**
+   * X-ray (and the names) off for a retake (retakeUnderway): after the plant, once the CTs go for
+   * the bomb with time to defuse, until the round ends. The viewer doesn't see where the Ts wait.
+   */
+  retakeXrayOff: z.boolean().default(true),
+  /**
    * `engine_no_focus_sleep 0; snd_mute_losefocus 0`: CS2 keeps drawing every frame and playing its
    * sound while Matchframe, OBS or another window has focus (by default it slows down and goes silent).
    */
@@ -86,6 +91,7 @@ export const ConsoleOptionsPatch = z.object({
   hideGameHud: z.boolean().optional(),
   xray: z.boolean().optional(),
   clutchXrayOff: z.boolean().optional(),
+  retakeXrayOff: z.boolean().optional(),
   runInBackground: z.boolean().optional(),
   noFlash: z.boolean().optional(),
   killfeedTeamColours: z.boolean().optional(),
@@ -125,6 +131,27 @@ export function clutchPlayer(state: MatchState): MatchState["players"][number] |
   const t = alive.filter((p) => p.side === "T");
   const ct = alive.filter((p) => p.side === "CT");
   return t.length === 1 && ct.length >= 2 ? t[0]! : ct.length === 1 && t.length >= 2 ? ct[0]! : null;
+}
+
+/** How close (units) a CT has to be to the planted bomb for the CTs to be going for it. */
+export const RETAKE_RANGE = 1600;
+
+/**
+ * A retake on: a live round with the bomb planted (or being defused), players alive on both teams
+ * (coaches aside), and the CTs going for it: a CT within RETAKE_RANGE of the bomb, with time left to
+ * defuse (5 s with a kit, 10 s without). CTs saving, or out of time, are no retake.
+ */
+export function retakeUnderway(state: MatchState): boolean {
+  const bomb = state.bomb;
+  if (state.roundPhase !== "live" || !bomb || (bomb.state !== "planted" && bomb.state !== "defusing")) return false;
+  const alive = state.players.filter((p) => p.lifeState === "alive" && !p.coach);
+  const ct = alive.filter((p) => p.side === "CT");
+  if (!ct.length || !alive.some((p) => p.side === "T")) return false;
+  if (bomb.state === "defusing") return true;
+  if (bomb.countdownSec !== null && bomb.countdownSec < (ct.some((p) => p.defuseKit) ? 5 : 10)) return false;
+  const at = bomb.position;
+  if (!at) return true;
+  return ct.some((p) => p.position && Math.hypot(p.position.x - at.x, p.position.y - at.y, p.position.z - at.z) <= RETAKE_RANGE);
 }
 
 /** The console lines that put the game in the state the options describe. */
@@ -187,8 +214,8 @@ export class GameConsoleService {
   private colours: SideColours = { ct: null, t: null };
   private lastApplyError: string | null = null;
   private lastAppliedAt: string | null = null;
-  /** X-ray turned off for a clutch: the round attempt it is off for, until that round is no longer live. */
-  private clutchXray: { round: string | null; steamId: string } | null = null;
+  /** X-ray turned off for a clutch or a retake: the round attempt it is off for, until that round is no longer live. */
+  private xrayHold: { round: string | null; reason: "clutch" | "retake"; steamId: string | null } | null = null;
   private readonly changeListeners = new Set<(conn: NetconConnection | null) => void>();
 
   constructor(
@@ -210,15 +237,15 @@ export class GameConsoleService {
     return r.success ? r.data : ConsoleOptions.parse({});
   }
 
-  /** The options as applied now: X-ray off during a clutch. */
+  /** The options as applied now: X-ray off during a clutch or a retake. */
   private effectiveOptions(): ConsoleOptions {
     const o = this.options();
-    return this.clutchXray ? { ...o, xray: false } : o;
+    return this.xrayHold ? { ...o, xray: false } : o;
   }
 
-  /** The clutch X-ray is off for, if any. */
-  get clutchXrayOff(): { round: string | null; steamId: string } | null {
-    return this.clutchXray;
+  /** The clutch or retake X-ray is off for, if any. */
+  get xrayOff(): { round: string | null; reason: "clutch" | "retake"; steamId: string | null } | null {
+    return this.xrayHold;
   }
 
   /** The shared console connection (null in the standard mode). */
@@ -283,9 +310,9 @@ export class GameConsoleService {
     }
   }
 
-  /** Follows which team is on CT and T (sides swap at half time) for the kill feed colours, and clutches for X-ray. */
+  /** Follows which team is on CT and T (sides swap at half time) for the kill feed colours, and clutches and retakes for X-ray. */
   onState(state: MatchState): void {
-    this.trackClutchXray(state);
+    this.trackXrayHold(state);
     const colour = (id: string | null) => (id ? (this.deps.teams.get(id)?.data.primaryColor ?? null) : null);
     const next = { ct: colour(state.teams.CT.teamId), t: colour(state.teams.T.teamId) };
     if (next.ct === this.colours.ct && next.t === this.colours.t) return;
@@ -296,25 +323,27 @@ export class GameConsoleService {
 
   /**
    * X-ray (with the names) off from the moment one player is alone against two or more in a live
-   * round, back on when that round is no longer live (won, lost, or a new round). Only with X-ray
-   * on and `clutchXrayOff`, in a console launch mode.
+   * round (`clutchXrayOff`), or a retake is on (`retakeXrayOff`), back on when that round is no
+   * longer live (won, lost, or a new round). Only with X-ray on, in a console launch mode.
    */
-  private trackClutchXray(state: MatchState): void {
+  private trackXrayHold(state: MatchState): void {
     const o = this.options();
-    const held = this.clutchXray;
+    const held = this.xrayHold;
     if (held) {
-      if (!o.xray || !o.clutchXrayOff || state.roundPhase !== "live" || state.roundAttemptId !== held.round) {
-        this.clutchXray = null;
-        this.deps.logger.info("x-ray back on after the clutch", { steamId: held.steamId });
+      const allowed = o.xray && (held.reason === "clutch" ? o.clutchXrayOff : o.retakeXrayOff);
+      if (!allowed || state.roundPhase !== "live" || state.roundAttemptId !== held.round) {
+        this.xrayHold = null;
+        this.deps.logger.info(`x-ray back on after the ${held.reason}`, { steamId: held.steamId });
         void this.apply(xrayCommands(o.xray));
       }
       return;
     }
-    if (!o.xray || !o.clutchXrayOff || this.profile().mode === "standard") return;
-    const lone = clutchPlayer(state);
-    if (!lone) return;
-    this.clutchXray = { round: state.roundAttemptId, steamId: lone.steamId };
-    this.deps.logger.info("x-ray off for the clutch", { steamId: lone.steamId });
+    if (!o.xray || this.profile().mode === "standard") return;
+    const lone = o.clutchXrayOff ? clutchPlayer(state) : null;
+    const reason = lone ? "clutch" : o.retakeXrayOff && retakeUnderway(state) ? "retake" : null;
+    if (!reason) return;
+    this.xrayHold = { round: state.roundAttemptId, reason, steamId: lone?.steamId ?? null };
+    this.deps.logger.info(`x-ray off for the ${reason}`, { steamId: lone?.steamId ?? null });
     void this.apply(xrayCommands(false));
   }
 

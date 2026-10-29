@@ -41,7 +41,7 @@ const TEAM_MOVED = 150;
 
 /** What the engine should do with a decision. The director never talks to the game directly. */
 export interface DirectorIntent {
-  kind: "select_player" | "activate_static_camera" | "play_camera_path" | "follow_player";
+  kind: "select_player" | "activate_static_camera" | "play_camera_path";
   /** Kind of shot (a static camera can be a nade camera, a fight overview, the bomb or an establishing shot). */
   shotClass: ShotClass;
   targetSteamId: string | null;
@@ -96,8 +96,6 @@ export interface DirectorControls {
   avoid: { steamIds: string[]; until: number } | null;
   /** Clutch mode: in a 1vX, stay with the last player alive on their side; no cutaways to cameras. */
   clutchMode: boolean;
-  /** Follow cams (needs the map's free-space grid): a free camera behind a running player in quiet moments. */
-  followCams: boolean;
 }
 
 export interface DirectorOptions {
@@ -138,8 +136,6 @@ export class Director {
   private lastEvalAt = -Infinity;
   /** When the current live round went live (monotonic ms), or null outside one. */
   private liveSince: number | null = null;
-  /** Follow cams played on the current map. */
-  private follows = { map: null as string | null, count: 0 };
   /** A pause (tactical or technical timeout) in this round's freeze time: held on one team's spawn until live. */
   private pause: { round: string | null; side: "T" | "CT" | null; since: number } | null = null;
   /** Team shots of this round, by side and still/gliding, with where the team stood when framed. */
@@ -155,7 +151,6 @@ export class Director {
     cinematicRequested: false,
     avoid: null,
     clutchMode: false,
-    followCams: false,
   };
 
   constructor(opts: DirectorOptions = {}) {
@@ -268,14 +263,12 @@ export class Director {
 
   /**
    * A cinematic became active (confirmed by the controller). Freeze-time shots run their planned
-   * length (their share of the freeze time, or a pause until live), follow cams up to their planned
-   * length, other cameras up to `maxDurationMs`.
+   * length (their share of the freeze time, or a pause until live), other cameras up to
+   * `maxDurationMs`.
    */
   cinematicStarted(shot: ShotKey, at: number, plannedDurationMs: number, opportunityId: string | null, countsTowardBudget = true, shotClass: string | null = null): void {
-    const kind = parseShot(shot).kind;
     const long = shotClass === "establishing" || shotClass === "camera_path";
-    const maxMs = long ? Math.min(PAUSE_HOLD_MS, Math.max(this.cfg.cinematic.establishingMaxMs, plannedDurationMs)) : kind === "follow" ? Math.max(this.cfg.cinematic.maxDurationMs, plannedDurationMs) : this.cfg.cinematic.maxDurationMs;
-    if (kind === "follow" && this.planner.activeCinematic?.shotKey !== shot) this.follows.count++;
+    const maxMs = long ? Math.min(PAUSE_HOLD_MS, Math.max(this.cfg.cinematic.establishingMaxMs, plannedDurationMs)) : this.cfg.cinematic.maxDurationMs;
     this.planner.cinematicStarted(shot, at, plannedDurationMs, opportunityId, countsTowardBudget, maxMs);
   }
 
@@ -285,27 +278,6 @@ export class Director {
    */
   cinematicFailed(shot: ShotKey): void {
     this.planner.cinematicFailed(shot);
-  }
-
-  /** Follow cam material now: while this map's follow cams are used up, only the one on air (so it finishes). */
-  private followableNow(state: MatchState): { steamId: string; speed: number; alone: boolean }[] {
-    const all = this.followable(state);
-    if (this.follows.count < this.cfg.cinematic.followPerMap) return all;
-    const cur = parseShot(this.planner.shot);
-    return cur.kind === "follow" ? all.filter((f) => f.steamId === cur.id) : [];
-  }
-
-  /** Moving players with their speed, and whether a teammate is near (follow cam material). */
-  private followable(state: MatchState): { steamId: string; speed: number; alone: boolean }[] {
-    const out: { steamId: string; speed: number; alone: boolean }[] = [];
-    const alive = state.players.filter((p) => p.lifeState === "alive" && p.position && p.side);
-    for (const p of alive) {
-      const v = this.history.velocity(p.steamId);
-      if (!v) continue;
-      const alone = !alive.some((m) => m !== p && m.side === p.side && Math.hypot(m.position!.x - p.position!.x, m.position!.y - p.position!.y) < 1000);
-      out.push({ steamId: p.steamId, speed: Math.hypot(v.x, v.y), alone });
-    }
-    return out;
   }
 
   private cinematicsAllowed(state: MatchState, round?: RoundContext): { allowed: boolean; reason: ReasonCode | null } {
@@ -382,7 +354,6 @@ export class Director {
     this.history.push(state);
     if (state.roundPhase !== "live") this.liveSince = null;
     else this.liveSince ??= now;
-    if (this.follows.map !== state.mapName) this.follows = { map: state.mapName, count: 0 };
     this.planner.setRound(state.roundAttemptId);
     this.notePause(state, now);
     const observed: ShotKey | null = state.observer.observedSteamId ? povShot(state.observer.observedSteamId) : null;
@@ -428,7 +399,7 @@ export class Director {
       clutchMode: this.controls.clutchMode,
     });
     if (scope?.has("cinematic")) {
-      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, followable: this.controls.followCams && grid ? this.followableNow(state) : undefined, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, sight: grid ? (a, b) => grid.lineOfSight(a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince, pause: this.pause, teamShot: grid && state.roundPhase === "freezetime" ? (side, still) => this.teamShot(state, grid, side, still, now) : undefined }));
+      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, sight: grid ? (a, b) => grid.lineOfSight(a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince, pause: this.pause, teamShot: grid && state.roundPhase === "freezetime" ? (side, still) => this.teamShot(state, grid, side, still, now) : undefined }));
       candidates.sort((a, b) => b.utility - a.utility);
     }
 
@@ -523,19 +494,6 @@ export class Director {
               basedOnSequence: state.sequence,
               expiresInMs: 450,
             }
-          : shot.kind === "follow"
-            ? {
-                kind: "follow_player",
-                shotClass: desired.shotClass,
-                targetSteamId: shot.id,
-                observerSlot: null,
-                cameraId: null,
-                plannedDurationMs: desired.plannedDurationMs,
-                opportunityId: null,
-                decisionId,
-                basedOnSequence: state.sequence,
-                expiresInMs: 450,
-              }
           : shot.kind === "path"
             ? {
                 kind: "play_camera_path",

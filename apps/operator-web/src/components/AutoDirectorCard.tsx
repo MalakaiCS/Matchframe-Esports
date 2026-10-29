@@ -39,7 +39,7 @@ export function AutoDirectorCard({ compact = false }: { compact?: boolean }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const st = status.data;
-  const set = st?.settings ?? { cinematic: true, nadeCams: false, returnAfterSec: 8, chase: true, clutch: true, followCams: true };
+  const set = st?.settings ?? { cinematic: true, nadeCams: false, returnAfterSec: 8, chase: true, clutch: true };
 
   const call = async (fn: () => Promise<AutoDirectorStatus>, failTitle: string) => {
     setBusy(true);
@@ -95,15 +95,8 @@ export function AutoDirectorCard({ compact = false }: { compact?: boolean }) {
           checked={set.cinematic || set.nadeCams}
           disabled={!!reason || busy}
           label="Cinematic cameras"
-          hint="Camera paths and establishing shots in freeze time, the bomb at plant and defuse, and overviews of big fights. Built-in cameras for every active-duty map."
+          hint="Team shots and spawn cameras in freeze time, the bomb at plant and defuse, and overviews of big fights. Built-in cameras for every active-duty map."
           onChange={(v) => void save(v ? { cinematic: true } : { cinematic: false, nadeCams: false })}
-        />
-        <Checkbox
-          checked={set.followCams && (set.cinematic || set.nadeCams)}
-          disabled={!!reason || busy || !(set.cinematic || set.nadeCams)}
-          label="Follow cams"
-          hint="With cinematic cameras: a free camera flies behind a player running somewhere with no fight close (a lurk, a rotation, the bomb carrier), and cuts away when a fight starts. Kept clear of walls with the map's geometry."
-          onChange={(v) => void save({ followCams: v })}
         />
         <Checkbox
           checked={set.nadeCams}

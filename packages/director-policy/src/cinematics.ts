@@ -9,7 +9,7 @@ import type { CameraMatch } from "@matchframe/map-runtime";
 import type { TeamShot } from "./framing.ts";
 import { teamCameraId } from "./framing.ts";
 import type { ShotKey } from "./shots.ts";
-import { cameraShot, followShot, pathShot } from "./shots.ts";
+import { cameraShot, pathShot } from "./shots.ts";
 import type { UtilityDirectorMap } from "./utility/opportunities.ts";
 
 export interface CinematicInput {
@@ -24,11 +24,6 @@ export interface CinematicInput {
   oneSide: MatchState["players"][number]["side"] | null;
   cinematicsAllowed: { allowed: boolean; reason: ReasonCode | null };
   map?: UtilityDirectorMap | undefined;
-  /**
-   * Players a follow camera could fly behind right now (the map has a free-space grid and follow
-   * cams are on): moving, with their speed (units/s) and whether they are alone (no teammate near).
-   */
-  followable?: { steamId: string; speed: number; alone: boolean }[] | undefined;
   /** When the current shot started (monotonic ms). */
   currentShotSinceMs?: number | null | undefined;
   /** Cinematic shots already played this round (none plays twice in a round). */
@@ -49,14 +44,6 @@ export interface CinematicInput {
    */
   teamShot?: ((side: "T" | "CT", still: boolean) => TeamShot | null) | undefined;
 }
-
-/** Follow cam: a player running (units/s) with no fight expected within 2 s. */
-const FOLLOW_MIN_SPEED = 160;
-const FOLLOW_MAX_CONTACT = 0.2;
-const FOLLOW_MS = 4500;
-/** After a player view held this long with nothing happening, a follow cam brings some movement. */
-const FOLLOW_VARIETY_AFTER_MS = 5000;
-const FOLLOW_VARIETY_BONUS = 0.2;
 
 /** Freeze time shorter than this is not worth an establishing shot. */
 const ESTABLISHING_MIN_LEFT_SEC = 3;
@@ -122,7 +109,7 @@ export function cinematicCandidates(input: CinematicInput): ScoredCandidate[] {
   if (!phase) return [];
   const inPhase = (cam: CameraRecord) => cam.allowedPhases.includes(phase);
   const triggers: Trigger[] = [];
-  // First person from the start of a live round: no fight overview or follow cam in its first seconds.
+  // First person from the start of a live round: no fight overview in its first seconds.
   const earlyLive = phase === "live" && input.liveForMs != null && input.liveForMs < cfg.cinematic.liveStartPovMs;
 
   const r = input.round;
@@ -159,7 +146,6 @@ export function cinematicCandidates(input: CinematicInput): ScoredCandidate[] {
   const seen = new Set<string>();
 
   if (phase === "freezetime") out.push(...establishingCandidates(input, seen));
-  if (phase === "live" && !earlyLive) out.push(...followCandidates(input));
   for (const t of triggers.sort((a, b) => b.value - a.value)) {
     const cam = t.match.camera;
     const key = cameraShot(cam.id);
@@ -421,76 +407,6 @@ function pauseCandidates(input: CinematicInput, options: EstablishingOption[], n
       chain: true,
       panDegPerSec: 0,
       ...(o.team ? { framing: { from: o.team.shot.from, to: o.team.shot.from, focus: o.team.shot.focus } } : {}),
-    });
-  }
-  return out;
-}
-
-/**
- * Follow cam candidates: a free camera behind and above a player who is running somewhere with no
- * fight expected soon (a lurk, a rotation, the bomb carrier walking onto a site). They only win in
- * quiet moments, and are interrupted like any cinematic when a fight starts.
- */
-function followCandidates(input: CinematicInput): ScoredCandidate[] {
-  const out: ScoredCandidate[] = [];
-  const { state, cfg } = input;
-  for (const f of input.followable ?? []) {
-    const p = state.players.find((x) => x.steamId === f.steamId);
-    if (!p || p.lifeState !== "alive" || f.speed < FOLLOW_MIN_SPEED) continue;
-    const contact = input.interactions.byPlayer.get(p.steamId)?.contact["2"] ?? 0;
-    if (contact > FOLLOW_MAX_CONTACT) continue;
-    if (input.oneSide && p.side !== input.oneSide) continue;
-    if (input.pin && !(input.pin.kind === "player" && input.pin.steamId === p.steamId)) continue;
-    const key = followShot(p.steamId);
-    const isCurrent = input.currentShot === key;
-    const reasons: ReasonCode[] = ["FOLLOW_CAM"];
-    let valid = true;
-    let invalidReason: string | null = null;
-    if (!input.cinematicsAllowed.allowed && !isCurrent) {
-      valid = false;
-      invalidReason = "cinematics not allowed";
-      if (input.cinematicsAllowed.reason) reasons.push(input.cinematicsAllowed.reason);
-    }
-    if (!pathControlUsable(input.capabilities)) {
-      valid = false;
-      invalidReason = "camera path control not verified for this environment";
-      reasons.push("CAMERA_UNVERIFIED");
-    }
-    const carrier = input.round.carrierSteamId === p.steamId;
-    if (carrier) reasons.push("BOMB_PLANT_PRESSURE");
-    const fromPov = input.currentShot === `pov:${p.steamId}`;
-    const heldPov = input.currentShot?.startsWith("pov:") && input.currentShotSinceMs != null && input.now - input.currentShotSinceMs >= FOLLOW_VARIETY_AFTER_MS;
-    const components: ScoreComponents = {
-      actionCoverage: 0.3,
-      imminence: 0.15,
-      readiness: 0.6,
-      significance: carrier ? 0.55 : f.alone ? 0.4 : 0.25,
-      narrative: f.alone || carrier ? 0.6 : 0.35,
-      framing: 0.9,
-      // From this player's own POV the follow cam is a natural transition.
-      continuity: isCurrent ? 1 : fromPov ? 0.4 : 0,
-      mainStory: 0,
-      switchCost: isCurrent ? 0 : cfg.baseSwitchCost + 0.04,
-      stalenessPenalty: 0,
-      cinematicOpportunityCost: 0.05,
-    };
-    out.push({
-      candidateId: `cand:${key}:follow_cam`,
-      shotClass: "follow_cam",
-      shotKey: key,
-      targetSteamId: p.steamId,
-      cameraId: null,
-      clusterId: null,
-      regionIds: [],
-      components,
-      utility: valid ? utilityOf(components, cfg.weights) + (heldPov ? FOLLOW_VARIETY_BONUS : 0) : -1,
-      reasonCodes: reasons,
-      valid,
-      invalidReason,
-      evidenceType: "estimated",
-      opportunity: null,
-      plannedDurationMs: FOLLOW_MS,
-      urgent: false,
     });
   }
   return out;

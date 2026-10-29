@@ -190,6 +190,14 @@ export function GameCard() {
             onChange={option("clutchXrayOff")}
           />
           <Toggle
+            label="No X-ray in retakes"
+            testId="retake-xray-off"
+            hint="After the plant, once a CT is close to the bomb with time left to defuse and both teams still have players alive, X-ray goes off until the round ends, so the viewer doesn't see where the Ts wait. Not while the CTs save."
+            on={o ? o.retakeXrayOff : null}
+            reason={cameraReason ?? (o && !o.xray ? "X-ray is off." : null)}
+            onChange={option("retakeXrayOff")}
+          />
+          <Toggle
             label="Run behind other windows"
             testId="run-in-background"
             hint="engine_no_focus_sleep 0 and snd_mute_losefocus 0: CS2 keeps every frame and its sound while you use Matchframe or OBS. Off, CS2 slows down and goes silent whenever another window has focus. With CS2 in full screen (not Fullscreen Windowed), clicking another window still stops the picture."

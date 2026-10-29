@@ -11,6 +11,21 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.6.5",
+    title: "No X-ray in retakes, no follow cams",
+    summary: "X-ray goes off for retakes after the plant, when the CTs go for the bomb with time to defuse. The Auto Director now sticks to first person, cinematic cameras and nade cams.",
+    sections: [
+      {
+        heading: "Game options",
+        items: ["No X-ray in retakes: once a CT gets close to the planted bomb with time left to defuse, X-ray goes off until the round is over (on by default). Not while the CTs save."],
+      },
+      {
+        heading: "Auto Director",
+        items: ["Follow cams removed: first person, cinematic cameras and nade cams only."],
+      },
+    ],
+  },
+  {
     version: "0.6.4",
     title: "Clutches without X-ray, and coaches hidden",
     summary: "X-ray goes off in a clutch so a win looks like magic, and player names show above heads with X-ray on. The minimap numbers match the number keys again. Coaches are no longer shown as a sixth player.",

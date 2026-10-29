@@ -34,12 +34,12 @@ While it runs:
   - A spawn camera turns slowly: 3° a second or less, at most 30° over the shot, one way then the other. Matchframe moves every shot itself (see **Smooth camera motion** below).
   - Camera paths are not used in freeze time unless `cinematic.freezeTimePaths` is on.
 - **Pauses** (a tactical timeout, or a technical pause): the camera cuts at once to a still shot of the team that called the timeout (its team shot, else a spawn camera showing it; for a technical pause, the team on screen, else the Ts), and stays there until the round goes live, also after the pause ends (reason `PAUSE`).
-- **Start of the round:** first person when the round goes live (a shot still playing is cut), and no overviews or follow cams in the first 10 s. Bomb shots can still come.
-- **Follow cams** (on, with cinematic cameras): a free camera flies behind and a little above a player running somewhere with no fight close (a lurk, a rotation, the bomb carrier walking onto a site), for about 4.5 s, then back to first person, and cuts away when a fight starts. **At most one per map.** It needs the map's free-space grid, which keeps the camera clear of walls (ADR-028). The camera is sent about 128 times a second, evenly, and carries each player's movement forward between game-data updates.
+- **Start of the round:** first person when the round goes live (a shot still playing is cut), and no overviews in the first 10 s. Bomb shots can still come.
+- **No follow cams** (removed in 0.6.5, ADR-037): the Auto Director shows players in first person, cinematic cameras (freeze-time team shots and spawn cameras, the bomb, fight overviews, camera paths) and nade cams.
 - **Nade cams** (Full Action Observer, on by default): a camera on a smoke, flash, molotov or HE that matters; coordinated utility (an execute, a flash entry) is taken more readily.
 - **Fights before they start:** with the map's free-space grid, the director knows whether two opponents see each other now, or will in the next 1.6 s at their current speed, and cuts to the player before the shooting (ADR-028).
 - **HUD graphics** and **OBS scenes** follow the shots too: see [OBS integration](obs.md) and ADR-029.
-- `GET /api/v1/director/auto` returns the status and checks, and `PUT /api/v1/director/auto/settings` sets `cinematic`, `nadeCams`, `returnAfterSec`, `chase`, `clutch` and `followCams`.
+- `GET /api/v1/director/auto` returns the status and checks, and `PUT /api/v1/director/auto/settings` sets `cinematic`, `nadeCams`, `returnAfterSec`, `chase` and `clutch`.
 
 ## Adapters
 
@@ -59,11 +59,10 @@ While it runs:
 | In-eye / chase / free camera | `spec_mode 4` / `5` / `6` (CS:GO numbering). On a build where `getpos` shows that this numbering doesn't move the camera, the adapter tries CS2's enum numbering (`2` / `3` / `4`). It keeps whichever works and saves it to the templates. The in-eye command is checked from the game data when leaving the free camera, allowing for CS2's game data arriving after the console (see below). |
 | Static camera | `{roaming}; spec_goto {x} {y} {z} {pitch} {yaw}` (`{roaming}` is the free-camera command), then `getpos`. |
 | Camera path | The first pose as a static camera, then `spec_goto {x} {y} {z} {pitch} {yaw}` 60 times a second along the path (Catmull-Rom positions, eased timing, the shorter way round for yaw), then `getpos` at the end. |
-| Follow cam | The same streaming, with each pose worked out live from the player's position (`streamCamera`). A player selection stops it. |
 
 **Leaving the free camera.** CS2's game data arrives a moment after the console has acted (a quarter of a second or more), so the adapter doesn't let it decide too early:
 
-- After a camera, path or follow cam, the camera counts as free for at least 1.5 s, even if game data from before the shot still shows a player. The next player selection always sends the in-eye command first.
+- After a camera or path, the camera counts as free for at least 1.5 s, even if game data from before the shot still shows a player. The next player selection always sends the in-eye command first.
 - Leaving the free camera keeps the same in-eye command until the game data has shown the free camera for 2 s since the first try (the director tries again after each confirmation timeout). Only then is the other numbering tried, for as long again, and so on. The first one after which the game data shows a player is kept and saved, also over a numbering saved earlier.
 
 Before 0.6.1 the adapter decided after 0.3 s. With the game data a quarter of a second behind, a camera that had left the free camera still looked free, so the adapter saved the other numbering. From then on every attempt to leave a freeze-time shot failed, and the camera stayed on it into the live round.
@@ -101,9 +100,9 @@ The setup tests remain available: `POST /api/v1/setup/test-player-selection`, `t
 **Smooth camera motion.** Every `spec_goto` is a jump in the game, so a camera Matchframe moves glides only when the poses arrive evenly and faster than the recording's frames.
 - **Moving shots** (a team shot's glide, a spawn camera's slow turn): the camera is shown at the move's first pose and confirmed there with `getpos`, then Matchframe sends its pose 64 times a second, waiting on timers between them (the engine is idle in between), until the shot's planned end; it stays where the move ends. At a few degrees or a few units a second each step is far below a pixel, so uneven timer ticks don't show. A still stretch sends nothing.
 - **Not CS2's turning keys:** in CS2, `+left` and `+right` strafe the camera sideways (they are the A and D keys), and turning is `+turnleft`/`+turnright`. 0.6.1 used `+left`/`+right` to turn freeze-time shots, so the first one of a session slid sideways, into walls and floors, for about a second (on Mirage, into the ground), before the check turned turning off. 0.6.2 sends no movement keys.
-- **Paths and follow cams** are streamed: 128 poses a second, evenly spaced (the loop waits with `setImmediate` between frames, busy while a path or follow cam plays). Windows timers tick every 15.6 ms, so the earlier 64 a second came unevenly and juddered.
+- **Paths** are streamed: 128 poses a second, evenly spaced (the loop waits with `setImmediate` between frames, busy while a path plays). Windows timers tick every 15.6 ms, so the earlier 64 a second came unevenly and juddered.
 - **Free-space grids** (`assets/map-packs/<map>.grid`, ADR-028): 12-unit cells from CS2's collision meshes for the ten maps.
-  - Used for sightlines between players, and for room around the follow camera.
+  - Used for sightlines between players, and for placing and checking the team shots.
   - Checked against the exact geometry: they miss 5–13 % of clear sightlines, and saw through a wall at most once in about 1,350 blocked ones.
 - **Replay PC:** a second computer's director avoids the main PC's player (`avoid`, reason `MAIN_OBSERVER_ON_IT`); see [Replay PC](../operations/replay-pc.md).
 

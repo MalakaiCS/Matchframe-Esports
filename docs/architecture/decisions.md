@@ -530,3 +530,32 @@ Through Matchframe in Chromium, the same kaiHUD ticks within 0.1 s of each secon
 **Not checked.**
 - How a real CS2 lists a coach in GSI: whether they have an observer slot and what health they report. The manual choice covers a coach the detection misses.
 
+## ADR-037 — No X-ray in retakes; follow cams removed
+
+**Context.** The owner asked for:
+- X-ray off on retakes too, "when it makes sense";
+- no follow cams: keep only the observer (first person), cinematics and nade cams.
+
+**Decision.**
+- **Retakes** (`retakeUnderway`, console option `retakeXrayOff`, default on): X-ray and `hud_showtargetid` go off when all of these hold, and stay off until the round attempt is no longer live:
+  - a live round with the bomb planted (or being defused);
+  - players alive on both teams, coaches aside;
+  - a CT defusing, or a CT within `RETAKE_RANGE` (1,600 units, about a site's approach) of the bomb;
+  - the bomb's countdown leaving time to defuse (5 s if a living CT has a kit, else 10 s; an unknown countdown counts as enough).
+
+  CTs saving far off, a bomb with no time left, or no T left keep X-ray on. Without a bomb position, a planted bomb with time left counts as a retake. The clutch rule is checked first: a 1v2 after the plant is held as a clutch. Both share one hold (`xrayHold`, reason `clutch` or `retake`).
+- **Follow cams removed:**
+  - the director's follow cam candidates and `follow_player` intents;
+  - the engine's `FollowCam`;
+  - the Auto Director's `followCams` setting and its switch;
+  - `cinematic.followPerMap`;
+  - the `follow:` shot keys.
+
+  The adapters' `streamCamera` stays (generic pose streaming). The `follow_cam` shot class and `FOLLOW_CAM` reason stay in the contracts so older director logs still read. The chase view (third person at plants, defuses and round wins, and in clutches) is unchanged: it is a player view through the observer, and can be turned off on the card (**Chase cam**).
+
+**Checked.**
+- Retake detection: on with a CT 900 units from the bomb, or defusing; off with the CTs 3,000 units away, with 8 s left and no kit (on with a kit), before the plant, and with no T alive.
+- The stand-in console: a 2v2 retake turns X-ray off only once a CT comes close, and the round's end turns it back on.
+
+**Not checked.** On air in a real CS2: whether 1,600 units suits every map's sites.
+

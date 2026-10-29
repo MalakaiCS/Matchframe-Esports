@@ -1265,6 +1265,9 @@
                   "clutchXrayOff": {
                     "type": "boolean"
                   },
+                  "retakeXrayOff": {
+                    "type": "boolean"
+                  },
                   "runInBackground": {
                     "type": "boolean"
                   },
@@ -5739,9 +5742,6 @@
                   },
                   "clutch": {
                     "type": "boolean"
-                  },
-                  "followCams": {
-                    "type": "boolean"
                   }
                 }
               }
@@ -5831,9 +5831,6 @@
                     "type": "boolean"
                   },
                   "clutch": {
-                    "type": "boolean"
-                  },
-                  "followCams": {
                     "type": "boolean"
                   }
                 }

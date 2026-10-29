@@ -5,8 +5,9 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Engine } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
-import { consoleCommands, ConsoleOptions, killfeedColourCommands, launchPlan, parseExtraArgs, GameLaunchProfile } from "../src/game/console.ts";
-import { buildSyntheticGsiPayload, syntheticRoster } from "../../../packages/cs2-state/src/testing/gsi-builder.ts";
+import { consoleCommands, ConsoleOptions, killfeedColourCommands, launchPlan, parseExtraArgs, GameLaunchProfile, retakeUnderway } from "../src/game/console.ts";
+import { buildSyntheticGsiPayload, syntheticRoster, type SyntheticPayloadSpec } from "../../../packages/cs2-state/src/testing/gsi-builder.ts";
+import { MatchStateStore, normalizeGsi, parseGsiPayload, stripAuth } from "../../../packages/cs2-state/src/index.ts";
 import { startServers } from "../src/servers.ts";
 
 async function freePort(): Promise<number> {
@@ -26,6 +27,46 @@ const waitFor = async (fn: () => boolean | Promise<boolean>, ms = 5000) => {
     await new Promise((r) => setTimeout(r, 25));
   }
 };
+
+/** The match state for one game-data packet. */
+function stateOf(spec: SyntheticPayloadSpec) {
+  const parsed = parseGsiPayload(buildSyntheticGsiPayload(spec));
+  if (!parsed.ok) throw new Error(parsed.error);
+  const store = new MatchStateStore({ sessionId: "s" });
+  store.ingest(normalizeGsi(stripAuth(parsed.payload), { sourceId: "gsi:test", receivedAtMonotonicMs: 1000, payloadHash: "x" }));
+  return store.snapshot();
+}
+
+/** Two Ts and two CTs alive, the bomb planted at the origin, the CTs `ctDistance` units from it. */
+const postPlant = (ctDistance: number, kit = false) =>
+  syntheticRoster().map((p, i) => ({
+    ...p,
+    health: [0, 1, 5, 6].includes(i) ? 100 : 0,
+    position: p.side === "CT" ? { x: ctDistance, y: i * 10, z: 0 } : { x: -300, y: i * 10, z: 0 },
+    ...(p.side === "CT" && kit ? { defuseKit: true } : {}),
+  }));
+
+describe("retakes", () => {
+  const bomb = (countdown: number, state = "planted") => ({ state, position: { x: 0, y: 0, z: 0 }, countdown });
+  it("is a retake once a CT is close to the planted bomb with time to defuse", () => {
+    expect(retakeUnderway(stateOf({ players: postPlant(900), bomb: bomb(30), roundBomb: "planted" }))).toBe(true);
+    // Defusing: always.
+    expect(retakeUnderway(stateOf({ players: postPlant(3000), bomb: bomb(30, "defusing"), roundBomb: "planted" }))).toBe(true);
+  });
+
+  it("is no retake while the CTs are far off (saving), out of time, or before the plant", () => {
+    expect(retakeUnderway(stateOf({ players: postPlant(3000), bomb: bomb(30), roundBomb: "planted" }))).toBe(false);
+    expect(retakeUnderway(stateOf({ players: postPlant(900), bomb: bomb(8), roundBomb: "planted" }))).toBe(false);
+    // With a kit, 8 s is enough.
+    expect(retakeUnderway(stateOf({ players: postPlant(900, true), bomb: bomb(8), roundBomb: "planted" }))).toBe(true);
+    expect(retakeUnderway(stateOf({ players: postPlant(900), bomb: { state: "carried", position: { x: 0, y: 0, z: 0 } } }))).toBe(false);
+  });
+
+  it("is no retake with nobody left to hide (no T alive)", () => {
+    const players = postPlant(900).map((p) => (p.side === "T" ? { ...p, health: 0 } : p));
+    expect(retakeUnderway(stateOf({ players, bomb: bomb(30), roundBomb: "planted" }))).toBe(false);
+  });
+});
 
 describe("console commands and launch plan", () => {
   it("allows plain extra launch options and refuses the ones the launch mode manages", () => {
@@ -186,8 +227,22 @@ describe("Start CS2 and the game console (engine)", () => {
     await post({ players: clutch, timestamp: 1_700_000_014 });
     await new Promise((r) => setTimeout(r, 200));
     expect(received.includes("spec_show_xray 0")).toBe(false);
-    expect((await api("/api/v1/game/console-options", { method: "PUT", body: { clutchXrayOff: true, xray: false } })).status).toBe(200);
+    expect((await api("/api/v1/game/console-options", { method: "PUT", body: { clutchXrayOff: true } })).status).toBe(200);
     await post({ players: roster, timestamp: 1_700_000_015, roundPhase: "over", winTeam: "T" });
+
+    // A 2v2 retake: off once a CT is close to the bomb, back on when the round is over.
+    await post({ players: postPlant(3000), timestamp: 1_700_000_016, bomb: { state: "planted", position: { x: 0, y: 0, z: 0 }, countdown: 30 }, roundBomb: "planted" });
+    await new Promise((r) => setTimeout(r, 200));
+    received.length = 0;
+    await post({ players: postPlant(3000), timestamp: 1_700_000_017, bomb: { state: "planted", position: { x: 0, y: 0, z: 0 }, countdown: 29 }, roundBomb: "planted" });
+    await new Promise((r) => setTimeout(r, 200));
+    expect(received.includes("spec_show_xray 0")).toBe(false);
+    await post({ players: postPlant(900), timestamp: 1_700_000_018, bomb: { state: "planted", position: { x: 0, y: 0, z: 0 }, countdown: 25 }, roundBomb: "planted" });
+    await waitFor(() => received.includes("spec_show_xray 0") && received.includes("hud_showtargetid 0"));
+    received.length = 0;
+    await post({ players: postPlant(900), timestamp: 1_700_000_019, roundPhase: "over", winTeam: "CT", roundBomb: "defused" });
+    await waitFor(() => received.includes("spec_show_xray 1"));
+    expect((await api("/api/v1/game/console-options", { method: "PUT", body: { xray: false } })).status).toBe(200);
   });
 
   it("selects players with spec_player and the player's in-game name (CS2 has no spec_player_by_accountid)", async () => {
