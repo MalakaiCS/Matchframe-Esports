@@ -48,6 +48,8 @@ import { ProgramArbiter } from "./production/program.ts";
 import { TrainingService } from "./demos/training.ts";
 import { buildBracket, computeStandings } from "./domain/standings.ts";
 import { DemoLibrary, PythonWorkerRunner } from "./demos/library.ts";
+import { PythonSetup } from "./demos/python-setup.ts";
+import { DatasetStorage } from "./demos/storage.ts";
 import { RoundSimulator } from "./sim/simulator.ts";
 import { GameConsoleService } from "./game/console.ts";
 import { BuiltinRadars } from "./live/builtin-radars.ts";
@@ -137,6 +139,8 @@ export class Engine {
   readonly hudLibrary: HudLibraryService;
   readonly demos: DemoLibrary;
   readonly workers: PythonWorkerRunner;
+  readonly pythonSetup: PythonSetup;
+  readonly datasetStorage: DatasetStorage;
   readonly training: TrainingService;
   /** Utility profiles in use and which types come from demo measurements. */
   readonly utilityProfiles: { profiles: ProfileSet; measuredTypes: string[]; file: string | null; error: string | null };
@@ -273,12 +277,15 @@ export class Engine {
       if (ev.type === "settings") for (const fn of this.hudListeners) fn(libraryOutputId(ev.hudId));
     });
 
-    this.workers = new PythonWorkerRunner(cfg.pythonPath, cfg.workersDir);
+    this.pythonSetup = new PythonSetup({ settings: this.settings, logger: this.logger, dataDir: cfg.dataDir, workersDir: cfg.workersDir, fromEnv: cfg.pythonPath });
+    this.workers = new PythonWorkerRunner(() => this.pythonSetup.interpreter(), cfg.workersDir);
     this.training = new TrainingService({ workers: this.workers, dataDir: cfg.dataDir, demoJobs: this.demoJobs, settings: this.settings, session: this.session, logger: this.logger });
-    this.demos = new DemoLibrary(this.demoJobs, this.settings, this.workers, this.logger, cfg.dataDir, () => {
+    const broadcastLive = () => {
       const st = this.session.state();
       return !!st && !st.simulated && !st.sources[0]?.stale;
-    });
+    };
+    this.demos = new DemoLibrary(this.demoJobs, this.settings, this.workers, this.logger, cfg.dataDir, broadcastLive);
+    this.datasetStorage = new DatasetStorage({ settings: this.settings, secrets: this.secrets, repo: this.demoJobs, runner: this.workers, library: this.demos, logger: this.logger, isLive: broadcastLive });
 
     this.gameConsole = new GameConsoleService({ settings: this.settings, teams: this.teams, logger: this.logger });
     this.autoDirector = new AutoDirector(this);

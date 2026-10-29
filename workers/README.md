@@ -54,11 +54,22 @@ Every command prints JSON lines to stdout: zero or more `{"type":"progress",...}
 Error codes: `INPUT_NOT_FOUND`, `INPUT_UNREADABLE`, `UNSUPPORTED_FORMAT`, `PARSER_FAILED`,
 `EMPTY_PARSE`, `DATASET_CONFLICT`, `DATASET_NOT_FOUND`, `DATASET_INVALID`, `FEATURES_MISSING`,
 `LEAKAGE_DETECTED`, `INSUFFICIENT_DATA`, `MODEL_NOT_FOUND`, `PROMOTION_REFUSED`,
-`SCHEMA_INVALID`, `INTERNAL`.
+`SCHEMA_INVALID`, `INTERNAL`, `STORAGE_NOT_CONFIGURED`, `STORAGE_UNREACHABLE`, `STORAGE_REFUSED`,
+`STORAGE_NO_TLS`, `STORAGE_CERT_CHANGED`, `STORAGE_VERIFY_FAILED`, `ARCHIVE_UNSUPPORTED`.
 
 ## Commands (all verified on the 5-demo test corpus)
 
 ```sh
+# is this Python ready (version and packages)?
+python -m mf_common.cli doctor
+
+# the demos out of an HLTV .zip / .rar (.rar needs bsdtar: Windows' own tar.exe)
+python -m mf_common.cli unpack --input match.rar --out-dir INGEST/unpacked/match
+
+# FTP storage: connection from MF_STORAGE_HOST, _PORT, _USER, _PASSWORD, _SECURE (ftps|plain), _FINGERPRINT
+python -m mf_common.cli storage-test   [--remote-dir /matchframe]
+python -m mf_common.cli upload-dataset --dataset DATA/map=.../demo=<sha16> [--remote-dir /matchframe]
+
 # pre-flight
 python -m mf_common.cli hash    --input demo.dem
 python -m mf_common.cli inspect --input demo.dem
@@ -115,7 +126,7 @@ same sha256 is reported as `duplicate`. Parquet tables are zstd-compressed.
 | `grenade_samples` | every recorded projectile sample (for physics fits) |
 | `qa.json`, `manifest.json` | QA/compatibility report; provenance, parser + version, settings, per-file sha256 + rows, `status: COMMITTED` |
 | `validation.json` | written by `validate` (verdict `usable`/`quarantine`, reasons, flags, per-check results) |
-| `features.parquet`, `labels.parquet`, `utility_labels.parquet`, `features_manifest.json` | written by `build-features` |
+| `features.parquet`, `labels.parquet`, `utility_labels.parquet`, `pov_labels.parquet`, `features_manifest.json` | written by `build-features` (features version 2 added `pov_labels`; an older dataset is built again) |
 
 ## Key design decisions
 

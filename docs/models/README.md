@@ -13,7 +13,7 @@ Documents:
 
 ## 1. Data schemas
 
-Each imported demo becomes an immutable dataset directory `DATA/map=<map>/build=<build>/demo=<sha256[:16]>/`, written to a staging directory and published with one atomic rename; `manifest.json` (status `COMMITTED`) records provenance (source sha256 and size), parser name and version, extraction settings, measured tick rate and recorded frame rate, and per-file sha256/row counts. Tables (zstd Parquet): `rounds`, `players`, `ticks` (sampled player state), `events`, `attributions`, `team_scores`, `grenades`, `grenade_samples`; plus `qa.json`, `validation.json` and, after `build-features`, `features.parquet`, `labels.parquet`, `utility_labels.parquet`, `features_manifest.json`. Column-level detail: `workers/README.md` § Dataset layout.
+Each imported demo becomes an immutable dataset directory `DATA/map=<map>/build=<build>/demo=<sha256[:16]>/`, written to a staging directory and published with one atomic rename; `manifest.json` (status `COMMITTED`) records provenance (source sha256 and size), parser name and version, extraction settings, measured tick rate and recorded frame rate, and per-file sha256/row counts. Tables (zstd Parquet): `rounds`, `players`, `ticks` (sampled player state), `events`, `attributions`, `team_scores`, `grenades`, `grenade_samples`; plus `qa.json`, `validation.json` and, after `build-features`, `features.parquet`, `labels.parquet`, `utility_labels.parquet`, `pov_labels.parquet`, `features_manifest.json`. Column-level detail: `workers/README.md` § Dataset layout.
 
 Lineage in the engine: every import is a demo job with an append-only transition history (`GET /api/v1/jobs/:id`), the dataset directory, parser, schema version and the validation verdict. Training runs record their datasets, every step's result and the resulting model id (`GET /api/v1/training/runs`).
 
@@ -37,6 +37,18 @@ For each (tick t, T player a, CT player b) and horizon h ∈ {0.5, 1, 2, 3} s, l
 | `damage_<h>` | an attributed damage event between a and b | no attributed damage between them | an ambiguous attribution touched a or b before any positive, or the dataset's damage-attribution rate is < 0.5 |
 | `death_<h>` | an attributed kill between a and b | no kill | ambiguous attribution touched a or b first |
 | `contact_<h>` | damage or kill between a and b | neither | as `damage_<h>` |
+
+**POV labels** (`pov_labels.parquet`, the hindsight observer): for each live grid frame (tick t) and alive player p, looking only into (t, t + h]:
+
+| Label | Meaning |
+|---|---|
+| `kill_<h>` (h = 2 s, 5 s) | p kills someone |
+| `death_<h>` | p dies |
+| `action_<h>` | either: p's POV shows a kill |
+| `kills_10s` | p's kills within 10 s |
+| `multikill_10s` | two or more of them: a multi-frag starts on p's POV |
+
+Kills are death events with an attacker, plus kills attributed from counters in demos without events; suicides are left out. These say which POV a perfect observer would have been on; they are the target for an observer model and for scoring the director on replayed demos.
 
 Attributions come from exact events where the demo has them, otherwise from per-frame counter deltas with a unique opposing candidate (`attributed` / `ambiguous` / `unattributed`). Utility labels (per throw): activation delay, activation position and place — only when activation is linked by an exact event; otherwise null. Labels are stored separately from features and are never model inputs.
 

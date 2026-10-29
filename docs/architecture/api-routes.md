@@ -213,6 +213,15 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/hud/library/:id/rotate-token` | hud.publish |
 | GET | `/api/v1/hud/library/:id/state` | state.read |
 | GET | `/api/v1/demos/config` | demos.manage |
+| GET | `/api/v1/demos/python` | demos.manage |
+| POST | `/api/v1/demos/python/check` | demos.manage |
+| POST | `/api/v1/demos/python/setup` | demos.manage |
+| PUT | `/api/v1/demos/python` | demos.manage |
+| GET | `/api/v1/demos/cloud-storage` | demos.manage |
+| PUT | `/api/v1/demos/cloud-storage` | demos.manage |
+| POST | `/api/v1/demos/cloud-storage/test` | demos.manage |
+| POST | `/api/v1/demos/cloud-storage/forget-certificate` | demos.manage |
+| POST | `/api/v1/demos/cloud-storage/upload-now` | demos.manage |
 | PUT | `/api/v1/demos/config` | demos.manage |
 | POST | `/api/v1/demos/import` | demos.manage |
 | GET | `/api/v1/demos/jobs` | demos.manage |

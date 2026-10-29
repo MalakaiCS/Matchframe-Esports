@@ -559,3 +559,43 @@ Through Matchframe in Chromium, the same kaiHUD ticks within 0.1 s of each secon
 
 **Not checked.** On air in a real CS2: whether 1,600 units suits every map's sites.
 
+## ADR-038 — Demo learning on the operator's PC: POV labels, FTP storage, Python set up from the program
+
+**Context.** The owner wants pro demos turned into "the valuable information to make calculated decisions on the best POV to get kills or multi-frags". The demo should not be needed afterwards. A 4 TB FTP storage box (storage only, no compute) is available, and the reading is done on the owner's PC.
+
+The Demo Library already read demos into datasets, but Python and its packages don't ship with the program (only the worker sources do). Datasets stayed local, and nothing said which POV would have shown the action.
+
+**Decision.**
+- **POV labels** (`build-features`, features version 2): `pov_labels.parquet` per live grid frame and alive player, looking into (t, t + h]:
+  - kill / death / either within 2 s and 5 s;
+  - kills within 10 s, and a multi-frag (two or more).
+
+  Kills are death events plus counter-attributed kills; suicides are excluded. They are labels only, never features, and are the target for an observer model and for scoring the director on replays. Datasets with features version 1 are built again.
+- **Storage** (`DatasetStorage`, workers `storage-test` / `upload-dataset`, Python's ftplib):
+  - each committed dataset is uploaded after `build-features`, which, if it fails, doesn't stop the upload;
+  - the layout matches the local one, written to a `.partial-<token>` directory, each file's size checked, then renamed into place. An unchanged remote copy is skipped; a changed one is replaced.
+  - **FTPS (explicit TLS) by default**, with the data connections reusing the login's TLS session. Storage boxes are reached by IP with self-signed certificates, so the certificate's SHA-256 is pinned at the first good test (trust on first use) and checked on every connection; a new host or port forgets it. Plain FTP only when chosen.
+  - The connection goes to the worker in environment variables (`MF_STORAGE_*`), never arguments. The password is in the secret store and never returned, logged or audited.
+  - One upload at a time, not during a live broadcast or while the library is paused, retried 10 minutes after a failure. Uploads are recorded per demo SHA-256 (setting `demos.uploads`).
+- **Retention `remove_after_upload`:** a raw demo enters quarantine only once its upload is recorded, and is deleted after the quarantine days (verified dataset, as before).
+- **Archives:**
+  - `.zip` / `.rar` in an ingest folder are unpacked by the worker into `<ingest>/unpacked/<name>/`. Only demo files are taken, flattened to safe names, at most 16 GB, using zipfile for zip and bsdtar (Windows' `tar.exe`) for RAR.
+  - The demos are imported and the archive is deleted. An archive imported from outside an ingest folder is never deleted.
+  - Scanning skips a folder while it is being unpacked.
+- **Python** (`PythonSetup`): the interpreter is the one chosen by hand, else `MATCHFRAME_PYTHON`, else `<data>/python-env` if it exists. **Set up** finds Python 3.11+ (`py -3`, `python`, `python3`), creates that virtual environment and pip-installs `workers/pyproject.toml`'s dependencies. Nothing goes into the system Python. `doctor` reports the version and missing packages.
+
+**Not chosen.**
+- **Bundling Python and the packages in the installer:** about 150 MB more for every user, when only the owner reads demos.
+- **Uploading raw demos to the storage:** about 300 MB each, and the box can't read them.
+
+**Checked.**
+- POV labels against a brute-force count on the synthetic demo.
+- Uploads against real local FTP and FTPS servers (pyftpdlib): complete, skipped when unchanged, replaced when changed, no staging left behind, wrong password refused, FTPS against a server without TLS, a changed certificate refused.
+- Zip unpacking: only demos, no path escape.
+- The engine: no deletion before the upload, the password only in the environment, the 10-minute retry, certificate trust and its reset on a new host, archives (deleted from the ingest folder, kept from elsewhere), Python setup and its messages with a stand-in.
+
+**Not checked.**
+- The owner's storage server (FTPS support, speed).
+- RAR on Windows 10.
+- The Python setup on a real Windows computer.
+

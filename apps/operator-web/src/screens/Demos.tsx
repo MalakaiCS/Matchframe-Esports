@@ -7,6 +7,7 @@ import { DEMO_STATES, DEMO_TRANSITIONS, demoStateTone, RETENTION_POLICIES, retry
 import { fmtBytes, fmtTime, MISSING } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
 import { usePermission } from "../state/session.tsx";
+import { CloudStoragePanel, PythonPanel } from "./demos/PipelinePanels.tsx";
 import "../styles/group-c.css";
 
 const stateLabel = (s: string) => (s.charAt(0) + s.slice(1).toLowerCase()).replace(/_/g, " ");
@@ -382,8 +383,21 @@ export function DemosScreen() {
         <h1 className="page-title">Demo Library</h1>
         {cfg.data ? <ProcessingControls data={cfg.data} reload={() => void cfg.reload()} /> : null}
       </div>
-      <p className="page-intro">Import CS2 demos and turn them into training datasets.</p>
-      {cfg.data && !cfg.data.workersAvailable ? <Note tone="warn">Python workers are not configured, so demos are hashed and queued but not parsed. Install the workers or set MATCHFRAME_PYTHON.</Note> : null}
+      <p className="page-intro">Import CS2 demos (.dem, or HLTV's .zip and .rar) and turn them into training datasets: kills, positions, utility and the best POV for every moment.</p>
+      {cfg.data && !cfg.data.workersAvailable ? <Note tone="warn">Python isn't set up yet, so demos are hashed and queued but not read. Press Set up Python below.</Note> : null}
+      {cfg.data?.archiveIssues?.length ? (
+        <Note tone="warn" title="An archive could not be opened">
+          {cfg.data.archiveIssues.map((a) => `${a.archive.split(/[\\/]/).pop()}: ${a.error}`).join(" · ")}
+        </Note>
+      ) : null}
+      <div className="grid-2">
+        <Panel title="Python for reading demos">
+          <PythonPanel onChange={() => void cfg.reload()} />
+        </Panel>
+        <Panel title="Cloud storage (FTP)" subtitle="Datasets uploaded, demos deleted">
+          <CloudStoragePanel demos={cfg.data ?? null} onConfigChange={() => void cfg.reload()} />
+        </Panel>
+      </div>
       <div className="grid-2">
         <Panel title="Import demos">
           <Field label="Paths (files or folders, one per line)">

@@ -8,8 +8,11 @@ Causality contract
 * Every feature of a row at tick ``t`` is computed from grid rows with ``tick <= t`` only
   (current frame + as-of history). ``max_input_tick`` records the latest input tick and must
   equal ``t``; ``validate`` and the leakage check enforce it.
-* Labels (``labels.parquet``, ``utility_labels.parquet``) look strictly into ``(t, t + h]`` and live
-  in separate files; no label column appears in ``features.parquet``.
+* Labels (``labels.parquet``, ``utility_labels.parquet``, ``pov_labels.parquet``) look strictly
+  into ``(t, t + h]`` and live in separate files; no label column appears in ``features.parquet``.
+* ``pov_labels.parquet`` is the hindsight observer: for each live grid frame and alive player,
+  whether that player gets a kill, dies, or starts a multi-frag soon, i.e. whether their POV
+  would show the action.
 """
 
 from __future__ import annotations
@@ -29,9 +32,13 @@ from mf_common.fsutil import read_json, utc_now, write_json_atomic
 from mf_common.runtime import peak_rss_mb
 from mf_common.tables import write_table
 
-FEATURES_VERSION = 1
+FEATURES_VERSION = 2
 HISTORY_S = 0.5
 HORIZONS_S: tuple[float, ...] = (0.5, 1.0, 2.0, 3.0)
+#: POV label horizons (s): a kill or death this soon is on screen from that player's POV.
+POV_HORIZONS_S: tuple[float, ...] = (2.0, 5.0)
+#: A multi-frag: two or more kills by the player within this many seconds.
+MULTI_FRAG_WINDOW_S = 10.0
 KEY_COLUMNS = ["dataset_id", "round_index", "tick", "a_id", "b_id"]
 
 #: Feature name → required source capability (``gsi_compatible`` features are available from a
@@ -236,6 +243,68 @@ def pair_interactions(attributions: pl.DataFrame, events: pl.DataFrame) -> pl.Da
     )
 
 
+def kill_ticks(attributions: pl.DataFrame, events: pl.DataFrame) -> pl.DataFrame:
+    """(tick, attacker_id, victim_id) of every kill: death events with an attacker, plus kills
+    attributed from counters in demos without events. Suicides and duplicates dropped."""
+    parts = []
+    if events.height:
+        parts.append(
+            events.filter((pl.col("event_type") == "player_death") & pl.col("user_id").is_not_null()).select(
+                pl.col("tick").cast(pl.Int64), "attacker_id", pl.col("user_id").alias("victim_id")
+            )
+        )
+    if attributions.height:
+        parts.append(
+            attributions.filter((pl.col("status") == "attributed") & (pl.col("kind") == "kill")).select(
+                pl.col("tick").cast(pl.Int64), "attacker_id", "victim_id"
+            )
+        )
+    if not parts:
+        return pl.DataFrame(schema={"tick": pl.Int64, "attacker_id": pl.Utf8, "victim_id": pl.Utf8})
+    return pl.concat(parts).unique(subset=["tick", "victim_id"]).sort("tick")
+
+
+def compute_pov_labels(ticks: pl.DataFrame, rounds: pl.DataFrame, kills: pl.DataFrame, tick_rate: float, dataset_id: str) -> pl.DataFrame:
+    """The hindsight observer: per live grid frame and alive player, looking into ``(t, t + h]``.
+
+    ``kill_<h>`` / ``death_<h>``: the player kills / dies within h; ``action_<h>``: either (their POV
+    shows a kill); ``kills_10s``: their kills within the multi-frag window; ``multikill_10s``: two or
+    more (a multi-frag starts on their POV).
+    """
+    import numpy as np
+
+    g = live_grid(ticks, rounds).select("round_index", "tick", "player_id", "team_num")
+    by: dict[str, dict[str, np.ndarray]] = {"attacker_id": {}, "victim_id": {}}
+    for col in by:
+        k = kills.filter(pl.col(col).is_not_null() & (pl.col("attacker_id").is_null() | (pl.col("attacker_id") != pl.col("victim_id"))))
+        for pid, grp in k.group_by(col):
+            by[col][str(pid[0])] = np.sort(grp["tick"].to_numpy())
+    frames = []
+    for pid, grp in g.group_by("player_id"):
+        t = grp["tick"].to_numpy()
+        cols: dict[str, Any] = {}
+        empty = np.array([], dtype=np.int64)
+        kt = by["attacker_id"].get(str(pid[0]), empty)
+        dt = by["victim_id"].get(str(pid[0]), empty)
+
+        def within(ev: np.ndarray, sec: float) -> np.ndarray:
+            return np.searchsorted(ev, t + round(sec * tick_rate), side="right") - np.searchsorted(ev, t, side="right")
+
+        for h in POV_HORIZONS_S:
+            tag = f"{h:g}s"
+            k_n, d_n = within(kt, h), within(dt, h)
+            cols[f"kill_{tag}"] = (k_n > 0).astype(np.int8)
+            cols[f"death_{tag}"] = (d_n > 0).astype(np.int8)
+            cols[f"action_{tag}"] = ((k_n + d_n) > 0).astype(np.int8)
+        multi = within(kt, MULTI_FRAG_WINDOW_S)
+        cols["kills_10s"] = np.minimum(multi, 127).astype(np.int8)
+        cols["multikill_10s"] = (multi >= 2).astype(np.int8)
+        frames.append(grp.with_columns(**{c: pl.Series(v) for c, v in cols.items()}))
+    if not frames:
+        return pl.DataFrame()
+    return pl.concat(frames).with_columns(pl.lit(dataset_id).alias("dataset_id")).select("dataset_id", pl.exclude("dataset_id")).sort("tick", "player_id")
+
+
 def damage_attribution_rate(attributions: pl.DataFrame) -> float:
     d = attributions.filter(pl.col("kind") == "damage")
     if d.height == 0:
@@ -387,7 +456,9 @@ def build_features(dataset: Path, emitter: Emitter, force: bool = False) -> dict
     fm_path = ref.path / FEATURES_MANIFEST
     if fm_path.exists() and not force:
         fm = read_json(fm_path)
-        return {"status": "exists", "dataset": str(ref.path), "rows": {k: v["rows"] for k, v in fm["files"].items()}}
+        # Built by an older version (no POV labels before version 2): built again.
+        if fm.get("features_version") == FEATURES_VERSION:
+            return {"status": "exists", "dataset": str(ref.path), "rows": {k: v["rows"] for k, v in fm["files"].items()}}
     ticks = pl.read_parquet(ref.path / "ticks.parquet")
     rounds = pl.read_parquet(ref.path / "rounds.parquet")
     events = pl.read_parquet(ref.path / "events.parquet")
@@ -407,11 +478,14 @@ def build_features(dataset: Path, emitter: Emitter, force: bool = False) -> dict
     emitter.progress("labels", 0.7)
     labels, label_info = compute_labels(feats.select(KEY_COLUMNS), attributions, events, rate)
     utility_labels = compute_utility_labels(grenades, ticks, rate, ref.dataset_id)
+    pov = compute_pov_labels(ticks, rounds, kill_ticks(attributions, events), rate, ref.dataset_id)
     written = {
         "features": write_table(feats, ref.path, "features"),
         "labels": write_table(labels, ref.path, "labels"),
         "utility_labels": write_table(utility_labels, ref.path, "utility_labels"),
+        "pov_labels": write_table(pov, ref.path, "pov_labels"),
     }
+    pov_positives = {c: int(pov[c].sum() or 0) for c in pov.columns if c.startswith(("kill_", "death_", "action_", "multikill_"))}
     positives = {c: int(labels[c].sum() or 0) for c in labels.columns if c.startswith("contact_")}
     nulls = {c: int(labels[c].null_count()) for c in labels.columns if c.startswith("contact_")}
     fm = {
@@ -427,6 +501,8 @@ def build_features(dataset: Path, emitter: Emitter, force: bool = False) -> dict
         "labels": label_info,
         "label_positives": positives,
         "label_nulls": nulls,
+        "pov_horizons_s": list(POV_HORIZONS_S),
+        "pov_positives": pov_positives,
         "leakage_check": leak,
         "files": {k: w.as_manifest_entry() for k, w in written.items()},
     }
@@ -439,6 +515,7 @@ def build_features(dataset: Path, emitter: Emitter, force: bool = False) -> dict
         "bytes": {k: w.bytes for k, w in written.items()},
         "label_positives": positives,
         "label_nulls": nulls,
+        "pov_positives": pov_positives,
         "labels": label_info,
         "leakage_check": {"passed": leak["passed"], "cuts": len(leak["cuts"])},
         "wall_s": round(wall, 3),

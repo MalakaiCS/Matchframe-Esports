@@ -71,3 +71,42 @@ def test_contact_labels_match_brute_force(tmp_path: Path) -> None:
         assert quiet["contact_3s"].sum() == 0
         death = pair["death_1s"].to_list()
         assert sum(death) == sum(1 for t in pair["tick"].to_list() if t < kill <= t + RATE)
+
+
+def test_pov_labels_match_brute_force(tmp_path: Path) -> None:
+    """The hindsight observer: each player's kills and deaths in (t, t + h], counted by hand."""
+    from mf_features.features import MULTI_FRAG_WINDOW_S, POV_HORIZONS_S, kill_ticks
+
+    ds = build_dataset(tmp_path)
+    res = build_features(ds, NullEmitter())
+    pov = pl.read_parquet(ds / "pov_labels.parquet")
+    assert pov.height > 0 and res["pov_positives"]["action_2s"] > 0
+    kills = kill_ticks(pl.read_parquet(ds / "attributions.parquet"), pl.read_parquet(ds / "events.parquet"))
+    rows = kills.to_dicts()
+    for r in pov.sample(n=min(400, pov.height), seed=3).to_dicts():
+        t, p = r["tick"], r["player_id"]
+        for h in POV_HORIZONS_S:
+            lim = t + round(h * RATE)
+            k = sum(1 for e in rows if e["attacker_id"] == p and e["attacker_id"] != e["victim_id"] and t < e["tick"] <= lim)
+            d = sum(1 for e in rows if e["victim_id"] == p and t < e["tick"] <= lim)
+            tag = f"{h:g}s"
+            assert r[f"kill_{tag}"] == int(k > 0) and r[f"death_{tag}"] == int(d > 0) and r[f"action_{tag}"] == int(k + d > 0)
+        lim = t + round(MULTI_FRAG_WINDOW_S * RATE)
+        k10 = sum(1 for e in rows if e["attacker_id"] == p and e["attacker_id"] != e["victim_id"] and t < e["tick"] <= lim)
+        assert r["kills_10s"] == k10 and r["multikill_10s"] == int(k10 >= 2)
+    # Labels only: never a feature column.
+    feats = pl.read_parquet(ds / "features.parquet")
+    assert not {"kill_2s", "action_2s", "multikill_10s"} & set(feats.columns)
+
+
+def test_older_features_are_built_again(tmp_path: Path) -> None:
+    import json
+
+    ds = build_dataset(tmp_path)
+    build_features(ds, NullEmitter())
+    fm = ds / "features_manifest.json"
+    m = json.loads(fm.read_text())
+    m["features_version"] = 1
+    fm.write_text(json.dumps(m))
+    assert build_features(ds, NullEmitter())["status"] == "built"
+    assert build_features(ds, NullEmitter())["status"] == "exists"

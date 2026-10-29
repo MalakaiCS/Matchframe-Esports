@@ -807,6 +807,33 @@ export interface DemoConfigResponse {
   config: DemoConfig;
   workersAvailable: boolean;
   paused: boolean;
+  archiveIssues?: { archive: string; error: string; at: string }[];
+}
+
+export interface PythonStatus {
+  interpreter: string | null;
+  available: boolean;
+  envDir: string;
+  setup: { state: "idle" | "running" | "done" | "failed"; step: string | null; log: string[]; startedAt: string | null; finishedAt: string | null; error: string | null };
+}
+
+export interface PythonCheck {
+  ok: boolean;
+  python: string;
+  python_ok: boolean;
+  packages: Record<string, string>;
+  missing: string[];
+}
+
+export interface CloudStorageStatus {
+  settings: { enabled: boolean; host: string; port: number; username: string; remoteDir: string; secure: "ftps" | "plain"; fingerprint: string | null };
+  hasPassword: boolean;
+  uploaded: number;
+  uploadedBytes: number;
+  pending: number;
+  current: { jobId: string; step: "features" | "upload"; progress: number } | null;
+  lastError: { at: string; jobId: string | null; message: string } | null;
+  nextTryAt: string | null;
 }
 
 export interface DemoJob {

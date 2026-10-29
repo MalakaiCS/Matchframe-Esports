@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=8", "scikit-learn>=1.4"]
+test = ["pytest>=8", "scikit-learn>=1.4", "pyftpdlib>=2.0", "pyopenssl>=24"]
 
 [project.scripts]
 matchframe-workers = "mf_common.cli:main"

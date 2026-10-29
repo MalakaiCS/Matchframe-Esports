@@ -10000,7 +10000,8 @@
                           "quarantine_then_remove",
                           "keep_curated_sample",
                           "keep_until_backup_confirmed",
-                          "remove_after_validation"
+                          "remove_after_validation",
+                          "remove_after_upload"
                         ]
                       },
                       "quarantineDays": {
@@ -10036,6 +10037,351 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/demos/python": {
+      "get": {
+        "operationId": "get_api_v1_demos_python",
+        "summary": "GET /api/v1/demos/python",
+        "description": "Requires permission `demos.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put_api_v1_demos_python",
+        "summary": "PUT /api/v1/demos/python",
+        "description": "Requires permission `demos.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/demos/python/check": {
+      "post": {
+        "operationId": "post_api_v1_demos_python_check",
+        "summary": "POST /api/v1/demos/python/check",
+        "description": "Requires permission `demos.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/demos/python/setup": {
+      "post": {
+        "operationId": "post_api_v1_demos_python_setup",
+        "summary": "POST /api/v1/demos/python/setup",
+        "description": "Requires permission `demos.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/demos/cloud-storage": {
+      "get": {
+        "operationId": "get_api_v1_demos_cloud_storage",
+        "summary": "GET /api/v1/demos/cloud-storage",
+        "description": "Requires permission `demos.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put_api_v1_demos_cloud_storage",
+        "summary": "PUT /api/v1/demos/cloud-storage",
+        "description": "Requires permission `demos.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "host": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "port": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "username": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "password": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "remoteDir": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "secure": {
+                    "type": "string",
+                    "enum": [
+                      "ftps",
+                      "plain"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/demos/cloud-storage/test": {
+      "post": {
+        "operationId": "post_api_v1_demos_cloud_storage_test",
+        "summary": "POST /api/v1/demos/cloud-storage/test",
+        "description": "Requires permission `demos.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/demos/cloud-storage/forget-certificate": {
+      "post": {
+        "operationId": "post_api_v1_demos_cloud_storage_forget_certificate",
+        "summary": "POST /api/v1/demos/cloud-storage/forget-certificate",
+        "description": "Requires permission `demos.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/demos/cloud-storage/upload-now": {
+      "post": {
+        "operationId": "post_api_v1_demos_cloud_storage_upload_now",
+        "summary": "POST /api/v1/demos/cloud-storage/upload-now",
+        "description": "Requires permission `demos.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
           }
         }
       }
@@ -10091,7 +10437,8 @@
                       "quarantine_then_remove",
                       "keep_curated_sample",
                       "keep_until_backup_confirmed",
-                      "remove_after_validation"
+                      "remove_after_validation",
+                      "remove_after_upload"
                     ]
                   },
                   "provenance": {

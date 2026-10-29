@@ -83,3 +83,11 @@
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
+
+.gc-log {
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+}

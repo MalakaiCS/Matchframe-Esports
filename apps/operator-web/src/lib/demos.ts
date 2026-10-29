@@ -54,6 +54,7 @@ export const RETENTION_POLICIES: { id: RetentionPolicy; label: string; hint: str
   { id: "keep_curated_sample", label: "Keep a curated sample", hint: "Keep an audit sample of raw demos; quarantine the rest." },
   { id: "keep_until_backup_confirmed", label: "Keep until backup confirmed", hint: "Raw demos are only removed after you confirm a backup of their SHA-256." },
   { id: "remove_after_validation", label: "Remove after validation", hint: "Delete raw demos right after the dataset validates (irreversible)." },
+  { id: "remove_after_upload", label: "Remove after upload", hint: "Quarantine each raw demo once its dataset (with the POV labels) is uploaded to the storage and checked there; delete it after the quarantine period." },
 ];
 
 export function retryable(s: DemoJobState): boolean {

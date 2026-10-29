@@ -42,31 +42,48 @@ export function defaultDemoConfig(dataDir: string): DemoLibraryConfig {
 }
 
 export interface WorkerRunner {
-  /** Runs a worker command and returns the final JSON result (or throws with the worker error). */
-  run(args: string[], onProgress?: (p: Record<string, unknown>) => void): Promise<Record<string, unknown>>;
+  /**
+   * Runs a worker command and returns the final JSON result (or throws with the worker error).
+   * `env` is added to the worker's environment (secrets go there, never on the command line).
+   */
+  run(args: string[], onProgress?: (p: Record<string, unknown>) => void, env?: Record<string, string>): Promise<Record<string, unknown>>;
   available(): boolean;
 }
 
 /** Spawns `python -m mf_common.cli ...` and parses JSON-lines progress/result/error output. */
 export class PythonWorkerRunner implements WorkerRunner {
   constructor(
-    private readonly python: string | null,
+    /** The interpreter, or a getter (set up from the program: see PythonSetup). */
+    private readonly pythonOf: string | null | (() => string | null),
     private readonly workersDir: string | null,
   ) {}
 
+  private get python(): string | null {
+    return typeof this.pythonOf === "function" ? this.pythonOf() : this.pythonOf;
+  }
+
+  get interpreter(): string | null {
+    return this.python;
+  }
+
+  get directory(): string | null {
+    return this.workersDir;
+  }
+
   available(): boolean {
     // A bare command name (e.g. "python3") is resolved through PATH when spawned.
-    const pythonOk = !!this.python && (/[\\/]/.test(this.python) ? existsSync(this.python) : true);
+    const python = this.python;
+    const pythonOk = !!python && (/[\\/]/.test(python) ? existsSync(python) : true);
     return pythonOk && !!this.workersDir && existsSync(this.workersDir);
   }
 
-  run(args: string[], onProgress?: (p: Record<string, unknown>) => void): Promise<Record<string, unknown>> {
+  run(args: string[], onProgress?: (p: Record<string, unknown>) => void, extraEnv?: Record<string, string>): Promise<Record<string, unknown>> {
     if (!this.available()) return Promise.reject(new Error("Python workers are not configured (set the Python interpreter and workers directory)"));
     return new Promise((resolvePromise, reject) => {
       const paths = ["common", "demo-parser", "features", "training", "evaluation"].map((d) => join(this.workersDir!, d));
       const child = spawn(this.python!, ["-m", "mf_common.cli", ...args], {
         cwd: this.workersDir!,
-        env: { ...process.env, PYTHONPATH: paths.join(process.platform === "win32" ? ";" : ":"), PYTHONUNBUFFERED: "1" },
+        env: { ...process.env, ...extraEnv, PYTHONPATH: paths.join(process.platform === "win32" ? ";" : ":"), PYTHONUNBUFFERED: "1" },
         stdio: ["ignore", "pipe", "pipe"],
       });
       let buf = "";
@@ -165,6 +182,8 @@ function readManifestSchemaVersion(datasetDir: string): number | null {
 }
 
 const DEMO_RE = /\.(dem|dem\.gz|dem\.bz2|dem\.zst)$/i;
+/** Archives of demos (HLTV ships .rar): the demos are taken out, then imported. */
+const ARCHIVE_RE = /\.(zip|rar)$/i;
 
 /**
  * Demo Library (spec §15): extraction rather than video watching. The worker writes datasets
@@ -176,6 +195,13 @@ export class DemoLibrary {
   private seenSizes = new Map<string, number>();
   private paused = false;
   readonly progress = new Map<string, Record<string, unknown>>();
+  /** Archives being unpacked and the folders they go to, and the last ones that could not be (newest last). */
+  private unpacking = new Set<string>();
+  readonly archiveIssues: { archive: string; error: string; at: string }[] = [];
+  /** Whether a demo's dataset is in the storage (`remove_after_upload`); set by DatasetStorage. */
+  isUploaded: (sha256: string) => boolean = () => false;
+  /** Runs after each processing tick (dataset uploads); set by DatasetStorage. */
+  afterProcess: (() => void) | null = null;
 
   constructor(
     private readonly repo: DemoJobRepo,
@@ -257,6 +283,7 @@ export class DemoLibrary {
       const st = statSync(p);
       if (st.isDirectory()) for (const n of readdirSync(p)) walk(join(p, n), depth + 1);
       else if (st.isFile() && DEMO_RE.test(p)) add(p);
+      else if (st.isFile() && ARCHIVE_RE.test(p)) void this.unpackArchive(p, opts);
     };
     for (const p of paths) walk(resolve(p), 0);
     return out;
@@ -276,8 +303,17 @@ export class DemoLibrary {
         for (const n of readdirSync(d)) {
           const full = join(d, n);
           const st = statSync(full);
-          if (st.isDirectory()) stack.push(full);
-          else if (DEMO_RE.test(full) && !known.has(full)) {
+          if (st.isDirectory()) {
+            // Not while an archive is being unpacked into it (the unpack imports those demos itself).
+            if (!n.startsWith(".unpack-") && !this.unpacking.has(full)) stack.push(full);
+          } else if (ARCHIVE_RE.test(full) && !this.unpacking.has(full)) {
+            const prev = this.seenSizes.get(full);
+            this.seenSizes.set(full, st.size);
+            if (prev === st.size) {
+              this.seenSizes.delete(full);
+              void this.unpackArchive(full);
+            }
+          } else if (DEMO_RE.test(full) && !known.has(full)) {
             const prev = this.seenSizes.get(full);
             this.seenSizes.set(full, st.size);
             if (prev === st.size) {
@@ -290,6 +326,38 @@ export class DemoLibrary {
       }
     }
     return added;
+  }
+
+  /**
+   * Takes the demos out of an archive into `<ingest root>/unpacked/<archive name>/` and imports
+   * them (they follow the retention policy there). An archive inside an ingest root is deleted
+   * once unpacked; one outside is never touched.
+   */
+  async unpackArchive(archive: string, opts: { retentionPolicy?: RetentionPolicy; provenance?: Record<string, unknown> } = {}): Promise<string[]> {
+    const cfg = this.config();
+    const root = cfg.ingestRoots.find((r) => isInside(r, archive)) ?? cfg.ingestRoots[0];
+    if (!root || this.unpacking.has(archive)) return [];
+    const name = basename(archive).replace(ARCHIVE_RE, "").replace(/[^A-Za-z0-9._ -]/g, "_") || "archive";
+    const outDir = join(root, "unpacked", name);
+    this.unpacking.add(archive);
+    this.unpacking.add(outDir);
+    try {
+      const out = await this.runner.run(["unpack", "--input", archive, "--out-dir", outDir]);
+      const files = Array.isArray(out.files) ? out.files.map(String) : [];
+      this.importPaths(files, { ...opts, provenance: { ...(opts.provenance ?? {}), archive: basename(archive) } });
+      if (cfg.ingestRoots.some((r) => isInside(r, archive))) unlinkSync(archive);
+      this.logger.info("demos unpacked from an archive", { archive, demos: files.length });
+      return files;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      this.archiveIssues.push({ archive, error: msg.slice(0, 500), at: new Date().toISOString() });
+      this.archiveIssues.splice(0, Math.max(0, this.archiveIssues.length - 20));
+      this.logger.warn("could not unpack an archive", { archive, error: msg });
+      return [];
+    } finally {
+      this.unpacking.delete(archive);
+      this.unpacking.delete(outDir);
+    }
   }
 
   admission(sizeBytes: number): { ok: boolean; reason: string | null } {
@@ -309,6 +377,7 @@ export class DemoLibrary {
     try {
       this.scanIngest();
       await this.processQueue();
+      this.afterProcess?.();
       await this.applyRetention();
     } catch (e) {
       this.logger.error("demo library tick failed", { error: String(e) });
@@ -424,6 +493,8 @@ export class DemoLibrary {
         const backed = this.settings.get<string[]>("demos.backupConfirmed", []);
         if (!j.sha256 || !backed.includes(j.sha256)) continue;
       }
+      // Only once its dataset (with the POV labels) is verified in the storage.
+      if (j.retentionPolicy === "remove_after_upload" && (!j.sha256 || !this.isUploaded(j.sha256))) continue;
       if ((j.validation as { verdict?: string } | null)?.verdict !== "usable") {
         blocked.push(`${j.id}: validation not usable`);
         continue;

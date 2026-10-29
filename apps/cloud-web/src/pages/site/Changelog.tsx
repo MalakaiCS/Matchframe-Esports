@@ -11,6 +11,22 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.6.6",
+    title: "Demo learning",
+    summary: "The Demo Library turns pro demos into POV data (who gets a kill, dies or starts a multi-frag in the next seconds), uploads it to your FTP storage and deletes the demo. Python is set up from the program.",
+    sections: [
+      {
+        heading: "Demo Library",
+        items: [
+          "POV labels for every moment and player: kills, deaths and multi-frags in the next 2, 5 or 10 seconds.",
+          "Cloud storage (FTP): each match's data uploaded (encrypted by default), then the demo deleted if you choose.",
+          "HLTV .zip and .rar downloads unpacked automatically.",
+          "Set up Python from the program: no command line needed.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.6.5",
     title: "No X-ray in retakes, no follow cams",
     summary: "X-ray goes off for retakes after the plant, when the CTs go for the bomb with time to defuse. The Auto Director now sticks to first person, cinematic cameras and nade cams.",

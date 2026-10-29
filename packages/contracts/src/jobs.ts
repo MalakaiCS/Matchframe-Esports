@@ -44,6 +44,8 @@ export const RetentionPolicy = z.enum([
   "keep_curated_sample",
   "keep_until_backup_confirmed",
   "remove_after_validation",
+  /** Removed (after the quarantine period) once the dataset is uploaded to the storage and checked there. */
+  "remove_after_upload",
 ]);
 export type RetentionPolicy = z.infer<typeof RetentionPolicy>;
 

@@ -8,7 +8,77 @@ import type { Router } from "../http/router.ts";
 
 export function registerDemoRoutes(r: Router, e: Engine): void {
 
-  r.get("/api/v1/demos/config", { permission: "demos.manage" }, () => ({ config: e.demos.config(), workersAvailable: e.workers.available(), paused: e.demos.isPaused }));
+  r.get("/api/v1/demos/config", { permission: "demos.manage" }, () => ({ config: e.demos.config(), workersAvailable: e.workers.available(), paused: e.demos.isPaused, archiveIssues: e.demos.archiveIssues.slice(-5) }));
+
+  // ---- Python for the pipeline (set up from the program) ----------------------------------
+  const workerFailure = (err: unknown, fallback: string): never => {
+    const we = (err as { workerError?: { code?: string; message?: string } }).workerError;
+    throw new HttpError(409, we?.message ?? (err instanceof Error ? err.message : fallback), (we?.code ?? "worker_failed").toLowerCase());
+  };
+  r.get("/api/v1/demos/python", { permission: "demos.manage" }, () => ({ interpreter: e.pythonSetup.interpreter(), available: e.workers.available(), envDir: e.pythonSetup.envDir, setup: e.pythonSetup.status() }));
+  r.post("/api/v1/demos/python/check", { permission: "demos.manage" }, async () => {
+    if (!e.workers.available()) throw new HttpError(409, "no Python is set up yet", "no_workers");
+    try {
+      return await e.workers.run(["doctor"]);
+    } catch (err) {
+      return workerFailure(err, "the Python check failed");
+    }
+  });
+  r.post("/api/v1/demos/python/setup", { permission: "demos.manage" }, (req) => {
+    e.audit.record(req.principal!.label, "demos.python_setup", null);
+    return e.pythonSetup.start();
+  });
+  r.put("/api/v1/demos/python", { permission: "demos.manage", body: z.object({ path: z.string().max(1000).nullable() }) }, (req) => {
+    e.pythonSetup.choose(req.body.path);
+    e.audit.record(req.principal!.label, "demos.python_path", null, { path: req.body.path });
+    return { interpreter: e.pythonSetup.interpreter(), available: e.workers.available() };
+  });
+
+  // ---- Dataset storage (FTP): datasets uploaded, then demos removed (remove_after_upload) ----
+  r.get("/api/v1/demos/cloud-storage", { permission: "demos.manage" }, () => e.datasetStorage.status());
+  r.put(
+    "/api/v1/demos/cloud-storage",
+    {
+      permission: "demos.manage",
+      body: z.object({
+        enabled: z.boolean().optional(),
+        host: z.string().max(255).optional(),
+        port: z.number().int().min(1).max(65535).optional(),
+        username: z.string().max(255).optional(),
+        password: z.string().max(500).nullable().optional(),
+        remoteDir: z.string().min(1).max(500).optional(),
+        secure: z.enum(["ftps", "plain"]).optional(),
+      }),
+    },
+    (req) => {
+      const { password, ...rest } = req.body;
+      e.datasetStorage.setSettings({ ...rest, ...(password !== undefined ? { password } : {}) });
+      // Never the password itself in the audit log.
+      e.audit.record(req.principal!.label, "demos.storage_settings", null, { ...rest, password: password === undefined ? "unchanged" : password ? "set" : "removed" });
+      return e.datasetStorage.status();
+    },
+  );
+  r.post("/api/v1/demos/cloud-storage/test", { permission: "demos.manage" }, async (req) => {
+    if (!e.workers.available()) throw new HttpError(409, "set up Python first: the connection test runs in the pipeline", "no_workers");
+    try {
+      const out = await e.datasetStorage.test();
+      e.audit.record(req.principal!.label, "demos.storage_test", null, { ok: true, secure: out.secure });
+      return { ...out, status: e.datasetStorage.status() };
+    } catch (err) {
+      e.audit.record(req.principal!.label, "demos.storage_test", null, { ok: false });
+      return workerFailure(err, "the connection test failed");
+    }
+  });
+  r.post("/api/v1/demos/cloud-storage/forget-certificate", { permission: "demos.manage" }, (req) => {
+    e.datasetStorage.forgetCertificate();
+    e.audit.record(req.principal!.label, "demos.storage_forget_certificate", null);
+    return e.datasetStorage.status();
+  });
+  r.post("/api/v1/demos/cloud-storage/upload-now", { permission: "demos.manage" }, () => {
+    // An upload takes minutes: started here, followed through the status.
+    void e.datasetStorage.tick();
+    return e.datasetStorage.status();
+  });
   r.put("/api/v1/demos/config", { permission: "demos.manage", body: z.object({ ingestRoots: z.array(z.string()).optional(), datasetRoot: z.string().optional(), quarantineDir: z.string().optional(), watch: z.boolean().optional(), retention: z.object({ policy: RetentionPolicy, quarantineDays: z.number().int().min(0).max(365), auditSampleRate: z.number().min(0).max(1) }).optional(), concurrency: z.number().int().min(1).max(8).optional(), pauseDuringLive: z.boolean().optional(), minFreeBytes: z.number().int().min(0).optional() }) }, (req) => {
     const cfg = e.demos.setConfig(req.body);
     e.audit.record(req.principal!.label, "demos.config", null, req.body);

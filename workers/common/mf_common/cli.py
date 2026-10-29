@@ -192,6 +192,30 @@ def _parity_fixture(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
     return make_parity_fixture(Path(a.out), em, seed=a.seed, parity_count=a.parity_count)
 
 
+def _doctor(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
+    from .doctor import doctor
+
+    return doctor(em)
+
+
+def _unpack(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
+    from .unpack import unpack_archive
+
+    return unpack_archive(Path(a.input), Path(a.out_dir), em)
+
+
+def _storage_test(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
+    from .storage import storage_test
+
+    return storage_test(a.remote_dir, em)
+
+
+def _upload_dataset(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
+    from .storage import upload_dataset
+
+    return upload_dataset(Path(a.dataset), a.remote_dir, em)
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="matchframe-workers", description="Matchframe offline demo pipeline")
     sub = p.add_subparsers(dest="command", required=True)
@@ -200,6 +224,19 @@ def build_parser() -> argparse.ArgumentParser:
         sp = sub.add_parser(name, help=help_text)
         sp.set_defaults(handler=handler)
         return sp
+
+    add("doctor", _doctor, "check the Python version and the pipeline's packages")
+
+    sp = add("unpack", _unpack, "take the demos out of a .zip or .rar")
+    sp.add_argument("--input", required=True)
+    sp.add_argument("--out-dir", required=True)
+
+    sp = add("storage-test", _storage_test, "log in to the FTP storage and write, check and delete a test file (connection from MF_STORAGE_*)")
+    sp.add_argument("--remote-dir", default="/matchframe")
+
+    sp = add("upload-dataset", _upload_dataset, "upload a committed dataset to the FTP storage (connection from MF_STORAGE_*)")
+    sp.add_argument("--dataset", required=True)
+    sp.add_argument("--remote-dir", default="/matchframe")
 
     sp = add("hash", _hash, "sha256 and size of a file")
     sp.add_argument("--input", required=True)
