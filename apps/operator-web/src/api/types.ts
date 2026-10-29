@@ -1012,7 +1012,8 @@ export interface AutoDirectorStatus {
   on: boolean;
   phase: "off" | "starting" | "waiting" | "running" | "paused" | "error";
   headline: string;
-  settings: { cinematic: boolean; nadeCams: boolean; returnAfterSec: number; chase: boolean; clutch: boolean; variety?: boolean; winnerShots?: "every_round" | "big_rounds" | "off"; bigMoments?: boolean; hlaePaths?: boolean };
+  settings: { cinematic: boolean; nadeCams: boolean; returnAfterSec: number; chase: boolean; clutch: boolean; variety?: boolean; winnerShots?: "every_round" | "big_rounds" | "off"; bigMoments?: boolean; hlaeCamera?: boolean };
+  hlae?: { enabled: boolean; connected: boolean; connectedAt: string | null; connections: number; shots: number; lastShotAt: string | null; scriptPath: string | null };
   observerMode: ObserverMode;
   checks: AutoDirectorCheck[];
   resumesInMs: number | null;

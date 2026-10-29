@@ -106,7 +106,7 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
   });
 
   // ---- Auto Director (one button) --------------------------------------------------------
-  const AutoPatch = z.object({ cinematic: z.boolean().optional(), nadeCams: z.boolean().optional(), returnAfterSec: z.number().int().min(0).max(120).optional(), chase: z.boolean().optional(), clutch: z.boolean().optional(), variety: z.boolean().optional(), winnerShots: z.enum(["every_round", "big_rounds", "off"]).optional(), bigMoments: z.boolean().optional(), hlaePaths: z.boolean().optional() });
+  const AutoPatch = z.object({ cinematic: z.boolean().optional(), nadeCams: z.boolean().optional(), returnAfterSec: z.number().int().min(0).max(120).optional(), chase: z.boolean().optional(), clutch: z.boolean().optional(), variety: z.boolean().optional(), winnerShots: z.enum(["every_round", "big_rounds", "off"]).optional(), bigMoments: z.boolean().optional(), hlaeCamera: z.boolean().optional() });
   r.get("/api/v1/director/auto", { permission: "state.read" }, () => e.autoDirector.status());
   r.post("/api/v1/director/auto/start", { permission: "director.control", body: AutoPatch }, async (req) => {
     e.audit.record(req.principal!.label, "director.auto_start_requested", null, req.body);

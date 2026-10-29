@@ -54,6 +54,7 @@ import { CameraWalkthrough } from "./live/camera-walkthrough.ts";
 import { DirectorBench } from "./demos/bench-service.ts";
 import { PovModelService } from "./demos/pov-model.ts";
 import { CameraCapture } from "./live/camera-capture.ts";
+import { HlaeCameraServer } from "./game/hlae-camera.ts";
 import { RoundSimulator } from "./sim/simulator.ts";
 import { GameConsoleService } from "./game/console.ts";
 import { BuiltinRadars } from "./live/builtin-radars.ts";
@@ -148,6 +149,7 @@ export class Engine {
   readonly bench: DirectorBench;
   readonly povModel: PovModelService;
   readonly cameraCapture: CameraCapture;
+  readonly hlaeCamera: HlaeCameraServer;
   readonly datasetStorage: DatasetStorage;
   readonly training: TrainingService;
   /** Utility profiles in use and which types come from demo measurements. */
@@ -297,7 +299,20 @@ export class Engine {
     this.povModel = new PovModelService({ settings: this.settings, session: this.session, builtinDir: cfg.builtinModelsDir, modelsDir: this.training.modelsDir, registry: () => this.training.registry(), logger: this.logger });
     this.bench = new DirectorBench({ workers: this.workers, repo: this.demoJobs, maps: this.maps, settings: this.settings, logger: this.logger, dataDir: cfg.dataDir, isLive: broadcastLive, povModel: this.povModel, directorConfig: () => this.session.director.config });
 
-    this.gameConsole = new GameConsoleService({ settings: this.settings, teams: this.teams, logger: this.logger });
+    this.hlaeCamera = new HlaeCameraServer({
+      settings: this.settings,
+      logger: this.logger,
+      dataDir: cfg.dataDir,
+      port: () => this.cfg.apiPort,
+      // Every free-camera and moving shot through HLAE, whenever CS2 runs with HLAE.
+      enabled: () => this.autoDirector?.settings().hlaeCamera !== false && this.gameConsole.profile().mode === "hlae",
+    });
+    this.gameConsole = new GameConsoleService({
+      settings: this.settings,
+      teams: this.teams,
+      logger: this.logger,
+      connectLines: (p) => (p.mode === "hlae" && this.autoDirector?.settings().hlaeCamera !== false ? [this.hlaeCamera.loadCommand()] : []),
+    });
     this.cameraWalkthrough = new CameraWalkthrough({ settings: this.settings, maps: this.maps, session: this.session });
     this.cameraCapture = new CameraCapture({ session: this.session, maps: this.maps, settings: this.settings, applyOverrides: (m) => this.applyCameraOverrides(m) });
     this.autoDirector = new AutoDirector(this);
@@ -801,8 +816,8 @@ export class Engine {
           onCommand: (line) => this.directorLog.info("console", { line }),
           // CS2 saying a command didn't work ("Unknown command", cheat-protected…).
           onConsoleReply: (line) => this.directorLog.warn("console reply", { line }),
-          // Camera paths through HLAE's mirv_campath: the card's option, in the HLAE launch mode only.
-          hlaePaths: () => (this.autoDirector?.settings().hlaePaths && this.gameConsole.profile().mode === "hlae" ? { dir: join(this.cfg.dataDir, "campaths") } : null),
+          // Every free-camera and moving shot through HLAE while its script is connected.
+          hlae: this.hlaeCamera,
           // Keep the spec_mode numbering that moved the camera on this build.
           onModesLearned: (modes) => {
             const cur = this.observerSettings();
@@ -968,6 +983,7 @@ export class Engine {
 
   async shutdown(): Promise<void> {
     this.autoDirector.dispose();
+    this.hlaeCamera.close();
     this.replayLink.stop();
     this.autoReplay.dispose();
     this.graphics.dispose();

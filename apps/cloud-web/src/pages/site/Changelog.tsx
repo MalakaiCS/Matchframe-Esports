@@ -11,6 +11,21 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.7.1",
+    title: "Every camera shot through HLAE",
+    summary: "With CS2 started through HLAE, HLAE now plays every free-camera and moving shot, like Lexogrine HUD Manager's cinematics.",
+    sections: [
+      {
+        heading: "Cinematics",
+        items: [
+          "HLAE plays every camera shot, turn, glide and path, and sets the view every frame for smooth, stable moves.",
+          "Shots are confirmed when HLAE draws them, and the view goes back to the player as soon as the director picks one.",
+          "Without HLAE, shots go over the console as before.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.7.0",
     title: "The Auto Director learns from demos",
     summary: "A model trained on pro demos helps pick whose POV to show, multi-frag awareness, a test bench, and cinematics that vary like a real broadcast.",

@@ -248,6 +248,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   });
   api.on("upgrade", (req, socket, head) => {
     const url = new URL(req.url ?? "/", "http://local");
+    // The HLAE camera script in CS2 (this computer only, token checked there).
+    if (url.pathname === "/hlae") return e.hlaeCamera.upgrade(req, socket, head);
     if (url.pathname !== "/api/v1/ws") return socket.destroy();
     const principal = e.secrets.authenticate(bearer(req, url.searchParams));
     if (!principal || !can(principal.role, "state.read")) {

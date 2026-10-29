@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { CameraRecord, MatchState, ObserverMode, PlayerState } from "@matchframe/contracts";
 import type { Engine } from "../app.ts";
+import type { HlaeCameraStatus } from "../game/hlae-camera.ts";
 
 /** What the Auto Director films, set from its card (stored in settings `autoDirector`). */
 export const AutoDirectorSettings = z.object({
@@ -20,8 +21,11 @@ export const AutoDirectorSettings = z.object({
   winnerShots: z.enum(["every_round", "big_rounds", "off"]).default("every_round"),
   /** The pistol-round opener, the team on match point first, half time and the end of the map. */
   bigMoments: z.boolean().default(true),
-  /** Camera paths played by HLAE (mirv_campath) in the HLAE launch mode, instead of positions sent from Matchframe. */
-  hlaePaths: z.boolean().default(false),
+  /**
+   * In the Observer tools + HLAE launch mode, every free-camera and moving shot is played by HLAE
+   * (it sets the view every frame, like Lexogrine HUD Manager's cinematics); off: console commands.
+   */
+  hlaeCamera: z.boolean().default(true),
 });
 export type AutoDirectorSettings = z.infer<typeof AutoDirectorSettings>;
 
@@ -39,6 +43,8 @@ export interface AutoDirectorStatus {
   phase: AutoPhase;
   headline: string;
   settings: AutoDirectorSettings;
+  /** The HLAE camera (every free-camera shot drawn by HLAE in the HLAE launch mode). */
+  hlae: HlaeCameraStatus;
   observerMode: ObserverMode;
   checks: AutoCheck[];
   resumesInMs: number | null;
@@ -197,6 +203,7 @@ export class AutoDirector {
       phase: this.phase,
       headline,
       settings: this.settings(),
+      hlae: this.e.hlaeCamera.status(),
       observerMode: this.e.session.observerMode,
       checks,
       resumesInMs: this.phase === "paused" && this.resumeAt !== null ? Math.max(0, this.resumeAt - now) : null,
@@ -361,6 +368,14 @@ export class AutoDirector {
     return false;
   }
 
+  /** Who draws the shots: HLAE (every frame) or the console, and how to get HLAE when it isn't. */
+  private hlaeNote(): string {
+    if (this.e.hlaeCamera.connected()) return " HLAE plays every camera shot and move.";
+    if (this.settings().hlaeCamera === false) return "";
+    if (this.e.gameConsole.profile().mode === "hlae") return " HLAE's camera script hasn't connected yet: shots use the console until it does.";
+    return " For the smoothest shots, start CS2 in the Observer tools + HLAE mode: HLAE then plays every camera shot and move.";
+  }
+
   /** Cinematic cameras: confirmed once, by showing a camera and asking the game where the camera is (getpos). */
   private async checkCameras(state: MatchState): Promise<boolean> {
     const s = this.e.session;
@@ -370,7 +385,7 @@ export class AutoDirector {
       return false;
     }
     if (usable(s.capabilities().staticCameraControl.support)) {
-      this.set("cameras", "ok", `${cams.length} cameras and ${this.e.maps.get(state.mapName ?? "")?.pathsFor().length ?? 0} camera paths on ${state.mapName}.`);
+      this.set("cameras", "ok", `${cams.length} cameras and ${this.e.maps.get(state.mapName ?? "")?.pathsFor().length ?? 0} camera paths on ${state.mapName}.${this.hlaeNote()}`);
       return true;
     }
     if (this.e.observerSettings().kind === "keyboard" && !this.e.simulationRunning) {
@@ -400,7 +415,7 @@ export class AutoDirector {
       this.testing = false;
     }
     if (this.camWorks) {
-      this.set("cameras", "ok", `Works on this CS2 build. ${cams.length} cameras on ${state.mapName}.`);
+      this.set("cameras", "ok", `Works on this CS2 build. ${cams.length} cameras on ${state.mapName}.${this.hlaeNote()}`);
       return true;
     }
     this.set("cameras", "warn", "CS2 didn't report the camera's position (getpos), so cinematic cameras stay off and the Auto Director follows players. Check that CS2 runs with -tools (Start CS2, Tools mode), then press Start again.");

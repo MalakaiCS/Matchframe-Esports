@@ -762,3 +762,33 @@ The engine end-to-end tests that check both team shots now run with variety off.
   - If CS2 answers "Unknown command: mirv_…", paths go back to streamed positions for the session.
 
 **Not checked.** HLAE documents `mirv_campath` for demo playback; whether `edit start` follows the live client's time while spectating is unknown.
+
+## ADR-046 — Every free-camera and moving shot through HLAE (replaces ADR-045's campath option)
+
+**Context.** The owner: Lexogrine HUD Manager uses HLAE for all its cinematic shots; use HLAE for every free-camera and moving shot, since it is more stable and better. The console method has to:
+- get CS2's spectator mode numbers right (ADR-039, ADR-040);
+- resend positions and check them with `getpos`;
+- send up to 128 `spec_goto` lines a second for a move, at the mercy of console timing.
+
+ADR-045's `mirv_campath` option only covered paths and relied on `edit start` following live time, which HLAE doesn't document.
+
+**Decision.**
+- **The script:** HLAE for CS2 runs JavaScript (mirv-script, from HLAE 2.162). Matchframe writes a small script, `observer-agent/src/hlae-camera.ts` → `<data>/hlae/matchframe-camera.js`, and loads it with `mirv_script_load` whenever the console connects in the HLAE launch mode.
+- **The connection:** the script connects to the engine (`/hlae` on the API port, this computer only, with a token) through `mirv.connect_async`, and reconnects every second.
+- **Playing shots:** while it is connected, the console adapter sends every shot to it as timed poses, 33 ms apart, sampled from the same motions and paths: static cameras with their pan, team-shot glides, winner, half-time and map-end shots, camera paths, streamed moves. HLAE returns the view from `cViewRenderSetupView` every frame, interpolating, and holds the last pose. It confirms the shot when it draws the first frame.
+- **CS2's own camera:** the free-camera command still goes once to the first pose, unchecked, so the game data and the sound follow the shot.
+- **Release:** a player selection, the next shot or a cancel releases the view. A dropped connection releases it in the script.
+- **Fallback:** no script, or no answer within a second, means the console method (ADR-040) is used.
+- **Setting:** Auto Director → **Camera shots through HLAE**, on by default (`hlaeCamera`). The `mirv_campath` path file and the experimental `hlaePaths` option are gone.
+
+**Checked.**
+- The script runs in Node against a stand-in `mirv`, connected over a real WebSocket to the engine's `/hlae`. Tested:
+  - a shot drawn from its keys, the yaw turning the short way, the last pose held;
+  - live easing and release;
+  - stopping the moment the program goes away;
+  - a wrong token refused;
+  - loading again replaces the running copy.
+- Adapter tests: cameras, glides, paths and live moves go to HLAE with one console line and no `getpos`; a player selection releases; no HLAE or no answer falls back to the console.
+- The console service sends `mirv_script_load` after the options on connect in the HLAE mode only.
+
+**Not checked.** A real CS2 with HLAE: the script API is HLAE's documented one, but it has not run in the game here. Older HLAE builds without `mirv.events` use the `mirv.on…` hooks the API still maps.

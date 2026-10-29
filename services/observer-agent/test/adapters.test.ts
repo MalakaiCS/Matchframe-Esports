@@ -1,11 +1,8 @@
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
-import { createServer, type Socket } from "node:net";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { createServer } from "node:net";
 import { describe, expect, it } from "vitest";
 import type { CameraPath, CommandContext } from "@matchframe/contracts";
 import { aimAt, glideMotion, panMotion, teamCamera } from "@matchframe/director-policy";
-import { accountIdOf, campathXml, KeyboardObserverAdapter, NetconObserverAdapter, safeName, samplePath, slotKey } from "../src/index.ts";
+import { accountIdOf, hlaeKeys, KeyboardObserverAdapter, NetconObserverAdapter, safeName, samplePath, slotKey, type HlaeCameraLink, type HlaeKey } from "../src/index.ts";
 
 const ctx = (over: Partial<CommandContext> = {}): CommandContext => ({
   commandId: "c1",
@@ -751,70 +748,99 @@ describe("streamed camera (follow cam)", () => {
   });
 });
 
-describe("camera paths through HLAE (mirv_campath)", () => {
-  const p = {
-    id: "mid push",
-    displayName: "mid push",
-    mapName: "m",
-    mapRevision: "r",
-    keyframes: [
-      { tMs: 0, position: { x: 0, y: 0, z: 200 }, pitch: 20, yaw: 0 },
-      { tMs: 400, position: { x: 300, y: 0, z: 200 }, pitch: 20, yaw: 30 },
-    ],
-    maxDurationMs: 2000,
-    maxSpeedUnitsPerSec: 300,
-    collisionValidated: false,
-    validation: "unvalidated",
-    targetRegionIds: [],
-  } satisfies CameraPath;
+describe("the HLAE camera (every free-camera and moving shot drawn by HLAE)", () => {
+  function fakeLink(opts: { connected?: boolean; answers?: boolean } = {}) {
+    const calls: { kind: string; keys?: HlaeKey[]; pose?: unknown }[] = [];
+    const link: HlaeCameraLink = {
+      connected: () => opts.connected !== false,
+      play: async (keys) => {
+        calls.push({ kind: "play", keys });
+        return opts.answers === false ? null : { view: { x: keys[0]!.x, y: keys[0]!.y, z: keys[0]!.z, rX: keys[0]!.pitch, rY: keys[0]!.yaw, rZ: 0, fov: 90 } };
+      },
+      live: (pose) => calls.push({ kind: "live", pose }),
+      release: () => calls.push({ kind: "release" }),
+    };
+    return { link, calls };
+  }
+  const modes = { modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" };
 
-  it("writes the path as an HLAE campath (seconds from 0; rx roll, ry pitch, rz yaw), linear below four keyframes", () => {
-    const xml = campathXml(p);
-    expect(xml).toContain('<campath positionInterp="linear" rotationInterp="sLinear" fovInterp="linear" hold="1">');
-    expect(xml).toContain('<p t="0" x="0" y="0" z="200" fov="90" rx="0" ry="20" rz="0"/>');
-    expect(xml).toContain('<p t="0.4" x="300" y="0" z="200" fov="90" rx="0" ry="20" rz="30"/>');
-    const four = { ...p, keyframes: [0, 1, 2, 3].map((i) => ({ tMs: i * 500, position: { x: i, y: 0, z: 0 }, pitch: 0, yaw: 0 })) };
-    expect(campathXml(four)).toContain('positionInterp="cubic" rotationInterp="sCubic"');
+  it("samples a move into keys a frame or two apart, the yaw turning the short way", () => {
+    const keys = hlaeKeys((t) => ({ position: { x: t, y: 0, z: 0 }, pitch: 0, yaw: t < 50 ? 170 : -170 }), 100);
+    expect(keys.map((k) => k.t)).toEqual([0, 33, 66, 99, 100]);
+    expect(keys.map((k) => k.yaw)).toEqual([170, 170, 190, 190, 190]);
+    expect(hlaeKeys(() => ({ position: { x: 1, y: 2, z: 3 }, pitch: 4, yaw: 5 }), 0)).toEqual([{ t: 0, x: 1, y: 2, z: 3, pitch: 4, yaw: 5 }]);
   });
 
-  it("starts the path in HLAE, switches it off at the end and leaves the camera at the last pose", async () => {
+  it("has HLAE show a camera (confirmed when HLAE draws it), with CS2's own free camera placed there too", async () => {
     const c = await numberedCs2(4, 2);
-    const dir = mkdtempSync(join(tmpdir(), "mf-campath-"));
-    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), templates: { modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" }, hlaePaths: () => ({ dir }) });
-    const r = await a.playCameraPath(p, ctx());
-    expect(r.detail).toMatch(/HLAE/);
-    const file = join(dir, "mid_push.xml");
-    expect(existsSync(file)).toBe(true);
-    expect(readFileSync(file, "utf8")).toContain("<campath");
-    expect(c.lines).toContain(`mirv_campath load "${file.replace(/\\/g, "/")}"; mirv_campath edit start; mirv_campath enabled 1`);
-    // HLAE moves the camera: Matchframe sends no poses meanwhile.
+    const { link, calls } = fakeLink();
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova", templates: modes, hlae: link });
+    const r = await a.activateStaticCamera(camera(), ctx());
+    expect(r).toMatchObject({ status: "confirmed", detail: "HLAE shows camera cam-a" });
+    expect(calls[0]).toMatchObject({ kind: "play", keys: [{ t: 0, x: 1200.5, y: -340, z: 256, pitch: 18, yaw: -135 }] });
+    await sleep(50);
+    expect(c.lines).toEqual(["spec_mode 4; spec_goto 1200.5 -340 256 18 -135"]); // no resends, no getpos
+    // A moving shot is sent whole: HLAE moves it every frame.
+    const glide = { durationMs: 1000, pose: (t: number) => ({ position: { x: t, y: 0, z: 100 }, pitch: 10, yaw: 0 }) };
+    await a.activateStaticCamera(camera({ id: "cam-b" }), ctx(), glide);
+    const keys = calls.filter((x) => x.kind === "play").at(-1)!.keys!;
+    expect(keys.length).toBeGreaterThan(25);
+    expect(keys.at(-1)).toMatchObject({ t: 1000, x: 1000 });
     expect(c.lines.filter((l) => /^spec_goto /.test(l))).toEqual([]);
-    await sleep(500);
-    expect(c.lines.at(-1)).toBe("mirv_campath enabled 0; spec_goto 300 0 200 20 30");
+    // The next player selection stops HLAE drawing and leaves the free camera.
+    await a.selectPlayer("76561198000000002", 2, ctx());
+    expect(calls.filter((x) => x.kind === "release").length).toBeGreaterThanOrEqual(2);
+    await sleep(50);
+    expect(c.lines.at(-1)).toBe('spec_mode 2; spec_player "nova"');
     await a.dispose();
     c.server.close();
   });
 
-  it("goes back to sending the poses itself when CS2 has no HLAE", async () => {
+  it("plays camera paths and live moves through HLAE", async () => {
     const c = await numberedCs2(4, 2);
-    const answer = c.server.listeners("connection")[0] as (s: Socket) => void;
-    c.server.removeAllListeners("connection");
-    c.server.on("connection", (sock) => {
-      sock.on("data", (d) => {
-        if (d.toString().includes("mirv_campath load")) sock.write("Unknown command: mirv_campath\n");
-      });
-      answer(sock);
-    });
-    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), templates: { modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" }, hlaePaths: () => ({ dir: mkdtempSync(join(tmpdir(), "mf-campath-")) }) });
-    const r = await a.playCameraPath(p, ctx());
-    expect(r.detail ?? "").not.toMatch(/HLAE/);
-    await sleep(200);
-    expect(c.lines.filter((l) => /^spec_goto /.test(l)).length).toBeGreaterThan(5);
-    // Not tried again this session.
-    const n = c.lines.filter((l) => l.startsWith("mirv_campath load")).length;
-    await a.playCameraPath(p, ctx());
-    expect(c.lines.filter((l) => l.startsWith("mirv_campath load")).length).toBe(n);
+    const { link, calls } = fakeLink();
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), templates: modes, hlae: link });
+    const p = {
+      id: "mid",
+      displayName: "mid",
+      mapName: "m",
+      mapRevision: "r",
+      keyframes: [
+        { tMs: 0, position: { x: 0, y: 0, z: 200 }, pitch: 20, yaw: 0 },
+        { tMs: 600, position: { x: 300, y: 0, z: 200 }, pitch: 20, yaw: 30 },
+      ],
+      maxDurationMs: 2000,
+      maxSpeedUnitsPerSec: 600,
+      collisionValidated: false,
+      validation: "unvalidated",
+      targetRegionIds: [],
+    } satisfies CameraPath;
+    expect((await a.playCameraPath(p, ctx())).detail).toBe("HLAE shows path mid");
+    const keys = calls.at(-1)!.keys!;
+    expect(keys[0]).toMatchObject({ t: 0, x: 0 });
+    expect(keys.at(-1)).toMatchObject({ t: 600, x: 300, yaw: 30 });
+    const r = await a.streamCamera!((t) => (t < 300 ? { position: { x: t, y: 0, z: 100 }, pitch: 0, yaw: 0 } : null), 1000, ctx());
+    expect(r.detail).toBe("HLAE shows a moving shot");
+    await sleep(400);
+    expect(calls.filter((x) => x.kind === "live").length).toBeGreaterThan(3);
+    expect(c.lines.filter((l) => /^spec_goto /.test(l))).toEqual([]);
     await a.dispose();
     c.server.close();
+  });
+
+  it("moves the camera over the console when HLAE isn't connected or doesn't answer", async () => {
+    for (const opts of [{ connected: false }, { answers: false }]) {
+      const c = await numberedCs2(4, 2);
+      const { link, calls } = fakeLink(opts);
+      const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), templates: modes, hlae: link });
+      const r = await a.activateStaticCamera(camera(), ctx());
+      expect(r.status).toBe("confirmed");
+      expect(r.detail).toMatch(/getpos/);
+      expect(c.lines).toContain("getpos");
+      if (opts.answers === false) expect(calls.map((x) => x.kind)).toEqual(["play", "release"]);
+      else expect(calls).toEqual([]);
+      await a.dispose();
+      c.server.close();
+    }
   });
 });

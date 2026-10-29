@@ -217,6 +217,7 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
         capabilities: e.session.capabilities(),
         // The console commands in use (spec_mode numbering, camera command) as saved or learned.
         observerAdapter: e.observerSettings(),
+        hlaeCamera: e.hlaeCamera.status(),
         telemetrySummary: e.session.samplerSummary(),
         metrics: e.session.metrics(),
         state: s ? { mapName: s.mapName, round: s.roundNumber, epoch: s.epoch, sequence: s.sequence, sources: s.sources, simulated: s.simulated } : null,

@@ -144,12 +144,21 @@ export function AutoDirectorCard({ compact = false }: { compact?: boolean }) {
               </select>
             </label>
             <Checkbox
-              checked={set.hlaePaths === true}
+              checked={set.hlaeCamera !== false}
               disabled={!!reason || busy}
-              label="Camera paths through HLAE (experimental)"
-              hint="In the Observer tools + HLAE launch mode, camera paths are played by HLAE (mirv_campath), which moves the camera every frame. Not yet tried live: if a path doesn't start, Matchframe moves the camera itself as before."
-              onChange={(v) => void save({ hlaePaths: v })}
+              label="Camera shots through HLAE"
+              hint="With CS2 started in the Observer tools + HLAE mode, HLAE plays every camera shot and move: it sets the view every frame, so turns, glides and paths are smooth and don't depend on console timing (how Lexogrine HUD Manager runs its cinematics). Without HLAE, Matchframe moves the camera over the console."
+              onChange={(v) => void save({ hlaeCamera: v })}
             />
+            <p className="small muted">
+              {st?.hlae?.connected
+                ? `HLAE camera connected: ${st.hlae.shots} shot${st.hlae.shots === 1 ? "" : "s"} played by HLAE so far.`
+                : st?.hlae?.enabled
+                  ? "HLAE camera: waiting for HLAE's script in CS2 (it loads when the console connects)."
+                  : set.hlaeCamera !== false
+                    ? "HLAE camera: start CS2 in the Observer tools + HLAE mode to use it."
+                    : "HLAE camera off: shots are moved over the console."}
+            </p>
           </>
         )}
         {compact ? null : (

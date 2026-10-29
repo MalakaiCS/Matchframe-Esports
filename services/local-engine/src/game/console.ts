@@ -224,6 +224,8 @@ export class GameConsoleService {
       teams: Pick<DocumentRepo<typeof Team>, "get">;
       logger: Pick<Logger, "info" | "warn">;
       connect?: (host: string, port: number) => NetconConnection;
+      /** Lines sent each time the console connects, after the options (the HLAE camera script in the HLAE mode). */
+      connectLines?: (profile: GameLaunchProfile) => string[];
     },
   ) {}
 
@@ -287,7 +289,10 @@ export class GameConsoleService {
       const conn = this.deps.connect ? this.deps.connect("127.0.0.1", wanted) : new NetconConnection({ host: "127.0.0.1", port: wanted, retryMs: 2000, maxRetryMs: 10_000 });
       conn.onConnect(() => {
         this.deps.logger.info("CS2 console connected", { port: wanted });
-        void this.apply();
+        void this.apply().then(() => {
+          const extra = this.deps.connectLines?.(this.profile()) ?? [];
+          return extra.length ? this.apply(extra) : undefined;
+        });
       });
       this.conn = conn;
       conn.start();

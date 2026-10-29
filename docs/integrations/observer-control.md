@@ -75,15 +75,19 @@ Since the CS2 update of 2026-10-15, demo playback ignores `spec_goto`'s position
 
 The console channel is a documented Valve launch option, not memory reading or injection. Because the console accepts arbitrary commands, Matchframe only connects to loopback and fills templates with validated values. Do not expose the netcon port on a network. If a workshop/observer-only server setup is needed for cameras, the server operator must configure it deliberately; Matchframe never changes competitive server settings.
 
-### Camera paths through HLAE (experimental)
+### The HLAE camera (every free-camera and moving shot)
 
-With **Camera paths through HLAE** on (Auto Director card) and CS2 started in the **Observer tools + HLAE** mode, a camera path is played by HLAE:
-- The path is written to `<data>/campaths/<id>.xml` as an advancedfx campath: `t` in seconds from 0, `rx` roll / `ry` pitch / `rz` yaw, cubic from four keyframes, `hold`.
-- The free camera goes to the first pose.
-- Then `mirv_campath load "<file>"; mirv_campath edit start; mirv_campath enabled 1`.
-- At the end, `mirv_campath enabled 0` and the last pose; on a cut, `mirv_campath enabled 0`.
+When CS2 runs in the **Observer tools + HLAE** launch mode, HLAE plays every camera shot, as Lexogrine HUD Manager does for its cinematics. That covers map cameras and their slow turns, team-shot glides, winner and half-time shots, camera paths and streamed moves.
 
-If CS2 answers `Unknown command: mirv_…`, paths go back to streamed poses for the rest of the session. HLAE documents `mirv_campath` for demo playback; live spectating is not verified.
+- **Loading:** each time the console connects, the program writes `<data>/hlae/matchframe-camera.js` and sends `mirv_script_load "<file>"`. Loading it again replaces the running copy.
+- **Connection:** the script (HLAE mirv-script, HLAE 2.162 or newer) connects to `ws://127.0.0.1:<API port>/hlae?token=…`, retrying every second. The engine accepts only this computer and the token written in the script.
+- **Playing a shot:** a shot goes to HLAE as timed poses, 33 ms apart, from the same paths and moves as before. HLAE sets the rendered view on every frame (`mirv.events.cViewRenderSetupView`), interpolating between them. Streamed moves ease towards each new pose. The last pose is held until the next command.
+- **CS2's own camera:** the program still sends `{free camera}; spec_goto <first pose>` once, unchecked. The game data then shows the free camera, and the sound comes from the shot.
+- **Confirmation:** a shot counts as confirmed when HLAE draws its first frame. The console's `getpos` checks and resends aren't used.
+- **Release:** a player selection, the next shot or a cancel tells HLAE to stop drawing, and CS2's own view (the spectated player) is shown. If the program goes away, the script stops drawing at once.
+- **Fallback:** when the script isn't connected, or doesn't answer within a second, shots go over the console as before.
+
+**Auto Director → Camera shots through HLAE** (on by default) switches it off. The card and the support file (`hlaeCamera`) show whether HLAE is connected and how many shots it played.
 
 ### Saving the CS2 view as a camera
 

@@ -1,9 +1,8 @@
 import type { CameraMode, CameraPath, CameraRecord, CommandContext, CommandResult, ObservedCameraState, Vec3 } from "@matchframe/contracts";
 import type { CameraMotion, ControlCapabilities, ObserverControlAdapter, PlayerView, PoseStream } from "@matchframe/director-policy";
 import { failedResult, transportResult } from "@matchframe/director-policy";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { accountIdOf, cap } from "./common.ts";
+import { HLAE_KEY_STEP_MS, hlaeKeys, type HlaeCameraLink, type HlaeKey } from "./hlae-camera.ts";
 import { NetconConnection } from "./netcon-connection.ts";
 
 /**
@@ -51,26 +50,6 @@ export const CS2_ENUM_MODES = { modeInEye: "spec_mode 2", modeChase: "spec_mode 
 /** CS:GO's numbering (the built-in default). */
 const CSGO_MODES = { modeInEye: "spec_mode 4", modeChase: "spec_mode 5", modeRoaming: "spec_mode 6" } as const;
 const STANDARD_MODES = new Set<string>([...Object.values(CSGO_MODES), ...Object.values(CS2_ENUM_MODES)]);
-/**
- * A camera path as an HLAE campath file (advancedfx CamPath XML): `t` in seconds from 0, Quake
- * angles (rx roll, ry pitch, rz yaw); cubic with four keyframes or more, linear below that; `hold`
- * keeps the last view until the path is switched off.
- */
-export function campathXml(path: CameraPath): string {
-  const cubic = path.keyframes.length >= 4;
-  const n = (v: number) => (Math.round(v * 1000) / 1000).toString();
-  const points = path.keyframes.map((k) => `    <p t="${n(k.tMs / 1000)}" x="${n(k.position.x)}" y="${n(k.position.y)}" z="${n(k.position.z)}" fov="90" rx="0" ry="${n(k.pitch)}" rz="${n(k.yaw)}"/>`);
-  return [
-    '<?xml version="1.0" encoding="utf-8"?>',
-    `<campath positionInterp="${cubic ? "cubic" : "linear"}" rotationInterp="${cubic ? "sCubic" : "sLinear"}" fovInterp="linear" hold="1">`,
-    "  <points>",
-    ...points,
-    "  </points>",
-    "</campath>",
-    "",
-  ].join("\n");
-}
-
 /** Moving the free camera with setpos/setang (what getpos prints), for a build where spec_goto doesn't move it. */
 const SETPOS_WAY = { staticCamera: "{roaming}; setpos {x} {y} {z}; setang {pitch} {yaw} 0", pathFrame: "setpos {x} {y} {z}; setang {pitch} {yaw} 0" } as const;
 /** CS2 console answers worth keeping in the director log: the ones that say a command didn't work. */
@@ -150,11 +129,11 @@ export interface NetconOptions {
   /** CS2's console answers that say a command didn't work ("Unknown command", a cheat-protected command…). */
   onConsoleReply?: (line: string) => void;
   /**
-   * Camera paths played by HLAE (`mirv_campath`, the game moves the camera every frame) instead of
-   * streamed positions: the folder for the path files, or null while off (it needs the HLAE launch
-   * mode). A CS2 without HLAE answers "Unknown command" and paths go back to streaming.
+   * The HLAE camera (see hlae-camera.ts): while its script is connected, every free-camera and
+   * moving shot is played by HLAE, which sets the view every frame; the console commands below are
+   * the fallback.
    */
-  hlaePaths?: () => { dir: string } | null;
+  hlae?: HlaeCameraLink;
   /** Camera path frames per second. */
   pathHz?: number;
   /** How long to wait for a getpos answer. */
@@ -210,9 +189,8 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   private readonly offLine: () => void;
   private readonly templates: NetconTemplates;
   private lastPose: ObservedCameraState["pose"] = null;
-  /** HLAE's campath on air, and CS2 answering that it has no mirv_campath (HLAE not loaded). */
-  private hlaePlaying = false;
-  private hlaeRefused = false;
+  /** A shot HLAE is drawing (released when the next command or a cut stops it). */
+  private hlaeActive = false;
   private lastPoseAt: number | null = null;
   private poseSeq = 0;
   /** The camera is in the free camera (after a static camera or path, or as the game data shows). */
@@ -290,7 +268,6 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
 
   private onLine(line: string): void {
     this.opts.onLine?.(line);
-    if (/unknown command:?\s*"?mirv_/i.test(line)) this.hlaeRefused = true;
     if (FAILED_REPLY.test(line) && !/^\s*setpos/.test(line)) {
       // At most 20 a minute in the director log.
       const now = this.opts.now();
@@ -534,9 +511,9 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
 
   private stopPath(): void {
     this.pathToken++;
-    if (this.hlaePlaying) {
-      this.hlaePlaying = false;
-      void this.conn.write("mirv_campath enabled 0").catch(() => {});
+    if (this.hlaeActive) {
+      this.hlaeActive = false;
+      this.opts.hlae?.release();
     }
     if (this.pathTimer) {
       clearTimeout(this.pathTimer as ReturnType<typeof setTimeout>);
@@ -673,6 +650,8 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     } catch (e) {
       return failedResult(ctx, "target_invalid", e instanceof Error ? e.message : String(e));
     }
+    const viaHlae = await this.hlaeShot(ctx, cmd, motion && motion.durationMs > 0 ? hlaeKeys(motion.pose, motion.durationMs) : hlaeKeys(() => pose, 0), `camera ${camera.id}`);
+    if (viaHlae) return viaHlae;
     this.stopPath();
     const token = this.pathToken;
     let first: CommandResult | null = null;
@@ -714,11 +693,6 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
 
   /** Streams the path as spec_goto frames; getpos at the end confirms where it finished. */
   async playCameraPath(path: CameraPath, ctx: CommandContext): Promise<CommandResult> {
-    const hlae = this.hlaeRefused ? null : (this.opts.hlaePaths?.() ?? null);
-    if (hlae) {
-      const res = await this.playHlaePath(path, ctx, hlae.dir);
-      if (res) return res;
-    }
     const first = samplePath(path, 0);
     let cmd: string;
     try {
@@ -726,6 +700,9 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     } catch (e) {
       return failedResult(ctx, "target_invalid", e instanceof Error ? e.message : String(e));
     }
+    const pathMs = path.keyframes[path.keyframes.length - 1]!.tMs;
+    const viaHlae = await this.hlaeShot(ctx, cmd, hlaeKeys((t) => samplePath(path, t), pathMs), `path ${path.id}`);
+    if (viaHlae) return viaHlae;
     this.stopPath();
     const r = await this.send(ctx, cmd);
     if (r.status === "failed") return r;
@@ -752,49 +729,28 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   }
 
   /**
-   * A path through HLAE: the free camera at its first pose, the path written as an HLAE campath file
-   * (absolute times from 0, Quake angles: rx roll, ry pitch, rz yaw), loaded, moved to start now and
-   * switched on; switched off at its end (the camera then stays at the last pose) or when the shot
-   * is cut. Null when HLAE isn't there (CS2 answers "Unknown command"): the caller streams instead.
+   * A shot through the HLAE camera, when its script is connected: CS2's own free camera is put at
+   * the first pose too (the game data then shows the free camera, and the sound is there), unchecked,
+   * and HLAE draws the shot from `keys`, every frame. Confirmed when HLAE draws its first frame; null
+   * when HLAE isn't there or doesn't answer within a second, and the console way is used instead.
    */
-  private async playHlaePath(path: CameraPath, ctx: CommandContext, dir: string): Promise<CommandResult | null> {
-    const first = samplePath(path, 0);
-    let cmd: string;
-    let file: string;
-    try {
-      cmd = this.cameraCommand(first);
-      mkdirSync(dir, { recursive: true });
-      file = join(dir, `${path.id.replace(/[^a-zA-Z0-9_-]/g, "_")}.xml`);
-      writeFileSync(file, campathXml(path));
-    } catch {
-      return null;
-    }
+  private async hlaeShot(ctx: CommandContext, consoleCmd: string, keys: HlaeKey[], what: string): Promise<CommandResult | null> {
+    const link = this.opts.hlae;
+    if (!link?.connected() || keys.length === 0) return null;
     this.stopPath();
-    const r = await this.send(ctx, cmd);
-    if (r.status === "failed") return r;
-    this.wentFree();
-    try {
-      await this.write(`mirv_campath load "${file.replace(/\\/g, "/")}"; mirv_campath edit start; mirv_campath enabled 1`);
-    } catch {
+    const token = this.pathToken;
+    // HLAE draws the shot either way; the console only places CS2's own camera.
+    if ((await this.send(ctx, consoleCmd)).status !== "failed") this.wentFree();
+    const shown = await link.play(keys, { timeoutMs: 1000 });
+    if (!shown || token !== this.pathToken) {
+      if (!shown) link.release();
       return null;
     }
-    await new Promise((res) => setTimeout(res, 150));
-    if (this.hlaeRefused) return null;
-    this.hlaePlaying = true;
-    const token = this.pathToken;
-    const dur = path.keyframes[path.keyframes.length - 1]!.tMs;
-    const last = samplePath(path, dur);
-    this.pathTimer = setTimeout(() => {
-      if (token !== this.pathToken) return;
-      this.pathTimer = null;
-      this.hlaePlaying = false;
-      try {
-        void this.conn.write(`mirv_campath enabled 0; ${this.cameraCommand(last, this.templates.pathFrame)}`).catch(() => {});
-      } catch {
-        void this.conn.write("mirv_campath enabled 0").catch(() => {});
-      }
-    }, dur);
-    return { ...r, detail: `camera path ${path.id} played by HLAE (mirv_campath)` };
+    this.hlaeActive = true;
+    this.cameraLearned = true;
+    this.opts.onEvidence?.("staticCameraControl", "supported", `HLAE showed ${what}`);
+    this.opts.onEvidence?.("cameraPathControl", "supported", "HLAE draws camera moves every frame");
+    return this.confirmed(ctx, `HLAE shows ${what}`);
   }
 
   /**
@@ -810,6 +766,22 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
       cmd = this.cameraCommand(first);
     } catch (e) {
       return failedResult(ctx, "target_invalid", e instanceof Error ? e.message : String(e));
+    }
+    const viaHlae = await this.hlaeShot(ctx, cmd, hlaeKeys(() => first, 0), "a moving shot");
+    if (viaHlae) {
+      // Poses computed live: HLAE eases the view towards each one, every frame.
+      const link = this.opts.hlae!;
+      let sentAt = -Infinity;
+      this.runFrames(this.pathToken, (t) => {
+        const pose = t <= durationMs ? poses(t) : null;
+        if (!pose) return false;
+        if (t - sentAt >= HLAE_KEY_STEP_MS) {
+          sentAt = t;
+          link.live(pose);
+        }
+        return true;
+      }, true);
+      return viaHlae;
     }
     this.stopPath();
     const r = await this.send(ctx, cmd);
