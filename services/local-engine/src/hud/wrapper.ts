@@ -67,7 +67,8 @@ ${o.testDataBadge ? '<div id="mf-test">TEST DATA</div>' : ""}
  * - window.__mfOverlay.setEdit(true|false) shows the edit outline and size label (desktop mode
  *   only); window.__mfOverlay.status() reports the state for automated checks;
  * - times its own frames (the HUD frame shares its main thread) and reports every 5 s how smoothly
- *   it draws where it runs: frames a second, the longest pause, pauses over 100 ms.
+ *   it draws where it runs: frames a second, the longest pause, pauses over 100 ms, and how long its
+ *   tasks wait (an LHM HUD that can't keep up gets fewer game-data updates).
  */
 export const WRAPPER_JS = String.raw`(function () {
   "use strict";
@@ -183,18 +184,33 @@ export const WRAPPER_JS = String.raw`(function () {
     perf.last = t;
     window.requestAnimationFrame(frameTick);
   }
+  // How long this page's tasks wait (the HUD in the frame shares its main thread): a message to
+  // itself every 100 ms. Long waits mean the HUD has more work than the computer gives it time for.
+  var waits = [];
+  var pings = [];
+  var ping = new MessageChannel();
+  ping.port1.onmessage = function () {
+    if (pings.length) waits.push(performance.now() - pings.shift());
+  };
+  setInterval(function () {
+    pings.push(performance.now());
+    ping.port2.postMessage(0);
+  }, 100);
   function reportPerf() {
     var now = performance.now();
     var secs = (now - perf.since) / 1000;
     if (ctl && ctl.readyState === 1 && perf.frames > 0 && secs > 0 && frame && !st.hidden) {
+      waits.sort(function (a, b) { return a - b; });
+      var lag = waits.length ? Math.round(waits[Math.floor(waits.length * 0.9)]) : 0;
       try {
-        ctl.send(JSON.stringify({ type: "perf", fps: Math.round(perf.frames / secs), worstMs: Math.round(perf.worst), pauses: perf.pauses }));
+        ctl.send(JSON.stringify({ type: "perf", fps: Math.round(perf.frames / secs), worstMs: Math.round(perf.worst), pauses: perf.pauses, lagMs: lag }));
       } catch (e) {}
     }
     perf.frames = 0;
     perf.worst = 0;
     perf.pauses = 0;
     perf.since = now;
+    waits = [];
   }
 
   var attempt = 0;

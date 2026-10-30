@@ -11,6 +11,20 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.9.2",
+    title: "LHM HUDs that keep up",
+    summary: "kaiHUD gets fewer game updates while its page can't keep up, and shows Anubis on its minimap.",
+    sections: [
+      {
+        heading: "HUDs",
+        items: [
+          "Each HUD output checks whether its page is keeping up; an LHM HUD that falls behind gets fewer game updates until it has room again.",
+          "LHM HUDs without an Anubis minimap (kaiHUD) get one from Matchframe.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.9.1",
     title: "Smoother LHM HUDs",
     summary: "kaiHUD and other LHM HUDs move smoothly: their minimaps no longer step ten times a second.",

@@ -1005,3 +1005,44 @@ Measured with kaiHUD 1.0.2 in Chromium through Matchframe, with a player running
 
 **Not checked.** On the owner's PC, and in OBS's browser source there. The frame report shows how each output draws.
 
+## ADR-053 — An LHM HUD that can't keep up gets fewer updates; radars for maps without one
+
+**Context.** The owner (0.9.1): "All other huds aren't lagging but my imported hud is lagging real bad. And also Kaihud doesn't have Anubis radar supported."
+
+- **The lag.** Measured with kaiHUD 1.0.2 in Chromium through Matchframe, with realistic game data (full loadouts, two molotovs of 25 flames, three smokes, a flash in the air, the bomb carried, 14 rounds of history):
+
+  | HUD (same game data) | Main thread busy |
+  |---|---|
+  | Matchframe's default HUD | 12 % |
+  | kaiHUD with no updates arriving (its animations alone) | 8 % |
+  | kaiHUD at 20 updates a second | 31 % |
+
+  - Its own script is about 6 % of that; the rest is styling and painting the page again for each update.
+  - With the CPU 4× slower it drew 21 fps (42 with the measuring lighter).
+  - On a computer also running CS2 (and OBS), the built-in HUDs have room and kaiHUD runs out first. 0.9.1's 20 updates a second made that worse.
+- **Anubis.** kaiHUD bundles radars for nine maps (no Anubis) and asks the HUD manager for the rest (`GET /api/radar/maps`, `{ map: { config, file } }`), which Matchframe answered with `{}`. Matchframe has no Anubis drawing either (assets/radars, from Lexogrine, has eight maps).
+
+**Decision.**
+- **Pacing (lhm-runtime.ts `updatePacer`):**
+  - **Measuring:** each output page pings itself every 100 ms and reports the 90th percentile of how long the ping waited (`lagMs`, with its frame report every 5 s). The HUD in its frame shares that main thread.
+  - **Slowing down:** from `BUSY_LAG_MS` (15 ms) the HUD's interval doubles, after a full report at the new pace (20, 10, then 5 a second).
+  - **Speeding up:** under `CALM_LAG_MS` (6 ms) for three reports it halves again; after a slowdown, for twelve reports (a minute), so a page that can't keep up at 20 doesn't swing.
+  - **Calibration:** 0.1 ms at full speed; 11, 18 and 27 ms with the CPU 2, 3 and 4× slower. The wait is used rather than the frame rate, because an OBS canvas at 30 fps would read as a slow page.
+  - **Scope:** the busiest of a HUD's outputs decides. Each page connection has its own feed at its HUD's pace (its registered name, else its only HUD cookie).
+- **Radars from outlines (outline-radar.ts):**
+  - **What's drawn:** for a map with a map pack and no radar drawing (Anubis, Cache), a 1024 × 1024 SVG of the pack's outline cells (where players stood in pro demos, 64 units), dark like kaiHUD's radars, bombsites in red, A and B lettered.
+  - **Calibration:** Matchframe's schematic transform: origin = (−minX, maxY) × 1024/size, pxPerU = ±1024/size.
+  - **Where:** `/api/radar/maps` for older template HUDs, `/api/game-maps/cs2` for newer ones, image at `/api/game-maps/cs2/image/<map>/radar`.
+
+**Alternatives.**
+- **A fixed lower rate for LHM HUDs:** gives up the smooth minimap on computers with room.
+- **Letting the operator choose the rate:** they can't see what the page is doing; the measurement can.
+- **Valve's radar for Anubis from the CS2 install:** compiled textures (`.vtex_c`) in VPKs. Decoding them is a project of its own.
+
+**Checked.**
+- kaiHUD with the CPU 4× slower: 42 fps at 20 updates a second, 47 at 10, about 54 at 5, where it stayed. At full speed it stayed at 20 a second and 60 fps.
+- An end-to-end test: a report of 30 ms halves a HUD's updates (about 20 a second to 10).
+- kaiHUD on Anubis showed the outline radar with every player on the map shape. A test checks that cell centres land on drawn cells through the calibration.
+
+**Not checked.** On the owner's PC.
+

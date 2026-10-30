@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -117,6 +117,9 @@ describe("LHM-format HUD in the library (engine)", () => {
     const cfg = loadConfig({ dataDir: mkdtempSync(join(tmpdir(), "mf-lhm-")), gsiPort: ports.gsi, apiPort: ports.api, overlayPort: ports.overlay, host: "127.0.0.1", captainUiDir: null, hudRendererDir: null, mapPackDir: null, radarDir: join(import.meta.dirname, "..", "..", "..", "assets", "radars"), workersDir: null, pythonPath: null, sampleHudsDirs: [] });
     engine = new Engine(cfg);
     await engine.init();
+    // Anubis has a map pack but no radar drawing.
+    const anubis = join(import.meta.dirname, "..", "..", "..", "assets", "map-packs", "de_anubis.json");
+    engine.maps.registerRaw(JSON.parse(readFileSync(anubis, "utf8")), anubis);
     servers = await startServers(engine);
     const op = engine.secrets.operatorToken;
     api = async (path, init = {}) => {
@@ -219,6 +222,19 @@ describe("LHM-format HUD in the library (engine)", () => {
     const radar = await overlay("/api/game-maps/cs2/image/de_dust2/radar", cookie);
     expect(radar.status).toBe(200);
     expect(radar.headers.get("content-type")).toBe("image/png");
+    // A map with no radar drawing (Anubis): its map pack's outline, for older template HUDs
+    // (kaiHUD adds the maps it lacks from /api/radar/maps) and newer ones.
+    const extra = (await (await overlay("/api/radar/maps", cookie)).json()) as Record<string, { config: { origin: { x: number; y: number }; pxPerUX: number; pxPerUY: number }; file: string }>;
+    expect(Object.keys(extra)).toEqual(["de_anubis"]);
+    expect(extra.de_anubis!.file).toBe("/api/game-maps/cs2/image/de_anubis/radar");
+    expect(extra.de_anubis!.config.pxPerUY).toBeCloseTo(-extra.de_anubis!.config.pxPerUX, 9);
+    const withAnubis = (await (await overlay("/api/game-maps/cs2", cookie)).json()) as { lhmId: string; radars: { lhmId: string; originX: number; pxPerUX: number }[] }[];
+    expect(withAnubis.find((m) => m.lhmId === "de_anubis")!.radars).toMatchObject([{ lhmId: "default", originX: extra.de_anubis!.config.origin.x, pxPerUX: extra.de_anubis!.config.pxPerUX }]);
+    const outline = await overlay(extra.de_anubis!.file, cookie);
+    expect(outline.status).toBe(200);
+    expect(outline.headers.get("content-type")).toBe("image/svg+xml");
+    expect(await outline.text()).toMatch(/^<svg [^>]*width="1024" height="1024"/);
+    expect((await overlay("/api/game-maps/cs2/image/de_nowhere/radar", cookie)).status).toBe(404);
 
     const refused = connect();
     await expect(next(refused, "connect")).rejects.toThrow();
@@ -257,6 +273,48 @@ describe("LHM-format HUD in the library (engine)", () => {
     expect((await api(`/api/v1/hud/library/${entry.id}/action`, { method: "POST", body: { key: "tournament.header_state", value: "header_toggle" } })).status).toBe(200);
     expect(await action).toEqual({ action: "header_state", data: "header_toggle" });
     expect((await api(`/api/v1/hud/library/${entry.id}/action`, { method: "POST", body: { key: "tournament.header_state", value: "nope" } })).status).toBe(400);
+  });
+
+  it("gives a HUD whose page can't keep up fewer game-data updates (20 a second, then 10)", async () => {
+    const cookie = `mf_lhm_${entry.id}=${token}`;
+    const s = connect(cookie);
+    await next(s, "readyToRegister");
+    const registered = next(s, "hud_config");
+    s.emit("register", entry.id, false, "cs2", "DEFAULT");
+    await registered;
+    let got = 0;
+    s.on("update", () => got++);
+    let ts = 1_700_100_000;
+    const roster = syntheticRoster();
+    // CS2 at Matchframe's setting: a packet every 20 ms for about a second (positions change each time).
+    const second = async () => {
+      got = 0;
+      const end = Date.now() + 1000;
+      while (Date.now() < end) {
+        const payload = buildSyntheticGsiPayload({ mapName: "de_dust2", players: roster.map((p, i) => ({ ...p, position: { x: ts % 1000, y: i * 50, z: 0 } })), token: engine.secrets.gsiToken, timestamp: ts++ });
+        await fetch(`http://127.0.0.1:${ports.gsi}/gsi`, { method: "POST", body: JSON.stringify(payload) });
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      await new Promise((r) => setTimeout(r, 150));
+      return got;
+    };
+    const before = await second();
+    expect(before).toBeGreaterThanOrEqual(15);
+    expect(before).toBeLessThanOrEqual(23);
+    // The HUD's output page (OBS) reports its tasks waiting 30 ms.
+    const ctl = new WebSocket(`ws://127.0.0.1:${ports.overlay}/hud-runtime-ws?hud=${encodeURIComponent(entry.id)}&variant=live&mode=obs&t=${token}`);
+    await new Promise((r, j) => {
+      ctl.onopen = r;
+      ctl.onerror = j;
+    });
+    ctl.send(JSON.stringify({ type: "perf", fps: 41, worstMs: 90, pauses: 3, lagMs: 30 }));
+    for (let i = 0; i < 40 && !engine.directorLog.recent.some((l) => l.msg === "lhm hud busy: fewer updates"); i++) await new Promise((r) => setTimeout(r, 25));
+    expect(engine.directorLog.recent.find((l) => l.msg === "lhm hud busy: fewer updates")?.data).toEqual({ hud: entry.id, updatesPerSec: 10, lagMs: 30 });
+    const after = await second();
+    expect(after).toBeGreaterThanOrEqual(8);
+    expect(after).toBeLessThanOrEqual(12);
+    ctl.close();
+    s.disconnect();
   });
 
   it("player cams: the cam scripts go in before the HUD's own, /api/camera lists the players, and on-air cams are offered", async () => {

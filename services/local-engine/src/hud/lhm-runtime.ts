@@ -9,6 +9,7 @@ import { assetDir } from "../routes/domain.ts";
 import { safeResolve } from "../http/static.ts";
 import { libraryOutputId } from "./library.ts";
 import { hudConfig, isPanelAction, parsePanel, type LhmLookup, type LhmPanel } from "./lhm.ts";
+import { outlineRadar, type LhmRadarConfig } from "./outline-radar.ts";
 
 /**
  * LHM compatibility layer: what an LHM-format HUD (Lexogrine template protocol) expects from LHM,
@@ -17,7 +18,7 @@ import { hudConfig, isPanelAction, parsePanel, type LhmLookup, type LhmPanel } f
  * - socket.io at /socket.io: "readyToRegister" → the HUD's "register" → "hud_config" (its panel
  *   settings); "update" with the game data as CS2 sent it (auth token removed): at once when
  *   something a viewer sees switch changes (see lhmUrgentKey), else the latest packet at most twenty
- *   times a second (UPDATE_MS);
+ *   times a second (UPDATE_MS), fewer while the HUD's page can't keep up (updatePacer);
  *   "hud_action" for panel buttons; "match" when the current match changes.
  * - GET /api/... (match, teams and logos, players and avatars, tournament, camera, radar maps) from
  *   Matchframe's own data.
@@ -47,8 +48,21 @@ export const lhmCamOffer = (steamId: string) => ({ offer: { type: "offer", sdp: 
  * - 20 a second: the dot moves evenly; main thread 21 % busy (16 % at 10), and 60 fps still with
  *   the CPU 4× slower;
  * - 30 or 50 a second: no smoother, and with the CPU 4× slower the main thread is full and frames drop.
+ * kaiHUD's page does about 2.6 times the work of Matchframe's own HUD for the same game data (main
+ * thread 31 % against 12 %), nearly all of it redrawing for each update. So an LHM HUD whose page
+ * can't keep up gets fewer (see updatePacer), down to MAX_UPDATE_MS.
  */
 export const UPDATE_MS = 50;
+/** The slowest an LHM HUD whose page can't keep up gets game data (ms): five times a second. */
+export const MAX_UPDATE_MS = 200;
+/**
+ * How long the HUD page's tasks wait (90th percentile over 5 s, ms; the output page pings itself
+ * every 100 ms): from BUSY_LAG_MS the page has more work than time, under CALM_LAG_MS it has room.
+ * Measured with kaiHUD at 20 updates a second: 0.1 ms at full speed; 11, 18 and 27 ms with the CPU
+ * 2, 3 and 4 times slower (55, 55 and 42 fps).
+ */
+export const BUSY_LAG_MS = 15;
+export const CALM_LAG_MS = 6;
 
 /**
  * What must reach an LHM HUD at once: the spectated player, round and countdown phase, bomb state,
@@ -59,7 +73,8 @@ export const UPDATE_MS = 50;
  * Passes game data on: urgent packets at once, others as the latest one at most every `everyMs`
  * (a packet in between replaces the waiting one).
  */
-export function updateCoalescer(emit: (payload: Record<string, unknown>) => void, everyMs = UPDATE_MS, now: () => number = Date.now): { push: (payload: Record<string, unknown>) => void; dispose: () => void } {
+export function updateCoalescer(emit: (payload: Record<string, unknown>) => void, everyMs: number | (() => number) = UPDATE_MS, now: () => number = Date.now): { push: (payload: Record<string, unknown>) => void; dispose: () => void } {
+  const every = typeof everyMs === "function" ? everyMs : () => everyMs;
   let pending: Record<string, unknown> | null = null;
   let lastSent = -Infinity;
   let lastKey = "";
@@ -78,13 +93,69 @@ export function updateCoalescer(emit: (payload: Record<string, unknown>) => void
       const key = lhmUrgentKey(payload);
       const urgent = key !== lastKey;
       lastKey = key;
-      const wait = everyMs - (now() - lastSent);
+      const wait = every() - (now() - lastSent);
       if (urgent || wait <= 0) flush();
       else timer ??= setTimeout(flush, wait);
     },
     dispose: () => {
       if (timer) clearTimeout(timer);
       timer = null;
+    },
+  };
+}
+
+/** What changed an LHM HUD's update interval (for the director log). */
+export interface PaceChange {
+  hudId: string;
+  everyMs: number;
+  was: number;
+  lagMs: number;
+}
+
+/**
+ * Each LHM HUD's update interval, from how long its output pages' tasks wait. A busy page (any of
+ * the HUD's outputs) doubles it, up to MAX_UPDATE_MS; three calm reports in a row (15 s) halve it,
+ * back to UPDATE_MS. After a HUD was slowed down, it waits a minute of calm before trying faster
+ * again, so a page that can't keep up at 20 a second doesn't swing between the two. A HUD none of
+ * whose outputs reported for 30 s is back at UPDATE_MS.
+ */
+export function updatePacer(now: () => number = Date.now) {
+  const huds = new Map<string, { everyMs: number; calm: number; needCalm: number; changedAt: number; outputs: Map<object, { at: number; lagMs: number }> }>();
+  return {
+    everyMs: (hudId: string | null): number => {
+      const h = hudId ? huds.get(hudId) : undefined;
+      if (!h) return UPDATE_MS;
+      // None of its outputs reported for a while (the busy one closed): back to the normal rate.
+      if (![...h.outputs.values()].some((v) => now() - v.at < 30_000)) huds.delete(hudId!);
+      return huds.get(hudId!)?.everyMs ?? UPDATE_MS;
+    },
+    /** One output page's report; returns the change when the interval changed. */
+    report(hudId: string, output: object, lagMs: number): PaceChange | null {
+      const t = now();
+      let h = huds.get(hudId);
+      if (!h) huds.set(hudId, (h = { everyMs: UPDATE_MS, calm: 0, needCalm: 3, changedAt: -Infinity, outputs: new Map() }));
+      h.outputs.set(output, { at: t, lagMs });
+      for (const [k, v] of h.outputs) if (t - v.at > 12_000) h.outputs.delete(k);
+      const worst = Math.max(...[...h.outputs.values()].map((v) => v.lagMs));
+      const was = h.everyMs;
+      if (worst >= BUSY_LAG_MS) {
+        h.calm = 0;
+        // A full report (5 s) at the new pace before slowing down again.
+        if (h.everyMs < MAX_UPDATE_MS && t - h.changedAt >= 9000) {
+          h.everyMs = Math.min(MAX_UPDATE_MS, h.everyMs * 2);
+          h.needCalm = 12;
+        }
+      } else if (worst < CALM_LAG_MS) {
+        h.calm += 1;
+        if (h.everyMs > UPDATE_MS && h.calm >= h.needCalm) {
+          h.everyMs = Math.max(UPDATE_MS, h.everyMs / 2);
+          h.calm = 0;
+          h.needCalm = 3;
+        }
+      } else h.calm = 0;
+      if (h.everyMs === was) return null;
+      h.changedAt = t;
+      return { hudId, everyMs: h.everyMs, was, lagMs: worst };
     },
   };
 }
@@ -175,6 +246,11 @@ export class LhmRuntime {
   private readonly panels = new Map<string, { dir: string; panel: LhmPanel }>();
   private readonly cleanup: (() => void)[] = [];
   private matchSignature = "";
+  private readonly pacer = updatePacer();
+  /** Radars drawn from map-pack outlines, per map (redrawn when its pack changes). */
+  private readonly outlines = new Map<string, { pack: object; radar: { svg: string; config: LhmRadarConfig } | null }>();
+  /** Each connected HUD page's game data, at its HUD's pace. */
+  private readonly feeds = new Set<{ push: (payload: Record<string, unknown>) => void; dispose: () => void }>();
 
   constructor(private readonly e: Engine) {}
 
@@ -233,6 +309,14 @@ export class LhmRuntime {
     this.io = io;
     io.on("connection", (socket) => {
       const allowed = this.allowedHuds(socket.request);
+      // The HUD this page is (its registered name, else its only cookie) sets its pace.
+      let hud: string | null = allowed.length === 1 ? allowed[0]! : null;
+      const feed = updateCoalescer((payload) => socket.emit("update", payload), () => this.pacer.everyMs(hud));
+      this.feeds.add(feed);
+      socket.on("disconnect", () => {
+        feed.dispose();
+        this.feeds.delete(feed);
+      });
       socket.on("register", (name: unknown) => {
         let id: string;
         try {
@@ -241,6 +325,7 @@ export class LhmRuntime {
           return;
         }
         if (!allowed.includes(id)) return;
+        hud = id;
         void socket.join(`hud:${id}`);
         socket.emit("hud_config", this.config(id));
       });
@@ -267,9 +352,17 @@ export class LhmRuntime {
     const camTimer = setInterval(() => offerCams(true), 3000);
     camTimer.unref?.();
     this.cleanup.push(() => clearInterval(camTimer));
-    const updates = updateCoalescer((payload) => io.emit("update", payload));
-    this.cleanup.push(this.e.onRawGsi((raw) => updates.push(lhmGamePayload(raw, this.e.session.state()))));
-    this.cleanup.push(updates.dispose);
+    this.cleanup.push(
+      this.e.onRawGsi((raw) => {
+        if (!this.feeds.size) return;
+        const payload = lhmGamePayload(raw, this.e.session.state());
+        for (const f of this.feeds) f.push(payload);
+      }),
+    );
+    this.cleanup.push(() => {
+      for (const f of this.feeds) f.dispose();
+      this.feeds.clear();
+    });
     // The template's killfeed only listens to HLAE game events: Matchframe's paired kills, in that form.
     this.cleanup.push(
       this.e.onKill((k) => {
@@ -293,6 +386,24 @@ export class LhmRuntime {
     }, 2000);
     timer.unref?.();
     this.cleanup.push(() => clearInterval(timer));
+  }
+
+  /** An LHM HUD output page's report of how long its tasks wait: paces that HUD's game data. */
+  noteLoad(hudId: string, output: object, lagMs: number): void {
+    const ch = this.pacer.report(hudId, output, lagMs);
+    if (ch) this.e.directorLog.info(ch.everyMs > ch.was ? "lhm hud busy: fewer updates" : "lhm hud has room: more updates", { hud: hudId, updatesPerSec: Math.round(1000 / ch.everyMs), lagMs: ch.lagMs });
+  }
+
+  /** Maps with no radar image (Anubis, Cache): their map pack's outline as a radar. */
+  private outlineRadars(): Map<string, { svg: string; config: LhmRadarConfig }> {
+    const out = new Map<string, { svg: string; config: LhmRadarConfig }>();
+    for (const rt of this.e.maps.list()) {
+      if (this.e.radars.get(rt.mapName) || !/^(de|cs|ar)_/.test(rt.mapName) || rt.mapName === "de_synthetic") continue;
+      let cached = this.outlines.get(rt.mapName);
+      if (!cached || cached.pack !== rt.pack) this.outlines.set(rt.mapName, (cached = { pack: rt.pack, radar: outlineRadar(rt) }));
+      if (cached.radar) out.set(rt.mapName, cached.radar);
+    }
+    return out;
   }
 
   /** For "playersCameraStatus": every listed player, whether their cam is on air. */
@@ -418,30 +529,34 @@ export class LhmRuntime {
       const players = this.e.cams.settings().enabled ? this.e.cams.rosterPlayers() : [];
       json(res, 200, { uuid: LHM_CAM_UUID, availablePlayers: players.map((p) => ({ steamid: p.steamId, label: p.name })) });
     } else if (seg[0] === "radar" && seg[1] === "maps") {
-      // Older template HUDs bundle their radars and only add maps they lack from here.
-      json(res, 200, {});
+      // Older template HUDs (kaiHUD) bundle their radars and only add maps they lack from here: the
+      // maps with no radar drawing, from their map pack's outline.
+      json(res, 200, Object.fromEntries([...this.outlineRadars()].map(([name, r]) => [name, { config: r.config, file: `/api/game-maps/cs2/image/${encodeURIComponent(name)}/radar` }])));
     } else if (seg[0] === "game-maps" && seg[1] === "cs2" && seg.length === 2) {
-      // Newer template HUDs load radars from LHM: Matchframe's built-in radars, in that shape.
-      json(
-        res,
-        200,
-        this.e.radars.maps.map((name) => {
+      // Newer template HUDs load radars from LHM: Matchframe's built-in radars, then the maps with no
+      // radar drawing from their map pack's outline, in that shape.
+      const map = (name: string, radars: { lhmId: string; originX: number; originY: number; pxPerUX: number; pxPerUY: number; visibleUnderHeight: number | null; visibleOverHeight: number | null }[]) => ({
+        _id: name,
+        name,
+        lhmId: name,
+        game: "cs2",
+        inVetoPool: true,
+        isActive: true,
+        radars: radars.map((r, i) => ({ id: i, ...r, radar: "radar" })),
+      });
+      json(res, 200, [
+        ...this.e.radars.maps.map((name) => {
           const r = this.e.radars.get(name)!;
-          return {
-            _id: name,
-            name,
-            lhmId: name,
-            game: "cs2",
-            inVetoPool: true,
-            isActive: true,
-            radars: r.layers.map((l, i) => ({ id: i, lhmId: r.layers.length > 1 ? l.id : "default", originX: l.originX, originY: l.originY, pxPerUX: l.pxPerUX, pxPerUY: l.pxPerUY, radar: "radar", visibleUnderHeight: l.zMin ?? null, visibleOverHeight: l.zMax ?? null })),
-          };
+          return map(name, r.layers.map((l) => ({ lhmId: r.layers.length > 1 ? l.id : "default", originX: l.originX, originY: l.originY, pxPerUX: l.pxPerUX, pxPerUY: l.pxPerUY, visibleUnderHeight: l.zMin ?? null, visibleOverHeight: l.zMax ?? null })));
         }),
-      );
+        ...[...this.outlineRadars()].map(([name, r]) => map(name, [{ lhmId: "default", originX: r.config.origin.x, originY: r.config.origin.y, pxPerUX: r.config.pxPerUX, pxPerUY: r.config.pxPerUY, visibleUnderHeight: null, visibleOverHeight: null }])),
+      ]);
     } else if (seg[0] === "game-maps" && seg[1] === "cs2" && seg[2] === "image" && seg[3] && seg[4] === "radar") {
       const r = this.e.radars.get(seg[3]);
-      if (!r) json(res, 404, { error: "not_found" });
-      else res.writeHead(200, { "content-type": "image/png", "cache-control": "public, max-age=3600" }).end(readFileSync(r.file));
+      const outline = r ? null : this.outlineRadars().get(seg[3]);
+      if (r) res.writeHead(200, { "content-type": "image/png", "cache-control": "public, max-age=3600" }).end(readFileSync(r.file));
+      else if (outline) res.writeHead(200, { "content-type": "image/svg+xml", "cache-control": "no-cache" }).end(outline.svg);
+      else json(res, 404, { error: "not_found" });
     } else {
       json(res, 404, { error: "not_found", message: "not part of Matchframe's LHM compatibility layer" });
     }

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MatchState } from "@matchframe/contracts";
-import { lhmGamePayload, lhmUrgentKey, UPDATE_MS, updateCoalescer } from "../src/hud/lhm-runtime.ts";
+import { BUSY_LAG_MS, lhmGamePayload, lhmUrgentKey, MAX_UPDATE_MS, UPDATE_MS, updateCoalescer, updatePacer } from "../src/hud/lhm-runtime.ts";
 
 /** A game-data packet: `t` changes the clock and positions only; the rest is what viewers see switch. */
 const packet = (t: number, opts: { observed?: string; phase?: string; dead?: number } = {}) => ({
@@ -54,6 +54,80 @@ describe("game data to LHM HUDs", () => {
   it("keys on what viewers see switch, not on the clock or positions", () => {
     expect(lhmUrgentKey(packet(0))).toBe(lhmUrgentKey(packet(500)));
     expect(lhmUrgentKey(packet(0))).not.toBe(lhmUrgentKey(packet(0, { observed: "765C" })));
+  });
+});
+
+describe("pacing an LHM HUD whose page can't keep up", () => {
+  it("halves the updates while the page's tasks wait, down to five a second, and comes back once it has room", () => {
+    let t = 0;
+    const p = updatePacer(() => t);
+    const out = {};
+    const report = (lag: number) => {
+      t += 5000;
+      return p.report("kai", out, lag);
+    };
+    expect(p.everyMs("kai")).toBe(UPDATE_MS);
+    expect(report(2)).toBeNull();
+    expect(report(BUSY_LAG_MS + 10)).toMatchObject({ everyMs: 100, was: 50 });
+    // The next report may still cover the faster pace: no second step until a full one at the new pace.
+    expect(report(30)).toBeNull();
+    expect(report(30)).toMatchObject({ everyMs: MAX_UPDATE_MS });
+    expect(report(30)).toBeNull();
+    expect(p.everyMs("kai")).toBe(200);
+    // After being slowed down: a minute of calm (twelve reports) before each step faster.
+    for (let i = 0; i < 11; i++) expect(report(3)).toBeNull();
+    expect(report(3)).toMatchObject({ everyMs: 100 });
+    for (let i = 0; i < 2; i++) expect(report(3)).toBeNull();
+    expect(report(3)).toMatchObject({ everyMs: 50 });
+    // Slowed again (a full report after the last change), then its outputs stop reporting (closed):
+    // back to the normal rate after 30 s.
+    expect(report(30)).toBeNull();
+    expect(report(30)).toMatchObject({ everyMs: 100 });
+    t += 29_000;
+    expect(p.everyMs("kai")).toBe(100);
+    t += 2000;
+    expect(p.everyMs("kai")).toBe(UPDATE_MS);
+    // Other HUDs and pages without a HUD keep the normal rate.
+    expect(p.everyMs("other")).toBe(UPDATE_MS);
+    expect(p.everyMs(null)).toBe(UPDATE_MS);
+  });
+
+  it("goes by the busiest of the HUD's outputs, forgetting one that stopped reporting", () => {
+    let t = 0;
+    const p = updatePacer(() => t);
+    const obs = {};
+    const desktop = {};
+    t = 5000;
+    p.report("kai", desktop, 1);
+    expect(p.report("kai", obs, 25)).toMatchObject({ everyMs: 100 });
+    // The busy OBS source closes; the desktop page alone is calm.
+    t = 20_000;
+    for (let i = 0; i < 12; i++) {
+      t += 5000;
+      p.report("kai", desktop, 1);
+    }
+    expect(p.everyMs("kai")).toBe(UPDATE_MS);
+  });
+
+  it("feeds a paced HUD at its interval", () => {
+    vi.useFakeTimers();
+    let every = 200;
+    const sent: number[] = [];
+    const c = updateCoalescer((p) => sent.push((p.provider as { timestamp: number }).timestamp), () => every, () => Date.now());
+    for (let t = 0; t < 1000; t += 20) {
+      c.push(packet(t));
+      vi.advanceTimersByTime(20);
+    }
+    expect(sent.length).toBeGreaterThanOrEqual(5);
+    expect(sent.length).toBeLessThanOrEqual(6);
+    every = 50;
+    sent.length = 0;
+    for (let t = 1000; t < 2000; t += 20) {
+      c.push(packet(t));
+      vi.advanceTimersByTime(20);
+    }
+    expect(sent.length).toBeGreaterThanOrEqual(19);
+    c.dispose();
   });
 });
 

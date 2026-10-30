@@ -346,13 +346,17 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   // The output pages report how smoothly they draw where they run (every 5 s); kept for a minute.
   const runtimeHub = new WsHub({
     onMessage: (c, msg) => {
-      const m = msg as { type?: unknown; fps?: unknown; worstMs?: unknown; pauses?: unknown } | null;
+      const m = msg as { type?: unknown; fps?: unknown; worstMs?: unknown; pauses?: unknown; lagMs?: unknown } | null;
       if (m?.type !== "perf" || c.meta.embedded) return;
       const num = (v: unknown, max: number) => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.round(v))) : null);
       const fps = num(m.fps, 1000);
       const worstMs = num(m.worstMs, 60_000);
       const pauses = num(m.pauses, 10_000);
       if (fps === null || worstMs === null || pauses === null) return;
+      // An LHM HUD's game data is paced by how long its pages' tasks wait (output pages before 0.9.2 don't say).
+      const lagMs = num(m.lagMs, 60_000);
+      const hudId = String(c.meta.hudId);
+      if (lagMs !== null && e.hudLibrary.runtimeConfig(hudId)?.runtime === "lhm") lhm.noteLoad(hudId, c, lagMs);
       const now = Date.now();
       const kept = ((c.meta.perf as PerfReport[] | undefined) ?? []).filter((r) => now - r.at < PERF_KEEP_MS);
       kept.push({ at: now, fps, worstMs, pauses });
