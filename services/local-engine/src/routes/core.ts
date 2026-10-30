@@ -222,6 +222,11 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
         metrics: e.session.metrics(),
         // Gaps in CS2's game data and stalls of the engine (a frozen HUD: which side stopped).
         feed: e.feed.summary(),
+        // How smoothly each running HUD draws where it is shown (frames a second, longest pause, last minute).
+        hudOutputs: e.hudLibrary
+          .list()
+          .huds.filter((h) => Object.values(h.outputs).some((n) => n > 0))
+          .map((h) => ({ id: h.id, runtime: h.runtime, outputs: h.outputs, smoothness: h.smoothness })),
         state: s ? { mapName: s.mapName, round: s.roundNumber, epoch: s.epoch, sequence: s.sequence, sources: s.sources, simulated: s.simulated } : null,
         recentDecisions: e.session.decisionLog.slice(-50).map((d) => ({ at: d.decidedAtMonotonicMs, action: d.action, desired: d.desiredShot, reasons: d.reasonCodes, mode: d.mode, health: d.controlHealth })),
         arbiter: e.session.arbiter.log.slice(-100),

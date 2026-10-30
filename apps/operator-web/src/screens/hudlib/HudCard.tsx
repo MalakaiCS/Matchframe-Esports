@@ -5,7 +5,7 @@ import type { OverlayState } from "../../api/desktop.ts";
 import { Icon } from "../../components/icons.tsx";
 import { Badge, Button } from "../../components/ui.tsx";
 import type { HudDisplayStatus } from "../../lib/hudLibrary.ts";
-import { KIND_LABEL, OUTPUT_LABEL, OUTPUT_MODES, STATUS_INFO, resolutionLabel, STUTTER_MS } from "../../lib/hudLibrary.ts";
+import { KIND_LABEL, OUTPUT_LABEL, OUTPUT_MODES, STATUS_INFO, resolutionLabel, stutters } from "../../lib/hudLibrary.ts";
 
 /** Actions on one HUD, shared by the card, the list row and the details panel. */
 export interface HudActions {
@@ -112,16 +112,15 @@ export function StatusBadge({ status, detail }: { status: HudDisplayStatus; deta
   );
 }
 
-/** Desktop / OBS / Preview indicators with the number of connected outputs of each kind, amber when one stutters. */
+/** Desktop / OBS / Preview indicators with the number of connected outputs of each kind, amber when one stutters or draws too few frames. */
 export function OutputIndicators({ outputs, smoothness = {} }: { outputs: Record<HudOutputMode, number>; smoothness?: Partial<Record<HudOutputMode, HudOutputSmoothness>> }) {
   return (
     <span className="hud-outputs" aria-label="Active outputs">
       {OUTPUT_MODES.map((m) => {
         const s = outputs[m] ? smoothness[m] : undefined;
-        const stutters = !!s && s.worstPauseMs >= STUTTER_MS;
         const timing = s ? ` · ${s.fps} fps, longest pause ${s.worstPauseMs} ms in the last minute` : "";
         return (
-          <span key={m} className={`hud-output ${outputs[m] ? "is-on" : ""} ${stutters ? "is-stutter" : ""}`} title={`${OUTPUT_LABEL[m]}: ${outputs[m] ? `${outputs[m]} connected${timing}` : "not connected"}`} data-output={m}>
+          <span key={m} className={`hud-output ${outputs[m] ? "is-on" : ""} ${stutters(s) ? "is-stutter" : ""}`} title={`${OUTPUT_LABEL[m]}: ${outputs[m] ? `${outputs[m]} connected${timing}` : "not connected"}`} data-output={m}>
             <span className="hud-output-dot" aria-hidden />
             {OUTPUT_LABEL[m]}
             {outputs[m] > 1 ? <span className="num"> {outputs[m]}</span> : null}

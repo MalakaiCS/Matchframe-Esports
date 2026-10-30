@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MatchState } from "@matchframe/contracts";
-import { lhmGamePayload, lhmUrgentKey, updateCoalescer } from "../src/hud/lhm-runtime.ts";
+import { lhmGamePayload, lhmUrgentKey, UPDATE_MS, updateCoalescer } from "../src/hud/lhm-runtime.ts";
 
 /** A game-data packet: `t` changes the clock and positions only; the rest is what viewers see switch. */
 const packet = (t: number, opts: { observed?: string; phase?: string; dead?: number } = {}) => ({
@@ -15,17 +15,20 @@ const packet = (t: number, opts: { observed?: string; phase?: string; dead?: num
 describe("game data to LHM HUDs", () => {
   afterEach(() => vi.useRealTimers());
 
-  it("sends 50 packets a second as about 10, always the latest", () => {
+  it("sends 50 packets a second as about 20, always the latest", () => {
     vi.useFakeTimers();
     const sent: number[] = [];
-    const c = updateCoalescer((p) => sent.push((p.provider as { timestamp: number }).timestamp), 100, () => Date.now());
+    expect(UPDATE_MS).toBe(50);
+    const c = updateCoalescer((p) => sent.push((p.provider as { timestamp: number }).timestamp), undefined, () => Date.now());
     for (let t = 0; t < 1000; t += 20) {
       c.push(packet(t));
       vi.advanceTimersByTime(20);
     }
     vi.advanceTimersByTime(200);
-    expect(sent.length).toBeGreaterThanOrEqual(10);
-    expect(sent.length).toBeLessThanOrEqual(12);
+    expect(sent.length).toBeGreaterThanOrEqual(20);
+    expect(sent.length).toBeLessThanOrEqual(22);
+    // Evenly: never more than 50 ms between two (the minimap dots glide instead of surging).
+    expect(Math.max(...sent.slice(1).map((t, i) => t - sent[i]!))).toBeLessThanOrEqual(60);
     // The last packet always arrives.
     expect(sent.at(-1)).toBe(980);
     c.dispose();

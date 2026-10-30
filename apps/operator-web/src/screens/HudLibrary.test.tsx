@@ -202,6 +202,21 @@ describe("HUD Library screen", () => {
     expect(within(details).getByText(/Enable Browser Source Hardware Acceleration/)).toBeTruthy();
   });
 
+  it("shows an output that draws too few frames a second in amber, with what helps", async () => {
+    const choppy = { ...PRO, outputs: { desktop: 1, obs: 1, preview: 0 }, smoothness: { desktop: { fps: 24, worstPauseMs: 90, pauses: 0 }, obs: { fps: 60, worstPauseMs: 40, pauses: 0 } } };
+    serve((m, p) => (m === "GET" && p === "/api/v1/hud/library" ? { status: 200, json: library([choppy]) } : undefined));
+    renderScreen();
+    const card = await screen.findByRole("article", { name: PRO.name });
+    expect((card.querySelector('[data-output="desktop"]') as HTMLElement).className).toContain("is-stutter");
+    expect((card.querySelector('[data-output="obs"]') as HTMLElement).className).not.toContain("is-stutter");
+    fireEvent.click(card);
+    const details = await screen.findByTestId("hud-details");
+    fireEvent.click(within(details).getByRole("tab", { name: "Outputs" }));
+    expect(within(details).getByText(/drew only/).textContent).toMatch(/desktop HUD drew only 24 frames a second \(under 40\)/);
+    expect(within(details).getByText(/fps_max 240/)).toBeTruthy();
+    expect(within(details).queryByText(/Enable Browser Source Hardware Acceleration/)).toBeNull();
+  });
+
   it("opens the details panel with package info, variants and the settings form", async () => {
     const withSettings = { ...SAMPLE, settingsSchema: { accentColor: { type: "color" as const, label: "Accent colour", default: "#2f7cf6" }, showMoney: { type: "boolean" as const, label: "Show money", default: true } }, settings: { accentColor: "#2f7cf6", showMoney: true } };
     const calls = serve((m, p) => {

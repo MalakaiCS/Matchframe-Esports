@@ -383,8 +383,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
         const mode = c.meta.mode as HudOutputMode;
         const mine = { fps: Math.min(...reports.map((r) => r.fps)), worstPauseMs: Math.max(...reports.map((r) => r.worstMs)), pauses: reports.reduce((n, r) => n + r.pauses, 0) };
         const prev = out[mode];
-        // The worst output of each mode.
-        if (!prev || mine.worstPauseMs > prev.worstPauseMs) out[mode] = mine;
+        // The worst of each mode's outputs: the fewest frames, the longest pause.
+        out[mode] = prev ? { fps: Math.min(prev.fps, mine.fps), worstPauseMs: Math.max(prev.worstPauseMs, mine.worstPauseMs), pauses: Math.max(prev.pauses, mine.pauses) } : mine;
       }
       return out;
     },

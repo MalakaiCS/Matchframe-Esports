@@ -21,6 +21,10 @@ export const OUTPUT_MODES: HudOutputMode[] = ["desktop", "obs", "preview"];
 
 /** An output that stopped drawing this long (ms) in the last minute is shown as stuttering. */
 export const STUTTER_MS = 250;
+/** An output drawing fewer frames a second than this (its worst 5 s in the last minute) looks choppy. */
+export const LOW_FPS = 40;
+/** Whether an output stuttered (a pause) or drew too few frames in the last minute. */
+export const stutters = (s: { fps: number; worstPauseMs: number } | undefined): boolean => !!s && (s.worstPauseMs >= STUTTER_MS || s.fps < LOW_FPS);
 
 export const KIND_LABEL: Record<HudLibraryEntry["kind"], string> = { builtin: "Built-in", sample: "Sample", imported: "Imported" };
 

@@ -8,7 +8,7 @@ import { useToast } from "../../components/toasts.tsx";
 import { Button, Checkbox, CopyButton, Details, Field, JsonEditor, KV, Note, parseJsonOr, Tabs } from "../../components/ui.tsx";
 import { fmtAgo, fmtTime } from "../../lib/format.ts";
 import type { HudDisplayStatus } from "../../lib/hudLibrary.ts";
-import { compareVersions, defaultVariant, formFields, KIND_LABEL, resolutionLabel, STUTTER_MS, VARIANT_LABEL, variantUrl, withQuery } from "../../lib/hudLibrary.ts";
+import { compareVersions, defaultVariant, formFields, KIND_LABEL, LOW_FPS, resolutionLabel, STUTTER_MS, stutters, VARIANT_LABEL, variantUrl, withQuery } from "../../lib/hudLibrary.ts";
 import type { HudActionReasons, HudActions } from "./HudCard.tsx";
 import { OutputIndicators } from "./HudCard.tsx";
 import type { PlayerRow, TeamRow } from "../../api/types.ts";
@@ -575,25 +575,34 @@ function Hotkeys({ bridge, desktopReason }: { bridge: DesktopHudBridge | null; d
   );
 }
 
-/** An output that stopped drawing for a moment in the last minute: where the lag comes from, and what helps. */
+/** An output that stopped drawing for a moment, or drew too few frames, in the last minute: where the lag comes from, and what helps. */
 function StutterNote({ entry, outputs }: { entry: HudLibraryEntry; outputs: Record<HudOutputMode, number> }) {
   const obs = outputs.obs ? entry.smoothness.obs : undefined;
   const desktop = outputs.desktop ? entry.smoothness.desktop : undefined;
-  const bad = [obs && obs.worstPauseMs >= STUTTER_MS ? (["OBS browser source", obs] as const) : null, desktop && desktop.worstPauseMs >= STUTTER_MS ? (["desktop HUD", desktop] as const) : null].filter((x) => x !== null);
+  const bad = [stutters(obs) ? (["OBS browser source", obs!] as const) : null, stutters(desktop) ? (["desktop HUD", desktop!] as const) : null].filter((x) => x !== null);
   if (!bad.length) return null;
   return (
     <Note tone="warn" title="The HUD is stuttering where it is drawn">
       {bad.map(([where, s]) => (
         <p key={where} className="small" style={{ margin: "0 0 6px" }}>
-          The {where} stopped drawing for up to <strong className="num">{s.worstPauseMs} ms</strong> ({s.pauses} times in the last minute, {s.fps} fps). The game data reaches it on time: the computer drawing the HUD is too busy.
+          {s.worstPauseMs >= STUTTER_MS ? (
+            <>
+              The {where} stopped drawing for up to <strong className="num">{s.worstPauseMs} ms</strong> ({s.pauses} times in the last minute, {s.fps} fps).
+            </>
+          ) : (
+            <>
+              The {where} drew only <strong className="num">{s.fps}</strong> frames a second (under {LOW_FPS}) at its slowest in the last minute.
+            </>
+          )}{" "}
+          The game data reaches it on time: the computer drawing the HUD is too busy.
         </p>
       ))}
-      {obs && obs.worstPauseMs >= STUTTER_MS ? (
+      {stutters(obs) ? (
         <p className="small" style={{ margin: "0 0 6px" }}>
-          In OBS: <strong>Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration</strong>, then restart OBS. In the browser source's properties, leave <strong>Use custom frame rate</strong> off and <strong>Shutdown source when not visible</strong> off.
+          In OBS: <strong>Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration</strong>, then restart OBS, and <strong>Settings → Video → Common FPS Values</strong> 60. In the browser source's properties, leave <strong>Use custom frame rate</strong> off and <strong>Shutdown source when not visible</strong> off.
         </p>
       ) : null}
-      {desktop && desktop.worstPauseMs >= STUTTER_MS ? (
+      {stutters(desktop) ? (
         <p className="small" style={{ margin: 0 }}>
           Run CS2 in Fullscreen Windowed, and cap its frame rate (for example <code>fps_max 240</code>) so it leaves the computer room to draw the HUD.
         </p>

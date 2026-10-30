@@ -974,3 +974,34 @@ Before this, the replay PC filmed only kills the main camera missed (or showed f
 - The real NDI binding receiving a real NDI source: this session's safety checks don't run third-party native code; the Windows release build checks that it loads.
 - ffmpeg's hardware encoders on Windows.
 - A real vMix.
+
+## ADR-052 — LHM HUDs get game data 20 times a second; a low frame rate shows
+
+**Context.** The owner (0.9.0): kaiHUD is "very choppy and feels like its running at 20fps", on an RTX 4060 and i7-14700K, and asked whether drawing the HUD on the CPU would take strain off the GPU.
+
+Measured with kaiHUD 1.0.2 in Chromium through Matchframe, with a player running across its minimap and 50 game-data packets a second:
+- The page drew at 60 fps.
+- At 10 updates a second (ADR-031's limit), the minimap dot surged and almost stopped ten times a second. Each update starts LHM's 0.1 s eased transition (`.player { transition: transform .1s ease }`), so the dot's per-frame step went 0.46, 0.73, 0.47, 0.25, 0.12, 0.03 px and repeated.
+
+| Updates a second | Step variation (sd/mean) | Main thread busy | CPU 4× slower |
+|---|---|---|---|
+| 10 | 0.70 | 16 % | 74 %, 58 fps |
+| 20 | 0.25 | 21 % | 87 %, 60 fps |
+| 30 | 0.25 | 24 % | 100 %, 52 fps |
+| 50 | 0.32 | 34 % | 104 %, 51 fps |
+
+**Decision.**
+- **Rate:** `UPDATE_MS` is 50: the newest packet at most 20 times a second. Urgent changes (spectated player, phases, bomb, alive players, score) still go at once.
+- **Low frame rate:** an output that draws under 40 fps at its slowest 5 s in the last minute is shown in amber like one that pauses, with what helps. Each mode shows the fewest frames and the longest pause of its outputs.
+- **Support file:** each running HUD's outputs and frame report (`hudOutputs`).
+
+**Alternatives.**
+- **Drawing the HUD without the GPU** (Chromium's software rendering): no. The HUD drew at 60 fps already, and the measured choppiness came from the update rate. Software rendering would draw every frame of a 1920×1080 page with transparency on the CPU, and it is a whole-program switch (the match graphics' video encoding too). Where CS2 leaves the graphics card no room, capping CS2's frame rate (`fps_max`) helps, and the Outputs note says so.
+- **Every packet (50 a second):** no smoother, and frames drop on a slower PC.
+
+**Checked.**
+- Minimap motion at 10, 20, 30 and 50 updates a second, at full speed and with the CPU 4× slower.
+- kaiHUD's baseboard on a timeout at 20 a second: 60 fps, main thread 19 % busy. With the CPU 6× slower it is 45 fps (55 at 10 a second): the cost on a much slower PC.
+
+**Not checked.** On the owner's PC, and in OBS's browser source there. The frame report shows how each output draws.
+

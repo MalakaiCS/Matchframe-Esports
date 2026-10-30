@@ -91,7 +91,7 @@ Limits:
 
 - **Killfeed**: CS2's game data has no kill events. The killfeed shows Matchframe's paired kills (killer, weapon in hand, headshot, assister, blind killer), so wallbang, no-scope, through-smoke and flash-assist icons never appear. Kills made before the HUD opened don't appear either.
 - No output delay: LHM-format HUDs always show live data.
-- **Update rate**: CS2 sends game data up to 50 times a second, more than an LHM-format HUD redraws smoothly (kaiHUD's baseboard stuttered). Matchframe sends the HUD the newest data at most 10 times a second, and at once when something on screen changes: the spectated player, the round or countdown phase, the bomb, who is alive, the score. Measured on kaiHUD's baseboard at a sixth of the CPU's speed: 55 frames a second instead of 32.
+- **Update rate**: CS2 sends game data up to 50 times a second. Matchframe sends an LHM-format HUD the newest data at most 20 times a second, and at once when something on screen changes: the spectated player, the round or countdown phase, the bomb, who is alive, the score. At 10 a second (0.6.0 to 0.9.0) kaiHUD's minimap dots surged and stopped ten times a second, which looked like a HUD drawing at 20 fps. At 20 they glide; more is no smoother and costs frames on a slower PC (ADR-052).
 - Not supported: the HUD's keyboard shortcuts (`keybinds.json`), player cameras, and anything that needs LHM's cloud. The rest of the HUD still works.
 - kaiHUD's Player Highlight shows the selected player *or* the spectated one, whichever comes first in the game data. So Matchframe shows it for the MVP only when the camera isn't on another player.
 - Fonts from Google Fonts load from the internet. Offline, the HUD falls back to other fonts.
@@ -129,7 +129,7 @@ All three show the same match information and the same settings, and run indepen
 
 ### How smoothly an output draws
 
-Each output (the OBS browser source, the desktop HUD) times its own frames where it runs and reports every 5 s. When one stopped drawing for 250 ms or more in the last minute, its indicator turns amber (the tooltip gives its frames a second and longest pause), and the HUD's details → **Outputs** says where and what helps. Each such pause is also written to the director log (`logs/director.log`, `hud stall`).
+Each output (the OBS browser source, the desktop HUD) times its own frames where it runs and reports every 5 s. When one stopped drawing for 250 ms or more in the last minute, or drew under 40 frames a second, its indicator turns amber (the tooltip gives its frames a second and longest pause), and the HUD's details → **Outputs** says where and what helps. Each such pause is also written to the director log (`logs/director.log`, `hud stall`), and the support file lists each running HUD's frame report (`hudOutputs`).
 
 A pause there is the computer drawing the HUD being too busy, not the game data: Matchframe passes game data to an LHM-format HUD at least every 100 ms, and at once for what the audience notices first. Checked with kaiHUD in Chromium: its clock ticks within 0.1 s of each second, and within 0.18 s with the CPU slowed six times.
 

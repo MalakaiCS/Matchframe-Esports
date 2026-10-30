@@ -16,7 +16,7 @@ import { hudConfig, isPanelAction, parsePanel, type LhmLookup, type LhmPanel } f
  *
  * - socket.io at /socket.io: "readyToRegister" → the HUD's "register" → "hud_config" (its panel
  *   settings); "update" with the game data as CS2 sent it (auth token removed): at once when
- *   something a viewer sees switch changes (see lhmUrgentKey), else the latest packet at most ten
+ *   something a viewer sees switch changes (see lhmUrgentKey), else the latest packet at most twenty
  *   times a second (UPDATE_MS);
  *   "hud_action" for panel buttons; "match" when the current match changes.
  * - GET /api/... (match, teams and logos, players and avatars, tournament, camera, radar maps) from
@@ -41,11 +41,14 @@ export const lhmCamOffer = (steamId: string) => ({ offer: { type: "offer", sdp: 
 /**
  * Game data reaches LHM HUDs at most this often (ms), apart from urgent changes. CS2 sends up to 50
  * packets a second at Matchframe's setting (for instant POV switches), and an LHM HUD redraws its
- * whole page for each: kaiHUD's main thread was 25 % busy at that rate, and on a slower or busy
- * machine (CPU 6× slower) 97 % busy at 32 fps, so its baseboard stuttered. LHM HUDs are made for
- * about ten updates a second.
+ * whole page for each. Measured with kaiHUD in Chromium (a player running across its minimap):
+ * - 10 a second: the minimap dot (LHM's 0.1 s eased transition) surged and stopped ten times a
+ *   second, which looks like a HUD drawing at 20 fps although the page drew at 60;
+ * - 20 a second: the dot moves evenly; main thread 21 % busy (16 % at 10), and 60 fps still with
+ *   the CPU 4× slower;
+ * - 30 or 50 a second: no smoother, and with the CPU 4× slower the main thread is full and frames drop.
  */
-export const UPDATE_MS = 100;
+export const UPDATE_MS = 50;
 
 /**
  * What must reach an LHM HUD at once: the spectated player, round and countdown phase, bomb state,

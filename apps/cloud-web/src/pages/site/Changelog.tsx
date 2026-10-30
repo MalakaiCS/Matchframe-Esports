@@ -11,6 +11,20 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.9.1",
+    title: "Smoother LHM HUDs",
+    summary: "kaiHUD and other LHM HUDs move smoothly: their minimaps no longer step ten times a second.",
+    sections: [
+      {
+        heading: "HUDs",
+        items: [
+          "LHM HUDs get game data twice as often (20 times a second), so minimap dots glide instead of surging and stopping.",
+          "The HUD Library warns when a HUD output draws fewer than 40 frames a second, and says what helps.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.9.0",
     title: "The best replays of each round",
     summary: "The replay PC films every kill it can, the main PC ranks each round's clips and replays the best 3–4. The main PC can record the replay PC's screen over NDI, and replays can play in vMix.",
