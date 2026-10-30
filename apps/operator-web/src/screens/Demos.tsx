@@ -27,21 +27,37 @@ function ProcessingControls({ data, reload }: { data: DemoConfigResponse; reload
   );
 }
 
-function ConfigPanel({ data, reload }: { data: DemoConfigResponse; reload: () => void }) {
+export function ConfigPanel({ data, reload }: { data: DemoConfigResponse; reload: () => void }) {
   const reason = usePermission("demos.manage");
   const [cfg, setCfg] = useState<DemoConfig>(data.config);
   const [roots, setRoots] = useState(data.config.ingestRoots.join("\n"));
+  // The settings are fetched again every 10 s: what is being edited stays until it is saved, and
+  // only a saved configuration that changed (elsewhere) replaces an unedited form.
+  const [edited, setEdited] = useState(false);
+  const saved = JSON.stringify(data.config);
   useEffect(() => {
+    if (edited) return;
     setCfg(data.config);
     setRoots(data.config.ingestRoots.join("\n"));
-  }, [data.config]);
-  const set = (p: Partial<DemoConfig>) => setCfg({ ...cfg, ...p });
+  }, [saved]);
+  const set = (p: Partial<DemoConfig>) => {
+    setEdited(true);
+    setCfg({ ...cfg, ...p });
+  };
   return (
     <>
       <div className="grid-2">
         <div className="gc-form">
           <Field label="Ingest roots (one per line)" hint="Raw demos are only ever deleted from inside these folders">
-            <textarea rows={3} value={roots} onChange={(e) => setRoots(e.target.value)} className="mono" />
+            <textarea
+              rows={3}
+              value={roots}
+              onChange={(e) => {
+                setEdited(true);
+                setRoots(e.target.value);
+              }}
+              className="mono"
+            />
           </Field>
           <Field label="Dataset root">
             <input className="mono" value={cfg.datasetRoot} onChange={(e) => set({ datasetRoot: e.target.value })} />
@@ -103,7 +119,10 @@ function ConfigPanel({ data, reload }: { data: DemoConfigResponse; reload: () =>
             })
           }
           success="Demo library configuration saved"
-          onDone={reload}
+          onDone={() => {
+            setEdited(false);
+            reload();
+          }}
           disabledReason={reason}
         >
           Save configuration

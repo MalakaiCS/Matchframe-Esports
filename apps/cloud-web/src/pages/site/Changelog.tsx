@@ -11,6 +11,17 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.9.3",
+    title: "Demo library settings fixed",
+    summary: "Changes in the Demo library's settings stay until you save them.",
+    sections: [
+      {
+        heading: "Demo library",
+        items: ["Library settings no longer undo your changes every few seconds, so you can add your own demo folders and keep your original demos."],
+      },
+    ],
+  },
+  {
     version: "0.9.2",
     title: "LHM HUDs that keep up",
     summary: "kaiHUD gets fewer game updates while its page can't keep up, and shows Anubis on its minimap.",
