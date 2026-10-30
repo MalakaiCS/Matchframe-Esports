@@ -223,7 +223,7 @@ export function findUtilityOpportunities(state: MatchState, now: number, opts: O
 
   for (const opp of all) {
     applyScenarios(opp, state, opts.scenarios ?? [], map);
-    attachCamera(opp, opts.cfg, map);
+    attachCamera(opp, opts.cfg, map, alive);
   }
   return all.sort((a, b) => b.value - a.value);
 }
@@ -250,7 +250,10 @@ function applyScenarios(opp: UtilityOpportunity, state: MatchState, rules: Utili
   }
 }
 
-function attachCamera(opp: UtilityOpportunity, cfg: DirectorConfig, map: UtilityDirectorMap | undefined): void {
+/** Players count for a nade camera when they stand this close to the grenade (beyond its effect radius) and in the camera's frame. */
+const NADE_CAM_PLAYER_RANGE = 800;
+
+function attachCamera(opp: UtilityOpportunity, cfg: DirectorConfig, map: UtilityDirectorMap | undefined, alive: MatchState["players"]): void {
   if (!map) {
     opp.cameraIssue = "no map pack";
     return;
@@ -261,17 +264,27 @@ function attachCamera(opp: UtilityOpportunity, cfg: DirectorConfig, map: Utility
     opp.reasons.push("UTILITY_NO_CAMERA");
     return;
   }
+  // Only where players are: someone alive near the grenade, on its level, and in the camera's frame.
+  const near = alive.filter(
+    (p) => Math.hypot(p.position!.x - opp.actionPoint.x, p.position!.y - opp.actionPoint.y) <= NADE_CAM_PLAYER_RANGE && (!opp.levelId || map.levelAt(p.position!) === opp.levelId),
+  );
+  let framedButEmpty = false;
   for (const m of matches) {
     const cam = m.camera;
     if (!targetInFrame(cam, opp.actionPoint)) continue;
     const lead = opp.timeToEffectMs;
     const active = opp.evidence === "confirmed";
     if (!active && lead < cam.minAcquisitionMs + cfg.cinematic.leadMarginMs) continue;
-    const planned = Math.min(cam.maxDurationMs, cfg.cinematic.maxDurationMs, Math.max(1000, lead + Math.min(cam.normalDurationMs, 1800)));
+    if (!near.some((p) => targetInFrame(cam, { x: p.position!.x, y: p.position!.y, z: p.position!.z + 36 }))) {
+      framedButEmpty = true;
+      continue;
+    }
+    // On air until about utilityAfterEffectMs after the grenade goes off, and at least utilityHoldMs.
+    const planned = Math.min(Math.max(cam.maxDurationMs, cfg.cinematic.utilityHoldMs), Math.max(cfg.cinematic.utilityHoldMs, lead + cfg.cinematic.utilityAfterEffectMs));
     opp.camera = { camera: cam, plannedDurationMs: planned };
     opp.cameraIssue = null;
     return;
   }
-  opp.cameraIssue = "covering cameras lack framing or acquisition lead time";
+  opp.cameraIssue = framedButEmpty ? "no player near the grenade in the camera's frame" : "covering cameras lack framing or acquisition lead time";
   opp.reasons.push("UTILITY_NO_CAMERA");
 }

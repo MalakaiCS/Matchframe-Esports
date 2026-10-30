@@ -16,6 +16,10 @@ import { LIBRARY_PATH, useRun } from "./actions.ts";
 /** For the standard launch mode (no console): only the kill feed and the names above the players from the game's HUD. */
 const GAME_HUD_COMMAND = "cl_drawhud 1; cl_draw_only_deathnotices 1; cl_drawhud_force_teamid_overhead 1";
 
+const FRAME_CAPS = [60, 120, 144, 240];
+const FRAME_CAP_HINT =
+  "fps_max: CS2 draws at most this many frames a second, leaving the graphics card room for the HUD, OBS and the encoder. On high graphics settings an uncapped CS2 takes the whole card, and imported HUDs like kaiHUD stutter. For a 60 fps stream, 120 keeps the game smooth. Don't change: CS2's own setting.";
+
 function Toggle({ label, hint, on, onChange, reason, testId }: { label: string; hint: string; on: boolean | null; onChange: (v: boolean) => void; reason: string | null; testId: string }) {
   return (
     <div className="hud-option" data-option={testId}>
@@ -208,6 +212,28 @@ export function GameCard() {
             reason={cameraReason}
             onChange={option("runInBackground")}
           />
+          <div className="hud-option" data-option="frame-cap">
+            <div className="hud-option-text">
+              <span className="hud-option-label">Cap CS2's frame rate</span>
+              <span className="hud-option-hint" title={FRAME_CAP_HINT}>
+                ?
+              </span>
+            </div>
+            <select
+              aria-label="Cap CS2's frame rate"
+              value={o?.frameCap ?? ""}
+              disabled={!!cameraReason || !o}
+              title={cameraReason ?? FRAME_CAP_HINT}
+              onChange={(e) => void run("Game option", () => setConsoleOptions({ frameCap: e.target.value ? Number(e.target.value) : null }).then(() => game.reload()))}
+            >
+              <option value="">Don't change</option>
+              {FRAME_CAPS.map((n) => (
+                <option key={n} value={n}>
+                  {n} fps
+                </option>
+              ))}
+            </select>
+          </div>
           {mode === "hlae" ? (
             <>
               <Toggle label="No flash" testId="no-flash" hint="HLAE mirv_noflash 1: flashbangs don't white out the observer's screen." on={o ? o.noFlash : null} reason={cameraReason} onChange={option("noFlash")} />

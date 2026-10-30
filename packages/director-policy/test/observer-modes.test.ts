@@ -16,17 +16,20 @@ function pack() {
   const base = p.cameras[0]!;
   const extra: CameraRecord[] = [
     { ...base, id: "synthetic-site-b-bomb", displayName: "SYNTHETIC B site", targetRegionIds: ["site_b"], coverage: { center: { x: 1800, y: 0, z: 0 }, radiusUnits: 800, zMin: -200, zMax: 300, levelId: "ground" }, actionClasses: ["bomb"], allowedPhases: ["live"] },
-    { ...base, id: "synthetic-establishing", displayName: "SYNTHETIC establishing", targetRegionIds: ["mid"], coverage: { center: { x: 0, y: 2000, z: 0 }, radiusUnits: 900, zMin: -200, zMax: 300, levelId: "ground" }, actionClasses: ["establishing"], allowedPhases: ["freezetime"] },
+    // South of mid, looking north at the players waiting there (in its frame: see FRAME_HALF_YAW).
+    { ...base, id: "synthetic-establishing", displayName: "SYNTHETIC establishing", position: { x: 0, y: 1300, z: 180 }, pitch: 12, yaw: 90, targetRegionIds: ["mid"], coverage: { center: { x: 0, y: 2000, z: 0 }, radiusUnits: 900, zMin: -200, zMax: 300, levelId: "ground" }, actionClasses: ["establishing"], allowedPhases: ["freezetime"] },
   ];
   p.cameras.push(...extra);
   return p;
 }
 
-function setup(mode: Parameters<Director["setObserverMode"]>[0]) {
+function setup(mode: Parameters<Director["setObserverMode"]>[0], edit: (p: ReturnType<typeof pack>) => void = () => undefined) {
   const sim = new Sim(MAP);
   const director = new Director({ newId: (() => { let i = 0; return () => `d${i++}`; })() });
   director.setObserverMode(mode);
-  director.setMap(new MapRuntime(pack()));
+  const p = pack();
+  edit(p);
+  director.setMap(new MapRuntime(p));
   director.setCapabilities(capsWithCameraControl("supported"));
   return { sim, director };
 }
@@ -60,7 +63,7 @@ function run(sim: Sim, director: Director, steps: { players: SyntheticPlayer[]; 
     if (out.intent?.kind === "select_player") observed = out.intent.targetSteamId;
     if (out.intent?.kind === "activate_static_camera") {
       observed = null;
-      director.cinematicStarted(`camera:${out.intent.cameraId}`, sim.now, out.intent.plannedDurationMs ?? 2000, out.intent.opportunityId, out.intent.shotClass !== "establishing");
+      director.cinematicStarted(`camera:${out.intent.cameraId}`, sim.now, out.intent.plannedDurationMs ?? 2000, out.intent.opportunityId, out.intent.shotClass !== "establishing", out.intent.shotClass);
     }
     outs.push(out);
   }
@@ -96,6 +99,54 @@ describe("Observer modes: what the auto director may do on its own", () => {
     expect(out.intent).toMatchObject({ kind: "activate_static_camera", shotClass: "static_utility", cameraId: "synthetic-bottom-banana-wide" });
   });
 
+  it("a nade camera only where players are: none for a grenade with nobody near it in the camera's frame", () => {
+    const { sim, director } = setup("full_action");
+    // The same HE into banana, but the Ts are back in their spawn.
+    const empty = bananaStack().map((p, i) => (i < 3 ? { ...p, position: { x: -2400 + i * 60, y: -2300, z: 0 } } : p));
+    const outs = run(sim, director, settled(empty, { grenades: [incomingHe] }));
+    expect(outs.some((o) => o.intent?.kind === "activate_static_camera")).toBe(false);
+    expect(outs.at(-1)!.candidates.some((c) => c.shotClass === "static_utility" && c.valid)).toBe(false);
+  });
+
+  it("a nade camera, once on air, stays at least 2.5 s although the grenade went off, then goes back to a player", () => {
+    const { sim, director } = setup("full_action");
+    // The HE, then nothing: it has gone off and the moment's opportunity is gone.
+    const after = Array.from({ length: 50 }, () => ({ players: bananaStack() }));
+    const outs = run(sim, director, [...settled(bananaStack(), { grenades: [incomingHe] }), ...after]);
+    const cutIn = outs.findIndex((o) => o.intent?.kind === "activate_static_camera" && o.intent.shotClass === "static_utility");
+    expect(cutIn).toBeGreaterThan(0);
+    const back = outs.findIndex((o, i) => i > cutIn && o.intent?.kind === "select_player");
+    expect(back).toBeGreaterThan(cutIn);
+    const onAirMs = (back - cutIn) * 100;
+    expect(onAirMs).toBeGreaterThanOrEqual(2500);
+    expect(onAirMs).toBeLessThanOrEqual(4000);
+  });
+
+  it("selects a player when CS2 moves to another one during a shot, instead of staying in the free camera", () => {
+    const { sim, director } = setup("full_action");
+    // As on CS2 builds whose game data goes on naming a player in the free camera (and under HLAE).
+    let observed: string | null = T(1);
+    const intents: { at: number; kind: string; target: string | null }[] = [];
+    let cutAt = -1;
+    for (let i = 0; i < 70; i++) {
+      // 1 s after the nade camera came on air, the player CS2 was on dies: CS2 names T2 by itself.
+      if (cutAt >= 0 && i === cutAt + 10 && observed === T(1)) observed = T(2);
+      const out = director.evaluate(sim.push(bananaStack(), { mapName: MAP, observed, grenades: i >= 30 && i < 32 ? [incomingHe] : [] }), sim.now, control);
+      const it = out.intent;
+      if (!it) continue;
+      intents.push({ at: i, kind: it.kind, target: it.targetSteamId });
+      if (it.kind === "activate_static_camera") {
+        cutAt = i;
+        director.cinematicStarted(`camera:${it.cameraId}`, sim.now, it.plannedDurationMs ?? 2000, it.opportunityId, true, it.shotClass);
+      } else if (it.kind === "select_player") observed = it.targetSteamId;
+    }
+    expect(cutAt).toBeGreaterThan(0);
+    // A player is selected within 0.3 s of the change (the selection leaves the free camera).
+    const reselect = intents.find((x) => x.at > cutAt && x.kind === "select_player");
+    expect(reselect, JSON.stringify(intents)).toBeTruthy();
+    expect(reselect!.at - (cutAt + 10)).toBeLessThanOrEqual(3);
+  });
+
   it("Observer & Cinematics takes an establishing shot in freeze time without using the round's cinematic budget; Observer does not", () => {
     const freeze = (n: number) => Array.from({ length: n }, () => ({ players: midWait(), roundPhase: "freezetime" as const, phase: "freezetime", phaseEndsIn: 15 }));
     const cine = setup("observer_cinematics");
@@ -108,6 +159,18 @@ describe("Observer modes: what the auto director may do on its own", () => {
     const obsOuts = run(obs.sim, obs.director, freeze(30));
     expect(obsOuts.some((o) => o.intent?.kind === "activate_static_camera")).toBe(false);
     expect(obsOuts.at(-1)!.candidates.some((c) => c.shotClass === "establishing")).toBe(false);
+  });
+
+  it("freeze time shows only where players are: a camera on their area that looks away from them is never chosen", () => {
+    const freeze = Array.from({ length: 30 }, () => ({ players: midWait(), roundPhase: "freezetime" as const, phase: "freezetime", phaseEndsIn: 15 }));
+    // The same camera turned round, facing south, away from the players waiting in mid.
+    const away = setup("observer_cinematics", (p) => {
+      const cam = p.cameras.find((c) => c.id === "synthetic-establishing")!;
+      cam.yaw = -90;
+    });
+    const outs = run(away.sim, away.director, freeze);
+    expect(outs.some((o) => o.intent?.kind === "activate_static_camera" && o.intent.cameraId === "synthetic-establishing")).toBe(false);
+    expect(outs.at(-1)!.candidates.some((c) => c.cameraId === "synthetic-establishing")).toBe(false);
   });
 
   it("no establishing shot when freeze time is about to end", () => {

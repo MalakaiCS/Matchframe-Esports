@@ -1046,3 +1046,46 @@ Measured with kaiHUD 1.0.2 in Chromium through Matchframe, with a player running
 
 **Not checked.** On the owner's PC.
 
+## ADR-054 — Smooth camera paths, freeze time only where players are, committed nade cams, no free camera left on air
+
+**Context.** The owner, from broadcasts on 0.9.x:
+- "Some Cinematics actually are very rough and choppy when moving around the map."
+- "Can the cinematics in freeze time only show shots of where players are."
+- "For nade cameras … cut to where players are … if it does commit and knows there are players stay on it for 2-3 seconds as it just is in for half a second then out again."
+- "Sometimes … it cuts to freecam on the player it was last on and [doesn't] go to a player."
+- kaiHUD lags with CS2's graphics on high, not on low.
+
+**Findings.**
+- **Paths:** `samplePath` put positions on a Catmull-Rom curve but pitch and yaw on straight lines between keyframes. The turning rate jumped at every key (every 0.5 s on the demo-derived paths): on 169 of the 1,487 built-in paths by more than 20 °/s within one frame, at most 61 °/s.
+- **Freeze time:** a map camera counted a player as shown when they stood in a region it was aimed at, whichever way it looked and whatever was in between. A path counted them at its middle keyframe only.
+- **Nade cams:**
+  - A nade cam was planned as the grenade's flight time plus at most 1.8 s.
+  - It was dropped the moment its opportunity ended. A flash or HE ends as it goes off; a smoke or molotov counts for only 2.5 s after it pops.
+  - A grenade had value with nobody near it.
+- **Free camera:** during a cinematic, the director took a player the game data named but it hadn't asked for (the player CS2 was on died, or CS2 moved on by itself) as the shot on air.
+  - On builds whose game data names a player in the free camera, CS2 was in fact still in it, with HLAE released.
+  - The director sent nothing, so the free camera stayed on air.
+
+**Decision.**
+- **Paths:** one cubic Hermite curve through the keyframes for position, pitch and yaw. Each key's tangent is the slope between its neighbours over their times; the end keys use the slope of the first or last stretch. Yaw is unwrapped the short way.
+  - Turning jolt: p90 21.3 → 1.7 °/s per frame, worst 61 → 5.3, none over 20.
+  - Speed jolt: worst 195 → 19 units/s per frame.
+  - Every demo path still stays clear of CS2's geometry and within its speed and pitch limits.
+- **Freeze time:** a map camera shows a player only within ±36° of its yaw and ±28° of its pitch (CS2's view less the slow pan and a margin), within range, and in clear sight in the grid (else in a region it is aimed at). A path must show them at its start, middle and end. Team shots are framed from the players, as before.
+- **Nade cams:**
+  - **Players:** a camera only when an alive player within 800 units of the grenade, on its level, is in its frame.
+  - **Length:** planned until `utilityAfterEffectMs` (2 s) after the grenade goes off, and at least `utilityHoldMs` (2.5 s).
+  - **Hold:** for those 2.5 s the shot stays even after its opportunity is gone; only bomb urgency cuts away.
+- **Free camera:** a player named during a cinematic that the director didn't ask for ends the shot, and the director then selects a player. What is on screen counts as unknown (`reselect`) until a selection is sent, and every selection from a free camera leaves it.
+- **Frame cap:** Game options → **Cap CS2's frame rate** sends `fps_max` (60, 120, 144 or 240; default: CS2's own setting). An uncapped CS2 on high settings takes the whole graphics card; the HUD (and OBS) need some of it.
+
+**Checked.**
+- Path smoothness measured over all built-in paths at 60 fps; the demo-path clearance test.
+- A freeze-time camera facing away from the players is never chosen.
+- No nade cam for a grenade with nobody near it.
+- A nade cam stays 2.5–4 s after the grenade went off.
+- A player change during a nade cam, with the game data naming players in the free camera, leads to a player selection within 0.3 s. The test fails without the fix.
+- The frame cap's console line.
+
+**Not checked.** In CS2 on the owner's PC; which CS2 builds name a player in the free camera.
+

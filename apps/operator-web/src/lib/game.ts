@@ -12,6 +12,8 @@ export interface ConsoleOptions {
   clutchXrayOff: boolean;
   retakeXrayOff: boolean;
   runInBackground: boolean;
+  /** `fps_max` sent to CS2; null leaves CS2's own setting alone. */
+  frameCap: number | null;
   noFlash: boolean;
   killfeedTeamColours: boolean;
   hideEndOfMatch: boolean;

@@ -73,6 +73,12 @@ export interface DirectorConfig {
     liveStartPovMs: number;
     /** Nade cameras: the least utility value for a camera (coordinated utility needs 80 % of it). */
     utilityMinValue: number;
+    /**
+     * A nade camera, once on air, stays at least this long (ms), however soon the grenade goes off
+     * (only bomb urgency cuts away sooner), and runs until about `utilityAfterEffectMs` after it.
+     */
+    utilityHoldMs: number;
+    utilityAfterEffectMs: number;
     minValue: number;
     leadMarginMs: number;
     maxUtilityAgeMs: number;
@@ -117,6 +123,8 @@ export const DEFAULT_DIRECTOR_CONFIG: DirectorConfig = {
     overtimeRounds: 6,
     liveStartPovMs: 10000,
     utilityMinValue: 0.28,
+    utilityHoldMs: 2500,
+    utilityAfterEffectMs: 2000,
     minValue: 0.35,
     leadMarginMs: 250,
     maxUtilityAgeMs: 400,

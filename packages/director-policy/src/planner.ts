@@ -25,6 +25,8 @@ interface ActiveCinematic {
   /** The longest this shot may run (establishing shots and follow cams run longer than other cameras). */
   maxMs: number;
   opportunityId: string | null;
+  /** Until then the shot stays even when its moment is over (a nade camera: the grenade went off); only bomb urgency cuts away. */
+  holdUntil: number;
 }
 
 /** Cinematic shots are remembered for this many rounds (see `roundsSinceShown`). */
@@ -109,13 +111,13 @@ export class ShotPlanner {
   }
 
   /** Record that a cinematic actually became active (confirmed by the controller). Freeze-time establishing shots do not use the round's budget. */
-  cinematicStarted(shot: ShotKey, at: number, plannedDurationMs: number, opportunityId: string | null, countsTowardBudget = true, maxMs = this.cfg.cinematic.maxDurationMs): void {
+  cinematicStarted(shot: ShotKey, at: number, plannedDurationMs: number, opportunityId: string | null, countsTowardBudget = true, maxMs = this.cfg.cinematic.maxDurationMs, holdMs = 0): void {
     if (this.cinematic?.shotKey === shot) return;
     if (this.currentShot && this.currentShot !== shot) this.abandoned.set(this.currentShot, at);
     this.currentShot = shot;
     this.currentSince = at;
     this.pending = null;
-    this.cinematic = { shotKey: shot, startedAt: at, plannedEndAt: at + Math.min(plannedDurationMs, maxMs), maxMs, opportunityId };
+    this.cinematic = { shotKey: shot, startedAt: at, plannedEndAt: at + Math.min(plannedDurationMs, maxMs), maxMs, opportunityId, holdUntil: at + Math.min(holdMs, maxMs) };
     this.shownThisRound.add(shot);
     if (countsTowardBudget) this.cinematicsThisRound++;
   }
@@ -157,6 +159,12 @@ export class ShotPlanner {
     if (this.cinematic && isCinematic(this.currentShot)) {
       const chained = valid.find((c) => c.chain && c.shotKey !== this.currentShot) ?? null;
       const exit = chained ?? bestPovAlt;
+      // Committed: a nade camera stays its minimum time after the grenade went off; only the bomb cuts away.
+      if (now < this.cinematic.holdUntil) {
+        const bomb = bestPovAlt?.urgent ? bestPovAlt.reasonCodes.filter((r) => r === "BOMB_CRITICAL" || r === "BOMB_DEFUSE_PRESSURE") : [];
+        if (bestPovAlt && bomb.length) return cut(bestPovAlt, ["CINEMATIC_INTERRUPTED", ...bomb], true);
+        return hold(["CURRENT_SHOT_VALID"]);
+      }
       if (!current || !current.valid) {
         return exit ? cut(exit, ["CINEMATIC_INTERRUPTED", "CURRENT_SHOT_INVALID"], true) : hold(["NO_VALID_CANDIDATE"]);
       }

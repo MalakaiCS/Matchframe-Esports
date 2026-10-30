@@ -11,6 +11,23 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.9.5",
+    title: "Smoother cinematics",
+    summary: "Moving cinematics glide, freeze-time shots show the players, nade cams stay on the action, and the free camera no longer sticks on air.",
+    sections: [
+      {
+        heading: "Cinematics",
+        items: [
+          "Cameras moving round the map turn smoothly: no more jolt every half second.",
+          "Freeze-time shots only show places where players are in the picture.",
+          "Nade cams are used only with players in the shot, and stay at least 2.5 s.",
+          "A cinematic no longer leaves CS2's free camera on air when the player it was on dies.",
+          "Game options: cap CS2's frame rate, so HUDs and OBS keep a share of the graphics card.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.9.4",
     title: "Demos read on Windows",
     summary: "The Demo library reads demos on Windows; they all failed before.",

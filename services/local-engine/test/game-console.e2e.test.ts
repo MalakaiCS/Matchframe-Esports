@@ -98,6 +98,10 @@ describe("console commands and launch plan", () => {
     ]);
     // Off: back to the game's own behaviour behind other windows.
     expect(consoleCommands(ConsoleOptions.parse({ runInBackground: false }), "tools", { ct: null, t: null }).slice(5)).toEqual(["engine_no_focus_sleep 20", "snd_mute_losefocus 1"]);
+    // Frame cap: fps_max only when one is chosen (none by default: CS2's own setting stays).
+    expect(consoleCommands(ConsoleOptions.parse({ frameCap: 120 }), "tools", { ct: null, t: null }).at(-1)).toBe("fps_max 120");
+    expect(consoleCommands(ConsoleOptions.parse({}), "hlae", { ct: null, t: null }).some((l) => l.startsWith("fps_max"))).toBe(false);
+    expect(ConsoleOptions.safeParse({ frameCap: 5 }).success).toBe(false);
     // Hide CS2's kill feed: one rule with no player match blocks every notice (cleared first, so it never stacks).
     expect(consoleCommands(ConsoleOptions.parse({ hideGameKillfeed: true }), "hlae", { ct: null, t: null }).slice(-3)).toEqual(["mirv_deathmsg filter clear", "mirv_deathmsg filter add block=1", "mirv_deathmsg clear"]);
     expect(consoleCommands(ConsoleOptions.parse({ hideGameKillfeed: true }), "tools", { ct: null, t: null }).some((l) => l.startsWith("mirv_"))).toBe(false);

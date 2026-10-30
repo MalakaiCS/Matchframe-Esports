@@ -8,7 +8,7 @@ import type { MatchMoment } from "./features/moments.ts";
 import type { RoundContext } from "./features/significance.ts";
 import type { CameraMatch } from "@matchframe/map-runtime";
 import type { TeamShot, TeamShotLook } from "./framing.ts";
-import { teamCameraId } from "./framing.ts";
+import { aimAt, teamCameraId } from "./framing.ts";
 import type { ShotKey } from "./shots.ts";
 import { cameraShot, pathShot } from "./shots.ts";
 import type { UtilityDirectorMap } from "./utility/opportunities.ts";
@@ -94,6 +94,14 @@ const PAN_MAX_DEG = 30;
 const ESTABLISHING_MIN_PLAYERS = 2;
 /** A player this far from a camera (units) is too small in the shot to count. */
 const ESTABLISHING_VIEW_RANGE = 2600;
+/**
+ * A freeze-time shot from a map camera (or path) shows a player only inside this much of its frame
+ * (degrees each side of its aim): CS2's view is about 106° wide and 74° high at 16:9, less the
+ * camera's slow pan (up to PAN_MAX_DEG / 2 each way) and a margin, so the player is in the picture
+ * for the whole shot.
+ */
+const FRAME_HALF_YAW = 36;
+const FRAME_HALF_PITCH = 28;
 /** Fights shown from a static camera: at least this many players, both sides, likely contact. */
 const FIGHT_MIN_PLAYERS = 3;
 const FIGHT_MIN_ACTION = 0.55;
@@ -249,9 +257,9 @@ export function cinematicCandidates(input: CinematicInput): ScoredCandidate[] {
  * Freeze-time establishing shots: the teams where they stand, for the whole freeze time. First the
  * team shots: each team framed from where its players stand (see frameTeam), the camera gliding
  * slowly round them; one team, then the other (the Ts first in even rounds). Then, or when a team
- * can't be framed, the map's spawn cameras, scored by how many alive players they show (standing in
- * the regions they are aimed at, or in clear view within range in the free-space grid). Shots showing
- * fewer than two players are left out, a shot already played this round is never played again, and
+ * can't be framed, the map's spawn cameras, scored by how many alive players they show: in their
+ * frame for the whole shot, within range and in clear sight (see inView; a path in view at its start,
+ * middle and end). Shots showing fewer than two players are left out, a shot already played this round is never played again, and
  * a team not yet shown this freeze time is preferred. The time left is shared between shots of
  * 4–12 s, each moving slowly, and the last one runs until the round goes live. Each may follow the
  * one before directly. Camera paths only with `freezeTimePaths`.
@@ -269,13 +277,28 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>, mode: 
   const alive = state.players.filter((p) => p.lifeState === "alive" && p.position && p.side);
   const need = Math.min(ESTABLISHING_MIN_PLAYERS, Math.max(1, alive.length));
   const regionsOf = new Map(alive.map((p) => [p.steamId, map.regionsAt(p.position!)]));
-  /** The players a shot from `from`, aimed at `regions`, shows. */
-  const inView = (from: Vec3, regions: readonly string[]) =>
+  /**
+   * The players a map camera at `from`, aimed (yaw, pitch) at `regions`, shows: in its frame
+   * (FRAME_HALF_YAW / FRAME_HALF_PITCH) and within range, and in clear sight in the free-space grid
+   * when there is one (else standing in a region it is aimed at). A camera aimed at a spawn no longer
+   * counts the players of that spawn it looks away from or can't see.
+   */
+  const inView = (from: Vec3, yaw: number, pitch: number, regions: readonly string[]) =>
     alive.filter((p) => {
-      if (regionsOf.get(p.steamId)!.some((r) => regions.includes(r))) return true;
       const eye = { x: p.position!.x, y: p.position!.y, z: p.position!.z + 64 };
-      return !!input.sight && Math.hypot(eye.x - from.x, eye.y - from.y) < ESTABLISHING_VIEW_RANGE && input.sight(from, eye);
+      const body = { x: p.position!.x, y: p.position!.y, z: p.position!.z + 36 };
+      const aim = aimAt(from, body);
+      const dyaw = Math.abs(((((aim.yaw - yaw) % 360) + 540) % 360) - 180);
+      if (dyaw > FRAME_HALF_YAW || Math.abs(aim.pitch - pitch) > FRAME_HALF_PITCH) return false;
+      if (Math.hypot(eye.x - from.x, eye.y - from.y) >= ESTABLISHING_VIEW_RANGE) return false;
+      return input.sight ? input.sight(from, eye) : regionsOf.get(p.steamId)!.some((r) => regions.includes(r));
     });
+  /** The players a camera path shows all the way: in view at its start, middle and end. */
+  const inViewAlong = (path: CameraPath) => {
+    const k = path.keyframes;
+    const at = [k[0]!, k[Math.floor(k.length / 2)]!, k[k.length - 1]!].map((f) => new Set(inView(f.position, f.yaw, f.pitch, path.targetRegionIds).map((p) => p.steamId)));
+    return alive.filter((p) => at.every((ids) => ids.has(p.steamId)));
+  };
   // The next shot's length: the time left shared out, the last one running until the round goes live.
   const shotsLeft = left === null ? 2 : Math.max(1, Math.ceil(left / ESTABLISHING_SHOT_MAX_SEC));
   const nextMs = Math.min(
@@ -301,12 +324,11 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>, mode: 
   });
   for (const m of map.camerasWith?.({ actionClass: "establishing", phase: "freezetime" }) ?? []) {
     const cam = m.camera;
-    options.push({ key: cameraShot(cam.id), shotClass: "establishing", camera: cam, path: null, regionIds: cam.targetRegionIds, durationMs: nextMs, players: inView(cam.position, cam.targetRegionIds) });
+    options.push({ key: cameraShot(cam.id), shotClass: "establishing", camera: cam, path: null, regionIds: cam.targetRegionIds, durationMs: nextMs, players: inView(cam.position, cam.yaw, cam.pitch, cam.targetRegionIds) });
   }
   if (cfg.cinematic.freezeTimePaths && !input.pause) {
     for (const path of map.pathsFor?.() ?? []) {
-      const mid = path.keyframes[Math.floor(path.keyframes.length / 2)]!;
-      options.push({ key: pathShot(path.id), shotClass: "camera_path", camera: null, path, regionIds: path.targetRegionIds, durationMs: Math.min(pathDurationMs(path), nextMs), players: inView(mid.position, path.targetRegionIds) });
+      options.push({ key: pathShot(path.id), shotClass: "camera_path", camera: null, path, regionIds: path.targetRegionIds, durationMs: Math.min(pathDurationMs(path), nextMs), players: inViewAlong(path) });
     }
   }
   if (input.pause) return pauseCandidates(input, options, need, seen);

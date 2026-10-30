@@ -163,6 +163,11 @@ export class Director {
   private cineUnder: { cine: ShotKey; observed: ShotKey | null } | null = null;
   /** The player the director last asked for since the cinematic started (cutting away from it). */
   private requestedPov: ShotKey | null = null;
+  /**
+   * A cinematic ended because the game data named another player the director hadn't asked for: what
+   * is on screen is unknown until a player selection is sent (CS2 may still be in its free camera).
+   */
+  private reselect = false;
   private lastObserved: ShotKey | null = null;
   /** Line of sight for the cinematics, by both ends to the unit, for the map's grid. */
   private sightCache: { grid: VisibilityGrid | null; seen: Map<string, boolean> } = { grid: null, seen: new Map() };
@@ -302,13 +307,15 @@ export class Director {
 
   /**
    * A cinematic became active (confirmed by the controller). Freeze-time shots run their planned
-   * length (their share of the freeze time, or a pause until live), other cameras up to
-   * `maxDurationMs`.
+   * length (their share of the freeze time, or a pause until live); nade cameras theirs, and at least
+   * `utilityHoldMs` whatever happens (bomb urgency aside); other cameras up to `maxDurationMs`.
    */
   cinematicStarted(shot: ShotKey, at: number, plannedDurationMs: number, opportunityId: string | null, countsTowardBudget = true, shotClass: string | null = null): void {
     const long = shotClass === "establishing" || shotClass === "camera_path";
-    const maxMs = long ? Math.min(PAUSE_HOLD_MS, Math.max(this.cfg.cinematic.establishingMaxMs, plannedDurationMs)) : this.cfg.cinematic.maxDurationMs;
-    this.planner.cinematicStarted(shot, at, plannedDurationMs, opportunityId, countsTowardBudget, maxMs);
+    const nade = shotClass === "static_utility";
+    // A nade camera runs its planned time (until about utilityAfterEffectMs after the grenade goes off) and at least utilityHoldMs.
+    const maxMs = long ? Math.min(PAUSE_HOLD_MS, Math.max(this.cfg.cinematic.establishingMaxMs, plannedDurationMs)) : nade ? Math.max(this.cfg.cinematic.maxDurationMs, plannedDurationMs) : this.cfg.cinematic.maxDurationMs;
+    this.planner.cinematicStarted(shot, at, plannedDurationMs, opportunityId, countsTowardBudget, maxMs, nade ? this.cfg.cinematic.utilityHoldMs : 0);
     this.cineUnder = { cine: shot, observed: this.lastObserved };
     this.requestedPov = null;
   }
@@ -453,8 +460,14 @@ export class Director {
       const under = this.cineUnder?.cine === activeCine.shotKey && observed === this.cineUnder.observed;
       const asked = observed !== null && observed === this.requestedPov;
       follow = asked || !(state.observer.cameraMode === "roaming" || settling || under);
+      // Another player named during the shot that the director didn't ask for: the player CS2 was on
+      // died, or CS2 moved on by itself. The shot is over (HLAE lets go), but on builds whose game data
+      // names a player in the free camera, CS2 can still be in it, at that spot: the director selected
+      // nothing and the free camera stayed on air. Now a player is selected, which leaves it.
+      if (follow && !asked && observed !== null) this.reselect = true;
     }
-    if (follow) this.planner.observeShot(observed, now);
+    if (this.reselect) this.planner.observeShot(null, now);
+    else if (follow) this.planner.observeShot(observed, now);
     this.lastObserved = observed;
 
     const map = this.map && this.map.mapName === state.mapName ? this.map : undefined;
@@ -575,6 +588,7 @@ export class Director {
     if (executable && desired) {
       const shot = parseShot(desired.shotKey);
       if (shot.kind === "pov") this.requestedPov = desired.shotKey;
+      this.reselect = false;
       const target = shot.kind === "pov" ? state.players.find((p) => p.steamId === shot.id) : undefined;
       intent =
         shot.kind === "pov"
