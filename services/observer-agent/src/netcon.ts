@@ -296,6 +296,10 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
       this.leaving = null;
       if (l.modeInEye !== this.templates.modeInEye) this.applyNumbering(l.modeInEye === CS2_ENUM_MODES.modeInEye ? CS2_ENUM_MODES : CSGO_MODES);
     }
+    // CS2 moved to another player under HLAE's view (a number key pressed in CS2, or the spectated
+    // player died): that player is shown, not the camera HLAE was drawing.
+    const prev = this.observed.observedSteamId;
+    if (this.hlaeActive && prev && observer.observedSteamId && observer.observedSteamId !== prev) this.stopPath();
     this.observed = { cameraMode: observer.cameraMode, observedSteamId: observer.observedSteamId, position: observer.observedPosition ?? null, seq: this.observed.seq + 1 };
   }
 

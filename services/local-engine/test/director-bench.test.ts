@@ -74,6 +74,16 @@ describe("the director test bench", () => {
 });
 
 describe("the built-in POV model", () => {
+  it("loads from a Windows checkout (line endings converted) and refuses a changed model", () => {
+    const dir = mkdtempSync(join(tmpdir(), "mf-pov-crlf-"));
+    for (const f of ["model.json", "model_card.json", "parity_vectors.json"]) writeFileSync(join(dir, f), readFileSync(join(BUILTIN_DIR, "pov_2s-builtin", f), "utf8").replace(/\n/g, "\r\n"));
+    const m = loadPovModel(dir, "builtin");
+    expect(m.ok, m.ok ? "" : m.reason).toBe(true);
+    writeFileSync(join(dir, "model.json"), readFileSync(join(dir, "model.json"), "utf8").replace('"version"', '"versioN"'));
+    const bad = loadPovModel(dir, "builtin");
+    expect(bad.ok ? "" : bad.reason).toMatch(/checksum does not match/);
+  });
+
   it("evaluates exactly like LightGBM did when it was exported", () => {
     const m = loadPovModel(join(BUILTIN_DIR, "pov_2s-builtin"), "builtin");
     if (!m.ok) throw new Error(m.reason);

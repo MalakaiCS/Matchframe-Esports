@@ -156,6 +156,14 @@ export class Director {
   private pause: { round: string | null; side: "T" | "CT" | null; since: number } | null = null;
   /** Team shots of this round, by side and still/gliding, with where the team stood when framed. */
   private teamShots: { round: string | null; shots: Map<string, { shot: TeamShot | null; at: { x: number; y: number }; when: number }> } = { round: null, shots: new Map() };
+  /**
+   * The player the game data named when the cinematic on air started. CS2 goes on naming them under
+   * the free camera (and under HLAE's view), so they don't end the shot; another player does.
+   */
+  private cineUnder: { cine: ShotKey; observed: ShotKey | null } | null = null;
+  /** The player the director last asked for since the cinematic started (cutting away from it). */
+  private requestedPov: ShotKey | null = null;
+  private lastObserved: ShotKey | null = null;
   /** Line of sight for the cinematics, by both ends to the unit, for the map's grid. */
   private sightCache: { grid: VisibilityGrid | null; seen: Map<string, boolean> } = { grid: null, seen: new Map() };
   readonly controls: DirectorControls = {
@@ -301,6 +309,8 @@ export class Director {
     const long = shotClass === "establishing" || shotClass === "camera_path";
     const maxMs = long ? Math.min(PAUSE_HOLD_MS, Math.max(this.cfg.cinematic.establishingMaxMs, plannedDurationMs)) : this.cfg.cinematic.maxDurationMs;
     this.planner.cinematicStarted(shot, at, plannedDurationMs, opportunityId, countsTowardBudget, maxMs);
+    this.cineUnder = { cine: shot, observed: this.lastObserved };
+    this.requestedPov = null;
   }
 
   /**
@@ -430,12 +440,22 @@ export class Director {
     this.planner.setRound(state.roundAttemptId);
     this.notePause(state, now);
     const observed: ShotKey | null = state.observer.observedSteamId ? povShot(state.observer.observedSteamId) : null;
-    // Keep the planner on a confirmed cinematic; otherwise follow observed POV feedback. Just after a
-    // cinematic is confirmed (the console confirms a camera at once), game data from before the cut
-    // can still show the old player: that doesn't end the shot.
+    // Keep the planner on a confirmed cinematic; otherwise follow observed POV feedback. While a
+    // cinematic is on air, CS2's game data goes on naming the player it showed before the cut (the
+    // free camera and HLAE's view leave it there): that player doesn't end the shot, nor does game
+    // data from just before the cut. Another player does (someone picked one in CS2), and so does the
+    // player the director itself asked for. (Ending it on the old player made the director cut to a
+    // new shot every few seconds: the pause shot sent again and again, glides and paths cut short.)
     const activeCine = this.planner.activeCinematic;
-    const settling = !!activeCine && now - activeCine.startedAt < CINEMATIC_SETTLE_MS;
-    if (!(activeCine && (state.observer.cameraMode === "roaming" || settling))) this.planner.observeShot(observed, now);
+    let follow = true;
+    if (activeCine) {
+      const settling = now - activeCine.startedAt < CINEMATIC_SETTLE_MS;
+      const under = this.cineUnder?.cine === activeCine.shotKey && observed === this.cineUnder.observed;
+      const asked = observed !== null && observed === this.requestedPov;
+      follow = asked || !(state.observer.cameraMode === "roaming" || settling || under);
+    }
+    if (follow) this.planner.observeShot(observed, now);
+    this.lastObserved = observed;
 
     const map = this.map && this.map.mapName === state.mapName ? this.map : undefined;
     const grid = map?.grid ?? null;
@@ -554,6 +574,7 @@ export class Director {
     let intent: DirectorIntent | null = null;
     if (executable && desired) {
       const shot = parseShot(desired.shotKey);
+      if (shot.kind === "pov") this.requestedPov = desired.shotKey;
       const target = shot.kind === "pov" ? state.players.find((p) => p.steamId === shot.id) : undefined;
       intent =
         shot.kind === "pov"

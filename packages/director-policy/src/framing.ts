@@ -56,9 +56,13 @@ const HEADROOM = 28;
 /** Bodies stay this far inside the picture's edges (1 = the edge). */
 const EDGE_X = 0.86;
 const EDGE_Y = 0.88;
-/** The glide: an arc of this many degrees around the team and a push in of this share of the distance. */
-const ARC_DEG = 10;
-const PUSH_IN = 0.08;
+/**
+ * The glide: an arc of this many degrees around the team and a push in of this share of the distance
+ * (a broadcast-style move you can see; with HLAE it is drawn every frame). Smaller arcs are tried
+ * when the full one runs into a wall or loses a player.
+ */
+const ARC_DEG = 24;
+const PUSH_IN = 0.15;
 /** Nobody else stands this close to the camera, or in the picture nearer than this share of the way to the team. */
 const FOREGROUND_GAP = 120;
 const FOREGROUND_SHARE = 0.7;
@@ -349,7 +353,7 @@ function glide(
   const rx = from.x - f.x;
   const ry = from.y - f.y;
   const below = from.z - f.z + 300;
-  for (const deg of [ARC_DEG, -ARC_DEG, ARC_DEG / 2, -ARC_DEG / 2]) {
+  for (const deg of [ARC_DEG, -ARC_DEG, (ARC_DEG * 2) / 3, (-ARC_DEG * 2) / 3, ARC_DEG / 2.4, -ARC_DEG / 2.4]) {
     const a = (deg * Math.PI) / 180;
     const k = 1 - PUSH_IN;
     const end = { x: f.x + (rx * Math.cos(a) - ry * Math.sin(a)) * k, y: f.y + (rx * Math.sin(a) + ry * Math.cos(a)) * k, z: from.z };
@@ -380,19 +384,16 @@ export function arcPoint(from: Vec3, to: Vec3, focus: Vec3, u: number): Vec3 {
 }
 
 /**
- * The camera id of a team shot ("team-T", "team-CT"; a pause's still one "team-T-still"): its shot
- * key is cameraShot(id). The still one has its own, so a pause cuts to it from the same team's glide.
+ * A team shot's camera id: `team-T`, `team-T-still` (a pause: its glide out) and `team-T-still-back`
+ * (the glide back), `team-T-win` (the winners after a round) or `team-T-break` (half time, map end).
+ * Each is its own shot (key cameraShot(id)), so a round's freeze time can still show the team after
+ * the round before ended on them, and a pause cuts to its shot from the same team's glide.
  */
-/**
- * A team shot's camera id: `team-T`, `team-T-still` (a pause), `team-T-win` (the winners after a
- * round) or `team-T-break` (half time, map end). Each is its own shot, so a round's freeze time can
- * still show the team after the round before ended on them.
- */
-export const teamCameraId = (side: "T" | "CT", still = false, variant: "win" | "break" | null = null): string => `team-${side}${still ? "-still" : variant ? `-${variant}` : ""}`;
+export const teamCameraId = (side: "T" | "CT", still = false, variant: "win" | "break" | "back" | null = null): string => `team-${side}${still ? (variant === "back" ? "-still-back" : "-still") : variant && variant !== "back" ? `-${variant}` : ""}`;
 
 /** The side of a team shot's camera id, or null for any other camera. */
 export function teamShotSide(cameraId: string | null): "T" | "CT" | null {
-  const m = /^team-(T|CT)(-still|-win|-break)?$/.exec(cameraId ?? "");
+  const m = /^team-(T|CT)(-still(?:-back)?|-win|-break)?$/.exec(cameraId ?? "");
   return m ? (m[1] as "T" | "CT") : null;
 }
 

@@ -149,21 +149,22 @@ describe("Dust2: out of the freeze-time shot and into first person when the roun
     expect(log.some((l) => l.msg === "game" && l.data?.phase === "live" && l.data?.round === freezeRound)).toBe(true);
   }, 90000);
 
-  it("in a CT tactical timeout, holds a still shot of the CTs until the round goes live, then first person", async () => {
+  it("in a CT tactical timeout, glides round the CTs until the round goes live, then first person", async () => {
     await waitFor(() => cs2.now() > LIVE2_END, 60000);
     // When the engine saw the round go live (its game data is a moment behind the stand-in's clock).
     const liveAt = samples.find((s) => s.at > LIVE2_START - 1000 && s.phase === "live")!.at;
     const why = JSON.stringify(commands.filter((c) => c.at > FREEZE2).map((c) => [Math.round(c.at), c.request]));
-    // Within a second of the timeout, a still shot of the CTs.
+    // Within a second of the timeout, the CTs' pause shot, gliding (one way over 20 s, then back).
     const hold = commands.find((c) => c.at > TIMEOUT[0] && c.request.kind === "activate_static_camera");
     expect(hold, why).toBeTruthy();
     expect(hold!.at - TIMEOUT[0], why).toBeLessThan(1000);
     expect(hold!.request.cameraId, why).toBe("team-CT-still");
-    expect(hold!.request.movingMs ?? 0, why).toBe(0);
-    // Nothing else until the round goes live (the timeout ends at 69 s, the round goes live at 75 s); still.
+    expect(hold!.request.movingMs, why).toBe(20000);
+    // Nothing else until the round goes live (the timeout ends at 69 s, the round goes live at 75 s: one glide).
     expect(commands.filter((c) => c.at > hold!.at && c.at < LIVE2_START), why).toEqual([]);
-    // (The position is sent again for ~300 ms after the switch to the free camera, which CS2 makes a tick later.)
-    expect(cs2.lines.filter((l) => l.at > hold!.at + 800 && l.at < LIVE2_START && /spec_goto|\+(left|right)/.test(l.line)), why).toEqual([]);
+    // Moving all the while (Matchframe sends the poses over the console here), never with the movement keys.
+    expect(cs2.lines.filter((l) => l.at > LIVE2_START - 3000 && l.at < LIVE2_START && /^spec_goto /.test(l.line)).length, why).toBeGreaterThan(20);
+    expect(cs2.lines.filter((l) => l.at > hold!.at && l.at < LIVE2_START && /\+(left|right)/.test(l.line)), why).toEqual([]);
     // Then first person.
     const next = commands.find((c) => c.at > hold!.at);
     expect(next?.request.kind, why).toBe("select_player");

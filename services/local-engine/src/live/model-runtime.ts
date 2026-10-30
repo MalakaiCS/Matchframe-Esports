@@ -90,7 +90,12 @@ function loadExport(dir: string, task: string, features: readonly string[]): { o
     const file = join(dir, card.files?.model ?? "model.json");
     if (!existsSync(file)) return { ok: false, reason: "model file missing" };
     const bytes = readFileSync(file);
-    const sha = createHash("sha256").update(bytes).digest("hex");
+    let sha = createHash("sha256").update(bytes).digest("hex");
+    // A copy whose only change is Windows line endings (a Git checkout on Windows): the same model.
+    if (card.model_sha256 && sha !== card.model_sha256 && bytes.includes(13)) {
+      const lf = createHash("sha256").update(Buffer.from(bytes.toString("utf8").replace(/\r\n/g, "\n"), "utf8")).digest("hex");
+      if (lf === card.model_sha256) sha = lf;
+    }
     if (card.model_sha256 && sha !== card.model_sha256) return { ok: false, reason: "model checksum does not match its card (corrupt or modified)" };
     const gbdt = new GbdtModel(JSON.parse(bytes.toString("utf8")) as LgbDump);
     const schemaNames = [...(card.feature_schema ?? [])].sort((a, b) => a.index - b.index).map((f) => f.name);

@@ -882,3 +882,40 @@ WebRTC alone can't delay video by minutes.
 - Page and screen unit tests.
 
 **Not checked.** Real players over the internet; kaiHUD itself; OBS's browser. The website needs redeploying.
+
+## ADR-049 — A cinematic holds while CS2 names the player from before the cut; moving pause shots
+
+**Context.** The owner's 0.8.0 support file (Mirage, HLAE camera connected): "the cinematics flicker when the match is paused and when it's unpaused it continues to flicker", "like it's trying to change cameras but isn't", and "the cinematic shots aren't moving ones".
+
+The log showed every cinematic confirmed by HLAE, then, 600 ms later, the director back on the player CS2 had shown before the cut:
+- the game data went on naming that player (camera mode never roaming; ADR-040 had seen the same);
+- the planner kept a cinematic only while the game data showed the free camera or within the 600 ms after the cut.
+
+So in a pause the director sent the same pause shot again every one to two seconds. Each time, `spec_mode 4; spec_goto` switched CS2's spectator mode under HLAE's view: the flicker. In freeze time it cut to a new shot about every 3 s, so glides and paths never got going. After each cut back to a player it also sent `spec_player` once per game-data packet for 600 ms (17 times).
+
+Two smaller findings:
+- the team shots' glide (10° round the team, 8 % closer, over 10–14 s) is about 6 units a second, which reads as still;
+- the pause shot was still by design.
+
+The same file showed the demo-trained POV model refused: "model checksum does not match its card". The Windows build's Git checkout had converted `model.json`'s line ending to CRLF.
+
+**Decision.**
+- **Holding:** when a cinematic starts, the director remembers the player the game data named. While the cinematic is on air, that player doesn't end it, nor does the 600 ms after the cut, nor the free camera. The planner follows the game data again when it shows:
+  - another player (someone picked one in CS2, or the player died);
+  - the player the director asked for when cutting away from the cinematic (the cut is confirmed at once, so no `spec_player` repeats).
+- **HLAE follows CS2:** when CS2 moves to another player under HLAE's view and it wasn't Matchframe's selection, the adapter stops HLAE drawing, so that player is shown.
+- **Current shot:** the operator screens report the cinematic on air, not the player underneath.
+- **Glides:** 24° round the team and 15 % closer, falling back to 16° then 10°, either way, when the full arc runs into a wall or loses a player.
+- **Pauses:** the team's shot glides one way over 20 s (`team-T-still`), then back (`team-T-still-back`), until the round goes live. A spawn camera pause shot stays still.
+- **Model files:** `.gitattributes` keeps `assets/models/**` byte-exact. The loader also takes a model whose only difference is CRLF line endings.
+
+**Checked.**
+- Director tests with the game data naming the old player after every confirmed cinematic (as CS2 does):
+  - freeze time plays the same two team shots, each its full length, and one selection at live;
+  - a pause glides out, back, out, back 20 s apart, each starting where the last ended.
+  - Without the fix, both tests fail.
+- The pause tests with the free camera in the game data. The Dust2 e2e pause, now gliding over the console with no movement keys.
+- Adapter: HLAE keeps drawing while CS2 names the same player and stops when it names another.
+- The built-in model from a CRLF copy loads; a changed byte is refused.
+
+**Not checked.** In a real CS2 with HLAE.

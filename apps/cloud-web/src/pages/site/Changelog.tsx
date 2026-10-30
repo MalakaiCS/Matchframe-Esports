@@ -11,6 +11,21 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.8.1",
+    title: "Cinematics that hold and move",
+    summary: "Freeze-time and pause cinematics no longer flicker: each shot plays its full length, and team shots and pause shots glide round the players.",
+    sections: [
+      {
+        heading: "Cinematics",
+        items: [
+          "Fixed cinematics flickering in pauses and freeze time with the HLAE camera.",
+          "Team shots glide further round the team; pause shots glide back and forth until the round goes live.",
+          "The demo-trained POV model loads on Windows again.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.8.0",
     title: "Player cams",
     summary: "Players send their face cam from a link on the Matchframe website; the production shows it in the HUD and OBS, delayed to match the game.",

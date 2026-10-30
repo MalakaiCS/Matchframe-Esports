@@ -651,7 +651,10 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   currentShotKey(): string | null {
     const s = this.lastState;
     if (!s) return null;
-    return s.observer.observedSteamId ? povShot(s.observer.observedSteamId) : (this.director.shotPlanner.activeCinematic?.shotKey ?? (s.observer.cameraMode === "roaming" ? "roaming" : null));
+    // A cinematic on air first: CS2's game data may go on naming the player it showed before the cut.
+    const cine = this.director.shotPlanner.activeCinematic?.shotKey ?? null;
+    if (cine && this.director.shotPlanner.shot === cine) return cine;
+    return s.observer.observedSteamId ? povShot(s.observer.observedSteamId) : s.observer.cameraMode === "roaming" ? "roaming" : null;
   }
 
   reasonsSummary(): ReasonCode[] {

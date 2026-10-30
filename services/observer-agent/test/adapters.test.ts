@@ -796,6 +796,24 @@ describe("the HLAE camera (every free-camera and moving shot drawn by HLAE)", ()
     c.server.close();
   });
 
+  it("stops drawing when CS2 moves to another player underneath (a key pressed in CS2), not while it goes on naming the same one", async () => {
+    const c = await numberedCs2(4, 2);
+    const { link, calls } = fakeLink();
+    const a = new NetconObserverAdapter({ host: "127.0.0.1", port: c.port, now: () => performance.now(), playerName: () => "nova", templates: modes, hlae: link });
+    a.noteObserverState({ cameraMode: "unknown", observedSteamId: "76561198000000001" });
+    await a.activateStaticCamera(camera(), ctx());
+    // CS2's game data goes on naming the player it showed before the cut: HLAE keeps drawing.
+    for (let i = 0; i < 5; i++) a.noteObserverState({ cameraMode: "unknown", observedSteamId: "76561198000000001" });
+    expect(calls.filter((x) => x.kind === "release")).toHaveLength(0);
+    // Another player: their view is shown.
+    a.noteObserverState({ cameraMode: "unknown", observedSteamId: "76561198000000003" });
+    expect(calls.filter((x) => x.kind === "release")).toHaveLength(1);
+    a.noteObserverState({ cameraMode: "unknown", observedSteamId: "76561198000000004" });
+    expect(calls.filter((x) => x.kind === "release")).toHaveLength(1); // not drawing any more
+    await a.dispose();
+    c.server.close();
+  });
+
   it("plays camera paths and live moves through HLAE", async () => {
     const c = await numberedCs2(4, 2);
     const { link, calls } = fakeLink();

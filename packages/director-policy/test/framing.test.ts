@@ -51,9 +51,10 @@ describe("team shots on open ground", () => {
     const pitch = aimAt(shot.from, shot.focus).pitch;
     expect(pitch).toBeGreaterThan(0);
     expect(pitch).toBeLessThan(30);
-    // Glides: about 10° round them and a little closer, at the same height.
+    // Glides: about 24° round them and closer, at the same height (a move you can see).
     const turn = Math.abs(aimAt(shot.focus, shot.from).yaw - aimAt(shot.focus, shot.to).yaw);
-    expect(Math.min(turn, 360 - turn)).toBeCloseTo(10, 0);
+    expect(Math.min(turn, 360 - turn)).toBeCloseTo(24, 0);
+    expect(Math.hypot(shot.to.x - shot.focus.x, shot.to.y - shot.focus.y) / d).toBeCloseTo(0.85, 2);
     expect(Math.hypot(shot.to.x - shot.focus.x, shot.to.y - shot.focus.y)).toBeLessThan(d);
     expect(shot.to.z).toBe(shot.from.z);
   });

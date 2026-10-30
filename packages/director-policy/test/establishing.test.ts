@@ -45,7 +45,11 @@ interface Shot {
  * Plays 18 s of freeze time then `liveMs` of live round; the "camera" does what the director says.
  * `pause`: a timeout from `at` ms into freeze time, `ms` long (freeze time is longer by as much).
  */
-function play(opts: { ctAt: { x: number; y: number; z: number }; liveMs: number; neverConfirmed?: boolean; pause?: { at: number; ms: number; phase: "timeout_t" | "timeout_ct" | "paused" }; grid?: boolean; paths?: boolean }) {
+/**
+ * `keepsPlayer`: as CS2 does under the free camera and HLAE's view, the game data goes on naming the
+ * player it showed before a cinematic (otherwise it shows the free camera).
+ */
+function play(opts: { ctAt: { x: number; y: number; z: number }; liveMs: number; neverConfirmed?: boolean; pause?: { at: number; ms: number; phase: "timeout_t" | "timeout_ct" | "paused" }; grid?: boolean; paths?: boolean; keepsPlayer?: boolean }) {
   const rt = new MapRuntime(pack());
   // With Mirage's free-space grid: team shots.
   if (opts.grid) rt.grid = VisibilityGrid.parse(readFileSync(join(root, "assets", "map-packs", "de_mirage.grid")), (b) => inflateSync(b));
@@ -84,7 +88,7 @@ function play(opts: { ctAt: { x: number; y: number; z: number }; liveMs: number;
       // Confirmed at once, like a camera the console's getpos confirms; or never confirmed (the camera stays on the player).
       if (opts.neverConfirmed) director.cinematicFailed(key);
       else {
-        observed = null;
+        if (!opts.keepsPlayer) observed = null;
         director.cinematicStarted(key, sim.now, i.plannedDurationMs ?? 3000, null, false, i.shotClass);
       }
     }
@@ -265,16 +269,41 @@ describe("team shots (the map's free-space grid frames each team where it stands
     expect(shots.find((s) => s.at >= freezeMs)?.kind).toBe("pov");
   });
 
-  it("holds a still shot of the team that called a tactical timeout", () => {
-    const { shots, freezeMs } = play({ ctAt: CT_SPAWN, liveMs: 2000, grid: true, pause: { at: 4000, ms: 20000, phase: "timeout_ct" } });
-    const hold = shots.find((s) => s.at >= 4000 && s.kind !== "pov")!;
-    expect(hold.id).toBe("team-CT-still");
-    expect(hold.at - 4000).toBeLessThan(500);
-    expect(hold.move!.to).toEqual(hold.move!.from);
-    expect(shots.filter((s) => s.at > hold.at && s.at < freezeMs)).toEqual([]);
+  it("in a tactical timeout, glides round the team that called it, one way then back, until the round goes live", () => {
+    for (const keepsPlayer of [false, true]) {
+      const { shots, freezeMs } = play({ ctAt: CT_SPAWN, liveMs: 2000, grid: true, pause: { at: 4000, ms: 50000, phase: "timeout_ct" }, keepsPlayer });
+      const inPause = shots.filter((s) => s.at >= 4000 && s.at < freezeMs);
+      expect(inPause.map((s) => s.id), JSON.stringify(inPause)).toEqual(["team-CT-still", "team-CT-still-back", "team-CT-still", "team-CT-still-back"]);
+      expect(inPause[0]!.at - 4000).toBeLessThan(500);
+      for (let i = 0; i < inPause.length; i++) {
+        const s = inPause[i]!;
+        expect(Math.hypot(s.move!.to.x - s.move!.from.x, s.move!.to.y - s.move!.from.y)).toBeGreaterThan(60); // moving
+        expect(s.durationMs).toBe(20000);
+        if (i > 0) {
+          // Each glide starts where the one before ended, 20 s later.
+          expect(s.move!.from).toEqual(inPause[i - 1]!.move!.to);
+          expect(s.at - inPause[i - 1]!.at).toBeGreaterThanOrEqual(19800);
+          expect(s.at - inPause[i - 1]!.at).toBeLessThan(20400);
+        }
+      }
+      expect(shots.find((s) => s.at >= freezeMs)?.kind).toBe("pov");
+    }
   });
 
-  it("cuts to the still shot also from the same team's glide, whichever team is on air", () => {
+  it("holds each team shot its full length while the game data goes on naming the player (CS2 under HLAE), and cuts to first person once", () => {
+    const { shots, freezeMs } = play({ ctAt: CT_SPAWN, liveMs: 3000, grid: true, keepsPlayer: true });
+    const first = shots.findIndex((s) => s.kind !== "pov");
+    const inFreeze = shots.slice(first).filter((s) => s.at < freezeMs);
+    // The same two shots as when the game data shows the free camera: nothing sent again.
+    expect(inFreeze.map((s) => s.id).sort(), JSON.stringify(inFreeze)).toEqual(["team-CT", "team-T"]);
+    expect(inFreeze[1]!.at - inFreeze[0]!.at).toBeGreaterThanOrEqual(inFreeze[0]!.durationMs! - 300);
+    // Live: one player selection, not one per game-data packet.
+    const live = shots.filter((s) => s.at >= freezeMs);
+    expect(live[0]?.kind).toBe("pov");
+    expect(live.filter((s) => s.at - live[0]!.at < 1000)).toHaveLength(1);
+  });
+
+  it("cuts to the pause shot also from the same team's glide, whichever team is on air", () => {
     for (const at of [6000, 13000]) {
       for (const [phase, side] of [["timeout_t", "T"], ["timeout_ct", "CT"]] as const) {
         const { shots } = play({ ctAt: CT_SPAWN, liveMs: 1000, grid: true, pause: { at, ms: 15000, phase } });

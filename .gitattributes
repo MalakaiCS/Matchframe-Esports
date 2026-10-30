@@ -1,0 +1,3 @@
+# Byte-exact files: models are loaded only when their SHA-256 matches their card, so a checkout
+# must not change their line endings (Git on Windows converts text files by default).
+assets/models/** -text

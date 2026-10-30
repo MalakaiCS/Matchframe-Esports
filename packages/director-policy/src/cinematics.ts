@@ -62,6 +62,8 @@ const ESTABLISHING_SHOT_MIN_SEC = 4;
 const ESTABLISHING_OVERRUN_MS = 1500;
 /** The shot a pause (tactical or technical timeout) is held on lasts until the round goes live, up to this. */
 export const PAUSE_HOLD_MS = 180_000;
+/** In a pause, a team shot glides one way over this long, then back, until the round goes live. */
+export const PAUSE_GLIDE_MS = 20_000;
 /** The winners' shot starts this long after the round ends (the last kill stays on air first). */
 const WINNER_DELAY_MS = 2000;
 /** A team whose players have less than this on average (money and equipment) is on an eco. */
@@ -288,11 +290,14 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>, mode: 
   // Team shots first (still ones in a pause).
   plan.sides.forEach((side, i) => {
     const look = input.pause || interval || !cfg.cinematic.variety ? "eye" : LOOKS[((state.roundNumber ?? 0) + 2 * i) % LOOKS.length]!;
-    const shot = input.teamShot?.(side, !!input.pause, look);
+    // A pause's shot glides too (one way, then back: see pauseCandidates).
+    const shot = input.teamShot?.(side, false, look);
     if (!shot) return;
     const ids = new Set(shot.steamIds);
+    const players = alive.filter((p) => ids.has(p.steamId));
     const key = cameraShot(teamCameraId(side, !!input.pause, interval ? "break" : null));
-    options.push({ key, shotClass: "establishing", camera: null, path: null, team: { side, shot }, regionIds: [], durationMs: plan.longSide === side ? longMs : nextMs, players: alive.filter((p) => ids.has(p.steamId)) });
+    options.push({ key, shotClass: "establishing", camera: null, path: null, team: { side, shot }, regionIds: [], durationMs: plan.longSide === side ? longMs : nextMs, players });
+    if (input.pause) options.push({ key: cameraShot(teamCameraId(side, true, "back")), shotClass: "establishing", camera: null, path: null, team: { side, shot, back: true }, regionIds: [], durationMs: PAUSE_GLIDE_MS, players });
   });
   for (const m of map.camerasWith?.({ actionClass: "establishing", phase: "freezetime" }) ?? []) {
     const cam = m.camera;
@@ -499,18 +504,19 @@ interface EstablishingOption {
   shotClass: "establishing" | "camera_path";
   camera: CameraRecord | null;
   path: CameraPath | null;
-  /** A team shot. */
-  team?: { side: "T" | "CT"; shot: TeamShot };
+  /** A team shot (`back`: a pause's glide the other way). */
+  team?: { side: "T" | "CT"; shot: TeamShot; back?: boolean };
   regionIds: string[];
   durationMs: number;
   players: MatchState["players"];
 }
 
 /**
- * In a pause: a still shot of the team that called it (for a technical pause, the team the camera
- * already shows, else the Ts), held until the round goes live: their team shot, or else a spawn
- * camera showing them. A shot that was on air before the pause gives way to it at once; the pause
- * shot may be one already played this round.
+ * In a pause: a shot of the team that called it (for a technical pause, the team the camera already
+ * shows, else the Ts) until the round goes live. Their team shot glides round them one way over
+ * PAUSE_GLIDE_MS, then back, and so on; without one, a spawn camera showing them, still. A shot that
+ * was on air before the pause gives way to it at once; the pause shot may be one already played this
+ * round.
  */
 function pauseCandidates(input: CinematicInput, options: EstablishingOption[], need: number, seen: Set<string>): ScoredCandidate[] {
   const { cfg, pause } = input;
@@ -518,11 +524,15 @@ function pauseCandidates(input: CinematicInput, options: EstablishingOption[], n
   const current = cams.find((o) => o.key === input.currentShot);
   const majority = (o: EstablishingOption) => o.team?.side ?? (o.players.filter((p) => p.side === "CT").length > o.players.length / 2 ? "CT" : "T");
   const side = pause!.side ?? (current ? majority(current) : "T");
-  // The team shot of that side first.
-  const ofSide = cams.filter((o) => majority(o) === side).sort((a, b) => Number(!!b.team) - Number(!!a.team));
-  // The pause shot on air: started after the pause began.
-  const holding = !!current && majority(current) === side && input.currentShotSinceMs != null && input.currentShotSinceMs >= pause!.since;
-  const pick = holding ? [current] : ofSide.filter((o) => o.key !== input.currentShot).concat(ofSide.filter((o) => o.key === input.currentShot)).slice(0, 1);
+  // The team shot of that side first (its glide out; the glide back follows it).
+  const ofSide = cams.filter((o) => majority(o) === side && !o.team?.back).sort((a, b) => Number(!!b.team) - Number(!!a.team));
+  const moves = (o: EstablishingOption) => !!o.team && (o.team.shot.to.x !== o.team.shot.from.x || o.team.shot.to.y !== o.team.shot.from.y || o.team.shot.to.z !== o.team.shot.from.z);
+  // The pause shot on air: started after the pause began. A glide that has run its course turns back.
+  const inPause = !!current && majority(current) === side && input.currentShotSinceMs != null && input.currentShotSinceMs >= pause!.since;
+  const glided = inPause && moves(current!) && input.now - input.currentShotSinceMs! >= PAUSE_GLIDE_MS - 150;
+  const turnBack = glided ? cams.find((o) => o.team?.side === current!.team!.side && !!o.team!.back !== !!current!.team!.back) : undefined;
+  const pick = turnBack ? [turnBack] : inPause ? [current] : ofSide.filter((o) => o.key !== input.currentShot).concat(ofSide.filter((o) => o.key === input.currentShot)).slice(0, 1);
+  const holding = inPause && !turnBack;
   const out: ScoredCandidate[] = [];
   for (const o of pick) {
     if (seen.has(o.key)) continue;
@@ -557,12 +567,12 @@ function pauseCandidates(input: CinematicInput, options: EstablishingOption[], n
       invalidReason: valid ? null : "static camera control not verified, or pinned/one-side profile active",
       evidenceType: "estimated",
       opportunity: null,
-      plannedDurationMs: PAUSE_HOLD_MS,
+      plannedDurationMs: moves(o) ? PAUSE_GLIDE_MS : PAUSE_HOLD_MS,
       // A shot from before the pause gives way at once.
       urgent: !holding,
       chain: true,
       panDegPerSec: 0,
-      ...(o.team ? { framing: { from: o.team.shot.from, to: o.team.shot.from, focus: o.team.shot.focus } } : {}),
+      ...(o.team ? { framing: o.team.back ? { from: o.team.shot.to, to: o.team.shot.from, focus: o.team.shot.focus } : { from: o.team.shot.from, to: o.team.shot.to, focus: o.team.shot.focus } } : {}),
     });
   }
   return out;
