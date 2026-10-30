@@ -11,6 +11,17 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.9.4",
+    title: "Demos read on Windows",
+    summary: "The Demo library reads demos on Windows; they all failed before.",
+    sections: [
+      {
+        heading: "Demo library",
+        items: ["Demos no longer fail with \"No module named 'resource'\" on Windows. Press Retry on demos that failed."],
+      },
+    ],
+  },
+  {
     version: "0.9.3",
     title: "Demo library settings fixed",
     summary: "Changes in the Demo library's settings stay until you save them.",

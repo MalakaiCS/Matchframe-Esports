@@ -1,0 +1,31 @@
+# The demo workers (Python) run on the operator's Windows PC, where the program reads demos. Their
+# tests run there whenever the workers change: Windows has no POSIX-only modules (`resource`), other
+# path rules and another default text encoding.
+name: Demo workers on Windows
+
+on:
+  push:
+    paths:
+      - "workers/**"
+      - ".github/workflows/workers-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Worker tests (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: workers/pyproject.toml
+      - name: Install the workers and their test dependencies
+        run: python -m pip install --disable-pip-version-check -e "workers[test]"
+      - name: Run the worker tests
+        run: python -m pytest workers -q
