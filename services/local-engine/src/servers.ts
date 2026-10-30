@@ -145,12 +145,16 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       res.writeHead(200).end();
       return;
     }
+    // Answered before the packet is read: CS2 sends one update at a time and waits for the answer,
+    // and an answer later than the config's timeout makes it skip ahead to its heartbeat, leaving
+    // every HUD without data until then. (A packet that fails validation is dropped by the session.)
+    res.writeHead(200, { "content-type": "text/plain" }).end();
     const provider = (payload as { provider?: { steamid?: unknown } })?.provider?.steamid;
     const sourceId = `gsi:${typeof provider === "string" && /^\d+$/.test(provider) ? provider : "unknown"}`;
     // LHM-format HUDs get the packet as CS2 sent it before Matchframe's own processing.
     e.emitRawGsi(payload, false);
-    const outcome = e.session.ingestGsi(payload, sourceId, receivedAt, text);
-    res.writeHead(outcome.reason === "invalid" ? 400 : 200, { "content-type": "text/plain" }).end();
+    e.session.ingestGsi(payload, sourceId, receivedAt, text);
+    e.feed.notePacket(receivedAt);
   });
 
   // ------------------------------------------------------------------ operator hub

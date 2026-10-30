@@ -59,7 +59,7 @@ const EDGE_Y = 0.88;
 /**
  * The glide: an arc of this many degrees around the team and a push in of this share of the distance
  * (a broadcast-style move you can see; with HLAE it is drawn every frame). Smaller arcs are tried
- * when the full one runs into a wall or loses a player.
+ * when the full one runs into a wall or loses a player, and last a straight push in.
  */
 const ARC_DEG = 24;
 const PUSH_IN = 0.15;
@@ -341,7 +341,10 @@ function frameGroup(group: FramedPlayer[], space: FreeSpace, opts: FrameOptions)
   return { ...best.shot, to: glide(best.shot, place, roomy, blocked) ?? best.shot.from };
 }
 
-/** The end of the glide: an arc round the team with a slight push in, whichever way stays clear. */
+/**
+ * The end of the glide: an arc round the team with a slight push in, whichever way stays clear;
+ * where no arc does (a tight spawn), a straight push in towards them.
+ */
 function glide(
   shot: TeamShot,
   place: (at: Vec3, focus: Vec3) => Placed | null,
@@ -353,7 +356,7 @@ function glide(
   const rx = from.x - f.x;
   const ry = from.y - f.y;
   const below = from.z - f.z + 300;
-  for (const deg of [ARC_DEG, -ARC_DEG, (ARC_DEG * 2) / 3, (-ARC_DEG * 2) / 3, ARC_DEG / 2.4, -ARC_DEG / 2.4]) {
+  for (const deg of [ARC_DEG, -ARC_DEG, (ARC_DEG * 2) / 3, (-ARC_DEG * 2) / 3, ARC_DEG / 2.4, -ARC_DEG / 2.4, 0]) {
     const a = (deg * Math.PI) / 180;
     const k = 1 - PUSH_IN;
     const end = { x: f.x + (rx * Math.cos(a) - ry * Math.sin(a)) * k, y: f.y + (rx * Math.sin(a) + ry * Math.cos(a)) * k, z: from.z };

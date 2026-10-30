@@ -40,11 +40,13 @@ export interface GsiConfigOptions {
 }
 
 /**
- * How often CS2 sends game data. CS2 sends one update at a time and waits for the answer, so the
- * engine's speed paces it; `throttle` caps it at 50 updates a second (a POV switch reaches the
- * engine within 20 ms instead of up to 100 ms), and a late answer stalls it for at most `timeout`.
+ * How often CS2 sends game data. CS2 sends one update at a time and waits for the answer (the
+ * engine answers before reading the update); `throttle` caps it at 50 updates a second (a POV switch
+ * reaches the engine within 20 ms instead of up to 100 ms). An update not answered within `timeout`
+ * counts as lost, and CS2 sends the full state again at the next heartbeat: a heartbeat of a second
+ * keeps that to a second or two (at 10 s every HUD went without data for up to 10 s).
  */
-export const GSI_TIMING = { timeout: 0.5, buffer: 0, throttle: 0.02, heartbeat: 10 } as const;
+export const GSI_TIMING = { timeout: 1, buffer: 0, throttle: 0.02, heartbeat: 1 } as const;
 
 const num = (n: number) => String(Math.round(n * 1000) / 1000);
 

@@ -13,6 +13,9 @@ import { usePermission } from "../../state/session.tsx";
 import { consoleLine, HlaeWarningDialog } from "../game/LaunchSettings.tsx";
 import { LIBRARY_PATH, useRun } from "./actions.ts";
 
+/** For the standard launch mode (no console): only the kill feed and the names above the players from the game's HUD. */
+const GAME_HUD_COMMAND = "cl_drawhud 1; cl_draw_only_deathnotices 1; cl_drawhud_force_teamid_overhead 1";
+
 function Toggle({ label, hint, on, onChange, reason, testId }: { label: string; hint: string; on: boolean | null; onChange: (v: boolean) => void; reason: string | null; testId: string }) {
   return (
     <div className="hud-option" data-option={testId}>
@@ -173,14 +176,14 @@ export function GameCard() {
         </div>
       </div>
       {mode === "standard" ? (
-        <div className="hud-game-command" title="Paste into the CS2 console while spectating: hides the game's own HUD apart from the kill notices, so only your HUD shows. The Observer tools launch mode does this for you.">
-          <code>cl_draw_only_deathnotices 1</code>
-          <CopyButton text="cl_draw_only_deathnotices 1" label="Copy" />
+        <div className="hud-game-command" title="Paste into the CS2 console while spectating: hides the game's own HUD apart from the kill notices and the names above the players, so only your HUD shows. The Observer tools launch mode does this for you.">
+          <code>{GAME_HUD_COMMAND}</code>
+          <CopyButton text={GAME_HUD_COMMAND} label="Copy" />
         </div>
       ) : (
         <div className="hud-game-options" aria-label="Game options">
-          <Toggle label="Hide game HUD" testId="hide-game-hud" hint="cl_draw_only_deathnotices 1: the game shows only its kill feed; your HUD shows the rest. Sent when the console connects." on={o ? o.hideGameHud : null} reason={cameraReason} onChange={option("hideGameHud")} />
-          <Toggle label="X-ray" testId="xray" hint="spec_show_xray and hud_showtargetid: players visible through walls on the observer's screen, with their names above them." on={o ? o.xray : null} reason={cameraReason} onChange={option("xray")} />
+          <Toggle label="Hide game HUD" testId="hide-game-hud" hint="cl_drawhud 1 and cl_draw_only_deathnotices 1: the game shows only its kill feed (and, with X-ray, the names above the players); your HUD shows the rest. Sent when the console connects." on={o ? o.hideGameHud : null} reason={cameraReason} onChange={option("hideGameHud")} />
+          <Toggle label="X-ray" testId="xray" hint="spec_show_xray, hud_showtargetid and cl_drawhud_force_teamid_overhead: players visible through walls on the observer's screen, with their names above them (also with Hide game HUD on)." on={o ? o.xray : null} reason={cameraReason} onChange={option("xray")} />
           <Toggle
             label="No X-ray in clutches"
             testId="clutch-xray-off"

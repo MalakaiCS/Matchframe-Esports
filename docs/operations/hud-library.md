@@ -24,7 +24,7 @@ The program updates itself from the Matchframe Esports releases on GitHub, so yo
 ## The library page
 
 - **Switches** at the top: **Test data** (the labelled simulation, below), **Show HUD graphics** (off hides every HUD graphic at once, the same as the emergency hide) and **Utility on the radar** (smokes, fires and flashes the game reports, on HUD radars). Hover the **?** for details.
-- **Counter-Strike 2** card: whether CS2 was found and its data arrives, the launch mode, **Start CS2** and **Setup** (below). In the standard mode it shows the console command `cl_draw_only_deathnotices 1` with **Copy** (paste it into the CS2 console while spectating so only your HUD and the kill notices show); in the console modes it shows the game options instead.
+- **Counter-Strike 2** card: whether CS2 was found and its data arrives, the launch mode, **Start CS2** and **Setup** (below). In the standard mode it shows the console line `cl_drawhud 1; cl_draw_only_deathnotices 1; cl_drawhud_force_teamid_overhead 1` with **Copy** (paste it into the CS2 console while spectating so only your HUD, the kill notices and the names above the players show); in the console modes it shows the game options instead.
 - Below: search, category, status and sort, list or grid, and **Add HUD**. HUDs are grouped by category; click a group's name to fold it.
 - Each HUD's row shows its picture, name and version, author, status and active outputs, then **Settings** (gear), **Preview** (eye), **Copy OBS Browser URL**, **⋯** (more actions), the **Desktop** switch and the arrow that opens its details under the row.
 
@@ -47,8 +47,8 @@ Every bundled HUD shows a minimap (top left) and a killfeed (top right), each in
 
 Game options (console modes; sent every time the console connects, and straight away when changed):
 
-- **Hide game HUD**: `cl_draw_only_deathnotices 1`, the game shows only its kill feed and your HUD shows the rest.
-- **X-ray**: `spec_show_xray` and `hud_showtargetid`, players visible through walls on the observer's screen with their names above them.
+- **Hide game HUD**: `cl_drawhud 1` and `cl_draw_only_deathnotices 1`, the game shows only its kill feed (and, with X-ray, the names above the players) and your HUD shows the rest.
+- **X-ray**: `spec_show_xray`, `hud_showtargetid` and `cl_drawhud_force_teamid_overhead`, players visible through walls on the observer's screen with their names above them (the team overhead, which also shows with Hide game HUD on).
 - **No X-ray in clutches** (on by default, with X-ray): when one player is left alive against two or more, X-ray and the names go off until the round is over, so viewers don't see the other team coming. They come back on for the next round.
 - **No X-ray in retakes** (on by default, with X-ray): after the plant, once a CT is within 1,600 units of the bomb with time left to defuse (5 s with a kit, 10 s without) and both teams have players alive, X-ray and the names go off until the round is over, so viewers don't see where the Ts wait. Not while the CTs save, or when no T is left.
 - **Run behind other windows** (on by default): `engine_no_focus_sleep 0` and `snd_mute_losefocus 0`. CS2 keeps drawing every frame and playing its sound while you use Matchframe or OBS. Off, CS2 slows down and goes silent whenever another window has focus (its own defaults). With CS2 in **Fullscreen** (not **Fullscreen Windowed**), clicking another window still stops the picture: use Fullscreen Windowed on the observer computer.

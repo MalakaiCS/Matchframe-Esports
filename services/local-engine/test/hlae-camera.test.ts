@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
 import { Database } from "../src/db/database.ts";
 import { SettingsRepo } from "../src/db/store.ts";
+import { hlaeKeys } from "@matchframe/observer-agent";
 import { HlaeCameraServer } from "../src/game/hlae-camera.ts";
 
 type View = { x: number; y: number; z: number; rX: number; rY: number; rZ: number; fov?: number } | undefined;
@@ -85,18 +86,23 @@ async function setup() {
   const { mirv, hooks, sockets } = fakeMirv();
   const ctx = vm.createContext({ mirv });
   vm.runInContext(script, ctx);
-  // A game frame: messages are handled at the start of each tick, the view set before each frame is drawn.
-  let abs = 100;
+  // A game frame: messages are handled at the start of each tick, the view set before each frame is
+  // drawn. As in HLAE's CS2 hook, absTime is the frame's length (CS2's absoluteframetime, seconds) and
+  // curTime the game's clock.
+  let cur = 100;
+  let lastAbs = 0.016;
   const frame = (dtMs = 16): View => {
     hooks.frame!({ curStage: 0, isBefore: true });
-    abs += dtMs / 1000;
-    return hooks.view!({ absTime: abs, curTime: abs, lastAbsTime: abs, currentView: { x: 1, y: 2, z: 3, rX: 0, rY: 0, rZ: 0, fov: 90 }, gameView: {}, lastView: {}, width: 1920, height: 1080 });
+    cur += dtMs / 1000;
+    const view = hooks.view!({ absTime: dtMs / 1000, curTime: cur, lastAbsTime: lastAbs, currentView: { x: 1, y: 2, z: 3, rX: 0, rY: 0, rZ: 0, fov: 90 }, gameView: {}, lastView: {}, width: 1920, height: 1080 });
+    lastAbs = dtMs / 1000;
+    return view;
   };
   for (let i = 0; i < 100 && !hlae.connected(); i++) {
     frame();
     await tick();
   }
-  return { hlae, frame, ctx, script, sockets, port, load, file };
+  return { hlae, frame, hooks, ctx, script, sockets, port, load, file };
 }
 
 describe("the HLAE camera script and the engine's /hlae connection", () => {
@@ -133,6 +139,47 @@ describe("the HLAE camera script and the engine's /hlae connection", () => {
     hlae.release();
     await tick();
     expect(frame()).toBeUndefined();
+  });
+
+  it("moves a 10 s glide frame by frame at the game's frame rate, to its end on time", async () => {
+    const { hlae, frame } = await setup();
+    // A team shot's glide: 300 units in 10 s, in keys as the engine sends them.
+    const keys = hlaeKeys((t) => ({ position: { x: t * 0.03, y: 0, z: 100 }, pitch: 10, yaw: 0 }), 10_000);
+    const shown = hlae.play(keys, { timeoutMs: 2000 });
+    await tick();
+    const xs: number[] = [frame(6.94)!.x];
+    await shown;
+    // 144 frames a second for just over 10 s.
+    for (let i = 0; i < 1445; i++) xs.push(frame(6.94)!.x);
+    expect(xs[1]! - xs[0]!).toBeCloseTo(6.94 * 0.03, 3);
+    const stuck = xs.map((x, i) => (i > 0 && !(x > xs[i - 1]!) && x !== 300 ? `${i}:${xs[i - 1]}->${x}` : null)).filter(Boolean);
+    expect(stuck).toEqual([]);
+    expect(xs[720]).toBeCloseTo(150, 0); // half way after 5 s
+    expect(xs.at(-1)).toBe(300);
+  });
+
+  it("falls back to the wall clock where HLAE gives no frame length", async () => {
+    const { hlae, hooks, ctx } = await setup();
+    let now = 1_000_000;
+    (ctx as { Date: { now: () => number } }).Date = { now: () => now };
+    const shown = hlae.play(
+      [
+        { t: 0, x: 0, y: 0, z: 0, pitch: 0, yaw: 0 },
+        { t: 1000, x: 1000, y: 0, z: 0, pitch: 0, yaw: 0 },
+      ],
+      { timeoutMs: 2000 },
+    );
+    await tick();
+    const draw = () => {
+      hooks.frame!({ curStage: 0, isBefore: true });
+      return hooks.view!({ currentView: { x: 0, y: 0, z: 0, rX: 0, rY: 0, rZ: 0, fov: 90 } });
+    };
+    draw();
+    await shown;
+    now += 250;
+    expect(draw()!.x).toBeCloseTo(250, 5);
+    now += 500;
+    expect(draw()!.x).toBeCloseTo(750, 5);
   });
 
   it("stops drawing the moment the program goes away, and turns away a wrong token", async () => {

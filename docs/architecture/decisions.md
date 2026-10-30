@@ -919,3 +919,26 @@ The same file showed the demo-trained POV model refused: "model checksum does no
 - The built-in model from a CRLF copy loads; a changed byte is refused.
 
 **Not checked.** In a real CS2 with HLAE.
+
+## ADR-050 — HLAE shots run on the frames' lengths; game data answered first; team overhead
+
+**Context.** The owner's recording of two rounds on Ancient (demo playback, HLAE camera, kaiHUD), made on 0.8.1: the freeze-time team shots stood still ("i want moving cinematics of the teams not just stationary"), and the HUD lagged on a fast PC. The owner also found the console lines that show the players' names above them with only the kill feed drawn: `cl_drawhud 1`, `cl_draw_only_deathnotices 1`, `cl_drawhud_force_teamid_overhead 1`.
+
+What the recording showed:
+- **Still shots:** differencing the first and last frames of each 9–10 s team shot left only the players moving; the camera didn't move a pixel. The glide was planned (frameTeam gives 10–24° on 77 of 80 real spawn line-ups).
+- **The cause:** HLAE's CS2 hook passes `absTime = g_MirvTime.absoluteframetime_get()` to `cViewRenderSetupView`. That is the frame's length in seconds (about 0.005 at 189 fps), not a clock. The Matchframe script took it as a clock, so "time into the shot" stayed at about zero. Since 0.7.1, every HLAE shot (team glides, pause glides, pans, the demo paths) was drawn at its first key, and streamed shots never eased. The script's test fed `absTime` as a running clock, so it passed.
+- **The HUD:** the round timer stayed on 1:55 and the minimap's dots stood still for 8.3 s from the moment the round went live (the cut from the HLAE shot to first person), then everything caught up at once. CS2 ran at 189 fps throughout. A stall of the HUD's data, not of its drawing speed. The engine itself answered each update in 4 ms (90 ms at worst) on the same transition in a benchmark (Ancient, real spawn positions), so the recording alone can't say which side stopped. One way the data stops for that long: CS2 sends one update at a time and waits for the answer; an update not answered within the config's `timeout` (0.5 s) counts as lost, and CS2 sends the full state again at its next heartbeat (10 s).
+
+**Decision.**
+- **HLAE clock:** the script runs shots on the sum of the frames' lengths (`absTime` per view, capped at 5 s), the way HLAE's own `mirv_input` camera moves; the wall clock only where `absTime` is missing.
+- **Team shots:** where no arc round the team stays clear, the camera pushes straight in (79 of 80 real line-ups move).
+- **Game data:** the engine answers each update before reading it. The config's timing is now `timeout 1`, `heartbeat 1` (a lost answer costs a second or two). The engine rewrites its config to the new timing when it starts; CS2 reads it when CS2 starts.
+- **Diagnostics:** `FeedWatch` records gaps of 1.5 s or more in the game data and event-loop stalls of 250 ms or more, with the round and phase. They go in the support file (`feed`) and the director log. With the outputs' own "hud stall" entries, one support file says which side froze.
+- **Team overhead:** `cl_drawhud 1` is sent with the console options; `cl_drawhud_force_teamid_overhead` goes on and off with X-ray, with `spec_show_xray` and `hud_showtargetid`, so the names also go off for clutches and retakes. The standard launch mode's copy line has all three.
+
+**Checked.**
+- HLAE script with HLAE's real arguments: a 10 s glide moves every frame at 144 fps and ends on time; the wall-clock fallback. Both fail on the old script.
+- Team shots on the 20 real spawn line-ups in all four looks: 79 of 80 move.
+- `FeedWatch` gaps and stalls; the GSI config's timing; console lines per launch mode, and team overhead off and on for a clutch and a retake.
+
+**Not checked.** In a real CS2 with HLAE, and whether CS2 really waits for the heartbeat after a lost answer (Valve documents it for CS:GO).

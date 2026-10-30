@@ -220,6 +220,8 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
         hlaeCamera: e.hlaeCamera.status(),
         telemetrySummary: e.session.samplerSummary(),
         metrics: e.session.metrics(),
+        // Gaps in CS2's game data and stalls of the engine (a frozen HUD: which side stopped).
+        feed: e.feed.summary(),
         state: s ? { mapName: s.mapName, round: s.roundNumber, epoch: s.epoch, sequence: s.sequence, sources: s.sources, simulated: s.simulated } : null,
         recentDecisions: e.session.decisionLog.slice(-50).map((d) => ({ at: d.decidedAtMonotonicMs, action: d.action, desired: d.desiredShot, reasons: d.reasonCodes, mode: d.mode, health: d.controlHealth })),
         arbiter: e.session.arbiter.log.slice(-100),

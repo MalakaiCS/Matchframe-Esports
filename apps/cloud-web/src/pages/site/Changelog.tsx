@@ -11,6 +11,28 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.8.2",
+    title: "Moving cinematics",
+    summary: "Freeze-time, pause and path cinematics through HLAE move as planned, the names above the players show with only the kill feed drawn, and the HUD gets game data more reliably.",
+    sections: [
+      {
+        heading: "Cinematics",
+        items: [
+          "Fixed HLAE cinematics standing still on their first frame: team shots glide, pause shots glide back and forth, and camera paths fly their whole route.",
+          "Team shots in tight spawns push in instead of standing still.",
+        ],
+      },
+      {
+        heading: "Game and HUD",
+        items: [
+          "The names above the players (team overhead) show with Hide game HUD on, and go off with X-ray in clutches and retakes.",
+          "Matchframe answers CS2's game data before reading it, and CS2 recovers within a second or two if an answer is lost.",
+          "The support file shows gaps in CS2's game data and stalls of the program.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.8.1",
     title: "Cinematics that hold and move",
     summary: "Freeze-time and pause cinematics no longer flicker: each shot plays its full length, and team shots and pause shots glide round the players.",

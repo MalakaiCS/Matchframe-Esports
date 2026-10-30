@@ -55,6 +55,7 @@ import { DirectorBench } from "./demos/bench-service.ts";
 import { PovModelService } from "./demos/pov-model.ts";
 import { CameraCapture } from "./live/camera-capture.ts";
 import { HlaeCameraServer } from "./game/hlae-camera.ts";
+import { FeedWatch } from "./live/feed-watch.ts";
 import { CamHub, type CamRosterSource } from "./live/cams.ts";
 import { RoundSimulator } from "./sim/simulator.ts";
 import { GameConsoleService } from "./game/console.ts";
@@ -151,6 +152,8 @@ export class Engine {
   readonly povModel: PovModelService;
   readonly cameraCapture: CameraCapture;
   readonly hlaeCamera: HlaeCameraServer;
+  /** Gaps in CS2's game data and stalls of the engine, for the support file. */
+  readonly feed: FeedWatch;
   /** Player cams (ADR-048). */
   readonly cams: CamHub;
   readonly datasetStorage: DatasetStorage;
@@ -302,6 +305,18 @@ export class Engine {
     this.povModel = new PovModelService({ settings: this.settings, session: this.session, builtinDir: cfg.builtinModelsDir, modelsDir: this.training.modelsDir, registry: () => this.training.registry(), logger: this.logger });
     this.bench = new DirectorBench({ workers: this.workers, repo: this.demoJobs, maps: this.maps, settings: this.settings, logger: this.logger, dataDir: cfg.dataDir, isLive: broadcastLive, povModel: this.povModel, directorConfig: () => this.session.director.config });
 
+    const matchPhases = new Set(["freezetime", "live", "over"]);
+    this.feed = new FeedWatch({
+      now: () => performance.now(),
+      round: () => {
+        const st = this.session.state();
+        return { round: st?.roundNumber ?? null, phase: st?.roundPhase ?? null };
+      },
+      onIssue: (kind, ms, round, phase) => {
+        // In a match only: game data stops when CS2 is closed or on the menu.
+        if (phase && matchPhases.has(phase)) this.directorLog.warn(kind === "gap" ? "game data gap" : "engine stall", { ms, round, phase });
+      },
+    });
     this.hlaeCamera = new HlaeCameraServer({
       settings: this.settings,
       logger: this.logger,
@@ -990,6 +1005,7 @@ export class Engine {
     this.gameConsole.onConnectionChange(() => void this.applyObserverAdapter());
     await this.applyObserverAdapter();
     this.session.start();
+    this.feed.start();
     this.meterTimer = setInterval(() => this.meter.tick(this.meterInput()), 1000);
     void this.cloud.start();
     this.demos.start();
@@ -1023,6 +1039,7 @@ export class Engine {
     this.obsAuto.dispose();
     await this.stopSimulation().catch(() => undefined);
     this.demos.stop();
+    this.feed.stop();
     this.session.stop();
     if (this.meterTimer) clearInterval(this.meterTimer);
     this.meterTimer = null;

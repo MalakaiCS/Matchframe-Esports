@@ -84,7 +84,7 @@ export function hlaeCameraScript(url: string): string {
   if (old && old.stop) {
     try { old.stop(); } catch (e) {}
   }
-  const S = { inS: null, outS: null, open: false, connecting: false, stopped: false, q: [], sending: false, msgs: [], frame: 0, shot: null, live: null, cur: null, lastAt: null };
+  const S = { inS: null, outS: null, open: false, connecting: false, stopped: false, q: [], sending: false, msgs: [], frame: 0, shot: null, live: null, cur: null, t: 0, wall: null };
 
   function drop() {
     try { if (S.inS) S.inS.drop(); } catch (e) {}
@@ -144,10 +144,21 @@ export function hlaeCameraScript(url: string): string {
     let dy = ((((to.yaw - cur.yaw) % 360) + 540) % 360) - 180;
     return { x: cur.x + (to.x - cur.x) * k, y: cur.y + (to.y - cur.y) * k, z: cur.z + (to.z - cur.z) * k, pitch: cur.pitch + (to.pitch - cur.pitch) * k, yaw: cur.yaw + dy * k };
   }
+  // How long the frame being drawn is (ms). HLAE's absTime is CS2's absoluteframetime: the length
+  // of this frame in seconds, not a clock. Shots run on the sum of the frames' lengths, the way
+  // HLAE's own camera (mirv_input) moves; the wall clock only where absTime is missing.
+  function frameMs(e) {
+    const a = e.absTime;
+    if (typeof a === "number" && a >= 0) return Math.min(a, 5) * 1000;
+    const w = Date.now();
+    const d = S.wall === null ? 16 : Math.max(0, Math.min(5000, w - S.wall));
+    S.wall = w;
+    return d;
+  }
   function onView(e) {
-    const now = typeof e.absTime === "number" ? e.absTime * 1000 : Date.now();
-    const dt = S.lastAt === null ? 16 : Math.max(0, Math.min(100, now - S.lastAt));
-    S.lastAt = now;
+    const dt = frameMs(e);
+    S.t += dt;
+    const now = S.t;
     let p = null;
     if (S.shot) {
       const sh = S.shot;
@@ -155,7 +166,7 @@ export function hlaeCameraScript(url: string): string {
       p = sample(sh.keys, now - sh.t0);
       if (!sh.acked) { sh.acked = true; send({ type: "started", id: sh.id, view: e.currentView }); }
     } else if (S.live) {
-      p = S.cur ? ease(S.cur, S.live, dt) : S.live;
+      p = S.cur ? ease(S.cur, S.live, Math.min(100, dt)) : S.live;
     }
     if (!p) return undefined;
     S.cur = p;

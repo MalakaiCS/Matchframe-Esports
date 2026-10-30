@@ -54,7 +54,8 @@ export const ConsoleOptions = z.object({
   hideGameHud: z.boolean().default(true),
   /**
    * `spec_show_xray`: players seen through walls while spectating (the game's default is on), with
-   * `hud_showtargetid` (the players' names above them) going with it.
+   * the players' names above them going with it (`hud_showtargetid`, and
+   * `cl_drawhud_force_teamid_overhead`, which shows them also with only the kill feed drawn).
    */
   xray: z.boolean().default(true),
   /**
@@ -116,9 +117,12 @@ export function killfeedColourCommands(on: boolean, colours: SideColours): strin
   return [one("ct", colours.ct), one("t", colours.t)];
 }
 
-/** X-ray and the names above the players, together. */
+/**
+ * X-ray and the names above the players, together. `cl_drawhud_force_teamid_overhead 1` draws the
+ * names (team overhead) even with `cl_draw_only_deathnotices 1`; 0 hides them.
+ */
 export function xrayCommands(on: boolean): string[] {
-  return [`spec_show_xray ${on ? 1 : 0}`, `hud_showtargetid ${on ? 1 : 0}`];
+  return [`spec_show_xray ${on ? 1 : 0}`, `hud_showtargetid ${on ? 1 : 0}`, `cl_drawhud_force_teamid_overhead ${on ? 1 : 0}`];
 }
 
 /**
@@ -157,7 +161,8 @@ export function retakeUnderway(state: MatchState): boolean {
 /** The console lines that put the game in the state the options describe. */
 export function consoleCommands(o: ConsoleOptions, mode: GameLaunchMode, colours: SideColours): string[] {
   if (mode === "standard") return [];
-  const out = [`cl_draw_only_deathnotices ${o.hideGameHud ? 1 : 0}`, ...xrayCommands(o.xray)];
+  // cl_drawhud 1: the game draws its HUD at all (the kill feed, the names above the players).
+  const out = ["cl_drawhud 1", `cl_draw_only_deathnotices ${o.hideGameHud ? 1 : 0}`, ...xrayCommands(o.xray)];
   // Off: the game's own defaults (sleep 20 ms a frame and mute while another window has focus).
   out.push(`engine_no_focus_sleep ${o.runInBackground ? 0 : 20}`, `snd_mute_losefocus ${o.runInBackground ? 0 : 1}`);
   if (mode === "hlae") {

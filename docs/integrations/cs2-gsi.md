@@ -11,7 +11,9 @@ GSI sends JSON over HTTP to a receiver configured in a `gamestate_integration_*.
 
 ## Requested components
 
-`provider, map, round, player_id, player_state, player_weapons, player_match_stats, player_position, allplayers_id, allplayers_state, allplayers_match_stats, allplayers_weapons, allplayers_position, phase_countdowns, allgrenades, bomb, map_round_wins` — throttle 0.1 s, buffer 0, heartbeat 10 s, timeout 1.1 s.
+`provider, map, round, player_id, player_state, player_weapons, player_match_stats, player_position, allplayers_id, allplayers_state, allplayers_match_stats, allplayers_weapons, allplayers_position, phase_countdowns, allgrenades, bomb, map_round_wins` — throttle 0.02 s, buffer 0, heartbeat 1 s, timeout 1 s.
+
+**Timing:** CS2 sends one update at a time and waits for the answer. Matchframe answers each update before reading it, so its own work never holds CS2 up. An update not answered within the timeout counts as lost, and CS2 sends the full state again at the next heartbeat. The 1 s heartbeat keeps such a gap to a second or two; with 10 s, every HUD went without data for up to 10 s. Matchframe rewrites its config to the current timing when it starts, and CS2 reads it when CS2 starts. The support file lists gaps in the game data and stalls of the program (`feed`).
 
 A requested component is not proof that it arrives. `GET /api/v1/capabilities` reports what the actual feed delivered (per grenade type too). **Status: unverified on a real CS2 build in this project's environment** — field names follow the public GSI documentation; all fixtures in this repository are synthetic.
 

@@ -37,8 +37,8 @@ describe("GSI config", () => {
     const root = v["Matchframe Esports"] as Record<string, Record<string, string>>;
     expect(root.auth!.token).toBe("abcdef0123456789");
     expect(root.data!.allgrenades).toBe("1");
-    // Low latency: at most 20 ms between updates, no batching, a stalled answer blocks for 0.5 s at most.
-    expect([root.throttle, root.buffer, root.timeout, root.heartbeat]).toEqual(["0.02", "0", "0.5", "10"]);
+    // Low latency: at most 20 ms between updates, no batching; a lost answer costs a second or two at most.
+    expect([root.throttle, root.buffer, root.timeout, root.heartbeat]).toEqual(["0.02", "0", "1", "1"]);
   });
 
   it("refreshes its own existing file to the current timing, keeping the address, and leaves others alone", () => {
@@ -51,7 +51,7 @@ describe("GSI config", () => {
     const r = refreshGsiConfig(dir, "abcdef01")!;
     expect(r.written).toBe(true);
     const root = parseVdf(readFileSync(join(dir, GSI_CONFIG_FILE), "utf8"))["Matchframe Esports"] as Record<string, string>;
-    expect([root.uri, root.throttle, root.timeout]).toEqual(["http://192.168.1.20:37210/gsi", "0.02", "0.5"]);
+    expect([root.uri, root.throttle, root.timeout, root.heartbeat]).toEqual(["http://192.168.1.20:37210/gsi", "0.02", "1", "1"]);
     expect(refreshGsiConfig(dir, "abcdef01")!.unchanged).toBe(true);
   });
 
