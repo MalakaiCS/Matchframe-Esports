@@ -19,14 +19,20 @@ export interface QueueItem {
   priority: number;
   /** How much of the end of the clip to show (the moment and its lead-up); null = the whole clip. */
   playMs: number | null;
+  /** Of playMs, how much comes before the first kill (the lead-up, which may be shortened to fit a break); null when unknown. */
+  leadMs?: number | null;
   /** What the clip shows, when it was cut for a play. */
   play: ReplayPlay | null;
 }
 
 /** The play a clip was cut for. */
 export interface ReplayPlay {
-  /** missed: the main camera showed neither player; other_angle: it showed the victim, this is the killer; big_play: the main camera showed it (3+ kills). */
-  kind: "missed" | "other_angle" | "big_play";
+  /**
+   * missed: the main camera showed neither player; other_angle: it showed the victim, this is the
+   * killer; shown: it showed the killer (the replay PC films every kill); big_play: the main camera
+   * showed it (3+ kills, from this computer's replay buffer).
+   */
+  kind: "missed" | "other_angle" | "shown" | "big_play";
   killer: { steamId: string; name: string } | null;
   victims: string[];
   kills: number;
@@ -63,13 +69,13 @@ export class ReplayQueue {
     return this.items.find((i) => i.id === id);
   }
 
-  bookmark(label: string, reason: string, roundNumber: number | null, extra: Partial<Pick<QueueItem, "priority" | "playMs" | "play">> = {}): QueueItem {
+  bookmark(label: string, reason: string, roundNumber: number | null, extra: Partial<Pick<QueueItem, "priority" | "playMs" | "leadMs" | "play">> = {}): QueueItem {
     const it: QueueItem = { id: `bm_${Date.now().toString(36)}_${this.counter}`, state: "bookmarked", label, reason, roundNumber, createdAt: new Date().toISOString(), clip: null, error: null, order: this.counter++, trim: null, origin: "main", priority: 0, playMs: null, play: null, ...extra };
     return this.push(it);
   }
 
   /** A clip captured elsewhere (the replay PC), ready for approval. */
-  addExternal(label: string, reason: string, roundNumber: number | null, clip: ClipRecord, extra: Partial<Pick<QueueItem, "priority" | "playMs" | "play">> = {}): QueueItem {
+  addExternal(label: string, reason: string, roundNumber: number | null, clip: ClipRecord, extra: Partial<Pick<QueueItem, "priority" | "playMs" | "leadMs" | "play">> = {}): QueueItem {
     const it: QueueItem = { id: `rp_${Date.now().toString(36)}_${this.counter}`, state: "prepared", label, reason, roundNumber, createdAt: new Date().toISOString(), clip, error: null, order: this.counter++, trim: null, origin: "replay_pc", priority: 0, playMs: null, play: null, ...extra };
     return this.push(it);
   }

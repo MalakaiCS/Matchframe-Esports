@@ -44,6 +44,12 @@ export const ReplayPcSettings = z.object({
   sameCstv: z.enum(["stay_behind", "each_kill", "off"]).default("stay_behind"),
   /** How far behind the main PC "stay behind" puts this computer. */
   behindMs: z.number().int().min(3000).max(15000).default(7000),
+  /**
+   * Behind the main PC: film every kill this computer can, also the ones the main camera showed
+   * (the main PC replays the best of each round). Off: only kills the main camera missed or showed
+   * from the player who died.
+   */
+  filmAll: z.boolean().default(true),
 });
 export type ReplayPcSettings = z.infer<typeof ReplayPcSettings>;
 
@@ -57,6 +63,8 @@ export interface MainOnAir {
   /** Main PCs from 0.5.1 on. */
   clock?: OnAirClock | null;
   kills?: OnAirKill[];
+  /** Main PCs from 0.9.0 on: it records this computer's screen over NDI (the replay feed). */
+  feed?: { recording: boolean };
 }
 
 export type TimingState = "measuring" | "live" | "behind" | "ahead";
@@ -70,6 +78,8 @@ export interface ReplayPcStatus {
   /** The player on air on the main PC (Steam ID), while connected. */
   mainObserved: string | null;
   obsReady: boolean;
+  /** How clips reach the main PC: it records this computer's screen over NDI (feed), or this computer's OBS saves and sends them (obs). */
+  transport: "feed" | "obs";
   /** How far this computer's game is behind the main PC's. */
   timing: { state: TimingState; delayMs: number | null; detail: string };
   rewind: { state: RewindState; detail: string; count: number };
@@ -133,13 +143,13 @@ interface Pending {
   timer: ReturnType<typeof setTimeout> | null;
 }
 
-/** A kill the main camera missed, to film on this computer before it plays here. */
+/** A kill to film on this computer before it plays here (one the main camera missed, or with filmAll any kill). */
 interface Job {
   killer: { steamId: string; name: string };
   victims: { steamId: string; name: string }[];
   weapon: string | null;
   headshot: boolean;
-  kind: "missed" | "other_angle";
+  kind: "missed" | "other_angle" | "shown";
   round: number | null;
   /** When the first and last kill should play on this computer (local monotonic ms). */
   firstT: number;
@@ -168,6 +178,7 @@ export class ReplayLink {
     main: null,
     mainObserved: null,
     obsReady: false,
+    transport: "obs",
     timing: { state: "measuring", delayMs: null, detail: "" },
     rewind: { state: "off", detail: "", count: 0 },
     filming: null,
@@ -188,6 +199,8 @@ export class ReplayLink {
   /** What the main PC's camera showed of each recent kill, by kill key. */
   private mainVerdicts = new Map<string, { shown: Shown; at: number }>();
   private pending = new Map<string, Pending>();
+  /** Rounds of clips being saved and sent right now (one entry per clip). */
+  private sending: number[] = [];
   private unsubscribe: (() => void)[] = [];
   private bufferStartTried = false;
   private estimator = new DelayEstimator();
@@ -308,7 +321,8 @@ export class ReplayLink {
     this.inFlight = true;
     try {
       const sentAt = this.e.now();
-      const res = await fetch(`${st.mainUrl}/api/v1/replay-link/on-air`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(2000) });
+      // The rounds this computer still has kills of to film or send: the main PC's replay break waits for them.
+      const res = await fetch(`${st.mainUrl}/api/v1/replay-link/on-air?pending=${this.pendingRounds().join(",")}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(2000) });
       if (res.status === 401 || res.status === 403) throw new Error("the main PC refused this computer's code: make a new replay PC code on the main PC");
       if (!res.ok) throw new Error(`the main PC answered ${res.status}`);
       const onAir = (await res.json()) as MainOnAir;
@@ -344,14 +358,24 @@ export class ReplayLink {
         const target = this.status.timing.state === "behind" && d !== null ? onAirAt(this.mainHistory, now - d) : onAir.observedSteamId;
         this.e.session.director.avoid(target ? [target] : [], now + FRESH_MS);
       }
-      this.status = { ...this.status, state: "connected", detail: `Linked to ${onAir.computer}.`, main: { computer: onAir.computer, version: onAir.version, url: st.mainUrl }, mainObserved: onAir.observedSteamId };
-      void this.ensureReplayBuffer();
+      const transport = onAir.feed?.recording ? "feed" : "obs";
+      this.status = { ...this.status, state: "connected", detail: `Linked to ${onAir.computer}.`, main: { computer: onAir.computer, version: onAir.version, url: st.mainUrl }, mainObserved: onAir.observedSteamId, transport };
+      if (transport === "obs") void this.ensureReplayBuffer();
     } catch (err) {
       const msg = err instanceof Error ? (err.name === "TimeoutError" ? "the main PC didn't answer in time" : err.message) : String(err);
       this.status = { ...this.status, state: "error", detail: `Can't reach the main PC at ${st.mainUrl}: ${msg}.`, mainObserved: null };
     } finally {
       this.inFlight = false;
     }
+  }
+
+  /** Rounds (the main PC's numbers) with a kill being filmed, planned, or being saved and sent. */
+  private pendingRounds(): number[] {
+    const rounds = new Set<number>();
+    for (const j of [...(this.active ? [this.active] : []), ...this.jobs]) if (j.round !== null) rounds.add(j.round);
+    for (const r of this.sending) rounds.add(r);
+    for (const p of this.pending.values()) if (p.roundNumber !== null) rounds.add(p.roundNumber);
+    return [...rounds].slice(0, 10);
   }
 
   private updateTiming(now: number): void {
@@ -381,7 +405,8 @@ export class ReplayLink {
   // ---- kills the main PC missed ------------------------------------------------------------------
 
   private onMainKill(k: OnAirKill, tk: number): void {
-    if (k.shown === "killer") return;
+    // Kills the main camera showed are filmed too with filmAll, from behind only (never worth going back for).
+    if (k.shown === "killer" && !this.settings().filmAll) return;
     const rw = this.status.rewind.state;
     if (rw === "rewinding") {
       this.rewindRun.kills.push({ k, tk });
@@ -398,7 +423,7 @@ export class ReplayLink {
       return;
     }
     const st = this.settings();
-    if (this.status.timing.state !== "live" || st.sameCstv === "off" || rw !== "ready") return;
+    if (k.shown === "killer" || this.status.timing.state !== "live" || st.sameCstv === "off" || rw !== "ready") return;
     const now = this.e.now();
     if (now - tk > 2500) return;
     // This computer's camera had the killer: the live path sends it without going back.
@@ -419,7 +444,7 @@ export class ReplayLink {
       chain.lastT = Math.max(chain.lastT, t);
       if (chain.startedAt === null) chain.firstT = Math.min(chain.firstT, t);
       chain.headshot ||= k.headshot;
-      if (k.shown === "none") chain.kind = "missed";
+      if (KIND_RANK[kindOf(k)] > KIND_RANK[chain.kind]) chain.kind = kindOf(k);
       if (this.dropped.includes(chain)) {
         // A multi-kill now: it may beat what was planned instead.
         this.dropped = this.dropped.filter((j) => j !== chain);
@@ -428,7 +453,7 @@ export class ReplayLink {
       }
       return;
     }
-    this.place({ killer: { ...k.killer }, victims: [victim], weapon: k.weapon, headshot: k.headshot, kind: k.shown === "none" ? "missed" : "other_angle", round: k.round, firstT: t, lastT: t, startedAt: null, onKillerAt: null, seen: new Map(), prevPin: null, pinned: false }, now);
+    this.place({ killer: { ...k.killer }, victims: [victim], weapon: k.weapon, headshot: k.headshot, kind: kindOf(k), round: k.round, firstT: t, lastT: t, startedAt: null, onKillerAt: null, seen: new Map(), prevPin: null, pinned: false }, now);
   }
 
   /** One camera: of two kills that can't both be filmed, keep the better one (a kill being filmed gives way only to a better one that hasn't happened here yet). */
@@ -516,7 +541,7 @@ export class ReplayLink {
     const now = this.e.now();
     const playFrom = Math.max(onAt + 300, first - st.preRollMs);
     const play: ReplayPlay = { kind: j.kind, killer: j.killer, victims: j.victims.map((v) => v.name), kills: j.victims.length, weapon: j.weapon, headshot: j.headshot };
-    void this.send(play, Math.round(now - playFrom), j.round);
+    void this.send(play, Math.round(now - playFrom), j.round, Math.round(first - playFrom));
   }
 
   /** This computer's camera stayed on one player from `from` to `to`. */
@@ -663,20 +688,41 @@ export class ReplayLink {
     const shown = p.keys.map((key, i) => this.mainVerdicts.get(key)?.shown ?? p.seenOnMain[i]!);
     if (shown.every((v) => v === "killer")) return;
     const play: ReplayPlay = { kind: shown.includes("none") ? "missed" : "other_angle", killer: p.killer, victims: p.victims, kills: p.victims.length, weapon: p.weapon, headshot: p.headshot };
-    await this.send(play, Math.round(st.preRollMs + (p.lastAt - p.firstAt) + st.postRollMs), p.roundNumber);
+    await this.send(play, Math.round(st.preRollMs + (p.lastAt - p.firstAt) + st.postRollMs), p.roundNumber, st.preRollMs);
   }
 
-  /** Saves this computer's replay buffer and sends it to the main PC with what it shows. */
-  private async send(play: ReplayPlay, playMs: number, round: number | null): Promise<void> {
+  /**
+   * Sends a filmed kill to the main PC (`playMs`: the clip, ending now; `leadMs`: its part before the
+   * first kill). With the replay feed the main PC cuts it from its recording of this screen, so only
+   * the moment is sent; otherwise this computer's replay buffer is saved and the clip uploaded.
+   */
+  private async send(play: ReplayPlay, playMs: number, round: number | null, leadMs: number): Promise<void> {
     const st = this.settings();
     const token = this.e.secrets.getSecret(SECRET_KEY);
     const label = replayLabel(play);
+    if (round !== null) this.sending.push(round);
     try {
+      if (this.status.transport === "feed") {
+        const lead = Math.max(0, Math.min(playMs, leadMs));
+        const res = await fetch(`${st.mainUrl}/api/v1/replays/mark`, {
+          method: "POST",
+          headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+          body: JSON.stringify({ label, kind: play.kind, round, kills: play.kills, killer: play.killer, victims: play.victims, weapon: play.weapon, headshot: play.headshot, fromAgoMs: playMs, killAgoMs: playMs - lead, endAgoMs: 0 }),
+          signal: AbortSignal.timeout(15000),
+        });
+        if (res.ok) {
+          this.status = { ...this.status, sent: this.status.sent + 1, last: { label, at: new Date().toISOString(), ok: true, error: null } };
+          this.e.logger.info("replay PC: marked a kill for the replay feed", { label, playMs });
+          return;
+        }
+        // The main PC stopped recording this screen: send the clip from this computer's OBS when it can.
+        if (res.status !== 409 || !this.e.obs.state.connected) throw new Error(`the main PC answered ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      }
       if (!this.e.obs.state.connected) throw new Error("OBS isn't connected on this computer");
       const { savedPath } = await this.e.obs.saveReplayBuffer();
       const body = readFileSync(savedPath);
       const ext = (extname(savedPath).slice(1) || "mp4").toLowerCase();
-      const q = new URLSearchParams({ label, kind: play.kind, playMs: String(playMs), ext, kills: String(play.kills), killer: play.killer?.steamId ?? "", killerName: play.killer?.name ?? "", victims: play.victims.join("\n"), weapon: play.weapon ?? "", headshot: play.headshot ? "1" : "0", ...(round !== null ? { round: String(round) } : {}) });
+      const q = new URLSearchParams({ label, kind: play.kind, playMs: String(playMs), leadMs: String(Math.max(0, Math.min(playMs, leadMs))), ext, kills: String(play.kills), killer: play.killer?.steamId ?? "", killerName: play.killer?.name ?? "", victims: play.victims.join("\n"), weapon: play.weapon ?? "", headshot: play.headshot ? "1" : "0", ...(round !== null ? { round: String(round) } : {}) });
       const res = await fetch(`${st.mainUrl}/api/v1/replays/incoming?${q.toString()}`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/octet-stream" }, body, signal: AbortSignal.timeout(60000) });
       if (!res.ok) throw new Error(`the main PC answered ${res.status}: ${(await res.text()).slice(0, 200)}`);
       this.status = { ...this.status, sent: this.status.sent + 1, last: { label, at: new Date().toISOString(), ok: true, error: null } };
@@ -685,6 +731,8 @@ export class ReplayLink {
       const error = err instanceof Error ? err.message : String(err);
       this.status = { ...this.status, failed: this.status.failed + 1, last: { label, at: new Date().toISOString(), ok: false, error } };
       this.e.logger.warn("replay PC: clip not sent", { label, error });
+    } finally {
+      if (round !== null) this.sending.splice(this.sending.indexOf(round), 1);
     }
   }
 }
@@ -701,9 +749,16 @@ function jobLabel(j: Job): string {
   return replayLabel({ kind: j.kind, killer: j.killer, victims: j.victims.map((v) => v.name), kills: j.victims.length, weapon: j.weapon, headshot: j.headshot });
 }
 
-/** More kills first, then a kill the main camera missed over another angle. */
+/** How much each kind of kill is worth filming (a merged clip takes the best of its kills). */
+const KIND_RANK: Record<Job["kind"], number> = { missed: 2, other_angle: 1, shown: 0 };
+
+function kindOf(k: OnAirKill): Job["kind"] {
+  return k.shown === "none" ? "missed" : k.shown === "victim" ? "other_angle" : "shown";
+}
+
+/** More kills first, then a kill the main camera missed over another angle, over one it showed. */
 function priority(j: Job): number {
-  return j.victims.length * 10 + (j.kind === "missed" ? 2 : 1);
+  return j.victims.length * 10 + KIND_RANK[j.kind];
 }
 
 export function normalizeUrl(raw: string): string {

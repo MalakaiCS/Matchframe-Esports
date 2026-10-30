@@ -35,11 +35,33 @@ export const SHOWN_WINDOW_MS = 2500;
 /** Kills sent to the replay PC: the last this many ms. */
 const KILLS_MS = 30_000;
 
+/** What the replay PC last said it still has to film or send is trusted this long. */
+const PEER_FRESH_MS = 2000;
+
 export class OnAirLog {
   private history: { at: number; steamId: string | null }[] = [];
   private kills: { at: number; kill: Omit<OnAirKill, "ageMs"> }[] = [];
+  /** The rounds (the main PC's numbers) whose kills the replay PC is still filming or sending, as it said when it last asked. */
+  private peer: { at: number; pendingRounds: number[] } | null = null;
 
   constructor(private readonly now: () => number) {}
+
+  /** The replay PC asked for the on-air state and said which rounds it still has kills of to film or send. */
+  notePeer(pendingRounds: number[]): void {
+    this.peer = { at: this.now(), pendingRounds };
+  }
+
+  /** The replay PC is linked (asked lately) and still has kills of `round` to film or send. */
+  peerPending(round: number | null): boolean {
+    const p = this.peer;
+    if (!p || this.now() - p.at > PEER_FRESH_MS || round === null) return false;
+    return p.pendingRounds.includes(round);
+  }
+
+  /** The replay PC asked lately. */
+  peerLinked(): boolean {
+    return !!this.peer && this.now() - this.peer.at <= PEER_FRESH_MS;
+  }
 
   noteState(observedSteamId: string | null): void {
     const now = this.now();

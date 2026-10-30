@@ -127,6 +127,11 @@ async function check(app, ports, shot) {
   // release has no latest.yml); only that the check ran is asserted.
   const update = await win.evaluate(() => window.matchframe.updates.check());
 
+  // Replay feed: the NDI binding (grandi and the NDI runtime) loads in the feed's own process. NDI
+  // finds no sources here; only that the search ran without an error.
+  const ndi = await win.evaluate(async () => fetch("/api/v1/replays/feed/sources", { method: "POST", headers: { authorization: `Bearer ${await window.matchframe.getOperatorToken()}` } }).then((r) => r.json()));
+  const feed = await win.evaluate(async () => fetch("/api/v1/replays/feed", { headers: { authorization: `Bearer ${await window.matchframe.getOperatorToken()}` } }).then((r) => r.json()));
+
   // Match graphics: thumbnails drawn and stingers encoded (with alpha) by the program itself.
   const matchArt = await checkMatchArt({ app, win, base, waitFor, assert, shot: shot ? shot.replace(/(\.png)?$/, "-match-art.png") : null });
 
@@ -145,7 +150,9 @@ async function check(app, ports, shot) {
   assert(radarImage.status === 200, `built-in radar images are in the program (${radarImage.status})`);
   assert(meta.contextIsolation && meta.sandbox && !meta.nodeIntegration, "hardened window");
   assert(existsSync(join(meta.resources, "app-update.yml")), "update settings (app-update.yml) are in the program");
+  assert(ndi && ndi.error === null && Array.isArray(ndi.sources), `the replay feed's NDI binding loads (${JSON.stringify(ndi)})`);
+  assert(feed?.status?.ndi?.available === true, `the NDI runtime answers with its version (${JSON.stringify(feed?.status?.ndi)})`);
   assert(update && update.status !== "disabled" && update.status !== "idle" && update.currentVersion === meta.version && update.autoDownload === false, `the updater checked for updates (${JSON.stringify(update)})`);
   if (shot) await win.screenshot({ path: shot });
-  console.log(JSON.stringify({ ok: true, platform: process.platform, meta, url: info.url, navItems: info.nav.length, huds, role: info.me.role, signIn: info.signIn, website, health: { ok: health.ok, version: health.version, schemaVersion: health.schemaVersion }, engineRoot: root.status, captain: captain.status, hudOutput: overlay?.status ?? null, update, matchArt, errors }, null, 1));
+  console.log(JSON.stringify({ ok: true, platform: process.platform, meta, url: info.url, navItems: info.nav.length, huds, role: info.me.role, signIn: info.signIn, website, health: { ok: health.ok, version: health.version, schemaVersion: health.schemaVersion }, engineRoot: root.status, captain: captain.status, hudOutput: overlay?.status ?? null, update, matchArt, ndi: feed?.status?.ndi ?? null, errors }, null, 1));
 }

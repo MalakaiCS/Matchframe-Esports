@@ -11,6 +11,22 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.9.0",
+    title: "The best replays of each round",
+    summary: "The replay PC films every kill it can, the main PC ranks each round's clips and replays the best 3–4. The main PC can record the replay PC's screen over NDI, and replays can play in vMix.",
+    sections: [
+      {
+        heading: "Replays",
+        items: [
+          "The replay PC films every kill it has time for; the main PC ranks each round's clips, best to worst, and shows why.",
+          "Each break replays the best clips that fit (up to 4), best first, and leaves the rest.",
+          "Replay feed (NDI), like LHM's: the main PC records the replay PC's screen and cuts each kill from it, so the replay PC needs no OBS.",
+          "Replays can play in vMix as well as OBS.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.8.2",
     title: "Moving cinematics",
     summary: "Freeze-time, pause and path cinematics through HLAE move as planned, the names above the players show with only the kill feed drawn, and the HUD gets game data more reliably.",

@@ -11,6 +11,12 @@ files:
 extraResources:
   - from: dist/engine
     to: engine
+  # The replay feed's NDI binding (grandi and the NDI runtime, next to feed-worker.mjs): electron-builder
+  # leaves node_modules folders out unless they are named.
+  - from: dist/engine/node_modules
+    to: engine/node_modules
+    filter:
+      - "**/*"
   # Operator console (shown only inside the program from app://matchframe) and its connection page.
   - from: ../operator-web/dist
     to: operator-web

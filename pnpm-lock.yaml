@@ -333,6 +333,9 @@ importers:
       fflate:
         specifier: 0.8.2
         version: 0.8.2
+      grandi:
+        specifier: 2.0.2
+        version: 2.0.2
       socket.io:
         specifier: 4.8.1
         version: 4.8.1
@@ -692,6 +695,41 @@ packages:
 
   '@fontsource/inter@5.3.0':
     resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
+
+  '@grandi/darwin-arm64@2.0.2':
+    resolution: {integrity: sha512-fkMJxoIZtPCdlb7+bg1aupAF1FUjFqucxupLFNMvXRF+tyTPqymSHboBCIWTNipmxxQgO/JE87plmZiP+VJUpA==}
+    cpu: [x64, arm64]
+    os: [darwin]
+
+  '@grandi/darwin-x64@2.0.2':
+    resolution: {integrity: sha512-QEyaXSYD4bOJbgTQX3ZzoPQyxXIWGsz8tjaX8FkVZqMMXuauuIf3+wlXL3rLLEZkPL8kgRVr4xOBM1lC0HxvUA==}
+    cpu: [x64, arm64]
+    os: [darwin]
+
+  '@grandi/linux-arm64@2.0.2':
+    resolution: {integrity: sha512-3tqkM9ttXliitOKtz2a/+/W9+MLfDiI0bz7jFSmYTjNk8EnZuXpf3xCcfbKS/QJuRU60uoMFYaTo9r87Pn5m0A==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@grandi/linux-armv7l@2.0.2':
+    resolution: {integrity: sha512-UxU5SEs18OV7O0tk7M9BW5a/+yI5NitaFUOlGKv0zCkSml5sr1Q0kND4F0puhQmkwPRoyoK+6rCMYW8fdpmipw==}
+    cpu: [arm]
+    os: [linux]
+
+  '@grandi/linux-x64@2.0.2':
+    resolution: {integrity: sha512-0VcKeVKz2x0iWNe7VMIrlxRpKlxY0g1558CbfGiW7q3+4MeVkUMWqMtfdZ6AYwA75NDBg1Dc8UFDFBIh7VxVdg==}
+    cpu: [x64]
+    os: [linux]
+
+  '@grandi/win32-ia32@2.0.2':
+    resolution: {integrity: sha512-wCFftREjiwuOC6R4nczGP6JoCMnV2XecAtuDtDQKRuYJBtA3KzVT8K7x/IWHgptHuwCpGBcBQhMZRzexxRV+fg==}
+    cpu: [ia32]
+    os: [win32]
+
+  '@grandi/win32-x64@2.0.2':
+    resolution: {integrity: sha512-24w/QNZnTpuCFaDbiJjXSeGTgyv0107WY2C0ceuQf7lgrLmc5Kg0mWWdEqcNA7tZGvB8OVA3hPtTtiK7NjAb6A==}
+    cpu: [x64]
+    os: [win32]
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -1713,6 +1751,10 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
+  grandi@2.0.2:
+    resolution: {integrity: sha512-IlUmLCwBFrB1m2I1fNXVn2GgMf2m8RzIk1NVI0uMDf+O2Vf1qkqrEBMyz4xhfEZBdHIdkT0D8hHDHoHDrbauWg==}
+    engines: {node: '>=20.19.5'}
+
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
@@ -2082,6 +2124,10 @@ packages:
 
   node-api-version@0.2.1:
     resolution: {integrity: sha512-2xP/IGGMmmSQpI1+O/k72jF/ykvZ89JeuKX3TLJAYPDVLUalrshrLHkeVcCCZqG/eEa635cr8IBYzgnDvM2O8Q==}
+
+  node-gyp-build@4.8.4:
+    resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
+    hasBin: true
 
   node-gyp@12.4.0:
     resolution: {integrity: sha512-OMcPNvqTCFUnNaBlmdgq+lfNqY7gTiSmNRDjY3uAXRyudeKZEZxu3CLtjMQrx4zZxCX2b/mpNqTtwuCJgXhHkw==}
@@ -3088,6 +3134,27 @@ snapshots:
   '@fontsource/barlow-condensed@5.3.0': {}
 
   '@fontsource/inter@5.3.0': {}
+
+  '@grandi/darwin-arm64@2.0.2':
+    optional: true
+
+  '@grandi/darwin-x64@2.0.2':
+    optional: true
+
+  '@grandi/linux-arm64@2.0.2':
+    optional: true
+
+  '@grandi/linux-armv7l@2.0.2':
+    optional: true
+
+  '@grandi/linux-x64@2.0.2':
+    optional: true
+
+  '@grandi/win32-ia32@2.0.2':
+    optional: true
+
+  '@grandi/win32-x64@2.0.2':
+    optional: true
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -4251,6 +4318,18 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
+  grandi@2.0.2:
+    dependencies:
+      node-gyp-build: 4.8.4
+    optionalDependencies:
+      '@grandi/darwin-arm64': 2.0.2
+      '@grandi/darwin-x64': 2.0.2
+      '@grandi/linux-arm64': 2.0.2
+      '@grandi/linux-armv7l': 2.0.2
+      '@grandi/linux-x64': 2.0.2
+      '@grandi/win32-ia32': 2.0.2
+      '@grandi/win32-x64': 2.0.2
+
   has-flag@4.0.0: {}
 
   has-property-descriptors@1.0.2:
@@ -4565,6 +4644,8 @@ snapshots:
   node-api-version@0.2.1:
     dependencies:
       semver: 7.8.5
+
+  node-gyp-build@4.8.4: {}
 
   node-gyp@12.4.0:
     dependencies:

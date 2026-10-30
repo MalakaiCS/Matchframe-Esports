@@ -1,11 +1,49 @@
 # Replay PC and automatic replays
 
-Two computers, each with the Matchframe program, CS2 and OBS:
+Two computers, each with the Matchframe program and CS2:
 
-- **PC 1, the main PC:** the on-air observer. Its OBS makes the broadcast.
-- **PC 2, the replay PC:** its own CS2 watches the same match. When a kill happens that the main camera missed, PC 2 films it from the killer, saves the last seconds from its OBS replay buffer and sends the clip to PC 1. PC 1 plays it in the break after the round.
+- **PC 1, the main PC:** the on-air observer. Its OBS (or vMix) makes the broadcast.
+- **PC 2, the replay PC:** its own CS2 watches the same match a few seconds later. It knows each kill before it happens there, gets its camera on the killer and films it. Every kill it has time for, by default.
+- **Each round:** PC 1 ranks that round's clips, best to worst. In the break after the round it plays the best ones that fit (up to 4) and leaves the rest.
+
+PC 2's picture reaches PC 1 in one of two ways:
+
+- **Replay feed (NDI), like LHM's Replay Feed:**
+  - PC 2 sends its whole screen over NDI (vMix Desktop Capture, OBS's NDI output, or NDI Screen Capture).
+  - PC 1 records it all the time, keeping the last 4 minutes.
+  - PC 2 only tells PC 1 when it filmed a kill, and PC 1 cuts the clip from its recording.
+  - PC 2 needs no OBS.
+- **Clips from PC 2's OBS:** PC 2 saves each kill from its OBS replay buffer and sends the file.
 
 PC 1 can also replay big plays its own camera showed (a 3K or more, a won clutch) from its own OBS replay buffer, without a replay PC.
+
+## Replay feed (NDI)
+
+**On PC 2 (the replay PC):**
+1. Install the NDI runtime: http://ndi.link/NDIRedistV6.
+2. Download vMix Desktop Capture NDI (https://cdn.vmix.com/download/vMixDesktopCaptureNDI.zip), extract it (for example to the desktop) and run `vMixDesktopCapture.exe`. It sends the whole screen as an NDI source named after the computer. OBS with an NDI output plugin, or NDI Screen Capture from NDI Tools, works too.
+3. Optionally, show a HUD on PC 2's screen (its desktop HUD from the HUD Library): it is part of the picture PC 1 records.
+4. Set up Matchframe as the replay PC (below), on a delayed CSTV.
+
+**On PC 1 (the main PC):** Replays & Production → Replay PC → **This is the main PC** → **Replay feed (NDI)**:
+1. **Download ffmpeg.** This is a 92 MB download of ffmpeg 7.1 (the gyan.dev essentials build). It is checked against its SHA-256 and kept in the program's data folder. ffmpeg is the encoder: it uses your graphics card's encoder (NVIDIA NVENC, Intel Quick Sync or AMD AMF) when there is one, otherwise the CPU (x264).
+2. **Find NDI sources**, then choose PC 2's source, for example *REPLAY-PC (vMix Desktop Capture)*.
+3. Tick **Record the replay PC's screen.** The status shows the picture size, frames a second, and how much is kept.
+
+PC 2's panel then says *The main PC records this computer's screen over NDI: no OBS needed here.*
+
+**How it works:**
+- **Recording:**
+  - The NDI picture is received in a process of its own, never in the engine.
+  - It is encoded into one-second H.264 segments, each frame stamped with the time it arrived.
+  - The last 4 minutes are kept.
+- **Cutting:**
+  - When PC 2 has filmed a kill, it sends PC 1 the moment: how long ago the clip began, the kill happened, and the clip ended.
+  - PC 1 cuts that stretch from its recording without re-encoding. The cut starts on the second before.
+- **Delay:** a setting (default 100 ms) covers the time the picture takes to arrive over NDI.
+- **Fallback:** if PC 1 stops recording, PC 2 sends clips from its own OBS again, when it has one.
+
+**Bandwidth:** NDI at 1080p60 is about 100–150 Mbit/s on the network, so use a wired gigabit network between the two computers.
 
 ## Best: PC 2 about 7 s behind PC 1
 
@@ -55,12 +93,14 @@ Three ways to get there:
 PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, and which kills PC 1 had in the last seconds. PC 1 judges each kill with its exact camera history: did its camera have the killer, only the player who died (**another angle**), or neither (**missed**) in the 2.5 s before it.
 
 **PC 2 behind PC 1 (2.5 s or more):**
-- **Timing:** each missed kill (and other angle) is planned at its time on PC 2: PC 1's time plus the delay.
+- **Which kills:** by default every kill PC 2 has time for (**Kills to film → Every kill**). That includes the kills the main camera showed, so the best plays can be replayed too. The other choice is only the kills the main camera missed or showed from the player who died.
+- **Timing:** each kill is planned at its time on PC 2: PC 1's time plus the delay.
 - **Filming:**
   - From the clip's lead-up (5 s before the kill by default, plus 0.6 s for the cut), PC 2's Auto Director is pinned to the killer.
   - After the kill (2 s by default), the replay buffer is saved and sent, if the camera stayed on the killer.
   - Kills by the same player within 4 s go into one clip.
-- **One camera:** of two kills that can't both be filmed, PC 2 keeps the better one: more kills first, then a missed kill over another angle. If the player it set aside gets a second kill, it switches to that multi-kill, as long as the kill it was filming hasn't happened yet.
+- **One camera:** of two kills that can't both be filmed, PC 2 keeps the better one: more kills first, then a missed kill, then another angle, then one the main camera showed. If the player it set aside gets a second kill, it switches to that multi-kill, as long as the kill it was filming hasn't happened yet.
+- **Telling PC 1:** each time it asks PC 1 for the state, PC 2 says which rounds it still has kills to film or send. PC 1's break waits for them (below).
 - **Between kills:** PC 2 films anyone but PC 1's player at that moment of the game.
 
 **PC 2 at the same time as PC 1:**
@@ -78,27 +118,58 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
 
 **On PC 1:**
 - **When:** replays play from 3.5 s after the round ends until 1.5 s before freeze time ends.
-- **Order:** a won clutch first, then 3K+, then missed kills, then other angles.
-- **How many and how fast:** by default 2 per break, at real speed. Slow motion at 75 % or 50 % is a setting.
+- **Waiting for PC 2:** PC 2 plays the round some seconds later, and the round's last kills are often its best. So the first replay waits while PC 2 still has kills of the round to film or send. It waits up to 8 s, and never when less than 16 s of the break would be left.
+- **Ranking:** every clip of the round gets a score, shown with its reasons under Automatic replays:
+
+  | What it shows | Points |
+  |---|---|
+  | Kills in the clip | 1: 10, 2: 24, 3: 42, 4: 64, 5 (ace): 90 |
+  | A won clutch (1vN, N ≥ 2) | 40 + 10 per opponent |
+  | Not seen live (the main camera had neither player) | 8 |
+  | Another angle (the main camera had only the player who died) | 5 |
+  | Knife or Zeus / Deagle or R8 / AWP or Scout | 20 / 4 / 3 |
+  | Headshot | 3 |
+  | The round's opening kill | 4 |
+  | The round's last kill, by the side that won | 5 |
+  | A multi-kill within 2.5 s | 6 |
+
+  Two clips of the same kills (for example PC 1's own 3K and PC 2's) count once; the better one stays.
+- **How many:** the best clips that fit in the time left, best first, up to **Replays per break** (default 4). The rest are left. A clip that doesn't fit has its lead-up before the kill shortened, down to 2 s, when that makes it fit.
+- **How fast:** real speed by default. Slow motion at 75 % or 50 % is a setting.
 - **The cut:** the program cuts to the replay scene, plays the end of the clip, and goes back to the live scene when OBS reports the clip has ended.
 - **Never live:** replays never play during a live round, and stop at once if the round goes live. A replay never plays over a program scene you chose yourself.
+
+## Playing replays in vMix
+
+**Play replays in → vMix** (Automatic replays), with vMix on PC 1 and its Web Controller on (vMix → Settings → Web Controller; the address is `http://127.0.0.1:8088` by default). Press **Test vMix**.
+
+For each replay, through vMix's API:
+1. The clip is added as a video input (`AddInput`) and started at the part to show (`SetPosition`, `SetRate` for slow motion, `Play`).
+2. vMix transitions to it with the chosen transition: Cut, Fade, Stinger 1 or Stinger 2.
+3. When the clip ends (or the round goes live), vMix goes back to the input that was on air.
+4. The replay input is removed.
+
+If someone puts another input on air during the replay, it is left there.
 
 ## Settings
 
 | Where | Setting | Default |
 |---|---|---|
-| Automatic replays (PC 1) | Replays per break | 2 |
+| Automatic replays (PC 1) | Replays per break (the best of the round that fit) | 4 |
+| | Play replays in | OBS (or vMix: address, transition) |
 | | Speed | Real time |
 | | Other angles | On |
 | | Replay big plays shown live (3K+, won clutches) | On |
 | OBS scenes (PC 1) | Replay transition (e.g. a Stinger) | OBS's current one |
-| Replay PC (PC 2) | On the same CSTV as the main PC: go back and stay behind, go back for each missed kill, or don't | Go back and stay behind |
+| Replay feed (PC 1) | Record the replay PC's screen; its NDI source; encoder | Off; none; the best this computer has |
+| Replay PC (PC 2) | Kills to film | Every kill |
+| | On the same CSTV as the main PC: go back and stay behind, go back for each missed kill, or don't | Go back and stay behind |
 | | How far behind | 7 s |
 
 **API:**
-- **PC 1:** `GET`/`PUT /api/v1/replays/auto`, `POST /api/v1/replays/obs-setup`, `GET /api/v1/network`.
+- **PC 1:** `GET`/`PUT /api/v1/replays/auto` (`perBreak`, `mixer`, `vmixUrl`, `vmixTransition`; status `round`, `ranked`, `vmix`), `POST /api/v1/replays/vmix/test`, `POST /api/v1/replays/obs-setup`, `GET`/`PUT /api/v1/replays/feed`, `POST /api/v1/replays/feed/sources`, `POST /api/v1/replays/feed/ffmpeg`, `GET /api/v1/network`.
 - **PC 2:** `GET`/`PUT /api/v1/replay-pc` (settings `preRollMs`, `postRollMs`, `sameCstv` (`stay_behind`, `each_kill`, `off`), `behindMs`; status `timing`, `rewind`, `filming`, `skipped`, `lastSkip`).
-- **The link itself:** `GET /api/v1/replay-link/on-air` and `POST /api/v1/replays/incoming` on PC 1, with the replay code (a `replay` role token). On-air answers carry `clock` (PC 1's round clock) and `kills` (the last 30 s, each with `shown`: `killer`, `victim` or `none`).
+- **The link itself:** `GET /api/v1/replay-link/on-air?pending=<rounds>`, `POST /api/v1/replays/incoming` (a clip file) and `POST /api/v1/replays/mark` (a moment, with the replay feed) on PC 1, with the replay code (a `replay` role token). On-air answers carry `clock` (PC 1's round clock), `kills` (the last 30 s, each with `shown`: `killer`, `victim` or `none`) and `feed.recording`.
 
 ## Checked
 
@@ -120,7 +191,13 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
   - the replay buffer saved on the replay PC and the clip uploaded;
   - the one-click replay scene;
   - the clip played on the main PC's replay scene, then back to the live scene.
+- **Ranking and the break** (`replay-rank.test.ts`, `replay-break.e2e.test.ts`): the score and its reasons; the best clip that fits, its lead-up shortened; six clips of a round, three played best first, a duplicate not played, the rest left; the first replay waiting for the replay PC's last kills; the same through a stand-in vMix (AddInput, SetPosition, Play, CutDirect to it and back, RemoveInput).
+- **Every kill** (`replay-pc-timing.e2e.test.ts`): a kill the main camera showed is filmed from behind and sent as `shown`, with its lead-up; PC 1 knows the round is pending until it arrives.
+- **The replay feed** (`replay-feed.test.ts`, `replay-pc-timing.e2e.test.ts`, a stand-in NDI source with real ffmpeg): recording in one-second segments stamped with real time; a cut a few seconds back starts and ends on the picture of those moments (to 0.2 s, read from the picture's brightness, which tells the time); a cut whose end is still being written waits for it; two programs, the replay PC without OBS, its missed kill marked and cut on PC 1.
 - **Not checked yet:**
+  - the real NDI binding receiving a real NDI source (the Windows release build only checks that it loads), and vMix Desktop Capture;
+  - the replay feed on Windows (ffmpeg's hardware encoders);
+  - a real vMix;
   - two real CS2 clients on two computers over a real network;
   - a real second CSTV;
   - `demo_gototick` sent by Matchframe to a real CS2 on CSTV (the owner uses `-448 relative` and `448 relative` by hand);

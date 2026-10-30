@@ -1,6 +1,6 @@
 {
   "name": "@matchframe/local-engine",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -11,26 +11,27 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@matchframe/automation": "workspace:*",
+    "@matchframe/cloud-contracts": "workspace:*",
     "@matchframe/contracts": "workspace:*",
     "@matchframe/cs2-state": "workspace:*",
     "@matchframe/director-policy": "workspace:*",
-    "@matchframe/map-runtime": "workspace:*",
+    "@matchframe/game-adapters": "workspace:*",
     "@matchframe/hud-sdk": "workspace:*",
-    "fflate": "0.8.2",
-    "ws": "8.22.0",
-    "zod": "4.6.7",
-    "@matchframe/automation": "workspace:*",
+    "@matchframe/map-runtime": "workspace:*",
+    "@matchframe/matchframe-bridge": "workspace:*",
+    "@matchframe/obs-adapter": "workspace:*",
     "@matchframe/observer-agent": "workspace:*",
     "@matchframe/replay-agent": "workspace:*",
-    "@matchframe/obs-adapter": "workspace:*",
-    "@matchframe/game-adapters": "workspace:*",
-    "@matchframe/matchframe-bridge": "workspace:*",
-    "@matchframe/cloud-contracts": "workspace:*",
-    "socket.io": "4.8.1"
+    "fflate": "0.8.2",
+    "grandi": "2.0.2",
+    "socket.io": "4.8.1",
+    "ws": "8.22.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
-    "@types/ws": "8.18.2",
     "@matchframe/cloud-api": "workspace:*",
+    "@types/ws": "8.18.2",
     "socket.io-client": "4.8.1"
   }
 }

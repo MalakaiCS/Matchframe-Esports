@@ -942,3 +942,35 @@ What the recording showed:
 - `FeedWatch` gaps and stalls; the GSI config's timing; console lines per launch mode, and team overhead off and on for a clutch and a retake.
 
 **Not checked.** In a real CS2 with HLAE, and whether CS2 really waits for the heartbeat after a lost answer (Valve documents it for CS:GO).
+
+## ADR-051 — Replays: every kill filmed, ranked per round; an NDI replay feed recorded on the main PC; vMix
+
+**Context.** The owner: "PC1 and PC2 should communicate and list the kills every round and structure it in best clips to replay to worst. Get the 3-4 best ones to replay and ignore the rest", with the replay PC going back and staying behind for every game, and a replay feed like LHM's: the delayed PC's screen over NDI (vMix Desktop Capture), recorded by the main PC, which switches OBS or vMix to the replays at the end of a round. The owner chose the NDI feed and OBS plus vMix.
+
+Before this, the replay PC filmed only kills the main camera missed (or showed from the victim), saved each from its own OBS replay buffer and uploaded the file; the main PC played 2 a break in a fixed order (clutch, 3K+, missed, other angle).
+
+**Decision.**
+- **Every kill:** behind the main PC, the replay PC plans every kill it has time for (`filmAll`, default on), including those the main camera showed (kind `shown`). Its one camera keeps the better of two clashing kills: more kills, then missed, other angle, shown. Each poll tells the main PC which rounds it still has kills of to film or send (`on-air?pending=`).
+- **Ranking:** each clip of a round gets a score (replay/rank.ts): kills (a 2K worth more than two singles), a won clutch, not seen live, another angle, knife/Zeus, Deagle, AWP, headshot, the opening kill, the round-winning kill, a fast multi-kill. The reasons are shown. Clips of the same kills count once. The break plays the best clip that fits in the time left, again and again, best first, up to `perBreak` (default 4). A clip's lead-up is shortened down to 2 s to fit (clips carry `leadMs`). The first replay waits up to 8 s for the replay PC's pending kills, while at least 16 s of the break would remain.
+- **Replay feed (NDI):**
+  - **Receiving:** the main PC receives the replay PC's screen with grandi (Apache-2.0 bindings to the NDI 6 SDK, prebuilt with the NDI runtime). This runs in a process of its own (feed-worker.mjs, forked by the engine), so neither the native module nor 250 MB/s of frames touch the engine.
+  - **Encoding:** frames are piped to ffmpeg as they arrive with `-use_wallclock_as_timestamps 1 -fps_mode cfr`, using the GPU's H.264 encoder (NVENC, QSV, AMF; x264 as the fallback), into one-second MPEG-TS segments. A segment list gives each segment's time from the first frame.
+  - **Marks:** the replay PC sends a mark (`POST /api/v1/replays/mark`: how long ago the clip began, the kill happened, and it ended).
+  - **Cutting:** the main PC joins the segments and copies them into an MP4 cut at the end (no re-encoding). The clip starts on the second before; `playMs` and `leadMs` say what to show.
+  - **Switching:** the replay PC uses the feed when the main PC says it records (`feed.recording` in the on-air answer); otherwise it sends OBS clips.
+  - **ffmpeg:** not shipped. On Windows the program downloads one pinned build on request (gyan.dev 7.1 essentials, SHA-256 checked), or uses one on the PATH.
+- **vMix:** Automatic replays can play in vMix through its Web Controller API: `AddInput Video|clip`, `SetPosition` (the part to show), `SetRate`, `Play`, then a transition (CutDirect, Fade, Stinger1, Stinger2). Back to the input that was on air when the clip ends or the round goes live, then `RemoveInput`. It doesn't cut back if another input was put on air.
+- **Packaging:** the desktop build bundles feed-worker.mjs and copies grandi, node-gyp-build and the platform's `@grandi/*` addon into `engine/node_modules`, named in electron-builder's extraResources (it drops node_modules otherwise). The Windows smoke test asks the installed program for NDI sources: the binding must load.
+
+**Alternatives.** NDI output of the replays (LHM sends its Replay Feed as an NDI source): OBS and vMix both play files, which needs no NDI plugin in OBS and gives frame-exact starts; an NDI output can follow for other mixers. Recording on the replay PC (OBS) stays as the fallback.
+
+**Checked.**
+- Ranking and break tests: unit, six clips in a round, the replay PC pending, a stand-in vMix.
+- The replay PC filming a shown kill.
+- The feed with a stand-in NDI source and real ffmpeg: cuts to the picture within 0.2 s; two programs with the replay PC marking and the main PC cutting.
+- The Linux package carries the NDI binding.
+
+**Not checked.**
+- The real NDI binding receiving a real NDI source: this session's safety checks don't run third-party native code; the Windows release build checks that it loads.
+- ffmpeg's hardware encoders on Windows.
+- A real vMix.

@@ -1,13 +1,24 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { inProcessFeedWorker } from "./helpers/fake-ndi.ts";
 import type { SyntheticPlayer } from "../../../packages/cs2-state/src/testing/gsi-builder.ts";
 import { buildSyntheticGsiPayload, syntheticRoster } from "../../../packages/cs2-state/src/testing/gsi-builder.ts";
 import { Engine } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
 import { startServers } from "../src/servers.ts";
+
+const hasFfmpeg = (() => {
+  try {
+    execFileSync("ffmpeg", ["-hide_banner", "-version"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+})();
 
 /**
  * Two programs, one game seen at two moments: the replay PC's game runs some seconds behind the
@@ -93,6 +104,7 @@ interface Clip {
   state: string;
   origin: string;
   playMs: number;
+  leadMs?: number | null;
   roundNumber: number;
   play: { kind: string; kills: number };
 }
@@ -165,7 +177,7 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     }
   });
 
-  const status = async () => (await replay.api("/api/v1/replay-pc")).json.status as { timing: { state: string; delayMs: number | null }; rewind: { state: string; count: number; detail: string }; sent: number; skipped: number; lastSkip: { reason: string } | null; filming: string | null };
+  const status = async () => (await replay.api("/api/v1/replay-pc")).json.status as { timing: { state: string; delayMs: number | null }; rewind: { state: string; count: number; detail: string }; sent: number; skipped: number; lastSkip: { reason: string } | null; filming: string | null; transport: string };
   const clips = async () => (await main.api("/api/v1/replays")).json.items as Clip[];
 
   it("3 s behind (a second CSTV): knows the missed kill is coming, gets on the killer first and sends the clip", async () => {
@@ -189,6 +201,46 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     expect(replay.e.session.director.controls.pin).toBeNull();
     expect((await status()).sent).toBe(1);
   }, 30000);
+
+  it("3 s behind, every kill: films a kill the main camera showed too, and tells the main PC it is still filming that round", async () => {
+    // T1, on the main camera, kills CT9.
+    await setup({ offsetMs: 3000, kills: [{ at: KILL_AT, killer: T1!, victim: CT9 }] });
+    await waitFor(async () => (await status()).timing.state === "behind");
+    await waitFor(() => replay.e.session.director.controls.pin?.kind === "player");
+    expect(replay.e.session.director.controls.pin).toEqual({ kind: "player", steamId: T1!.steamId });
+    const round = main.e.session.state()!.roundNumber;
+    // The main PC's replay break would wait for it.
+    await waitFor(() => main.e.onAir.peerPending(round));
+    await waitFor(async () => (await clips()).length > 0);
+    const clip = (await clips())[0]!;
+    expect(clip).toMatchObject({ origin: "replay_pc", play: { kind: "shown", kills: 1 } });
+    // Of the clip, the part before the kill (about the 2 s pre-roll): the break may shorten it.
+    expect(clip.leadMs).toBeGreaterThan(1500);
+    expect(clip.leadMs).toBeLessThan(clip.playMs);
+    await waitFor(() => !main.e.onAir.peerPending(round));
+  }, 30000);
+
+  it.skipIf(!hasFfmpeg)("replay feed: the main PC records the replay PC's screen over NDI, and cuts the missed kill it marks (no OBS on the replay PC)", async () => {
+    await setup({ offsetMs: 3000 });
+    // The replay PC has no OBS; the main PC records its screen (a stand-in NDI source, real ffmpeg).
+    Object.assign(replay.e.obs.state, { connected: false, replayBuffer: false });
+    Object.assign((main.e.replayFeed as unknown as { deps: object }).deps, { spawnWorker: () => inProcessFeedWorker() });
+    main.e.replayFeed.setSettings({ enabled: true, source: { name: "REPLAY-PC (vMix Desktop Capture)" }, encoder: "libx264", latencyMs: 0 });
+    await waitFor(() => main.e.replayFeed.recording());
+    await waitFor(async () => (await status()).transport === "feed");
+    await waitFor(async () => (await clips()).length > 0, 20000);
+    const clip = (await clips())[0]! as Clip & { clip: { providerId: string; media: { path: string; durationMs: number; width: number } } };
+    expect(clip).toMatchObject({ state: "prepared", origin: "replay_pc", play: { kind: "missed", kills: 1 }, clip: { providerId: "replay-feed", media: { width: 320 } } });
+    expect(existsSync(clip.clip.media.path)).toBe(true);
+    // From 2 s before the kill to 0.5 s after it, inside the cut (which starts on the second before).
+    expect(clip.playMs).toBeGreaterThanOrEqual(2300);
+    expect(clip.playMs).toBeLessThanOrEqual(2900);
+    expect(clip.clip.media.durationMs).toBeGreaterThanOrEqual(clip.playMs);
+    expect(clip.clip.media.durationMs - clip.playMs).toBeLessThan(1100);
+    expect(clip.leadMs).toBeGreaterThan(1500);
+    expect((await status()).sent).toBe(1);
+    main.e.replayFeed.setSettings({ enabled: false });
+  }, 40000);
 
   it("two missed kills at once, one of them a 2K: films the 2K, even after starting on the other", async () => {
     // T2 kills CT7 at 4.0 s; T4 kills CT9 at 4.4 s and CT8 at 5.2 s. The main camera has T1 throughout.

@@ -635,7 +635,7 @@ export interface ReplayItem {
   origin?: "main" | "replay_pc";
   priority?: number;
   playMs?: number | null;
-  play?: { kind: "missed" | "other_angle" | "big_play"; killer: { steamId: string; name: string } | null; victims: string[]; kills: number; weapon: string | null; headshot: boolean } | null;
+  play?: { kind: "missed" | "other_angle" | "shown" | "big_play"; killer: { steamId: string; name: string } | null; victims: string[]; kills: number; weapon: string | null; headshot: boolean } | null;
 }
 
 export interface ReplayProviderCapabilities {
@@ -1022,11 +1022,44 @@ export interface AutoDirectorStatus {
 
 export interface AutoReplaySettings {
   enabled: boolean;
-  maxPerBreak: number;
+  /** At most this many clips per break: the best of the round that fit. */
+  perBreak: number;
   speedPercent: number;
   startDelayMs: number;
   otherAngles: boolean;
   ownBigPlays: boolean;
+  mixer: "obs" | "vmix";
+  vmixUrl: string;
+  vmixTransition: "CutDirect" | "Fade" | "Stinger1" | "Stinger2";
+}
+
+/** A clip of the break's round, as ranked by the main PC. */
+export interface RankedReplay {
+  id: string;
+  label: string;
+  score: number;
+  reasons: string[];
+  state: "played" | "picked" | "waiting" | "duplicate" | "left";
+}
+
+/** GET /api/v1/replays/feed: the replay PC's screen over NDI, recorded on the main PC. */
+export interface ReplayFeedResponse {
+  settings: { enabled: boolean; source: { name: string; urlAddress?: string } | null; latencyMs: number; keepSeconds: number; encoder: "auto" | "h264_nvenc" | "h264_qsv" | "h264_amf" | "libx264"; bitrateMbps: number };
+  status: {
+    enabled: boolean;
+    state: "off" | "starting" | "waiting" | "recording" | "error";
+    detail: string;
+    source: { name: string } | null;
+    width: number | null;
+    height: number | null;
+    fps: number | null;
+    receivingFps: number;
+    dropped: number;
+    bufferedSec: number;
+    ndi: { available: boolean | null; version: string | null; error: string | null };
+    ffmpeg: { source: "downloaded" | "path" | "missing"; path: string | null; version: string | null; encoder: string | null; downloading: number | null; error: string | null; canDownload: boolean };
+    clips: number;
+  };
 }
 export type MatchArtKind = "thumb-highlights" | "thumb-replay" | "thumb-live" | "up-next" | "stinger" | "stinger-replay";
 
@@ -1050,10 +1083,20 @@ export interface MatchArtObsResult {
 
 export interface AutoReplayResponse {
   settings: AutoReplaySettings;
-  status: { enabled: boolean; state: "off" | "waiting" | "playing" | "blocked"; detail: string; waiting: number; playing: { id: string; label: string } | null; lastPlayed: { id: string; label: string; at: string } | null };
+  status: {
+    enabled: boolean;
+    state: "off" | "waiting" | "playing" | "blocked";
+    detail: string;
+    waiting: number;
+    playing: { id: string; label: string } | null;
+    lastPlayed: { id: string; label: string; at: string } | null;
+    round?: number | null;
+    ranked?: RankedReplay[];
+    vmix?: { connected: boolean; version: string | null; error: string | null } | null;
+  };
 }
 export interface ReplayPcResponse {
-  settings: { enabled: boolean; mainUrl: string; preRollMs: number; postRollMs: number; sameCstv: "stay_behind" | "each_kill" | "off"; behindMs: number };
+  settings: { enabled: boolean; mainUrl: string; preRollMs: number; postRollMs: number; sameCstv: "stay_behind" | "each_kill" | "off"; behindMs: number; filmAll?: boolean };
   hasToken: boolean;
   status: {
     enabled: boolean;
@@ -1062,6 +1105,8 @@ export interface ReplayPcResponse {
     main: { computer: string; version: string; url: string } | null;
     mainObserved: string | null;
     obsReady: boolean;
+    /** feed: the main PC records this computer's screen over NDI; obs: this computer's OBS saves and sends the clips. */
+    transport?: "feed" | "obs";
     /** How far this computer's game is behind the main PC's. */
     timing: { state: "measuring" | "live" | "behind" | "ahead"; delayMs: number | null; detail: string };
     rewind: { state: "off" | "ready" | "rewinding" | "holding" | "rewound" | "returning" | "unsupported"; detail: string; count: number };

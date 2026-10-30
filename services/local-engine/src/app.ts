@@ -56,6 +56,8 @@ import { PovModelService } from "./demos/pov-model.ts";
 import { CameraCapture } from "./live/camera-capture.ts";
 import { HlaeCameraServer } from "./game/hlae-camera.ts";
 import { FeedWatch } from "./live/feed-watch.ts";
+import { ReplayFeed } from "./replay/feed.ts";
+import { FfmpegTool } from "./replay/ffmpeg.ts";
 import { CamHub, type CamRosterSource } from "./live/cams.ts";
 import { RoundSimulator } from "./sim/simulator.ts";
 import { GameConsoleService } from "./game/console.ts";
@@ -154,6 +156,10 @@ export class Engine {
   readonly hlaeCamera: HlaeCameraServer;
   /** Gaps in CS2's game data and stalls of the engine, for the support file. */
   readonly feed: FeedWatch;
+  /** ffmpeg for the replay feed (downloaded on request on Windows). */
+  readonly ffmpeg: FfmpegTool;
+  /** The replay PC's screen over NDI, recorded here (main PC). */
+  readonly replayFeed: ReplayFeed;
   /** Player cams (ADR-048). */
   readonly cams: CamHub;
   readonly datasetStorage: DatasetStorage;
@@ -317,6 +323,8 @@ export class Engine {
         if (phase && matchPhases.has(phase)) this.directorLog.warn(kind === "gap" ? "game data gap" : "engine stall", { ms, round, phase });
       },
     });
+    this.ffmpeg = new FfmpegTool({ dataDir: cfg.dataDir, logger: this.logger });
+    this.replayFeed = new ReplayFeed({ settings: this.settings, logger: this.logger, dataDir: cfg.dataDir, ffmpeg: this.ffmpeg });
     this.hlaeCamera = new HlaeCameraServer({
       settings: this.settings,
       logger: this.logger,
@@ -1006,6 +1014,7 @@ export class Engine {
     await this.applyObserverAdapter();
     this.session.start();
     this.feed.start();
+    this.replayFeed.start();
     this.meterTimer = setInterval(() => this.meter.tick(this.meterInput()), 1000);
     void this.cloud.start();
     this.demos.start();
@@ -1040,6 +1049,7 @@ export class Engine {
     await this.stopSimulation().catch(() => undefined);
     this.demos.stop();
     this.feed.stop();
+    this.replayFeed.stop();
     this.session.stop();
     if (this.meterTimer) clearInterval(this.meterTimer);
     this.meterTimer = null;

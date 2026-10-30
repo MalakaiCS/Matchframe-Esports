@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, describeError } from "../../api/index.ts";
-import type { AutoReplayResponse, AutoReplaySettings, NetworkInfo, ReplayPcResponse } from "../../api/types.ts";
+import type { AutoReplayResponse, AutoReplaySettings, NetworkInfo, RankedReplay, ReplayFeedResponse, ReplayPcResponse } from "../../api/types.ts";
 import { ActionButton, Badge, Button, Checkbox, CopyButton, Field, Note, Panel, Tabs } from "../../components/ui.tsx";
 import { useToast } from "../../components/toasts.tsx";
 import { useApi } from "../../lib/hooks.ts";
@@ -10,10 +10,24 @@ import { usePermission } from "../../state/session.tsx";
 const STATE_TONE = { off: "neutral", waiting: "info", playing: "accent", blocked: "warn" } as const;
 const SPEEDS = [100, 75, 50] as const;
 
+const RANKED_STATE: Record<RankedReplay["state"], { label: string; tone: "ok" | "accent" | "info" | "neutral" }> = {
+  played: { label: "Played", tone: "ok" },
+  picked: { label: "On air", tone: "accent" },
+  waiting: { label: "Waiting", tone: "info" },
+  duplicate: { label: "Same kills", tone: "neutral" },
+  left: { label: "Not played", tone: "neutral" },
+};
+const TRANSITIONS = [
+  { id: "CutDirect", label: "Cut" },
+  { id: "Fade", label: "Fade" },
+  { id: "Stinger1", label: "Stinger 1" },
+  { id: "Stinger2", label: "Stinger 2" },
+] as const;
+
 /**
- * Main PC: replays play by themselves in the break after a round: kills the main camera missed
- * (sent by the replay PC) and, optionally, 3K+ the main camera showed (this computer's OBS replay
- * buffer).
+ * Main PC: replays play by themselves in the break after a round. The round's clips (from the
+ * replay PC, and this computer's own 3K+ and clutches) are ranked, and the best ones that fit play,
+ * best first, in OBS or vMix.
  */
 export function AutoReplaysPanel() {
   const auto = useApi<AutoReplayResponse>("/api/v1/replays/auto", { refreshMs: 1000 });
@@ -34,16 +48,21 @@ export function AutoReplaysPanel() {
   const st = auto.data?.settings;
   const status = auto.data?.status;
   const off = !!reason || busy || !st;
+  const [vmixUrl, setVmixUrl] = useState("");
+  useEffect(() => {
+    if (st?.vmixUrl) setVmixUrl(st.vmixUrl);
+  }, [st?.vmixUrl]);
+  const ranked = status?.ranked ?? [];
   return (
     <Panel title="Automatic replays" subtitle={status?.detail} actions={status ? <Badge tone={STATE_TONE[status.state]}>{status.state === "playing" ? "Playing" : status.enabled ? "On" : "Off"}</Badge> : null}>
       <div className="stack-sm">
         <Checkbox checked={st?.enabled ?? false} disabled={off} label="Play replays by themselves" hint="In the break after a round: from a few seconds after it ends until just before freeze time ends. Never while a round is live." onChange={(v) => void save({ enabled: v })} />
         <div className="form-grid">
-          <Field label="Replays per break">
-            <select value={st?.maxPerBreak ?? 2} disabled={off} onChange={(e) => void save({ maxPerBreak: Number(e.target.value) })}>
+          <Field label="Replays per break" hint="The best clips of the round that fit in the break, best first; the rest are left.">
+            <select value={st?.perBreak ?? 4} disabled={off} onChange={(e) => void save({ perBreak: Number(e.target.value) })}>
               {[1, 2, 3, 4].map((n) => (
                 <option key={n} value={n}>
-                  {n}
+                  {n === 1 ? "The best one" : `The best ${n}`}
                 </option>
               ))}
             </select>
@@ -60,12 +79,61 @@ export function AutoReplaysPanel() {
         </div>
         <Checkbox checked={st?.otherAngles ?? true} disabled={off} label="Other angles" hint="When the main camera showed only the player who died, replay it from the killer's side (from the replay PC)." onChange={(v) => void save({ otherAngles: v })} />
         <Checkbox checked={st?.ownBigPlays ?? true} disabled={off} label="Replay big plays shown live" hint="When the main camera shows a 3K or more, save this computer's OBS replay buffer and replay it too." onChange={(v) => void save({ ownBigPlays: v })} />
-        <div className="row">
-          <ActionButton action={() => api.post<{ scene: string; input: string }>("/api/v1/replays/obs-setup")} success={(r) => `OBS: scene “${r.scene}” with the media source “${r.input}” is ready`} onDone={() => void auto.reload()} disabledReason={setupReason}>
-            Set up OBS replay scene
-          </ActionButton>
-          <span className="muted small">Adds a “Matchframe Replay” scene to OBS and uses it. Put a stinger transition in OBS for a broadcast wipe.</span>
-        </div>
+        <Field label="Play replays in">
+          <select value={st?.mixer ?? "obs"} disabled={off} onChange={(e) => void save({ mixer: e.target.value as AutoReplaySettings["mixer"] })}>
+            <option value="obs">OBS</option>
+            <option value="vmix">vMix</option>
+          </select>
+        </Field>
+        {st?.mixer === "vmix" ? (
+          <div className="stack-sm">
+            <div className="form-grid">
+              <Field label="vMix address" hint="vMix on this computer, with its Web Controller on (vMix → Settings → Web Controller).">
+                <input value={vmixUrl} disabled={off} spellCheck={false} onChange={(e) => setVmixUrl(e.target.value)} onBlur={() => vmixUrl !== st.vmixUrl && void save({ vmixUrl })} placeholder="http://127.0.0.1:8088" />
+              </Field>
+              <Field label="Transition" hint="To the replay and back. Stingers use vMix's own Stinger 1 or 2.">
+                <select value={st.vmixTransition} disabled={off} onChange={(e) => void save({ vmixTransition: e.target.value as AutoReplaySettings["vmixTransition"] })}>
+                  {TRANSITIONS.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <div className="row">
+              <ActionButton action={() => api.post<{ connected: boolean; version: string | null; error: string | null }>("/api/v1/replays/vmix/test")} success={(r) => (r.connected ? `vMix ${r.version ?? ""} answers` : `vMix doesn't answer: ${r.error ?? ""}`)} onDone={() => void auto.reload()} disabledReason={reason}>
+                Test vMix
+              </ActionButton>
+              {status?.vmix ? <Badge tone={status.vmix.connected ? "ok" : "warn"}>{status.vmix.connected ? `vMix ${status.vmix.version ?? ""}` : "vMix not reached"}</Badge> : null}
+              <span className="muted small">Each replay is added to vMix as an input, played, then removed.</span>
+            </div>
+          </div>
+        ) : (
+          <div className="row">
+            <ActionButton action={() => api.post<{ scene: string; input: string }>("/api/v1/replays/obs-setup")} success={(r) => `OBS: scene “${r.scene}” with the media source “${r.input}” is ready`} onDone={() => void auto.reload()} disabledReason={setupReason}>
+              Set up OBS replay scene
+            </ActionButton>
+            <span className="muted small">Adds a “Matchframe Replay” scene to OBS and uses it. Put a stinger transition in OBS for a broadcast wipe.</span>
+          </div>
+        )}
+        {ranked.length ? (
+          <div className="stack-sm" aria-label="Clips of the round, best first">
+            <span className="small muted">Round {status?.round ?? "?"}: its clips, best first</span>
+            <ol className="ranked-replays small">
+              {ranked.map((r) => (
+                <li key={r.id} className="row">
+                  <Badge tone={RANKED_STATE[r.state].tone}>{RANKED_STATE[r.state].label}</Badge>
+                  <span>{r.label}</span>
+                  <span className="muted">
+                    {r.score}
+                    {r.reasons.length ? ` · ${r.reasons.join(", ")}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
         {status?.lastPlayed ? <p className="small muted">Last replay: {status.lastPlayed.label}</p> : null}
       </div>
     </Panel>
@@ -205,6 +273,103 @@ function MainSide() {
           <span className="muted small">Shown once. Remove it in Settings → Access to lock the replay PC out.</span>
         </div>
       ) : null}
+      <ReplayFeedSection />
+    </div>
+  );
+}
+
+const FEED_TONE = { off: "neutral", starting: "info", waiting: "warn", recording: "ok", error: "warn" } as const;
+const ENCODERS = [
+  { id: "auto", label: "Best this computer has" },
+  { id: "h264_nvenc", label: "NVIDIA (NVENC)" },
+  { id: "h264_qsv", label: "Intel (Quick Sync)" },
+  { id: "h264_amf", label: "AMD (AMF)" },
+  { id: "libx264", label: "CPU (x264)" },
+] as const;
+
+/**
+ * Main PC: the replay feed. This computer records the replay PC's whole screen over NDI and cuts
+ * each kill the replay PC films from it; the replay PC then needs no OBS, only an NDI screen sender.
+ */
+function ReplayFeedSection() {
+  const feed = useApi<ReplayFeedResponse>("/api/v1/replays/feed", { refreshMs: 1500 });
+  const reason = usePermission("settings.manage");
+  const toast = useToast();
+  const [sources, setSources] = useState<{ name: string; urlAddress?: string }[] | null>(null);
+  const save = async (patch: Partial<ReplayFeedResponse["settings"]>) => {
+    try {
+      feed.setData(await api.put<ReplayFeedResponse>("/api/v1/replays/feed", patch));
+    } catch (e) {
+      toast.push("danger", "Setting not saved", describeError(e));
+    }
+  };
+  const st = feed.data?.settings;
+  const status = feed.data?.status;
+  const ff = status?.ffmpeg;
+  const choices = [...(sources ?? []), ...(st?.source && !sources?.some((x) => x.name === st.source!.name) ? [st.source] : [])];
+  return (
+    <div className="stack-sm">
+      <h3 className="gb-section-title">Replay feed (NDI)</h3>
+      <p className="small muted">This computer records the replay PC's whole screen over NDI and cuts each kill from it, like LHM's Replay Feed. The replay PC then needs no OBS: only an NDI screen sender, such as vMix Desktop Capture.</p>
+      <Checkbox checked={st?.enabled ?? false} disabled={!!reason || !st} label="Record the replay PC's screen" hint="It keeps the last few minutes and cuts clips from them; nothing is played from it by itself." onChange={(v) => void save({ enabled: v })} />
+      {ff?.source === "missing" ? (
+        ff.canDownload ? (
+          <div className="row">
+            <ActionButton action={() => api.post("/api/v1/replays/feed/ffmpeg")} success="ffmpeg downloaded" onDone={() => void feed.reload()} disabledReason={reason ?? (ff.downloading !== null ? "Downloading…" : null)}>
+              Download ffmpeg
+            </ActionButton>
+            <span className="muted small">{ff.downloading !== null ? `Downloading… ${Math.round(ff.downloading * 100)} %` : "The recording needs ffmpeg (a 92 MB download from gyan.dev, checked before use)."}</span>
+          </div>
+        ) : (
+          <Note tone="warn">The recording needs ffmpeg: install it with this system's package manager.</Note>
+        )
+      ) : ff ? (
+        <span className="small muted">ffmpeg {ff.version ?? ""}{ff.encoder ? ` · encoding with ${ff.encoder}` : ""}</span>
+      ) : null}
+      {ff?.error ? <span className="small text-warn">{ff.error}</span> : null}
+      <div className="form-grid">
+        <Field label="The replay PC's NDI source" hint="Start the NDI sender on the replay PC first, then find it here.">
+          <select value={st?.source?.name ?? ""} disabled={!!reason || !st} onChange={(e) => void save({ source: choices.find((c) => c.name === e.target.value) ?? null })}>
+            <option value="" disabled>
+              {sources === null ? "Press Find NDI sources" : sources.length ? "Choose one" : "No NDI sources found"}
+            </option>
+            {choices.map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Encoder">
+          <select value={st?.encoder ?? "auto"} disabled={!!reason || !st} onChange={(e) => void save({ encoder: e.target.value as ReplayFeedResponse["settings"]["encoder"] })}>
+            {ENCODERS.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <div className="row">
+        <ActionButton action={() => api.post<{ sources: { name: string; urlAddress?: string }[]; error: string | null }>("/api/v1/replays/feed/sources")} success={(r) => (r.error ? `NDI: ${r.error}` : `${r.sources.length} NDI source${r.sources.length === 1 ? "" : "s"} found`)} onDone={(r) => setSources(r.sources)} disabledReason={reason}>
+          Find NDI sources
+        </ActionButton>
+        {status?.ndi.version ? <span className="muted small">{status.ndi.version}</span> : status?.ndi.error ? <span className="small text-warn">NDI: {status.ndi.error}</span> : null}
+      </div>
+      {status && status.enabled ? (
+        <div className="stack-sm small" role="status">
+          <div className="row">
+            <Badge tone={FEED_TONE[status.state]}>{status.state === "recording" ? "Recording" : status.state === "waiting" ? "No picture" : status.state === "starting" ? "Starting" : status.state === "error" ? "Not recording" : "Off"}</Badge>
+            <span>{status.detail}</span>
+          </div>
+          {status.state === "recording" ? (
+            <span className="muted">
+              {status.bufferedSec.toFixed(0)} s kept · {status.receivingFps.toFixed(0)} frames a second arriving
+              {status.dropped ? ` · ${status.dropped} dropped (encoder behind: try another encoder)` : ""} · {status.clips} clips cut
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -263,6 +428,12 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
               <option value="off">Don't go back</option>
             </select>
           </Field>
+          <Field label="Kills to film" hint="Behind the main PC, this computer can film every kill it has time for; the main PC replays the best of each round.">
+            <select value={data?.settings.filmAll === false ? "missed" : "all"} disabled={!!reason} onChange={(e) => void api.put("/api/v1/replay-pc", { filmAll: e.target.value === "all" }).then(reload)}>
+              <option value="all">Every kill (recommended)</option>
+              <option value="missed">Only kills the main camera missed</option>
+            </select>
+          </Field>
           {data?.settings.sameCstv === "stay_behind" ? (
             <Field label="How far behind">
               <select value={data.settings.behindMs} disabled={!!reason} onChange={(e) => void api.put("/api/v1/replay-pc", { behindMs: Number(e.target.value) }).then(reload)}>
@@ -291,7 +462,11 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
           {st.state === "connected" && st.timing.state !== "behind" ? <span>The main camera shows {nameOf(st.mainObserved)}: this computer's Auto Director films someone else.</span> : null}
           {data?.settings.sameCstv !== "off" && st.rewind.detail ? <span className={st.rewind.state === "unsupported" ? "text-warn" : ""}>Going back: {st.rewind.detail}</span> : null}
           {st.filming ? <span>Filming now: {st.filming}{st.planned ? ` (${st.planned} more planned)` : ""}</span> : null}
-          <span className={st.obsReady ? "" : "text-warn"}>{st.obsReady ? "OBS replay buffer is running." : "Connect OBS on this computer (Settings → Devices); its replay buffer starts by itself."}</span>
+          {st.transport === "feed" ? (
+            <span>The main PC records this computer's screen over NDI: no OBS needed here. Keep the NDI sender (such as vMix Desktop Capture) running.</span>
+          ) : (
+            <span className={st.obsReady ? "" : "text-warn"}>{st.obsReady ? "OBS replay buffer is running." : "Connect OBS on this computer (Settings → Devices); its replay buffer starts by itself. Or let the main PC record this screen over NDI (its Replay feed)."}</span>
+          )}
           <span>
             Clips sent: {st.sent}
             {st.failed ? `, not sent: ${st.failed}` : ""}

@@ -146,7 +146,7 @@ describe("Replay PC: catches the kills the main camera misses, the main PC repla
     await main.api("/api/v1/settings/program.scenes", { method: "PUT", body: { value: { LIVE: "Game", REPLAY: "Replay", STUDIO: null, BREAK: null } } });
     await main.api("/api/v1/settings/replay.mediaInput", { method: "PUT", body: { value: "Replay Clip" } });
     const auto = await main.api("/api/v1/replays/auto", { method: "PUT", body: { enabled: true, startDelayMs: 0 } });
-    expect(auto.json.settings).toMatchObject({ enabled: true, startDelayMs: 0, maxPerBreak: 2 });
+    expect(auto.json.settings).toMatchObject({ enabled: true, startDelayMs: 0, perBreak: 4 });
     // Still live: nothing plays.
     await new Promise((r) => setTimeout(r, 400));
     expect(programScenes).toEqual([]);

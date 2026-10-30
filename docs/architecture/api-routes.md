@@ -181,8 +181,14 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/maps/:map/revision` | metadata.write |
 | POST | `/api/v1/maps/:map/paths/check` | metadata.read |
 | GET | `/api/v1/replay-link/on-air` | state.read |
+| POST | `/api/v1/replays/mark` | replay.control |
+| GET | `/api/v1/replays/feed` | state.read |
+| PUT | `/api/v1/replays/feed` | settings.manage |
+| POST | `/api/v1/replays/feed/sources` | settings.manage |
+| POST | `/api/v1/replays/feed/ffmpeg` | settings.manage |
 | POST | `/api/v1/replays/incoming` | replay.control |
 | GET | `/api/v1/replays/auto` | state.read |
+| POST | `/api/v1/replays/vmix/test` | replay.control |
 | PUT | `/api/v1/replays/auto` | replay.control |
 | POST | `/api/v1/replays/obs-setup` | settings.manage |
 | GET | `/api/v1/replay-pc` | state.read |

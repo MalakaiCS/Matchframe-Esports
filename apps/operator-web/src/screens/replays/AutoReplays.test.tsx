@@ -1,20 +1,25 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { AutoReplayResponse, ReplayPcResponse } from "../../api/types.ts";
+import type { AutoReplayResponse, ReplayFeedResponse, ReplayPcResponse } from "../../api/types.ts";
 import { liveStore } from "../../state/live.ts";
 import { SessionContext } from "../../state/session.tsx";
 import { ToastProvider } from "../../components/toasts.tsx";
 import { AutoReplaysPanel, ReplayPcPanel } from "./AutoReplays.tsx";
 
 const auto: AutoReplayResponse = {
-  settings: { enabled: false, maxPerBreak: 2, speedPercent: 100, startDelayMs: 3500, otherAngles: true, ownBigPlays: true },
+  settings: { enabled: false, perBreak: 4, speedPercent: 100, startDelayMs: 3500, otherAngles: true, ownBigPlays: true, mixer: "obs", vmixUrl: "http://127.0.0.1:8088", vmixTransition: "CutDirect" },
   status: { enabled: false, state: "off", detail: "Automatic replays are off.", waiting: 0, playing: null, lastPlayed: null },
 };
 const link: ReplayPcResponse = {
   settings: { enabled: false, mainUrl: "", preRollMs: 5000, postRollMs: 2000, sameCstv: "stay_behind", behindMs: 7000 },
   hasToken: false,
   status: { enabled: false, state: "off", detail: "This computer is not a replay PC.", main: null, mainObserved: null, obsReady: false, timing: { state: "measuring", delayMs: null, detail: "" }, rewind: { state: "off", detail: "", count: 0 }, filming: null, planned: 0, sent: 0, failed: 0, skipped: 0, last: null, lastSkip: null },
+};
+
+const feedOff: ReplayFeedResponse = {
+  settings: { enabled: false, source: null, latencyMs: 100, keepSeconds: 240, encoder: "auto", bitrateMbps: 20 },
+  status: { enabled: false, state: "off", detail: "The replay feed is off.", source: null, width: null, height: null, fps: null, receivingFps: 0, dropped: 0, bufferedSec: 0, ndi: { available: null, version: null, error: null }, ffmpeg: { source: "missing", path: null, version: null, encoder: null, downloading: null, error: null, canDownload: true }, clips: 0 },
 };
 
 function serve(routes: Record<string, unknown>) {
@@ -57,6 +62,75 @@ describe("Automatic replays panel", () => {
     expect(await screen.findByText("Waiting for the round to end.")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Speed"), { target: { value: "50" } });
     await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ speedPercent: 50 }));
+  });
+});
+
+describe("Automatic replays: the round's clips, ranked, and vMix", () => {
+  it("lists the round's clips best first with why, and what was played", async () => {
+    const ranked: AutoReplayResponse = {
+      ...auto,
+      status: {
+        ...auto.status,
+        round: 7,
+        ranked: [
+          { id: "a", label: "3K: saber ▸ a, b, c (AK47)", score: 50, reasons: ["3K", "not seen live"], state: "played" },
+          { id: "b", label: "3K: saber ▸ a, b, c", score: 42, reasons: ["3K"], state: "duplicate" },
+          { id: "c", label: "nova ▸ zeal (KNIFE)", score: 30, reasons: ["knife"], state: "picked" },
+          { id: "d", label: "haze ▸ kite (AK47)", score: 10, reasons: [], state: "left" },
+        ],
+      },
+    };
+    serve({ "GET /api/v1/replays/auto": ranked });
+    wrap(<AutoReplaysPanel />);
+    expect(await screen.findByText("Round 7: its clips, best first")).toBeTruthy();
+    const items = screen.getByLabelText("Clips of the round, best first").querySelectorAll("li");
+    expect([...items].map((li) => li.textContent)).toEqual(["Played3K: saber ▸ a, b, c (AK47)50 · 3K, not seen live", "Same kills3K: saber ▸ a, b, c42 · 3K", "On airnova ▸ zeal (KNIFE)30 · knife", "Not playedhaze ▸ kite (AK47)10"]);
+    expect((screen.getByLabelText(/Replays per break/) as HTMLSelectElement).value).toBe("4");
+  });
+
+  it("plays in vMix: its address, transition and a test", async () => {
+    const vmix: AutoReplayResponse = { ...auto, settings: { ...auto.settings, mixer: "vmix" }, status: { ...auto.status, vmix: { connected: true, version: "27.0.0.49", error: null } } };
+    const calls = serve({ "GET /api/v1/replays/auto": vmix, "PUT /api/v1/replays/auto": vmix, "POST /api/v1/replays/vmix/test": { connected: true, version: "27.0.0.49", error: null } });
+    wrap(<AutoReplaysPanel />);
+    expect(await screen.findByText("vMix 27.0.0.49")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Set up OBS replay scene" })).toBeNull();
+    fireEvent.change(screen.getByLabelText(/Transition/), { target: { value: "Stinger1" } });
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ vmixTransition: "Stinger1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Test vMix" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/replays/vmix/test")).toBe(true));
+  });
+});
+
+describe("Replay feed (NDI) on the main PC", () => {
+  it("offers the ffmpeg download, finds the replay PC's NDI source and records it", async () => {
+    const recording: ReplayFeedResponse = {
+      settings: { ...feedOff.settings, enabled: true, source: { name: "REPLAY-PC (vMix Desktop Capture)" } },
+      status: { ...feedOff.status, enabled: true, state: "recording", detail: "Recording REPLAY-PC (vMix Desktop Capture) (1920×1080, 60 fps, h264_nvenc).", width: 1920, height: 1080, fps: 60, receivingFps: 60, bufferedSec: 182, clips: 4, ndi: { available: true, version: "NDI SDK 6.1", error: null }, ffmpeg: { ...feedOff.status.ffmpeg, source: "downloaded", version: "7.1-essentials_build-www.gyan.dev", encoder: "h264_nvenc" } },
+    };
+    const calls = serve({
+      "GET /api/v1/replay-pc": link,
+      "GET /api/v1/network": { computer: "x", host: "127.0.0.1", apiPort: 37211, reachable: false, addresses: [] },
+      "GET /api/v1/replays/feed": feedOff,
+      "PUT /api/v1/replays/feed": recording,
+      "POST /api/v1/replays/feed/sources": { sources: [{ name: "REPLAY-PC (vMix Desktop Capture)" }], error: null },
+      "POST /api/v1/replays/feed/ffmpeg": recording.status.ffmpeg,
+    });
+    wrap(<ReplayPcPanel />);
+    expect(await screen.findByRole("button", { name: "Download ffmpeg" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Find NDI sources" }));
+    await waitFor(() => expect(screen.getByRole("option", { name: "REPLAY-PC (vMix Desktop Capture)" })).toBeTruthy());
+    fireEvent.change(screen.getByLabelText(/The replay PC's NDI source/), { target: { value: "REPLAY-PC (vMix Desktop Capture)" } });
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ source: { name: "REPLAY-PC (vMix Desktop Capture)" } }));
+    expect(await screen.findByText(/Recording REPLAY-PC \(vMix Desktop Capture\) \(1920×1080/)).toBeTruthy();
+    expect(screen.getByText(/182 s kept · 60 frames a second arriving · 4 clips cut/)).toBeTruthy();
+  });
+
+  it("tells the replay PC it needs no OBS when the main PC records its screen", async () => {
+    const fed: ReplayPcResponse = { ...link, settings: { ...link.settings, enabled: true, mainUrl: "http://192.168.1.20:37211" }, hasToken: true, status: { ...link.status, enabled: true, state: "connected", detail: "Linked to STUDIO-PC.", transport: "feed" } };
+    serve({ "GET /api/v1/replay-pc": fed });
+    wrap(<ReplayPcPanel />);
+    expect(await screen.findByText(/records this computer's screen over NDI: no OBS needed here/)).toBeTruthy();
+    expect((screen.getByLabelText(/Kills to film/) as HTMLSelectElement).value).toBe("all");
   });
 });
 
