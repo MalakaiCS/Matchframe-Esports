@@ -2,12 +2,16 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import { HUD_VARIANTS } from "@matchframe/contracts";
+import { REQUESTED_MAP_TARGETS } from "@matchframe/map-runtime";
 import type { Engine } from "../app.ts";
+import { HudArtSetting, hudArtAssets } from "../hud/art.ts";
 import type { OnConflict } from "../hud/library.ts";
 import { libraryOutputId, ON_CONFLICT } from "../hud/library.ts";
 import { PACKAGE_LIMITS, PackageError, readArchive, readDirectory } from "../hud/packages.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
+import { mapDisplayName } from "../live/projection.ts";
+import { assetDir } from "./domain.ts";
 
 const isLoopbackAddress = (a: string | undefined) => a === "127.0.0.1" || a === "::1" || a === "::ffff:127.0.0.1";
 
@@ -32,6 +36,26 @@ export function registerHudLibraryRoutes(r: Router, e: Engine): void {
   };
 
   r.get("/api/v1/hud/library", { permission: "metadata.read" }, () => lib.list());
+
+  /**
+   * HUD images for every Matchframe HUD (asset ids from POST /api/v1/assets), with the maps
+   * Matchframe knows (map packs, built-in radars, the requested map pool and maps already set).
+   */
+  const hudArt = () => {
+    const art = e.hudArtSetting();
+    const names = new Set([...REQUESTED_MAP_TARGETS.map((t) => t.mapName), ...e.maps.list().map((m) => m.mapName), ...e.radars.maps, ...Object.keys(art.maps)]);
+    names.delete("de_synthetic");
+    const maps = [...names].map((mapName) => ({ mapName, displayName: e.maps.get(mapName)?.pack.displayName ?? mapDisplayName(mapName) ?? mapName })).sort((a, b) => a.displayName.localeCompare(b.displayName));
+    return { art, maps };
+  };
+  r.get("/api/v1/hud/art", { permission: "metadata.read" }, () => hudArt());
+  r.put("/api/v1/hud/art", { permission: "hud.publish", body: HudArtSetting }, (req) => {
+    const missing = hudArtAssets(req.body).filter((id) => !existsSync(join(assetDir(e), id)));
+    if (missing.length) throw new HttpError(400, `upload the picture first (unknown: ${missing.join(", ")})`, "unknown_asset");
+    const saved = e.setHudArt(req.body);
+    e.audit.record(req.principal!.label, "hud.art", null, { players: { ct: saved.defaultPlayers.ct.length, t: saved.defaultPlayers.t.length }, maps: Object.keys(saved.maps), dead: !!saved.icons.dead });
+    return hudArt();
+  });
 
   /** Import a ZIP (raw body). A failed import never touches the installed version. */
   r.post("/api/v1/hud/library/import", { permission: "hud.publish", maxBodyBytes: PACKAGE_LIMITS.maxTotalBytes }, (req) => {

@@ -1,7 +1,8 @@
 import type { EventRecord, MapInstance, Match, MatchState, Player, PlayerState, Side, Team } from "@matchframe/contracts";
 import { projectCountdown } from "@matchframe/cs2-state";
-import type { HudKillfeedEntry, HudPhase, HudPlayer, HudRadar, HudSeriesMap, HudState, HudTeam } from "@matchframe/hud-sdk";
+import type { HudArt, HudKillfeedEntry, HudPhase, HudPlayer, HudRadar, HudSeriesMap, HudState, HudTeam } from "@matchframe/hud-sdk";
 import type { MapRuntime } from "@matchframe/map-runtime";
+import type { CleanRadarFrame } from "../hud/clean-radar.ts";
 import { builtinRadarScale, builtinRadarUv, type BuiltinRadar } from "./builtin-radars.ts";
 import type { TeamSideTracker } from "./team-sides.ts";
 import { toHudWeapon } from "./weapons.ts";
@@ -33,6 +34,10 @@ export interface HudContext {
   radarUtility: boolean;
   /** Allow an unverified game-radar calibration on air (operator decision). */
   allowUnverifiedRadar: boolean;
+  /** HUD images from the HUD Library (empty when none are set). */
+  art: HudArt;
+  /** Address of Matchframe's clean radar for the map in the background's frame; null when there is no geometry. */
+  cleanRadarUrl?: (mapName: string, frame: CleanRadarFrame) => string | null;
 }
 
 const MAP_DISPLAY: Record<string, string> = {
@@ -89,6 +94,7 @@ function toHudPlayer(p: PlayerState, observedSteamId: string | null, ctx: HudCon
     assists: p.matchStats.assists,
     // ADR needs validated damage totals across rounds; GSI does not provide them reliably.
     adr: null,
+    roundDamage: p.roundDamage,
     observed: observedSteamId === p.steamId,
     avatarUrl: reg && reg.photoVisible ? ctx.assetUrl(reg.avatarAssetId) : null,
     countryCode: reg?.countryCode ?? null,
@@ -128,6 +134,7 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
     mode: "none",
     calibrationVerified: false,
     backgroundUrl: null,
+    cleanUrl: null,
     players: [],
     bomb: null,
     utility: [],
@@ -140,8 +147,10 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
   let verified: boolean;
   let transform: (p: { x: number; y: number; z: number }) => Uv | null;
   let radiusScale: (z: number) => number | null;
+  let frame: CleanRadarFrame;
   if (operatorImage) {
     mode = "image";
+    frame = "calibrated";
     backgroundUrl = ctx.assetUrl(cal!.imageAssetId);
     verified = !!cal!.verified;
     transform = (p) => {
@@ -152,6 +161,7 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
   } else if (builtin) {
     // 2. The built-in radar image and its calibration (assets/radars).
     mode = "image";
+    frame = "builtin";
     backgroundUrl = `/overlay-api/radar-image/${encodeURIComponent(builtin.mapName)}`;
     verified = true;
     transform = (p) => builtinRadarUv(builtin, p);
@@ -160,6 +170,7 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
     // 3. Matchframe's outline generated from map-pack geometry.
     const t = map.schematicTransform()!;
     mode = "schematic";
+    frame = "schematic";
     backgroundUrl = `/overlay-api/radar/${encodeURIComponent(state.mapName ?? "")}`;
     verified = true;
     transform = (p) => map.worldToSchematic(p);
@@ -220,6 +231,7 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
     mode,
     calibrationVerified: verified,
     backgroundUrl,
+    cleanUrl: state.mapName ? (ctx.cleanRadarUrl?.(state.mapName, frame) ?? null) : null,
     players,
     bomb: bombUv ? { ...bombUv, state: state.bomb!.state } : null,
     utility,
@@ -304,7 +316,7 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
       bomb: null,
       roundHistory: [],
       killfeed: ctx.killfeed,
-      radar: { available: false, reason: "no live data", mapName: null, mode: "none", calibrationVerified: false, backgroundUrl: null, players: [], bomb: null, utility: [] },
+      radar: { available: false, reason: "no live data", mapName: null, mode: "none", calibrationVerified: false, backgroundUrl: null, cleanUrl: null, players: [], bomb: null, utility: [] },
       series: s,
       event,
       sponsors: ctx.sponsors,
@@ -315,6 +327,7 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
       standings: ctx.standings,
       bracket: ctx.bracket,
       settings: ctx.settings,
+      art: ctx.art,
     };
   }
 
@@ -384,5 +397,6 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
     standings: ctx.standings,
     bracket: ctx.bracket,
     settings: ctx.settings,
+    art: ctx.art,
   };
 }

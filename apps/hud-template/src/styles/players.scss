@@ -295,6 +295,12 @@
                         color: white;
                         font-weight: 600;
                         font-size:18px;
+                        // HUD images: the dead-player icon where the health was.
+                        .dead-icon {
+                            width: 22px;
+                            height: 22px;
+                            object-fit: contain;
+                        }
                     }
                     .secondary_weapon {
                         display: flex;

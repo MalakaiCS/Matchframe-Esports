@@ -9,7 +9,8 @@ function hpClass(hp: number | null): string {
   return "hp-high";
 }
 
-export function PlayerRow({ p, align }: { p: HudPlayer; align: "left" | "right" }) {
+/** `deadIcon`: the operator's dead-player icon (HUD images), in place of the skull. */
+export function PlayerRow({ p, align, deadIcon }: { p: HudPlayer; align: "left" | "right"; deadIcon?: string | null }) {
   const dead = p.alive === false;
   const weapon = p.primary ?? p.secondary;
   return (
@@ -18,7 +19,7 @@ export function PlayerRow({ p, align }: { p: HudPlayer; align: "left" | "right" 
         <div className={`mf-player-hpfill ${hpClass(p.health)}`} style={{ width: `${Math.max(0, Math.min(100, p.health ?? 0))}%` }} />
       </div>
       <div className="mf-player-main">
-        <span className="mf-player-hp">{dead ? <SkullIcon size={16} /> : (p.health ?? "–")}</span>
+        <span className="mf-player-hp">{dead ? deadIcon ? <img className="mf-dead-icon" src={deadIcon} alt="eliminated" /> : <SkullIcon size={16} /> : (p.health ?? "–")}</span>
         <span className="mf-player-name" title={p.name}>
           {p.observed ? <EyeIcon size={13} className="mf-player-eye" /> : null}
           {p.name}
@@ -44,25 +45,26 @@ export function PlayerRow({ p, align }: { p: HudPlayer; align: "left" | "right" 
   );
 }
 
-export function TeamPanel({ team, align }: { team: HudTeam; align: "left" | "right" }) {
+export function TeamPanel({ team, align, deadIcon }: { team: HudTeam; align: "left" | "right"; deadIcon?: string | null }) {
   const players = [...team.players].sort((a, b) => (a.slot ?? 99) - (b.slot ?? 99));
   return (
     <div className={`mf-teampanel mf-teampanel-${align}`} style={team.color ? ({ "--mf-team": team.color } as React.CSSProperties) : undefined}>
       {players.map((p) => (
-        <PlayerRow key={p.steamId} p={p} align={align} />
+        <PlayerRow key={p.steamId} p={p} align={align} deadIcon={deadIcon} />
       ))}
     </div>
   );
 }
 
-export function ObservedPanel({ p, team }: { p: HudPlayer | null; team: HudTeam | null }) {
+/** `picture`: the player's photo, else their side's default picture (HUD images); none hides the slot. */
+export function ObservedPanel({ p, team, picture }: { p: HudPlayer | null; team: HudTeam | null; picture?: string | null }) {
   if (!p) return null;
   const w = p.activeWeapon;
   return (
     <div className={`mf-observed mf-side-${p.side ?? "none"}`} style={team?.color ? ({ "--mf-team": team.color } as React.CSSProperties) : undefined}>
       <PlayerCam steamId={p.steamId} className="mf-observed-cam" />
       <div className="mf-observed-head">
-        {p.avatarUrl ? <img className="mf-observed-avatar" src={p.avatarUrl} alt="" /> : null}
+        {picture ? <img className="mf-observed-avatar" src={picture} alt="" /> : null}
         <div className="mf-observed-name" title={p.name}>
           {p.name}
         </div>

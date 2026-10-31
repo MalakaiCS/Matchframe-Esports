@@ -1,6 +1,6 @@
 import type { HudState } from "@matchframe/hud-sdk";
 import { ArmorFull, ArmorHelmet, Bullets, HealthFull } from "../icons.tsx";
-import { grenadesOf, sideClass } from "../util.ts";
+import { grenadesOf, playerPicture, sideClass } from "../util.ts";
 import "../styles/observed.scss";
 import { Avatar } from "./Players.tsx";
 import TeamLogo from "./TeamLogo.tsx";
@@ -36,7 +36,7 @@ export default function Observed({ state }: { state: HudState }) {
   return (
     <div className={`observed ${sideClass(p.side)}`}>
       <div className="main_row">
-        <Avatar url={p.avatarUrl} size={140} />
+        <Avatar url={playerPicture(state, p)} size={140} />
         <TeamLogo team={team} size={35} />
         <div className="username_container">
           <div className="username">{p.name}</div>

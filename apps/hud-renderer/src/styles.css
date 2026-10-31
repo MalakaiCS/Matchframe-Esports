@@ -1413,3 +1413,43 @@ body,
   height: 100%;
   object-fit: cover;
 }
+
+/* HUD images (state.art): map logos and pictures on series and veto tiles, the dead-player icon. */
+.mf-map-logo {
+  height: 1.15em;
+  width: auto;
+  max-width: 2.4em;
+  object-fit: contain;
+  vertical-align: middle;
+}
+.mf-series-map {
+  align-items: center;
+}
+.mf-screen-map .mf-map-logo {
+  height: 44px;
+  max-width: 88px;
+}
+.mf-screen-next .mf-map-logo {
+  margin: 0 6px;
+}
+.mf-veto-map {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mf-veto-map .mf-map-logo {
+  height: 26px;
+}
+.mf-series-map.has-image,
+.mf-screen-map.has-image,
+.mf-veto-step.has-image {
+  background-size: cover;
+  background-position: center;
+  color: var(--mf-ink);
+}
+.mf-dead-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  vertical-align: middle;
+}

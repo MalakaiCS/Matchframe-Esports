@@ -9,6 +9,7 @@ const DevicesScreen = lazy(() => import("./screens/Devices.tsx").then((m) => ({ 
 const DirectorScreen = lazy(() => import("./screens/Director.tsx").then((m) => ({ default: m.DirectorScreen })));
 const EventsScreen = lazy(() => import("./screens/Events.tsx").then((m) => ({ default: m.EventsScreen })));
 const HudLibraryScreen = lazy(() => import("./screens/HudLibrary.tsx").then((m) => ({ default: m.HudLibraryScreen })));
+const HudImagesScreen = lazy(() => import("./screens/HudImages.tsx").then((m) => ({ default: m.HudImagesScreen })));
 const HudOutputsScreen = lazy(() => import("./screens/Huds.tsx").then((m) => ({ default: m.HudOutputsScreen })));
 const HudCuesScreen = lazy(() => import("./screens/Huds.tsx").then((m) => ({ default: m.HudCuesScreen })));
 const HudAnnotationsScreen = lazy(() => import("./screens/Huds.tsx").then((m) => ({ default: m.HudAnnotationsScreen })));
@@ -131,6 +132,8 @@ export interface RouteDef {
 
 export const ROUTES: RouteDef[] = [
   { path: "/", nav: "huds", title: "HUD Library", component: HudLibraryScreen },
+  // Opened from the library's toolbar (it applies to every HUD).
+  { path: "/hud/images", nav: "huds", title: "HUD images", component: HudImagesScreen },
   { path: "/hud/outputs", nav: "huds", title: "Broadcast outputs", component: HudOutputsScreen },
   { path: "/hud/cues", nav: "huds", title: "Cues", component: HudCuesScreen },
   { path: "/hud/annotations", nav: "huds", title: "Annotations", component: HudAnnotationsScreen },

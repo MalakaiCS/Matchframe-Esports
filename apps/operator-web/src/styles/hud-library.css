@@ -706,3 +706,109 @@
 .hud-hint {
   margin-top: -4px;
 }
+
+/* ---- HUD images (default player pictures, marks, map logos and pictures) ---- */
+.hudimg {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.hudimg > .note {
+  margin: 0;
+}
+.hudimg .btn .icon {
+  margin-right: 2px;
+}
+.hudimg-sides {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 16px;
+}
+.hudimg-side h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.hudimg-side.is-ct h3 {
+  color: var(--ct);
+}
+.hudimg-side.is-t h3 {
+  color: var(--t);
+}
+.hudimg-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.hudimg-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.hudimg-preview {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--bg-raised-2);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.hudimg-slot.is-set .hudimg-preview {
+  border-style: solid;
+}
+.hudimg-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.hudimg-preview.is-portrait {
+  width: 84px;
+  height: 104px;
+}
+.hudimg-preview.is-square {
+  width: 84px;
+  height: 84px;
+}
+.hudimg-preview.is-wide {
+  width: 168px;
+  height: 84px;
+}
+.hudimg-preview.is-wide img {
+  object-fit: cover;
+}
+.hudimg-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.hudimg-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.hudimg-maps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 12px;
+}
+.hudimg-map {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 8px 12px;
+  padding: 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.hudimg-map-name {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}

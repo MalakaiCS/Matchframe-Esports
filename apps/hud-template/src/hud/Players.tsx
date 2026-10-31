@@ -1,7 +1,7 @@
 import { memo } from "react";
 import type { HudPlayer, HudState, HudTeam } from "@matchframe/hud-sdk";
 import { ArmorFull, ArmorHelmet, Bomb, Defuse } from "../icons.tsx";
-import { alive, grenadesOf, money, setting, sideClass, weaponId } from "../util.ts";
+import { alive, deadIcon, grenadesOf, money, playerPicture, setting, sideClass, weaponId } from "../util.ts";
 import "../styles/players.scss";
 import Weapon from "./Weapon.tsx";
 
@@ -20,9 +20,13 @@ interface PlayerProps {
   player: HudPlayer;
   orientation: "left" | "right";
   showMoney: boolean;
+  /** The player's photo, else their side's default picture (HUD images). */
+  picture: string | null;
+  /** The dead-player icon from HUD images, shown where the health was. */
+  deadMark: string | null;
 }
 
-function PlayerRow({ player, orientation, showMoney }: PlayerProps) {
+function PlayerRow({ player, orientation, showMoney, picture, deadMark }: PlayerProps) {
   const isAlive = alive(player);
   const main = player.primary ?? player.secondary;
   const zeus = player.activeWeapon && weaponId(player.activeWeapon.name) === "taser" ? player.activeWeapon : null;
@@ -33,7 +37,7 @@ function PlayerRow({ player, orientation, showMoney }: PlayerProps) {
   return (
     <div className={`player ${isAlive ? "" : "dead"} ${player.observed ? "active" : ""}`} data-steamid={player.steamId}>
       <div className="player_data">
-        <Avatar url={player.avatarUrl} size={57} />
+        <Avatar url={picture} size={57} />
         <div className="dead-stats">
           <div className="labels">
             <div className="stat-label">K</div>
@@ -48,7 +52,7 @@ function PlayerRow({ player, orientation, showMoney }: PlayerProps) {
         </div>
         <div className="player_stats">
           <div className="row">
-            <div className="health">{isAlive ? health : ""}</div>
+            <div className="health">{isAlive ? health : deadMark ? <img className="dead-icon" src={deadMark} alt="" /> : ""}</div>
             <div className="username">
               <div>
                 {isLeft ? slot : null} {player.name} {!isLeft ? slot : null}
@@ -88,7 +92,7 @@ function PlayerRow({ player, orientation, showMoney }: PlayerProps) {
   );
 }
 
-const Player = memo(PlayerRow, (a, b) => a.orientation === b.orientation && a.showMoney === b.showMoney && JSON.stringify(a.player) === JSON.stringify(b.player));
+const Player = memo(PlayerRow, (a, b) => a.orientation === b.orientation && a.showMoney === b.showMoney && a.picture === b.picture && a.deadMark === b.deadMark && JSON.stringify(a.player) === JSON.stringify(b.player));
 
 /** One team's five players down the side of the screen. */
 export function TeamBox({ state, team, orientation }: { state: HudState; team: HudTeam; orientation: "left" | "right" }) {
@@ -99,7 +103,7 @@ export function TeamBox({ state, team, orientation }: { state: HudState; team: H
         .sort((a, b) => (a.slot ?? 99) - (b.slot ?? 99))
         .slice(0, 5)
         .map((p) => (
-          <Player key={p.steamId} player={p} orientation={orientation} showMoney={showMoney} />
+          <Player key={p.steamId} player={p} orientation={orientation} showMoney={showMoney} picture={playerPicture(state, p)} deadMark={deadIcon(state)} />
         ))}
     </div>
   );

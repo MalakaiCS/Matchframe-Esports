@@ -43,12 +43,14 @@ const SMOOTH_CELLS = 26;
 const WALL_HEIGHTS = [44, 72];
 /** Slivers narrower than about twice this (world units) are dropped from refined outlines. */
 const OPEN_RADIUS = 24;
+/** Small islands narrower than this on average (world units) are not drawn. */
+const MIN_WIDTH = 40;
 /** Raster clean-up, in map-pack cells: islands under this are dropped, enclosed gaps up to this filled. */
 const MIN_ISLAND = 3;
 const MAX_HOLE = 6;
 const MAX_SITE_HOLE = 24;
 /** Outline simplification tolerance, image pixels (1024 frame). */
-const SIMPLIFY_PX = 0.9;
+const SIMPLIFY_PX = 1.4;
 
 type Pt = [number, number];
 export type Ring = Pt[];
@@ -61,8 +63,8 @@ interface FrameLayer {
   toPx: (x: number, y: number) => Pt | null;
 }
 
+/** The layer (and so the transform) a floor height is drawn with. */
 interface Frame {
-  layers: FrameLayer[];
   layerAt: (z: number) => FrameLayer | null;
 }
 
@@ -80,7 +82,7 @@ const rankOf = (zMin: number | undefined, zMax: number | undefined): number =>
 function builtinFrame(radar: BuiltinRadar): Frame {
   const k = SIZE / radar.size;
   const layers = radar.layers.map((l) => ({ id: l.id, rank: rankOf(l.zMin, l.zMax), toPx: (x: number, y: number): Pt => [(l.originX + x * l.pxPerUX) * k, (l.originY + y * l.pxPerUY) * k] }));
-  return { layers, layerAt: (z) => layers[radar.layers.indexOf(radarLayerFor(radar, z))] ?? null };
+  return { layerAt: (z) => layers[radar.layers.indexOf(radarLayerFor(radar, z))] ?? null };
 }
 
 function schematicFrame(rt: MapRuntime): Frame | null {
@@ -91,7 +93,7 @@ function schematicFrame(rt: MapRuntime): Frame | null {
   const levels = rt.levels();
   if (levels.length < 2) {
     const only = { id: levels[0]?.id ?? "main", rank: 0, toPx };
-    return { layers: [only], layerAt: () => only };
+    return { layerAt: () => only };
   }
   // One frame for every level (like the markers); levels only change the floor colour.
   const layers = levels.map((l) => ({ id: l.id, rank: (l.zMin + l.zMax) / 2, toPx }));
@@ -104,7 +106,7 @@ function schematicFrame(rt: MapRuntime): Frame | null {
     });
     return layers[best]!;
   };
-  return { layers, layerAt };
+  return { layerAt };
 }
 
 /** The markers' transform for an operator-calibrated image: MapRuntime.worldToRadar, per level. */
@@ -127,11 +129,9 @@ function calibratedFrame(rt: MapRuntime): Frame | null {
     if (fl) byLevel.set(l.id, fl);
   }
   // Positions outside every level use the pack's own calibration (levelAt → null).
-  const outside = rt.pack.radar ? layer(null, 0, levels.length ? Math.min(...levels.map((l) => l.zMin)) - 1e5 : 0) : null;
-  const layers = [...byLevel.values(), ...(outside ? [outside] : [])];
-  if (!layers.length) return null;
+  const outside = rt.pack.radar ? layer(null, Math.min(0, ...levels.map((l) => l.zMin)) - 1, levels.length ? Math.min(...levels.map((l) => l.zMin)) - 1e5 : 0) : null;
+  if (!byLevel.size && !outside) return null;
   return {
-    layers,
     layerAt: (z) => {
       const id = rt.levelAt({ x: 0, y: 0, z });
       return id ? (byLevel.get(id) ?? null) : outside;
@@ -161,43 +161,46 @@ const N8 = [
   [-1, -1],
 ] as const;
 
-/** Connected components of cells equal to `value`; `diagonal` joins corner neighbours. */
-function components(m: Uint8Array, r: Raster, value: number, diagonal: boolean): { cells: number[]; border: boolean }[] {
+/**
+ * Drops islands smaller than `minIsland` cells (corner neighbours join) and fills enclosed gaps up
+ * to `maxHole` cells (side neighbours join).
+ */
+function tidy(m: Uint8Array, r: Raster, minIsland: number, maxHole: number): void {
   const seen = new Uint8Array(m.length);
-  const out: { cells: number[]; border: boolean }[] = [];
-  const steps = diagonal ? N8 : N8.slice(0, 4);
-  for (let s = 0; s < m.length; s++) {
-    if (seen[s] || m[s] !== value) continue;
-    const cells: number[] = [];
-    let border = false;
-    const stack = [s];
-    seen[s] = 1;
-    while (stack.length) {
-      const c = stack.pop()!;
-      cells.push(c);
-      const i = c % r.nx;
-      const j = (c - i) / r.nx;
-      if (i === 0 || j === 0 || i === r.nx - 1 || j === r.ny - 1) border = true;
-      for (const [di, dj] of steps) {
-        const a = i + di;
-        const b = j + dj;
-        if (a < 0 || b < 0 || a >= r.nx || b >= r.ny) continue;
-        const n = b * r.nx + a;
-        if (!seen[n] && m[n] === value) {
-          seen[n] = 1;
-          stack.push(n);
+  const stack = new Int32Array(m.length);
+  const members = new Int32Array(m.length);
+  const pass = (value: number, diagonal: boolean, keep: (count: number, border: boolean) => boolean) => {
+    const steps = diagonal ? N8 : N8.slice(0, 4);
+    for (let s = 0; s < m.length; s++) {
+      if (seen[s] || m[s] !== value) continue;
+      let top = 0;
+      let count = 0;
+      let border = false;
+      stack[top++] = s;
+      seen[s] = 1;
+      while (top) {
+        const c = stack[--top]!;
+        members[count++] = c;
+        const i = c % r.nx;
+        const j = (c - i) / r.nx;
+        if (i === 0 || j === 0 || i === r.nx - 1 || j === r.ny - 1) border = true;
+        for (const [di, dj] of steps) {
+          const a = i + di;
+          const b = j + dj;
+          if (a < 0 || b < 0 || a >= r.nx || b >= r.ny) continue;
+          const n = b * r.nx + a;
+          if (!seen[n] && m[n] === value) {
+            seen[n] = 1;
+            stack[top++] = n;
+          }
         }
       }
+      if (!keep(count, border)) for (let q = 0; q < count; q++) m[members[q]!] = 1 - value;
     }
-    out.push({ cells, border });
-  }
-  return out;
-}
-
-/** Drops islands smaller than `minIsland` cells and fills enclosed gaps up to `maxHole` cells. */
-function tidy(m: Uint8Array, r: Raster, minIsland: number, maxHole: number): void {
-  for (const c of components(m, r, 1, true)) if (c.cells.length < minIsland) for (const i of c.cells) m[i] = 0;
-  for (const c of components(m, r, 0, false)) if (!c.border && c.cells.length <= maxHole) for (const i of c.cells) m[i] = 1;
+  };
+  pass(1, true, (count) => count >= minIsland);
+  seen.fill(0);
+  pass(0, false, (count, border) => border || count > maxHole);
 }
 
 /** Morphological closing (8-neighbourhood): joins site patches one cell apart. */
@@ -223,32 +226,50 @@ function close(m: Uint8Array, r: Raster): Uint8Array {
 
 // ------------------------------------------------------------------------------ outlines
 
-/** Separable Gaussian blur of a fine field, in place. */
+/** Separable Gaussian blur of a field, in place (only around the cells that are set). */
 function blur(f: Float32Array, nx: number, ny: number, sigma: number): void {
   const rad = Math.ceil(sigma * 3);
-  const k: number[] = [];
-  for (let i = -rad; i <= rad; i++) k.push(Math.exp(-(i * i) / (2 * sigma * sigma)));
+  const k = new Float32Array(rad * 2 + 1);
+  for (let i = -rad; i <= rad; i++) k[i + rad] = Math.exp(-(i * i) / (2 * sigma * sigma));
   const sum = k.reduce((a, b) => a + b, 0);
   for (let i = 0; i < k.length; i++) k[i]! /= sum;
+  let i0 = nx;
+  let i1 = -1;
+  let j0 = ny;
+  let j1 = -1;
+  for (let j = 0; j < ny; j++)
+    for (let i = 0; i < nx; i++)
+      if (f[j * nx + i]) {
+        if (i < i0) i0 = i;
+        if (i > i1) i1 = i;
+        if (j < j0) j0 = j;
+        if (j > j1) j1 = j;
+      }
+  if (i1 < 0) return;
+  const ia = Math.max(0, i0 - rad);
+  const ib = Math.min(nx - 1, i1 + rad);
+  const ja = Math.max(0, j0 - rad);
+  const jb = Math.min(ny - 1, j1 + rad);
   const tmp = new Float32Array(f.length);
-  for (let j = 0; j < ny; j++)
-    for (let i = 0; i < nx; i++) {
-      let s = 0;
-      for (let t = -rad; t <= rad; t++) {
-        const a = i + t;
-        if (a >= 0 && a < nx) s += f[j * nx + a]! * k[t + rad]!;
-      }
-      tmp[j * nx + i] = s;
+  for (let j = j0; j <= j1; j++) {
+    const row = j * nx;
+    for (let i = ia; i <= ib; i++) {
+      let acc = 0;
+      const t0 = Math.max(-rad, -i);
+      const t1 = Math.min(rad, nx - 1 - i);
+      for (let t = t0; t <= t1; t++) acc += f[row + i + t]! * k[t + rad]!;
+      tmp[row + i] = acc;
     }
-  for (let j = 0; j < ny; j++)
-    for (let i = 0; i < nx; i++) {
-      let s = 0;
-      for (let t = -rad; t <= rad; t++) {
-        const b = j + t;
-        if (b >= 0 && b < ny) s += tmp[b * nx + i]! * k[t + rad]!;
-      }
-      f[j * nx + i] = s;
+  }
+  for (let j = ja; j <= jb; j++) {
+    const t0 = Math.max(-rad, -j);
+    const t1 = Math.min(rad, ny - 1 - j);
+    for (let i = ia; i <= ib; i++) {
+      let acc = 0;
+      for (let t = t0; t <= t1; t++) acc += tmp[(j + t) * nx + i]! * k[t + rad]!;
+      f[j * nx + i] = acc;
     }
+  }
 }
 
 /**
@@ -420,24 +441,46 @@ function simplify(ring: Ring, tol: number): Ring {
   return out.length >= 3 ? out : ring;
 }
 
-/** Square erosion (v = 0) or dilation (v = 1) of a mask by `rad` cells, separable. */
+/** Chamfer distance (in cells) from each set cell to the nearest unset one. */
+function distances(m: Uint8Array, r: Raster): Float32Array {
+  const d = new Float32Array(m.length);
+  const BIG = 1e9;
+  for (let i = 0; i < m.length; i++) d[i] = m[i] ? BIG : 0;
+  const at = (i: number, j: number) => (i < 0 || j < 0 || i >= r.nx || j >= r.ny ? 0 : d[j * r.nx + i]!);
+  for (let j = 0; j < r.ny; j++)
+    for (let i = 0; i < r.nx; i++) {
+      const idx = j * r.nx + i;
+      if (d[idx]) d[idx] = Math.min(d[idx]!, at(i - 1, j) + 1, at(i, j - 1) + 1, at(i - 1, j - 1) + Math.SQRT2, at(i + 1, j - 1) + Math.SQRT2);
+    }
+  for (let j = r.ny - 1; j >= 0; j--)
+    for (let i = r.nx - 1; i >= 0; i--) {
+      const idx = j * r.nx + i;
+      if (d[idx]) d[idx] = Math.min(d[idx]!, at(i + 1, j) + 1, at(i, j + 1) + 1, at(i + 1, j + 1) + Math.SQRT2, at(i - 1, j + 1) + Math.SQRT2);
+    }
+  return d;
+}
+
+/** Square erosion (v = 0) or dilation (v = 1) of a mask by `rad` cells: separable sliding windows. */
 function morph(m: Uint8Array, r: Raster, rad: number, v: 0 | 1): Uint8Array {
-  const pass = (src: Uint8Array, horizontal: boolean) => {
+  const pass = (src: Uint8Array, len: number, lines: number, at: (line: number, pos: number) => number) => {
     const out = new Uint8Array(src.length);
-    for (let j = 0; j < r.ny; j++)
-      for (let i = 0; i < r.nx; i++) {
-        let hit = false;
-        for (let t = -rad; t <= rad && !hit; t++) {
-          const a = horizontal ? i + t : i;
-          const b = horizontal ? j : j + t;
-          const val = a < 0 || b < 0 || a >= r.nx || b >= r.ny ? 0 : src[b * r.nx + a]!;
-          if (val === v) hit = true;
-        }
-        out[j * r.nx + i] = hit ? v : 1 - v;
+    for (let line = 0; line < lines; line++) {
+      // Cells equal to v inside the window [pos - rad, pos + rad] (outside the raster counts as 0).
+      let hits = 0;
+      for (let p = 0; p <= Math.min(rad, len - 1); p++) if (src[at(line, p)] === v) hits++;
+      if (v === 0) hits += rad;
+      for (let pos = 0; pos < len; pos++) {
+        out[at(line, pos)] = hits > 0 ? v : 1 - v;
+        const enter = pos + rad + 1;
+        const leave = pos - rad;
+        hits += (enter < len ? src[at(line, enter)] === v : v === 0) ? 1 : 0;
+        hits -= (leave >= 0 ? src[at(line, leave)] === v : v === 0) ? 1 : 0;
       }
+    }
     return out;
   };
-  return pass(pass(m, true), false);
+  const h = pass(m, r.nx, r.ny, (j, i) => j * r.nx + i);
+  return pass(h, r.ny, r.nx, (i, j) => j * r.nx + i);
 }
 
 /**
@@ -448,7 +491,7 @@ function morph(m: Uint8Array, r: Raster, rad: number, v: 0 | 1): Uint8Array {
 function refine(m: Uint8Array, r: Raster, floorsAt: (idx: number) => number[] | undefined, grid: VisibilityGrid | null): { mask: Uint8Array; raster: Raster } {
   const k = Math.max(1, Math.round(r.cell / FINE));
   const f: Raster = { cell: r.cell / k, x0: r.x0, y0: r.y0, nx: r.nx * k, ny: r.ny * k };
-  let mask = new Uint8Array(f.nx * f.ny);
+  let mask: Uint8Array = new Uint8Array(f.nx * f.ny);
   for (let j = 0; j < r.ny; j++)
     for (let i = 0; i < r.nx; i++) {
       const idx = j * r.nx + i;
@@ -466,16 +509,8 @@ function refine(m: Uint8Array, r: Raster, floorsAt: (idx: number) => number[] | 
           mask[fj * f.nx + fi] = 1;
         }
     }
-  if (grid) {
-    const rad = Math.round(OPEN_RADIUS / f.cell);
-    mask = morph(morph(mask, f, rad, 0), f, rad, 1);
-    // Opening never adds floor; keep it inside the cells.
-    for (let i = 0; i < mask.length; i++) {
-      const fi = i % f.nx;
-      const fj = (i - fi) / f.nx;
-      if (!m[Math.floor(fj / k) * r.nx + Math.floor(fi / k)]) mask[i] = 0;
-    }
-  }
+  // An opening (erode, then grow back) drops slivers left between walls and cell edges.
+  if (grid) mask = morph(morph(mask, f, Math.round(OPEN_RADIUS / f.cell), 0), f, Math.round(OPEN_RADIUS / f.cell), 1);
   return { mask, raster: f };
 }
 
@@ -487,7 +522,17 @@ function outline(m: Uint8Array, r: Raster, smooth: number, minArea: number): Rin
   const f = new Float32Array(nx * ny);
   for (let j = 0; j < r.ny; j++) for (let i = 0; i < r.nx; i++) if (m[j * r.nx + i]) f[(pad + j) * nx + pad + i] = 1;
   blur(f, nx, ny, smooth / r.cell);
-  return contours(f, nx, ny, r.x0 - pad * r.cell, r.y0 - pad * r.cell, r.cell).filter((ring) => Math.abs(area(ring)) >= minArea);
+  const rings = contours(f, nx, ny, r.x0 - pad * r.cell, r.y0 - pad * r.cell, r.cell).filter((ring) => Math.abs(area(ring)) >= minArea);
+  // Narrow islands (ledges, pipes, a strip past a wall) would draw as stray lines: dropped. Holes stay (thin walls).
+  return rings.filter((ring, i) => {
+    const a = Math.abs(area(ring));
+    if (a >= minArea * 20) return true;
+    let perimeter = 0;
+    for (let k = 0, j = ring.length - 1; k < ring.length; j = k++) perimeter += Math.hypot(ring[k]![0] - ring[j]![0], ring[k]![1] - ring[j]![1]);
+    if ((2 * a) / perimeter >= MIN_WIDTH) return true;
+    const depth = rings.reduce((n, other, j) => (j !== i && pointInPolygon(ring[0]![0], ring[0]![1], other) ? n + 1 : n), 0);
+    return depth % 2 === 1;
+  });
 }
 
 // ------------------------------------------------------------------------------ drawing
@@ -599,6 +644,7 @@ export function drawCleanRadar(rt: MapRuntime, frame: CleanRadarFrame, builtin?:
       .filter((ring) => ring.length >= 3)
       .map((ring) => simplify(ring, tol));
   const ordered = [...masks.keys()].sort((a, b) => a.rank - b.rank);
+  const fine = new Map<FrameLayer, { site: Uint8Array; raster: Raster }>();
   const topRank = ordered.length ? ordered[ordered.length - 1]!.rank : 0;
   const layers = ordered.map((l) => {
     const m = masks.get(l)!;
@@ -612,9 +658,10 @@ export function drawCleanRadar(rt: MapRuntime, frame: CleanRadarFrame, builtin?:
     const k = floor.raster.nx / r.nx;
     tidy(floor.mask, floor.raster, MIN_ISLAND * k * k, MAX_HOLE * k * k);
     const fineSite = refine(site, r, () => undefined, null).mask.map((v, i) => v & floor.mask[i]!);
+    fine.set(l, { site: fineSite, raster: floor.raster });
     return { layer: l, id: l.id, lower: l.rank < topRank, floor: toRings(outline(floor.mask, floor.raster, smooth, minArea), l), sites: toRings(outline(fineSite, floor.raster, smooth, minArea), l) };
   });
-  // Bombsite letters: on the site cell nearest the middle of the region's cells.
+  // Bombsite letters: in the widest part of the site (farthest from its edges), on the level most of it is on.
   const labels: CleanRadarDrawing["labels"] = [];
   for (const b of rt.pack.bombsites) {
     const ri = rt.pack.regions.findIndex((x) => x.id === b.regionId);
@@ -626,22 +673,25 @@ export function drawCleanRadar(rt: MapRuntime, frame: CleanRadarFrame, builtin?:
       if (l) votes.set(l, (votes.get(l) ?? 0) + 1);
     }
     const l = [...votes.entries()].sort((x, y) => y[1] - x[1])[0]?.[0];
-    if (!l) continue;
-    const mine = cells.filter((c) => fr.layerAt(c.z) === l);
-    const cx = mine.reduce((s, c) => s + c.x, 0) / mine.length;
-    const cy = mine.reduce((s, c) => s + c.y, 0) / mine.length;
-    const site = masks.get(l)!.site;
-    let best: Sample | null = null;
-    let bd = Infinity;
-    for (const c of mine) {
-      const idx = Math.floor((c.y - r.y0) / cell) * r.nx + Math.floor((c.x - r.x0) / cell);
-      const d = Math.hypot(c.x - cx, c.y - cy);
-      if (site[idx] && d < bd) {
-        bd = d;
-        best = c;
-      }
+    const f = l ? fine.get(l) : undefined;
+    if (!l || !f) continue;
+    const own = new Set(cells.filter((c) => fr.layerAt(c.z) === l).map((c) => Math.floor((c.y - r.y0) / cell) * r.nx + Math.floor((c.x - r.x0) / cell)));
+    const k = f.raster.nx / r.nx;
+    const dist = distances(f.site, f.raster);
+    let best = -1;
+    let bestD = 0;
+    for (let i = 0; i < dist.length; i++) {
+      if (dist[i]! <= bestD) continue;
+      const fi = i % f.raster.nx;
+      const fj = (i - fi) / f.raster.nx;
+      if (!own.has(Math.floor(fj / k) * r.nx + Math.floor(fi / k))) continue;
+      bestD = dist[i]!;
+      best = i;
     }
-    const p = best ? l.toPx(best.x, best.y) : null;
+    if (best < 0) continue;
+    const fi = best % f.raster.nx;
+    const fj = (best - fi) / f.raster.nx;
+    const p = l.toPx(f.raster.x0 + (fi + 0.5) * f.raster.cell, f.raster.y0 + (fj + 0.5) * f.raster.cell);
     if (p) labels.push({ text: b.site, x: p[0], y: p[1] });
   }
   const parts: string[] = [];

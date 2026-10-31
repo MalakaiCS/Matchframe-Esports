@@ -30,6 +30,7 @@ function player(i: number, side: HudSide, name: string, over: Partial<HudPlayer>
     deaths: 8 + (i % 3),
     assists: 2 + (i % 4),
     adr: null,
+    roundDamage: null,
     observed: false,
     avatarUrl: null,
     countryCode: null,
@@ -80,7 +81,7 @@ export function demoState(): HudState {
         { id: "k2", kind: "probable", killer: { steamId: t[1]!.steamId, name: "riot", side: "T" }, victim: { steamId: ct[3]!.steamId, name: "orbit", side: "CT" }, weapon: "ak47", headshot: false, assister: { steamId: t[0]!.steamId, name: "ember", side: "T" }, attackerBlind: true, atMs: 0 },
       ],
     },
-    radar: { available: false, reason: "demo", mapName: "de_mirage", mode: "none", calibrationVerified: false, backgroundUrl: null, players: [], bomb: null, utility: [] },
+    radar: { available: false, reason: "demo", mapName: "de_mirage", mode: "none", calibrationVerified: false, backgroundUrl: null, cleanUrl: null, players: [], bomb: null, utility: [] },
     series: {
       bestOf: 3,
       left: 1,
@@ -100,5 +101,6 @@ export function demoState(): HudState {
     standings: null,
     bracket: null,
     settings: {},
+    art: { defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null } },
   };
 }

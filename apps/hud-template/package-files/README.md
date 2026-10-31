@@ -11,6 +11,7 @@ What it shows:
 - **Radar** from Matchframe's map data (hidden when no trustworthy calibration exists).
 - **Freeze time:** utility level and team economy (loss bonus only when the game reports it) and the series maps.
 - **Pause** and **timeout** banners, the **SIMULATION** label when test data is running and **DATA PAUSED** when game data stops arriving.
+- **HUD images** (HUD Library → HUD images): players without their own photo show the default picture for their side, the series maps show the map's logo and picture, and dead players show the dead-player icon where their health was.
 
 Change it in the HUD Library under **Appearance**: team names, CT and T colours, panel opacity, which elements show and the radar size. Variants: **live** (everything) and **compact** (no radar, side boxes or series maps).
 

@@ -1,6 +1,6 @@
 import type { HudState } from "@matchframe/hud-sdk";
 import { displayClock } from "@matchframe/hud-sdk";
-import { setting, teamName } from "../util.ts";
+import { mapArt, setting, teamName } from "../util.ts";
 import "../styles/mapseries.scss";
 import TeamLogo from "./TeamLogo.tsx";
 
@@ -36,19 +36,26 @@ export function MapSeries({ state, show }: { state: HudState; show: boolean }) {
         <div className="winner">Winner</div>
         <div className="score">Score</div>
       </div>
-      {maps.map((m) => (
-        <div key={m.mapName} className={`veto_container ${m.status === "live" ? "active" : ""}`}>
-          <div className="veto_map_name">{m.displayName}</div>
-          <div className="veto_picker">{m.pickedBy === "decider" ? <span className="decider">Decider</span> : <TeamLogo team={teamOf(m.pickedBy)} />}</div>
-          <div className="veto_winner">
-            <TeamLogo team={teamOf(m.winner)} />
+      {maps.map((m) => {
+        // HUD images: the map's picture behind its name and its logo before it, when set.
+        const art = mapArt(state, m.mapName);
+        return (
+          <div key={m.mapName} className={`veto_container ${m.status === "live" ? "active" : ""}`}>
+            <div className={`veto_map_name ${art.imageUrl ? "with-image" : ""}`} style={art.imageUrl ? { backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.65)), url("${art.imageUrl.replace(/["\\]/g, "")}")` } : undefined}>
+              {art.logoUrl ? <img className="map_logo" src={art.logoUrl} alt="" /> : null}
+              {m.displayName}
+            </div>
+            <div className="veto_picker">{m.pickedBy === "decider" ? <span className="decider">Decider</span> : <TeamLogo team={teamOf(m.pickedBy)} />}</div>
+            <div className="veto_winner">
+              <TeamLogo team={teamOf(m.winner)} />
+            </div>
+            <div className="veto_score">{m.status === "upcoming" ? "–:–" : `${m.scoreLeft}:${m.scoreRight}`}</div>
+            <div className="active_container">
+              <div className="active">Currently playing</div>
+            </div>
           </div>
-          <div className="veto_score">{m.status === "upcoming" ? "–:–" : `${m.scoreLeft}:${m.scoreRight}`}</div>
-          <div className="active_container">
-            <div className="active">Currently playing</div>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

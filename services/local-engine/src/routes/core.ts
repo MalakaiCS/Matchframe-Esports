@@ -7,6 +7,7 @@ import { buildCoverageRow, REQUESTED_MAP_TARGETS } from "@matchframe/map-runtime
 import { ROLES } from "../auth.ts";
 import type { Engine } from "../app.ts";
 import { ObserverAdapterSettings, SetupProfile } from "../app.ts";
+import { HUD_ART_KEY } from "../hud/art.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
 import { redact } from "../logger.ts";
@@ -246,6 +247,8 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
   });
   r.put("/api/v1/settings/:key", { permission: "settings.manage", body: z.object({ value: z.unknown() }) }, (req) => {
     if (!/^(hud|program|replay|director|demos|ui)\./.test(req.params.key!)) throw new HttpError(403, "setting not writable here", "forbidden");
+    // HUD images are checked (uploaded pictures only) by their own route.
+    if (req.params.key === HUD_ART_KEY) throw new HttpError(403, "set HUD images with PUT /api/v1/hud/art", "forbidden");
     e.settings.set(req.params.key!, req.body.value);
     if (req.params.key === "program.scenes") e.program.setScenes(req.body.value as never);
     if (req.params.key === "replay.provider") e.configureReplay();

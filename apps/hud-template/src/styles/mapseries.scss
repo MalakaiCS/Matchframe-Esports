@@ -34,6 +34,19 @@
 			align-items: center;
 			justify-content: center;
 		}
+		// HUD images: the map's logo before its name, its picture behind it.
+		.veto_map_name {
+			gap: 6px;
+			.map_logo {
+				max-height: 24px;
+				max-width: 30px;
+			}
+			&.with-image {
+				background-size: cover;
+				background-position: center;
+				color: white;
+			}
+		}
 		div {
 			img {
 				max-height: 30px;

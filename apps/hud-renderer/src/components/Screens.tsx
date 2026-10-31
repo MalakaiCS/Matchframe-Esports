@@ -1,4 +1,5 @@
-import type { HudStageTeam, HudState, HudTeam } from "@matchframe/hud-sdk";
+import type { HudSeriesMap, HudStageTeam, HudState, HudTeam } from "@matchframe/hud-sdk";
+import { mapArt, mapBackground } from "../art.ts";
 
 function TeamCard({ team, big }: { team: HudTeam; big?: boolean }) {
   return (
@@ -6,6 +7,18 @@ function TeamCard({ team, big }: { team: HudTeam; big?: boolean }) {
       <div className="mf-teamcard-logo">{team.logoUrl ? <img src={team.logoUrl} alt="" /> : <span>{team.shortName}</span>}</div>
       <div className="mf-teamcard-name">{team.name}</div>
     </div>
+  );
+}
+
+/** A series map tile: the map's picture behind it and its logo above the name when set (HUD images). */
+function MapTile({ state, m, className = "", children }: { state: HudState; m: HudSeriesMap; className?: string; children: React.ReactNode }) {
+  const art = mapArt(state, m.mapName);
+  return (
+    <span className={`mf-screen-map ${className} ${art.imageUrl ? "has-image" : ""}`} style={mapBackground(art.imageUrl)}>
+      {art.logoUrl ? <img className="mf-map-logo" src={art.logoUrl} alt="" /> : null}
+      <b>{m.displayName}</b>
+      {children}
+    </span>
   );
 }
 
@@ -22,10 +35,9 @@ export function PreMatch({ state }: { state: HudState }) {
         <div className="mf-screen-maps">
           <span className="mf-series-bo">BEST OF {state.series.bestOf}</span>
           {state.series.maps.map((m, i) => (
-            <span key={i} className="mf-screen-map">
-              <b>{m.displayName}</b>
+            <MapTile key={i} state={state} m={m}>
               <small>{m.pickedBy === "decider" ? "Decider" : m.pickedBy === "left" ? `${state.left.shortName} pick` : m.pickedBy === "right" ? `${state.right.shortName} pick` : ""}</small>
-            </span>
+            </MapTile>
           ))}
         </div>
       ) : null}
@@ -35,6 +47,7 @@ export function PreMatch({ state }: { state: HudState }) {
 
 export function BreakScreen({ state }: { state: HudState }) {
   const next = state.series.maps.find((m) => m.status === "upcoming");
+  const nextLogo = next ? mapArt(state, next.mapName).logoUrl : null;
   return (
     <div className="mf-screen mf-break">
       <div className="mf-screen-eyebrow">{state.event.name ?? "Matchframe Esports"}</div>
@@ -46,7 +59,12 @@ export function BreakScreen({ state }: { state: HudState }) {
         </div>
         <TeamCard team={state.right} />
       </div>
-      {next ? <div className="mf-screen-next">Next map: {next.displayName}</div> : null}
+      {next ? (
+        <div className="mf-screen-next">
+          Next map: {nextLogo ? <img className="mf-map-logo" src={nextLogo} alt="" /> : null}
+          {next.displayName}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -111,12 +129,11 @@ export function PostSeries({ state }: { state: HudState }) {
       </div>
       <div className="mf-screen-maps">
         {state.series.maps.map((m, i) => (
-          <span key={i} className={`mf-screen-map ${m.winner ? `won-${m.winner}` : ""}`}>
-            <b>{m.displayName}</b>
+          <MapTile key={i} state={state} m={m} className={m.winner ? `won-${m.winner}` : ""}>
             <small>
               {m.scoreLeft}–{m.scoreRight}
             </small>
-          </span>
+          </MapTile>
         ))}
       </div>
     </div>
@@ -137,13 +154,19 @@ export function VetoBoard({ state }: { state: HudState }) {
         <div className="mf-screen-next">Veto not started</div>
       ) : (
         <div className="mf-veto-steps">
-          {v.steps.map((s) => (
-            <div key={s.order} className={`mf-veto-step k-${s.kind} ${s.order === v.currentStep ? "is-current" : ""} ${s.locked ? "is-locked" : ""}`}>
-              <span className="mf-veto-kind">{s.kind === "side_choice" ? "SIDE" : s.kind.toUpperCase()}</span>
-              <span className="mf-veto-team">{s.team === "left" ? state.left.shortName : s.team === "right" ? state.right.shortName : "—"}</span>
-              <span className="mf-veto-map">{s.mapName ?? s.side ?? (s.order === v.currentStep ? "…" : "")}</span>
-            </div>
-          ))}
+          {v.steps.map((s) => {
+            const art = mapArt(state, s.mapName);
+            return (
+              <div key={s.order} className={`mf-veto-step k-${s.kind} ${s.order === v.currentStep ? "is-current" : ""} ${s.locked ? "is-locked" : ""} ${art.imageUrl ? "has-image" : ""}`} style={mapBackground(art.imageUrl)}>
+                <span className="mf-veto-kind">{s.kind === "side_choice" ? "SIDE" : s.kind.toUpperCase()}</span>
+                <span className="mf-veto-team">{s.team === "left" ? state.left.shortName : s.team === "right" ? state.right.shortName : "—"}</span>
+                <span className="mf-veto-map">
+                  {art.logoUrl ? <img className="mf-map-logo" src={art.logoUrl} alt="" /> : null}
+                  {s.mapName ?? s.side ?? (s.order === v.currentStep ? "…" : "")}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

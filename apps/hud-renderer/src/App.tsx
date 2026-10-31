@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { HudState } from "@matchframe/hud-sdk";
+import { deadIcon, playerPicture } from "./art.ts";
 import { Killfeed } from "./components/Killfeed.tsx";
 import { ObservedPanel, TeamPanel } from "./components/Players.tsx";
 import { Radar } from "./components/Radar.tsx";
@@ -74,16 +75,16 @@ function LiveHud({ state, receivedAt, now, onSponsorShown }: { state: HudState; 
       {!hidden("players") && (
         <>
           <Placed id="players-left" settings={s}>
-            <TeamPanel team={state.left} align="left" />
+            <TeamPanel team={state.left} align="left" deadIcon={deadIcon(state)} />
           </Placed>
           <Placed id="players-right" settings={s}>
-            <TeamPanel team={state.right} align="right" />
+            <TeamPanel team={state.right} align="right" deadIcon={deadIcon(state)} />
           </Placed>
         </>
       )}
       {!hidden("observed") && (
         <Placed id="observed" settings={s}>
-          <ObservedPanel p={state.observed} team={observedTeam} />
+          <ObservedPanel p={state.observed} team={observedTeam} picture={state.observed ? playerPicture(state, state.observed) : null} />
         </Placed>
       )}
       <SponsorZone zone="bottom_right" state={state} onShown={onSponsorShown} />
@@ -129,7 +130,7 @@ export function App() {
           <div className="mf-top">
             <Scoreboard state={state} receivedAt={feed.receivedAt} now={now} />
           </div>
-          <ObservedPanel p={state.observed} team={null} />
+          <ObservedPanel p={state.observed} team={null} picture={state.observed ? playerPicture(state, state.observed) : null} />
         </>
       );
     else body = <LiveHud state={state} receivedAt={feed.receivedAt} now={now} onSponsorShown={onSponsorShown} />;

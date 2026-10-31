@@ -1,5 +1,6 @@
 import type { HudState, HudTeam } from "@matchframe/hud-sdk";
 import { displayClock, formatClock } from "@matchframe/hud-sdk";
+import { mapArt, mapBackground } from "../art.ts";
 import { BombIcon } from "./Icons.tsx";
 
 const PHASE_LABEL: Record<string, string> = {
@@ -57,18 +58,22 @@ export function SeriesStrip({ state }: { state: HudState }) {
   return (
     <div className="mf-series">
       <span className="mf-series-bo">BO{s.bestOf}</span>
-      {s.maps.map((m, i) => (
-        <span key={`${m.mapName}-${i}`} className={`mf-series-map is-${m.status} ${m.winner ? `won-${m.winner}` : ""}`}>
-          <span className="mf-series-name">{m.displayName}</span>
-          {m.status === "completed" || m.status === "live" ? (
-            <span className="mf-series-score">
-              {m.scoreLeft}–{m.scoreRight}
-            </span>
-          ) : m.pickedBy === "decider" ? (
-            <span className="mf-series-score">DECIDER</span>
-          ) : null}
-        </span>
-      ))}
+      {s.maps.map((m, i) => {
+        const art = mapArt(state, m.mapName);
+        return (
+          <span key={`${m.mapName}-${i}`} className={`mf-series-map is-${m.status} ${m.winner ? `won-${m.winner}` : ""} ${art.imageUrl ? "has-image" : ""}`} style={mapBackground(art.imageUrl)}>
+            {art.logoUrl ? <img className="mf-map-logo" src={art.logoUrl} alt="" /> : null}
+            <span className="mf-series-name">{m.displayName}</span>
+            {m.status === "completed" || m.status === "live" ? (
+              <span className="mf-series-score">
+                {m.scoreLeft}–{m.scoreRight}
+              </span>
+            ) : m.pickedBy === "decider" ? (
+              <span className="mf-series-score">DECIDER</span>
+            ) : null}
+          </span>
+        );
+      })}
     </div>
   );
 }

@@ -10,7 +10,7 @@ import type { DerivedEvent, MeasuredProfilesFile, ProfileSet } from "@matchframe
 import { DEFAULT_PROFILES, profilesFromMeasured } from "@matchframe/cs2-state";
 import type { UtilityScenarioRule } from "@matchframe/director-policy";
 import { INFERNO_BOTTOM_BANANA_RULE } from "@matchframe/director-policy";
-import type { HudKillfeedEntry, HudState } from "@matchframe/hud-sdk";
+import type { HudArt, HudKillfeedEntry, HudState } from "@matchframe/hud-sdk";
 import { MapRegistry, syntheticMapPack, VisibilityGrid } from "@matchframe/map-runtime";
 import { ObsManager } from "@matchframe/obs-adapter";
 import { loadWindowsInputBackend, KeyboardObserverAdapter, NetconObserverAdapter, NoControlAdapter, SimulationObserverAdapter } from "@matchframe/observer-agent";
@@ -29,6 +29,8 @@ import { Database } from "./db/database.ts";
 import { AuditRepo, DemoJobRepo, DocumentRepo, MapInstanceRepo, RosterRepo, SettingsRepo, SteamIndexRepo, VetoRepo } from "./db/store.ts";
 import { SponsorRotation, zoneAllowed } from "./domain/sponsors.ts";
 import { VetoService } from "./domain/veto.ts";
+import { HUD_ART_KEY, hudArtState, normalizeHudArt, type HudArtSetting } from "./hud/art.ts";
+import { CleanRadars } from "./hud/clean-radar.ts";
 import { HudLibraryService, libraryHudId, libraryOutputId } from "./hud/library.ts";
 import { HudPackageManager } from "./hud/packages.ts";
 import { OutputService } from "./hud/outputs.ts";
@@ -139,6 +141,8 @@ export class Engine {
   readonly maps = new MapRegistry();
   /** Built-in radar images (minimaps) for the active-duty maps. */
   readonly radars: BuiltinRadars;
+  /** Matchframe's clean radars, drawn from the map packs in each radar background's frame. */
+  readonly cleanRadars: CleanRadars;
   readonly session: LiveSession;
   readonly obs: ObsManager;
   readonly program: ProgramArbiter;
@@ -369,6 +373,7 @@ export class Engine {
     this.obsAuto = new ObsAutomation(this);
     this.matchArt = new MatchArt(this);
     this.radars = BuiltinRadars.load(cfg.radarDir, (msg, data) => this.logger.warn(msg, data));
+    this.cleanRadars = new CleanRadars((mapName) => this.radars.get(mapName));
 
     this.session.on("events", (evs) => this.onDerivedEvents(evs));
     this.session.on("state", (s) => this.onState(s));
@@ -602,7 +607,34 @@ export class Engine {
       settings: { ...settings, roundWinnersLR: Object.fromEntries(this.roundWinnersLR) },
       radarUtility: this.settings.get("hud.radarUtility", true),
       allowUnverifiedRadar: this.settings.get("hud.allowUnverifiedRadar", false),
+      art: this.hudArtForHuds(),
+      cleanRadarUrl: (mapName, frame) => this.cleanRadars.url(this.maps.get(mapName), frame),
     };
+  }
+
+  private hudArt: { setting: HudArtSetting; state: HudArt } | null = null;
+
+  /** HUD images (HUD Library): asset ids, as stored on this computer. */
+  hudArtSetting(): HudArtSetting {
+    if (!this.hudArt) {
+      const setting = normalizeHudArt(this.settings.get<unknown>(HUD_ART_KEY, null));
+      this.hudArt = { setting, state: hudArtState(setting, (id) => this.assetUrl(id)) };
+    }
+    return this.hudArt.setting;
+  }
+
+  private hudArtForHuds(): HudArt {
+    this.hudArtSetting();
+    return this.hudArt!.state;
+  }
+
+  /** Saves the HUD images; every Matchframe HUD shows them straight away. */
+  setHudArt(value: HudArtSetting): HudArtSetting {
+    const setting = normalizeHudArt(value);
+    this.settings.set(HUD_ART_KEY, setting);
+    this.hudArt = null;
+    for (const fn of this.hudListeners) fn("*");
+    return this.hudArtSetting();
   }
 
   assetUrl(assetId: string | null): string | null {

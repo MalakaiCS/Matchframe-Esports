@@ -10,6 +10,7 @@ import { Button, ConfirmDialog, EmptyState, ErrorBox, Loading, Modal, Note } fro
 import { useApi, usePersistentState } from "../lib/hooks.ts";
 import type { HudDisplayStatus, HudSort } from "../lib/hudLibrary.ts";
 import { copyText, defaultVariant, desktopReason as desktopReasonOf, filterHuds, hudStatus, NO_CATEGORY, outputCounts, resolutionLabel, SORT_LABEL, sortHuds, STATUS_INFO, STATUS_ORDER, toArrayBuffer, useDesktopOverlays, variantUrl } from "../lib/hudLibrary.ts";
+import { Link } from "../router.tsx";
 import { useLive } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
 import { BUILTIN_REASON, exportHud, hudPath, launchHud, LIBRARY_PATH, reloadHud, stopHud, useRun } from "./hudlib/actions.ts";
@@ -353,7 +354,14 @@ export function HudLibraryScreen() {
         view={view}
         setView={setView}
         count={lib.data ? `${huds.length} HUD${huds.length === 1 ? "" : "s"} ${local || !bridge ? "on this computer" : "on the production computer"}` : ""}
-        add={<MenuButton label="Add HUD" buttonLabel="Add HUD" icon="plus" items={addItems} />}
+        add={
+          <>
+            <Link to="/hud/images" className="btn btn-secondary btn-md" title="Default player pictures, map logos and pictures, and the dead-player icon for every Matchframe HUD">
+              <Icon name="upload" size={14} /> HUD images
+            </Link>
+            <MenuButton label="Add HUD" buttonLabel="Add HUD" icon="plus" items={addItems} />
+          </>
+        }
       />
       <input
         ref={fileInput}

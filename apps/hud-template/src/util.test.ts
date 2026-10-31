@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { demoState } from "./demo.ts";
-import { clock, grenadesOf, lossBonus, money, roundLabel, setting, sum, teamName, utilitySummary, weaponId } from "./util.ts";
+import { clock, deadIcon, grenadesOf, lossBonus, mapArt, money, playerPicture, roundLabel, setting, sum, teamName, utilitySummary, weaponId } from "./util.ts";
 
 describe("Pro CS2 HUD helpers", () => {
   const state = demoState();
@@ -44,5 +44,22 @@ describe("Pro CS2 HUD helpers", () => {
     expect(clock(null)).toBe("–:––");
     expect(roundLabel(state)).toBe("Round 17/24");
     expect(roundLabel({ ...state, match: { ...state.match, roundNumber: 27 } })).toBe("OT 1 (3/6)");
+  });
+
+  it("uses HUD images where a player, map or mark has no picture of its own", () => {
+    const art = { defaultPlayers: { ct: ["/assets/ct1.png", "/assets/ct2.png"], t: ["/assets/t1.png"] }, maps: { de_nuke: { logoUrl: "/assets/nuke.svg", imageUrl: null } }, icons: { dead: "/assets/dead.png" } };
+    const s = { ...state, art };
+    // CT players in observer-slot order take CT pictures 1, 2, 1, 2, …
+    const ct = [...s.left.players].sort((a, b) => (a.slot ?? 99) - (b.slot ?? 99));
+    expect(ct.map((p) => playerPicture(s, p))).toEqual(["/assets/ct1.png", "/assets/ct2.png", "/assets/ct1.png", "/assets/ct2.png", "/assets/ct1.png"]);
+    expect(playerPicture(s, s.right.players[0]!)).toBe("/assets/t1.png");
+    // A player's own photo wins; without HUD images there is none.
+    expect(playerPicture(s, { ...ct[1]!, avatarUrl: "/assets/own.png" })).toBe("/assets/own.png");
+    expect(playerPicture(state, ct[0]!)).toBeNull();
+    expect(playerPicture({ ...state, art: undefined } as unknown as typeof state, ct[0]!)).toBeNull();
+    expect(mapArt(s, "de_nuke")).toEqual({ logoUrl: "/assets/nuke.svg", imageUrl: null });
+    expect(mapArt(s, "de_mirage")).toEqual({ logoUrl: null, imageUrl: null });
+    expect(deadIcon(s)).toBe("/assets/dead.png");
+    expect(deadIcon(state)).toBeNull();
   });
 });

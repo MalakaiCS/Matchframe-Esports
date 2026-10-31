@@ -6,6 +6,7 @@ import { GSI_MAX_BODY_BYTES } from "@matchframe/cs2-state";
 import type { EventEnvelope, HudOutputMode, HudOutputSmoothness } from "@matchframe/contracts";
 import type { HudState } from "@matchframe/hud-sdk";
 import { HUD_OUTPUT_MODES, RESERVED_HUD_IDS } from "@matchframe/contracts";
+import type { CleanRadarFrame } from "./hud/clean-radar.ts";
 import type { Engine } from "./app.ts";
 import { can } from "./auth.ts";
 import { isLoopback } from "./config.ts";
@@ -516,6 +517,15 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       const r = e.radars.get(radarImage[1]!);
       if (!r) return json(res, 404, { error: "not_found", message: "no built-in radar image for this map" });
       return serveFile(res, r.file, { ...headers, "cache-control": "public, max-age=3600" });
+    }
+    // Matchframe's clean radar (SVG) in the frame of a radar background; the address carries its version.
+    const cleanRadar = /^\/overlay-api\/radar-clean\/([a-z0-9_]+)\/(builtin|calibrated|schematic)$/.exec(p);
+    if (cleanRadar) {
+      const svg = e.cleanRadars.svg(e.maps.get(cleanRadar[1]!), cleanRadar[2] as CleanRadarFrame);
+      if (!svg) return json(res, 404, { error: "not_found", message: "no map geometry for a clean radar in this frame" });
+      res.writeHead(200, { "content-type": "image/svg+xml; charset=utf-8", "cache-control": url.searchParams.has("v") ? "public, max-age=86400" : "no-cache", "x-content-type-options": "nosniff", ...headers });
+      res.end(svg);
+      return;
     }
     if (p.startsWith("/assets/")) {
       const f = safeResolve(assetDir(e), p.slice("/assets/".length));

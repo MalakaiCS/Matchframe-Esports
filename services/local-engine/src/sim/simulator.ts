@@ -157,6 +157,7 @@ export class RoundSimulator {
         equipValue: dead ? 0 : 4700,
         roundKills: kills.length,
         roundKillsHs: kills.filter((k) => k.hs).length,
+        roundDamage: kills.length * 100,
         kills: kills.length + this.round,
         deaths: (dead ? 1 : 0) + Math.floor(this.round / 2),
         assists: 0,
