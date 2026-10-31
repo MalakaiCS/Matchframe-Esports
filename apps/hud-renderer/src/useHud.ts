@@ -9,10 +9,12 @@ export interface HudFeed {
   ackSponsor: (sponsorId: string, zone: string) => void;
 }
 
-export function useHud(wsUrl: string): HudFeed {
+/** The HUD state from the overlay socket (`wsUrl` null: none, for the demo pages). */
+export function useHud(wsUrl: string | null): HudFeed {
   const client = useRef<HudClient | null>(null);
   const [feed, setFeed] = useState<HudFeed>({ state: null, receivedAt: 0, status: "connecting", ackSponsor: (id, zone) => client.current?.ackSponsor(id, zone) });
   useEffect(() => {
+    if (!wsUrl) return;
     const c = new HudClient({
       url: wsUrl,
       onState: (state, receivedAt) => setFeed((f) => ({ ...f, state, receivedAt })),

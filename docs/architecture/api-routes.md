@@ -198,6 +198,16 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | GET | `/api/v1/obs/auto` | state.read |
 | PUT | `/api/v1/obs/auto` | program.control |
 | GET | `/api/v1/network` | settings.manage |
+| GET | `/api/v1/replay-graphic` | state.read |
+| PUT | `/api/v1/replay-graphic` | hud.publish |
+| POST | `/api/v1/replay-graphic/obs` | settings.manage |
+| GET | `/api/v1/highlights` | state.read |
+| PUT | `/api/v1/highlights/settings` | settings.manage |
+| POST | `/api/v1/highlights/plan` | state.read |
+| GET | `/api/v1/highlights/reels` | state.read |
+| POST | `/api/v1/highlights/reels` | replay.control |
+| POST | `/api/v1/highlights/reels/:id/cancel` | replay.control |
+| POST | `/api/v1/highlights/ffmpeg` | settings.manage |
 | GET | `/api/v1/hud/packages` | metadata.read |
 | POST | `/api/v1/hud/packages/import` | hud.publish |
 | POST | `/api/v1/hud/packages/import-directory` | hud.publish |

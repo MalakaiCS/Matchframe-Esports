@@ -4,13 +4,17 @@ import type { HudSide, HudState } from "@matchframe/hud-sdk";
 import { aliveCount, isLive, teamColor } from "../shared/format.ts";
 import { MapRadar } from "../shared/radar.tsx";
 import { useHud, VARIANT } from "../shared/useHud.ts";
+import { isReplayLayer } from "../../../hud-renderer/src/components/replay.ts";
 import { readOptions } from "./bits.tsx";
 import { AliveBox, Killfeed } from "./Killfeed.tsx";
 import { Observed } from "./Observed.tsx";
 import { TeamColumn } from "./Players.tsx";
+import { ReplayLayer } from "./Replay.tsx";
 import { ScoreBar } from "./ScoreBar.tsx";
 
 const FALLBACK = { ct: "#109be3", t: "#d05354" };
+/** The `replay` entry point: the replay graphic only (for the replay scene). */
+const REPLAY_LAYER = isReplayLayer();
 
 /** The 1920×1080 stage scales to the browser source's size. */
 function useFitStage() {
@@ -57,5 +61,5 @@ export default function App() {
   useFitStage();
   // Nothing until the first state arrives: the page stays transparent.
   if (!state) return null;
-  return <Hud state={state} receivedAt={receivedAt} />;
+  return REPLAY_LAYER ? <ReplayLayer state={state} /> : <Hud state={state} receivedAt={receivedAt} />;
 }

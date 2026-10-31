@@ -25,6 +25,8 @@ export interface EngineConfig {
   utilityProfilesFile: string | null;
   /** Built-in models shipped with the app (assets/models: `pov_2s-builtin/`). */
   builtinModelsDir: string | null;
+  /** The user's Videos folder (set by the desktop program): highlight reels go in "Matchframe Highlights" there; else in the data folder. */
+  videosDir?: string | null;
   /** Python interpreter for workers (demo parsing, training). */
   pythonPath: string | null;
   workersDir: string | null;
@@ -71,6 +73,7 @@ export function loadConfig(overrides: Partial<EngineConfig> = {}): EngineConfig 
     utilityProfilesFile: process.env.MATCHFRAME_UTILITY_PROFILES ?? null,
     builtinModelsDir: process.env.MATCHFRAME_MODELS_DIR ?? null,
     pythonPath: process.env.MATCHFRAME_PYTHON ?? null,
+    videosDir: process.env.MATCHFRAME_VIDEOS_DIR || null,
     workersDir: process.env.MATCHFRAME_WORKERS_DIR ?? null,
     allowedOrigins: (process.env.MATCHFRAME_ALLOWED_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
     logLevel: (process.env.MATCHFRAME_LOG_LEVEL as EngineConfig["logLevel"]) ?? "info",

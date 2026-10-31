@@ -1,0 +1,302 @@
+/* Lineup's replay graphic (the replay entry point): a "REPLAY" bar where the score bar sits with the
+   round on a white tab, and a lower third along the bottom: the player on a near-black bar with the
+   team's edge, a white badge (2K–ACE, clutch) and the play on a team-colour strip. Bars grow from
+   the centre, strips slide from under them. Transform, opacity and clip-path only. */
+
+/* ---- tag */
+.lu-rp-tag {
+  position: absolute;
+  left: 810px;
+  top: 30px;
+  width: 300px;
+}
+.lu-rp-tag-bar {
+  position: relative;
+  z-index: 2;
+  height: 58px;
+  overflow: hidden;
+  background: var(--lu-bar);
+}
+.lu-rp-tag-bar::before,
+.lu-rp-tag-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--lu-team);
+}
+.lu-rp-tag-bar::before {
+  left: 0;
+}
+.lu-rp-tag-bar::after {
+  right: 0;
+}
+.lu-rp-tag-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding-right: 0.14em;
+  font: 800 36px/1 var(--lu-font);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.lu-rp-tag-text .mf-icon {
+  margin-top: -2px;
+  color: var(--lu-team);
+}
+.lu-rp-tag-tab {
+  position: relative;
+  z-index: 1;
+  width: 132px;
+  height: 24px;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  padding-top: 1px;
+  background: #ffffff;
+  color: #121212;
+  font: 800 16px/1 var(--lu-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lu-rp-tag.is-in .lu-rp-tag-bar {
+  animation: lu-rp-grow 240ms var(--lu-out) both;
+}
+.lu-rp-tag.is-in .lu-rp-tag-text {
+  animation: lu-rp-pop 260ms cubic-bezier(0.2, 0.9, 0.3, 1.18) 170ms both;
+}
+.lu-rp-tag.is-in .lu-rp-tag-tab {
+  animation: lu-rp-drop 220ms var(--lu-out) 260ms both;
+}
+.lu-rp-tag.is-out .lu-rp-tag-tab {
+  animation: lu-rp-lift 130ms var(--lu-in) both;
+}
+.lu-rp-tag.is-out .lu-rp-tag-text {
+  animation: lu-rp-fade 110ms ease-in both;
+}
+.lu-rp-tag.is-out .lu-rp-tag-bar {
+  animation: lu-rp-shrink 200ms var(--lu-in) 90ms both;
+}
+
+/* ---- lower third */
+.lu-rp-card {
+  position: absolute;
+  left: 50%;
+  bottom: 44px;
+  width: max-content;
+  min-width: 720px;
+  max-width: 1300px;
+  transform: translateX(-50%);
+}
+.lu-rp-bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: stretch;
+  height: 96px;
+  overflow: hidden;
+  background: var(--lu-bar);
+}
+.lu-rp-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--lu-team) 0, var(--lu-team) 96px, rgba(18, 18, 18, 0) 300px);
+  opacity: 0.27;
+}
+.lu-rp-logo {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 112px;
+  border-left: 4px solid var(--lu-team);
+}
+.lu-rp-logo img {
+  max-width: 70px;
+  max-height: 64px;
+  object-fit: contain;
+}
+.lu-rp-logo b {
+  font: 800 34px/1 var(--lu-font);
+  color: var(--lu-team);
+  filter: brightness(1.35);
+}
+.lu-rp-logo b[data-len="4"] {
+  font-size: 28px;
+}
+.lu-rp-who {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 56px 2px 18px;
+}
+.lu-rp-name {
+  font: 800 60px/0.9 var(--lu-font);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lu-rp-name.is-long {
+  font-size: 48px;
+}
+.lu-rp-team {
+  margin-top: 4px;
+  font: 700 18px/1 var(--lu-font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lu-ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lu-rp-badge {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 136px;
+  padding: 0 18px;
+  background: #ffffff;
+  color: #121212;
+}
+.lu-rp-badge b {
+  font: 800 70px/0.86 var(--lu-font);
+  letter-spacing: -0.01em;
+}
+.lu-rp-badge.is-clutch b {
+  font-size: 56px;
+}
+.lu-rp-badge i {
+  margin-top: 3px;
+  font: 800 16px/1 var(--lu-font);
+  font-style: normal;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--lu-team);
+  filter: brightness(0.82);
+}
+.lu-rp-strip {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  height: 36px;
+  padding: 1px 16px 0 20px;
+  background: var(--lu-team);
+  color: var(--lu-team-ink);
+  font: 700 21px/1 var(--lu-font);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.lu-rp-play {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+.lu-rp-play > span + span::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin: 0 12px 3px;
+  background: currentColor;
+  opacity: 0.6;
+  vertical-align: middle;
+}
+.lu-rp-play > span {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+}
+.lu-rp-hs .mf-icon {
+  margin: -2px 5px 0 0;
+}
+.lu-rp-play > .lu-rp-victims {
+  flex: 0 1 auto;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lu-rp-card.is-in .lu-rp-bar {
+  animation: lu-rp-grow 260ms var(--lu-out) both;
+}
+.lu-rp-card.is-in .lu-rp-logo,
+.lu-rp-card.is-in .lu-rp-who {
+  animation: lu-rp-pop 280ms cubic-bezier(0.2, 0.9, 0.3, 1.18) 180ms both;
+}
+.lu-rp-card.is-in .lu-rp-badge {
+  animation: lu-rp-flip 320ms var(--lu-out) 300ms both;
+}
+.lu-rp-card.is-in .lu-rp-strip {
+  animation: lu-rp-drop 240ms var(--lu-out) 360ms both;
+}
+.lu-rp-card.is-out .lu-rp-strip {
+  animation: lu-rp-lift 140ms var(--lu-in) both;
+}
+.lu-rp-card.is-out .lu-rp-logo,
+.lu-rp-card.is-out .lu-rp-who,
+.lu-rp-card.is-out .lu-rp-badge {
+  animation: lu-rp-fade 110ms ease-in both;
+}
+.lu-rp-card.is-out .lu-rp-bar {
+  animation: lu-rp-shrink 200ms var(--lu-in) 100ms both;
+}
+
+@keyframes lu-rp-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes lu-rp-shrink {
+  to {
+    transform: scaleX(0);
+  }
+}
+@keyframes lu-rp-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes lu-rp-fade {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes lu-rp-drop {
+  from {
+    transform: translateY(-100%);
+  }
+}
+@keyframes lu-rp-lift {
+  to {
+    transform: translateY(-100%);
+  }
+}
+@keyframes lu-rp-flip {
+  from {
+    opacity: 0;
+    transform: perspective(400px) rotateX(-90deg);
+  }
+}
+
+.lu-rp-sim {
+  display: table;
+  margin: 8px auto 0;
+}

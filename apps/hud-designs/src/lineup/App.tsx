@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
+import { isReplayLayer } from "../../../hud-renderer/src/components/replay.ts";
 import { isLive } from "../shared/format.ts";
 import { VARIANT, useHud } from "../shared/useHud.ts";
 import { TeamCards } from "./Cards.tsx";
 import { BuyPanel, ObservedPanel } from "./Centre.tsx";
+import { ReplayLayer } from "./Replay.tsx";
 import { ScoreBar } from "./ScoreBar.tsx";
 import { TopLeft } from "./TopLeft.tsx";
 import { Killfeed, SponsorSlot } from "./TopRight.tsx";
 import { colorOf, readSettings, sideColor } from "./util.ts";
+
+/** The `replay` entry point: the replay graphic only (for the replay scene). */
+const REPLAY_LAYER = isReplayLayer();
 
 /** The 1920×1080 design stage scaled to the browser source's size. */
 function useStageScale(): number {
@@ -32,6 +37,7 @@ export default function App() {
   const scale = useStageScale();
   // Nothing until the first state arrives: the page stays transparent.
   if (!state) return null;
+  if (REPLAY_LAYER) return <ReplayLayer state={state} scale={scale} />;
   const settings = readSettings(state.settings);
   const compact = (state.variant || VARIANT) === "compact";
   const phase = state.match.phase;

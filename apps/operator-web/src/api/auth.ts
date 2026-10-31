@@ -24,6 +24,8 @@ declare global {
       getOperatorToken?: () => Promise<string | null>;
       openConnection?: () => Promise<void>;
       openDataDir?: () => Promise<string>;
+      /** Opens the folder highlight reels go in (the Videos folder's "Matchframe Highlights"). */
+      openHighlights?: () => Promise<string>;
       /** Let other computers on the network reach this computer's engine (restarts it). */
       network?: {
         get(): Promise<{ networkAccess: boolean; local: boolean } | null>;

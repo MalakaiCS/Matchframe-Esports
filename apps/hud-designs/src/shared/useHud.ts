@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { HudClient } from "@matchframe/hud-sdk";
 import type { HudState } from "@matchframe/hud-sdk";
-import { DEMO_SCENES, demoScene as sampleScene, type DemoOptions, type DemoScene } from "./demo.ts";
+import { DEMO_PLAYS, DEMO_SCENES, demoReplay, demoScene as sampleScene, type DemoOptions, type DemoPlay, type DemoScene } from "./demo.ts";
 
 export interface HudFeed {
   state: HudState | null;
@@ -19,6 +19,11 @@ const CYCLE_MS = Number(params.get("every") ?? 3500);
 /** Demo extras: `?bo=5` (best of), `?art=1` (sample HUD images), `?radar=1` (sample radar). */
 const DEMO_OPTS: DemoOptions = { bestOf: params.has("bo") ? Number(params.get("bo")) || undefined : undefined, art: params.get("art") === "1", radar: params.get("radar") === "1" };
 const demoScene = (s: DemoScene) => sampleScene(s, DEMO_OPTS);
+/** `?demo=replay&play=<3k|kill|ace|clutch|manual|none>&logo=1`: the replay layer with a sample clip on air. */
+const PLAY = ((DEMO_PLAYS as readonly string[]).includes(params.get("play") ?? "") ? params.get("play") : "3k") as DemoPlay;
+const replayScene = (p: DemoPlay) => demoReplay(p, { ...DEMO_OPTS, logo: params.get("logo") === "1" });
+/** A demo page's state: a scene, or `replay:<play>` for the replay layer. */
+const demoState = (s: string): HudState => (s.startsWith("replay") ? replayScene(((DEMO_PLAYS as readonly string[]).includes(s.slice(7)) ? s.slice(7) : PLAY) as DemoPlay) : demoScene(s as DemoScene));
 
 /**
  * Connects to the HUD server's state socket (read-only) and returns the latest public HUD state.
@@ -26,11 +31,11 @@ const demoScene = (s: DemoScene) => sampleScene(s, DEMO_OPTS);
  * state is shown instead (thumbnails, development, checking the animations).
  */
 export function useHud(): HudFeed {
-  const scene = (DEMO && DEMO !== "cycle" && (DEMO_SCENES as readonly string[]).includes(DEMO) ? DEMO : DEMO === "1" ? "live" : null) as DemoScene | null;
-  const [feed, setFeed] = useState<HudFeed>(() => (scene ? { state: demoScene(scene), receivedAt: performance.now(), connected: true } : DEMO === "cycle" ? { state: demoScene(DEMO_SCENES[0]), receivedAt: performance.now(), connected: true } : { state: null, receivedAt: 0, connected: false }));
+  const scene = DEMO === "replay" ? "replay" : ((DEMO && DEMO !== "cycle" && (DEMO_SCENES as readonly string[]).includes(DEMO) ? DEMO : DEMO === "1" ? "live" : null) as DemoScene | null);
+  const [feed, setFeed] = useState<HudFeed>(() => (scene ? { state: demoState(scene), receivedAt: performance.now(), connected: true } : DEMO === "cycle" ? { state: demoScene(DEMO_SCENES[0]), receivedAt: performance.now(), connected: true } : { state: null, receivedAt: 0, connected: false }));
   useEffect(() => {
-    // Demo pages can be switched to another scene from outside (scripts/shots.mjs records the animations).
-    if (DEMO) (window as unknown as { __mfDemo?: (s: DemoScene) => void }).__mfDemo = (s) => setFeed({ state: demoScene(s), receivedAt: performance.now(), connected: true });
+    // Demo pages can be switched to another scene (or `replay:<play>`) from outside (scripts/shots.mjs records the animations).
+    if (DEMO) (window as unknown as { __mfDemo?: (s: string) => void }).__mfDemo = (s) => setFeed({ state: demoState(s), receivedAt: performance.now(), connected: true });
     if (DEMO === "cycle") {
       let i = 0;
       const t = setInterval(() => {

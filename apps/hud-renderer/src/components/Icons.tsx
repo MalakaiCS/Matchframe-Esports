@@ -127,6 +127,16 @@ export function HeadshotIcon({ size = 16, className }: P) {
   );
 }
 
+/** Replay: two triangles pointing back (rewind). */
+export function ReplayIcon({ size = 16, className }: P) {
+  return (
+    <svg {...box(size)} className={`mf-icon ${className ?? ""}`} role="img" aria-label="replay">
+      <path d="M11.5 5.5v13L2 12z" fill="currentColor" />
+      <path d="M22 5.5v13L12.5 12z" fill="currentColor" />
+    </svg>
+  );
+}
+
 /** The killer was blind: an eye with rays. */
 export function BlindIcon({ size = 16, className }: P) {
   return (

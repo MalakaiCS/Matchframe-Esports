@@ -165,7 +165,7 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     event: { name: "Matchframe Invitational", logoUrl: null, primary: "#5ab8f4", secondary: "#f0c941" },
     sponsors: {},
     cues: [],
-    replay: { active: false, label: null },
+    replay: { active: false, label: null, clip: null },
     annotations: [],
     veto: null,
     standings: null,
@@ -174,3 +174,40 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     art: opts.art ? demoArt() : NO_ART,
   };
 }
+
+/** Sample plays for `?demo=replay&play=<play>` (the replay layer). */
+export const DEMO_PLAYS = ["3k", "kill", "ace", "clutch", "manual", "none"] as const;
+export type DemoPlay = (typeof DEMO_PLAYS)[number];
+
+/** Two made-up emblems for `?logo=1` (plain shapes, not real teams' logos). */
+export function demoLogo(key: "left" | "right"): string {
+  const svg =
+    key === "left"
+      ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M32 4l24 10v18c0 14-10 24-24 28C18 56 8 46 8 32V14z" fill="#e8f2ff"/><path d="M18 40l9-16 6 9 5-7 8 14z" fill="#1d6fd8"/></svg>`
+      : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="#fff2f2"/><path d="M32 12v34M20 30c0 10 5 16 12 16s12-6 12-16M24 20h16" stroke="#c22636" stroke-width="5" fill="none" stroke-linecap="round"/></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+/**
+ * The replay layer's sample: the round-won scene's teams with a clip on air (`play`), or none
+ * ("none": the replays ended). `logo`: the teams have the sample emblems.
+ */
+export function demoReplay(play: DemoPlay, opts: DemoOptions & { logo?: boolean } = {}): HudState {
+  const base = demoScene("over", opts);
+  const left = { ...base.left, logoUrl: opts.logo ? demoLogo("left") : null };
+  const right = { ...base.right, logoUrl: opts.logo ? demoLogo("right") : null };
+  const team = (t: HudTeam) => ({ key: t.key as "left" | "right", name: t.name, shortName: t.shortName, logoUrl: t.logoUrl, color: t.color });
+  const weapon = (name: string, displayName: string) => ({ name: `weapon_${name}`, displayName });
+  const clips: Record<Exclude<DemoPlay, "none">, HudState["replay"]["clip"]> = {
+    "3k": { id: "demo-3k", roundNumber: 14, label: "3K: riot ▸ nova, lumen, vale (AK47)", player: { steamId: steamIdOf(7), name: "riot" }, team: team(right), side: "T", weapon: weapon("ak47", "AK-47"), headshot: true, victims: ["nova", "lumen", "vale"], kills: 3, multiKill: "3K", clutchVersus: null },
+    kill: { id: "demo-kill", roundNumber: 15, label: "vale ▸ ember (AWP)", player: { steamId: steamIdOf(5), name: "vale" }, team: team(left), side: "CT", weapon: weapon("awp", "AWP"), headshot: false, victims: ["ember"], kills: 1, multiKill: null, clutchVersus: null },
+    ace: { id: "demo-ace", roundNumber: 6, label: "5K: nova ▸ ember, riot, saber, dusk, flint (M4A1_SILENCER)", player: { steamId: steamIdOf(1), name: "nova" }, team: team(left), side: "T", weapon: weapon("m4a1_silencer", "M4A1-S"), headshot: true, victims: ["ember", "riot", "saber", "dusk", "flint"], kills: 5, multiKill: "ACE", clutchVersus: null },
+    clutch: { id: "demo-clutch", roundNumber: 16, label: "Clutch 1v3: kestrel", player: { steamId: steamIdOf(2), name: "kestrel" }, team: team(left), side: "CT", weapon: null, headshot: false, victims: [], kills: null, multiKill: null, clutchVersus: 3 },
+    manual: { id: "demo-manual", roundNumber: 12, label: "Manual bookmark", player: null, team: null, side: null, weapon: null, headshot: false, victims: [], kills: null, multiKill: null, clutchVersus: null },
+  };
+  const clip = play === "none" ? null : clips[play];
+  return { ...base, variant: "replay", left, right, replay: { active: clip !== null, label: clip ? "REPLAY" : null, clip } };
+}
+
+/** The demo players' SteamIDs (as `player(i, …)` makes them). */
+const steamIdOf = (i: number) => `7656119800000000${i}`;
