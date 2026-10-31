@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { SyncChange, SyncItem, SyncKind, SyncPushResult } from "@matchframe/cloud-contracts";
-import { SYNC_BLOB_MAX_BYTES, SYNC_ORG_QUOTA_BYTES, SyncKind as SyncKindSchema, SyncPush } from "@matchframe/cloud-contracts";
+import { SYNC_BLOB_MAX_BYTES, SYNC_ITEM_MAX_BYTES, SYNC_ORG_QUOTA_BYTES, SyncKind as SyncKindSchema, SyncPush } from "@matchframe/cloud-contracts";
 
 export interface FakeDevice {
   token: string;
@@ -99,17 +99,22 @@ export class FakeSyncCloud {
       this.beforePush?.(parsed.data.changes);
       const results: SyncPushResult["results"] = [];
       for (const c of parsed.data.changes) {
-        const missing = c.blobs.find((b) => !this.blobs.has(b));
-        if (missing) {
-          results.push({ kind: c.kind, id: c.id, status: "rejected", item: null, reason: `missing_blob ${missing}` });
-          continue;
-        }
+        // As the website: a later edit wins (an edit stamped in the future counts as now), then size and files are checked.
+        const editedAt = new Date(Math.min(Date.parse(c.editedAt), Date.now())).toISOString();
         const existing = this.items.get(`${c.kind}:${c.id}`);
-        if (existing && existing.seq > (c.baseSeq ?? 0) && Date.parse(existing.editedAt) > Date.parse(c.editedAt)) {
+        if (existing && existing.seq > (c.baseSeq ?? 0) && Date.parse(existing.editedAt) > Date.parse(editedAt)) {
           results.push({ kind: c.kind, id: c.id, status: "stale", item: existing, reason: null });
           continue;
         }
-        const item: SyncItem = { kind: c.kind, id: c.id, data: c.data, blobs: c.blobs, seq: ++this.seq, editedAt: c.editedAt, deviceId: device.deviceId, deviceName: device.deviceName };
+        const blobs = c.data === null ? [] : c.blobs;
+        const size = c.data === null ? 0 : Buffer.byteLength(JSON.stringify(c.data));
+        const missing = blobs.find((b) => !this.blobs.has(b));
+        const reason = size > SYNC_ITEM_MAX_BYTES ? `too_large ${size}` : missing ? `missing_blob ${missing}` : null;
+        if (reason) {
+          results.push({ kind: c.kind, id: c.id, status: "rejected", item: null, reason });
+          continue;
+        }
+        const item: SyncItem = { kind: c.kind, id: c.id, data: c.data, blobs, seq: ++this.seq, editedAt, deviceId: device.deviceId, deviceName: device.deviceName };
         this.items.set(`${c.kind}:${c.id}`, item);
         results.push({ kind: c.kind, id: c.id, status: "applied", item, reason: null });
       }
@@ -122,7 +127,8 @@ export class FakeSyncCloud {
       if (createHash("sha256").update(bytes).digest("hex") !== blob) return this.send(res, 400, { error: "hash_mismatch", message: "the file does not match its hash" });
       if (this.blobs.has(blob)) return this.send(res, 204);
       const used = [...this.blobs.values()].reduce((n, b) => n + b.length, 0);
-      if (bytes.length > SYNC_BLOB_MAX_BYTES || used + bytes.length > this.quotaBytes) return this.send(res, 413, { error: "quota", message: "storage full" });
+      if (bytes.length > SYNC_BLOB_MAX_BYTES) return this.send(res, 413, { error: "too_large", message: "a shared file can be at most 60 MB" });
+      if (used + bytes.length > this.quotaBytes) return this.send(res, 413, { error: "quota_exceeded", message: "over the limit", detail: { usedBytes: used, fileBytes: bytes.length, quotaBytes: this.quotaBytes } });
       this.blobs.set(blob, bytes);
       return this.send(res, 204);
     }

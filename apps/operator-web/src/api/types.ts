@@ -167,6 +167,8 @@ export interface OperatorSnapshot {
   tally?: DeviceTally;
   /** Account link and auto-director hours (added with the cloud link). */
   cloud?: CloudSummary;
+  /** Bumped when account sync changed teams, players, matches or HUDs on this computer (lists reload). */
+  dataVersion?: number;
 }
 
 export type CloudGate = { ok: true; free?: boolean } | { ok: false; code: "not_linked" | "no_entitlement" | "entitlement_expired" | "plan_excludes" | "hours_exhausted"; reason: string };
@@ -181,6 +183,8 @@ export interface CloudSummary {
   enforcement: "required" | "off";
   /** Whether the licence includes Full Action Observer (always true in the simulation and enforcement-off builds). */
   fullActionObserver?: boolean;
+  /** Account sync is on and this computer is linked: imported HUDs, teams, players and matches are shared. */
+  sharing?: boolean;
 }
 
 /** GET /api/v1/cloud/status (CloudLink.status in the engine). */
@@ -227,6 +231,28 @@ export interface CloudStatus {
   usage: { pendingRecords: number; pendingSeconds: number; rejected: number; totalSeconds: number; openSeconds: number; metering: boolean };
   lastRefreshAt: string | null;
   lastSyncAt: string | null;
+  lastError: string | null;
+}
+
+/** GET /api/v1/cloud/sync: teams, players, matches and imported HUDs shared with the organisation. */
+export interface CloudSyncStatus {
+  enabled: boolean;
+  linked: boolean;
+  orgName: string | null;
+  state: "off" | "signed_out" | "starting" | "syncing" | "ok" | "offline" | "error";
+  lastPullAt: string | null;
+  lastPushAt: string | null;
+  lastSyncAt: string | null;
+  pending: number;
+  pendingByKind: Record<string, number>;
+  /** Shared records on this computer per kind (team, player, match, hud, ...). */
+  counts: Record<string, number>;
+  /** What is moving now, e.g. "Uploading HUD Vector". */
+  busy: string | null;
+  storage: { usedBytes: number; quotaBytes: number } | null;
+  orgItems: Record<string, number> | null;
+  rejected: { kind: string; id: string; reason: string }[];
+  merged: number;
   lastError: string | null;
 }
 

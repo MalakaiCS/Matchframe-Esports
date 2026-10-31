@@ -17,6 +17,8 @@ Matchframe opens into the **HUD Library**: the HUDs installed on this computer, 
 
 Installed HUDs and their settings are kept in `%APPDATA%\Matchframe Esports\huds\<hud-id>\` and the program database; they survive restarts and updates. **Add HUD → Open HUDs folder** shows the folder.
 
+Signed in to a Matchframe account, the HUDs you import (and their settings) are shared with every computer of your organisation, together with teams, players and matches; they show **Shared** in the library. See [account sync](account-sync.md).
+
 The window has no Windows title bar: the header with the page title is the title bar. Drag an empty part of it (or the logo) to move the window; minimise, maximise and close are at its right end. Connection settings and the data folder are in **Settings → General → Program**.
 
 ## Updates

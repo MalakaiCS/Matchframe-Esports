@@ -32,6 +32,8 @@ export interface HudItemProps {
   outputs: Record<HudOutputMode, number>;
   overlay: OverlayState | undefined;
   selected: boolean;
+  /** Shared with the organisation's other computers (account sync). */
+  shared?: boolean;
   onSelect(): void;
   actions: HudActions;
   reasons: HudActionReasons;
@@ -207,13 +209,18 @@ const selectOnKey = (onSelect: () => void) => (e: ReactKeyboardEvent) => {
   }
 };
 
-function Meta({ entry }: { entry: HudLibraryEntry }): ReactNode {
+function Meta({ entry, shared }: { entry: HudLibraryEntry; shared?: boolean }): ReactNode {
   return (
     <span className="hud-meta">
       <span>CS2</span>
       <span>{entry.author || "Unknown author"}</span>
       <span>v{entry.version}</span>
       {entry.kind !== "imported" ? <span>{KIND_LABEL[entry.kind]}</span> : null}
+      {shared ? (
+        <span className="hud-shared" title="Shared with your organisation's other computers (Settings → Account)">
+          Shared
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -234,7 +241,7 @@ export function HudCard(p: HudItemProps) {
         <h3 className="hud-name" title={entry.name}>
           {entry.name}
         </h3>
-        <Meta entry={entry} />
+        <Meta entry={entry} shared={p.shared} />
         <p className="hud-desc" title={entry.description}>
           {entry.category ? <span className="hud-category">{entry.category}</span> : null}
           {entry.description || "No description."}
@@ -289,7 +296,7 @@ export function HudRow(p: HudItemProps) {
         <span className="hud-name">
           {entry.name} <span className="hud-version">({entry.version})</span>
         </span>
-        <Meta entry={entry} />
+        <Meta entry={entry} shared={p.shared} />
       </div>
       <StatusBadge status={p.status} detail={p.statusDetail} />
       <OutputIndicators outputs={p.outputs} smoothness={p.entry.smoothness} />

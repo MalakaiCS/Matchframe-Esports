@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, describeError } from "../api/index.ts";
+import { useLive } from "../state/live.ts";
 
 export interface ApiState<T> {
   data: T | undefined;
@@ -10,9 +11,13 @@ export interface ApiState<T> {
   setData: (d: T | undefined) => void;
 }
 
+/** Lists account sync changes (teams, players, events, matches, veto, stages, the HUD Library). */
+const SYNCED_PATHS = ["/api/v1/teams", "/api/v1/players", "/api/v1/events", "/api/v1/matches", "/api/v1/veto/", "/api/v1/stages", "/api/v1/hud/library"];
+export const isSyncedPath = (path: string) => SYNCED_PATHS.some((p) => path.startsWith(p));
+
 /**
  * GET a path (optionally polling). Keeps the last good data while refreshing; `path === null`
- * disables the request.
+ * disables the request. Lists account sync changes reload when another computer's changes arrive.
  */
 export function useApi<T>(path: string | null, opts: { refreshMs?: number } = {}): ApiState<T> {
   const [data, setData] = useState<T | undefined>(undefined);
@@ -54,6 +59,14 @@ export function useApi<T>(path: string | null, opts: { refreshMs?: number } = {}
     }, opts.refreshMs);
     return () => clearInterval(t);
   }, [path, opts.refreshMs, load]);
+
+  const dataVersion = useLive((s) => (path !== null && isSyncedPath(path) ? (s.snapshot?.dataVersion ?? null) : null));
+  const seenVersion = useRef<number | null>(null);
+  useEffect(() => {
+    if (dataVersion === null) return;
+    if (seenVersion.current !== null && seenVersion.current !== dataVersion) void load();
+    seenVersion.current = dataVersion;
+  }, [dataVersion, load]);
 
   return { data, error, loading, reload: load, setData };
 }

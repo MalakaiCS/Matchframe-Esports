@@ -160,7 +160,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   // ------------------------------------------------------------------ operator hub
   const cloudSummary = (eng: Engine) => {
     const st = eng.cloud.status(eng.simulationRunning || eng.session.simulated, eng.session.observerMode);
-    return { linkState: st.linkState, plan: st.entitlement?.plan.name ?? null, licence: st.entitlement?.state ?? null, remainingSeconds: st.entitlement?.localRemainingSeconds ?? null, gate: st.gate, metering: st.usage.metering, enforcement: st.enforcement, fullActionObserver: st.fullActionObserver };
+    return { linkState: st.linkState, plan: st.entitlement?.plan.name ?? null, licence: st.entitlement?.state ?? null, remainingSeconds: st.entitlement?.localRemainingSeconds ?? null, gate: st.gate, metering: st.usage.metering, enforcement: st.enforcement, fullActionObserver: st.fullActionObserver, sharing: eng.cloudSync.active };
   };
   let opSeq = 0;
   const env = <T>(topic: string, payload: T): EventEnvelope<T> => {

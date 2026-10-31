@@ -48,6 +48,8 @@ const BATCH = 200;
 const UNSUPPORTED_RETRY_MS = 10 * 60_000;
 const MISSING_BLOB_RETRY_MS = 30_000;
 const FULL_SCAN_MS = 60_000;
+/** The website deletes files no record names after an hour: an upload older than this is not relied on. */
+const UPLOAD_TRUST_MS = 45 * 60_000;
 
 const KIND_NAMES: Record<SyncKind, string> = { team: "team", player: "player", roster: "roster entry", event: "event", match: "match", map: "map", veto: "veto step", asset: "image", hud: "HUD" };
 
@@ -104,12 +106,19 @@ export interface SyncView {
 const sha256 = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-/** A refusal reason in plain words. */
+/** Sizes as the website shows them (1 GB = 1024 MB). */
+export function sizeText(bytes: number): string {
+  const [v, unit] = bytes >= 1024 ** 3 ? [bytes / 1024 ** 3, "GB"] : bytes >= 1024 ** 2 ? [bytes / 1024 ** 2, "MB"] : [bytes / 1024, "KB"];
+  return `${Math.round(v * 10) / 10} ${unit}`;
+}
+
+/** A refusal reason in plain words ("quota_exceeded <used> <quota>", "too_large <bytes>", "missing_blob <sha>", ...). */
 export function plainReason(reason: string): string {
-  if (reason.startsWith("missing_blob")) return "a file had not arrived yet (it is sent again)";
-  if (reason === "quota") return "your organisation's shared storage is full";
-  if (reason === "too_large") return "it is too large to share";
-  if (reason === "file_mismatch") return "a file changed while it was sent (it is sent again)";
+  const [code, a, b] = reason.split(" ");
+  if (code === "quota_exceeded") return Number(a) >= 0 && Number(b) > 0 ? `Your organisation's shared storage is full: ${sizeText(Number(a))} of ${sizeText(Number(b))}` : "Your organisation's shared storage is full";
+  if (code === "missing_blob") return "a file had not arrived yet (it is sent again)";
+  if (code === "too_large") return "it is too large to share";
+  if (code === "file_mismatch") return "a file changed while it was sent (it is sent again)";
   return reason;
 }
 
@@ -130,6 +139,7 @@ export class CloudSync {
   private abort: AbortController | null = null;
   private stopped = true;
   private lastScanAt = 0;
+  private lastFullScanAt = 0;
   private lastChanges = -1;
   private dirtyAt: number | null = null;
   private nextPullAt = 0;
@@ -138,8 +148,8 @@ export class CloudSync {
   private pulledOnce = false;
   private statusAt = 0;
   private storageChanged = false;
-  /** Blobs uploaded in this run, and blobs the website said it does not have. */
-  private readonly uploaded = new Set<string>();
+  /** Blobs uploaded in this run (when), and blobs the website said it does not have. */
+  private readonly uploaded = new Map<string, number>();
   private readonly missing = new Set<string>();
   /** HUD packages zipped for upload (dropped once shared). */
   private readonly zips = new Map<string, { fingerprint: string; sha: string; bytes: Buffer }>();
@@ -206,6 +216,8 @@ export class CloudSync {
     if (!this.active) throw Object.assign(new Error(this.enabled ? "sign in to a Matchframe account to share data" : "sharing is off"), { status: 409 });
     this.failures = 0;
     this.nextTryAt = 0;
+    // A record that could not be used was reported; asking again starts with a clean slate.
+    this.applyProblem = null;
     if (this.running) await this.running;
     await this.run(true);
   }
@@ -290,7 +302,7 @@ export class CloudSync {
     this.missing.clear();
     this.zips.clear();
     this.org = null;
-    this.lastChanges = -1;
+    this.lastFullScanAt = 0;
   }
 
   // ---------------------------------------------------------------------------- HTTP
@@ -315,17 +327,18 @@ export class CloudSync {
 
   // ---------------------------------------------------------------------------- local changes
 
-  /** Notes what changed here since the records were last compared (skipped when the database did not change). */
+  /** Notes what changed here since the records were last compared (skipped while the database has not changed, except once a minute). */
   private async scan(force: boolean): Promise<void> {
     const changes = () => this.d.db.get<{ n: number }>("SELECT total_changes() AS n")?.n ?? -1;
     const now = Date.now();
     this.dirtyAt = null;
-    if (!force && changes() === this.lastChanges && now - this.lastScanAt < FULL_SCAN_MS && this.lastScanAt > 0) return;
+    this.lastScanAt = now;
+    if (!force && changes() === this.lastChanges && now - this.lastFullScanAt < FULL_SCAN_MS) return;
     const items = await this.d.local.collect();
     if (this.stopped) return;
     this.d.local.scan(items);
     this.lastChanges = changes();
-    this.lastScanAt = Date.now();
+    this.lastFullScanAt = Date.now();
   }
 
   // ---------------------------------------------------------------------------- the organisation's changes
@@ -404,7 +417,7 @@ export class CloudSync {
     const rows = this.d.local.pendingRows((reason) => (reason.startsWith("missing_blob") ? MISSING_BLOB_RETRY_MS : this.timing.rejectRetryMs));
     if (rows.length === 0) return;
     const known = this.d.local.knownBlobs();
-    for (const b of this.uploaded) known.add(b);
+    for (const [b, at] of this.uploaded) if (Date.now() - at < UPLOAD_TRUST_MS) known.add(b);
     for (const b of this.missing) known.delete(b);
     let applied = 0;
     for (let i = 0; i < rows.length && !this.stopped; i += BATCH) {
@@ -465,7 +478,8 @@ export class CloudSync {
     if (!it) return null;
     const change: SyncChange = { kind: row.kind, id: row.id, data: it.data, blobs: [], baseSeq: row.seq, editedAt: (row.pending === it.hash ? row.pending_at : it.editedAt) ?? now };
     const out: Prepared = { change, hash: it.hash, blobKey: null, uploads: [], problem: null };
-    if (Buffer.byteLength(JSON.stringify(it.data)) > SYNC_ITEM_MAX_BYTES) return { ...out, problem: "too_large" };
+    const size = Buffer.byteLength(JSON.stringify(it.data));
+    if (size > SYNC_ITEM_MAX_BYTES) return { ...out, problem: `too_large ${size}` };
     if (row.kind === "asset") {
       const sha = String(it.data.sha256);
       change.blobs = [sha];
@@ -487,7 +501,7 @@ export class CloudSync {
         } finally {
           this.busy = null;
         }
-        if (bytes.length > SYNC_BLOB_MAX_BYTES) return { ...out, problem: "too_large" };
+        if (bytes.length > SYNC_BLOB_MAX_BYTES) return { ...out, problem: `too_large ${bytes.length}` };
         sha = sha256(bytes);
         this.zips.set(row.id, { fingerprint: pkg.fingerprint, sha, bytes });
       }
@@ -521,10 +535,16 @@ export class CloudSync {
       }
       const r = await this.request("PUT", `/v1/sync/blobs/${blob.sha}`, { bytes, timeoutMs: 10 * 60_000, signal });
       if (r.status === 404) throw new Refused("no account sync", 404);
-      if (r.status === 413) return "quota";
+      if (r.status === 413) {
+        const body = r.data as { error?: string; detail?: { usedBytes?: unknown; quotaBytes?: unknown } } | null;
+        const d = body?.detail;
+        if (body?.error !== "quota_exceeded") return `too_large ${bytes.length}`;
+        this.storageChanged = true;
+        return typeof d?.usedBytes === "number" && typeof d.quotaBytes === "number" ? `quota_exceeded ${d.usedBytes} ${d.quotaBytes}` : "quota_exceeded";
+      }
       if (r.status === 400) return "file_mismatch";
       if (r.status < 200 || r.status > 299) throw new Refused(`the website did not take a file (${this.message(r)})`, r.status);
-      this.uploaded.add(blob.sha);
+      this.uploaded.set(blob.sha, Date.now());
       this.missing.delete(blob.sha);
       this.storageChanged = true;
       return null;
@@ -548,6 +568,8 @@ export class CloudSync {
     if (this.error) return this.error.message;
     if (this.applyProblem) return this.applyProblem;
     const rejected = this.d.local.rejected();
+    const full = rejected.find((r) => r.reason.startsWith("quota_exceeded"));
+    if (full) return `${plainReason(full.reason)}. Remove HUDs or pictures you no longer need; their space is freed about an hour later.`;
     if (rejected.length > 0) return `The website did not take ${rejected.length === 1 ? "a change" : `${rejected.length} changes`} from here: ${plainReason(rejected[0]!.reason)}.`;
     return null;
   }

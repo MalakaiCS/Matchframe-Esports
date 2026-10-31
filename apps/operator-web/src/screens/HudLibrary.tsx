@@ -10,6 +10,7 @@ import { Button, ConfirmDialog, EmptyState, ErrorBox, Loading, Modal, Note } fro
 import { useApi, usePersistentState } from "../lib/hooks.ts";
 import type { HudDisplayStatus, HudSort } from "../lib/hudLibrary.ts";
 import { copyText, defaultVariant, desktopReason as desktopReasonOf, filterHuds, hudStatus, NO_CATEGORY, outputCounts, resolutionLabel, SORT_LABEL, sortHuds, STATUS_INFO, STATUS_ORDER, toArrayBuffer, useDesktopOverlays, variantUrl } from "../lib/hudLibrary.ts";
+import { useLive } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
 import { BUILTIN_REASON, exportHud, hudPath, launchHud, LIBRARY_PATH, reloadHud, stopHud, useRun } from "./hudlib/actions.ts";
 import type { HudActionReasons, HudActions } from "./hudlib/HudCard.tsx";
@@ -178,6 +179,8 @@ export function HudLibraryScreen() {
   const editReason = usePermission("hud.publish");
   const desktopReason = desktopReasonOf(bridge);
   const local = !!bridge?.available;
+  // Account sync shares the HUDs the user imported (never samples or the built-in HUD).
+  const sharing = useLive((s) => s.snapshot?.cloud?.sharing ?? false);
 
   const [q, setQ] = useState("");
   const [category, setCategory] = usePersistentState("hudlibCategory", "all");
@@ -305,6 +308,7 @@ export function HudLibraryScreen() {
       outputs: outputCounts(e, overlay),
       overlay,
       selected: e.id === selectedId,
+      shared: sharing && e.kind === "imported",
       onSelect: () => setSelectedId(e.id === selectedId ? null : e.id),
       actions: actionsFor(e),
       reasons: reasonsFor(e),

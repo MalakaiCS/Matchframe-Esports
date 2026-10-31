@@ -159,7 +159,7 @@ export class CloudLink {
 
   /** Linked to an organisation with this computer's credential (account sync runs only then). */
   get deviceLinked(): boolean {
-    return !!this.link && !!this.url && !this.revoked && !!this.deps.secrets.getSecret("cloud.deviceToken");
+    return !!this.link && !!this.url && !this.revoked && this.deps.secrets.hasSecret("cloud.deviceToken");
   }
 
   /**
@@ -184,7 +184,7 @@ export class CloudLink {
     const res = await this.fetch(url + path, { method, headers, body, signal: opts.signal ? AbortSignal.any([timeout, opts.signal]) : timeout });
     if (opts.raw && res.ok) return { status: res.status, data: null, bytes: Buffer.from(await res.arrayBuffer()) };
     const text = await res.text();
-    let data: unknown = null;
+    let data: unknown;
     try {
       data = text ? JSON.parse(text) : null;
     } catch {

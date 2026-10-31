@@ -24,9 +24,7 @@ export const GONE = "-";
 /** Push order: files first, then the records that use them. */
 export const KIND_ORDER: readonly SyncKind[] = ["asset", "team", "player", "event", "roster", "match", "map", "veto", "hud"];
 
-const DOC_KINDS = ["team", "player", "event", "match"] as const;
-type DocKind = (typeof DOC_KINDS)[number];
-const isDocKind = (k: string): k is DocKind => (DOC_KINDS as readonly string[]).includes(k);
+type DocKind = "team" | "player" | "event" | "match";
 
 /** An asset id (POST /api/v1/assets): the first 24 hex digits of its SHA-256 and its extension. */
 const ASSET_ID_RE = /^([0-9a-f]{24})(\.[a-z0-9]+)$/;
@@ -455,17 +453,23 @@ export class SyncLocal {
   /** The organisation's version, seen and overruled by a later change here (sent next, based on this version). */
   keep(item: SyncItem, pending: string, pendingAt: string | null): void {
     this.db.run(
-      `INSERT INTO sync_state (kind, id, hash, seq, edited_at, blobs, pending, pending_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(kind, id) DO UPDATE SET hash = excluded.hash, seq = excluded.seq, edited_at = excluded.edited_at, blobs = excluded.blobs, pending = excluded.pending, pending_at = excluded.pending_at`,
+      `INSERT INTO sync_state (kind, id, hash, seq, edited_at, blobs, blob_key, pending, pending_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(kind, id) DO UPDATE SET hash = excluded.hash, seq = excluded.seq, edited_at = excluded.edited_at, blobs = excluded.blobs, blob_key = excluded.blob_key, pending = excluded.pending, pending_at = excluded.pending_at`,
       item.kind,
       item.id,
       contentHash(item.data),
       item.seq,
       item.editedAt,
       JSON.stringify(item.blobs),
+      this.blobKeyOf(item),
       pending,
       pendingAt ?? this.nowIso(),
     );
+  }
+
+  /** What an item's blobs were made from: a HUD's package fingerprint. */
+  private blobKeyOf(item: SyncItem): string | null {
+    return item.kind === "hud" && item.data && typeof item.data.package === "string" ? item.data.package : null;
   }
 
   /** Files to download before the item can be applied (an asset not here yet, a HUD package that changed). */
@@ -493,8 +497,7 @@ export class SyncLocal {
     this.db.transaction(() => {
       const orgHash = this.applyItem(item, blobs);
       const hash = item.data === null ? GONE : (orgHash ?? this.current(item.kind, item.id)?.hash ?? contentHash(item.data));
-      const blobKey = item.kind === "hud" && item.data ? String(item.data.package ?? "") || null : null;
-      this.record(item, hash, blobKey);
+      this.record(item, hash, this.blobKeyOf(item));
       if (item.kind === "roster" || item.kind === "team" || item.kind === "player") this.dedupeRoster();
     });
   }

@@ -1169,3 +1169,37 @@ Measured with kaiHUD 1.0.2 in Chromium through Matchframe, with a player running
 **Not checked.** In CS2 on the owner's PC. That `getpos` in first person reads the eyes rather than the feet is taken from the earlier chase-view checks; if it doesn't, the check finds neither, and turns itself off after one round.
 
 **For the owner:** the wrong numbering saved on the owner's PC is corrected the first time a cinematic ends after the update (the free camera shows for about half a second once).
+
+## ADR-057 — Account sync: an organisation's people, matches and imported HUDs on all its computers
+
+**Context.** The owner: "I want it so the Players, Matches & imported CS HUDs are linked to each account via the database, so it can be seen on multiple PCs at once." Decided with the owner: shared by the whole organisation the program is signed into.
+
+**Decision.**
+- **Items:** each shared local record is one item, keyed by kind and its local id (the same id on every computer). Kinds:
+  - team, player, roster entry, event, match, map, veto;
+  - asset: the logos and photos those records use;
+  - hud: imported HUDs with their settings. Bundled samples and the built-in HUD come with the program and aren't shared.
+- **Files:** HUD packages and pictures are blobs stored once per organisation by SHA-256. Limits: 60 MB a file, 2 GB an organisation (`MF_SYNC_QUOTA_BYTES`), 256 KB a record.
+- **Website** (migration 6):
+  - **Seq:** every change gets the organisation's next seq, under a lock on the organisation's counter row. Seqs are strictly increasing and commit in order, so a computer reading with a cursor never misses one. Checked on Postgres 16 with six computers pushing at once.
+  - **Last edit wins:** a change based on an older seq loses to a later edit, and the newer version goes back to the sender.
+  - **Deletes** are kept as tombstones.
+  - **Unused files** are removed after an hour.
+  - **Uploads** are read only after the computer's credential is checked, within the limit.
+- **Program** (local migration 4, `sync_state`):
+  - **Finding changes:** every 3 s, and 1 s after a change through the program's API, current records are compared with what was last agreed with the organisation. This catches every way a record changes: forms, imports, the API. Only the changed records go out.
+  - **Pulling:** the organisation's changes are fetched every 5 s and applied in a transaction. Their files are fetched first, and the stored hash keeps them from being sent back.
+  - **Offline:** edits wait until the website is back.
+  - **A computer that already has data:** it fetches the organisation's records first. A player with the same SteamID, or a team with the same name, takes the organisation's record and every reference is rewritten. Empty fields are filled from the local copy.
+  - **HUDs:** a deterministic zip of the installed files, uploaded once. Settings changes reuse it. They install under the same id on other computers, which keep their own tokens and outputs.
+- **Switch:** Settings → Account → **Shared with <organisation>** (on by default), with status and **Sync now**. The website's organisation page shows what is shared and the storage used.
+
+**Checked.**
+- Website: 13 end-to-end tests (seq order under concurrent pushes, last edit wins, tombstones, file hashes, limits and quota, organisation isolation, clean-up, the members' page) and the Postgres integration test.
+- Program:
+  - 12 unit tests (finding changes, applying, merging with reference rewriting);
+  - 10 end-to-end tests with three computers on a stand-in website (records, edits, deletes, HUD install and settings, offline edits, conflicts, first-sync merge);
+  - two computers on the real website code (PGlite).
+- An older website without sharing: the program says so and carries on.
+
+**Not checked.** On the owner's computers and the deployed website (it needs a redeploy; a proxy in front must allow 64 MB requests). Last edit wins goes by each computer's clock. Records that were already shared twice under different ids are not merged.

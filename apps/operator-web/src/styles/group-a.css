@@ -44,6 +44,17 @@
   font-weight: 600;
   margin: 0 0 8px;
 }
+.sync-line {
+  margin: 0;
+  font-weight: 600;
+}
+.sync-storage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
 .ga-actions {
   display: flex;
   align-items: center;

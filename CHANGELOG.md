@@ -67,6 +67,19 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
   - **Spawn areas from pro demos** (`scripts/set-spawn-regions.py`): the seven pool maps' `t_spawn` / `ct_spawn` regions are where players stood at the end of freeze time (they were 100–500 units off; Ancient's and Anubis's CT spawns missed entirely). Spawn cameras and paths regenerated.
   - **Cache:** map pack from a pro demo's place names (46 areas), free-space grid and 87 cameras / 10 paths from CS2's meshes; in the default event pool with Ancient, Anubis, Dust II, Inferno, Mirage and Nuke.
   - **Team shots tuned on real positions:** finer spots (48 bearings, 6 distances, up to 300 units high), a size score, and a well-sized four over a distant five. Every round of the seven demos framed (272 shots).
+- **Account sync** (version 0.10.0, ADR-057, the owner: players, matches and imported HUDs on several PCs):
+  - **What:** teams, players, rosters, events, matches, maps, veto, their logos and photos, and imported HUDs with settings are shared by every computer linked to the organisation.
+  - **Website** (migration 6):
+    - `/v1/sync/changes`, `/push`, `/blobs/:sha256` and `/status` for linked computers, with an org-wide seq and last-edit-wins pushes;
+    - tombstones and files by SHA-256 (60 MB each, 2 GB per organisation);
+    - the organisation dashboard card.
+  - **Program** (local migration 4):
+    - finds changed records every 3 s and pulls every 5 s;
+    - a first-sync merge by SteamID and team name, with reference rewriting;
+    - HUD packages as deterministic zips;
+    - Settings → Account → Shared with <organisation>;
+    - a "Shared" mark in the HUD Library.
+  - **Tests:** website end to end; program unit and end to end with three computers; two programs on the real website code.
 - **getpos confirms first person after the free camera** (version 0.10.0, ADR-056, the owner's support file on Mirage):
   - **Cause:** after HLAE cinematics CS2 stayed in the free camera under a player. `spec_mode 4` (CS2's free camera) had been saved as the first-person command, learned from game data that names a player in the free camera.
   - **Check:** after a selection that leaves the free camera, `getpos` is compared with the players' positions: at their eyes is first person, at their feet is still free. If still free, the other numbering is tried, and the confirmed one is kept.

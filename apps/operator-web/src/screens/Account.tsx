@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { api } from "../api/index.ts";
-import type { CloudStatus, CloudUsageRecord } from "../api/types.ts";
+import { api, describeError } from "../api/index.ts";
+import type { CloudStatus, CloudSyncStatus, CloudUsageRecord } from "../api/types.ts";
 import { SignInForm } from "../components/SignIn.tsx";
+import { useToast } from "../components/toasts.tsx";
 import { ActionButton, Async, Badge, Details, EmptyState, Field, KV, Meter, Note, Panel } from "../components/ui.tsx";
 import type { Tone } from "../components/ui.tsx";
 import { gateView } from "../lib/cloud.ts";
 import { fmtAgo, fmtHours, fmtTime, MISSING } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
+import { countsText, storageText, syncedAgo } from "../lib/sync.ts";
 import { usePermission } from "../state/session.tsx";
 import "../styles/group-a.css";
 
@@ -187,6 +189,79 @@ function HoursPanel({ st }: { st: CloudStatus }) {
   );
 }
 
+/** Account sync: teams, players, matches and imported HUDs shared by every computer of the organisation. */
+export function SharedPanel() {
+  const reason = usePermission("settings.manage");
+  const toast = useToast();
+  const sync = useApi<CloudSyncStatus>("/api/v1/cloud/sync", { refreshMs: 2000 });
+  const [switching, setSwitching] = useState(false);
+  const s = sync.data;
+  if (!s?.linked) return null;
+  const toggle = async () => {
+    setSwitching(true);
+    try {
+      sync.setData(await api.post<CloudSyncStatus>("/api/v1/cloud/sync", { enabled: !s.enabled }));
+    } catch (e) {
+      toast.push("danger", "Could not change sharing", describeError(e));
+    } finally {
+      setSwitching(false);
+    }
+  };
+  const line = s.busy ? `${s.busy}…` : s.state === "starting" ? "Getting your organisation's data…" : syncedAgo(s.lastSyncAt);
+  return (
+    <Panel
+      title={`Shared with ${s.orgName ?? "your organisation"}`}
+      actions={
+        <button type="button" role="switch" aria-checked={s.enabled} aria-label="Share with the organisation" className={`switch ${s.enabled ? "is-on" : ""}`} disabled={!!reason || switching} title={reason ?? (s.enabled ? "Sharing is on: click to stop sharing on this computer" : "Sharing is off: click to share again")} onClick={() => void toggle()}>
+          <span className="switch-label">{s.enabled ? "On" : "Off"}</span>
+          <span className="switch-track" aria-hidden>
+            <span className="switch-thumb" />
+          </span>
+        </button>
+      }
+    >
+      {s.enabled ? (
+        <>
+          <p className="sync-line">{line}</p>
+          <p className="muted" style={{ margin: "4px 0 0" }}>
+            {countsText(s.counts)}
+          </p>
+          {s.pending > 0 ? (
+            <p className="small muted" style={{ margin: "4px 0 0" }}>
+              {s.pending === 1 ? "1 change waiting to be shared" : `${s.pending} changes waiting to be shared`}
+            </p>
+          ) : null}
+          {s.storage ? (
+            <div className="sync-storage">
+              <Meter value={s.storage.usedBytes} max={Math.max(1, s.storage.quotaBytes)} tone={s.storage.usedBytes >= s.storage.quotaBytes * 0.9 ? "warn" : "accent"} label="Shared storage" />
+              <span className="small muted">{storageText(s.storage.usedBytes, s.storage.quotaBytes)}</span>
+            </div>
+          ) : null}
+          {s.lastError ? (
+            <Note tone="warn" title="Last problem">
+              {s.lastError}
+            </Note>
+          ) : null}
+          <div className="ga-actions">
+            <ActionButton action={() => api.post<CloudSyncStatus>("/api/v1/cloud/sync/now")} success={(r) => (r.lastError ? null : "Everything is shared")} onDone={(r) => sync.setData(r)} disabledReason={reason}>
+              Sync now
+            </ActionButton>
+          </div>
+        </>
+      ) : (
+        <p className="muted" style={{ margin: 0 }}>
+          Sharing is off on this computer. Changes here stay here, and changes from your organisation's other computers don't arrive.
+        </p>
+      )}
+      <Details summary="What is shared">
+        <p className="muted small">
+          Teams, players, rosters, events and matches (with their maps and veto), their logos and photos, and the HUDs you imported with their settings. Every computer signed in to the organisation sees and edits the same data; when two computers change the same thing, the later change is kept. Sample HUDs, the built-in HUD, sponsors, demos and the program's own settings stay on each computer.
+        </p>
+      </Details>
+    </Panel>
+  );
+}
+
 function UploadState({ r }: { r: CloudUsageRecord }) {
   if (r.rejectedReason)
     return (
@@ -263,6 +338,7 @@ export function AccountScreen() {
               <AccountPanel st={st} onChange={() => void status.reload()} />
               <HoursPanel st={st} />
             </div>
+            {st.device ? <SharedPanel /> : null}
             <UsagePanel st={st} />
           </div>
         )}

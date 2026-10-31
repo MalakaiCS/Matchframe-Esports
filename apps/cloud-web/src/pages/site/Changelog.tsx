@@ -13,8 +13,16 @@ const RELEASES: Release[] = [
   {
     version: "0.10.0",
     title: "Vector and Lineup HUDs",
-    summary: "Two new broadcast HUDs in the HUD Library, with full animations for going live, kills, the bomb and round wins. Cinematics no longer end in the free camera under a player.",
+    summary: "Your players, matches and imported HUDs on every computer in your organisation, two new broadcast HUDs, and cinematics that no longer end in the free camera under a player.",
     sections: [
+      {
+        heading: "Shared with your computers",
+        items: [
+          "Players, teams, events and matches (with logos and photos) and the HUDs you imported are shared by every computer signed into your organisation.",
+          "A computer that already has data adds it without duplicates; when two computers change the same thing, the later edit wins.",
+          "Your organisation page on the website shows what is shared and the storage used.",
+        ],
+      },
       {
         heading: "Cinematics",
         items: ["After a cinematic, CS2 goes back to a player's view instead of staying in the free camera under a player. Matchframe now checks where the camera really is before it trusts the first-person command."],

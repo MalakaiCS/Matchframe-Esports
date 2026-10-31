@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { HudLibrary, HudLibraryEntry } from "@matchframe/contracts";
 import type { DesktopHudBridge, OverlayState } from "../api/desktop.ts";
+import type { OperatorSnapshot } from "../api/types.ts";
 import { ToastProvider } from "../components/toasts.tsx";
 import { liveStore } from "../state/live.ts";
 import { SessionContext } from "../state/session.tsx";
@@ -137,6 +138,18 @@ describe("HUD Library screen", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Sample/, expanded: true }));
     expect(screen.getAllByRole("article").map((a) => a.getAttribute("aria-label"))).toEqual(["Pro CS2 HUD"]);
     expect(JSON.parse(window.localStorage.getItem("matchframe.ui.hudlibCollapsedGroups") ?? "[]")).toEqual(["Sample"]);
+  });
+
+  it("marks the HUDs the user imported as shared while account sync is on (never samples or the built-in HUD)", async () => {
+    const MINE = hud({ id: "my.hud", name: "My HUD", category: "Broadcast" });
+    serve((m, p) => (m === "GET" && p === "/api/v1/hud/library" ? { status: 200, json: library([SAMPLE, BUILTIN, MINE]) } : undefined));
+    renderScreen();
+    const row = await screen.findByRole("article", { name: "My HUD" });
+    expect(within(row).queryByText("Shared")).toBeNull();
+    act(() => liveStore.set({ snapshot: { cloud: { sharing: true } } as unknown as OperatorSnapshot }));
+    expect(within(row).getByText("Shared").getAttribute("title")).toMatch(/organisation's other computers/);
+    expect(within(screen.getByRole("article", { name: SAMPLE.name })).queryByText("Shared")).toBeNull();
+    expect(within(screen.getByRole("article", { name: BUILTIN.name })).queryByText("Shared")).toBeNull();
   });
 
   it("opens the details under the row and closes them with the arrow", async () => {

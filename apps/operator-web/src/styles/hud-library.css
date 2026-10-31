@@ -420,6 +420,9 @@
   content: "·";
   margin: 0 6px;
 }
+.hud-meta .hud-shared {
+  color: var(--accent);
+}
 .hud-desc {
   margin: 2px 0 4px;
   font-size: 12.5px;
