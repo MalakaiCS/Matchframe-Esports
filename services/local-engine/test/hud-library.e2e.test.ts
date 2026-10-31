@@ -350,4 +350,36 @@ describe("HUD Library (real HTTP/WS servers)", () => {
     expect(kept.settings).toMatchObject({ accent: "#ff3300", custom: "kept" });
     expect(lib.huds.find((h) => h.id === "test.zip-hud")?.settings).toMatchObject({ names: "full" });
   });
+
+  it("updates a bundled HUD whose files changed without a new version, keeping its settings", async () => {
+    // 0.10.0 → 0.10.1 changed Vector and Lineup but kept their version: installed copies never updated.
+    const folder = writeFolder(join(samples, "sample-two"), manifest("test.sample-two", { name: "Second sample" }));
+    const restart = async () => {
+      for (const s of sockets) s.ws.terminate();
+      await ctx.servers.close();
+      await ctx.engine.shutdown();
+      ctx = await boot(dataDir, [samples], ports);
+      // The first request may land on a kept-alive connection to the server that just closed.
+      for (let i = 0; i < 5; i++) {
+        try {
+          await library();
+          return;
+        } catch {
+          await sleep(100);
+        }
+      }
+    };
+    await restart();
+    const first = (await library()).huds.find((h) => h.id === "test.sample-two")!;
+    expect(first.kind).toBe("sample");
+    await json(api("/api/v1/hud/library/test.sample-two/settings", { method: "PUT", body: JSON.stringify({ settings: { accent: "#123456" } }) }));
+    writeFileSync(join(folder, "index.html"), "<!doctype html><html><body>HUD, new look</body></html>");
+    await restart();
+    const after = (await library()).huds.find((h) => h.id === "test.sample-two")!;
+    expect(readFileSync(join(after.folder!, "index.html"), "utf8")).toContain("new look");
+    expect(after.settings).toMatchObject({ accent: "#123456" });
+    // Unchanged files on the next start: left as they are.
+    await restart();
+    expect(readFileSync(join((await library()).huds.find((h) => h.id === "test.sample-two")!.folder!, "index.html"), "utf8")).toContain("new look");
+  });
 });

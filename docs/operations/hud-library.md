@@ -15,6 +15,8 @@ Matchframe opens into the **HUD Library**: the HUDs installed on this computer, 
      ![Vector HUD](../screenshots/hud/hud-vector.jpg)
      ![Lineup HUD](../screenshots/hud/hud-lineup.jpg)
 
+The bundled HUDs update with the program: when an update brings a newer version of one, or changed files, it replaces the installed copy and keeps its settings and outputs. A bundled HUD you replaced with your own import, or removed, is left alone.
+
 Installed HUDs and their settings are kept in `%APPDATA%\Matchframe Esports\huds\<hud-id>\` and the program database; they survive restarts and updates. **Add HUD → Open HUDs folder** shows the folder.
 
 Signed in to a Matchframe account, the HUDs you import (and their settings) are shared with every computer of your organisation, together with teams, players and matches; they show **Shared** in the library. See [account sync](account-sync.md).

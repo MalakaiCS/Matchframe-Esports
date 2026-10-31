@@ -11,6 +11,20 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.3",
+    title: "Vector and Lineup update",
+    summary: "The bundled Vector and Lineup HUDs now get their 0.10.1 changes on computers that installed them before.",
+    sections: [
+      {
+        heading: "HUD Library",
+        items: [
+          "Vector and Lineup update to the series boxes, HUD images and radars; your settings for them stay.",
+          "Bundled HUDs update whenever the program brings changed files, not only a new version number.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.10.2",
     title: "Automatic replays play again",
     summary: "Replays from the replay PC play by themselves again after a replay played by hand or an OBS reconnect.",

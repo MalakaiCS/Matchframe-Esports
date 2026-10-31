@@ -67,6 +67,10 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
   - **Spawn areas from pro demos** (`scripts/set-spawn-regions.py`): the seven pool maps' `t_spawn` / `ct_spawn` regions are where players stood at the end of freeze time (they were 100–500 units off; Ancient's and Anubis's CT spawns missed entirely). Spawn cameras and paths regenerated.
   - **Cache:** map pack from a pro demo's place names (46 areas), free-space grid and 87 cameras / 10 paths from CS2's meshes; in the default event pool with Ancient, Anubis, Dust II, Inferno, Mirage and Nuke.
   - **Team shots tuned on real positions:** finer spots (48 bearings, 6 distances, up to 300 units high), a size score, and a well-sized four over a distant five. Every round of the seven demos framed (272 shots).
+- **Bundled HUDs update when their files change** (version 0.10.3, the owner: "the huds didnt update?"):
+  - **Cause:** Vector and Lineup stayed at version 1.0.0 through 0.10.1–0.10.2, so installed copies never updated (samples updated only on a newer version).
+  - **Fix:** both are 1.1.0. `installSamples` also records a fingerprint of each bundled package's files and updates the installed sample when it changes, keeping settings and outputs; a user's own import is still left alone.
+  - **Test:** a bundled HUD whose page changed without a new version is updated on the next start, its settings kept.
 - **Automatic replays follow OBS back to live** (version 0.10.2, the owner: "it says the program isn't on the live scene", clips waiting for approval):
   - **Following OBS:** the program arbiter follows the mixer to LIVE when OBS shows the mapped live scene (`followMixerLive`): on a scene change, or when OBS reconnects. Never while a replay is being prepared.
   - **Clips played by hand** return live when OBS reports the clip ended.

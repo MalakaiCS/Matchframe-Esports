@@ -1,4 +1,4 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { HudLibrary, HudLibraryEntry, HudManifest, HudOutputMode, HudOutputSmoothness, HudRuntimeControl, HudVariant } from "@matchframe/contracts";
@@ -718,8 +718,9 @@ export class HudLibraryService {
    * Installs each bundled sample package once. Each sample folder is a package (it has
    * manifest.json) or holds package folders; a missing or invalid folder is skipped with a
    * warning. Installed sample ids are remembered, so a removed sample is not installed again. A
-   * newer bundled version updates the installed sample unless the user replaced it with their own
-   * import.
+   * newer bundled version, or the same version with other files (a program update that changed
+   * the HUD without raising its version), updates the installed sample unless the user replaced it
+   * with their own import; its settings and outputs stay.
    */
   installSamples(dirs: string[]): void {
     const folders: string[] = [];
@@ -736,11 +737,12 @@ export class HudLibraryService {
       }
     }
     if (folders.length === 0) return;
-    const record = this.d.settings.get<Record<string, { version: string }>>(SAMPLES_KEY, {});
+    const record = this.d.settings.get<Record<string, { version: string; files?: string }>>(SAMPLES_KEY, {});
     for (const folder of folders) {
       try {
         const files = readDirectory(folder);
         const m = validateManifest(files);
+        const fingerprint = filesFingerprint(files);
         const seen = record[m.id];
         const installed = this.d.packages.get(m.id);
         if (!seen) {
@@ -750,11 +752,16 @@ export class HudLibraryService {
             this.insertRow(m.id, "sample");
             this.d.logger.info("sample HUD installed", { id: m.id, version: m.version });
           }
-          record[m.id] = { version: m.version };
-        } else if (installed && this.row(m.id)?.kind === "sample" && compareVersions(m.version, seen.version) > 0 && compareVersions(m.version, installed.manifest.version) > 0) {
-          this.replace(files, "sample");
-          record[m.id] = { version: m.version };
-          this.d.logger.info("sample HUD updated", { id: m.id, from: installed.manifest.version, to: m.version });
+          record[m.id] = { version: m.version, files: fingerprint };
+        } else if (installed && this.row(m.id)?.kind === "sample") {
+          const newer = compareVersions(m.version, seen.version) > 0 && compareVersions(m.version, installed.manifest.version) > 0;
+          // Same version, other files: what the program brought last time is not what it brings now.
+          const changed = seen.files !== fingerprint && compareVersions(m.version, installed.manifest.version) >= 0;
+          if (newer || changed) {
+            this.replace(files, "sample");
+            this.d.logger.info("sample HUD updated", { id: m.id, from: installed.manifest.version, to: m.version, filesChanged: !newer });
+          }
+          record[m.id] = { version: m.version, files: fingerprint };
         }
         // Seen but not installed: the user removed it, which is respected.
       } catch (err) {
@@ -763,4 +770,16 @@ export class HudLibraryService {
     }
     this.d.settings.set(SAMPLES_KEY, record);
   }
+}
+
+/** A package's files as one SHA-256 (names and contents, in name order). */
+function filesFingerprint(files: Map<string, Uint8Array>): string {
+  const h = createHash("sha256");
+  for (const name of [...files.keys()].sort()) {
+    h.update(name);
+    h.update("\0");
+    h.update(files.get(name)!);
+    h.update("\0");
+  }
+  return h.digest("hex");
 }
