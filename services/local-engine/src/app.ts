@@ -867,6 +867,8 @@ export class Engine {
           verified: () => this.settings.get("observer.verifiedControl", {}),
           connection,
           playerName: (steamId) => this.playerNameFor(steamId),
+          // getpos at a player's eyes (first person) or feet (still the free camera) after leaving it.
+          playerPositions: () => (this.session.state()?.players ?? []).flatMap((p) => (p.position && (p.health ?? 0) > 0 ? [{ steamId: p.steamId, position: p.position }] : [])),
           onEvidence: (key, support, detail) => this.recordControlEvidence(key, support, detail),
           onCommand: (line) => this.directorLog.info("console", { line }),
           // CS2 saying a command didn't work ("Unknown command", cheat-protected…).

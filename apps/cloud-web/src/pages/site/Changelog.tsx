@@ -13,8 +13,12 @@ const RELEASES: Release[] = [
   {
     version: "0.10.0",
     title: "Vector and Lineup HUDs",
-    summary: "Two new broadcast HUDs in the HUD Library, with full animations for going live, kills, the bomb and round wins.",
+    summary: "Two new broadcast HUDs in the HUD Library, with full animations for going live, kills, the bomb and round wins. Cinematics no longer end in the free camera under a player.",
     sections: [
+      {
+        heading: "Cinematics",
+        items: ["After a cinematic, CS2 goes back to a player's view instead of staying in the free camera under a player. Matchframe now checks where the camera really is before it trusts the first-person command."],
+      },
       {
         heading: "HUD Library",
         items: [

@@ -147,8 +147,13 @@ async function fakeCs2Console(freeMode: number) {
  * camera from CS:GO's numbering, first person from CS2's), with game data following the camera:
  * spec_player only reaches the player from first person.
  */
-/** `gotoWorks: false`: spec_goto is unknown on this "build" (it says so); `setposWorks`: setpos/setang move the free camera. */
-async function numberedCs2(free = 6, inEye = 2, opts: { gotoWorks?: boolean; setposWorks?: boolean } = {}) {
+/**
+ * `gotoWorks: false`: spec_goto is unknown on this "build" (it says so); `setposWorks`: setpos/setang
+ * move the free camera. `freePlayerFeet`: spec_player in the free camera puts the free camera at
+ * that player's feet (0, 0, 0) and the game data goes on naming the player it showed before (the
+ * owner's CS2, 0.9.5).
+ */
+async function numberedCs2(free = 6, inEye = 2, opts: { gotoWorks?: boolean; setposWorks?: boolean; freePlayerFeet?: boolean } = {}) {
   const lines: string[] = [];
   const game = { mode: inEye, observed: "76561198000000001" as string | null };
   // Where getpos puts the camera: at the pose a spec_goto in the free camera sent, else with the player.
@@ -175,6 +180,7 @@ async function numberedCs2(free = 6, inEye = 2, opts: { gotoWorks?: boolean; set
           const sa = /^setang (\S+) (\S+) (\S+)$/.exec(cmd);
           if (sa && opts.setposWorks && game.mode === free) pose = `${pose.split(";")[0]};setang ${sa[1]} ${sa[2]} 0`;
           if (/^spec_player /.test(cmd) && game.mode === inEye) game.observed = "76561198000000002";
+          if (/^spec_player /.test(cmd) && game.mode === free && opts.freePlayerFeet) pose = `setpos 0.000000 0.000000 0.000000;setang ${pose.split("setang ")[1]}`;
           if (cmd === "getpos") sock.write(`${pose}\n`);
         }
       }
@@ -842,6 +848,75 @@ describe("the HLAE camera (every free-camera and moving shot drawn by HLAE)", ()
     await sleep(400);
     expect(calls.filter((x) => x.kind === "live").length).toBeGreaterThan(3);
     expect(c.lines.filter((l) => /^spec_goto /.test(l))).toEqual([]);
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("gets back into first person after an HLAE shot when the game data names a player in the free camera, and corrects a wrong first-person command", async () => {
+    // CS2's numbering (free camera 4, first person 2); CS:GO's saved, learned wrongly from game data
+    // that named a player while CS2 was in the free camera at their feet.
+    const c = await numberedCs2(4, 2, { freePlayerFeet: true });
+    const { link } = fakeLink();
+    const learned: unknown[] = [];
+    const target = "76561198000000002";
+    const a = new NetconObserverAdapter({
+      host: "127.0.0.1",
+      port: c.port,
+      now: () => performance.now(),
+      playerName: () => "nova",
+      templates: { modeInEye: "spec_mode 4", modeChase: "spec_mode 5", modeRoaming: "spec_mode 6" },
+      hlae: link,
+      playerPositions: () => [{ steamId: target, position: { x: 0, y: 0, z: 0 } }],
+      onModesLearned: (m) => learned.push(m),
+    });
+    const feed = gameData(a, c.game);
+    await sleep(150);
+    expect((await a.activateStaticCamera(camera(), ctx())).status).toBe("confirmed");
+    await a.selectPlayer(target, 2, ctx());
+    for (let i = 0; i < 60 && !(c.game.mode === 2 && learned.length); i++) await sleep(50);
+    // In first person on the player (not the free camera at their feet), and CS2's numbering kept.
+    expect(c.game).toMatchObject({ mode: 2, observed: target });
+    expect(learned).toEqual([{ modeInEye: "spec_mode 2", modeChase: "spec_mode 3", modeRoaming: "spec_mode 4" }]);
+    expect(c.lines.filter((l) => /spec_player/.test(l))).toEqual(['spec_mode 4; spec_player "nova"', 'spec_mode 2; spec_player "nova"']);
+    // The next shot and the way back use it straight away.
+    await a.activateStaticCamera(camera(), ctx());
+    await a.selectPlayer(target, 2, ctx());
+    await sleep(600);
+    clearInterval(feed);
+    expect(c.lines.filter((l) => /spec_player/.test(l)).at(-1)).toBe('spec_mode 2; spec_player "nova"');
+    expect(c.game).toMatchObject({ mode: 2, observed: target });
+    await a.dispose();
+    c.server.close();
+  });
+
+  it("keeps the first-person command on a retry while the free camera hasn't been left", async () => {
+    const c = await numberedCs2(4, 3, { freePlayerFeet: true });
+    const { link } = fakeLink();
+    const target = "76561198000000002";
+    // Neither command reaches first person on this "build" (first person is 3): every retry carries one.
+    const a = new NetconObserverAdapter({
+      host: "127.0.0.1",
+      port: c.port,
+      now: () => performance.now(),
+      playerName: () => "nova",
+      templates: { modeInEye: "spec_mode 4", modeChase: "spec_mode 5", modeRoaming: "spec_mode 6" },
+      hlae: link,
+      playerPositions: () => [{ steamId: target, position: { x: 0, y: 0, z: 0 } }],
+    });
+    const feed = gameData(a, c.game);
+    await a.activateStaticCamera(camera(), ctx());
+    await a.selectPlayer(target, 2, ctx());
+    await sleep(1600);
+    await a.selectPlayer(target, 2, ctx());
+    await sleep(300);
+    expect(c.lines.filter((l) => /spec_player/.test(l)).every((l) => /^spec_mode \d; spec_player/.test(l))).toBe(true);
+    // After that retry the check is off for the session (getpos can't tell here): the game data has the say again.
+    const reads = c.lines.filter((l) => l === "getpos").length;
+    await a.selectPlayer(target, 2, ctx());
+    await sleep(700);
+    clearInterval(feed);
+    expect(c.lines.filter((l) => /spec_player/.test(l)).at(-1)).toBe('spec_player "nova"');
+    expect(c.lines.filter((l) => l === "getpos")).toHaveLength(reads);
     await a.dispose();
     c.server.close();
   });

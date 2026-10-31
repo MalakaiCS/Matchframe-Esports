@@ -67,6 +67,12 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
   - **Spawn areas from pro demos** (`scripts/set-spawn-regions.py`): the seven pool maps' `t_spawn` / `ct_spawn` regions are where players stood at the end of freeze time (they were 100–500 units off; Ancient's and Anubis's CT spawns missed entirely). Spawn cameras and paths regenerated.
   - **Cache:** map pack from a pro demo's place names (46 areas), free-space grid and 87 cameras / 10 paths from CS2's meshes; in the default event pool with Ancient, Anubis, Dust II, Inferno, Mirage and Nuke.
   - **Team shots tuned on real positions:** finer spots (48 bearings, 6 distances, up to 300 units high), a size score, and a well-sized four over a distant five. Every round of the seven demos framed (272 shots).
+- **getpos confirms first person after the free camera** (version 0.10.0, ADR-056, the owner's support file on Mirage):
+  - **Cause:** after HLAE cinematics CS2 stayed in the free camera under a player. `spec_mode 4` (CS2's free camera) had been saved as the first-person command, learned from game data that names a player in the free camera.
+  - **Check:** after a selection that leaves the free camera, `getpos` is compared with the players' positions: at their eyes is first person, at their feet is still free. If still free, the other numbering is tried, and the confirmed one is kept.
+  - **Retries** carry the first-person command until it is confirmed.
+  - **HLAE shots** no longer count as a confirmed console camera.
+  - **Test:** a stand-in CS2 that behaves like the owner's (fails without the fix).
 - **Vector and Lineup HUDs** (version 0.10.0, ADR-055, from two commercial HUDs the owner sent):
   - Two original broadcast HUD packages in `apps/hud-designs`, bundled into the library like the Pro CS2 HUD. They match the references' layout, sizes, colours and motion, measured from the owner's recordings and checked side by side, with our own code, icons and fonts.
   - **Vector** (`matchframe.vector`): team columns at the sides: solid team-colour score bar halves and card bands, photo slots, a two-colour players-alive box. Freeze-time loss bonus, series strip and utility rows; going-live sequence; collapsing dead cards; bomb and defuse bar; winner card.

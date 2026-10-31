@@ -1137,3 +1137,35 @@ Measured with kaiHUD 1.0.2 in Chromium through Matchframe, with a player running
 **Not available from game data.**
 - Round damage on a dead player's card: Lineup shows kills this round, and ADR when it is validated.
 - Defuse progress: the defuse bar keeps showing the bomb's time.
+
+## ADR-056 — getpos, not the game data, confirms first person after the free camera
+
+**Context.** The owner (0.9.5, Mirage, support file): "when cinematics finished it cuts to freecam underneath a player."
+
+**Findings** (director log 01:12–01:16 and engine log).
+- **Every return to a player after an HLAE cinematic** was `spec_mode 4; spec_player "<name>"`.
+  - The game data never confirmed the player.
+  - The director's retries (`spec_player` alone, every 1.5 s, five different players) failed for up to 9 s.
+  - It ended only when the operator took over in CS2. After that, every `spec_player` was confirmed in 30 ms.
+- **The cause, at 00:51:33:** "console camera modes learned: spec_mode 4 / 5 / 6" (CS:GO's numbering) was saved over CS2's 2 / 3 / 4, which `getpos` had confirmed on 28 October.
+  - The adapter had tried `spec_mode 4` to leave the free camera, and the game data then named a player.
+  - On this build that doesn't mean first person: CS2's `spec_mode 4` is the free camera, and `spec_player` in the free camera moves it to the player's feet while the game data names a player.
+- **Why it was never corrected:**
+  - HLAE shots counted as confirmed cameras, so `getpos` never checked CS2's own numbering again.
+  - Retries dropped the in-eye command once the first one had been sent.
+
+**Decision.**
+- **getpos decides:** after a selection that leaves the free camera, `getpos` is read twice (from 0.3 s) and compared with the players' positions from the game data.
+  - **First person:** the game data names the player and the camera is at their eyes (24–96 units up, within 96 across).
+  - **Still free:** the camera is at a player's feet (within 48 across and 16 up or down).
+- **Still free:** the other numbering's in-eye command is sent with the same `spec_player`; the one `getpos` confirms is kept and saved for all three modes.
+- **Neither confirmed:** the first command is restored, the next selection still carries it, and the check is off for the session.
+- **Game data:** with player positions, a player named in the game data no longer teaches the numbering.
+- **Retries:** they carry the in-eye command until first person is confirmed.
+- **HLAE shots:** they no longer count as a confirmed console camera.
+
+**Checked.** A stand-in CS2 with CS2's numbering, whose game data names the previous player while the free camera sits at a player's feet, the CS:GO numbering saved and HLAE drawing the shot. Before the fix the camera stayed in the free camera (`spec_mode 4`); now it is in first person within about 1 s, the CS2 numbering is saved, and the next return goes straight to `spec_mode 2`. Also: retries keep the in-eye command, and the check turns itself off where neither number shows first person. The director and console end-to-end tests pass.
+
+**Not checked.** In CS2 on the owner's PC. That `getpos` in first person reads the eyes rather than the feet is taken from the earlier chase-view checks; if it doesn't, the check finds neither, and turns itself off after one round.
+
+**For the owner:** the wrong numbering saved on the owner's PC is corrected the first time a cinematic ends after the update (the free camera shows for about half a second once).

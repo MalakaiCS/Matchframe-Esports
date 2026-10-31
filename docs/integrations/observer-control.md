@@ -64,7 +64,17 @@ While it runs:
 **Leaving the free camera.** CS2's game data arrives a moment after the console has acted (a quarter of a second or more), so the adapter doesn't let it decide too early:
 
 - After a camera or path, the camera counts as free for at least 1.5 s, even if game data from before the shot still shows a player. The next player selection always sends the in-eye command first.
-- Leaving the free camera keeps the same in-eye command until the game data has shown the free camera for 2 s since the first try (the director tries again after each confirmation timeout). Only then is the other numbering tried, for as long again, and so on. The first one after which the game data shows a player is kept and saved, also over a numbering saved earlier.
+- Leaving the free camera keeps the same in-eye command until the game data has shown the free camera for 2 s since the first try (the director tries again after each confirmation timeout). Only then is the other numbering tried, for as long again, and so on.
+- **`getpos` decides which in-eye command is right (0.10.0).**
+  - **Why not the game data:** on some CS2 builds the game data names a player while CS2 is in the free camera, and `spec_player` in the free camera moves it to that player's feet. So a player named in the game data isn't proof of first person.
+  - **The check:** about 0.3 s after a selection that left the free camera, `getpos` is compared with the players' positions from the game data, twice. **First person** means the game data names the player and the camera is at their eyes (24–96 units above their feet). **Still free** means the camera is at a player's feet (within 48 units across, 16 up or down).
+  - **Still free:** the other numbering's in-eye command is sent with the same `spec_player`. The one `getpos` confirms is kept and saved for all three modes.
+  - **Neither confirmed:** the first command is sent again, the next selection still carries it, and the check stops for the session, so the game data decides as before.
+  - **Retries:** until first person is confirmed, a retry carries the in-eye command too.
+- An HLAE shot says nothing about CS2's own numbering (HLAE draws over it), so it doesn't count as a confirmed camera.
+- **Without player positions** (another integration), the first numbering after which the game data shows a player is kept, as before.
+
+**0.10.0 fix, from a support file:** on Mirage, after every cinematic CS2 stayed in the free camera under a player. The CS:GO numbering had been saved over CS2's, which `getpos` had confirmed two days before. The game data had named a player after `spec_mode 4` (CS2's free camera) and `spec_player`. From then on, every return from a cinematic sent `spec_mode 4`, and the retries without it only moved the free camera from one player's feet to the next.
 
 Before 0.6.1 the adapter decided after 0.3 s. With the game data a quarter of a second behind, a camera that had left the free camera still looked free, so the adapter saved the other numbering. From then on every attempt to leave a freeze-time shot failed, and the camera stayed on it into the live round.
 

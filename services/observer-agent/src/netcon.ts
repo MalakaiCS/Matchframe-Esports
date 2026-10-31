@@ -63,6 +63,17 @@ const FREE_FEEDBACK_MS = 1500;
  * long after the first try (a shorter wait misreads a camera that did leave as one that didn't).
  */
 const LEAVE_FREE_VERDICT_MS = 2000;
+/**
+ * After a selection that left the free camera, getpos tells first person (the camera at the player's
+ * eyes, 64 units above their feet standing, 46 crouched) from the free camera, which spec_player
+ * moves to a player's feet. Game data and getpos are from slightly different moments, so the
+ * distances allow for a player on the move.
+ */
+const FIRST_PERSON_CHECK_MS = 300;
+const EYE_DZ = { min: 24, max: 96 } as const;
+const EYE_ACROSS = 96;
+const FEET_DZ = 16;
+const FEET_ACROSS = 48;
 const otherModes = (inEye: string) => (inEye === CS2_ENUM_MODES.modeInEye ? CSGO_MODES : CS2_ENUM_MODES);
 /** A moving camera shot (slow pans and drifts) is sent this many poses a second, without keeping the engine busy between them. */
 const MOTION_HZ = 64;
@@ -148,6 +159,12 @@ export interface NetconOptions {
    * is unknown or another player has the same name (the console could not tell them apart).
    */
   playerName?: (steamId: string) => string | null;
+  /**
+   * The alive players' positions from the latest game data. With them, getpos confirms that a
+   * selection out of the free camera reached first person, and only that teaches the first-person
+   * spec_mode (some builds' game data names a player while CS2 is in the free camera).
+   */
+  playerPositions?: () => { steamId: string; position: Vec3 }[];
   /** Evidence that a kind of control works, from getpos readback; the engine records it per game build. */
   onEvidence?: (key: keyof ControlCapabilities, support: "supported" | "partial", detail: string) => void;
   /** The spec_mode numbering that moved the camera (when it isn't the default); the engine keeps it. */
@@ -235,6 +252,10 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
   private cameraLearned = false;
   /** A free-camera command was sent and no first-person one since: the next player selection leaves it. */
   private sentFree = false;
+  /** A selection left the free camera and getpos hasn't shown first person yet: a retry carries the first-person command again. */
+  private leavePending = false;
+  /** Off for the session once neither numbering showed first person in getpos (it can't tell on this build). */
+  private firstPersonCheck = true;
   private replyTimes: number[] = [];
   private chaseLearned = false;
   /** The camera is in the third-person chase view of a player. */
@@ -318,9 +339,11 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     if (observer.observedSteamId && !this.pathTimer && this.opts.now() - this.freeAt > FREE_FEEDBACK_MS) this.freeCam = false;
     const l = this.leaving;
     if (l && observer.observedSteamId) {
-      // Out of the free camera: the in-eye command that did it is the one for this build.
       this.leaving = null;
-      if (l.modeInEye !== this.templates.modeInEye) this.applyNumbering(l.modeInEye === CS2_ENUM_MODES.modeInEye ? CS2_ENUM_MODES : CSGO_MODES);
+      // Out of the free camera: the in-eye command that did it is the one for this build. Only
+      // without player positions: with them, getpos decides (checkFirstPerson), because some builds'
+      // game data names a player while CS2 is in the free camera at that player's feet.
+      if (l.modeInEye !== this.templates.modeInEye && !this.opts.playerPositions) this.applyNumbering(l.modeInEye === CS2_ENUM_MODES.modeInEye ? CS2_ENUM_MODES : CSGO_MODES);
     }
     // CS2 moved to another player under HLAE's view (a number key pressed in CS2, or the spectated
     // player died): that player is shown, not the camera HLAE was drawing.
@@ -634,7 +657,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     // first person is set first when leaving either; the chase view is set after the player.
     // Also when Matchframe sent the free camera and no first-person command since: on some builds the
     // game data still names the player in the free camera, and spec_player alone doesn't leave it.
-    const leaveFree = this.freeCam || this.telemetryRoaming || this.sentFree;
+    const leaveFree = this.freeCam || this.telemetryRoaming || this.sentFree || this.leavePending;
     const chase = view === "chase";
     // Into first person from the free camera: the in-eye command that the game data confirms on this build.
     // (Out of it into the chase view, the chase command moves the camera: that says nothing about in-eye.)
@@ -647,9 +670,79 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
       this.freeCam = false;
       this.sentFree = false;
       this.chase = chase;
+      this.leavePending = leaveFree && !chase && !!this.opts.playerPositions && this.firstPersonCheck;
+      if (this.leavePending) void this.checkFirstPerson(steamId, cmd, inEye, this.pathToken);
       if (chase && !this.chaseLearned) void this.learnChase(steamId, this.pathToken);
     }
     return r;
+  }
+
+  /**
+   * After a selection that left the free camera: getpos shows whether CS2 went into first person or
+   * stayed in the free camera at a player's feet (where spec_player moves it), which is what a
+   * free-camera number sent as the first-person one does. Then the other numbering's first person
+   * is tried; the one getpos confirms is kept for every mode command. If neither, the first is sent
+   * again and the next selection still carries a first-person command.
+   */
+  private async checkFirstPerson(steamId: string, cmd: string, inEye: string, token: number): Promise<void> {
+    let mode = inEye;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const view = await this.viewAfterLeaving(steamId, token);
+      if (token !== this.pathToken) return;
+      if (view === "eyes") {
+        this.leavePending = false;
+        this.leaving = null;
+        if (mode !== this.templates.modeInEye && STANDARD_MODES.has(mode)) this.applyNumbering(mode === CS2_ENUM_MODES.modeInEye ? CS2_ENUM_MODES : CSGO_MODES);
+        if (attempt > 0) this.opts.onEvidence?.("observerModeControl", "supported", `getpos showed first person with ${mode} (${inEye} left the free camera at the player's feet)`);
+        return;
+      }
+      if (view === null && attempt === 0) {
+        // Can't tell (no answer, or not near anyone yet): the game data has the say, as before.
+        this.leavePending = false;
+        return;
+      }
+      if (attempt === 1 || !STANDARD_MODES.has(mode)) break;
+      mode = otherModes(mode).modeInEye;
+      if (this.leaving) this.leaving.modeInEye = mode;
+      try {
+        await this.write(`${mode}; ${cmd}`);
+      } catch {
+        return;
+      }
+    }
+    // Neither number showed first person: back to the first one. The next selection still carries
+    // it; after that the game data has the say again, as getpos can't tell on this build.
+    this.firstPersonCheck = false;
+    if (token === this.pathToken && mode !== inEye) await this.write(`${inEye}; ${cmd}`).catch(() => undefined);
+  }
+
+  /**
+   * "eyes": the game data names the player and getpos is at their eyes. "free": getpos at a
+   * player's feet on two reads. Null: can't tell.
+   */
+  private async viewAfterLeaving(steamId: string, token: number): Promise<"eyes" | "free" | null> {
+    let feet = 0;
+    for (let i = 0; i < 2; i++) {
+      await new Promise((r) => setTimeout(r, i === 0 ? FIRST_PERSON_CHECK_MS : 150));
+      if (token !== this.pathToken) return null;
+      const pose = await this.readPose();
+      if (!pose || token !== this.pathToken) return null;
+      const players = this.opts.playerPositions?.() ?? [];
+      const rel = (p: Vec3) => ({ across: Math.hypot(pose.position.x - p.x, pose.position.y - p.y), dz: pose.position.z - p.z });
+      const target = players.find((p) => p.steamId === steamId);
+      if (target && this.observed.observedSteamId === steamId) {
+        const t = rel(target.position);
+        if (t.across <= EYE_ACROSS && t.dz >= EYE_DZ.min && t.dz <= EYE_DZ.max) return "eyes";
+      }
+      if (
+        players.some((p) => {
+          const r = rel(p.position);
+          return r.across <= FEET_ACROSS && Math.abs(r.dz) < FEET_DZ;
+        })
+      )
+        feet++;
+    }
+    return feet === 2 ? "free" : null;
   }
 
   async setObserverMode(mode: CameraMode, ctx: CommandContext): Promise<CommandResult> {
@@ -764,7 +857,6 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
       return null;
     }
     this.hlaeActive = true;
-    this.cameraLearned = true;
     this.opts.onEvidence?.("staticCameraControl", "supported", `HLAE showed ${what}`);
     this.opts.onEvidence?.("cameraPathControl", "supported", "HLAE draws camera moves every frame");
     return this.confirmed(ctx, `HLAE shows ${what}`);
