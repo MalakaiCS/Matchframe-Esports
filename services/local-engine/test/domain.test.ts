@@ -142,6 +142,25 @@ describe("program arbiter", () => {
     await p.request("LIVE", "operator", "op");
     expect(p.mode).toBe("LIVE");
   });
+
+  it("follows the mixer back to the live scene from a replay, a manual scene or DEGRADED, never while a replay is prepared", async () => {
+    const p = new ProgramArbiter({ connected: () => true, setProgram: async () => true }, { LIVE: "Live", REPLAY: "Replay", STUDIO: null, BREAK: null });
+    expect(p.followMixerLive("obs")).toBeNull();
+    await p.request("REPLAY_PREPARED", "operator", "op", { replayItemId: "r1" });
+    expect(p.followMixerLive("obs")).toBeNull();
+    await p.request("REPLAY_PLAYING", "operator", "op", { replayItemId: "r1" });
+    expect(p.followMixerLive("obs")).toMatchObject({ from: "REPLAY_PLAYING", to: "LIVE" });
+    expect([p.mode, p.activeReplay]).toEqual(["LIVE", null]);
+    await p.request("MANUAL", "operator", "op");
+    p.followMixerLive("obs");
+    expect(p.mode).toBe("LIVE");
+    p.markDegraded("OBS disconnected");
+    p.followMixerLive("obs");
+    expect(p.mode).toBe("LIVE");
+    // From then on an automatic replay can take the program again.
+    await p.request("REPLAY_PREPARED", "automation", "auto-replay", { replayItemId: "r2" });
+    expect(p.mode).toBe("REPLAY_PREPARED");
+  });
 });
 
 describe("secret store", () => {

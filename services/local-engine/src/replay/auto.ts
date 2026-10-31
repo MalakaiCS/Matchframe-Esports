@@ -295,7 +295,7 @@ export class AutoReplay {
     if (!this.e.obs.state.connected) return "Connect OBS on this computer (Settings → Devices).";
     if (!this.e.settings.get<string | null>("replay.mediaInput", null)) return "Set up the replay scene: Replays → Set up OBS replay scene.";
     if (!this.e.program.sceneMap.REPLAY) return "Map the replay scene: Replays → Set up OBS replay scene.";
-    if (this.e.program.mode !== "LIVE") return "The program isn't on the live scene.";
+    if (this.e.program.mode !== "LIVE") return `The program isn't live (${this.e.program.mode.replace(/_/g, " ").toLowerCase()}): press Return live at the top of Replays & Production, or put OBS on your live scene.`;
     return null;
   }
 

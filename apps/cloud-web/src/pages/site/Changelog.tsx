@@ -11,6 +11,21 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.2",
+    title: "Automatic replays play again",
+    summary: "Replays from the replay PC play by themselves again after a replay played by hand or an OBS reconnect.",
+    sections: [
+      {
+        heading: "Replays",
+        items: [
+          "When OBS shows your live scene, Matchframe counts the program as live again, so automatic replays aren't held back.",
+          "A replay you play by hand goes back to the live scene when it ends.",
+          "The support file shows why replays play or not.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.10.1",
     title: "Series boxes, HUD images and radars",
     summary: "Series score boxes in Vector and Lineup, your own pictures in every Matchframe HUD, and the same radars in every HUD.",

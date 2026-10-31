@@ -138,6 +138,9 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
 - **How fast:** real speed by default. Slow motion at 75 % or 50 % is a setting.
 - **The cut:** the program cuts to the replay scene, plays the end of the clip, and goes back to the live scene when OBS reports the clip has ended.
 - **Never live:** replays never play during a live round, and stop at once if the round goes live. A replay never plays over a program scene you chose yourself.
+- **Only from the live scene:** automatic replays play while the program is live. The status under **Automatic replays** says when it isn't, and **Return live** (top of Replays & Production) puts it back.
+  - **Follows OBS (0.10.2):** when OBS shows your live scene, the program counts as live again. That covers a scene you switched to by hand, and OBS reconnecting on the live scene. Before, the program could stay in "replay playing" or "degraded" while OBS showed the live scene, and automatic replays waited.
+  - **Clips played by hand:** after **Approve** and **Play**, the program goes back to the live scene when the clip ends, like an automatic replay.
 
 ## Playing replays in vMix
 

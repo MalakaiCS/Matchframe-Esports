@@ -282,6 +282,25 @@ export class Engine {
       this.logger.warn("OBS disconnected; program marked DEGRADED");
     });
     this.obs.on("connected", () => this.ruleEngine.resetWatermark());
+    // The program follows OBS back to the live scene: put there by hand (after a replay played by
+    // hand, say), or found there after OBS reconnected. Otherwise it stayed in a replay or DEGRADED,
+    // and automatic replays waited for the live scene that was already on air.
+    let shown: string | null = null;
+    const followLive = (why: string) => {
+      const live = this.program.sceneMap.LIVE;
+      if (!live || !this.obs.state.connected || this.obs.state.programScene !== live) return;
+      const replay = this.program.activeReplay;
+      const t = this.program.followMixerLive(why);
+      if (!t) return;
+      if (replay) this.replays.markPlayed(replay);
+      this.logger.info("program back to live: OBS shows the live scene", { from: t.from, why });
+    };
+    this.obs.on("state", (st: { programScene: string | null }) => {
+      if (st.programScene === shown) return;
+      shown = st.programScene;
+      followLive("OBS changed scene");
+    });
+    this.obs.on("connected", () => followLive("OBS reconnected"));
     this.program = new ProgramArbiter(
       {
         connected: () => this.obs.state.connected,

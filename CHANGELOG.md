@@ -67,6 +67,12 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
   - **Spawn areas from pro demos** (`scripts/set-spawn-regions.py`): the seven pool maps' `t_spawn` / `ct_spawn` regions are where players stood at the end of freeze time (they were 100–500 units off; Ancient's and Anubis's CT spawns missed entirely). Spawn cameras and paths regenerated.
   - **Cache:** map pack from a pro demo's place names (46 areas), free-space grid and 87 cameras / 10 paths from CS2's meshes; in the default event pool with Ancient, Anubis, Dust II, Inferno, Mirage and Nuke.
   - **Team shots tuned on real positions:** finer spots (48 bearings, 6 distances, up to 300 units high), a size score, and a well-sized four over a distant five. Every round of the seven demos framed (272 shots).
+- **Automatic replays follow OBS back to live** (version 0.10.2, the owner: "it says the program isn't on the live scene", clips waiting for approval):
+  - **Following OBS:** the program arbiter follows the mixer to LIVE when OBS shows the mapped live scene (`followMixerLive`): on a scene change, or when OBS reconnects. Never while a replay is being prepared.
+  - **Clips played by hand** return live when OBS reports the clip ended.
+  - **Status:** the automatic replay status names the program mode and the Return live button.
+  - **Support file:** carries the replay status (program mode, automatic replays, link, NDI recording, clips).
+  - **Tests:** the arbiter, and the engine following OBS after a hand-played replay, a reconnect and a manual scene.
 - **Series boxes, HUD images, radars** (version 0.10.1, ADR-058, the owner):
   - **Vector and Lineup series boxes:** per side, Bo1 1, Bo3 2, Bo5 3, Bo7 5 (the owner's choice), else ceil(n/2). Filled per map won.
   - **HUD images** (`hud.art`, `GET`/`PUT /api/v1/hud/art`, HUD Library → HUD images): default CT/T player pictures (5 each), a map logo and picture per map, a dead-player icon. They reach every HUD as `HudState.art` and are used by Vector, Lineup, the Pro CS2 HUD (1.2.0) and the built-in Broadcast HUD. Per computer.

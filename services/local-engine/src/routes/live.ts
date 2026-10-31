@@ -245,6 +245,7 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
       throw new HttpError(502, "replay did not start in OBS; program returned to LIVE", "replay_not_playing", { media });
     }
     e.audit.record(req.principal!.label, "replay.play", it.id, { transition: t, media });
+    void returnLiveAfter(e, mediaInput, it.id, media?.durationMs ?? null, req.principal!.label);
     return { item: e.replays.get(it.id), transition: t, media };
   });
   r.get("/api/v1/replays/playlist", { permission: "state.read" }, (req) => e.replays.playlist(req.query.get("from") ? Number(req.query.get("from")) : undefined, req.query.get("to") ? Number(req.query.get("to")) : undefined));
@@ -445,4 +446,21 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
     return { invalidated: res.invalidated };
   });
   r.post("/api/v1/maps/:map/paths/check", { permission: "metadata.read" }, (req) => checkCameraPath(req.body as never));
+}
+
+/**
+ * A replay played by hand: back to the live scene when OBS reports the clip ended (or stopped), as
+ * an automatic replay does. Left alone if the program changed meanwhile (Return live, another clip).
+ */
+async function returnLiveAfter(e: Engine, input: string, id: string, durationMs: number | null, holder: string): Promise<void> {
+  const deadline = Date.now() + (durationMs ?? 60_000) + 5000;
+  for (;;) {
+    await new Promise((r) => setTimeout(r, 250));
+    if (e.program.mode !== "REPLAY_PLAYING" || e.program.activeReplay !== id) return;
+    const m = await e.obs.mediaStatus(input).catch(() => null);
+    if (m && m.state !== "OBS_MEDIA_STATE_ENDED" && m.state !== "OBS_MEDIA_STATE_STOPPED" && Date.now() < deadline) continue;
+    await e.program.request("LIVE", "operator", holder).catch(() => undefined);
+    e.replays.markPlayed(id);
+    return;
+  }
 }

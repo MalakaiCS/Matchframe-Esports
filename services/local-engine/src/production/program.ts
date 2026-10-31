@@ -83,6 +83,22 @@ export class ProgramArbiter {
     this.mode = "DEGRADED";
   }
 
+  /**
+   * The mixer shows the live scene (put there by hand, or found there after reconnecting): the
+   * program is live, whatever it was. Not while a replay is being prepared (the live scene is still
+   * on program then). Returns the transition, or null when nothing changed.
+   */
+  followMixerLive(holder: string): ProgramTransition | null {
+    if (this.mode === "LIVE" || this.mode === "REPLAY_PREPARED") return null;
+    const t: ProgramTransition = { from: this.mode, to: "LIVE", owner: "operator", holder, at: new Date().toISOString(), confirmed: true, detail: "the mixer shows the live scene" };
+    this.mode = "LIVE";
+    this.owner = { kind: "operator", holder };
+    this.replayItemId = null;
+    this.history.push(t);
+    if (this.history.length > 500) this.history.shift();
+    return t;
+  }
+
   async request(to: ProgramMode, owner: ProgramOwner, holder: string, opts: { replayItemId?: string } = {}): Promise<ProgramTransition> {
     const from = this.mode;
     if (from === to) return { from, to, owner, holder, at: new Date().toISOString(), confirmed: true, detail: "already in mode" };
