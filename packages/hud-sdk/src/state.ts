@@ -55,6 +55,8 @@ export interface HudPlayer {
   assists: number | null;
   /** Only present when validated damage totals exist; otherwise null (never estimated). */
   adr: number | null;
+  /** Damage dealt this round (null when the source doesn't report it). */
+  roundDamage: number | null;
   observed: boolean;
   avatarUrl: string | null;
   countryCode: string | null;
@@ -126,6 +128,11 @@ export interface HudRadar {
   calibrationVerified: boolean;
   /** URL of the outline (schematic) or radar image, served by the overlay server. */
   backgroundUrl: string | null;
+  /**
+   * Matchframe's clean radar for the map (navy floor, light walls, red bomb sites), drawn in the
+   * same image frame as `backgroundUrl`, so the markers' u/v place on either. Null when none.
+   */
+  cleanUrl: string | null;
   players: HudRadarMarker[];
   bomb: { u: number; v: number; state: string } | null;
   utility: { id: string; type: string; u: number; v: number; phase: string; side: HudSide | null; evidence: string; radius: number | null }[];
@@ -180,6 +187,18 @@ export interface HudState {
   standings: HudStandings | null;
   bracket: HudBracket | null;
   settings: Record<string, unknown>;
+  /** Pictures the operator added in the HUD Library (HUD images) for every Matchframe HUD. */
+  art: HudArt;
+}
+
+/** HUD images: pictures a HUD shows when it has none of its own for a player, map or mark. Empty when not set. */
+export interface HudArt {
+  /** For players without their own photo, by the side they play: player n takes picture n (cycling). */
+  defaultPlayers: { ct: string[]; t: string[] };
+  /** Per map name (e.g. "de_mirage"): a logo and a picture for series and veto tiles. */
+  maps: Record<string, { logoUrl: string | null; imageUrl: string | null }>;
+  /** Marks replacing a HUD's own: the dead player's icon. */
+  icons: { dead: string | null };
 }
 
 export interface HudStageTeam {
