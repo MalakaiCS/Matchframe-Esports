@@ -28,7 +28,7 @@ const FAST = 6;
 export const MIN_LEAD_MS = 2000;
 /** The cut to the replay and back, once a break (wall time). */
 export const CUT_MS = 600;
-/** From one replay of a break to the next (the next clip loading), wall time. */
+/** From one replay of a break to the next, wall time (planned as a gap; a fade between them overlaps the two instead). */
 export const SWITCH_MS = 400;
 
 /** What the main PC knows about a clip's kills from the round as a whole. */

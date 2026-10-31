@@ -652,7 +652,8 @@ export class ReplayLink {
     const now = this.e.now();
     const killer = k.killer.steamId;
     const victim = k.victim.steamId;
-    const roundNumber = this.e.session.state()?.roundNumber ?? null;
+    // The round being played, or the one just ended for a kill after it was won (the main PC's on-air kills say the same).
+    const roundNumber = this.e.playRound();
     this.estimator.noteOwnKill(killKey(roundNumber, killer, victim), now);
     // Behind (or rewound), missed kills are planned from the main PC's list instead.
     if (this.status.timing.state === "behind" || this.status.rewind.state === "rewinding" || this.status.rewind.state === "rewound" || this.status.rewind.state === "returning") return;

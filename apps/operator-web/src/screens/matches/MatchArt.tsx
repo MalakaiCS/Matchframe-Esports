@@ -140,7 +140,7 @@ export function MatchArtPanel({ matchId, teams }: { matchId: string; teams: stri
                   ) : null}
                   {obsResult.set.length ? (
                     <span className="muted">
-                      OBS's transition: {obsResult.current ?? "unknown"} · replays: {obsResult.replayTransition || "OBS's current transition"}
+                      OBS's transition: {obsResult.current ?? "unknown"} · into replays: {obsResult.replayIn || "OBS's current transition"} · back to live: {obsResult.replayOut || "OBS's current transition"}
                     </span>
                   ) : null}
                 </div>

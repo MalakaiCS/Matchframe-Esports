@@ -1058,7 +1058,17 @@ export interface AutoReplaySettings {
   ownBigPlays: boolean;
   mixer: "obs" | "vmix";
   vmixUrl: string;
+  /** vMix: to the first replay (and back, unless vmixTransitionOut). */
   vmixTransition: "CutDirect" | "Fade" | "Stinger1" | "Stinger2";
+  /** vMix: back to live after the last replay; null = as vmixTransition. */
+  vmixTransitionOut?: "CutDirect" | "Fade" | "Stinger1" | "Stinger2" | null;
+  /** When the break's replays end: by a time on the next round's clock, or before the next round starts. */
+  cutBack?: "clock" | "before_round";
+  /** The round clock (seconds left) the cut back to live starts by: 110 = 1:50. */
+  cutBackClockSec?: number;
+  /** From one replay to the next: a fade or a cut. */
+  between?: "fade" | "cut";
+  fadeMs?: number;
 }
 
 /** A clip of the break's round, as ranked by the main PC. */
@@ -1068,6 +1078,8 @@ export interface RankedReplay {
   score: number;
   reasons: string[];
   state: "played" | "picked" | "waiting" | "duplicate" | "left";
+  /** Why a clip left never plays by itself, when it isn't only time or slots. */
+  note?: string | null;
 }
 
 /** GET /api/v1/replays/feed: the replay PC's screen over NDI, recorded on the main PC. */
@@ -1106,7 +1118,17 @@ export interface MatchArtObsResult {
   missing: string[];
   noFile: MatchArtKind[];
   current: string | null;
-  replayTransition: string;
+  replayIn: string;
+  replayOut: string;
+}
+
+/** The replay scene's twin in OBS (for fading from one replay to the next). */
+export interface ReplayTwinStatus {
+  scene: string | null;
+  input: string | null;
+  ready: boolean;
+  detail: string;
+  checkedAt: string | null;
 }
 
 export interface AutoReplayResponse {
@@ -1121,6 +1143,8 @@ export interface AutoReplayResponse {
     round?: number | null;
     ranked?: RankedReplay[];
     vmix?: { connected: boolean; version: string | null; error: string | null } | null;
+    twin?: ReplayTwinStatus | null;
+    roundSec?: number;
   };
 }
 export interface ReplayPcResponse {
@@ -1156,9 +1180,12 @@ export interface NetworkInfo {
 }
 
 export interface ObsAutoResponse {
-  settings: { timeouts: boolean; mapEnd: boolean; replayTransition: string };
+  /** Transitions by name; "" = OBS's own; replayOut null = the same as replayIn. */
+  settings: { timeouts: boolean; mapEnd: boolean; replayIn: string; replayOut: string | null; otherScenes: string };
   scenes: { LIVE: string | null; REPLAY: string | null; STUDIO: string | null; BREAK: string | null };
-  transitions: { current: string | null; names: string[] } | null;
+  /** The replay scene and its twin. */
+  replayScenes?: string[];
+  transitions: { current: string | null; names: string[]; kinds?: { name: string; kind: string }[] } | null;
 }
 export interface GraphicsSettings {
   enabled: boolean;

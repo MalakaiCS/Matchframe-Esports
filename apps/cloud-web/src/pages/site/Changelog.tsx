@@ -11,6 +11,23 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.5",
+    title: "Replay fades and transitions",
+    summary: "Replays play on until 1:50 on the round clock, fade into each other, and use the transitions you pick.",
+    sections: [
+      {
+        heading: "Replays",
+        items: [
+          "Replays keep playing into the next round and cut back to live by 1:50 on the round clock (or before the round starts, as before).",
+          "Clips fade into each other in OBS and vMix.",
+          "Pick a transition, stingers included, for replay in, replay out and other scenes.",
+          "A clip from an earlier round no longer plays in the next round's replays.",
+          "Works with OBS Studio Mode; your preview is left as you set it.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.10.4",
     title: "Replays back to back",
     summary: "The replays of a round play one after another in round order, with one cut to the replay scene and one back.",

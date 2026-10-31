@@ -140,7 +140,8 @@ const ACTIONS: DeviceAction[] = [
     params: z.object({ label: z.string().max(80).default("Device bookmark") }),
     run: (e, _req, p: { label: string }) => {
       const st = e.session.state();
-      const item = e.replays.bookmark(p.label, "manual", st?.roundNumber ?? null);
+      const round = e.playRound();
+      const item = e.replays.bookmark(p.label, "manual", round);
       void e.replays.capture(item.id, {
         preRollMs: 8000,
         postRollMs: 2000,
@@ -148,7 +149,7 @@ const ACTIONS: DeviceAction[] = [
         matchTimeMs: st?.time.matchTimeMs ?? null,
         timeUncertaintyMs: st?.time.timeUncertaintyMs ?? null,
         epoch: st?.epoch ?? null,
-        roundNumber: st?.roundNumber ?? null,
+        roundNumber: round,
       });
       return item;
     },

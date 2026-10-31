@@ -168,7 +168,10 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
     return { settings: e.autoReplay.settings(), status: e.autoReplay.getStatus() };
   });
 
-  /** One click: the replay scene and its media source in OBS, mapped for replays. */
+  /**
+   * One click: the replay scene and its media source in OBS, mapped for replays, and its twin (for
+   * fading from one replay of a break to the next; replay/twin.ts).
+   */
   r.post("/api/v1/replays/obs-setup", { permission: "settings.manage" }, async (req) => {
     if (!e.obs.state.connected) throw new HttpError(409, "connect OBS first (Settings → Devices)", "obs_not_connected");
     const scene = "Matchframe Replay";
@@ -178,8 +181,9 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
     e.settings.set("program.scenes", scenes);
     e.program.setScenes(scenes);
     e.settings.set("replay.mediaInput", input);
-    e.audit.record(req.principal!.label, "replay.obs_setup", scene, { ...made, scenes });
-    return { scene, input, created: made.created, scenes };
+    const twin = await e.replayTwin.sync();
+    e.audit.record(req.principal!.label, "replay.obs_setup", scene, { ...made, scenes, twin: twin?.scene ?? null });
+    return { scene, input, created: made.created, scenes, twin: e.replayTwin.getStatus() };
   });
 
   // ---- replay PC: its link to the main PC -------------------------------------------------------
@@ -203,15 +207,17 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
   });
 
   // ---- OBS scene automation ----------------------------------------------------------------------
-  r.get("/api/v1/obs/auto", { permission: "state.read" }, async () => ({
-    settings: e.obsAuto.settings(),
-    scenes: e.program.sceneMap,
-    transitions: e.obs.state.connected ? await e.obs.transitions().catch(() => null) : null,
-  }));
+  // transitions: OBS's own, every transition's name, and their kinds (a Stinger is obs_stinger_transition).
+  const transitionList = async () => {
+    if (!e.obs.state.connected) return null;
+    const t = await e.obs.transitionKinds().catch(() => null);
+    return t ? { current: t.current, names: t.transitions.map((x) => x.name), kinds: t.transitions.map((x) => ({ name: x.name, kind: x.kind })) } : null;
+  };
+  r.get("/api/v1/obs/auto", { permission: "state.read" }, async () => ({ settings: e.obsAuto.settings(), scenes: e.program.sceneMap, replayScenes: e.program.replayScenes, transitions: await transitionList() }));
   r.put("/api/v1/obs/auto", { permission: "program.control", body: ObsAutoPatch }, (req) => {
     const next = e.obsAuto.setSettings(req.body);
     e.audit.record(req.principal!.label, "obs.auto_settings", null, req.body);
-    return { settings: next, scenes: e.program.sceneMap, transitions: null };
+    return { settings: next, scenes: e.program.sceneMap, replayScenes: e.program.replayScenes, transitions: null };
   });
 
   // ---- this computer on the network --------------------------------------------------------------

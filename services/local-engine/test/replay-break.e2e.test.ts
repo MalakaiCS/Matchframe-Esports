@@ -34,12 +34,17 @@ const waitFor = async (fn: () => boolean, ms = 15000) => {
  * the clips per break, and play back to back, in round order (or best first), with one cut to the
  * replay scene and one back to live; a clip with the same kills as a better one doesn't play; the
  * break's replays wait while the replay PC still has kills of the round to send; a clip OBS can't
- * play is skipped; the round going live, or the operator taking the program, stops them.
+ * play is skipped; the next round's clock reaching 1:50 (or, with the old setting, the round going
+ * live), or the operator taking the program, stops them. A clip of a round whose break is over, with
+ * no round, or from before its round went live never plays; a kill after the round was won counts
+ * in that round. The stand-in OBS here has no replay scene twin: the clips play in the replay
+ * scene's one source (replay-fade.e2e.test.ts has the twin and the fades).
  */
 describe("Replay break: the round's best clips, back to back", () => {
   let e: Engine;
   let servers: Awaited<ReturnType<typeof startServers>>;
   let gsiPort: number;
+  let apiPort: number;
   let ts = 1_700_000_000;
   const played: string[] = [];
   /** The status line each time a clip started. */
@@ -65,9 +70,9 @@ describe("Replay break: the round's best clips, back to back", () => {
   const kills = new Map<string, number>();
   const dead = new Set<string>();
 
-  const feed = async (roundPhase: "live" | "over", round: number) => {
+  const feed = async (roundPhase: "live" | "over" | "freezetime", round: number, phaseEndsIn?: number) => {
     const players = roster.map((p) => ({ ...p, kills: kills.get(p.steamId) ?? 0, ...(dead.has(p.steamId) ? { health: 0 } : {}) }));
-    const payload = buildSyntheticGsiPayload({ mapName: "de_dust2", round, players, observed: roster[0]!.steamId, roundPhase, phase: roundPhase, phaseEndsIn: roundPhase === "live" ? 60 : 7, token: e.secrets.gsiToken, timestamp: ts++ });
+    const payload = buildSyntheticGsiPayload({ mapName: "de_dust2", round, players, observed: roster[0]!.steamId, roundPhase, phase: roundPhase, phaseEndsIn: phaseEndsIn ?? (roundPhase === "live" ? 115 : 7), token: e.secrets.gsiToken, timestamp: ts++ });
     expect((await fetch(`http://127.0.0.1:${gsiPort}/gsi`, { method: "POST", body: JSON.stringify(payload) })).status).toBe(200);
     // The automatic replays look at the game every 200 ms.
     await new Promise((r) => setTimeout(r, 300));
@@ -106,6 +111,7 @@ describe("Replay break: the round's best clips, back to back", () => {
     writeFileSync(broken, Buffer.alloc(1024));
     const ports = { gsi: await freePort(), api: await freePort(), overlay: await freePort() };
     gsiPort = ports.gsi;
+    apiPort = ports.api;
     e = new Engine(loadConfig({ dataDir: mkdtempSync(join(tmpdir(), "mf-break-data-")), gsiPort: ports.gsi, apiPort: ports.api, overlayPort: ports.overlay, host: "127.0.0.1", captainUiDir: null, hudRendererDir: null, mapPackDir: null, workersDir: null, pythonPath: null, sampleHudsDirs: [], cloudEnforcement: "off" }));
     await e.init();
     servers = await startServers(e);
@@ -224,8 +230,8 @@ describe("Replay break: the round's best clips, back to back", () => {
     expect(e.autoReplay.getStatus().ranked.map((r) => r.label)).not.toContain("unplayable");
   });
 
-  it("stops the moment the round goes live and cuts to live", async () => {
-    e.autoReplay.setSettings({ order: "round" });
+  it("before the round starts (the old setting): stops the moment the round goes live and cuts to live", async () => {
+    e.autoReplay.setSettings({ order: "round", cutBack: "before_round" });
     clipMs = 4000;
     try {
       const round = await startRound(12);
@@ -244,9 +250,144 @@ describe("Replay break: the round's best clips, back to back", () => {
       expect(played).toHaveLength(1);
       // The other two stay for playing by hand.
       expect(e.replays.list().filter((i) => i.roundNumber === round).map((i) => i.state)).toEqual(["played", "prepared", "prepared"]);
+      expect(e.autoReplay.getStatus().detail).toBe("Waiting for the round to end.");
+    } finally {
+      clipMs = 300;
+      e.autoReplay.setSettings({ cutBack: "clock" });
+    }
+  });
+
+  it("by the round clock (the default): keeps playing the break's clips into the next round, and cuts back to live when its clock reads 1:50", async () => {
+    e.autoReplay.setSettings({ order: "round", perBreak: 3, cutBack: "clock", cutBackClockSec: 110 });
+    clipMs = 1500;
+    try {
+      const round = await startRound(17);
+      add(round, "one", { killer: { steamId: "k1", name: "haze" } }, "replay_pc", { playMs: 1500 });
+      add(round, "two", { killer: { steamId: "k2", name: "kite" } }, "replay_pc", { playMs: 1500 });
+      add(round, "three", { killer: { steamId: "k3", name: "saber" } }, "replay_pc", { playMs: 1500 });
+      fresh();
+      const history = e.program.history.length;
+      await feed("over", 17);
+      await waitFor(() => played.length === 1);
+      // The next round goes live during the first clip: 1:55 on its clock.
+      const next = await startRound(18);
+      expect(e.program.mode).toBe("REPLAY_PLAYING");
+      // A clip of the new round never joins the break.
+      add(next, "new round", { kind: "missed", kills: 3, killer: { steamId: "k9", name: "mik" } });
+      await waitFor(() => played.length === 2);
+      expect(scenes).toEqual(["Replay"]);
+      expect(e.autoReplay.getStatus().detail).toBe("Replay 2 of 3: two");
+      expect(e.autoReplay.getStatus().round).toBe(round);
+      // The clock reads 1:51.2: back to live 1.2 s later (less a quarter second), during the second clip.
+      await feed("live", 18, 111.2);
+      expect(scenes).toEqual(["Replay"]);
+      const at = Date.now();
+      await waitFor(() => scenes.length === 2);
+      const tookMs = Date.now() - at;
+      expect(tookMs).toBeGreaterThan(400);
+      expect(tookMs).toBeLessThan(1500);
+      expect(scenes).toEqual(["Replay", "Game"]);
+      expect(played).toEqual(["one", "two"]);
+      expect(e.program.history.slice(history).map((t) => t.to)).toEqual(["REPLAY_PREPARED", "REPLAY_PLAYING", "LIVE"]);
+      await new Promise((r) => setTimeout(r, 500));
+      expect(played).toEqual(["one", "two"]);
+      // Its break is over: the third clip never plays automatically (it stays for playing by hand), nor the new round's yet.
+      expect(e.replays.list().filter((i) => i.roundNumber === round).map((i) => [i.label, i.state])).toEqual([
+        ["one", "played"],
+        ["two", "played"],
+        ["three", "prepared"],
+      ]);
+      fresh();
+      await feed("over", 18);
+      await waitFor(breakDone);
+      expect(played).toEqual(["new round"]);
     } finally {
       clipMs = 300;
     }
+  });
+
+  it("by the round clock: stops when the bomb is planted, or the next round is over, before 1:50", async () => {
+    clipMs = 2500;
+    try {
+      for (const [n, stop] of [
+        [19, "bomb"],
+        [21, "over"],
+      ] as const) {
+        const round = await startRound(n);
+        add(round, "one", { killer: { steamId: "k1", name: "haze" } }, "replay_pc", { playMs: 2500 });
+        add(round, "two", { killer: { steamId: "k2", name: "kite" } }, "replay_pc", { playMs: 2500 });
+        fresh();
+        await feed("over", n);
+        await waitFor(() => played.length === 1);
+        await startRound(n + 1);
+        await new Promise((r) => setTimeout(r, 300));
+        expect(scenes).toEqual(["Replay"]);
+        const payload = buildSyntheticGsiPayload({ mapName: "de_dust2", round: n + 1, players: roster, observed: roster[0]!.steamId, roundPhase: stop === "bomb" ? "live" : "over", phase: stop, phaseEndsIn: stop === "bomb" ? 40 : 7, roundBomb: stop === "bomb" ? "planted" : undefined, token: e.secrets.gsiToken, timestamp: ts++ });
+        await fetch(`http://127.0.0.1:${gsiPort}/gsi`, { method: "POST", body: JSON.stringify(payload) });
+        await waitFor(() => scenes.length === 2, 1000);
+        expect(scenes).toEqual(["Replay", "Game"]);
+        expect(played).toEqual(["one"]);
+        await startRound(n + 2);
+      }
+    } finally {
+      clipMs = 300;
+    }
+  });
+
+  it("never plays a clip of an earlier round, a clip with no round, or one made before its round went live (a restart or a backup), and says why in the list", async () => {
+    // (A moment before a break's replays, so the restart's freeze time has none.)
+    e.autoReplay.setSettings({ order: "best", perBreak: 4, startDelayMs: 1500 });
+    const earlier = await startRound(30);
+    // Round 31 goes live, is restarted (freeze time again) and goes live again: a clip made before is from the first try.
+    let round = await startRound(31);
+    const stale = add(round, "first try", { kind: "missed", kills: 3, killer: { steamId: "k1", name: "haze" } });
+    await new Promise((r) => setTimeout(r, 1200));
+    await feed("freezetime", 31, 15);
+    round = await startRound(31);
+    e.autoReplay.setSettings({ startDelayMs: 0 });
+    const old = add(earlier, "earlier round", { kind: "missed", kills: 4, killer: { steamId: "k2", name: "kite" } });
+    const none = e.replays.addExternal("no round", "missed", null, clip(round, file), { playMs: 4000, leadMs: 2500, play: { kind: "missed", killer: { steamId: "k3", name: "saber" }, victims: ["x"], kills: 5, weapon: "ak47", headshot: false } });
+    add(round, "this round", { killer: { steamId: "k4", name: "nova" } });
+    fresh();
+    await feed("over", 31);
+    await waitFor(breakDone);
+    expect(played).toEqual(["this round"]);
+    expect([stale.state, old.state, none.state]).toEqual(["prepared", "prepared", "prepared"]);
+    const ranked = e.autoReplay.getStatus().ranked;
+    expect(ranked.map((r) => [r.label, r.state, r.note])).toEqual([
+      ["first try", "left", "from before the round started (a restart or a backup)"],
+      ["this round", "played", null],
+    ]);
+    // A clip of round 31 that comes after its break: never, not even in the next round's break.
+    const late = add(round, "late", { kind: "missed", kills: 2, killer: { steamId: "k5", name: "flux" } });
+    expect(e.autoReplay.getStatus().ranked.find((r) => r.label === "late")).toMatchObject({ state: "left", note: "came in after the break's replays were chosen" });
+    const next = await startRound(32);
+    add(next, "next round", { killer: { steamId: "k6", name: "zeal" } });
+    fresh();
+    await feed("over", 32);
+    await waitFor(breakDone);
+    expect(played).toEqual(["next round"]);
+    expect(late.state).toBe("prepared");
+  });
+
+  it("counts a kill after the round was won (CS2's round number has moved on) in the round that ended", async () => {
+    const round = await startRound(40);
+    await kill(40, T2!, CT6!);
+    // The round is won; the game data says round 42 (map.round 41): T3 hunts down a saving CT.
+    kills.set(T3!.steamId, (kills.get(T3!.steamId) ?? 0) + 1);
+    dead.add(CT7!.steamId);
+    await feed("over", 41);
+    expect(e.session.state()!.roundNumber).toBe(round + 1);
+    expect(e.playRound()).toBe(round);
+    expect(e.onAir.recentKills().slice(-2).map((k) => [k.killer.name, k.round])).toEqual([
+      [T2!.name, round],
+      [T3!.name, round],
+    ]);
+    // A bookmark made now is the round's too.
+    const r = await fetch(`http://127.0.0.1:${apiPort}/api/v1/replays/bookmarks`, { method: "POST", headers: { authorization: `Bearer ${e.secrets.operatorToken}`, "content-type": "application/json" }, body: JSON.stringify({ label: "exit frag", capture: false }) });
+    expect(((await r.json()) as { roundNumber: number }).roundNumber).toBe(round);
+    await startRound(41);
+    expect(e.playRound()).toBe(round + 1);
   });
 
   it("leaves the program alone when the operator takes it during the break's replays", async () => {
@@ -270,11 +411,13 @@ describe("Replay break: the round's best clips, back to back", () => {
     }
   });
 
-  it("plays them through vMix: each clip an input from the part to show, the next one added while one plays, one transition in and one back", async () => {
+  it("plays them through vMix: each clip an input from the part to show, the next one added while one plays and faded to before it ends (or cut to), Replay in and Replay out", async () => {
     // A stand-in vMix Web Controller: inputs play in real time.
     const inputs: { key: string; number: number; type: string; title: string; state: string; position: number; duration: number; started: number | null }[] = [{ key: "live-key", number: 1, type: "Capture", title: "CS2", state: "Running", position: 0, duration: 0, started: null }];
     let active = 1;
     const calls: string[] = [];
+    /** Where the input on air was when vMix was asked to fade or cut to the next one. */
+    const at: number[] = [];
     const server = createHttpServer((req, res) => {
       const url = new URL(req.url ?? "/", "http://vmix");
       const now = Date.now();
@@ -287,7 +430,9 @@ describe("Replay break: the round's best clips, back to back", () => {
       if (fn) {
         const input = inputs.find((i) => i.key === url.searchParams.get("Input"));
         const value = url.searchParams.get("Value") ?? "";
-        calls.push(`${fn}${input ? ` ${input.key === "live-key" ? "live" : input.key}` : ""}${fn === "AddInput" ? ` ${value.split("|")[0]}` : fn === "SetPosition" ? ` ${value}` : ""}`);
+        const duration = url.searchParams.get("Duration");
+        calls.push(`${fn}${input ? ` ${input.key === "live-key" ? "live" : input.key}` : ""}${fn === "AddInput" ? ` ${value.split("|")[0]}` : fn === "SetPosition" ? ` ${value}` : ""}${duration ? ` ${duration}` : ""}`);
+        if ((fn === "CutDirect" || fn === "Fade") && input && input.key !== "live-key" && active !== 1) at.push(Math.round(inputs.find((i) => i.number === active)!.position));
         if (fn === "AddInput") inputs.push({ key: `k${inputs.length + 1}`, number: inputs.length + 1, type: "Video", title: value.split(/[\\/]/).pop()!, state: "Paused", position: 0, duration: 9000, started: null });
         if (fn === "SetPosition" && input) input.position = Number(value);
         if (fn === "Play" && input) Object.assign(input, { state: "Running", started: now });
@@ -301,7 +446,7 @@ describe("Replay break: the round's best clips, back to back", () => {
     });
     await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
     try {
-      e.autoReplay.setSettings({ mixer: "vmix", vmixUrl: `http://127.0.0.1:${(server.address() as { port: number }).port}`, perBreak: 2, vmixTransition: "Fade" });
+      e.autoReplay.setSettings({ mixer: "vmix", vmixUrl: `http://127.0.0.1:${(server.address() as { port: number }).port}`, perBreak: 2, vmixTransition: "Fade", vmixTransitionOut: "CutDirect", between: "fade", fadeMs: 500 });
       await e.autoReplay.checkVmix();
       expect(e.autoReplay.getStatus().vmix).toEqual({ connected: true, version: "27.0.0.49", error: null });
       const round = await startRound(15);
@@ -309,17 +454,33 @@ describe("Replay break: the round's best clips, back to back", () => {
       add(round, "vmix single", { killer: { steamId: "k9", name: "mik" } }, "replay_pc", { playMs: 2000 });
       fresh();
       await feed("over", 15);
-      await waitFor(() => calls.includes("Fade live"));
+      await waitFor(() => calls.includes("CutDirect live"));
       await waitFor(() => calls.filter((c) => c.startsWith("RemoveInput")).length === 2);
-      // Each clip is 9 s long in vMix and its last 2 s are the play: it starts at 7 s.
-      expect(calls).toEqual(["AddInput Video", "SetPosition k2 7000", "Play k2", "Fade k2", "AddInput Video", "SetPosition k3 7000", "Play k3", "CutDirect k3", "Fade live", "RemoveInput k2", "RemoveInput k3"]);
+      // Each clip is 9 s long in vMix and its last 2 s are the play: it starts at 7 s. Fade in, a 0.5 s fade to the next, a cut back.
+      expect(calls).toEqual(["AddInput Video", "SetPosition k2 7000", "Play k2", "Fade k2", "AddInput Video", "SetPosition k3 7000", "Play k3", "Fade k3 500", "CutDirect live", "RemoveInput k2", "RemoveInput k3"]);
+      // The fade to the next started about 0.5 s before the end of the one on air.
+      expect(at[0]).toBeGreaterThanOrEqual(9000 - 500 - 200);
+      expect(at[0]).toBeLessThanOrEqual(9000 - 500 + 50);
       expect(played).toEqual(["vmix 2K", "vmix single"]);
       expect(details).toEqual(["Replay 1 of 2: vmix 2K", "Replay 2 of 2: vmix single"]);
       expect(active).toBe(1);
       // OBS's program wasn't touched.
       expect(scenes).toEqual([]);
+
+      // A cut between replays, as the one on air ends; back to live as it came (Replay out the same as Replay in).
+      e.autoReplay.setSettings({ between: "cut", vmixTransitionOut: null });
+      calls.length = 0;
+      at.length = 0;
+      const second = await startRound(16);
+      add(second, "vmix ace", { kind: "missed", kills: 5, victims: ["a", "b", "c", "d", "e"], killer: { steamId: "k8", name: "ozzy" } }, "replay_pc", { playMs: 1500 });
+      add(second, "vmix knife", { weapon: "knife", killer: { steamId: "k9", name: "mik" } }, "replay_pc", { playMs: 1500 });
+      fresh();
+      await feed("over", 16);
+      await waitFor(() => calls.includes("Fade live"));
+      expect(calls.filter((c) => !c.startsWith("RemoveInput"))).toEqual(["AddInput Video", "SetPosition k2 7500", "Play k2", "Fade k2", "AddInput Video", "SetPosition k3 7500", "Play k3", "CutDirect k3", "Fade live"]);
+      expect(at[0]).toBeGreaterThanOrEqual(9000 - 150);
     } finally {
-      e.autoReplay.setSettings({ mixer: "obs", perBreak: 3, vmixTransition: "CutDirect" });
+      e.autoReplay.setSettings({ mixer: "obs", perBreak: 3, vmixTransition: "CutDirect", vmixTransitionOut: null, between: "fade" });
       server.close();
     }
   }, 30000);

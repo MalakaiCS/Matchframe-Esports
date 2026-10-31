@@ -4,7 +4,7 @@ Two computers, each with the Matchframe program and CS2:
 
 - **PC 1, the main PC:** the on-air observer. Its OBS (or vMix) makes the broadcast.
 - **PC 2, the replay PC:** its own CS2 watches the same match a few seconds later. It knows each kill before it happens there, gets its camera on the killer and films it. Every kill it has time for, by default.
-- **Each round:** PC 1 ranks that round's clips, best to worst. In the break after the round it plays the best ones that fit (up to 4) back to back, from the start of the round to its end, and leaves the rest.
+- **Each round:** PC 1 ranks that round's clips, best to worst. In the break after the round it plays the best ones that fit (up to 4) back to back, from the start of the round to its end, fading from one to the next, and leaves the rest. The replays can run on into the next round until its clock reads 1:50.
 
 PC 2's picture reaches PC 1 in one of two ways:
 
@@ -78,8 +78,9 @@ Three ways to get there:
 2. Tick **Let other computers on the network connect**. The engine restarts listening on the network; access still needs a code. If Windows asks, allow Matchframe on private networks.
 3. Note one of **this computer's addresses** (for example `192.168.1.20:37211`).
 4. Press **Make a replay PC code** and copy the code. It is shown once; remove it in Settings → Access to lock the replay PC out.
-5. Connect OBS (Settings → Devices) and press **Set up OBS replay scene** in Automatic replays. This adds a *Matchframe Replay* scene with a media source and uses it. Map your live scene in **OBS scenes** if it isn't yet.
-6. Tick **Play replays by themselves** in Automatic replays.
+5. Connect OBS (Settings → Devices) and press **Set up OBS replay scene** in Automatic replays. This adds a *Matchframe Replay* scene with a media source and uses it, and a second one beside it, *Matchframe Replay B*, for fading between replays (below). Map your live scene in **OBS scenes** if it isn't yet. Your own replay scene works too: map it as the replay scene in **OBS scenes**, with its media source.
+6. Optionally, pick a Stinger for replays: **OBS scenes → Transitions → Replay in** (and **Replay out**). The Stinger has to be made once in OBS first (Scene Transitions → + → Stinger).
+7. Tick **Play replays by themselves** in Automatic replays.
 
 ## Set up PC 2 (replay PC)
 
@@ -117,8 +118,20 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
 **PC 2 ahead of PC 1:** nothing can be caught early, so PC 2 works as at the same time, and the panel says to swap the delays.
 
 **On PC 1:**
-- **When:** replays play from 3.5 s after the round ends until 1.5 s before freeze time ends.
-- **Waiting for PC 2:** PC 2 plays the round some seconds later, and the round's last kills are often its best. So the break's replays wait while PC 2 still has kills of the round to film or send. They wait up to 8 s, and never when less than 16 s of the break would be left.
+- **When:** replays play from 3.5 s after the round ends until the next round's clock reads **1:50** (**Back to live**, a setting). CS2's round starts at 1:55, so the replays can run about 5 s into the next round, while the teams leave spawn.
+  - **The time:** in the next round, its own clock (the game's countdown): the cut back to live starts by 1:50 (a quarter second before, as the engine looks every 25–100 ms). Before it is live: freeze time's end (as the game says; until freeze time starts, the round's end plus 15 s) plus the round time less 1:50.
+  - **The round time** is what the clock shows when a round goes live (1:55 is assumed until a round has gone live); a server with 1:40 rounds has its 1:50 before the round starts, and the replays end then.
+  - **Earlier:** the bomb planted, or the next round already over, ends the replays at once.
+  - **Never started in a live round:** the cut to the replays only happens before the next round is live; once it is, they only run on.
+  - **Back to live → Before the round starts** is the behaviour before 0.10.5: until 1.5 s before freeze time ends, and stopped at once when the round goes live.
+  - **Other times:** 1:52, 1:45, 1:40, 1:35 or 1:30 on the round clock.
+- **Waiting for PC 2:** PC 2 plays the round some seconds later, and the round's last kills are often its best. So the break's replays wait while PC 2 still has kills of the round to film or send. They wait up to 8 s, and never when less than 16 s of the break would be left. With replays until 1:50 a break has about 6 s more, so with 15 s of freeze time the wait is no longer cut short (before, only about 1 s of it was left): PC 2's last clip of the round reaches PC 1 about 10 s after the round ends (7 s behind, 2 s after the kill, the save), inside the 11.5 s the break waits.
+- **Which round a clip is of:** the round being played, or, once it is over, the round that just ended. CS2 counts a round as played when it ends, so its round number moves on then: before 0.10.5 a kill after the round was won (an exit frag, a saving player hunted down) was put in the next round, and played first in its break. Now PC 1's game data says which round was last live, for its own kills, the kills it tells PC 2 about (PC 2 files its clips under them), bookmarks, and PC 2's own kills.
+- **Never played automatically** (whatever a clip says):
+  - a clip of a round whose break is over (its replays done, or the next round's 1:50 reached), or of an earlier round: a clip that comes late waits in the replay list for playing by hand;
+  - a clip with no round;
+  - a clip made before its round went live: a round played again after a restart or a backup has the same number.
+  - The list under Automatic replays shows a clip of the round that came before it started, or after the break's replays were chosen, as *Not played*, with why.
 - **Ranking:** every clip of the round gets a score, shown with its reasons under Automatic replays:
 
   | What it shows | Points |
@@ -134,27 +147,46 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
   | A multi-kill within 2.5 s | 6 |
 
   Two clips of the same kills (for example PC 1's own 3K and PC 2's) count once; the better one stays.
-- **How many:** when the break's replays start, PC 1 chooses the best clips that fit together in the time left, up to **Replays per break** (default 4). The rest are left. A clip that doesn't fit has its lead-up before the kill shortened, down to 2 s, when that makes it fit. The time counted is each clip at its speed, one cut to the replay and back (0.6 s) and 0.4 s from one clip to the next. Before each clip the time left is checked again (freeze time may turn out shorter): a clip that no longer fits is shortened again, or skipped.
+- **How many:** when the break's replays start, PC 1 chooses the best clips that fit together in the time left, up to **Replays per break** (default 4). The rest are left. A clip that doesn't fit has its lead-up before the kill shortened, down to 2 s, when that makes it fit. The time counted is up to 1:50 on the next round's clock, each clip at its speed, one cut to the replay and back (0.6 s) and 0.4 s from one clip to the next (a fade between them overlaps them instead, so that is spare). Before each clip the time left is checked again (freeze time may turn out shorter): a clip that no longer fits is shortened again, or skipped. Clips of the next round never join a break that runs on into it.
 - **Order:** the chosen clips play in **round order** by default, from the start of the round to its end. A clip's place is the moment of its first kill as PC 1 saw it in its own game data, the same clock for PC 2's clips and PC 1's own. A clip whose kills PC 1 didn't see (a clutch) goes by when it arrived, less its part after the lead-up. **Order → Best first** plays the best one first instead.
 - **How fast:** real speed by default. Slow motion at 75 % or 50 % is a setting.
-- **The cut:** one cut to the replay scene for the whole break, the clips back to back, and one cut back to the live scene after the last. The status reads *Replay 2 of 3: …* meanwhile.
-  - **The first clip** is loaded into the replay scene's media source before the cut and skipped to its part, so the cut opens on it.
-  - **From one clip to the next,** the next is loaded into the same media source as soon as OBS reports the one before has ended. On air that shows one black frame (OBS clears the source when its file changes) and the first frame of the next clip for about 0.1 s, until it has skipped to its part: about 0.15 s in all, measured with OBS 30.
+- **Transitions:** one transition to the replays for the whole break (**Replay in**), the clips one after another, fading into each other (**Between replays**), and one transition back to the live scene after the last (**Replay out**). The status reads *Replay 2 of 3: …* meanwhile.
+  - **Replay in / Replay out** (OBS scenes → Transitions): any of OBS's transitions, such as a Stinger, or OBS's current one. Replay out is the same as Replay in unless chosen. They are used whoever changes the program: automatic replays, a clip played by hand, **Return live**.
+  - **Other scenes:** the transition to and from the break and studio scenes, by the OBS automation or your own program buttons.
+  - **OBS's own transition** (and its duration) is put back once OBS says the transition has ended: a Stinger's whole video, not a fixed time.
+  - **A Stinger** has to be made once in OBS first (Scene Transitions → + → Stinger, with its video); then it can be picked here. With a Stinger in, the first clip plays from the Stinger's cut point (its transition point), when the replay scene shows.
+  - **Match graphics:** putting a match's stingers in OBS makes *Matchframe Replay Stinger* Replay in and out where none is chosen.
+- **Between replays** (Automatic replays): **a fade** of 0.5 s by default (0.3, 0.75 or 1 s), or **a cut**.
+  - **Two replay scenes:** OBS can't fade a media source into itself, so Matchframe keeps a copy of your replay scene, **"<your replay scene> B"**, with the same sources (shared, as OBS's *Add Existing*: one score bug shows in both), the same positions, sizes, crops, visibility, blend modes and order, and a media source of its own, **"<your media source> B"**, with the same settings, filters and audio. It is built, or brought up to date with your replay scene, off air at the start of each break and by **Set up OBS replay scene**. Leave it to Matchframe: changes go in your own replay scene.
+  - **The clips alternate between the two scenes.** The first is loaded in your replay scene before the transition, held (paused) at its part, and plays as the replay scene comes on. While a clip plays, the next waits in the other scene, loaded and held at its part. One fade length before the clip on air ends, the next plays and the program fades over to its scene with OBS's Fade (found by its kind, whatever its name in your language), so the end of one blends into the start of the next. With **Cut**, the program cuts over as the clip on air ends: no black frame either, as the next is ready.
+  - **The media sources:** both play while hidden, keep their place when shown and hold their last frame, so Matchframe turns off *Restart playback when source becomes active*, *Close file when inactive* and *Show nothing when playback ends* on your replay media source (OBS's defaults for a new Media Source are the other way round). If one is turned back on, the clip is still skipped to its part once shown, but the fade may start on the clip's first frames.
+  - **Measured** (OBS 30.0.2 on Linux, recordings read frame by frame): your scene with a backdrop, the media source scaled and moved, and a score bug on top. Between two 720p30 clips, 14 frames (0.47 s) of the two blended, the mix moving from one to the other frame by frame; no black frame, no frame of a clip's start; the backdrop and the score bug through every fade, in both scenes; each clip from its part.
+  - **No second scene** (your media source is in a group, or isn't a Media Source): the clips play in your replay scene's one source, as before 0.10.5: the next is loaded as the one before ends, which shows one black frame and about 0.1 s of the next clip's first frame. The panel says why.
   - **Keyframes:** OBS skips to the keyframe before a clip's part, not to the exact frame, so a clip can start up to one keyframe interval early (with OBS's default of 250 frames, about 4 s at 60 fps; 1 or 2 s keyframes are better). That is more lead-up, not a gap.
-  - **Replay scenes set up earlier** keep working: the replay scene still has one media source.
-- **Stops:** the break's replays never play during a live round. They stop at once, back to the live scene, if the round goes live or automatic replays are turned off. If you (or anything else) change the program meanwhile, it is left as you put it and no further clip plays. A clip that doesn't play is skipped and the next one plays; if none plays, the program goes back to the live scene.
+- **Stops:** the break's replays stop, back to the live scene with Replay out, when the next round's clock reaches 1:50 (or, with **Before the round starts**, when the round goes live), the bomb is planted, or automatic replays are turned off. If you (or anything else) change the program meanwhile, it is left as you put it and no further clip plays: in Matchframe, or in OBS (a scene clicked, the Transition button in Studio Mode, even to one of the two replay scenes). A clip that doesn't play is skipped and the next one plays; if none plays, the program goes back to the live scene.
 - **Only from the live scene:** automatic replays play while the program is live. The status under **Automatic replays** says when it isn't, and **Return live** (top of Replays & Production) puts it back.
   - **Follows OBS (0.10.2):** when OBS shows your live scene, the program counts as live again. That covers a scene you switched to by hand, and OBS reconnecting on the live scene. Before, the program could stay in "replay playing" or "degraded" while OBS showed the live scene, and automatic replays waited.
   - **Clips played by hand:** after **Approve** and **Play**, the program goes back to the live scene when the clip ends, like an automatic replay.
+  - **The second replay scene** counts as the replay scene: a break that ends on it goes back to live from it, and OBS showing it never makes the program "manual".
+
+## OBS Studio Mode
+
+Automatic replays work with Studio Mode on, and leave your preview alone:
+- **The program** changes with obs-websocket's *SetCurrentProgramScene*, which in Studio Mode transitions the program (with the chosen transition) without taking the preview.
+- **Swap Scenes** (on by default) then puts the scene the program left in preview, at the end of each transition. Matchframe puts your preview back a moment later (about 0.15 s; you may see it flicker), unless you changed it meanwhile.
+- **Duplicate Scene** (on by default): the program shows a private copy of the replay scene under the same name. Its media source is the same source, so loading, holding and skipping clips works. **Duplicate Sources** doesn't change that: OBS never copies a Media Source (checked with OBS 30.0.2: the clips and fades were on program with it on).
+- **Your Transition button** during a break counts as taking the program, even with a replay scene in preview: no further clip plays and the program stays where you put it. So does any program change made in OBS.
+- **The second replay scene** isn't changed while it, or your replay scene, is in preview: the break then uses it as it is (or, before it exists, your replay scene's one source).
+- **Measured** with OBS 30.0.2 (Studio Mode, Swap Scenes and Duplicate Scene on): three clips on program with a Stinger in and out and two fades; the preview back on the operator's scene after each transition; the Transition button pressed during the first clip (with the twin in preview) seen within 0.2 s, and the break left alone.
 
 ## Playing replays in vMix
 
 **Play replays in → vMix** (Automatic replays), with vMix on PC 1 and its Web Controller on (vMix → Settings → Web Controller; the address is `http://127.0.0.1:8088` by default). Press **Test vMix**.
 
 For each break, through vMix's API:
-1. The first clip is added as a video input (`AddInput`), set at the part to show (`SetPosition`, `SetRate` for slow motion) and started (`Play`). vMix transitions to it with the chosen transition: Cut, Fade, Stinger 1 or Stinger 2.
-2. While a clip is on air, the next one is added and set up the same way. When the clip on air ends, the next plays and vMix cuts to it (`CutDirect`): it is loaded already, so there is no gap.
-3. After the last clip (or when the round goes live), vMix goes back to the input that was on air before the break's replays, with the chosen transition.
+1. The first clip is added as a video input (`AddInput`), set at the part to show (`SetPosition`, `SetRate` for slow motion) and started (`Play`). vMix transitions to it with **Replay in**: Cut, Fade, Stinger 1 or Stinger 2.
+2. While a clip is on air, the next one is added and set up the same way. One fade length before the clip on air ends, the next plays and vMix fades to it (`Fade` with the fade's `Duration`); with **Between replays → Cut**, vMix cuts to it (`CutDirect`) as the one on air ends. It is loaded already, so there is no gap.
+3. After the last clip (or when the next round's clock reaches 1:50), vMix goes back to the input that was on air before the break's replays, with **Replay out** (the same as Replay in unless chosen).
 4. The replay inputs are removed.
 
 If someone puts another input on air during the replays, it is left there and no further replay plays.
@@ -165,18 +197,22 @@ If someone puts another input on air during the replays, it is left there and no
 |---|---|---|
 | Automatic replays (PC 1) | Replays per break (the best of the round that fit) | 4 |
 | | Order (round order or best first) | Round order |
-| | Play replays in | OBS (or vMix: address, transition) |
+| | Back to live (by a time on the next round's clock, or before the round starts) | By 1:50 |
+| | Between replays (a fade and its length, or a cut) | Fade, 0.5 s |
+| | Play replays in | OBS (or vMix: address, Replay in, Replay out) |
 | | Speed | Real time |
 | | Other angles | On |
 | | Replay big plays shown live (3K+, won clutches) | On |
-| OBS scenes (PC 1) | Replay transition (e.g. a Stinger) | OBS's current one |
+| OBS scenes → Transitions (PC 1) | Replay in (e.g. a Stinger) | OBS's current one |
+| | Replay out | The same as Replay in |
+| | Other scenes (to and from the break and studio scenes) | OBS's current one |
 | Replay feed (PC 1) | Record the replay PC's screen; its NDI source; encoder | Off; none; the best this computer has |
 | Replay PC (PC 2) | Kills to film | Every kill |
 | | On the same CSTV as the main PC: go back and stay behind, go back for each missed kill, or don't | Go back and stay behind |
 | | How far behind | 7 s |
 
 **API:**
-- **PC 1:** `GET`/`PUT /api/v1/replays/auto` (`perBreak`, `order` (`round`, `best`), `mixer`, `vmixUrl`, `vmixTransition`; status `round`, `ranked`, `vmix`), `POST /api/v1/replays/vmix/test`, `POST /api/v1/replays/obs-setup`, `GET`/`PUT /api/v1/replays/feed`, `POST /api/v1/replays/feed/sources`, `POST /api/v1/replays/feed/ffmpeg`, `GET /api/v1/network`.
+- **PC 1:** `GET`/`PUT /api/v1/replays/auto` (`perBreak`, `order` (`round`, `best`), `cutBack` (`clock`, `before_round`), `cutBackClockSec` (110 = 1:50), `between` (`fade`, `cut`), `fadeMs`, `mixer`, `vmixUrl`, `vmixTransition`, `vmixTransitionOut` (null: as `vmixTransition`); status `round`, `ranked` (with `note`), `vmix`, `twin`, `roundSec`), `GET`/`PUT /api/v1/obs/auto` (`replayIn`, `replayOut` (null: as `replayIn`), `otherScenes`; "" is OBS's current transition; it took `replayTransition` before 0.10.5, kept as `replayIn`), `POST /api/v1/replays/vmix/test`, `POST /api/v1/replays/obs-setup` (with `twin`), `GET`/`PUT /api/v1/replays/feed`, `POST /api/v1/replays/feed/sources`, `POST /api/v1/replays/feed/ffmpeg`, `GET /api/v1/network`.
 - **PC 2:** `GET`/`PUT /api/v1/replay-pc` (settings `preRollMs`, `postRollMs`, `sameCstv` (`stay_behind`, `each_kill`, `off`), `behindMs`; status `timing`, `rewind`, `filming`, `skipped`, `lastSkip`).
 - **The link itself:** `GET /api/v1/replay-link/on-air?pending=<rounds>`, `POST /api/v1/replays/incoming` (a clip file) and `POST /api/v1/replays/mark` (a moment, with the replay feed) on PC 1, with the replay code (a `replay` role token). On-air answers carry `clock` (PC 1's round clock), `kills` (the last 30 s, each with `shown`: `killer`, `victim` or `none`) and `feed.recording`.
 
@@ -209,6 +245,11 @@ If someone puts another input on air during the replays, it is left there and no
   - the break's replays waiting for the replay PC's last kills;
   - two clips through a stand-in vMix: AddInput, SetPosition, Play and Fade to the first, the second added while it plays, CutDirect to it, Fade back, both inputs removed.
 - **The break against a real OBS** (OBS 30.0.2 on Linux under Xvfb, recorded and read frame by frame): three clips, one cut in and one out; the first clip opens on its part; one black frame and about 0.1 s of the next clip's first frame between two clips; the same with a media source that restarts when shown. The real-OBS integration tests above pass too.
+- **The break's end, a clip's round, fading and transitions (0.10.5):**
+  - **The end** (`replay-rank.test.ts`): by 1:50 from the round over, freeze time, a timeout and the live clock, without a clock, the bomb, a defuse, the round over; another time; the round time learned; the old setting; four 6 s clips planned by 1:50 where three fitted before.
+  - **The break** (`replay-break.e2e.test.ts`): playing on into the next round and cut back 1.2 s after its clock read 1:51.2; a new round's clip not joining; the bomb or the round over stopping it; the old setting; an earlier round's clip, a clip with no round, one from before a restart and a late one never played, with notes; a kill after the round was won and a bookmark under the round that ended; vMix fading 0.5 s before the end, cutting back with Replay out, and cutting between.
+  - **The twin and the transitions** (`replay-fade.e2e.test.ts` with a stand-in OBS at the obs-websocket level, `obs-auto.test.ts`, `domain.test.ts`, `program-follows-obs.test.ts`): the twin built, kept the same (moved, added, hidden items, a filter) and untouched when nothing changed; a break alternating between the two scenes, each fade 0.4 s before the end with the next clip at its part; a Stinger in, OBS's own out; cuts; the operator's scene left alone; the break and studio scenes with Other scenes, by the automation and the buttons; Replay out after a clip played by hand; OBS's own transition put back after each change (not over one chosen in OBS meanwhile); Studio Mode; no twin.
+  - **Against a real OBS 30.0.2** (recordings read frame by frame): see Measured above and under Studio Mode; also 1080p60 clips with 2 s keyframes and a filter on the media source (each clip from the keyframe before its part, as before), and Duplicate Sources on.
 - **Every kill** (`replay-pc-timing.e2e.test.ts`): a kill the main camera showed is filmed from behind and sent as `shown`, with its lead-up; PC 1 knows the round is pending until it arrives.
 - **The replay feed** (`replay-feed.test.ts`, `replay-pc-timing.e2e.test.ts`, a stand-in NDI source with real ffmpeg): recording in one-second segments stamped with real time; a cut a few seconds back starts and ends on the picture of those moments (to 0.2 s, read from the picture's brightness, which tells the time); a cut whose end is still being written waits for it; two programs, the replay PC without OBS, its missed kill marked and cut on PC 1.
 - **Not checked yet:**
@@ -218,4 +259,6 @@ If someone puts another input on air during the replays, it is left there and no
   - two real CS2 clients on two computers over a real network;
   - a real second CSTV;
   - `demo_gototick` sent by Matchframe to a real CS2 on CSTV (the owner uses `-448 relative` and `448 relative` by hand);
-  - Windows OBS.
+  - Windows OBS;
+  - a real CS2's round clock at the start of a live round (the round time is learned from it) and the break's end against it;
+  - fades on a busy computer: here (software rendering) the blend moved every frame with 720p30 clips, every fourth frame with two 1080p60 clips.

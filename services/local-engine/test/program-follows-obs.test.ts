@@ -55,6 +55,29 @@ describe("the program follows OBS to the live scene", () => {
     expect(e.program.mode).toBe("LIVE");
   });
 
+  it("treats the replay scene's twin as the replay scene: a break showing it stays a replay, and live is followed from it", async () => {
+    e.program.setReplayTwin("Matchframe Replay B", "Matchframe Replay");
+    const item = e.replays.bookmark("twin", "manual", 4);
+    await e.program.request("REPLAY_PREPARED", "automation", "auto-replay", { replayItemId: item.id });
+    await e.program.request("REPLAY_PLAYING", "automation", "auto-replay", { replayItemId: item.id });
+    const history = e.program.history.length;
+    // The next clip of the break fades in on the twin.
+    showScene("Matchframe Replay B");
+    expect([e.program.mode, e.program.activeReplay, e.program.owner.holder]).toEqual(["REPLAY_PLAYING", item.id, "auto-replay"]);
+    expect(e.program.history.length).toBe(history);
+    // Back to live from the twin: by the break itself, one change (OBS reports the live scene during it).
+    await e.program.request("LIVE", "automation", "auto-replay");
+    expect(e.program.mode).toBe("LIVE");
+    expect(e.program.history.slice(history).map((h) => [h.from, h.to, h.holder])).toEqual([["REPLAY_PLAYING", "LIVE", "auto-replay"]]);
+    // Or by hand in OBS.
+    await e.program.request("REPLAY_PREPARED", "automation", "auto-replay", { replayItemId: item.id });
+    await e.program.request("REPLAY_PLAYING", "automation", "auto-replay", { replayItemId: item.id });
+    showScene("Matchframe Replay B");
+    showScene("Live");
+    expect(e.program.mode).toBe("LIVE");
+    e.program.setReplayTwin(null, null);
+  });
+
   it("stays out of live while OBS shows another scene", async () => {
     showScene("Matchframe Replay");
     await e.program.request("MANUAL", "operator", "op");

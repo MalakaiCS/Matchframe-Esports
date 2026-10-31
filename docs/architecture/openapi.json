@@ -9020,6 +9020,46 @@
                       "Stinger1",
                       "Stinger2"
                     ]
+                  },
+                  "vmixTransitionOut": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "CutDirect",
+                          "Fade",
+                          "Stinger1",
+                          "Stinger2"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "cutBack": {
+                    "type": "string",
+                    "enum": [
+                      "clock",
+                      "before_round"
+                    ]
+                  },
+                  "cutBackClockSec": {
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 175
+                  },
+                  "between": {
+                    "type": "string",
+                    "enum": [
+                      "fade",
+                      "cut"
+                    ]
+                  },
+                  "fadeMs": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 2000
                   }
                 }
               }
@@ -9380,7 +9420,22 @@
                   "mapEnd": {
                     "type": "boolean"
                   },
-                  "replayTransition": {
+                  "replayIn": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "replayOut": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "otherScenes": {
                     "type": "string",
                     "maxLength": 200
                   }

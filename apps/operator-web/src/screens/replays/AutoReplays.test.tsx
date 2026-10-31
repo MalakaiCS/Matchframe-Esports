@@ -8,7 +8,7 @@ import { ToastProvider } from "../../components/toasts.tsx";
 import { AutoReplaysPanel, ReplayPcPanel } from "./AutoReplays.tsx";
 
 const auto: AutoReplayResponse = {
-  settings: { enabled: false, perBreak: 4, order: "round", speedPercent: 100, startDelayMs: 3500, otherAngles: true, ownBigPlays: true, mixer: "obs", vmixUrl: "http://127.0.0.1:8088", vmixTransition: "CutDirect" },
+  settings: { enabled: false, perBreak: 4, order: "round", speedPercent: 100, startDelayMs: 3500, otherAngles: true, ownBigPlays: true, mixer: "obs", vmixUrl: "http://127.0.0.1:8088", vmixTransition: "CutDirect", vmixTransitionOut: null, cutBack: "clock", cutBackClockSec: 110, between: "fade", fadeMs: 500 },
   status: { enabled: false, state: "off", detail: "Automatic replays are off.", waiting: 0, playing: null, lastPlayed: null },
 };
 const link: ReplayPcResponse = {
@@ -76,6 +76,27 @@ describe("Automatic replays panel", () => {
     await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ order: "best" }));
     await waitFor(() => expect(order.value).toBe("best"));
   });
+
+  it("goes back to live by 1:50 on the next round's clock by default, or another time, or before the round starts; fades between replays", async () => {
+    const calls = serve({ "GET /api/v1/replays/auto": { ...auto, status: { ...auto.status, twin: { scene: "Matchframe Replay B", input: "Matchframe Replay Clip B", ready: true, detail: "", checkedAt: null } } } });
+    wrap(<AutoReplaysPanel />);
+    const back = (await screen.findByLabelText(/Back to live/)) as HTMLSelectElement;
+    await waitFor(() => expect(back.disabled).toBe(false));
+    expect(back.selectedOptions[0]!.textContent).toBe("By 1:50 on the round clock (recommended)");
+    expect([...back.options].map((o) => o.textContent).at(-1)).toBe("Before the round starts");
+    fireEvent.change(back, { target: { value: "105" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ cutBack: "clock", cutBackClockSec: 105 }));
+    fireEvent.change(back, { target: { value: "before_round" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ cutBack: "before_round" }));
+    const between = screen.getByLabelText(/Between replays/) as HTMLSelectElement;
+    expect(between.selectedOptions[0]!.textContent).toBe("Fade, 0.5 s (recommended)");
+    fireEvent.change(between, { target: { value: "cut" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ between: "cut" }));
+    fireEvent.change(between, { target: { value: "1000" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ between: "fade", fadeMs: 1000 }));
+    expect(screen.getByText(/Fades between replays through “Matchframe Replay B”/)).toBeTruthy();
+    expect(screen.queryByText(/Never while a round is live/)).toBeNull();
+  });
 });
 
 describe("Automatic replays: the round's clips, ranked, and vMix", () => {
@@ -90,6 +111,7 @@ describe("Automatic replays: the round's clips, ranked, and vMix", () => {
           { id: "b", label: "3K: saber ▸ a, b, c", score: 42, reasons: ["3K"], state: "duplicate" },
           { id: "c", label: "nova ▸ zeal (KNIFE)", score: 30, reasons: ["knife"], state: "picked" },
           { id: "d", label: "haze ▸ kite (AK47)", score: 10, reasons: [], state: "left" },
+          { id: "e", label: "rain ▸ zeal (AWP)", score: 13, reasons: ["AWP"], state: "left", note: "from before the round started (a restart or a backup)" },
         ],
       },
     };
@@ -97,7 +119,13 @@ describe("Automatic replays: the round's clips, ranked, and vMix", () => {
     wrap(<AutoReplaysPanel />);
     expect(await screen.findByText("Round 7: its clips, best first")).toBeTruthy();
     const items = screen.getByLabelText("Clips of the round, best first").querySelectorAll("li");
-    expect([...items].map((li) => li.textContent)).toEqual(["Played3K: saber ▸ a, b, c (AK47)50 · 3K, not seen live", "Same kills3K: saber ▸ a, b, c42 · 3K", "On airnova ▸ zeal (KNIFE)30 · knife", "Not playedhaze ▸ kite (AK47)10"]);
+    expect([...items].map((li) => li.textContent)).toEqual([
+      "Played3K: saber ▸ a, b, c (AK47)50 · 3K, not seen live",
+      "Same kills3K: saber ▸ a, b, c42 · 3K",
+      "On airnova ▸ zeal (KNIFE)30 · knife",
+      "Not playedhaze ▸ kite (AK47)10",
+      "Not playedrain ▸ zeal (AWP)13 · AWPfrom before the round started (a restart or a backup)",
+    ]);
     expect((screen.getByLabelText(/Replays per break/) as HTMLSelectElement).value).toBe("4");
   });
 
@@ -107,8 +135,12 @@ describe("Automatic replays: the round's clips, ranked, and vMix", () => {
     wrap(<AutoReplaysPanel />);
     expect(await screen.findByText("vMix 27.0.0.49")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Set up OBS replay scene" })).toBeNull();
-    fireEvent.change(screen.getByLabelText(/Transition/), { target: { value: "Stinger1" } });
+    fireEvent.change(screen.getByLabelText(/Replay in/), { target: { value: "Stinger1" } });
     await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ vmixTransition: "Stinger1" }));
+    const out = screen.getByLabelText(/Replay out/) as HTMLSelectElement;
+    expect(out.selectedOptions[0]!.textContent).toBe("Same as Replay in");
+    fireEvent.change(out, { target: { value: "CutDirect" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ vmixTransitionOut: "CutDirect" }));
     fireEvent.click(screen.getByRole("button", { name: "Test vMix" }));
     await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/replays/vmix/test")).toBe(true));
   });

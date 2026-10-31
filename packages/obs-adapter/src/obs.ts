@@ -17,6 +17,50 @@ export interface ObsSceneItem {
   inputKind: string | null;
 }
 
+/** A scene item with everything a copy of it needs: its place (0 = bottom), transform and blend mode. */
+export interface ObsSceneItemFull extends ObsSceneItem {
+  index: number;
+  locked: boolean;
+  isGroup: boolean;
+  blendMode: string | null;
+  /** As OBS reports it (position, scale, rotation, crop, bounds, plus the read-only sizes). */
+  transform: Record<string, unknown>;
+}
+
+export interface ObsFilter {
+  name: string;
+  kind: string;
+  enabled: boolean;
+  settings: Record<string, unknown>;
+}
+
+/** An input's audio settings (the ones a copy of the input keeps). */
+export interface ObsInputAudio {
+  volumeMul: number;
+  muted: boolean;
+  monitorType: string;
+  balance: number;
+  syncOffsetMs: number;
+  tracks: Record<string, boolean>;
+}
+
+/** OBS's current scene transition; `durationMs` is null for a fixed one (a Cut, a Stinger). */
+export interface ObsTransitionNow {
+  name: string;
+  kind: string;
+  fixed: boolean;
+  durationMs: number | null;
+  settings: Record<string, unknown> | null;
+}
+
+/** Of a scene item's transform, what SetSceneItemTransform takes (bounds below 1 px are refused, so they go only with bounds on). */
+export function writableTransform(t: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of ["positionX", "positionY", "rotation", "scaleX", "scaleY", "alignment", "boundsType", "boundsAlignment", "cropLeft", "cropRight", "cropTop", "cropBottom", "cropToBounds"]) if (t[k] !== undefined && t[k] !== null) out[k] = t[k];
+  for (const k of ["boundsWidth", "boundsHeight"]) if (typeof t[k] === "number" && (t[k] as number) >= 1) out[k] = t[k];
+  return out;
+}
+
 export interface ObsState {
   connected: boolean;
   connecting: boolean;
@@ -100,6 +144,10 @@ export class ObsManager extends EventEmitter {
     this.obs.on("SceneListChanged", () => void this.refresh().catch(() => undefined));
     this.obs.on("InputCreated", () => void this.refresh().catch(() => undefined));
     this.obs.on("InputRemoved", () => void this.refresh().catch(() => undefined));
+    // OBS 30 sends SceneTransitionVideoEnded, then SceneTransitionEnded when a transition is over
+    // (a Stinger's at the end of its video, not at its cut point).
+    this.obs.on("SceneTransitionStarted", (e) => this.emit("transition", { phase: "started", name: e.transitionName }));
+    this.obs.on("SceneTransitionEnded", (e) => this.emit("transition", { phase: "ended", name: e.transitionName }));
   }
 
   private patch(p: Partial<ObsState>): void {
@@ -200,6 +248,114 @@ export class ObsManager extends EventEmitter {
     }));
   }
 
+  /** A scene's items bottom to top, with their transforms and blend modes. */
+  async sceneItemsFull(sceneName: string): Promise<ObsSceneItemFull[]> {
+    this.requireConnected();
+    const r = await this.obs.call("GetSceneItemList", { sceneName });
+    type Raw = { sourceName: string; sceneItemId: number; sceneItemIndex: number; sceneItemEnabled: boolean; sceneItemLocked?: boolean; isGroup?: boolean | null; inputKind?: string | null; sceneItemBlendMode?: string | null; sceneItemTransform?: Record<string, unknown> };
+    return (r.sceneItems as unknown as Raw[])
+      .map((i) => ({ sceneName, sourceName: i.sourceName, sceneItemId: i.sceneItemId, enabled: i.sceneItemEnabled, inputKind: i.inputKind ?? null, index: i.sceneItemIndex, locked: i.sceneItemLocked === true, isGroup: i.isGroup === true, blendMode: i.sceneItemBlendMode ?? null, transform: i.sceneItemTransform ?? {} }))
+      .sort((a, b) => a.index - b.index);
+  }
+
+  async createScene(sceneName: string): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("CreateScene", { sceneName });
+  }
+
+  async removeScene(sceneName: string): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("RemoveScene", { sceneName });
+  }
+
+  /** Adds an existing source to a scene (the same source, shared, as OBS's "Add Existing"); returns the new item's id. */
+  async createSceneItem(sceneName: string, sourceName: string, enabled = true): Promise<number> {
+    this.requireConnected();
+    return (await this.obs.call("CreateSceneItem", { sceneName, sourceName, sceneItemEnabled: enabled })).sceneItemId;
+  }
+
+  async removeSceneItem(sceneName: string, sceneItemId: number): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("RemoveSceneItem", { sceneName, sceneItemId });
+  }
+
+  /** Sets what is given of a scene item: its transform (see writableTransform), visibility, lock, blend mode, place (0 = bottom). */
+  async setSceneItem(sceneName: string, sceneItemId: number, p: { transform?: Record<string, unknown>; enabled?: boolean; locked?: boolean; blendMode?: string | null; index?: number }): Promise<void> {
+    this.requireConnected();
+    if (p.transform) await this.obs.call("SetSceneItemTransform", { sceneName, sceneItemId, sceneItemTransform: writableTransform(p.transform) as never });
+    if (p.enabled !== undefined) await this.obs.call("SetSceneItemEnabled", { sceneName, sceneItemId, sceneItemEnabled: p.enabled });
+    if (p.locked !== undefined) await this.obs.call("SetSceneItemLocked", { sceneName, sceneItemId, sceneItemLocked: p.locked });
+    if (p.blendMode) await this.obs.call("SetSceneItemBlendMode", { sceneName, sceneItemId, sceneItemBlendMode: p.blendMode });
+    if (p.index !== undefined) await this.obs.call("SetSceneItemIndex", { sceneName, sceneItemId, sceneItemIndex: p.index });
+  }
+
+  /** An input's kind and its settings (only the ones set: OBS leaves defaults out). */
+  async inputSettings(inputName: string): Promise<{ kind: string; settings: Record<string, unknown> }> {
+    this.requireConnected();
+    const r = await this.obs.call("GetInputSettings", { inputName });
+    return { kind: r.inputKind, settings: (r.inputSettings ?? {}) as Record<string, unknown> };
+  }
+
+  /** Changes an input's settings: merged into them (`overlay`), or replacing them. */
+  async setInputSettings(inputName: string, settings: Record<string, unknown>, overlay = true): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("SetInputSettings", { inputName, inputSettings: settings as never, overlay });
+  }
+
+  /** Creates an input, shown in a scene. */
+  async createInput(sceneName: string, inputName: string, inputKind: string, settings: Record<string, unknown>, enabled = true): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("CreateInput", { sceneName, inputName, inputKind, inputSettings: settings as never, sceneItemEnabled: enabled });
+  }
+
+  async removeInput(inputName: string): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("RemoveInput", { inputName });
+  }
+
+  /** A source's filters, in their order. */
+  async filters(sourceName: string): Promise<ObsFilter[]> {
+    this.requireConnected();
+    const r = await this.obs.call("GetSourceFilterList", { sourceName });
+    type Raw = { filterName: string; filterKind: string; filterEnabled: boolean; filterIndex: number; filterSettings?: Record<string, unknown> };
+    return (r.filters as unknown as Raw[]).sort((a, b) => a.filterIndex - b.filterIndex).map((f) => ({ name: f.filterName, kind: f.filterKind, enabled: f.filterEnabled, settings: f.filterSettings ?? {} }));
+  }
+
+  async createFilter(sourceName: string, f: ObsFilter): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("CreateSourceFilter", { sourceName, filterName: f.name, filterKind: f.kind, filterSettings: f.settings as never });
+    if (!f.enabled) await this.obs.call("SetSourceFilterEnabled", { sourceName, filterName: f.name, filterEnabled: false });
+  }
+
+  async removeFilter(sourceName: string, filterName: string): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("RemoveSourceFilter", { sourceName, filterName });
+  }
+
+  async inputAudio(inputName: string): Promise<ObsInputAudio> {
+    this.requireConnected();
+    const [v, m, mon, bal, sync, tracks] = await Promise.all([
+      this.obs.call("GetInputVolume", { inputName }),
+      this.obs.call("GetInputMute", { inputName }),
+      this.obs.call("GetInputAudioMonitorType", { inputName }),
+      this.obs.call("GetInputAudioBalance", { inputName }),
+      this.obs.call("GetInputAudioSyncOffset", { inputName }),
+      this.obs.call("GetInputAudioTracks", { inputName }),
+    ]);
+    return { volumeMul: v.inputVolumeMul, muted: m.inputMuted, monitorType: mon.monitorType, balance: bal.inputAudioBalance, syncOffsetMs: sync.inputAudioSyncOffset, tracks: tracks.inputAudioTracks as Record<string, boolean> };
+  }
+
+  /** Sets what is given of an input's audio. */
+  async setInputAudio(inputName: string, a: Partial<ObsInputAudio>): Promise<void> {
+    this.requireConnected();
+    if (a.volumeMul !== undefined) await this.obs.call("SetInputVolume", { inputName, inputVolumeMul: a.volumeMul });
+    if (a.muted !== undefined) await this.obs.call("SetInputMute", { inputName, inputMuted: a.muted });
+    if (a.monitorType !== undefined) await this.obs.call("SetInputAudioMonitorType", { inputName, monitorType: a.monitorType });
+    if (a.balance !== undefined) await this.obs.call("SetInputAudioBalance", { inputName, inputAudioBalance: a.balance });
+    if (a.syncOffsetMs !== undefined) await this.obs.call("SetInputAudioSyncOffset", { inputName, inputAudioSyncOffset: a.syncOffsetMs });
+    if (a.tracks !== undefined) await this.obs.call("SetInputAudioTracks", { inputName, inputAudioTracks: a.tracks });
+  }
+
   /** Puts a scene in preview (studio mode) and confirms by read-back. */
   async setPreview(sceneName: string): Promise<{ confirmed: boolean; previewScene: string | null }> {
     this.requireConnected();
@@ -210,7 +366,22 @@ export class ObsManager extends EventEmitter {
     return { confirmed: r.currentPreviewSceneName === sceneName, previewScene: r.currentPreviewSceneName };
   }
 
-  /** Cuts a scene to program (directly, or via the studio-mode transition) and confirms. */
+  /** The scene in preview (Studio Mode only; null otherwise). */
+  async currentPreview(): Promise<string | null> {
+    this.requireConnected();
+    if (!this.state.studioMode) return null;
+    const r = await this.obs.call("GetCurrentPreviewScene");
+    this.patch({ previewScene: r.currentPreviewSceneName });
+    return r.currentPreviewSceneName;
+  }
+
+  /**
+   * Cuts a scene to program (directly, or via the studio-mode transition) and confirms. Directly, in
+   * Studio Mode, OBS transitions the program and leaves the preview, until the transition's end: with
+   * Swap Scenes (on by default) OBS then puts the scene the program left in preview. With Duplicate
+   * Scene (on by default) the program shows a private copy of the scene under the same name; its
+   * sources are the scene's own (OBS never copies a media source).
+   */
   async setProgram(sceneName: string, opts: { viaTransition?: boolean } = {}): Promise<{ confirmed: boolean; programScene: string }> {
     this.requireConnected();
     if (this.state.studioMode && opts.viaTransition) {
@@ -248,11 +419,50 @@ export class ObsManager extends EventEmitter {
     }
   }
 
-  /** Scene transitions with their kinds (a Stinger is `obs_stinger_transition`). */
-  async transitionKinds(): Promise<{ current: string | null; transitions: { name: string; kind: string }[] }> {
+  /**
+   * Scene transitions with their kinds (a Stinger is `obs_stinger_transition`, OBS's Fade
+   * `fade_transition`, its Cut `cut_transition`; their names can be translated) and whether their
+   * length is their own (`fixed`: a Cut, a Stinger) rather than OBS's transition duration.
+   */
+  async transitionKinds(): Promise<{ current: string | null; transitions: { name: string; kind: string; fixed: boolean }[] }> {
     this.requireConnected();
     const r = await this.obs.call("GetSceneTransitionList");
-    return { current: r.currentSceneTransitionName ?? null, transitions: (r.transitions as { transitionName: string; transitionKind: string }[]).map((t) => ({ name: t.transitionName, kind: t.transitionKind })) };
+    return { current: r.currentSceneTransitionName ?? null, transitions: (r.transitions as { transitionName: string; transitionKind: string; transitionFixed?: boolean }[]).map((t) => ({ name: t.transitionName, kind: t.transitionKind, fixed: t.transitionFixed === true })) };
+  }
+
+  /** OBS's current scene transition, its kind and its duration (OBS's one transition duration; null for a fixed transition). */
+  async currentTransition(): Promise<ObsTransitionNow> {
+    this.requireConnected();
+    const r = await this.obs.call("GetCurrentSceneTransition");
+    return { name: r.transitionName, kind: r.transitionKind, fixed: r.transitionFixed, durationMs: r.transitionDuration ?? null, settings: (r.transitionSettings ?? null) as Record<string, unknown> | null };
+  }
+
+  /** OBS's transition duration (it applies to every transition that isn't fixed). */
+  async setTransitionDuration(ms: number): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("SetCurrentSceneTransitionDuration", { transitionDuration: Math.round(Math.min(20000, Math.max(50, ms))) });
+  }
+
+  /**
+   * Resolves when OBS says the transition that starts next has ended (call it before the scene
+   * change; the end of one that was already running doesn't count), or after `timeoutMs`; true when
+   * OBS said so.
+   */
+  waitTransitionEnd(timeoutMs: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      let started = false;
+      const done = (ok: boolean) => {
+        clearTimeout(timer);
+        this.off("transition", on);
+        resolve(ok);
+      };
+      const on = (e: { phase: string }) => {
+        if (e.phase === "started") started = true;
+        else if (e.phase === "ended" && started) done(true);
+      };
+      const timer = setTimeout(() => done(false), timeoutMs);
+      this.on("transition", on);
+    });
   }
 
   /**

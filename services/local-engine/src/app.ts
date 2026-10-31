@@ -44,6 +44,7 @@ import { AutoReplay } from "./replay/auto.ts";
 import { GraphicsDirector } from "./live/graphics.ts";
 import { ObsAutomation } from "./live/obs-auto.ts";
 import { ReplayLink } from "./replay/link.ts";
+import { ReplayTwin } from "./replay/twin.ts";
 import { OnAirLog } from "./replay/onair.ts";
 import { LiveSession } from "./live/session.ts";
 import { TeamSideTracker } from "./live/team-sides.ts";
@@ -189,6 +190,8 @@ export class Engine {
   /** What this computer tells a replay PC (as the main PC): its camera history, round clock and kills. */
   readonly onAir: OnAirLog;
   readonly autoReplay: AutoReplay;
+  /** The replay scene's twin in OBS, for fading from one replay of a break to the next. */
+  readonly replayTwin: ReplayTwin;
   readonly graphics: GraphicsDirector;
   readonly obsAuto: ObsAutomation;
   /** Each match's thumbnails, "Up next" screen and stingers (and OBS's stinger transitions). */
@@ -197,6 +200,9 @@ export class Engine {
   private readonly rawGsiListeners = new Set<(payload: Record<string, unknown>, simulated: boolean) => void>();
   private readonly killListeners = new Set<(entry: HudKillfeedEntry) => void>();
   private cloudMap: string | null = null;
+  /** The round the game data last showed live (see playRound). */
+  private lastLiveRound: number | null = null;
+  private lastLiveMap: string | null = null;
 
   private readonly killfeed = new KillfeedBuilder();
   private sides = new TeamSideTracker();
@@ -304,7 +310,8 @@ export class Engine {
     this.program = new ProgramArbiter(
       {
         connected: () => this.obs.state.connected,
-        setProgram: async (scene) => (await this.obs.setProgram(scene)).confirmed,
+        // Every program change through OBS's transition chosen for it (into or out of a replay, to or from the break and studio scenes).
+        setProgram: async (scene, move) => this.obsAuto.switchProgram(scene, this.obsAuto.pickFor(move)),
       },
       this.settings.get("program.scenes", { LIVE: null, REPLAY: null, STUDIO: null, BREAK: null }),
     );
@@ -388,6 +395,7 @@ export class Engine {
     this.replayLink = new ReplayLink(this);
     this.onAir = new OnAirLog(() => this.now());
     this.autoReplay = new AutoReplay(this);
+    this.replayTwin = new ReplayTwin(this);
     this.graphics = new GraphicsDirector(this);
     this.obsAuto = new ObsAutomation(this);
     this.matchArt = new MatchArt(this);
@@ -695,6 +703,8 @@ export class Engine {
   }
 
   private onState(s: MatchState): void {
+    if (s.mapName !== this.lastLiveMap) [this.lastLiveRound, this.lastLiveMap] = [null, s.mapName];
+    if (s.roundPhase === "live") this.lastLiveRound = s.roundNumber;
     if (!s.simulated) this.gameConsole.onState(s);
     this.onAir.noteState(s.observer.observedSteamId);
     this.replayLink.noteOwnState(s);
@@ -848,7 +858,7 @@ export class Engine {
         if (typeof p.scene === "string" && typeof p.source === "string") await this.obs.setSourceVisible(p.scene, p.source, p.visible !== false);
         return;
       case "replay_bookmark":
-        this.replays.bookmark(`Auto: ${rule.name}`, event.kind, this.session.state()?.roundNumber ?? null);
+        this.replays.bookmark(`Auto: ${rule.name}`, event.kind, this.playRound());
         return;
       case "alert":
         this.logger.log(p.level === "error" ? "error" : "warn", String(p.message ?? rule.name));
@@ -988,6 +998,21 @@ export class Engine {
     return () => this.rawGsiListeners.delete(fn);
   }
 
+  /**
+   * The round a kill, a clip or a bookmark belongs to: the round being played, or, once it is over,
+   * the round that just ended. CS2 counts a round as played when it ends (GSI map.round), so the
+   * game's round number moves on to the next round then, and a kill after the round was won (an exit
+   * frag, a saving player hunted down) would be put in the next round. Null in the "over" phase when
+   * this computer never saw the round live.
+   */
+  playRound(): number | null {
+    const s = this.session.state();
+    if (!s) return null;
+    if (s.roundPhase === "live") return s.roundNumber;
+    if (s.roundPhase === "over") return this.lastLiveRound;
+    return s.roundNumber;
+  }
+
   /** Each new killfeed entry (LHM-format HUDs get it as an HLAE-style player_death event). */
   onKill(fn: (entry: HudKillfeedEntry) => void): () => void {
     this.killListeners.add(fn);
@@ -1068,7 +1093,8 @@ export class Engine {
     this.refreshGsiConfig();
     this.hudLibrary.installSamples(this.cfg.sampleHudsDirs);
     this.configureReplay();
-    this.onKill((k) => this.onAir.noteKill(k, this.session.state()?.roundNumber ?? null));
+    this.onKill((k) => this.onAir.noteKill(k, this.playRound()));
+    this.replayTwin.init();
     this.replayLink.start();
     this.autoReplay.start();
     this.graphics.start();

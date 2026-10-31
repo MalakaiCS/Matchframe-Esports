@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { MatchState } from "@matchframe/contracts";
 import type { ReplayPlay } from "@matchframe/replay-agent";
+import type { Engine } from "../src/app.ts";
+import { AutoReplay } from "../src/replay/auto.ts";
 import { clipScore, CUT_MS, fitReplay, MIN_LEAD_MS, NO_FACTS, nextReplay, planBreak, replayWallMs, SWITCH_MS } from "../src/replay/rank.ts";
 
 const play = (p: Partial<ReplayPlay>): ReplayPlay => ({ kind: "shown", killer: { steamId: "1", name: "haze" }, victims: ["kite"], kills: 1, weapon: "ak47", headshot: false, ...p });
@@ -67,5 +70,75 @@ describe("ranking a round's clips", () => {
     expect(fitReplay({ playMs: 4000, leadMs: 2500 }, 4000 + SWITCH_MS, 100, SWITCH_MS)).toBe(4000);
     expect(fitReplay({ playMs: 4000, leadMs: 2500 }, 3500 + SWITCH_MS, 100, SWITCH_MS)).toBe(3500);
     expect(fitReplay({ playMs: 4000, leadMs: 2500 }, 3500 + SWITCH_MS, 100, SWITCH_MS + 1)).toBeNull();
+  });
+});
+
+/** The automatic replays' clock, on its own: a stand-in engine with settings and a monotonic clock. */
+function breakClock(settings: Record<string, unknown> = {}) {
+  let now = 1_000_000;
+  const stored = new Map<string, unknown>([["replay.auto", settings]]);
+  const e = { settings: { get: (k: string, d: unknown) => stored.get(k) ?? d, set: (k: string, v: unknown) => stored.set(k, v) }, now: () => now } as unknown as Engine;
+  const a = new AutoReplay(e) as unknown as { cutBackAt(s: MatchState, wentLive: number | null): number; learnRoundTime(s: MatchState): void; getStatus(): unknown };
+  const state = (p: Partial<MatchState>): MatchState => ({ roundPhase: "over", gamePhase: "over", phaseEndsInSec: 7, phaseObservedAtMonotonicMs: now, bomb: null, ...p }) as MatchState;
+  return {
+    /** How long from now until the cut back to live must start (ms). */
+    left: (p: Partial<MatchState>, wentLive: number | null = null) => a.cutBackAt(state(p), wentLive) - now,
+    learn: (p: Partial<MatchState>) => a.learnRoundTime(state(p)),
+    set: (patch: Record<string, unknown>) => stored.set("replay.auto", { ...(stored.get("replay.auto") as object), ...patch }),
+    tick: (ms: number) => (now += ms),
+    now: () => now,
+  };
+}
+
+describe("when a break's replays must end", () => {
+  it("by 1:50 on the next round's clock: before it is live, freeze time's end plus the round time (1:55) less 1:50; live, by its clock", () => {
+    const c = breakClock();
+    // Round over, 7 s of it left, then 15 s of freeze time assumed, then 5 s of the next round, less the quarter second the cut back starts early.
+    expect(c.left({ roundPhase: "over", gamePhase: "over", phaseEndsInSec: 7 })).toBe(7000 + 15000 + 5000 - 250);
+    expect(c.left({ roundPhase: "freezetime", gamePhase: "freezetime", phaseEndsInSec: 12 })).toBe(12000 + 5000 - 250);
+    expect(c.left({ roundPhase: "freezetime", gamePhase: "timeout_ct", phaseEndsInSec: 30 })).toBe(30000 + 5000 - 250);
+    expect(c.left({ roundPhase: "live", gamePhase: "live", phaseEndsInSec: 113 })).toBe(3000 - 250);
+    expect(c.left({ roundPhase: "live", gamePhase: "live", phaseEndsInSec: 109 })).toBe(-1000 - 250);
+    // No round clock in the game data: from when the round went live.
+    expect(c.left({ roundPhase: "live", gamePhase: "live", phaseEndsInSec: null, phaseObservedAtMonotonicMs: null }, c.now() - 1000)).toBe(5000 - 1000 - 250);
+    // The bomb planted or being defused (the clock is gone), or the next round already over: now.
+    expect(c.left({ roundPhase: "live", gamePhase: "bomb", phaseEndsInSec: 40 })).toBe(0);
+    expect(c.left({ roundPhase: "live", gamePhase: "defuse", phaseEndsInSec: 30 })).toBe(0);
+    expect(c.left({ roundPhase: "live", gamePhase: "live", phaseEndsInSec: null, bomb: { state: "planted" } as MatchState["bomb"] })).toBe(0);
+    expect(c.left({ roundPhase: "over", gamePhase: "over", phaseEndsInSec: 7 }, c.now() - 3000)).toBe(0);
+    // Another time on the clock.
+    c.set({ cutBackClockSec: 100 });
+    expect(c.left({ roundPhase: "live", gamePhase: "live", phaseEndsInSec: 113 })).toBe(13000 - 250);
+  });
+
+  it("learns the round time from the clock when a round goes live", () => {
+    const c = breakClock();
+    // A live reading not straight after freeze time (the engine started mid-round) teaches nothing.
+    c.learn({ roundPhase: "live", gamePhase: "live", phaseEndsInSec: 80 });
+    expect(c.left({ roundPhase: "freezetime", gamePhase: "freezetime", phaseEndsInSec: 10 })).toBe(10000 + 5000 - 250);
+    // 1:40 rounds: the clock reads 1:50 before the round starts, so the cut back is before it.
+    c.learn({ roundPhase: "freezetime", gamePhase: "freezetime", phaseEndsInSec: 1 });
+    c.learn({ roundPhase: "live", gamePhase: "live", phaseEndsInSec: 99.8 });
+    expect(c.left({ roundPhase: "freezetime", gamePhase: "freezetime", phaseEndsInSec: 10 })).toBe(10000 - 10000 - 250);
+  });
+
+  it("before the round starts (the old setting): shortly before freeze time ends, and now once it is live", () => {
+    const c = breakClock({ cutBack: "before_round" });
+    expect(c.left({ roundPhase: "over", gamePhase: "over", phaseEndsInSec: 7 })).toBe(7000 + 15000 - 1500);
+    expect(c.left({ roundPhase: "freezetime", gamePhase: "freezetime", phaseEndsInSec: 12 })).toBe(12000 - 1500);
+    expect(c.left({ roundPhase: "live", gamePhase: "live", phaseEndsInSec: 114 })).toBe(0);
+  });
+
+  it("gives the planner the longer time: four 6 s clips fit by 1:50, three before the round starts", () => {
+    const clips = [1, 2, 3, 4].map((n) => ({ id: `c${n}`, score: n, playMs: 6000, leadMs: 4000, at: n }));
+    const clock = breakClock().left({ roundPhase: "over", gamePhase: "over", phaseEndsInSec: 7 });
+    const before = breakClock({ cutBack: "before_round" }).left({ roundPhase: "over", gamePhase: "over", phaseEndsInSec: 7 });
+    expect(planBreak(clips, clock, 100, 4).map((p) => [p.id, p.playMs])).toEqual([
+      ["c1", 6000],
+      ["c2", 6000],
+      ["c3", 6000],
+      ["c4", 6000],
+    ]);
+    expect(planBreak(clips, before, 100, 4).map((p) => p.id)).toEqual(["c2", "c3", "c4"]);
   });
 });

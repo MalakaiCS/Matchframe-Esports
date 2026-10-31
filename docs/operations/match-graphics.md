@@ -39,7 +39,7 @@ OBS can't create transitions for another program, so make two Stinger transition
 Matchframe then:
 
 - sets both transitions' video to this match's stingers, and the cut (*transition point*) to 900 ms, checked by reading them back from OBS;
-- makes the replay stinger the **replay transition** (Replays & Production → OBS scenes) when none is chosen there;
+- makes the replay stinger **Replay in**, and **Replay out** (Replays & Production → OBS scenes → Transitions), where OBS's current transition is chosen there (Replay out "the same as Replay in" follows Replay in);
 - with **Use the stinger for every scene change** (on by default), makes `Matchframe Stinger` OBS's current transition.
 
 When you **activate** a match, Matchframe puts that match's stingers in the two transitions by itself (without changing OBS's current transition).

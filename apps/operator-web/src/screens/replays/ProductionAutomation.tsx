@@ -31,6 +31,35 @@ function SceneSelect({ value, scenes, onChange, label, hint, disabled }: { value
   );
 }
 
+/** OBS's transition kinds, as OBS names them in English (a transition's own name can be anything). */
+const KIND_LABEL: Record<string, string> = { obs_stinger_transition: "Stinger", fade_transition: "Fade", cut_transition: "Cut", swipe_transition: "Swipe", slide_transition: "Slide", fade_to_color_transition: "Fade to Color", wipe_transition: "Luma Wipe" };
+/** In a select: Replay out the same as Replay in. */
+const SAME = "__same_as_replay_in__";
+
+/** One of OBS's transitions, OBS's own (""), or, with `same`, the same as Replay in (null). */
+function TransitionSelect({ label, hint, value, transitions, same, disabled, onChange }: { label: string; hint: string; value: string | null; transitions: ObsAutoResponse["transitions"]; same?: boolean; disabled: boolean; onChange: (v: string | null) => void }) {
+  const names = transitions?.names ?? [];
+  const kindOf = new Map((transitions?.kinds ?? []).map((k) => [k.name, k.kind]));
+  const missing = value && !names.includes(value) ? value : null;
+  return (
+    <Field label={label} hint={hint}>
+      <select value={value === null ? SAME : value} disabled={disabled} onChange={(e) => onChange(e.target.value === SAME ? null : e.target.value)}>
+        {same ? <option value={SAME}>Same as Replay in</option> : null}
+        <option value="">OBS's current transition</option>
+        {names.map((n) => {
+          const kind = KIND_LABEL[kindOf.get(n) ?? ""];
+          return (
+            <option key={n} value={n}>
+              {kind && kind !== n ? `${n} (${kind})` : n}
+            </option>
+          );
+        })}
+        {missing ? <option value={missing}>{transitions ? `${missing} (not in OBS)` : missing}</option> : null}
+      </select>
+    </Field>
+  );
+}
+
 /** OBS scenes per program mode, and what switches them by itself. */
 export function ObsAutomationPanel() {
   const auto = useApi<ObsAutoResponse>("/api/v1/obs/auto", { refreshMs: 5000 });
@@ -69,16 +98,13 @@ export function ObsAutomationPanel() {
         </div>
         <Checkbox checked={st?.timeouts ?? true} disabled={!!reason || !st} label="Timeouts and pauses → break scene" hint="On a tactical timeout or a technical pause, then back to the live scene when play resumes." onChange={(v) => void save({ timeouts: v })} />
         <Checkbox checked={st?.mapEnd ?? true} disabled={!!reason || !st} label="Map end → studio scene" hint="When a map ends, then back to the live scene when the next map starts." onChange={(v) => void save({ mapEnd: v })} />
-        <Field label="Replay transition" hint="An OBS transition for cuts to and from replays, such as a Stinger. The transition in use is put back after.">
-          <select value={st?.replayTransition ?? ""} disabled={!!reason || !st} onChange={(e) => void save({ replayTransition: e.target.value })}>
-            <option value="">OBS's current transition</option>
-            {(auto.data?.transitions?.names ?? (st?.replayTransition ? [st.replayTransition] : [])).map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <h4 className="hud-section-title">Transitions</h4>
+        <div className="form-grid">
+          <TransitionSelect label="Replay in" hint="From the live scene to a replay." value={st?.replayIn ?? ""} transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} onChange={(v) => void save({ replayIn: v ?? "" })} />
+          <TransitionSelect label="Replay out" hint="From a replay back to live, also after a replay played by hand and Return live." value={st ? st.replayOut : null} same transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} onChange={(v) => void save({ replayOut: v })} />
+          <TransitionSelect label="Other scenes" hint="To and from the break and studio scenes: by themselves (above) or with your program buttons." value={st?.otherScenes ?? ""} transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} onChange={(v) => void save({ otherScenes: v ?? "" })} />
+        </div>
+        <p className="muted small">A Stinger has to be made once in OBS first (Scene Transitions → + → Stinger, with its video); then it can be picked here. OBS's own transition is put back after each change. From one replay to the next: Between replays, under Automatic replays.</p>
         <p className="muted small">Scenes only change from the live scene, and only back from a scene Matchframe chose. Your own program choices are never undone.</p>
       </div>
     </Panel>

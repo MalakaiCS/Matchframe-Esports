@@ -152,10 +152,10 @@ export class MatchArt {
 
   /**
    * Points OBS's "Matchframe Stinger" and "Matchframe Replay Stinger" transitions at this match's
-   * stingers (cut at 800 ms). The replay one becomes the replay transition if none is chosen; with
-   * `useStinger` the plain one becomes OBS's current transition.
+   * stingers (cut at 800 ms). The replay one becomes the transition into replays and back out of them
+   * where none is chosen; with `useStinger` the plain one becomes OBS's current transition.
    */
-  async obsSetup(matchId: string, opts: { useStinger?: boolean } = {}): Promise<{ set: { kind: ArtKind; transition: string; confirmed: boolean }[]; missing: string[]; noFile: ArtKind[]; current: string | null; replayTransition: string }> {
+  async obsSetup(matchId: string, opts: { useStinger?: boolean } = {}): Promise<{ set: { kind: ArtKind; transition: string; confirmed: boolean }[]; missing: string[]; noFile: ArtKind[]; current: string | null; replayIn: string; replayOut: string }> {
     if (!this.e.obs.state.connected) throw new HttpError(409, "OBS is not connected (Settings → Devices)", "obs_not_connected");
     const list = await this.e.obs.transitionKinds();
     const set: { kind: ArtKind; transition: string; confirmed: boolean }[] = [];
@@ -175,12 +175,17 @@ export class MatchArt {
       const r = await this.e.obs.setTransitionSettings(name, { path: f, transition_point: STINGER_CUT_MS, tp_type: 0 }, { keepCurrent: kind === "stinger" && opts.useStinger === true });
       set.push({ kind, transition: name, confirmed: r.confirmed });
     }
-    // Replays cut with the replay stinger unless another transition was chosen for them.
+    // Into replays and back out with the replay stinger, unless another transition was chosen for that way
+    // (Replay out "the same as Replay in" follows Replay in).
     const auto = this.e.obsAuto.settings();
-    if (set.some((s) => s.kind === "stinger-replay" && s.confirmed) && !auto.replayTransition) this.e.obsAuto.setSettings({ replayTransition: OBS_STINGERS["stinger-replay"] });
+    if (set.some((s) => s.kind === "stinger-replay" && s.confirmed)) {
+      const name = OBS_STINGERS["stinger-replay"];
+      this.e.obsAuto.setSettings({ ...(auto.replayIn ? {} : { replayIn: name }), ...(auto.replayOut === "" ? { replayOut: name } : {}) });
+    }
     const after = await this.e.obs.transitions();
     this.e.audit.record("match-art", "match_art.obs_setup", matchId, { set: set.map((s) => s.transition), missing });
-    return { set, missing, noFile, current: after.current, replayTransition: this.e.obsAuto.settings().replayTransition };
+    const now = this.e.obsAuto.settings();
+    return { set, missing, noFile, current: after.current, replayIn: now.replayIn, replayOut: now.replayOut ?? now.replayIn };
   }
 
   /** When a match becomes the active one: its stingers in OBS, if the transitions are there (quietly). */

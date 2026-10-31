@@ -172,7 +172,7 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
   r.get("/api/v1/observer/log", { permission: "state.read" }, () => s.arbiter.log.slice(-200));
 
   // ---- program / production -------------------------------------------------------------
-  r.get("/api/v1/program", { permission: "state.read" }, () => ({ mode: e.program.mode, owner: e.program.owner, scenes: e.program.sceneMap, activeReplay: e.program.activeReplay, history: e.program.history.slice(-50) }));
+  r.get("/api/v1/program", { permission: "state.read" }, () => ({ mode: e.program.mode, owner: e.program.owner, scenes: e.program.sceneMap, replayScenes: e.program.replayScenes, activeReplay: e.program.activeReplay, history: e.program.history.slice(-50) }));
   r.post("/api/v1/program/cues", { permission: "program.control", body: z.object({ mode: z.enum(["LIVE", "REPLAY_PREPARED", "REPLAY_PLAYING", "STUDIO", "BREAK", "MANUAL"]), replayItemId: z.string().optional() }) }, async (req) => {
     const t = await e.program.request(req.body.mode, "operator", req.principal!.label, req.body.replayItemId ? { replayItemId: req.body.replayItemId } : {});
     e.audit.record(req.principal!.label, "program.cue", req.body.mode, t);
@@ -193,7 +193,9 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
   });
   r.post("/api/v1/replays/bookmarks", { permission: "replay.control", body: z.object({ label: z.string().default("Manual bookmark"), preRollMs: z.number().int().min(0).max(60000).default(8000), postRollMs: z.number().int().min(0).max(10000).default(2000), capture: z.boolean().default(true) }) }, async (req) => {
     const st = s.state();
-    const item = e.replays.bookmark(req.body.label, "manual", st?.roundNumber ?? null);
+    // The round being played, or the one just ended (the game's round number has moved on by then).
+    const round = e.playRound();
+    const item = e.replays.bookmark(req.body.label, "manual", round);
     e.audit.record(req.principal!.label, "replay.bookmark", item.id);
     if (req.body.capture) {
       void e.replays.capture(item.id, {
@@ -203,7 +205,7 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
         matchTimeMs: st?.time.matchTimeMs ?? null,
         timeUncertaintyMs: st?.time.timeUncertaintyMs ?? null,
         epoch: st?.epoch ?? null,
-        roundNumber: st?.roundNumber ?? null,
+        roundNumber: round,
       });
     }
     return item;

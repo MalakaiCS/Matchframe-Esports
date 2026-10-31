@@ -241,7 +241,11 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
           feed: e.replayFeed.status(),
           mediaInput: e.settings.get<string | null>("replay.mediaInput", null),
           replayScene: e.program.sceneMap.REPLAY ?? null,
-          obs: { connected: e.obs.state.connected, replayBuffer: e.obs.state.replayBuffer },
+          // The replay scene and its twin (a break's replays fade between the two): both count as the replay scene.
+          replayScenes: e.program.replayScenes,
+          twin: e.replayTwin.getStatus(),
+          transitions: e.obsAuto.settings(),
+          obs: { connected: e.obs.state.connected, replayBuffer: e.obs.state.replayBuffer, programScene: e.obs.state.programScene },
           clips: e.replays
             .list()
             .slice(-40)

@@ -111,7 +111,7 @@ describe("match graphics: storing, serving and OBS stingers", () => {
     expect((await api(`/api/v1/matches/${matchId}/art`)).json!.settings).toEqual({ backgroundAssetId: "0123456789abcdef01234567.jpg" });
   });
 
-  it("puts the stingers in OBS's Matchframe transitions, says which are missing, and uses the replay one for replays", async () => {
+  it("puts the stingers in OBS's Matchframe transitions, says which are missing, and uses the replay one into and out of replays", async () => {
     expect((await api(`/api/v1/matches/${matchId}/art/obs`, { body: {} })).status).toBe(409);
     e.obs.state.connected = true;
     const first = await api(`/api/v1/matches/${matchId}/art/obs`, { body: { useStinger: true } });
@@ -125,15 +125,20 @@ describe("match graphics: storing, serving and OBS stingers", () => {
     expect((await api(`/api/v1/matches/${matchId}/art/stinger-replay`, { raw: MOV })).status).toBe(200);
     obs.changes.length = 0;
     const second = await api(`/api/v1/matches/${matchId}/art/obs`, { body: { useStinger: false } });
-    expect(second.json).toMatchObject({ missing: [], replayTransition: "Matchframe Replay Stinger" });
+    expect(second.json).toMatchObject({ missing: [], replayIn: "Matchframe Replay Stinger", replayOut: "Matchframe Replay Stinger" });
+    // Replay out stays "the same as Replay in".
+    expect(e.obsAuto.settings()).toMatchObject({ replayIn: "Matchframe Replay Stinger", replayOut: null });
     expect(obs.changes.map((c) => [c.name, c.keepCurrent])).toEqual([
       ["Matchframe Stinger", false],
       ["Matchframe Replay Stinger", false],
     ]);
     expect(String(obs.changes[1]!.settings.path)).toMatch(/stinger-replay\.mov$/);
-    // A replay transition the operator chose is kept.
-    e.obsAuto.setSettings({ replayTransition: "Fade" });
-    expect((await api(`/api/v1/matches/${matchId}/art/obs`, { body: {} })).json).toMatchObject({ replayTransition: "Fade" });
+    // Transitions the operator chose are kept; OBS's own for the way out gets the stinger.
+    e.obsAuto.setSettings({ replayIn: "Fade", replayOut: "" });
+    expect((await api(`/api/v1/matches/${matchId}/art/obs`, { body: {} })).json).toMatchObject({ replayIn: "Fade", replayOut: "Matchframe Replay Stinger" });
+    e.obsAuto.setSettings({ replayIn: "", replayOut: "Fade" });
+    expect((await api(`/api/v1/matches/${matchId}/art/obs`, { body: {} })).json).toMatchObject({ replayIn: "Matchframe Replay Stinger", replayOut: "Fade" });
+    e.obsAuto.setSettings({ replayIn: "Matchframe Replay Stinger", replayOut: null });
   });
 
   it("points the stingers at a match when it becomes the active one", async () => {

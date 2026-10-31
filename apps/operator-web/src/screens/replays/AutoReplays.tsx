@@ -23,6 +23,11 @@ const TRANSITIONS = [
   { id: "Stinger1", label: "Stinger 1" },
   { id: "Stinger2", label: "Stinger 2" },
 ] as const;
+/** When the break's replays end: by a time on the next round's clock (seconds left), or before it starts. */
+const CUT_BACK = [112, 110, 105, 100, 95, 90] as const;
+const FADES = [300, 500, 750, 1000] as const;
+/** A round clock time as CS2 shows it (110 → 1:50). */
+const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 
 /**
  * Main PC: replays play by themselves in the break after a round. The round's clips (from the
@@ -56,7 +61,13 @@ export function AutoReplaysPanel() {
   return (
     <Panel title="Automatic replays" subtitle={status?.detail} actions={status ? <Badge tone={STATE_TONE[status.state]}>{status.state === "playing" ? "Playing" : status.enabled ? "On" : "Off"}</Badge> : null}>
       <div className="stack-sm">
-        <Checkbox checked={st?.enabled ?? false} disabled={off} label="Play replays by themselves" hint="In the break after a round: from a few seconds after it ends until just before freeze time ends, one cut to the replays and one back to live. Never while a round is live." onChange={(v) => void save({ enabled: v })} />
+        <Checkbox
+          checked={st?.enabled ?? false}
+          disabled={off}
+          label="Play replays by themselves"
+          hint={`In the break after a round: from a few seconds after it ends until ${st?.cutBack === "before_round" ? "just before the next round starts" : `the next round's clock reads ${clock(st?.cutBackClockSec ?? 110)}`}, one transition to the replays and one back to live. They never start once the next round is live.`}
+          onChange={(v) => void save({ enabled: v })}
+        />
         <div className="form-grid">
           <Field label="Replays per break" hint="The best clips of the round that fit in the break; the rest are left.">
             <select value={st?.perBreak ?? 4} disabled={off} onChange={(e) => void save({ perBreak: Number(e.target.value) })}>
@@ -71,6 +82,30 @@ export function AutoReplaysPanel() {
             <select value={st?.order ?? "round"} disabled={off} onChange={(e) => void save({ order: e.target.value as AutoReplaySettings["order"] })}>
               <option value="round">Round order</option>
               <option value="best">Best first</option>
+            </select>
+          </Field>
+          <Field label="Back to live" hint="Replays may run on into the next round while the teams leave spawn: the cut back to live starts by this time on its clock (CS2's round starts at 1:55). The bomb planted, or the round over, ends them at once.">
+            <select
+              value={st?.cutBack === "before_round" ? "before_round" : String(st?.cutBackClockSec ?? 110)}
+              disabled={off}
+              onChange={(e) => void save(e.target.value === "before_round" ? { cutBack: "before_round" } : { cutBack: "clock", cutBackClockSec: Number(e.target.value) })}
+            >
+              {[...CUT_BACK, ...(st?.cutBackClockSec && !(CUT_BACK as readonly number[]).includes(st.cutBackClockSec) ? [st.cutBackClockSec] : [])].map((sec) => (
+                <option key={sec} value={String(sec)}>
+                  {`By ${clock(sec)} on the round clock${sec === 110 ? " (recommended)" : ""}`}
+                </option>
+              ))}
+              <option value="before_round">Before the round starts</option>
+            </select>
+          </Field>
+          <Field label="Between replays" hint="The end of one replay fades into the start of the next. In OBS through a second replay scene Matchframe keeps the same as yours.">
+            <select value={st?.between === "cut" ? "cut" : String(st?.fadeMs ?? 500)} disabled={off} onChange={(e) => void save(e.target.value === "cut" ? { between: "cut" } : { between: "fade", fadeMs: Number(e.target.value) })}>
+              {[...FADES, ...(st?.fadeMs && !(FADES as readonly number[]).includes(st.fadeMs) ? [st.fadeMs] : [])].map((ms) => (
+                <option key={ms} value={String(ms)}>
+                  {`Fade, ${ms / 1000} s${ms === 500 ? " (recommended)" : ""}`}
+                </option>
+              ))}
+              <option value="cut">Cut</option>
             </select>
           </Field>
           <Field label="Speed">
@@ -97,8 +132,18 @@ export function AutoReplaysPanel() {
               <Field label="vMix address" hint="vMix on this computer, with its Web Controller on (vMix → Settings → Web Controller).">
                 <input value={vmixUrl} disabled={off} spellCheck={false} onChange={(e) => setVmixUrl(e.target.value)} onBlur={() => vmixUrl !== st.vmixUrl && void save({ vmixUrl })} placeholder="http://127.0.0.1:8088" />
               </Field>
-              <Field label="Transition" hint="To the first replay and back to live after the last; from one replay to the next vMix cuts. Stingers use vMix's own Stinger 1 or 2.">
+              <Field label="Replay in" hint="To the first replay. Stingers use vMix's own Stinger 1 or 2.">
                 <select value={st.vmixTransition} disabled={off} onChange={(e) => void save({ vmixTransition: e.target.value as AutoReplaySettings["vmixTransition"] })}>
+                  {TRANSITIONS.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Replay out" hint="Back to live after the last replay.">
+                <select value={st.vmixTransitionOut ?? ""} disabled={off} onChange={(e) => void save({ vmixTransitionOut: (e.target.value || null) as AutoReplaySettings["vmixTransitionOut"] })}>
+                  <option value="">Same as Replay in</option>
                   {TRANSITIONS.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.label}
@@ -120,7 +165,8 @@ export function AutoReplaysPanel() {
             <ActionButton action={() => api.post<{ scene: string; input: string }>("/api/v1/replays/obs-setup")} success={(r) => `OBS: scene “${r.scene}” with the media source “${r.input}” is ready`} onDone={() => void auto.reload()} disabledReason={setupReason}>
               Set up OBS replay scene
             </ActionButton>
-            <span className="muted small">Adds a “Matchframe Replay” scene to OBS and uses it. Put a stinger transition in OBS for a broadcast wipe.</span>
+            <span className="muted small">Adds a “Matchframe Replay” scene to OBS and uses it, with a second one beside it for fading between replays. Pick a Stinger for replays under OBS scenes → Transitions.</span>
+            {status?.twin ? <span className={`small ${status.twin.ready ? "muted" : "text-warn"}`}>{status.twin.ready ? `Fades between replays through “${status.twin.scene}”, a copy of your replay scene that Matchframe keeps the same: leave it to Matchframe.` : `Between replays: ${status.twin.detail}`}</span> : null}
           </div>
         )}
         {ranked.length ? (
@@ -135,6 +181,7 @@ export function AutoReplaysPanel() {
                     {r.score}
                     {r.reasons.length ? ` · ${r.reasons.join(", ")}` : ""}
                   </span>
+                  {r.note ? <span className="text-warn">{r.note}</span> : null}
                 </li>
               ))}
             </ol>

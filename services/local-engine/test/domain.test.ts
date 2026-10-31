@@ -180,6 +180,44 @@ describe("program arbiter", () => {
   });
 });
 
+describe("program arbiter and the mixer's transitions", () => {
+  it("tells the mixer what each change is, for its transition (into a replay, out of it, to and from the break scene)", async () => {
+    const moves: string[] = [];
+    const p = new ProgramArbiter({ connected: () => true, setProgram: async (scene, m) => (moves.push(`${m.from}→${m.to} ${scene}`), true) }, { LIVE: "Live", REPLAY: "Replay", STUDIO: "Studio", BREAK: "Break" });
+    await p.request("REPLAY_PREPARED", "automation", "auto-replay", { replayItemId: "a" });
+    await p.request("REPLAY_PLAYING", "automation", "auto-replay", { replayItemId: "a" });
+    await p.request("LIVE", "automation", "auto-replay");
+    await p.request("BREAK", "automation", "obs-automation");
+    await p.request("LIVE", "operator", "op");
+    // LIVE → REPLAY_PREPARED changes no scene: the live scene stays on program until the replay plays.
+    expect(moves).toEqual(["REPLAY_PREPARED→REPLAY_PLAYING Replay", "REPLAY_PLAYING→LIVE Live", "LIVE→BREAK Break", "BREAK→LIVE Live"]);
+  });
+
+  it("counts the replay scene's twin as a replay scene while it is the twin of the mapped one", () => {
+    const p = new ProgramArbiter(null, { LIVE: "Live", REPLAY: "Replay", STUDIO: null, BREAK: null });
+    expect(p.replayScenes).toEqual(["Replay"]);
+    p.setReplayTwin("Replay B", "Replay");
+    expect(p.replayScenes).toEqual(["Replay", "Replay B"]);
+    p.setScenes({ LIVE: "Live", REPLAY: "Other replay", STUDIO: null, BREAK: null });
+    expect(p.replayScenes).toEqual(["Other replay"]);
+    p.setScenes({ LIVE: "Live", REPLAY: null, STUDIO: null, BREAK: null });
+    expect(p.replayScenes).toEqual([]);
+  });
+
+  it("doesn't follow the mixer to the live scene while its own change there is under way (the mixer reports the scene before it answers)", async () => {
+    const followed: unknown[] = [];
+    const p: ProgramArbiter = new ProgramArbiter({ connected: () => true, setProgram: async () => (followed.push(p.followMixerLive("obs")), true) }, { LIVE: "Live", REPLAY: "Replay", STUDIO: null, BREAK: null });
+    await p.request("REPLAY_PREPARED", "operator", "op", { replayItemId: "r" });
+    await p.request("REPLAY_PLAYING", "operator", "op", { replayItemId: "r" });
+    await p.request("LIVE", "operator", "op");
+    expect(followed).toEqual([null, null]);
+    expect(p.history.map((h) => h.to)).toEqual(["REPLAY_PREPARED", "REPLAY_PLAYING", "LIVE"]);
+    // Afterwards it follows again.
+    await p.request("MANUAL", "operator", "op");
+    expect(p.followMixerLive("obs")).toMatchObject({ from: "MANUAL", to: "LIVE" });
+  });
+});
+
 describe("secret store", () => {
   it("encrypts stored credentials at rest when a credential-store key is supplied", async () => {
     const { mkdtempSync, readFileSync } = await import("node:fs");

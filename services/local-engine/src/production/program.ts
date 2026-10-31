@@ -30,10 +30,16 @@ export interface ProgramTransition {
   detail: string | null;
 }
 
+/** A program change, for the mixer to choose its transition (to a replay, back from one, to the break scene…). */
+export interface ProgramMove {
+  from: ProgramMode;
+  to: ProgramMode;
+}
+
 export interface MixerPort {
   connected(): boolean;
   /** Puts the scene on program and returns whether the mixer confirmed it. */
-  setProgram(scene: string): Promise<boolean>;
+  setProgram(scene: string, move: ProgramMove): Promise<boolean>;
 }
 
 /**
@@ -46,6 +52,10 @@ export class ProgramArbiter {
   owner: { kind: ProgramOwner; holder: string } = { kind: "operator", holder: "local-operator" };
   readonly history: ProgramTransition[] = [];
   private replayItemId: string | null = null;
+  /** The mode a change is going to while the mixer makes it (the mixer may report its new scene before it is done). */
+  private changing: ProgramMode | null = null;
+  /** The replay scene's twin (replay/twin.ts), and the replay scene it is the twin of: a break's replays alternate between the two, so it counts as the replay scene. */
+  private twin: { scene: string; of: string } | null = null;
 
   constructor(
     private readonly mixer: MixerPort | null,
@@ -58,6 +68,17 @@ export class ProgramArbiter {
 
   get sceneMap(): SceneMap {
     return this.scenes;
+  }
+
+  setReplayTwin(scene: string | null, of: string | null): void {
+    this.twin = scene && of ? { scene, of } : null;
+  }
+
+  /** The scenes a replay plays on: the mapped replay scene, and its twin while it is the twin of that scene. */
+  get replayScenes(): string[] {
+    const replay = this.scenes.REPLAY;
+    if (!replay) return [];
+    return this.twin?.of === replay ? [replay, this.twin.scene] : [replay];
   }
 
   get activeReplay(): string | null {
@@ -89,7 +110,8 @@ export class ProgramArbiter {
    * on program then). Returns the transition, or null when nothing changed.
    */
   followMixerLive(holder: string): ProgramTransition | null {
-    if (this.mode === "LIVE" || this.mode === "REPLAY_PREPARED") return null;
+    // A change of the program's own (to live, say) is under way: it says where the program is.
+    if (this.mode === "LIVE" || this.mode === "REPLAY_PREPARED" || this.changing) return null;
     const t: ProgramTransition = { from: this.mode, to: "LIVE", owner: "operator", holder, at: new Date().toISOString(), confirmed: true, detail: "the mixer shows the live scene" };
     this.mode = "LIVE";
     this.owner = { kind: "operator", holder };
@@ -131,7 +153,12 @@ export class ProgramArbiter {
         detail = "mixer not connected; program scene unchanged";
         if (to !== "LIVE" && to !== "MANUAL") throw Object.assign(new Error(detail), { status: 409 });
       } else {
-        confirmed = await this.mixer.setProgram(scene);
+        this.changing = to;
+        try {
+          confirmed = await this.mixer.setProgram(scene, { from, to });
+        } finally {
+          this.changing = null;
+        }
         if (!confirmed) detail = `mixer did not confirm scene ${scene}`;
       }
     }
