@@ -181,8 +181,10 @@ export class HighlightReels {
 
   constructor(private readonly e: Engine) {}
 
-  /** Where reels go: the desktop program's Videos folder, else the data folder's exports/highlights. */
+  /** Where reels go: the chosen highlights folder, else the desktop program's Videos folder, else the data folder's exports/highlights. */
   folder(): string {
+    const chosen = this.e.storageFolders().highlights;
+    if (chosen) return chosen;
     return this.e.cfg.videosDir ? join(this.e.cfg.videosDir, "Matchframe Highlights") : join(this.e.cfg.dataDir, "exports", "highlights");
   }
 
@@ -225,8 +227,10 @@ export class HighlightReels {
     if (this.jobs.length > KEEP_JOBS) this.jobs.shift();
     const slot = { job, child: null as ChildProcess | null, cancelled: false };
     this.running = slot;
-    mkdirSync(this.e.highlights.dir, { recursive: true });
-    const work = mkdtempSync(join(this.e.highlights.dir, "reel-"));
+    // The work folder is beside the reel, on the same drive, so the finished file is moved, not copied
+    // (and nothing large is written to the data folder's drive when reels go to another one).
+    mkdirSync(job.folder, { recursive: true });
+    const work = mkdtempSync(join(job.folder, ".matchframe-reel-"));
     void (async () => {
       try {
         const inputs: ReelInput[] = [];

@@ -44,6 +44,7 @@ import { AutoReplay } from "./replay/auto.ts";
 import { GraphicsDirector } from "./live/graphics.ts";
 import { ObsAutomation } from "./live/obs-auto.ts";
 import { ReplayLink } from "./replay/link.ts";
+import { checkFolder, StorageFolders } from "./storage.ts";
 import { ReplayTwin } from "./replay/twin.ts";
 import { ReplayGraphic } from "./replay/graphic.ts";
 import { HighlightStore } from "./replay/highlights.ts";
@@ -340,7 +341,7 @@ export class Engine {
     this.replays = new ReplayQueue(null, (item) => {
       // Clips the replay PC sent live in this computer's data folder: delete them when they drop off the queue.
       const path = item.origin === "replay_pc" ? item.clip?.media.path : null;
-      if (path && path.startsWith(this.replayDir())) rmSync(path, { force: true });
+      if (path && this.isReplayFile(path)) rmSync(path, { force: true });
     });
     this.ruleEngine = new RuleEngine((action, event, rule) => this.executeRuleAction(action, event, rule), this.now);
     if (this.rules.list().length === 0) for (const r of exampleRules()) this.rules.create(r);
@@ -1119,7 +1120,35 @@ export class Engine {
    * replay PC's screen.
    */
   replayStorage(what: "clips" | "feed"): string {
-    return join(this.cfg.dataDir, what === "clips" ? "replays" : "replay-feed");
+    return join(this.storageFolders().replays ?? this.cfg.dataDir, what === "clips" ? "replays" : "replay-feed");
+  }
+
+  /** The folders chosen for replays and highlights (null: the data folder; for reels, the Videos folder). */
+  storageFolders(): StorageFolders {
+    const r = StorageFolders.safeParse(this.settings.get("storage.folders", {}));
+    return r.success ? r.data : StorageFolders.parse({});
+  }
+
+  /**
+   * Moves where new replay clips, the replay feed's recording, kept highlight clips and reels are
+   * written (another drive, say). What is already stored stays where it is and keeps working. The
+   * replay feed's recording restarts in the new folder.
+   */
+  async setStorageFolders(patch: Partial<StorageFolders>): Promise<StorageFolders> {
+    const prev = this.storageFolders();
+    const next = StorageFolders.parse({ ...prev, ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)) });
+    for (const dir of [next.replays, next.highlights]) if (dir) checkFolder(dir);
+    // Clips already in the old replay folder are still deleted when they drop off the queue.
+    const roots = new Set([...this.settings.get<string[]>("storage.pastReplayRoots", []), this.replayDir()]);
+    this.settings.set("storage.pastReplayRoots", [...roots].slice(-6));
+    this.settings.set("storage.folders", next);
+    if (next.replays !== prev.replays && this.replayFeed.recording()) await this.replayFeed.restart();
+    return next;
+  }
+
+  /** Whether a clip file is one of the replay folders' (current or earlier), so it may be deleted. */
+  isReplayFile(path: string): boolean {
+    return [this.replayDir(), ...this.settings.get<string[]>("storage.pastReplayRoots", [])].some((root) => path.startsWith(root));
   }
 
   /** Where clips from the replay PC are kept. */

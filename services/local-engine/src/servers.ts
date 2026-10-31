@@ -24,6 +24,7 @@ import { registerReplayRoutes } from "./routes/replay.ts";
 import { registerMatchArtRoutes } from "./routes/match-art.ts";
 import { registerReplayGraphicRoutes } from "./routes/replay-graphic.ts";
 import { registerHighlightRoutes } from "./routes/highlights.ts";
+import { registerStorageRoutes } from "./routes/storage.ts";
 import { registerDemoRoutes } from "./routes/demos.ts";
 import { registerDeviceRoutes, tally } from "./routes/devices.ts";
 import { registerReportRoutes } from "./routes/reports.ts";
@@ -106,6 +107,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerReplayRoutes(router, e);
   registerReplayGraphicRoutes(router, e);
   registerHighlightRoutes(router, e);
+  registerStorageRoutes(router, e);
   registerHudRoutes(router, e);
   registerHudLibraryRoutes(router, e);
   registerDemoRoutes(router, e);

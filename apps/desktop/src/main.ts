@@ -1,7 +1,7 @@
 import { fork, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { delimiter, extname, join, resolve, sep } from "node:path";
+import { delimiter, extname, isAbsolute, join, resolve, sep } from "node:path";
 import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, net, Notification, protocol, safeStorage, shell } from "electron";
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron";
 import { HotkeyManager } from "./hud/hotkeys.ts";
@@ -590,6 +590,12 @@ ipcMain.handle("mf:replay-hotkeys-set", (event, patch: unknown) => {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 });
+// A folder on this computer (Storage: replays and highlights on another drive).
+ipcMain.handle("mf:pick-directory", async (event, title: unknown) => {
+  if (!fromApp(event) || fromApp(event, "/connect") || connection.mode !== "local" || !win) return null;
+  const r = await dialog.showOpenDialog(win, { title: typeof title === "string" ? title.slice(0, 120) : "Choose a folder", properties: ["openDirectory", "createDirectory"] });
+  return (r.canceled ? undefined : r.filePaths[0]) ?? null;
+});
 ipcMain.handle("mf:hlae-choose", async (event) => {
   if (!fromApp(event) || !win) return null;
   const r = await dialog.showOpenDialog(win, { title: "Choose HLAE.exe", properties: ["openFile"], filters: [{ name: "HLAE", extensions: ["exe"] }] });
@@ -603,9 +609,11 @@ ipcMain.on("mf:hud-availability", (event) => {
   event.returnValue = fromApp(event) && !fromApp(event, "/connect") ? { available: connection.mode === "local", reason: connection.mode === "remote" ? REMOTE_REASON : null } : { available: false, reason: "not allowed" };
 });
 ipcMain.handle("mf:open-data-dir", () => shell.openPath(dataDir()));
-// The highlight reels' folder (the engine's rule: the Videos folder's "Matchframe Highlights", else the data folder's).
-ipcMain.handle("mf:open-highlights", (event) => {
+// The highlight reels' folder: the one the engine says (a folder chosen under Storage), else its default
+// rule (the Videos folder's "Matchframe Highlights", else the data folder's).
+ipcMain.handle("mf:open-highlights", (event, folder: unknown) => {
   if (!fromApp(event) || connection.mode !== "local") return null;
+  if (typeof folder === "string" && isAbsolute(folder) && existsSync(folder) && statSync(folder).isDirectory()) return shell.openPath(folder);
   const videos = videosDir();
   const dir = videos ? join(videos, "Matchframe Highlights") : join(dataDir(), "exports", "highlights");
   mkdirSync(dir, { recursive: true });

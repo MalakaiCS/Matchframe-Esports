@@ -12,6 +12,7 @@ import { AutoReplaysPanel, ReplayPcPanel } from "./replays/AutoReplays.tsx";
 import { GraphicsPanel, ObsAutomationPanel } from "./replays/ProductionAutomation.tsx";
 import { HighlightReelPanel } from "./replays/HighlightReel.tsx";
 import { ReplayGraphicPanel } from "./replays/ReplayGraphic.tsx";
+import { StoragePanel } from "./replays/Storage.tsx";
 
 const STATE_TONE: Record<ClipState, "ok" | "info" | "warn" | "danger" | "neutral" | "accent"> = {
   bookmarked: "neutral",
@@ -135,6 +136,7 @@ export function ReplaysScreen() {
         <GraphicsPanel />
         <ReplayGraphicPanel />
         <HighlightReelPanel />
+        <StoragePanel />
       </div>
       <Async state={replays}>
         {(r) => {

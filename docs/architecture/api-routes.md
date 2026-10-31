@@ -214,6 +214,8 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/highlights/reels` | replay.control |
 | POST | `/api/v1/highlights/reels/:id/cancel` | replay.control |
 | POST | `/api/v1/highlights/ffmpeg` | settings.manage |
+| GET | `/api/v1/storage` | settings.manage |
+| PUT | `/api/v1/storage` | settings.manage |
 | GET | `/api/v1/hud/packages` | metadata.read |
 | POST | `/api/v1/hud/packages/import` | hud.publish |
 | POST | `/api/v1/hud/packages/import-directory` | hud.publish |

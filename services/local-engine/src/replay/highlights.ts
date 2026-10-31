@@ -45,8 +45,10 @@ export interface KeptClip {
   origin: QueueItem["origin"];
   play: ReplayPlay | null;
   played: boolean;
-  /** The kept file, relative to the clips folder. */
+  /** The kept file, relative to `root`. */
   file: string;
+  /** The clips folder it was kept in (Storage can move new ones to another drive); older entries: the data folder's. */
+  root?: string;
   bytes: number;
   playMs: number | null;
   leadMs: number | null;
@@ -141,7 +143,13 @@ export class HighlightStore {
     return join(this.e.cfg.dataDir, "highlights");
   }
 
+  /** Where new clips are kept: the chosen highlights folder's "Kept clips", else the data folder's. */
   private get clipsDir(): string {
+    const chosen = this.e.storageFolders().highlights;
+    return chosen ? join(chosen, "Kept clips") : this.defaultClipsDir;
+  }
+
+  private get defaultClipsDir(): string {
     return join(this.dir, "clips");
   }
 
@@ -186,7 +194,7 @@ export class HighlightStore {
   }
 
   filePath(c: KeptClip): string {
-    return join(this.clipsDir, c.file);
+    return join(c.root ?? this.defaultClipsDir, c.file);
   }
 
   totalBytes(): number {
@@ -304,8 +312,9 @@ export class HighlightStore {
     const src = it.clip!.media.path!;
     if (!existsSync(src)) return;
     const rel = `${map.key}/${it.id}${extname(src) || ".mp4"}`;
-    const dest = join(this.clipsDir, rel);
-    mkdirSync(join(this.clipsDir, map.key), { recursive: true });
+    const root = this.clipsDir;
+    const dest = join(root, rel);
+    mkdirSync(join(root, map.key), { recursive: true });
     const add = () => {
       if (!this.index.maps.includes(map)) return;
       const first = this.firstKill(map, it.roundNumber, it.play);
@@ -325,6 +334,7 @@ export class HighlightStore {
         play: it.play,
         played: it.state === "played",
         file: rel,
+        root,
         bytes: statSync(dest).size,
         playMs: it.playMs,
         leadMs: it.leadMs ?? null,
@@ -372,7 +382,7 @@ export class HighlightStore {
   prune(): void {
     while (this.index.maps.length > KEEP_MAPS) {
       const old = this.index.maps.shift()!;
-      rmSync(join(this.clipsDir, old.key), { recursive: true, force: true });
+      for (const root of new Set([this.clipsDir, ...old.clips.map((c) => c.root ?? this.defaultClipsDir)])) rmSync(join(root, old.key), { recursive: true, force: true });
       this.dirty = true;
     }
     const cap = this.settings().keepGb * 1024 ** 3;
@@ -465,7 +475,7 @@ export class HighlightStore {
       if (!existsSync(this.indexFile)) return;
       const raw = JSON.parse(readFileSync(this.indexFile, "utf8")) as Index;
       if (raw?.version !== 1 || !Array.isArray(raw.maps)) return;
-      for (const m of raw.maps) m.clips = m.clips.filter((c) => existsSync(join(this.clipsDir, c.file)));
+      for (const m of raw.maps) m.clips = m.clips.filter((c) => existsSync(this.filePath(c)));
       this.index = raw;
     } catch (err) {
       this.e.logger.warn("highlights: the list of kept clips couldn't be read; starting a new one", { error: err instanceof Error ? err.message : String(err) });

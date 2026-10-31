@@ -212,7 +212,7 @@ export function HighlightReelPanel() {
                   <Mono>{job.file}</Mono>
                   <CopyButton text={job.file} label="Copy path" />
                   {open ? (
-                    <Button size="sm" onClick={() => void open()}>
+                    <Button size="sm" onClick={() => void open(data?.folder)}>
                       Open folder
                     </Button>
                   ) : null}

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { delimiter, join } from "node:path";
 
-export const APP_VERSION = "0.10.5";
+export const APP_VERSION = "0.10.6";
 
 export interface EngineConfig {
   /** Bind host. Loopback by default; LAN exposure is an explicit operator choice. */

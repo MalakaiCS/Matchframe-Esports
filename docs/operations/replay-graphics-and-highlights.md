@@ -122,3 +122,20 @@ So every clip that comes into the queue is also kept in the data folder's `highl
 The list is in `highlights/index.json`, so reels can be made after a restart.
 
 A new map starts when the map changes, or when the active match changes.
+
+## Storage: another drive (0.10.6)
+
+**Replays → Storage** chooses where replays and highlights are written on the production computer. **Choose folder…** opens a folder picker in the program; a full path can also be typed. Matchframe checks it can write there, and shows the free space on that drive.
+
+| Setting | What goes there | Default |
+|---|---|---|
+| Replay clips and recording | the replay PC's clips (`replays`) and the replay feed's recording of its picture (`replay-feed`) | Matchframe's data folder |
+| Highlights | the clips kept for reels (`Kept clips`) and the reels | the Videos folder's `Matchframe Highlights` |
+
+- **From then on:** new files go to the new folder. Clips already saved stay where they are, and still play and go into reels.
+- **Recording:** the replay feed's recording restarts in the new folder.
+- **Old folder:** clips of the old replay folder are still deleted when they drop off the replay list.
+- **Reels:** a reel is made in a work folder beside it (`.matchframe-reel-…`, removed afterwards). So nothing large is written to the data folder's drive, and the finished file is moved, not copied.
+- **Different drives:** when the replay folder and the highlights folder are on different drives, kept clips are copied in the background instead of hard-linked.
+- **Use default** goes back to the default folders.
+- **API:** `GET`/`PUT /api/v1/storage` (`replays`, `highlights`: a full folder path, or null for the default).

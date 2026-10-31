@@ -11,6 +11,27 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.6",
+    title: "Replay graphic, controls and highlight reels",
+    summary: "A replay graphic in every Matchframe HUD, controls and sound for replays, a Test replays button, highlight reels and storage on another drive.",
+    sections: [
+      {
+        heading: "Replays",
+        items: [
+          "A REPLAY tag and lower third with the play, in the style of Vector, Lineup, Pro CS2 or the Broadcast HUD.",
+          "Skip, Hold and Stop while replays play, Exclude and Pin first, from the program, hotkeys or a Stream Deck.",
+          "Game sound from the replay feed, and the live game audio turned down during replays.",
+          "Test replays plays two sample clips through your whole setup and reports each step.",
+          "Switching scenes yourself in OBS (a multiview, say) is followed: Matchframe waits until you're back on live.",
+        ],
+      },
+      {
+        heading: "Highlights",
+        items: ["Export a map's best clips as one MP4 with fades, optionally with the replay graphic.", "Keep replays and highlights on another drive."],
+      },
+    ],
+  },
+  {
     version: "0.10.5",
     title: "Replay fades and transitions",
     summary: "Replays play on until 1:50 on the round clock, fade into each other, and use the transitions you pick.",

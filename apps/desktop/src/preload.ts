@@ -49,8 +49,10 @@ contextBridge.exposeInMainWorld("matchframe", {
   getOperatorToken: (): Promise<string | null> => ipcRenderer.invoke("mf:token"),
   info: (): Promise<unknown> => ipcRenderer.invoke("mf:info"),
   openDataDir: (): Promise<string> => ipcRenderer.invoke("mf:open-data-dir"),
-  /** The folder highlight reels go in, on this computer. */
-  openHighlights: (): Promise<string> => ipcRenderer.invoke("mf:open-highlights"),
+  /** The folder highlight reels go in, on this computer (the engine's folder when given). */
+  openHighlights: (folder?: string): Promise<string> => ipcRenderer.invoke("mf:open-highlights", folder),
+  /** Choose a folder on this computer (null when cancelled, or not the production computer). */
+  pickDirectory: (title: string): Promise<string | null> => ipcRenderer.invoke("mf:pick-directory", title),
   restartEngine: (): Promise<boolean> => ipcRenderer.invoke("mf:restart-engine"),
   network: {
     get: (): Promise<{ networkAccess: boolean; local: boolean } | null> => ipcRenderer.invoke("mf:network-get"),
