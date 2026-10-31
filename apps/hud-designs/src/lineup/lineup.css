@@ -395,6 +395,7 @@ body,
   width: 150px;
   height: 56px;
   font-size: 58px;
+  color: #ffffff;
 }
 .lu-banner-logo[data-len="4"] {
   font-size: 50px;
@@ -700,7 +701,7 @@ body,
   align-items: center;
   justify-content: center;
   background: var(--lu-team);
-  color: #ffffff;
+  color: var(--lu-team-ink);
   --mf-ink-inverse: var(--lu-team);
   animation: lu-fade 200ms ease-out both;
 }
@@ -838,10 +839,10 @@ body,
   display: block;
   width: 10px;
   height: 10px;
-  color: #ffffff;
+  color: var(--lu-team-ink);
 }
 .lu-card-armor {
-  color: #ffffff;
+  color: var(--lu-team-ink);
   --mf-ink-inverse: rgba(0, 0, 0, 0.35);
 }
 .lu-card-name {
@@ -889,12 +890,15 @@ body,
   margin-top: 1px;
   background: linear-gradient(90deg, var(--lu-team) 0, var(--lu-team) 82%, rgba(31, 32, 36, 0));
 }
+.lu-kd {
+  color: var(--lu-team-ink);
+}
 .lu-kd i {
   width: 19px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.88);
+  opacity: 0.9;
   --mf-ink-inverse: var(--lu-team);
 }
 .lu-kd b {
@@ -1062,6 +1066,9 @@ body,
 .lu-card.is-dead .lu-card-skull {
   opacity: 1;
   transform: none;
+}
+.lu-card.is-dead .lu-star {
+  color: #ffffff;
 }
 
 /* ------------------------------------------------------------ centre: observed player, buy time */
