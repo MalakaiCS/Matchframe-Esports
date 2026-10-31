@@ -1,7 +1,7 @@
 import { memo, useRef } from "react";
 import type { RefObject } from "react";
 import type { HudPhase, HudState, HudTeam } from "@matchframe/hud-sdk";
-import { clockText, roundWinner, secondsLeft } from "../shared/format.ts";
+import { clockText, roundWinner, secondsLeft, seriesBoxCount, seriesWon } from "../shared/format.ts";
 import { BombIcon, KitIcon } from "../shared/parts.ts";
 import { useNow } from "../shared/useHud.ts";
 import { TeamLogo } from "./Badge.tsx";
@@ -99,7 +99,19 @@ function PlantPanel({ state, receivedAt, settings }: { state: HudState; received
   );
 }
 
-function Side({ team, color, align }: { team: HudTeam; color: string; align: "left" | "right" }) {
+/** The series boxes between score and logo: one per map needed to win, filled for each map won. */
+function SeriesBoxes({ count, won }: { count: number; won: number }) {
+  if (count === 0) return null;
+  return (
+    <span className={`lu-sb-boxes n-${Math.min(count, 7)}`} aria-label={`${won} of ${count} maps won`}>
+      {Array.from({ length: count }, (_, i) => (
+        <i key={i} className={i < won ? "is-won" : ""} />
+      ))}
+    </span>
+  );
+}
+
+function Side({ team, color, align, boxes, won }: { team: HudTeam; color: string; align: "left" | "right"; boxes: number; won: number }) {
   return (
     <div className={`lu-sb-side lu-sb-${align}`} style={teamVars(color)}>
       <span className="lu-sb-edge" aria-hidden />
@@ -108,10 +120,7 @@ function Side({ team, color, align }: { team: HudTeam; color: string; align: "le
           {team.score ?? 0}
         </span>
       </span>
-      <span className="lu-sb-colon" aria-hidden>
-        <i />
-        <i />
-      </span>
+      <SeriesBoxes count={boxes} won={won} />
       <TeamLogo team={team} className="lu-sb-logo" />
     </div>
   );
@@ -141,13 +150,14 @@ export function ScoreBar({ state, receivedAt, settings }: { state: HudState; rec
   const round = m.roundNumber !== null ? `ROUND ${m.roundNumber}${m.regulationRounds && m.roundNumber <= m.regulationRounds ? `/${m.regulationRounds}` : ""}` : "";
   const label = m.paused ? "PAUSED" : (PHASE_LABEL[m.phase] ?? round);
   const centre = bombOn ? "is-bomb" : after ? `is-${after}` : "";
+  const boxes = seriesBoxCount(state.series.bestOf);
 
   return (
     <>
       <div className="lu-scorebar" data-phase={m.phase}>
         <div className={`lu-sb ${winner ? "is-won" : ""}`}>
-          <Side team={state.left} color={leftColor} align="left" />
-          <Side team={state.right} color={rightColor} align="right" />
+          <Side team={state.left} color={leftColor} align="left" boxes={boxes} won={seriesWon(state, "left")} />
+          <Side team={state.right} color={rightColor} align="right" boxes={boxes} won={seriesWon(state, "right")} />
           <div className={`lu-sb-centre ${centre}`}>
             <span className="lu-sb-clock">
               <Clock sec={m.phaseEndsInSec} running={m.clockRunning && !m.paused} receivedAt={receivedAt} live={live} />

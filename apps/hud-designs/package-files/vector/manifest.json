@@ -6,7 +6,7 @@
   "author": "Matchframe",
   "licence": "MIT (code, Matchframe; weapon icons, Lexogrine); fonts: SIL OFL 1.1",
   "thumbnail": "thumbnail.webp",
-  "description": "Broadcast HUD with each team's players down its side of the screen: team-colour score bar with timeouts, loss bonus and series maps in freeze time, bomb and defuse bars, round winner, players alive, killfeed, observed player and radar. Panels slide, wipe and collapse with the game.",
+  "description": "Broadcast HUD with each team's players down its side of the screen: team-colour score bar with series boxes, loss bonus and series maps in freeze time, bomb and defuse bars, round winner, players alive, killfeed, observed player and radar. Panels slide, wipe and collapse with the game.",
   "game": "cs2",
   "category": "Broadcast",
   "tags": [

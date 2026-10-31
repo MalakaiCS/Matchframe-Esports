@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { CSSProperties } from "react";
 import type { HudSide, HudState } from "@matchframe/hud-sdk";
 import { aliveCount, isLive, teamColor } from "../shared/format.ts";
-import { Radar } from "../shared/parts.ts";
+import { MapRadar } from "../shared/radar.tsx";
 import { useHud, VARIANT } from "../shared/useHud.ts";
 import { readOptions } from "./bits.tsx";
 import { AliveBox, Killfeed } from "./Killfeed.tsx";
@@ -32,13 +32,13 @@ function Hud({ state, receivedAt }: { state: HudState; receivedAt: number }) {
   const extras = opts.showFreezeExtras && (phase === "freezetime" || phase === "timeout_ct" || phase === "timeout_t");
   // "Team names: short" shows each team's tag in the score bar and the winner card.
   const named = opts.shortNames ? { ...state, left: { ...state.left, name: state.left.shortName || state.left.name }, right: { ...state.right, name: state.right.shortName || state.right.name } } : state;
-  const style = { "--vx-left": color.left, "--vx-right": color.right, "--vx-ct": bySide("CT"), "--vx-t": bySide("T") } as CSSProperties;
+  const style = { "--vx-left": color.left, "--vx-right": color.right, "--vx-ct": bySide("CT"), "--vx-t": bySide("T"), "--radar-ct": bySide("CT"), "--radar-t": bySide("T") } as CSSProperties;
   return (
     <div className={`vx-stage phase-${phase}`} style={style}>
-      {opts.showRadar ? <Radar radar={state.radar} /> : null}
+      {opts.showRadar ? <MapRadar radar={state.radar} className="vx-radar" /> : null}
       <ScoreBar state={named} receivedAt={receivedAt} extras={extras} color={color} />
-      <TeamColumn team={state.left} align="left" showMoney={opts.showMoney} extras={extras} />
-      <TeamColumn team={state.right} align="right" showMoney={opts.showMoney} extras={extras} />
+      <TeamColumn state={state} team={state.left} align="left" showMoney={opts.showMoney} extras={extras} />
+      <TeamColumn state={state} team={state.right} align="right" showMoney={opts.showMoney} extras={extras} />
       {opts.showAlive ? <AliveBox left={aliveCount(state.left)} right={aliveCount(state.right)} on={isLive(phase)} /> : null}
       {opts.showKillfeed ? <Killfeed entries={state.killfeed.entries} top={!opts.showAlive} /> : null}
       {opts.showObserved ? <Observed state={state} color={color} /> : null}

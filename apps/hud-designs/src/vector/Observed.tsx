@@ -1,11 +1,13 @@
 import type { CSSProperties } from "react";
 import type { HudPlayer, HudState } from "@matchframe/hud-sdk";
+import { playerPicture } from "../shared/art.ts";
 import { ArmorIcon } from "../shared/parts.ts";
 import { Avatar, healthFraction, teamOf, useOutgoing } from "./bits.tsx";
 
 interface Shown {
   player: HudPlayer;
   color: string;
+  picture: string | null;
 }
 
 function Content({ s, leaving }: { s: Shown; leaving: boolean }) {
@@ -17,7 +19,7 @@ function Content({ s, leaving }: { s: Shown; leaving: boolean }) {
   return (
     <div className={`vx-obs-content ${leaving ? "is-out" : ""}`} style={{ "--team": s.color } as CSSProperties}>
       <span className="vx-obs-photo">
-        <Avatar player={p} fill />
+        <Avatar player={{ name: p.name, avatarUrl: s.picture }} fill />
       </span>
       <span className="vx-obs-hp">
         {hp}
@@ -45,7 +47,7 @@ function Content({ s, leaving }: { s: Shown; leaving: boolean }) {
 export function Observed({ state, color }: { state: HudState; color: { left: string; right: string } }) {
   const p = state.observed;
   const side = p ? teamOf(state, p.steamId) : null;
-  const shown: Shown | null = p && side ? { player: p, color: color[side] } : null;
+  const shown: Shown | null = p && side ? { player: p, color: color[side], picture: playerPicture(state, p) } : null;
   const out = useOutgoing(p?.steamId ?? "", shown, 130);
   return (
     <div className={`vx-obs ${shown ? "is-on" : ""}`} style={shown ? ({ "--team": shown.color } as CSSProperties) : undefined}>

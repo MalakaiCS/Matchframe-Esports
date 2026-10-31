@@ -381,8 +381,8 @@ body,
   }
 }
 
-/* timeouts: an outlined capsule at each end of the bar */
-.vx-timeouts {
+/* series boxes: an outlined capsule at each end of the bar, one cell per map needed, filled per map won */
+.vx-boxes {
   position: absolute;
   top: 13px;
   z-index: 1;
@@ -390,23 +390,75 @@ body,
   flex-direction: column;
   width: 16px;
   height: 38px;
+  overflow: hidden;
   border: 3px solid var(--team);
   border-radius: 8px;
 }
-.vx-timeouts.vx-left {
+.vx-boxes.vx-left {
   left: 0;
 }
-.vx-timeouts.vx-right {
+.vx-boxes.vx-right {
   right: 0;
 }
-.vx-timeouts i {
+.vx-boxes i {
+  position: relative;
   flex: 1;
 }
-.vx-timeouts i + i {
+.vx-boxes i + i {
   border-top: 3px solid var(--team);
 }
-.vx-timeouts.is-none {
-  opacity: 0.35;
+.vx-boxes i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--team);
+  transform: scaleY(0);
+  transition: transform 150ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.vx-boxes i.is-won::after {
+  transform: none;
+}
+.vx-boxes.n-3 {
+  top: 11px;
+  height: 43px;
+}
+/* Four boxes or more: a little wider, thinner lines, still under the loss-bonus pill's height. */
+.vx-boxes.n-4,
+.vx-boxes.n-5,
+.vx-boxes.n-6,
+.vx-boxes.n-7 {
+  top: 11px;
+  width: 18px;
+  height: 43px;
+  border-width: 2px;
+  border-radius: 7px;
+}
+.vx-boxes.n-4.vx-left,
+.vx-boxes.n-5.vx-left,
+.vx-boxes.n-6.vx-left,
+.vx-boxes.n-7.vx-left {
+  left: -2px;
+}
+.vx-boxes.n-4.vx-right,
+.vx-boxes.n-5.vx-right,
+.vx-boxes.n-6.vx-right,
+.vx-boxes.n-7.vx-right {
+  right: -2px;
+}
+.vx-boxes.n-4 i + i,
+.vx-boxes.n-5 i + i,
+.vx-boxes.n-6 i + i,
+.vx-boxes.n-7 i + i {
+  border-top-width: 2px;
+}
+/* From three boxes on, a won box is filled inside its cell, so neighbours stay apart. */
+.vx-boxes.n-3 i::after,
+.vx-boxes.n-4 i::after,
+.vx-boxes.n-5 i::after,
+.vx-boxes.n-6 i::after,
+.vx-boxes.n-7 i::after {
+  inset: 1px 1.5px;
+  border-radius: 1.5px;
 }
 
 /* loss bonus: tucked under the bar's ends; going live slides it into the bar */
@@ -501,8 +553,47 @@ body,
 }
 .vx-series.is-many .vx-map {
   width: 103px;
-  padding: 0 6px 0 8px;
+  padding: 5px 6px 4px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 3px;
+}
+.vx-map-id {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.vx-map-info {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vx-series.is-many .vx-map-id {
+  flex: none;
+  justify-content: center;
+  height: 16px;
+}
+.vx-series.is-many .vx-map-info {
+  justify-content: center;
   gap: 5px;
+  height: 20px;
+}
+.vx-series.is-many .vx-map-pick.vx-badge {
+  width: 20px;
+  height: 20px;
+}
+.vx-series.is-many .vx-map-pick .vx-badge-mono {
+  font-size: 7px;
+}
+.vx-series.is-many .vx-live {
+  padding: 3px 4px 2px;
+  font-size: 8.5px;
+}
+.vx-series.is-many .vx-map-score {
+  font-size: 12px;
 }
 .vx-map-name {
   flex: 1;
@@ -515,7 +606,10 @@ body,
   text-overflow: ellipsis;
 }
 .vx-series.is-many .vx-map-name {
+  flex: none;
+  max-width: 100%;
   font-size: 11px;
+  text-align: center;
 }
 .vx-map.is-upcoming .vx-map-name {
   color: rgba(255, 255, 255, 0.75);
@@ -551,6 +645,34 @@ body,
 }
 .vx-map-score .is-win {
   color: var(--vx-ink);
+}
+/* With the operator's map picture: the picture behind a dark wash, the map logo before the name. */
+.vx-map.has-image {
+  background-size: cover;
+  background-position: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.vx-map.has-image::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(12, 14, 18, 0.82), rgba(12, 14, 18, 0.45));
+}
+.vx-map.has-image.is-live::before {
+  background: linear-gradient(90deg, rgba(12, 14, 18, 0.6), rgba(12, 14, 18, 0.2));
+}
+.vx-map.has-image > * {
+  position: relative;
+}
+.vx-map-logo {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+.vx-series.is-many .vx-map-logo {
+  width: 16px;
+  height: 16px;
 }
 
 /* bomb and defuse bars: drop out from under the score bar */
@@ -937,6 +1059,40 @@ body,
   opacity: 0.5;
   filter: grayscale(1);
 }
+/* The operator's dead icon takes the photo's place on a dead card. */
+.vx-card-rip {
+  position: absolute;
+  bottom: 0;
+  width: 84px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.8);
+  transition:
+    opacity 100ms,
+    transform 140ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.vx-card.vx-left .vx-card-rip {
+  left: 0;
+}
+.vx-card.vx-right .vx-card-rip {
+  right: 0;
+}
+.vx-card-rip img {
+  display: block;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+.vx-card.is-dead.has-rip .vx-card-photo {
+  opacity: 0;
+}
+.vx-card.is-dead .vx-card-rip {
+  opacity: 1;
+  transform: none;
+}
 .vx-card-name {
   position: absolute;
   top: 0;
@@ -1249,143 +1405,13 @@ body,
   white-space: nowrap;
 }
 
-/* ------------------------------------------------------------- radar */
-.mf-radar {
+/* ------------------------------------------------------------- radar (shared style: src/shared/radar.css) */
+.vx-radar {
   position: absolute;
   top: 34px;
   left: 40px;
   width: 392px;
   height: 392px;
-}
-.mf-side-CT {
-  --mf-side: var(--vx-ct);
-}
-.mf-side-T {
-  --mf-side: var(--vx-t);
-}
-.mf-side-none {
-  --mf-side: #9aa3b2;
-}
-.mf-radar-svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-.mf-radar-bg {
-  fill: transparent;
-}
-.mf-radar-image {
-  opacity: 0.95;
-}
-.mf-radar-cell {
-  fill: rgba(30, 32, 36, 0.82);
-}
-.mf-radar-cell.k-bombsite {
-  fill: rgba(150, 60, 70, 0.8);
-}
-.mf-radar-cell.k-spawn {
-  fill: rgba(44, 46, 52, 0.82);
-}
-.mf-radar-player .mf-radar-dot {
-  fill: var(--mf-side);
-  stroke: #ffffff;
-  stroke-width: 4;
-}
-.mf-radar-player.is-flashed .mf-radar-dot {
-  fill: #fff;
-}
-.mf-radar-facing {
-  fill: var(--mf-side);
-  opacity: 0.8;
-}
-.mf-radar-ring {
-  fill: none;
-  stroke: #fff;
-  stroke-width: 5;
-}
-.mf-radar-label {
-  font: 700 26px var(--vx-font);
-  fill: #ffffff;
-}
-.mf-radar-carrier {
-  fill: #ffb020;
-  stroke: #101317;
-  stroke-width: 3;
-}
-.mf-radar-dead {
-  stroke: var(--mf-side);
-  stroke-width: 5;
-  stroke-linecap: round;
-  opacity: 0.55;
-}
-.mf-radar-bomb-body {
-  fill: #ffb020;
-  stroke: #101317;
-  stroke-width: 3;
-}
-.mf-radar-bomb-face {
-  fill: #101317;
-}
-.mf-radar-bomb-pulse {
-  fill: none;
-  stroke: none;
-}
-.mf-radar-bomb.s-planted .mf-radar-bomb-body,
-.mf-radar-bomb.s-defusing .mf-radar-bomb-body {
-  fill: var(--vx-red);
-}
-.mf-radar-bomb.s-planted .mf-radar-bomb-pulse,
-.mf-radar-bomb.s-defusing .mf-radar-bomb-pulse {
-  stroke: var(--vx-red);
-  stroke-width: 4;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: vx-radar-ping 1.2s ease-out infinite;
-}
-.mf-radar-bomb.s-defused .mf-radar-bomb-body {
-  fill: var(--vx-money);
-}
-@keyframes vx-radar-ping {
-  from {
-    opacity: 1;
-    transform: scale(0.6);
-  }
-  to {
-    opacity: 0;
-    transform: scale(1.6);
-  }
-}
-.mf-radar-util {
-  stroke-width: 4;
-}
-.mf-radar-util.u-smoke {
-  fill: rgba(225, 230, 240, 0.5);
-  stroke: rgba(255, 255, 255, 0.75);
-}
-.mf-radar-util.u-smoke.mf-side-CT,
-.mf-radar-util.u-smoke.mf-side-T {
-  stroke: var(--mf-side);
-  stroke-width: 6;
-}
-.mf-radar-util.u-fire {
-  fill: rgba(240, 70, 30, 0.45);
-  stroke: rgba(255, 160, 60, 0.95);
-}
-.mf-radar-util.u-he {
-  fill: rgba(214, 69, 80, 0.2);
-  stroke: var(--vx-red);
-}
-.mf-radar-util.u-flash {
-  fill: rgba(255, 255, 255, 0.45);
-  stroke: #fff;
-}
-.mf-radar-util.u-decoy {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.35);
-  stroke-dasharray: 6 4;
-}
-.mf-radar-util.is-estimated {
-  stroke-dasharray: 8 6;
 }
 
 /* ------------------------------------------------------------- honest labels */

@@ -1,5 +1,7 @@
 // Screenshots of a built HUD package (dist/<hud>) in every demo scene, over a game-like background:
-//   node scripts/shots.mjs <vector|lineup> <out dir> [--frames <scene>,<scene2> <ms between frames> <count>]
+//   node scripts/shots.mjs <vector|lineup> <out dir> [--query "<demo params>"] [--frames <scene>,<scene2> <ms between frames> <count>]
+// --query adds demo parameters to every page, e.g. --query "art=1&radar=1&bo=5" (sample HUD images,
+// sample radar, best of 5).
 // --frames records an animation: the page shows <scene>, then switches to <scene2>, and a frame is
 // taken every <ms> from the switch (e.g. --frames freeze,live 50 12 for going live).
 import { createServer } from "node:http";
@@ -9,7 +11,10 @@ import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const [hud = "vector", out = join(here, "..", "shots", hud), ...rest] = process.argv.slice(2);
+const [hud = "vector", out = join(here, "..", "shots", hud), ...args] = process.argv.slice(2);
+const qi = args.indexOf("--query");
+const extra = qi >= 0 ? `&${args[qi + 1] ?? ""}` : "";
+const rest = qi >= 0 ? [...args.slice(0, qi), ...args.slice(qi + 2)] : args;
 const dist = join(here, "..", "dist", hud);
 if (!existsSync(join(dist, "index.html"))) throw new Error(`build dist/${hud} first (pnpm run build)`);
 mkdirSync(out, { recursive: true });
@@ -30,7 +35,7 @@ const backdrop = `document.documentElement.style.background = "linear-gradient(1
 const frames = rest[0] === "--frames" ? { scenes: rest[1].split(","), every: Number(rest[2] ?? 50), count: Number(rest[3] ?? 12) } : null;
 if (!frames) {
   for (const scene of ["freeze", "live", "kill", "bomb", "defuse", "over"]) {
-    await page.goto(`${base}?demo=${scene}`);
+    await page.goto(`${base}?demo=${scene}${extra}`);
     await page.evaluate(backdrop);
     await page.waitForTimeout(1200);
     await page.screenshot({ path: join(out, `${scene}.png`) });
@@ -39,7 +44,7 @@ if (!frames) {
 } else {
   // Plays the first scene, then switches to the second through the page's demo cycle hook.
   const [a, b] = frames.scenes;
-  await page.goto(`${base}?demo=${a}`);
+  await page.goto(`${base}?demo=${a}${extra}`);
   await page.evaluate(backdrop);
   await page.waitForTimeout(1500);
   await page.evaluate((scene) => window.__mfDemo?.(scene), b);

@@ -1,0 +1,145 @@
+/* The shared minimap (Vector and Lineup): one marker style, no panel. Each HUD sets --radar-ct and
+   --radar-t (the colours of the teams on each side) and places .mf-map-radar. */
+.mf-map-radar .mf-radar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.mf-map-radar .mf-radar-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.mf-map-radar .mf-side-CT {
+  --mf-side: var(--radar-ct, #2380e0);
+}
+.mf-map-radar .mf-side-T {
+  --mf-side: var(--radar-t, #de1d41);
+}
+.mf-map-radar .mf-side-none {
+  --mf-side: #9aa3b2;
+}
+.mf-map-radar .mf-radar-bg {
+  fill: transparent;
+}
+.mf-map-radar .mf-radar-image {
+  opacity: 1;
+}
+/* Outline maps (no image): the same navy floor and red sites as the clean radar. */
+.mf-map-radar .mf-radar-cell {
+  fill: rgba(27, 41, 72, 0.92);
+}
+.mf-map-radar .mf-radar-cell.k-bombsite {
+  fill: rgba(196, 44, 62, 0.85);
+}
+.mf-map-radar .mf-radar-cell.k-spawn {
+  fill: rgba(38, 56, 94, 0.92);
+}
+.mf-map-radar .mf-radar-player .mf-radar-dot {
+  fill: var(--mf-side);
+  stroke: #ffffff;
+  stroke-width: 4;
+}
+.mf-map-radar .mf-radar-player.is-flashed .mf-radar-dot {
+  fill: #ffffff;
+}
+.mf-map-radar .mf-radar-facing {
+  fill: var(--mf-side);
+  opacity: 0.9;
+}
+.mf-map-radar .mf-radar-ring {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 5;
+}
+.mf-map-radar .mf-radar-label {
+  font: 700 27px system-ui, "Segoe UI", Arial, sans-serif;
+  fill: #ffffff;
+}
+.mf-map-radar .mf-radar-player.is-flashed .mf-radar-label {
+  fill: #101317;
+}
+.mf-map-radar .mf-radar-carrier {
+  fill: #ff9f1c;
+  stroke: #101317;
+  stroke-width: 3;
+}
+.mf-map-radar .mf-radar-dead {
+  stroke: var(--mf-side);
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+.mf-map-radar .mf-radar-bomb-body {
+  fill: #ff9f1c;
+  stroke: #101317;
+  stroke-width: 3;
+}
+.mf-map-radar .mf-radar-bomb-face {
+  fill: #101317;
+}
+.mf-map-radar .mf-radar-bomb-pulse {
+  fill: none;
+  stroke: none;
+}
+.mf-map-radar .mf-radar-bomb.s-planted .mf-radar-bomb-body,
+.mf-map-radar .mf-radar-bomb.s-defusing .mf-radar-bomb-body {
+  fill: #f01d48;
+}
+.mf-map-radar .mf-radar-bomb.s-planted .mf-radar-bomb-pulse,
+.mf-map-radar .mf-radar-bomb.s-defusing .mf-radar-bomb-pulse {
+  stroke: #f01d48;
+  stroke-width: 4;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mf-map-radar-ping 1.2s ease-out infinite;
+}
+.mf-map-radar .mf-radar-bomb.s-defused .mf-radar-bomb-body {
+  fill: #3fc35a;
+}
+.mf-map-radar .mf-radar-bomb.s-exploded .mf-radar-bomb-body {
+  fill: #ff7a1a;
+}
+@keyframes mf-map-radar-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.mf-map-radar .mf-radar-util {
+  stroke-width: 4;
+}
+.mf-map-radar .mf-radar-util.u-smoke {
+  fill: rgba(225, 230, 240, 0.55);
+  stroke: rgba(255, 255, 255, 0.8);
+}
+.mf-map-radar .mf-radar-util.u-smoke.mf-side-CT,
+.mf-map-radar .mf-radar-util.u-smoke.mf-side-T {
+  stroke: var(--mf-side);
+  stroke-width: 6;
+}
+.mf-map-radar .mf-radar-util.u-fire {
+  fill: rgba(240, 70, 30, 0.45);
+  stroke: rgba(255, 160, 60, 0.95);
+}
+.mf-map-radar .mf-radar-util.u-he {
+  fill: rgba(240, 29, 72, 0.18);
+  stroke: #f01d48;
+}
+.mf-map-radar .mf-radar-util.u-flash {
+  fill: rgba(255, 255, 255, 0.45);
+  stroke: #ffffff;
+}
+.mf-map-radar .mf-radar-util.u-decoy {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-dasharray: 6 4;
+}
+.mf-map-radar .mf-radar-util.is-estimated {
+  stroke-dasharray: 8 6;
+}

@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { HudState, HudTeam } from "@matchframe/hud-sdk";
-import { clockText, lossBonus, money, roundWinner, secondsLeft } from "../shared/format.ts";
+import { mapArt } from "../shared/art.ts";
+import { clockText, lossBonus, money, roundWinner, secondsLeft, seriesBoxCount, seriesWindow, seriesWon } from "../shared/format.ts";
 import { BombIcon, KitIcon } from "../shared/parts.ts";
 import { useNow } from "../shared/useHud.ts";
 import { Flip, sizeClass, TeamBadge, Watermark } from "./bits.tsx";
@@ -80,13 +81,13 @@ function Center({ state, receivedAt }: { state: HudState; receivedAt: number }) 
   );
 }
 
-/** Timeouts left: an outlined capsule with one cell per timeout. */
-function Timeouts({ n, align }: { n: number | null; align: Align }) {
-  if (n === null) return null;
+/** The series boxes: an outlined capsule at the bar's end, one cell per map needed, filled for each map won. */
+function SeriesBoxes({ count, won, align }: { count: number; won: number; align: Align }) {
+  if (count === 0) return null;
   return (
-    <span className={`vx-timeouts vx-${align} ${n === 0 ? "is-none" : ""}`} aria-label={`${n} timeouts left`}>
-      {Array.from({ length: Math.max(1, Math.min(4, n)) }, (_, i) => (
-        <i key={i} />
+    <span className={`vx-boxes vx-${align} n-${Math.min(count, 7)}`} aria-label={`${won} of ${count} maps won`}>
+      {Array.from({ length: Math.min(count, 7) }, (_, i) => (
+        <i key={i} className={i < won ? "is-won" : ""} />
       ))}
     </span>
   );
@@ -117,26 +118,39 @@ function LossPill({ team, align, on }: { team: HudTeam; align: Align; on: boolea
   );
 }
 
+/**
+ * Freeze time: the series maps under the bar. With the operator's map art a tile shows the map's
+ * picture behind it and its logo in place of the name; four or five maps stack each tile in two rows.
+ */
 function SeriesStrip({ state, on }: { state: HudState; on: boolean }) {
   const s = state.series;
   if (!s.bestOf || s.maps.length === 0) return null;
+  const maps = seriesWindow(s.maps, 5);
   return (
-    <div className={`vx-series ${on ? "is-on" : ""} ${s.maps.length > 3 ? "is-many" : ""}`}>
-      {s.maps.map((m, i) => {
+    <div className={`vx-series ${on ? "is-on" : ""} ${maps.length > 3 ? "is-many" : ""}`}>
+      {maps.map((m, i) => {
         const done = m.status === "completed" || m.status === "forfeited";
         const picker = m.pickedBy === "left" || m.pickedBy === "right" ? state[m.pickedBy] : null;
+        const art = mapArt(state, m.mapName);
         return (
-          <div key={`${m.mapName}-${i}`} className={`vx-map is-${m.status} ${m.winner ? `won-${m.winner}` : ""}`}>
-            <span className="vx-map-name">{m.displayName}</span>
-            {picker ? <TeamBadge team={picker} className="vx-map-pick" /> : m.pickedBy === "decider" ? <span className="vx-map-decider">DECIDER</span> : null}
-            {m.status === "live" ? <span className="vx-live">LIVE</span> : null}
-            {done ? (
-              <span className="vx-map-score">
-                <b className={m.winner === "left" ? "is-win" : ""}>{m.scoreLeft}</b>
-                <i>-</i>
-                <b className={m.winner === "right" ? "is-win" : ""}>{m.scoreRight}</b>
-              </span>
-            ) : null}
+          <div
+            key={`${m.mapName}-${i}`}
+            className={`vx-map is-${m.status} ${m.winner ? `won-${m.winner}` : ""} ${art.imageUrl ? "has-image" : ""}`}
+            style={art.imageUrl ? { backgroundImage: `url("${art.imageUrl}")` } : undefined}
+            title={m.displayName}
+          >
+            <span className="vx-map-id">{art.logoUrl ? <img className="vx-map-logo" src={art.logoUrl} alt={m.displayName} /> : <span className="vx-map-name">{m.displayName}</span>}</span>
+            <span className="vx-map-info">
+              {picker ? <TeamBadge team={picker} className="vx-map-pick" /> : m.pickedBy === "decider" ? <span className="vx-map-decider">DECIDER</span> : null}
+              {m.status === "live" ? <span className="vx-live">LIVE</span> : null}
+              {done ? (
+                <span className="vx-map-score">
+                  <b className={m.winner === "left" ? "is-win" : ""}>{m.scoreLeft}</b>
+                  <i>-</i>
+                  <b className={m.winner === "right" ? "is-win" : ""}>{m.scoreRight}</b>
+                </span>
+              ) : null}
+            </span>
           </div>
         );
       })}
@@ -232,15 +246,16 @@ function WinnerCard({ state, color }: { state: HudState; color: { left: string; 
 }
 
 /**
- * Top centre: both teams' logos and scores around the clock, timeouts at the ends; in freeze time the
+ * Top centre: both teams' logos and scores around the clock, series boxes at the ends; in freeze time the
  * loss bonus and the series maps; the bomb and defuse bars while the bomb is down; the round
  * winner after the round.
  */
 export function ScoreBar({ state, receivedAt, extras, color }: { state: HudState; receivedAt: number; extras: boolean; color: { left: string; right: string } }) {
+  const boxes = seriesBoxCount(state.series.bestOf);
   return (
     <div className="vx-top">
-      <Timeouts n={state.left.timeoutsRemaining} align="left" />
-      <Timeouts n={state.right.timeoutsRemaining} align="right" />
+      <SeriesBoxes count={boxes} won={seriesWon(state, "left")} align="left" />
+      <SeriesBoxes count={boxes} won={seriesWon(state, "right")} align="right" />
       <LossPill team={state.left} align="left" on={extras} />
       <LossPill team={state.right} align="right" on={extras} />
       <div className="vx-bar">

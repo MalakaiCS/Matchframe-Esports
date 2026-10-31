@@ -1,5 +1,6 @@
 import { memo, useRef } from "react";
-import type { HudPlayer, HudTeam } from "@matchframe/hud-sdk";
+import type { HudPlayer, HudState, HudTeam } from "@matchframe/hud-sdk";
+import { deadIcon, playerPicture } from "../shared/art.ts";
 import { mainWeapon, money } from "../shared/format.ts";
 import { ArmorIcon, BombIcon, HeadshotIcon, KitIcon, SkullIcon, WeaponIcon } from "../shared/parts.ts";
 import { Portrait } from "./Badge.tsx";
@@ -60,6 +61,7 @@ const gauge = (health: number) => ({ clipPath: `inset(${100 - Math.max(0, Math.m
 interface CardProps {
   name: string;
   avatarUrl: string | null;
+  deadIcon: string | null;
   color: string;
   align: "left" | "right";
   alive: boolean;
@@ -73,6 +75,7 @@ interface CardProps {
   kills: number | null;
   deaths: number | null;
   roundKills: number;
+  roundDamage: number | null;
   weapon: string | null;
   nades: string;
   observed: boolean;
@@ -102,8 +105,8 @@ const Card = memo(function Card(p: CardProps) {
         <span className="lu-card-trail" style={gauge(hp)} aria-hidden />
         <span className="lu-card-fill" style={gauge(hp)} aria-hidden />
         <Portrait avatarUrl={p.avatarUrl} className="lu-card-photo" />
-        <span className="lu-card-skull" aria-hidden>
-          <SkullIcon size={58} />
+        <span className={`lu-card-skull ${p.deadIcon ? "is-art" : ""}`} aria-hidden>
+          {p.deadIcon ? <img src={p.deadIcon} alt="" /> : <SkullIcon size={58} />}
         </span>
         <span className="lu-card-shade" aria-hidden />
         <span className="lu-card-flash" style={{ opacity: dead ? 0 : Math.min(1, p.flashed) * 0.7 }} aria-hidden />
@@ -144,7 +147,7 @@ const Card = memo(function Card(p: CardProps) {
           {p.weapon ? <WeaponIcon weapon={p.weapon} className="lu-card-weapon" /> : null}
         </div>
         <div className="lu-card-dead">
-          THIS ROUND · {p.roundKills} KILL{p.roundKills === 1 ? "" : "S"}
+          {p.roundDamage !== null ? `ROUND DAMAGE ${p.roundDamage}` : `THIS ROUND · ${p.roundKills} KILL${p.roundKills === 1 ? "" : "S"}`}
         </div>
       </div>
       <span className="lu-card-line" aria-hidden />
@@ -153,11 +156,12 @@ const Card = memo(function Card(p: CardProps) {
   );
 });
 
-function cardProps(p: HudPlayer, color: string, align: "left" | "right", live: boolean, showMoney: boolean): CardProps {
+function cardProps(state: HudState, p: HudPlayer, color: string, align: "left" | "right", live: boolean, showMoney: boolean): CardProps {
   const alive = p.alive !== false;
   return {
     name: p.name,
-    avatarUrl: p.avatarUrl,
+    avatarUrl: playerPicture(state, p),
+    deadIcon: deadIcon(state),
     color,
     align,
     alive,
@@ -171,6 +175,7 @@ function cardProps(p: HudPlayer, color: string, align: "left" | "right", live: b
     kills: p.kills,
     deaths: p.deaths,
     roundKills: p.roundKills ?? 0,
+    roundDamage: p.roundDamage ?? null,
     weapon: alive ? mainWeapon(p) : null,
     nades: alive ? grenadeList(p) : "",
     observed: p.observed,
@@ -181,12 +186,12 @@ function cardProps(p: HudPlayer, color: string, align: "left" | "right", live: b
 }
 
 /** A team's five cards in slot order. */
-export function TeamCards({ team, color, align, live, showMoney }: { team: HudTeam; color: string; align: "left" | "right"; live: boolean; showMoney: boolean }) {
+export function TeamCards({ state, team, color, align, live, showMoney }: { state: HudState; team: HudTeam; color: string; align: "left" | "right"; live: boolean; showMoney: boolean }) {
   const players = [...team.players].sort((a, b) => (a.slot ?? 99) - (b.slot ?? 99)).slice(0, 5);
   return (
     <div className={`lu-cards lu-cards-${align}`}>
       {players.map((p) => (
-        <Card key={p.steamId} {...cardProps(p, color, align, live, showMoney)} />
+        <Card key={p.steamId} {...cardProps(state, p, color, align, live, showMoney)} />
       ))}
     </div>
   );

@@ -61,3 +61,26 @@ export const isLive = (phase: HudState["match"]["phase"]): boolean => phase === 
 
 /** A player's main weapon to show on their card: primary, else secondary, else the knife. */
 export const mainWeapon = (p: HudPlayer): string | null => p.primary?.name ?? p.secondary?.name ?? (p.alive === false ? null : "weapon_knife");
+
+/**
+ * Series boxes per side for a best-of: 1→1, 3→2, 5→3, 7→5 (the owner's choice for best of 7), any
+ * other n → ceil(n/2); none without a best-of.
+ */
+export function seriesBoxCount(bestOf: number | null): number {
+  if (!bestOf || bestOf < 1) return 0;
+  if (bestOf === 7) return 5;
+  return Math.ceil(bestOf / 2);
+}
+
+/** Maps a team has won in the series. */
+export const seriesWon = (state: HudState, side: "left" | "right"): number => state.series[side] || state[side].seriesWins || 0;
+
+/** At most `max` of the series maps, keeping the live (else the next) map in view. */
+export function seriesWindow<T extends { status: string }>(maps: T[], max = 5): T[] {
+  if (maps.length <= max) return maps;
+  let focus = maps.findIndex((m) => m.status === "live");
+  if (focus < 0) focus = maps.findIndex((m) => m.status === "upcoming");
+  if (focus < 0) focus = maps.length - 1;
+  const start = Math.max(0, Math.min(maps.length - max, focus - Math.floor(max / 2)));
+  return maps.slice(start, start + max);
+}

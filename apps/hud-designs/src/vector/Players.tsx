@@ -1,5 +1,6 @@
 import { memo } from "react";
-import type { HudPlayer, HudTeam } from "@matchframe/hud-sdk";
+import type { HudPlayer, HudState, HudTeam } from "@matchframe/hud-sdk";
+import { deadIcon, playerPicture } from "../shared/art.ts";
 import { mainWeapon, money, utilityCounts } from "../shared/format.ts";
 import { ArmorIcon, BombIcon, GrenadeIcon, HeadshotIcon, KitIcon, SkullIcon, WeaponIcon } from "../shared/parts.ts";
 import { Avatar, healthFraction, sizeClass } from "./bits.tsx";
@@ -16,6 +17,10 @@ function grenades(p: HudPlayer): string[] {
 
 interface CardProps {
   player: HudPlayer;
+  /** The player's photo, else the operator's default picture for the side (null: silhouette). */
+  picture: string | null;
+  /** The operator's dead-player icon (null: the greyed photo). */
+  rip: string | null;
   align: Align;
   showMoney: boolean;
 }
@@ -25,22 +30,27 @@ interface CardProps {
  * health (with a lighter damage trail), K/D, money, kills this round, weapon and equipment. A dead
  * player's card narrows to name, K/D and money.
  */
-function Card({ player: p, align, showMoney }: CardProps) {
+function Card({ player: p, picture, rip, align, showMoney }: CardProps) {
   const alive = p.alive !== false;
   const hp = alive ? Math.max(0, Math.min(100, p.health ?? 0)) : 0;
   const f = healthFraction(hp);
   const weapon = mainWeapon(p);
   const held = !!p.activeWeapon && !!weapon && p.activeWeapon.name === weapon;
   return (
-    <div className={`vx-card vx-${align} ${alive ? "" : "is-dead"} ${p.observed ? "is-observed" : ""}`} data-steamid={p.steamId}>
+    <div className={`vx-card vx-${align} ${alive ? "" : "is-dead"} ${p.observed ? "is-observed" : ""} ${rip ? "has-rip" : ""}`} data-steamid={p.steamId}>
       <i className="vx-card-dead" />
       <span className="vx-card-band">
         <i className="vx-band-trail" style={{ transform: `scaleX(${f})` }} />
         <i className="vx-band-fill" style={{ transform: `scaleX(${f})` }} />
       </span>
       <span className="vx-card-photo">
-        <Avatar player={p} />
+        <Avatar player={{ name: p.name, avatarUrl: picture }} />
       </span>
+      {rip ? (
+        <span className="vx-card-rip">
+          <img src={rip} alt="" />
+        </span>
+      ) : null}
       <span className={`vx-card-name ${sizeClass(p.name.length, 10, 13, 16)}`}>{p.name}</span>
       <span className="vx-card-hp vx-alive-only">
         {(p.armor ?? 0) > 0 ? <ArmorIcon helmet={!!p.helmet} size={14} /> : null}
@@ -72,7 +82,7 @@ function Card({ player: p, align, showMoney }: CardProps) {
 const shown = (p: HudPlayer): string =>
   [p.name, p.alive, p.health, p.armor, p.helmet, p.defuseKit, p.hasBomb, p.money, p.kills, p.deaths, p.roundKills, p.observed, p.avatarUrl, p.primary?.name, p.secondary?.name, p.activeWeapon?.name, p.grenades.map((g) => `${g.name}${g.ammoReserve ?? ""}`).join()].join("|");
 
-const PlayerCard = memo(Card, (a, b) => a.align === b.align && a.showMoney === b.showMoney && shown(a.player) === shown(b.player));
+const PlayerCard = memo(Card, (a, b) => a.align === b.align && a.showMoney === b.showMoney && a.picture === b.picture && a.rip === b.rip && shown(a.player) === shown(b.player));
 
 const KINDS = [
   ["smoke", "smoke"],
@@ -99,13 +109,14 @@ function UtilityRow({ team, on }: { team: HudTeam; on: boolean }) {
 }
 
 /** One team's five players down its side of the screen. */
-export function TeamColumn({ team, align, showMoney, extras }: { team: HudTeam; align: Align; showMoney: boolean; extras: boolean }) {
+export function TeamColumn({ state, team, align, showMoney, extras }: { state: HudState; team: HudTeam; align: Align; showMoney: boolean; extras: boolean }) {
   const players = [...team.players].sort((a, b) => (a.slot ?? 99) - (b.slot ?? 99)).slice(0, 5);
+  const rip = deadIcon(state);
   return (
     <div className={`vx-col vx-${align}`}>
       <UtilityRow team={team} on={extras} />
       {players.map((p) => (
-        <PlayerCard key={p.steamId} player={p} align={align} showMoney={showMoney} />
+        <PlayerCard key={p.steamId} player={p} picture={playerPicture(state, p)} rip={rip} align={align} showMoney={showMoney} />
       ))}
     </div>
   );

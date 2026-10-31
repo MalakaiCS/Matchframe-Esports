@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { HudClient } from "@matchframe/hud-sdk";
 import type { HudState } from "@matchframe/hud-sdk";
-import { DEMO_SCENES, demoScene, type DemoScene } from "./demo.ts";
+import { DEMO_SCENES, demoScene as sampleScene, type DemoOptions, type DemoScene } from "./demo.ts";
 
 export interface HudFeed {
   state: HudState | null;
@@ -16,6 +16,9 @@ export const VARIANT = params.get("variant") ?? "live";
 const DEMO = params.get("demo");
 /** How long each scene of `?demo=cycle` stays (ms). */
 const CYCLE_MS = Number(params.get("every") ?? 3500);
+/** Demo extras: `?bo=5` (best of), `?art=1` (sample HUD images), `?radar=1` (sample radar). */
+const DEMO_OPTS: DemoOptions = { bestOf: params.has("bo") ? Number(params.get("bo")) || undefined : undefined, art: params.get("art") === "1", radar: params.get("radar") === "1" };
+const demoScene = (s: DemoScene) => sampleScene(s, DEMO_OPTS);
 
 /**
  * Connects to the HUD server's state socket (read-only) and returns the latest public HUD state.

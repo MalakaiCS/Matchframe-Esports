@@ -124,8 +124,12 @@ body,
   padding-top: 2px;
 }
 .lu-map {
+  position: relative;
   flex: 1 1 0;
   min-width: 0;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -140,14 +144,30 @@ body,
   color: #121212;
 }
 .lu-map-name {
+  position: relative;
   max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   font: 700 19px/1 var(--lu-font);
   text-transform: uppercase;
   white-space: nowrap;
+}
+.lu-map-name > span {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.lu-map-logo {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -1px;
+  object-fit: contain;
+}
 .lu-map-sub {
+  position: relative;
   max-width: 100%;
   min-height: 9px;
   font: 600 12px/0.8 var(--lu-font);
@@ -161,6 +181,30 @@ body,
 }
 .lu-map.is-upcoming .lu-map-name {
   color: #f0f0f0;
+}
+/* With the operator's map picture: darkened behind white text; the live map lighter, with a white base. */
+.lu-map.has-image,
+.lu-map.is-live.has-image {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.lu-map.has-image::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(12, 12, 14, 0.45), rgba(12, 12, 14, 0.8));
+}
+.lu-map.is-live.has-image::before {
+  background: linear-gradient(180deg, rgba(12, 12, 14, 0.12), rgba(12, 12, 14, 0.6));
+}
+.lu-map.is-live.has-image::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: #ffffff;
 }
 
 .lu-radar {
@@ -250,22 +294,66 @@ body,
     opacity: 1;
   }
 }
-.lu-sb-colon {
+/* Series boxes between score and logo: one per map needed, filled white for each map won. */
+.lu-sb-boxes {
   position: absolute;
   left: 80px;
-  top: 26px;
+  top: 0;
+  bottom: 0;
+  width: 7px;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 5px;
 }
-.lu-sb-right .lu-sb-colon {
+.lu-sb-right .lu-sb-boxes {
   left: auto;
   right: 80px;
 }
-.lu-sb-colon i {
+.lu-sb-boxes i {
+  position: relative;
+  flex: none;
   width: 7px;
   height: 7px;
-  background: #555555;
+  background: rgba(40, 40, 40, 0.9);
+  box-shadow: inset 0 0 0 1px #6a6a6a;
+}
+.lu-sb-boxes i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  opacity: 0;
+  transform: scale(0.3);
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms var(--lu-out);
+}
+.lu-sb-boxes i.is-won::after {
+  opacity: 1;
+  transform: none;
+}
+.lu-sb-boxes.n-3 {
+  gap: 4px;
+}
+.lu-sb-boxes.n-4,
+.lu-sb-boxes.n-5 {
+  gap: 3px;
+}
+.lu-sb-boxes.n-4 i,
+.lu-sb-boxes.n-5 i {
+  width: 6px;
+  height: 6px;
+}
+.lu-sb-boxes.n-6,
+.lu-sb-boxes.n-7 {
+  gap: 2px;
+}
+.lu-sb-boxes.n-6 i,
+.lu-sb-boxes.n-7 i {
+  width: 5px;
+  height: 5px;
 }
 .lu-sb-logo {
   position: absolute;
@@ -799,6 +887,13 @@ body,
   height: 80px;
   margin-bottom: -8px;
 }
+.lu-card-skull img {
+  display: block;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 2px;
+  object-fit: contain;
+}
 .lu-card-right .lu-card-skull {
   left: auto;
   right: 30px;
@@ -1285,143 +1380,4 @@ body,
   bottom: 0;
   height: 3px;
   background: linear-gradient(90deg, var(--lu-ct) 50%, var(--lu-t) 50%);
-}
-
-/* ------------------------------------------------------------ radar (shared Matchframe minimap) */
-.lu-radar .mf-radar {
-  width: 100%;
-  height: 100%;
-}
-.lu-radar .mf-radar-svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-.lu-radar .mf-side-CT {
-  --mf-side: var(--lu-ct);
-}
-.lu-radar .mf-side-T {
-  --mf-side: var(--lu-t);
-}
-.lu-radar .mf-side-none {
-  --mf-side: var(--lu-ink-dim);
-}
-.mf-radar-bg {
-  fill: transparent;
-}
-.mf-radar-image {
-  opacity: 0.95;
-}
-.mf-radar-cell {
-  fill: rgba(16, 16, 16, 0.82);
-}
-.mf-radar-cell.k-bombsite {
-  fill: rgba(240, 29, 72, 0.4);
-}
-.mf-radar-cell.k-spawn {
-  fill: rgba(16, 16, 16, 0.6);
-}
-.mf-radar-player .mf-radar-dot {
-  fill: var(--mf-side);
-  stroke: #ffffff;
-  stroke-width: 4;
-}
-.mf-radar-player.is-flashed .mf-radar-dot {
-  fill: #ffffff;
-}
-.mf-radar-facing {
-  fill: var(--mf-side);
-  opacity: 0.85;
-}
-.mf-radar-ring {
-  fill: none;
-  stroke: #ffffff;
-  stroke-width: 5;
-}
-.mf-radar-label {
-  font: 800 28px var(--lu-font);
-  fill: #ffffff;
-}
-.mf-radar-carrier {
-  fill: var(--lu-c4);
-  stroke: #121212;
-  stroke-width: 3;
-}
-.mf-radar-dead {
-  stroke: var(--mf-side);
-  stroke-width: 6;
-  stroke-linecap: round;
-  opacity: 0.8;
-}
-.mf-radar-bomb-body {
-  fill: var(--lu-c4);
-  stroke: #121212;
-  stroke-width: 3;
-}
-.mf-radar-bomb-face {
-  fill: #121212;
-}
-.mf-radar-bomb-pulse {
-  fill: none;
-  stroke: none;
-}
-.mf-radar-bomb.s-planted .mf-radar-bomb-body,
-.mf-radar-bomb.s-defusing .mf-radar-bomb-body {
-  fill: var(--lu-red);
-}
-.mf-radar-bomb.s-planted .mf-radar-bomb-pulse,
-.mf-radar-bomb.s-defusing .mf-radar-bomb-pulse {
-  stroke: var(--lu-red);
-  stroke-width: 4;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: lu-radar-ping 1.2s ease-out infinite;
-}
-.mf-radar-bomb.s-defused .mf-radar-bomb-body {
-  fill: #3fc35a;
-}
-.mf-radar-bomb.s-exploded .mf-radar-bomb-body {
-  fill: #ff7a1a;
-}
-.mf-radar-util {
-  stroke-width: 4;
-}
-.mf-radar-util.u-smoke {
-  fill: rgba(225, 230, 240, 0.5);
-  stroke: rgba(255, 255, 255, 0.75);
-}
-.mf-radar-util.u-smoke.mf-side-CT,
-.mf-radar-util.u-smoke.mf-side-T {
-  stroke: var(--mf-side);
-  stroke-width: 6;
-}
-.mf-radar-util.u-fire {
-  fill: rgba(240, 70, 30, 0.45);
-  stroke: rgba(255, 160, 60, 0.95);
-}
-.mf-radar-util.u-he {
-  fill: rgba(240, 29, 72, 0.18);
-  stroke: var(--lu-red);
-}
-.mf-radar-util.u-flash {
-  fill: rgba(255, 255, 255, 0.45);
-  stroke: #ffffff;
-}
-.mf-radar-util.u-decoy {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.35);
-  stroke-dasharray: 6 4;
-}
-.mf-radar-util.is-estimated {
-  stroke-dasharray: 8 6;
-}
-@keyframes lu-radar-ping {
-  0% {
-    transform: scale(0.6);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1.6);
-    opacity: 0;
-  }
 }

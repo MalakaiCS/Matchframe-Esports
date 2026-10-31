@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import type { HudPlayer, HudState, HudTeam } from "@matchframe/hud-sdk";
+import { playerPicture } from "../shared/art.ts";
 import { equipmentValue, lossBonus, money, utilityCounts } from "../shared/format.ts";
 import { ArmorIcon, WeaponIcon } from "../shared/parts.ts";
 import { Portrait } from "./Badge.tsx";
@@ -17,13 +18,13 @@ interface ObsView {
   reserve: number | null;
 }
 
-function view(p: HudPlayer, color: string): ObsView {
+function view(p: HudPlayer, color: string, picture: string | null): ObsView {
   const alive = p.alive !== false;
   const w = p.activeWeapon;
   const shoots = !!w && w.kind !== "grenade" && w.kind !== "knife" && w.kind !== "bomb";
   return {
     name: p.name,
-    avatarUrl: p.avatarUrl,
+    avatarUrl: picture,
     color,
     health: alive ? (p.health ?? 100) : 0,
     armor: p.armor ?? 0,
@@ -65,7 +66,7 @@ export function ObservedPanel({ state, settings, shown }: { state: HudState; set
   const p = state.observed;
   const team = p ? (state.left.players.some((x) => x.steamId === p.steamId) ? state.left : state.right.players.some((x) => x.steamId === p.steamId) ? state.right : null) : null;
   const color = team ? colorOf(team, settings) : p?.side === "T" ? settings.tColor : settings.ctColor;
-  const v = p ? view(p, color) : null;
+  const v = p ? view(p, color, playerPicture(state, p)) : null;
   const out = useOutgoing(p?.steamId ?? null, v, 140);
   return (
     <div className={`lu-obs ${shown && v ? "is-shown" : ""}`} aria-hidden={!shown}>

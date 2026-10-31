@@ -7,7 +7,7 @@ import { BuyPanel, ObservedPanel } from "./Centre.tsx";
 import { ScoreBar } from "./ScoreBar.tsx";
 import { TopLeft } from "./TopLeft.tsx";
 import { Killfeed, SponsorSlot } from "./TopRight.tsx";
-import { colorOf, readSettings } from "./util.ts";
+import { colorOf, readSettings, sideColor } from "./util.ts";
 
 /** The 1920×1080 design stage scaled to the browser source's size. */
 function useStageScale(): number {
@@ -36,7 +36,7 @@ export default function App() {
   const compact = (state.variant || VARIANT) === "compact";
   const phase = state.match.phase;
   const live = isLive(phase) || phase === "over";
-  const vars = { transform: `scale(${scale})`, "--lu-ct": settings.ctColor, "--lu-t": settings.tColor } as CSSProperties;
+  const vars = { transform: `scale(${scale})`, "--lu-ct": settings.ctColor, "--lu-t": settings.tColor, "--radar-ct": sideColor(state, settings, "CT"), "--radar-t": sideColor(state, settings, "T") } as CSSProperties;
   return (
     <div className={`lu-stage ${live ? "is-live" : "is-freeze"} ${compact ? "is-compact" : ""} ${state.stale ? "is-stale" : ""}`} style={vars} data-phase={phase}>
       {compact ? null : <TopLeft state={state} settings={settings} />}
@@ -46,12 +46,12 @@ export default function App() {
         {settings.showKillfeed ? <Killfeed state={state} settings={settings} /> : null}
       </div>
       <div className="lu-bottom">
-        {compact ? null : <TeamCards team={state.left} color={colorOf(state.left, settings)} align="left" live={live} showMoney={settings.showMoney} />}
+        {compact ? null : <TeamCards state={state} team={state.left} color={colorOf(state.left, settings)} align="left" live={live} showMoney={settings.showMoney} />}
         <div className="lu-centre">
           {compact ? null : <BuyPanel state={state} settings={settings} shown={!live} />}
           {settings.showObserved ? <ObservedPanel state={state} settings={settings} shown={live} /> : null}
         </div>
-        {compact ? null : <TeamCards team={state.right} color={colorOf(state.right, settings)} align="right" live={live} showMoney={settings.showMoney} />}
+        {compact ? null : <TeamCards state={state} team={state.right} color={colorOf(state.right, settings)} align="right" live={live} showMoney={settings.showMoney} />}
       </div>
       {/* Honest labels: the test simulation, data that has stopped arriving, a replay on air. */}
       {state.simulated || state.stale || state.replay.active ? (
