@@ -10,7 +10,7 @@ What it shows:
 - **Players alive** ("3 VS 2", top right) and the **killfeed** under it. Kills stay seven seconds.
 - **Bomb**: the clock turns into the bomb on a T-colour centre and a bar with the seconds left drops in under the score bar and drains; while the bomb is defused the centre turns CT colour and a second bar names the defending team. A defused bomb ends the round on a green centre.
 - **Round winner** card, in the winning team's colour, under the score bar until the next freeze time.
-- **Radar** (top left, no panel behind it): Matchframe's clean radar for the map (navy floor, light walls, red bomb sites) when there is one, else the radar image or outline, with the same marker style as the Lineup HUD; hidden when no trustworthy calibration exists.
+- **Radar** (top left, no panel behind it): the map's radar image (the bundled radars, or one calibrated in Maps & Cameras); for a map without one (Anubis, Cache), Matchframe's radar drawn in the same style, with the same marker style as the Lineup HUD; hidden when no trustworthy calibration exists.
 - The **SIMULATION** label while test data runs and **DATA PAUSED** when game data stops arriving.
 
 Motion follows the game: going live flips the clock, tucks the loss bonus into the bar, wipes the series away and slides the players-alive box in; a kill collapses the victim's card and then slides the kill in; a planted bomb swaps the clock for the bomb and drops the bar in; the winner's card fades in when the round ends. Everything animates with transform, opacity and clip-path only, and only the clocks update ten times a second.

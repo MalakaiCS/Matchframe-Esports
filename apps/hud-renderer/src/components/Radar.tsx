@@ -44,7 +44,9 @@ const UTILITY_CLASS: Record<string, string> = { smoke: "u-smoke", molotov: "u-fi
  * smokes outlined in the thrower's team colour, fires, flashes and HE bursts. The bomb shows when
  * dropped or planted (pulsing), and defused/exploded.
  */
-export function Radar({ radar }: { radar: HudRadar }) {
+export function Radar({ radar: given }: { radar: HudRadar }) {
+  // A map without a radar image: Matchframe's radar drawn in the radar images' style, else the outline.
+  const radar = given.mode === "schematic" && given.cleanUrl ? { ...given, mode: "image" as const, backgroundUrl: given.cleanUrl } : given;
   const outline = useOutline(radar.mode === "schematic" ? radar.backgroundUrl : null);
   if (!radar.available) return null;
   const S = 1000;

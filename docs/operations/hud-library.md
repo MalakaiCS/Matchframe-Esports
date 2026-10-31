@@ -34,7 +34,7 @@ The program updates itself from the Matchframe Esports releases on GitHub, so yo
 
 - **Switches** at the top: **Test data** (the labelled simulation, below), **Show HUD graphics** (off hides every HUD graphic at once, the same as the emergency hide) and **Utility on the radar** (smokes, fires and flashes the game reports, on HUD radars). Hover the **?** for details.
 - **Counter-Strike 2** card: whether CS2 was found and its data arrives, the launch mode, **Start CS2** and **Setup** (below). In the standard mode it shows the console line `cl_drawhud 1; cl_draw_only_deathnotices 1; cl_drawhud_force_teamid_overhead 1` with **Copy** (paste it into the CS2 console while spectating so only your HUD, the kill notices and the names above the players show); in the console modes it shows the game options instead.
-- Below: search, category, status and sort, list or grid, and **Add HUD**. HUDs are grouped by category; click a group's name to fold it.
+- Below: search, category, status and sort, list or grid, **HUD images** (below) and **Add HUD**. HUDs are grouped by category; click a group's name to fold it.
 - Each HUD's row shows its picture, name and version, author, status and active outputs, then **Settings** (gear), **Preview** (eye), **Copy OBS Browser URL**, **⋯** (more actions), the **Desktop** switch and the arrow that opens its details under the row.
 
 ## Minimap and killfeed
@@ -43,6 +43,28 @@ Every bundled HUD shows a minimap (top left) and a killfeed (top right), each in
 
 - **Minimap:** the map drawing for Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo (Nuke and Vertigo show both levels), and Matchframe's generated outline for Anubis. Players show their slot number in the team colour: bigger with a ring when observed, lighter while flashed, marked when carrying the bomb, a faded cross when dead. Smokes are outlined in the thrower's team colour; fires, flashes and HE grenades show briefly; the bomb shows when dropped or planted (pulsing) and when defused. **Utility on the radar** in the library turns the utility off. A radar image you calibrate in Maps & Cameras replaces the built-in one.
 - **Killfeed:** killer (+ assister), weapon, headshot and blind-killer marks, victim; each kill stays for a few seconds. CS2's game data does not report kills, so Matchframe pairs them from the score changes in the same update, like every game-data HUD: the weapon is the one the killer was holding (a grenade or fire kill can show their gun), and when two players get kills in the same instant the victims are shown without a killer. Wallbang, no-scope, through-smoke and flash-assist marks are not available from game data.
+
+## HUD images
+
+**HUD images** (in the library's toolbar) holds pictures for every Matchframe HUD at once. Every Matchframe HUD uses them when a player, map or mark has no picture of its own. Add only images you have the right to use.
+
+- **Player pictures:** up to five for the Counter-Terrorists and five for the Terrorists. A player without their own photo (Players → photo) shows the picture for the side they play: player 1 of a team in observer-slot order takes picture 1, player 2 picture 2, and so on; with fewer pictures they repeat.
+- **Dead player icon:** replaces the HUD's own mark for a dead player.
+- **Maps:** a logo and a picture for each map Matchframe knows, shown on series and veto tiles.
+
+PNG, JPG, WebP, SVG or GIF, up to 20 MB each. **Upload** (or **Replace**) and **Remove** save at once, and running HUDs (desktop, previews, OBS) show the change straight away, without a reload. Who uses what:
+
+| HUD | Player pictures | Map logos and pictures | Dead player icon |
+|---|---|---|---|
+| Vector, Lineup | player cards and the observed player | series tiles | dead players' cards |
+| Matchframe Broadcast HUD (Classic, Minimal, Arena) | observed player | series strip, pre-match, break, post-series and veto screens | player panels, in place of the skull |
+| Pro CS2 HUD | player rows and observed player | series maps in freeze time | player rows, where the health was |
+
+LHM-format HUDs such as kaiHUD keep their own pictures, and the Sample CS2 HUD does not use them. HUD images are saved on this computer (the setting `hud.art`); account sync does not share them yet, so add them on each computer that runs HUDs. HUD packages read them from `state.art` ([extensions](../extensions.md)).
+
+## Radar for maps without a radar image
+
+Every bundled HUD shows the map's radar image (the bundled radars for Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo, or one you calibrated in Maps & Cameras). For a map without one (Anubis, Cache), Vector, Lineup, the Pro CS2 HUD and the Broadcast HUD show Matchframe's own drawing in the same style instead of the outline: a navy floor (a lighter navy for the lower level of Nuke and Vertigo), light wall outlines and the bombsites tinted red, with nothing around the map. It is drawn from Matchframe's map data (the map packs' walkable areas and bombsites, with the walls placed from the maps' collision grid) for every map with a map pack, including Anubis and Cache, and in exactly the frame of the radar the markers use: the built-in radar image's calibration (one per level on Nuke and Vertigo), a radar image you calibrated in Maps & Cameras, or the generated outline. So players, the bomb and utility land in the same places as on the drawing. To use your own radar for such a map, calibrate it in Maps & Cameras.
 
 ## Start CS2
 

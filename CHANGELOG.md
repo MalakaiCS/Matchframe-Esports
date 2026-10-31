@@ -67,6 +67,12 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
   - **Spawn areas from pro demos** (`scripts/set-spawn-regions.py`): the seven pool maps' `t_spawn` / `ct_spawn` regions are where players stood at the end of freeze time (they were 100–500 units off; Ancient's and Anubis's CT spawns missed entirely). Spawn cameras and paths regenerated.
   - **Cache:** map pack from a pro demo's place names (46 areas), free-space grid and 87 cameras / 10 paths from CS2's meshes; in the default event pool with Ancient, Anubis, Dust II, Inferno, Mirage and Nuke.
   - **Team shots tuned on real positions:** finer spots (48 bearings, 6 distances, up to 300 units high), a size score, and a well-sized four over a distant five. Every round of the seven demos framed (272 shots).
+- **Series boxes, HUD images, radars** (version 0.10.1, ADR-058, the owner):
+  - **Vector and Lineup series boxes:** per side, Bo1 1, Bo3 2, Bo5 3, Bo7 5 (the owner's choice), else ceil(n/2). Filled per map won.
+  - **HUD images** (`hud.art`, `GET`/`PUT /api/v1/hud/art`, HUD Library → HUD images): default CT/T player pictures (5 each), a map logo and picture per map, a dead-player icon. They reach every HUD as `HudState.art` and are used by Vector, Lineup, the Pro CS2 HUD (1.2.0) and the built-in Broadcast HUD. Per computer.
+  - **Matchframe's clean radar** (`/overlay-api/radar-clean/<map>/<frame>`, `HudRadar.cleanUrl`): drawn from the map packs (cells, collision grids, bomb-site regions) in the markers' own frame, both levels on Nuke and Vertigo. Every bundled HUD uses the radar images (the owner's choice; the ones the owner sent are the bundled Lexogrine radars) and this drawing only for maps without one (Anubis, Cache), instead of the outline.
+  - `HudPlayer.roundDamage`; Lineup's dead cards show round damage.
+  - None of the pictures the owner sent (another HUD's files) are in Matchframe.
 - **Account sync** (version 0.10.0, ADR-057, the owner: players, matches and imported HUDs on several PCs):
   - **What:** teams, players, rosters, events, matches, maps, veto, their logos and photos, and imported HUDs with settings are shared by every computer linked to the organisation.
   - **Website** (migration 6):

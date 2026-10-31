@@ -1271,6 +1271,18 @@
                   "runInBackground": {
                     "type": "boolean"
                   },
+                  "frameCap": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 30,
+                        "maximum": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "noFlash": {
                     "type": "boolean"
                   },
@@ -10030,6 +10042,161 @@
         }
       }
     },
+    "/api/v1/hud/art": {
+      "get": {
+        "operationId": "get_api_v1_hud_art",
+        "summary": "GET /api/v1/hud/art",
+        "description": "Requires permission `metadata.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put_api_v1_hud_art",
+        "summary": "PUT /api/v1/hud/art",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "defaultPlayers": {
+                    "default": {
+                      "ct": [],
+                      "t": []
+                    },
+                    "type": "object",
+                    "properties": {
+                      "ct": {
+                        "default": [],
+                        "maxItems": 5,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}\\.(png|jpe?g|webp|svg|gif)$"
+                        }
+                      },
+                      "t": {
+                        "default": [],
+                        "maxItems": 5,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{24}\\.(png|jpe?g|webp|svg|gif)$"
+                        }
+                      }
+                    }
+                  },
+                  "maps": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9_]{1,64}$"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "logo": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{24}\\.(png|jpe?g|webp|svg|gif)$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "image": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{24}\\.(png|jpe?g|webp|svg|gif)$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "icons": {
+                    "default": {
+                      "dead": null
+                    },
+                    "type": "object",
+                    "properties": {
+                      "dead": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{24}\\.(png|jpe?g|webp|svg|gif)$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/hud/library/import": {
       "post": {
         "operationId": "post_api_v1_hud_library_import",
@@ -12761,6 +12928,113 @@
       "post": {
         "operationId": "post_api_v1_cloud_unlink",
         "summary": "POST /api/v1/cloud/unlink",
+        "description": "Requires permission `settings.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/cloud/sync": {
+      "get": {
+        "operationId": "get_api_v1_cloud_sync",
+        "summary": "GET /api/v1/cloud/sync",
+        "description": "Requires permission `state.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_api_v1_cloud_sync",
+        "summary": "POST /api/v1/cloud/sync",
+        "description": "Requires permission `settings.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cloud/sync/now": {
+      "post": {
+        "operationId": "post_api_v1_cloud_sync_now",
+        "summary": "POST /api/v1/cloud/sync/now",
         "description": "Requires permission `settings.manage`.",
         "security": [
           {

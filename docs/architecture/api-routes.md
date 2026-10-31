@@ -212,6 +212,8 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | GET | `/api/v1/hud/outputs/:id/url` | metadata.read |
 | GET | `/api/v1/hud/outputs/:id/state` | state.read |
 | GET | `/api/v1/hud/library` | metadata.read |
+| GET | `/api/v1/hud/art` | metadata.read |
+| PUT | `/api/v1/hud/art` | hud.publish |
 | POST | `/api/v1/hud/library/import` | hud.publish |
 | POST | `/api/v1/hud/library/import-folder` | hud.publish |
 | POST | `/api/v1/hud/library/visibility` | hud.publish |
@@ -278,6 +280,9 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/cloud/link/cancel` | settings.manage |
 | POST | `/api/v1/cloud/refresh` | settings.manage |
 | POST | `/api/v1/cloud/unlink` | settings.manage |
+| GET | `/api/v1/cloud/sync` | state.read |
+| POST | `/api/v1/cloud/sync` | settings.manage |
+| POST | `/api/v1/cloud/sync/now` | settings.manage |
 | GET | `/api/v1/cloud/usage` | state.read |
 | GET | `/api/v1/cams` | state.read |
 | PUT | `/api/v1/cams/settings` | settings.manage |
@@ -296,4 +301,6 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 
 - `GET /overlay/:outputId/:variant?t=<token>` — browser-source page for a published output (built-in HUD served directly; imported packages redirected to `/huds/<id>/<entry>`).
 - `GET /overlay-api/radar/:map` — schematic radar outline (cells/polygons in normalized u,v).
+- `GET /overlay-api/radar-image/:map` — the built-in radar image (`assets/radars`).
+- `GET /overlay-api/radar-clean/:map/:frame?v=<version>` — Matchframe's clean radar (SVG) drawn from the map pack in the frame of a radar background: `builtin` (built-in image calibration), `calibrated` (operator-calibrated image) or `schematic` (outline); `HudRadar.cleanUrl` gives the address.
 - `GET /assets/:assetId`, `/hud/*` (built-in renderer assets), `/sdk/*` (HUD SDK bundle for imported packages).

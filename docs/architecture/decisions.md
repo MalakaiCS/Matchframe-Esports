@@ -1203,3 +1203,35 @@ Measured with kaiHUD 1.0.2 in Chromium through Matchframe, with a player running
 - An older website without sharing: the program says so and carries on.
 
 **Not checked.** On the owner's computers and the deployed website (it needs a redeploy; a proxy in front must allow 64 MB requests). Last edit wins goes by each computer's clock. Records that were already shared twice under different ids are not merged.
+
+## ADR-058 — Series boxes, HUD images for every HUD, and Matchframe's clean radar
+
+**Context.** The owner (0.10.0):
+- The two small boxes next to each score in the reference HUDs are best-of boxes: "Best of 3 it would be 2… best of 5 there would be 3… best of 7 … 5 on each side."
+- They sent radars, agent pictures, map logos and pictures and a dead-player icon to use "for any and all other huds".
+- They came from kaiHUD's package. Its eight radars are byte for byte the Lexogrine radars Matchframe already bundles (MIT), so they stay in use. The other pictures and icons are not in Matchframe; like kaiHUD's code, they aren't put in it. The owner chose upload slots for them.
+
+**Decision.**
+- **Series boxes** in Vector (the capsule at each end of the score bar, replacing the timeout ticks) and Lineup (between score and logo):
+  - Bo1 1, Bo3 2, Bo5 3, Bo7 5 (the owner's choice), else ceil(n/2), none without a series.
+  - Filled per map won.
+- **HUD images** (setting `hud.art`, asset ids): up to 5 CT and 5 T default player pictures, a logo and picture per map, a dead-player icon.
+  - They reach HUDs as `HudState.art` (`/assets/<id>`).
+  - Player n of a side (observer-slot order) takes picture n, cycling.
+  - Used by Vector, Lineup, the Pro CS2 HUD and the built-in Broadcast HUD. LHM HUDs keep their own.
+  - Per computer: account sync doesn't carry program settings.
+- **Clean radar** (`HudRadar.cleanUrl`):
+  - **Source:** an SVG drawn from Matchframe's map packs: walkable cells, floor heights, collision grids for wall placement, bomb-site regions.
+  - **Frame:** the same as the radar background the markers use: built-in calibration per layer (Nuke and Vertigo with both levels), operator calibration, or the outline frame.
+  - **Style:** navy `#262f40` floor, `#34405b` lower level, light walls, red bomb sites, transparent around. No site letters, like the owner's reference.
+  - **Serving:** drawn once per map and frame, then cached.
+  - **Where it's used:** first Vector and Lineup used it for every map. The owner wanted the radars they had sent, which are byte for byte the bundled Lexogrine radars (MIT), so every bundled HUD shows the radar image, and this drawing only for a map without one (Anubis, Cache), in place of the outline.
+- `HudPlayer.roundDamage` from the engine's player state; Lineup's dead cards show it.
+
+**Checked.**
+- Bomb-site centres of all ten maps, through the markers' transform, land in the drawn sites on the right level. A calibrated Dust II matches the built-in one within 4 px.
+- The HUD images routes and their effect on HUD state.
+- Series boxes at Bo1/3/5/7 and the art in both HUDs (screenshots).
+- The renderer and Pro CS2 HUD tests.
+
+**Not checked.** In CS2 and OBS on the owner's PC. Wall outlines come from 64-unit navigation cells refined by the collision grid, so they're smoother than the cells but not traced like a hand-made radar. On Nuke's upper level, floors at different heights merge into one shape.

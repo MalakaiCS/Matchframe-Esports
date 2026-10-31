@@ -41,7 +41,8 @@ const S = 1000;
  * thrower's team colour). Nothing is drawn without a trustworthy transform (mode "none").
  */
 export default function Radar({ state, size }: { state: HudState; size: number }) {
-  const r = state.radar;
+  // A map without a radar image: Matchframe's radar drawn in the radar images' style, else the outline.
+  const r = state.radar.mode === "schematic" && state.radar.cleanUrl ? { ...state.radar, mode: "image" as const, backgroundUrl: state.radar.cleanUrl } : state.radar;
   const outline = useOutline(r.mode === "schematic" ? r.backgroundUrl : null);
   if (!r.available || r.mode === "none") return null;
   return (

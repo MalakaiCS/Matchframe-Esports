@@ -28,8 +28,6 @@ const STYLE = {
   siteOpacity: 0.55,
   siteEdge: "#e2475f",
   siteEdgeWidth: 2,
-  label: "#e8ebf0",
-  labelSize: 44,
 };
 
 /**
@@ -702,12 +700,8 @@ export function drawCleanRadar(rt: MapRuntime, frame: CleanRadarFrame, builtin?:
     if (l.sites.length) parts.push(`<path d="${pathData(l.sites)}" fill="${STYLE.site}" fill-opacity="${STYLE.siteOpacity}" stroke="${STYLE.siteEdge}" stroke-width="${STYLE.siteEdgeWidth}" stroke-opacity="0.9"/>`);
     parts.push(`<path d="${floor}" fill="none" stroke="${STYLE.wall}" stroke-width="${STYLE.wallWidth}" stroke-linejoin="round"/>`);
   }
-  const text = labels.map((t) => `<text x="${r1(t.x)}" y="${r1(t.y)}">${t.text}</text>`).join("");
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">` +
-    `<g fill-rule="evenodd">${parts.join("")}</g>` +
-    (text ? `<g fill="${STYLE.label}" fill-opacity="0.92" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="${STYLE.labelSize}" text-anchor="middle" dominant-baseline="central">${text}</g>` : "") +
-    `</svg>`;
+  // The site letters' places are kept (HUDs can draw them); the owner's chosen style shows no letters.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">` + `<g fill-rule="evenodd">${parts.join("")}</g>` + `</svg>`;
   return { size: SIZE, layers: layers.map(({ id, lower, floor, sites }) => ({ id, lower, floor, sites })), labels, svg };
 }
 

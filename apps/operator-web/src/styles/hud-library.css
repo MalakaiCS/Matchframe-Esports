@@ -748,6 +748,9 @@
   gap: 6px;
   min-width: 0;
 }
+.hudimg-side .hudimg-slot {
+  width: 152px;
+}
 .hudimg-preview {
   display: grid;
   place-items: center;

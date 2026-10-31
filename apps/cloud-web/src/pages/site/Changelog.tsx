@@ -11,6 +11,21 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.1",
+    title: "Series boxes, HUD images and radars",
+    summary: "Series score boxes in Vector and Lineup, your own pictures in every Matchframe HUD, and the same radars in every HUD.",
+    sections: [
+      {
+        heading: "HUDs",
+        items: [
+          "Vector and Lineup show the series score in boxes next to each team's score: 2 per side for a best of 3, 3 for a best of 5, 5 for a best of 7.",
+          "HUD images: add your own player pictures, map logos and pictures, and a dead-player icon once, and every Matchframe HUD uses them.",
+          "Every HUD uses the bundled radars; Anubis and Cache, which have none, get one Matchframe draws in the same style.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.10.0",
     title: "Vector and Lineup HUDs",
     summary: "Your players, matches and imported HUDs on every computer in your organisation, two new broadcast HUDs, and cinematics that no longer end in the free camera under a player.",

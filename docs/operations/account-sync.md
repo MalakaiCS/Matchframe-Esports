@@ -19,6 +19,7 @@ Each computer keeps its own HUD URLs (the address OBS uses), whether a HUD is st
 - The bundled sample HUDs and the built-in Matchframe Broadcast HUD (they come with the program on every computer).
 - Sponsors, rundown cues, automation rules and stat corrections.
 - The program's own settings: connections, OBS, cameras, the Auto Director, game options, tokens and devices.
+- HUD images (HUD Library → HUD images): default player pictures, map logos and pictures and the dead-player icon are kept on each computer for now; add them on every computer that runs HUDs.
 - Demos, datasets, models, replays and clips.
 
 ## The card in Settings → Account
