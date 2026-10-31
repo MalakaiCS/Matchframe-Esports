@@ -8,7 +8,7 @@ import { ToastProvider } from "../../components/toasts.tsx";
 import { AutoReplaysPanel, ReplayPcPanel } from "./AutoReplays.tsx";
 
 const auto: AutoReplayResponse = {
-  settings: { enabled: false, perBreak: 4, speedPercent: 100, startDelayMs: 3500, otherAngles: true, ownBigPlays: true, mixer: "obs", vmixUrl: "http://127.0.0.1:8088", vmixTransition: "CutDirect" },
+  settings: { enabled: false, perBreak: 4, order: "round", speedPercent: 100, startDelayMs: 3500, otherAngles: true, ownBigPlays: true, mixer: "obs", vmixUrl: "http://127.0.0.1:8088", vmixTransition: "CutDirect" },
   status: { enabled: false, state: "off", detail: "Automatic replays are off.", waiting: 0, playing: null, lastPlayed: null },
 };
 const link: ReplayPcResponse = {
@@ -62,6 +62,19 @@ describe("Automatic replays panel", () => {
     expect(await screen.findByText("Waiting for the round to end.")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Speed"), { target: { value: "50" } });
     await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ speedPercent: 50 }));
+  });
+
+  it("plays the chosen clips in round order by default, or best first", async () => {
+    const calls = serve({ "GET /api/v1/replays/auto": auto, "PUT /api/v1/replays/auto": { ...auto, settings: { ...auto.settings, order: "best" } } });
+    wrap(<AutoReplaysPanel />);
+    const order = (await screen.findByLabelText(/Order/)) as HTMLSelectElement;
+    await waitFor(() => expect(order.disabled).toBe(false));
+    expect(order.value).toBe("round");
+    expect([...order.options].map((o) => o.textContent)).toEqual(["Round order", "Best first"]);
+    expect(screen.getByText(/The chosen clips play back to back/)).toBeTruthy();
+    fireEvent.change(order, { target: { value: "best" } });
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ order: "best" }));
+    await waitFor(() => expect(order.value).toBe("best"));
   });
 });
 

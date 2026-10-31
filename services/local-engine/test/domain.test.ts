@@ -161,6 +161,23 @@ describe("program arbiter", () => {
     await p.request("REPLAY_PREPARED", "automation", "auto-replay", { replayItemId: "r2" });
     expect(p.mode).toBe("REPLAY_PREPARED");
   });
+
+  it("follows the clip on the replay scene: the next of a break's replays, or one the operator plays over them", async () => {
+    const scenes: string[] = [];
+    const p = new ProgramArbiter({ connected: () => true, setProgram: async (s) => (scenes.push(s), true) }, { LIVE: "Live", REPLAY: "Replay", STUDIO: null, BREAK: null });
+    await p.request("REPLAY_PREPARED", "automation", "auto-replay", { replayItemId: "a" });
+    await p.request("REPLAY_PLAYING", "automation", "auto-replay", { replayItemId: "a" });
+    const t = await p.request("REPLAY_PLAYING", "automation", "auto-replay", { replayItemId: "b" });
+    expect([t.detail, p.activeReplay, p.owner.holder]).toEqual(["already in mode", "b", "auto-replay"]);
+    // No cut, no transition: the replay scene stays on program.
+    expect(scenes).toEqual(["Replay"]);
+    expect(p.history.map((h) => h.to)).toEqual(["REPLAY_PREPARED", "REPLAY_PLAYING"]);
+    await p.request("REPLAY_PLAYING", "operator", "op", { replayItemId: "hand" });
+    expect([p.activeReplay, p.owner.kind]).toEqual(["hand", "operator"]);
+    // Automation can't take it back from the operator.
+    await expect(p.request("REPLAY_PLAYING", "automation", "auto-replay", { replayItemId: "c" })).rejects.toThrow(/owned by operator/);
+    expect(p.activeReplay).toBe("hand");
+  });
 });
 
 describe("secret store", () => {

@@ -2,8 +2,8 @@ import type { ReplayPlay } from "@matchframe/replay-agent";
 
 /**
  * Which of a round's clips are worth replaying: each clip gets a score from what it shows, and the
- * replay break plays the best ones that fit, best first (replay/auto.ts). The score is plain sums
- * so the reasons can be shown next to it.
+ * replay break plays the best ones that fit, back to back, in round order or best first
+ * (replay/auto.ts). The score is plain sums so the reasons can be shown next to it.
  */
 
 /** Points for the number of kills in a clip (a 2K is worth more than two single kills). */
@@ -26,8 +26,10 @@ const FAST = 6;
 
 /** A clip's lead-up (before the first kill) is never shortened below this to fit a break. */
 export const MIN_LEAD_MS = 2000;
-/** The cut to the replay and back, per clip (wall time). */
+/** The cut to the replay and back, once a break (wall time). */
 export const CUT_MS = 600;
+/** From one replay of a break to the next (the next clip loading), wall time. */
+export const SWITCH_MS = 400;
 
 /** What the main PC knows about a clip's kills from the round as a whole. */
 export interface RankFacts {
@@ -99,20 +101,55 @@ export interface PlanCandidate {
   /** How much of the clip to show, and how much of that is before the first kill (null: unknown, never shortened). */
   playMs: number;
   leadMs: number | null;
+  /** When its play happened in the round (any clock, the same for every candidate), for round order. */
+  at?: number | null;
+}
+
+/**
+ * How much of a clip fits in `availableMs` with `overheadMs` of cuts: all of it, or its lead-up
+ * shortened (down to MIN_LEAD_MS) when that makes it fit. Null when it doesn't fit.
+ */
+export function fitReplay(c: Pick<PlanCandidate, "playMs" | "leadMs">, availableMs: number, speedPercent: number, overheadMs = CUT_MS): number | null {
+  if ((c.playMs * 100) / speedPercent + overheadMs <= availableMs) return c.playMs;
+  if (c.leadMs === null || c.leadMs <= MIN_LEAD_MS) return null;
+  const shortest = c.playMs - (c.leadMs - MIN_LEAD_MS);
+  const fits = Math.floor(((availableMs - overheadMs) * speedPercent) / 100);
+  return fits >= shortest ? Math.min(c.playMs, fits) : null;
 }
 
 /**
  * The next replay of a break: the best-scoring candidate that fits in `availableMs`, its lead-up
  * shortened (down to MIN_LEAD_MS) when that makes it fit. Null when none fits.
  */
-export function nextReplay(candidates: readonly PlanCandidate[], availableMs: number, speedPercent: number): { id: string; playMs: number } | null {
+export function nextReplay(candidates: readonly PlanCandidate[], availableMs: number, speedPercent: number, overheadMs = CUT_MS): { id: string; playMs: number } | null {
   const sorted = [...candidates].sort((a, b) => b.score - a.score);
   for (const c of sorted) {
-    if (replayWallMs(c.playMs, speedPercent) <= availableMs) return { id: c.id, playMs: c.playMs };
-    if (c.leadMs === null || c.leadMs <= MIN_LEAD_MS) continue;
-    const shortest = c.playMs - (c.leadMs - MIN_LEAD_MS);
-    const fits = Math.floor(((availableMs - CUT_MS) * speedPercent) / 100);
-    if (fits >= shortest) return { id: c.id, playMs: Math.min(c.playMs, fits) };
+    const playMs = fitReplay(c, availableMs, speedPercent, overheadMs);
+    if (playMs !== null) return { id: c.id, playMs };
   }
   return null;
+}
+
+/**
+ * A break's replays, played back to back: the best candidates that fit together in `availableMs`
+ * (one cut to the replay and back, SWITCH_MS from one clip to the next), up to `max`, chosen as
+ * nextReplay chooses. Then in round order (earliest play first, an unknown time last) or best first.
+ */
+export function planBreak(candidates: readonly PlanCandidate[], availableMs: number, speedPercent: number, max: number, order: "round" | "best" = "round"): { id: string; playMs: number; leadMs: number | null }[] {
+  const chosen: { c: PlanCandidate; playMs: number }[] = [];
+  let left = availableMs;
+  let rest = [...candidates];
+  while (chosen.length < max) {
+    const overhead = chosen.length ? SWITCH_MS : CUT_MS;
+    const pick = nextReplay(rest, left, speedPercent, overhead);
+    if (!pick) break;
+    const c = rest.find((x) => x.id === pick.id)!;
+    chosen.push({ c, playMs: pick.playMs });
+    left -= (pick.playMs * 100) / speedPercent + overhead;
+    rest = rest.filter((x) => x !== c);
+  }
+  const at = (x: { c: PlanCandidate }) => x.c.at ?? Number.MAX_SAFE_INTEGER;
+  if (order === "round") chosen.sort((a, b) => at(a) - at(b));
+  // A shortened clip keeps what is left of its lead-up (it may be shortened again to fit later).
+  return chosen.map(({ c, playMs }) => ({ id: c.id, playMs, leadMs: c.leadMs === null ? null : c.leadMs - (c.playMs - playMs) }));
 }

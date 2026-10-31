@@ -1050,6 +1050,8 @@ export interface AutoReplaySettings {
   enabled: boolean;
   /** At most this many clips per break: the best of the round that fit. */
   perBreak: number;
+  /** The order the chosen clips play in, back to back: the round's own, or best first. */
+  order: "round" | "best";
   speedPercent: number;
   startDelayMs: number;
   otherAngles: boolean;

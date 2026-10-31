@@ -26,8 +26,8 @@ const TRANSITIONS = [
 
 /**
  * Main PC: replays play by themselves in the break after a round. The round's clips (from the
- * replay PC, and this computer's own 3K+ and clutches) are ranked, and the best ones that fit play,
- * best first, in OBS or vMix.
+ * replay PC, and this computer's own 3K+ and clutches) are ranked, and the best ones that fit play
+ * back to back, in round order or best first, in OBS or vMix.
  */
 export function AutoReplaysPanel() {
   const auto = useApi<AutoReplayResponse>("/api/v1/replays/auto", { refreshMs: 1000 });
@@ -56,15 +56,21 @@ export function AutoReplaysPanel() {
   return (
     <Panel title="Automatic replays" subtitle={status?.detail} actions={status ? <Badge tone={STATE_TONE[status.state]}>{status.state === "playing" ? "Playing" : status.enabled ? "On" : "Off"}</Badge> : null}>
       <div className="stack-sm">
-        <Checkbox checked={st?.enabled ?? false} disabled={off} label="Play replays by themselves" hint="In the break after a round: from a few seconds after it ends until just before freeze time ends. Never while a round is live." onChange={(v) => void save({ enabled: v })} />
+        <Checkbox checked={st?.enabled ?? false} disabled={off} label="Play replays by themselves" hint="In the break after a round: from a few seconds after it ends until just before freeze time ends, one cut to the replays and one back to live. Never while a round is live." onChange={(v) => void save({ enabled: v })} />
         <div className="form-grid">
-          <Field label="Replays per break" hint="The best clips of the round that fit in the break, best first; the rest are left.">
+          <Field label="Replays per break" hint="The best clips of the round that fit in the break; the rest are left.">
             <select value={st?.perBreak ?? 4} disabled={off} onChange={(e) => void save({ perBreak: Number(e.target.value) })}>
               {[1, 2, 3, 4].map((n) => (
                 <option key={n} value={n}>
                   {n === 1 ? "The best one" : `The best ${n}`}
                 </option>
               ))}
+            </select>
+          </Field>
+          <Field label="Order" hint="The chosen clips play back to back. Round order: from the start of the round to its end. Best first: the best one first.">
+            <select value={st?.order ?? "round"} disabled={off} onChange={(e) => void save({ order: e.target.value as AutoReplaySettings["order"] })}>
+              <option value="round">Round order</option>
+              <option value="best">Best first</option>
             </select>
           </Field>
           <Field label="Speed">
@@ -91,7 +97,7 @@ export function AutoReplaysPanel() {
               <Field label="vMix address" hint="vMix on this computer, with its Web Controller on (vMix → Settings → Web Controller).">
                 <input value={vmixUrl} disabled={off} spellCheck={false} onChange={(e) => setVmixUrl(e.target.value)} onBlur={() => vmixUrl !== st.vmixUrl && void save({ vmixUrl })} placeholder="http://127.0.0.1:8088" />
               </Field>
-              <Field label="Transition" hint="To the replay and back. Stingers use vMix's own Stinger 1 or 2.">
+              <Field label="Transition" hint="To the first replay and back to live after the last; from one replay to the next vMix cuts. Stingers use vMix's own Stinger 1 or 2.">
                 <select value={st.vmixTransition} disabled={off} onChange={(e) => void save({ vmixTransition: e.target.value as AutoReplaySettings["vmixTransition"] })}>
                   {TRANSITIONS.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -106,7 +112,7 @@ export function AutoReplaysPanel() {
                 Test vMix
               </ActionButton>
               {status?.vmix ? <Badge tone={status.vmix.connected ? "ok" : "warn"}>{status.vmix.connected ? `vMix ${status.vmix.version ?? ""}` : "vMix not reached"}</Badge> : null}
-              <span className="muted small">Each replay is added to vMix as an input, played, then removed.</span>
+              <span className="muted small">Each replay is added to vMix as an input (the next one while the one before plays) and removed after the break's replays.</span>
             </div>
           </div>
         ) : (

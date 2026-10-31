@@ -8978,6 +8978,13 @@
                     "minimum": 1,
                     "maximum": 4
                   },
+                  "order": {
+                    "type": "string",
+                    "enum": [
+                      "round",
+                      "best"
+                    ]
+                  },
                   "speedPercent": {
                     "type": "integer",
                     "minimum": 25,

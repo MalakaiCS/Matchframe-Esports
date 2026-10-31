@@ -101,7 +101,15 @@ export class ProgramArbiter {
 
   async request(to: ProgramMode, owner: ProgramOwner, holder: string, opts: { replayItemId?: string } = {}): Promise<ProgramTransition> {
     const from = this.mode;
-    if (from === to) return { from, to, owner, holder, at: new Date().toISOString(), confirmed: true, detail: "already in mode" };
+    if (from === to) {
+      // Another clip on the replay scene (the next of a break's replays, or one played by hand over it): the program shows it now.
+      if (opts.replayItemId && opts.replayItemId !== this.replayItemId && (to === "REPLAY_PREPARED" || to === "REPLAY_PLAYING")) {
+        if (PRIORITY[owner] < PRIORITY[this.owner.kind]) throw Object.assign(new Error(`program owned by ${this.owner.kind}; ${owner} cannot change it`), { status: 409 });
+        this.replayItemId = opts.replayItemId;
+        this.owner = { kind: owner, holder };
+      }
+      return { from, to, owner, holder, at: new Date().toISOString(), confirmed: true, detail: "already in mode" };
+    }
     if (!ALLOWED[from].includes(to)) throw Object.assign(new Error(`program transition ${from} → ${to} not allowed`), { status: 409 });
     if (PRIORITY[owner] < PRIORITY[this.owner.kind] && this.mode !== "LIVE") {
       throw Object.assign(new Error(`program owned by ${this.owner.kind}; ${owner} cannot change it`), { status: 409 });

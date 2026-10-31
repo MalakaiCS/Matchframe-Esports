@@ -11,6 +11,22 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.4",
+    title: "Replays back to back",
+    summary: "The replays of a round play one after another in round order, with one cut to the replay scene and one back.",
+    sections: [
+      {
+        heading: "Replays",
+        items: [
+          "The break's replays play back to back: one cut to the replay scene, one back to live after the last.",
+          "They play from the start of the round to its end; Order → Best first brings back the old order.",
+          "In vMix the next replay is loaded while one plays, then cut to.",
+          "Fixed in OBS: a replay that could start from the beginning of its clip, or end before its kill.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.10.3",
     title: "Vector and Lineup update",
     summary: "The bundled Vector and Lineup HUDs now get their 0.10.1 changes on computers that installed them before.",

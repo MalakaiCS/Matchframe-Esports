@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ReplayPlay } from "@matchframe/replay-agent";
-import { clipScore, CUT_MS, MIN_LEAD_MS, NO_FACTS, nextReplay, replayWallMs } from "../src/replay/rank.ts";
+import { clipScore, CUT_MS, fitReplay, MIN_LEAD_MS, NO_FACTS, nextReplay, planBreak, replayWallMs, SWITCH_MS } from "../src/replay/rank.ts";
 
 const play = (p: Partial<ReplayPlay>): ReplayPlay => ({ kind: "shown", killer: { steamId: "1", name: "haze" }, victims: ["kite"], kills: 1, weapon: "ak47", headshot: false, ...p });
 
@@ -33,5 +33,39 @@ describe("ranking a round's clips", () => {
     expect(nextReplay(c, 5000, 50)).toBeNull();
     expect(replayWallMs(3000, 50)).toBe(6000 + CUT_MS);
     expect(MIN_LEAD_MS).toBe(2000);
+  });
+
+  it("chooses a break's replays as nextReplay would, then puts them in round order (or keeps them best first)", () => {
+    // Ranked the other way round from when they happened in the round.
+    const c = [
+      { id: "early", score: 10, playMs: 4000, leadMs: 2500, at: 1000 },
+      { id: "middle", score: 20, playMs: 4000, leadMs: 2500, at: 5000 },
+      { id: "late", score: 30, playMs: 4000, leadMs: 2500, at: 9000 },
+      { id: "unknown", score: 25, playMs: 4000, leadMs: null, at: null },
+    ];
+    expect(planBreak(c, 30_000, 100, 3).map((p) => p.id)).toEqual(["middle", "late", "unknown"]);
+    expect(planBreak(c, 30_000, 100, 4).map((p) => p.id)).toEqual(["early", "middle", "late", "unknown"]);
+    expect(planBreak(c, 30_000, 100, 3, "best").map((p) => p.id)).toEqual(["late", "unknown", "middle"]);
+    // One cut in and out for the break, a switch between two clips: three 4 s clips take 12 s + 600 + 2 × 400 ms.
+    const three = 3 * 4000 + CUT_MS + 2 * SWITCH_MS;
+    expect(planBreak(c, three, 100, 3).map((p) => [p.id, p.playMs])).toEqual([
+      ["middle", 4000],
+      ["late", 4000],
+      ["unknown", 4000],
+    ]);
+    // 0.5 s less: the last chosen has its lead-up shortened to the 2 s it can go down to.
+    expect(planBreak(c, three - 500, 100, 3)).toEqual([
+      { id: "middle", playMs: 3500, leadMs: MIN_LEAD_MS },
+      { id: "late", playMs: 4000, leadMs: 2500 },
+      { id: "unknown", playMs: 4000, leadMs: null },
+    ]);
+    // 1 s less: no third clip fits, even shortened.
+    expect(planBreak(c, three - 1000, 100, 3).map((p) => p.id)).toEqual(["late", "unknown"]);
+    // In slow motion (50 %) each takes twice as long: one fits in the same time.
+    expect(planBreak(c, three, 50, 3).map((p) => p.id)).toEqual(["late"]);
+    expect(planBreak(c, 1000, 100, 3)).toEqual([]);
+    expect(fitReplay({ playMs: 4000, leadMs: 2500 }, 4000 + SWITCH_MS, 100, SWITCH_MS)).toBe(4000);
+    expect(fitReplay({ playMs: 4000, leadMs: 2500 }, 3500 + SWITCH_MS, 100, SWITCH_MS)).toBe(3500);
+    expect(fitReplay({ playMs: 4000, leadMs: 2500 }, 3500 + SWITCH_MS, 100, SWITCH_MS + 1)).toBeNull();
   });
 });

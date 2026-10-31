@@ -68,7 +68,9 @@ describe("Replay PC: catches the kills the main camera misses, the main PC repla
   let replay: Pc;
   const clipFile = join(mkdtempSync(join(tmpdir(), "mf-clip-")), "Replay 2026-10-28.mkv");
   const programScenes: string[] = [];
-  let mediaCalls = 0;
+  /** The stand-in OBS media source: a clip plays for 500 ms from when it is loaded; its cursor follows seeks. */
+  let loadedAt = 0;
+  let seek = { to: 0, at: 0 };
 
   beforeAll(async () => {
     process.env.MATCHFRAME_LOG_STDOUT = "0";
@@ -83,10 +85,15 @@ describe("Replay PC: catches the kills the main camera misses, the main PC repla
       programScenes.push(scene);
       return { confirmed: true, programScene: scene };
     };
-    main.e.obs.setMediaFile = async () => undefined;
+    main.e.obs.setMediaFile = async () => {
+      loadedAt = Date.now();
+      seek = { to: 0, at: loadedAt };
+    };
     main.e.obs.mediaAction = async () => undefined;
-    main.e.obs.setMediaCursor = async () => undefined;
-    main.e.obs.mediaStatus = async () => ({ state: ++mediaCalls < 6 ? "OBS_MEDIA_STATE_PLAYING" : "OBS_MEDIA_STATE_ENDED", durationMs: 20000, cursorMs: 0 });
+    main.e.obs.setMediaCursor = async (_input: string, ms: number) => {
+      seek = { to: ms, at: Date.now() };
+    };
+    main.e.obs.mediaStatus = async () => ({ state: Date.now() - loadedAt < 500 ? "OBS_MEDIA_STATE_PLAYING" : "OBS_MEDIA_STATE_ENDED", durationMs: 20000, cursorMs: seek.to + Date.now() - seek.at });
   });
 
   afterAll(async () => {
@@ -165,7 +172,6 @@ describe("Replay PC: catches the kills the main camera misses, the main PC repla
     // The main PC's own replay buffer (stand-in).
     Object.assign(main.e.obs.state, { replayBuffer: true });
     main.e.obs.saveReplayBuffer = async () => ({ savedPath: clipFile });
-    mediaCalls = 0;
     const before = programScenes.length;
     const dead = (p: SyntheticPlayer) => ({ ...p, health: 0, deaths: 1 });
     const cts = roster.filter((p) => p.side === "CT");

@@ -456,7 +456,8 @@ async function returnLiveAfter(e: Engine, input: string, id: string, durationMs:
   const deadline = Date.now() + (durationMs ?? 60_000) + 5000;
   for (;;) {
     await new Promise((r) => setTimeout(r, 250));
-    if (e.program.mode !== "REPLAY_PLAYING" || e.program.activeReplay !== id) return;
+    // The program moved on (live, or another clip played over this one): this one played.
+    if (e.program.mode !== "REPLAY_PLAYING" || e.program.activeReplay !== id) return e.replays.markPlayed(id);
     const m = await e.obs.mediaStatus(input).catch(() => null);
     if (m && m.state !== "OBS_MEDIA_STATE_ENDED" && m.state !== "OBS_MEDIA_STATE_STOPPED" && Date.now() < deadline) continue;
     await e.program.request("LIVE", "operator", holder).catch(() => undefined);

@@ -1235,3 +1235,31 @@ Measured with kaiHUD 1.0.2 in Chromium through Matchframe, with a player running
 - The renderer and Pro CS2 HUD tests.
 
 **Not checked.** In CS2 and OBS on the owner's PC. Wall outlines come from 64-unit navigation cells refined by the collision grid, so they're smoother than the cells but not traced like a hand-made radar. On Nuke's upper level, floors at different heights merge into one shape.
+
+## ADR-059 — A break's replays back to back, in round order, with one cut in and one out
+
+**Context.** The owner: "Replay feeds seem to be cutting back to main feed and back to replay when it's done, when I want it to play the clips in order from start of round to end of round from the round that just concluded." Since ADR-051 the break picked one clip at a time, best first, and cut to the replay scene and back to live for each.
+
+**Decision.**
+- **Choosing:** once the break's replays start (after the wait for the replay PC's last kills), the clips are chosen in one go by the same rules (rank, duplicates out, up to `perBreak`, lead-ups shortened to fit, speed counted), now for one cut in and out (`CUT_MS`) plus `SWITCH_MS` (0.4 s) between two clips (`planBreak` in replay/rank.ts). Before each clip the time left is checked again; a clip that no longer fits is shortened again or skipped.
+- **Order** (`order`, default `round`; `best` keeps ADR-051's order): a clip's place is the time of its first kill as the main PC saw it (`roundKills`, one clock for every origin). Clips from the replay PC carry no match time (`matchTimeFromMs` is null), and their `createdAt` is when they arrived, seconds late. Without a seen kill (a clutch): `createdAt` less the clip's part after its lead-up.
+- **One sequence:** one cut to the replay scene, the clips back to back, one cut back. The program stays in `REPLAY_PLAYING`; `ProgramArbiter.request` for the same mode with another clip now changes `activeReplay` (and the owner, at equal or higher priority) without a mixer action. So a clip played by hand over the break's replays is seen as the operator taking the program. The round going live or automatic replays turned off: stop and cut to live. Someone else changed the program: left alone. A clip that fails is skipped; if none plays, back to live.
+- **OBS:** one media source, as before, so existing replay scenes work.
+  - The first clip is loaded before the cut and, when OBS plays it hidden (the set-up source does), skipped to its part, so the cut opens on it. A source that plays only when shown, or restarts then (OBS's default for a new Media Source), is skipped after the cut.
+  - Each next clip is loaded as soon as OBS reports the one before ended, then skipped to its part.
+  - **Measured** (OBS 30.0.2 on Linux, Xvfb, recordings read frame by frame): one black frame (OBS clears the source on a new file), then about 3 frames at 30 fps of the next clip's first frame before the skip lands. About 0.13 s.
+  - **Keyframes:** `SetMediaInputCursor` lands on the keyframe before the target, so a clip starts up to one keyframe interval early. The watch takes its end from OBS's cursor, allowing up to 10 s more than planned, and moves on if the cursor stops for 1.5 s. Before, a clip could be cut by the fixed deadline (part + 2.1 s) before its end.
+  - **Found on the way:** OBS answers the first status after a new file with a duration of -9223372036854776, so the duration is awaited, with the clip's probed one as the fallback. The old first-clip `restart` after the cut could race the skip (the status read before OBS restarted), and the whole clip played from its start.
+- **vMix:** the next clip is added (`AddInput`, `SetPosition`, `SetRate`) while one plays, then `Play` and `CutDirect` to it. The chosen transition is used only to the first and back after the last. Inputs are removed afterwards, except one on air.
+- **Status:** "Replay 2 of 3: <label>"; afterwards how many played and why any didn't.
+
+**Alternatives.** Two media sources alternating visibility would hide OBS's load and skip completely. But a second source has to match the first's position, size and crop, which users set by hand on their replay scene and the OBS adapter can't copy, and the hand-play route and existing scenes use one source. At about 0.13 s that wasn't worth it.
+
+**Checked.**
+- Planner unit tests.
+- The arbiter's clip switch.
+- The break with a stand-in OBS (`replay-break.e2e.test.ts`): best first; round order from the main PC's kills; one cut in and out; a failing clip skipped; the round going live; the operator taking the program; the replay PC wait.
+- A stand-in vMix (two clips, Fade in, CutDirect between, Fade back).
+- Against real OBS 30: the replay integration tests, and recorded three-clip breaks with 720p30 and 1080p60 clips and both media-source settings.
+
+**Not checked.** Windows OBS and a real vMix. Clips from a real replay buffer with long keyframe intervals on air.
