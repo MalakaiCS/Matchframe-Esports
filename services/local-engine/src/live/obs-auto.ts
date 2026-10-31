@@ -17,7 +17,8 @@ import type { ProgramMove } from "../production/program.ts";
  *
  * It also chooses the OBS transition of every program change (switchProgram, used by the program
  * state machine whoever asks for the change): one into a replay, one back out of it, one between two
- * replays of a break, one to and from the break and studio scenes. OBS's own transition is put back
+ * replays of a break, one into highlights and one out of them (ADR-063), one to and from the break
+ * and studio scenes. OBS's own transition is put back
  * once the transition has ended. In Studio Mode the program changes without the preview (OBS's
  * SetCurrentProgramScene), and the operator's preview is put back where OBS's Swap Scenes changed
  * it; a program change made in OBS itself (the Transition button) is counted (changesInObs).
@@ -32,6 +33,10 @@ export const ObsAutoSettings = z.object({
   replayOut: z.string().max(200).nullable().default(null),
   /** To and from the break and studio scenes (by this automation or the operator's program buttons); empty = OBS's own. */
   otherScenes: z.string().max(200).default(""),
+  /** To highlights on air (ADR-063); null = the same as replayIn, empty = OBS's own. */
+  highlightsIn: z.string().max(200).nullable().default(null),
+  /** From highlights back to where the program came from; null = the same as Replay out (replayOut, else replayIn), empty = OBS's own. */
+  highlightsOut: z.string().max(200).nullable().default(null),
 });
 export type ObsAutoSettings = z.infer<typeof ObsAutoSettings>;
 export const ObsAutoPatch = z.object({
@@ -40,6 +45,8 @@ export const ObsAutoPatch = z.object({
   replayIn: z.string().max(200).optional(),
   replayOut: z.string().max(200).nullable().optional(),
   otherScenes: z.string().max(200).optional(),
+  highlightsIn: z.string().max(200).nullable().optional(),
+  highlightsOut: z.string().max(200).nullable().optional(),
 });
 
 const PAUSE_PHASES = new Set(["timeout_t", "timeout_ct", "paused"]);
@@ -50,8 +57,10 @@ const PAUSE_PHASES = new Set(["timeout_t", "timeout_ct", "paused"]);
  */
 export type TransitionPick = { name: string } | { kind: "fade_transition" | "cut_transition"; durationMs?: number } | null;
 
-/** What a program change is, for its transition. */
-export function transitionUse(m: ProgramMove): "in" | "out" | "other" | "none" {
+/** What a program change is, for its transition: into or out of a replay, into or out of highlights, to or from the break and studio scenes. */
+export function transitionUse(m: ProgramMove): "in" | "out" | "highlights-in" | "highlights-out" | "other" | "none" {
+  if (m.to === "HIGHLIGHTS" && m.from !== "HIGHLIGHTS") return "highlights-in";
+  if (m.from === "HIGHLIGHTS" && m.to !== "HIGHLIGHTS") return "highlights-out";
   if (m.to === "REPLAY_PLAYING" && m.from !== "REPLAY_PLAYING") return "in";
   if (m.from === "REPLAY_PLAYING" || m.from === "REPLAY_PREPARED") return "out";
   if (m.to === "BREAK" || m.to === "STUDIO" || m.from === "BREAK" || m.from === "STUDIO") return "other";
@@ -133,11 +142,12 @@ export class ObsAutomation {
     this.e.obs.off("transition", this.onTransition);
   }
 
-  /** The transition chosen for a program change (into or out of a replay, to or from the break and studio scenes). */
+  /** The transition chosen for a program change (into or out of a replay or highlights, to or from the break and studio scenes). */
   pickFor(move: ProgramMove): TransitionPick {
     const st = this.settings();
     const use = transitionUse(move);
-    const name = use === "in" ? st.replayIn : use === "out" ? (st.replayOut ?? st.replayIn) : use === "other" ? st.otherScenes : "";
+    const out = st.replayOut ?? st.replayIn;
+    const name = use === "in" ? st.replayIn : use === "out" ? out : use === "highlights-in" ? (st.highlightsIn ?? st.replayIn) : use === "highlights-out" ? (st.highlightsOut ?? out) : use === "other" ? st.otherScenes : "";
     return name ? { name } : null;
   }
 
@@ -319,13 +329,18 @@ export class ObsAutomation {
     const paused = PAUSE_PHASES.has(s.gamePhase) || s.paused;
     const ended = s.mapPhase === "gameover" || s.gamePhase === "gameover";
     let want: "LIVE" | "BREAK" | "STUDIO" | null = null;
-    if (mode === "LIVE") {
+    // (Highlights going on air from the live scene have the program.)
+    if (mode === "LIVE" && this.e.highlightsAir?.onAir() !== true) {
       if (st.timeouts && paused && scenes.BREAK) want = "BREAK";
-      else if (st.mapEnd && ended && scenes.STUDIO) want = "STUDIO";
+      // (Highlights that start by themselves when a map ends go first: the studio scene after them.)
+      else if (st.mapEnd && ended && scenes.STUDIO && this.e.highlightsAir?.holdsMapEnd() !== true) want = "STUDIO";
+    } else if (mode === "LIVE") {
+      // Waiting for the highlights.
     } else if (this.ours && mode === this.ours) {
       if (this.ours === "BREAK" && !paused) want = "LIVE";
       if (this.ours === "STUDIO" && !ended && s.mapName !== null && (s.mapName !== this.mapAtEnd || s.roundPhase === "live")) want = "LIVE";
-    } else this.ours = null;
+      // (Highlights from the scene this automation chose go back to it, and it stays its own.)
+    } else if (!(mode === "HIGHLIGHTS" && this.e.program.highlightsReturn?.mode === this.ours)) this.ours = null;
     if (!want) return;
     this.busy = true;
     try {

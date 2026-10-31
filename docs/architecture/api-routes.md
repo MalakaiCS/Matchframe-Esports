@@ -214,6 +214,13 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/highlights/reels` | replay.control |
 | POST | `/api/v1/highlights/reels/:id/cancel` | replay.control |
 | POST | `/api/v1/highlights/ffmpeg` | settings.manage |
+| GET | `/api/v1/highlights/air` | state.read |
+| PUT | `/api/v1/highlights/air` | replay.control |
+| POST | `/api/v1/highlights/air/play` | replay.control |
+| POST | `/api/v1/highlights/air/stop` | replay.control |
+| POST | `/api/v1/highlights/air/obs-setup` | settings.manage |
+| PUT | `/api/v1/highlights/air/scene` | settings.manage |
+| POST | `/api/v1/highlights/air/graphic` | settings.manage |
 | GET | `/api/v1/storage` | settings.manage |
 | PUT | `/api/v1/storage` | settings.manage |
 | GET | `/api/v1/hud/packages` | metadata.read |

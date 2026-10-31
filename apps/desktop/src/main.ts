@@ -10,7 +10,7 @@ import { OverlayManager } from "./hud/overlays.ts";
 import { OverlayStore } from "./hud/store.ts";
 import type { Library } from "./hud/types.ts";
 import { hlaeInfo, startCs2, type PreparedLaunch } from "./game-launch.ts";
-import { DEVICE_ACTION, ReplayHotkeys, type ReplayKeyAction, type ReplayKeys } from "./replay-hotkeys.ts";
+import { DEVICE_ACTION, HIGHLIGHT_KEY_ACTIONS, ReplayHotkeys, type ReplayKeyAction, type ReplayKeys } from "./replay-hotkeys.ts";
 import { createTray, type ProgramTray } from "./tray.ts";
 import { createUpdater, type Updater } from "./updater.ts";
 
@@ -422,7 +422,7 @@ async function runReplayKey(action: ReplayKeyAction): Promise<void> {
   } catch (e) {
     message = e instanceof Error ? e.message : String(e);
   }
-  if (message && Notification.isSupported()) new Notification({ title: "Replays", body: message, silent: true }).show();
+  if (message && Notification.isSupported()) new Notification({ title: HIGHLIGHT_KEY_ACTIONS.includes(action) ? "Highlights" : "Replays", body: message, silent: true }).show();
 }
 
 /** The save-view hotkey: the engine reads CS2's camera (getpos) and saves it; a notification says how it went. */

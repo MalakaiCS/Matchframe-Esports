@@ -29,6 +29,9 @@ Issue one token per device with the narrowest role that covers its buttons: `obs
 | `replay_stop` | `{}`: the break's replays end, back to live with Replay out | replay.control |
 | `replay_exclude` | `{"next":true}`, `{"rank":1}` (place in the round's list, best first) or `{"id":"rp_…"}`; toggles unless `"excluded"` is given | replay.control |
 | `replay_pin` | `{"rank":2}` or `{"id":"rp_…"}`: plays first in its break if it fits; toggles unless `"pinned"` is given | replay.control |
+| `highlights_play` | `{}`: highlights on air now (what and how many as set under Highlights on air), then back to the scene the program came from; 409 with why (a round live, halftime with Don't show highlights at halftime on, not set up) | replay.control |
+| `highlights_stop` | `{}`: the highlights end now, back to the scene the program came from (Highlights out). `replay_skip` and `replay_hold` act on the highlight on air | replay.control |
+| `highlights_halftime` | `{"on":true}` / `{"on":false}`: Don't show highlights at halftime on or off; `{}` toggles | replay.control |
 | `return_live` | `{}` | program.control |
 | `program_mode` | `{"mode":"BREAK"}` (`STUDIO`, `BREAK`, `MANUAL`) | program.control |
 
@@ -36,7 +39,7 @@ A device that selects a player becomes the manual owner (sticky takeover); autom
 
 ## Tally
 
-`GET /api/v1/devices/tally` returns a compact object for button feedback: telemetry (`live` / `stale` / `none`), program mode and active replay, automatic replays (`replay`: `state`, `running`, `held`, `onAir` (the clip's label), `position` (`{"n":2,"of":3}`), `waiting`, `pinned`), OBS program/preview scene and stream/record state, director mode/hold/active cinematic, control owner/holder/automation/emergency stop/resume countdown, the on-air POV, and one entry per observer slot (`slot`, `name`, `side`, `alive`, `onAir`). The same object is included as `tally` in the operator WebSocket `state.snapshot` messages.
+`GET /api/v1/devices/tally` returns a compact object for button feedback: telemetry (`live` / `stale` / `none`), program mode (`HIGHLIGHTS` while highlights are on air) and active replay, automatic replays (`replay`: `state`, `running`, `held`, `onAir` (the clip's label), `position` (`{"n":2,"of":3}`), `waiting`, `pinned`), highlights on air (`highlights`: `running`, `held`, `onAir`, `position`, `ready` (Play would start them now), `halftime` (it is halftime now), `noHalftime` (Don't show highlights at halftime)), OBS program/preview scene and stream/record state, director mode/hold/active cinematic, control owner/holder/automation/emergency stop/resume countdown, the on-air POV, and one entry per observer slot (`slot`, `name`, `side`, `alive`, `onAir`). The same object is included as `tally` in the operator WebSocket `state.snapshot` messages.
 
 ## Companion setup (Generic HTTP module)
 
@@ -51,6 +54,8 @@ With a web-request plugin that sends a POST with headers (for example BarRaider'
 The desktop app registers a global emergency-stop hotkey (default `Ctrl+Shift+F12`; set `MATCHFRAME_STOP_HOTKEY` to change). In the operator console, `F8` or `Pause` triggers STOP AUTOMATION (ignored while typing in a field).
 
 Replays: in the console `Ctrl+Shift+F5` Skip, `Ctrl+Shift+F6` Hold / Resume, `Ctrl+Shift+F7` Stop and go live; and global hotkeys for the same, off until set under Automatic replays → Hotkeys and Stream Deck (a key another program holds is reported, not silently ignored).
+
+Highlights on air: in the console `Ctrl+Shift+F9` Play highlights, `Ctrl+Shift+F10` Stop highlights (Skip and Hold: the replays' keys); global hotkeys for the two, off until set under Highlights on air → Hotkeys and Stream Deck (suggested `Ctrl+Shift+F9`, `Ctrl+Shift+F10`). See [replay-graphics-and-highlights.md → Highlights on air](../operations/replay-graphics-and-highlights.md#highlights-on-air).
 
 ## Status
 

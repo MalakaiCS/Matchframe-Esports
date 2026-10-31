@@ -16,7 +16,7 @@ export function zoneAllowed(zone: string, w: SponsorWindow): { allowed: boolean;
   if (FULLSCREEN_ZONES.has(zone)) {
     return w.programMode === "BREAK" || w.programMode === "STUDIO" ? { allowed: true, reason: null } : { allowed: false, reason: "full-screen placements only during break/studio" };
   }
-  if (w.programMode === "REPLAY_PLAYING") return { allowed: false, reason: "no sponsor bugs over replays by default" };
+  if (w.programMode === "REPLAY_PLAYING" || w.programMode === "HIGHLIGHTS") return { allowed: false, reason: "no sponsor bugs over replays or highlights by default" };
   if (w.programMode === "LIVE") {
     if (w.bombPlanted || w.clutch) return { allowed: false, reason: "decisive moment in progress" };
     if (w.roundPhase === "live") return zone === "top_bar" || zone === "scoreboard_slot" ? { allowed: true, reason: null } : { allowed: false, reason: "bug zones only in freeze time / round end" };

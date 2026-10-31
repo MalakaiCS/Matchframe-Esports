@@ -48,6 +48,7 @@ import { checkFolder, StorageFolders } from "./storage.ts";
 import { ReplayTwin } from "./replay/twin.ts";
 import { ReplayGraphic } from "./replay/graphic.ts";
 import { HighlightStore } from "./replay/highlights.ts";
+import { HighlightsOnAir } from "./replay/highlights-air.ts";
 import { HighlightReels } from "./replay/reel.ts";
 import { OnAirLog } from "./replay/onair.ts";
 import { LiveSession } from "./live/session.ts";
@@ -200,6 +201,8 @@ export class Engine {
   readonly replayGraphic: ReplayGraphic;
   /** Clips and kills of the current and previous map kept for highlight reels (ADR-061). */
   readonly highlights: HighlightStore;
+  /** A map's best clips on air from the highlights scene, then back to where the program came from (ADR-063). */
+  readonly highlightsAir: HighlightsOnAir;
   readonly reels: HighlightReels;
   readonly graphics: GraphicsDirector;
   readonly obsAuto: ObsAutomation;
@@ -333,10 +336,11 @@ export class Engine {
     this.program = new ProgramArbiter(
       {
         connected: () => this.obs.state.connected,
-        // Every program change through OBS's transition chosen for it (into or out of a replay, to or from the break and studio scenes).
+        // Every program change through OBS's transition chosen for it (into or out of a replay or highlights, to or from the break and studio scenes).
         setProgram: async (scene, move) => this.obsAuto.switchProgram(scene, this.obsAuto.pickFor(move)),
+        shown: () => this.obs.state.programScene,
       },
-      this.settings.get("program.scenes", { LIVE: null, REPLAY: null, STUDIO: null, BREAK: null }),
+      this.settings.get("program.scenes", { LIVE: null, REPLAY: null, STUDIO: null, BREAK: null, HIGHLIGHTS: null }),
     );
     this.replays = new ReplayQueue(null, (item) => {
       // Clips the replay PC sent live in this computer's data folder: delete them when they drop off the queue.
@@ -421,6 +425,7 @@ export class Engine {
     this.replayTwin = new ReplayTwin(this);
     this.replayGraphic = new ReplayGraphic(this);
     this.highlights = new HighlightStore(this);
+    this.highlightsAir = new HighlightsOnAir(this);
     this.reels = new HighlightReels(this);
     this.graphics = new GraphicsDirector(this);
     this.obsAuto = new ObsAutomation(this);
@@ -1168,6 +1173,7 @@ export class Engine {
     this.autoReplay.start();
     this.replayGraphic.start();
     this.highlights.start();
+    this.highlightsAir.start();
     this.graphics.start();
     this.obsAuto.start();
     this.gameConsole.sync();
@@ -1211,6 +1217,7 @@ export class Engine {
     this.replayGraphic.dispose();
     this.reels.dispose();
     this.highlights.dispose();
+    this.highlightsAir.dispose();
     this.graphics.dispose();
     this.obsAuto.dispose();
     await this.stopSimulation().catch(() => undefined);

@@ -60,7 +60,7 @@ export type {
 };
 
 export type ActionClass = "pov_cut" | "cinematic" | "replay_suggestion" | "mixer_cue";
-export type ProgramMode = "LIVE" | "REPLAY_PREPARED" | "REPLAY_PLAYING" | "STUDIO" | "BREAK" | "MANUAL" | "DEGRADED";
+export type ProgramMode = "LIVE" | "REPLAY_PREPARED" | "REPLAY_PLAYING" | "STUDIO" | "BREAK" | "MANUAL" | "DEGRADED" | "HIGHLIGHTS";
 
 export type Pin =
   | { kind: "player"; steamId: string }
@@ -438,6 +438,8 @@ export interface SceneMap {
   REPLAY: string | null;
   STUDIO: string | null;
   BREAK: string | null;
+  /** Highlights on air; absent from older engines. */
+  HIGHLIGHTS?: string | null;
 }
 
 export interface SetupProfile {
@@ -965,6 +967,8 @@ export interface DeviceTally {
   control: { owner: string; holder: string | null; automationActive: boolean; manualSticky: boolean; emergencyStopped: boolean; resumeInMs: number | null };
   /** Automatic replays: playing (which clip, of how many), held, the round's clips that may still play, the one pinned. */
   replay?: { state: "off" | "waiting" | "playing" | "blocked"; running: boolean; held: boolean; onAir: string | null; position: { n: number; of: number } | null; waiting: number; pinned: string | null };
+  /** Highlights on air: playing (which clip, of how many), held, ready to play, halftime now, Don't show highlights at halftime. */
+  highlights?: { running: boolean; held: boolean; onAir: string | null; position: { n: number; of: number } | null; ready: boolean; halftime: boolean; noHalftime: boolean };
   pov: string | null;
   slots: { slot: number | null; steamId: string; name: string; side: Side | null; alive: boolean; onAir: boolean }[];
 }
@@ -1233,11 +1237,13 @@ export interface NetworkInfo {
 }
 
 export interface ObsAutoResponse {
-  /** Transitions by name; "" = OBS's own; replayOut null = the same as replayIn. */
-  settings: { timeouts: boolean; mapEnd: boolean; replayIn: string; replayOut: string | null; otherScenes: string };
-  scenes: { LIVE: string | null; REPLAY: string | null; STUDIO: string | null; BREAK: string | null };
+  /** Transitions by name; "" = OBS's own; replayOut null = the same as replayIn; highlightsIn/Out null = the same as Replay in/out. */
+  settings: { timeouts: boolean; mapEnd: boolean; replayIn: string; replayOut: string | null; otherScenes: string; highlightsIn?: string | null; highlightsOut?: string | null };
+  scenes: { LIVE: string | null; REPLAY: string | null; STUDIO: string | null; BREAK: string | null; HIGHLIGHTS?: string | null };
   /** The replay scene and its twin. */
   replayScenes?: string[];
+  /** The highlights scene and its twin. */
+  highlightsScenes?: string[];
   transitions: { current: string | null; names: string[]; kinds?: { name: string; kind: string }[] } | null;
 }
 export interface GraphicsSettings {
@@ -1274,4 +1280,55 @@ export interface CamStatusView {
   error: string | null;
   players: CamPlayerView[];
   outputs: { observed: string; player: string } | null;
+}
+
+/** Highlights on air (GET /api/v1/highlights/air; services/local-engine/src/replay/highlights-air.ts). */
+export interface HighlightsAirSettings {
+  what: "map" | "half" | "previous";
+  count: "all" | number;
+  unplayed: boolean;
+  /** Don't show highlights at halftime (on by default). */
+  noHalftime: boolean;
+  autoHalftime: boolean;
+  autoMapEnd: boolean;
+  vmixIn: "CutDirect" | "Fade" | "Stinger1" | "Stinger2" | null;
+  vmixOut: "CutDirect" | "Fade" | "Stinger1" | "Stinger2" | null;
+}
+
+export interface HighlightsAirClip {
+  id: string;
+  label: string;
+  roundNumber: number | null;
+  played: boolean;
+  score: number;
+  reasons: string[];
+  playMs: number;
+}
+
+export interface HighlightsAirResponse {
+  settings: HighlightsAirSettings;
+  status: {
+    state: "ready" | "playing" | "blocked";
+    detail: string;
+    running: boolean;
+    held: boolean;
+    position: { n: number; of: number } | null;
+    playing: { id: string; label: string } | null;
+    blocked: string | null;
+    halftime: boolean;
+    plan: { mapKey: string; mapName: string; title: string | null; what: HighlightsAirSettings["what"]; rounds: { from: number; to: number } | null; clips: HighlightsAirClip[]; totalMs: number } | null;
+    last: { at: string; by: "operator" | "automation"; played: number; skipped: number; failed: number; stopped: string | null; error: string | null; backTo: string | null } | null;
+    auto: { at: string; trigger: "halftime" | "map end"; started: boolean; detail: string } | null;
+  };
+  setup: {
+    mixer: "obs" | "vmix";
+    obsConnected: boolean;
+    scene: string | null;
+    input: string | null;
+    sceneReady: boolean;
+    sameAsReplay: boolean;
+    twin: ReplayTwinStatus | null;
+    graphic: { source: string; inScene: boolean; onTop: boolean } | null;
+    detail: string;
+  };
 }

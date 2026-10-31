@@ -4,10 +4,11 @@ import type { QueueItem, ReplayPlay } from "@matchframe/replay-agent";
 import type { MatchState } from "@matchframe/contracts";
 import type { Engine } from "../app.ts";
 import type { TransitionPick } from "../live/obs-auto.ts";
+import type { ProgramOwner } from "../production/program.ts";
 import { replayLabel } from "./link.ts";
 import type { RankFacts } from "./rank.ts";
 import { clipScore, CUT_MS, fitReplay, planBreak, replayWallMs, SWITCH_MS } from "./rank.ts";
-import type { VmixInput } from "./vmix.ts";
+import type { VmixInput, VmixTransition } from "./vmix.ts";
 import { VMIX_TRANSITIONS, VmixClient } from "./vmix.ts";
 import type { TwinStatus } from "./twin.ts";
 import type { DuckStatus } from "./audio.ts";
@@ -30,6 +31,10 @@ import { ReplayTest } from "./test-run.ts";
  * and go live, Hold (and Resume) the clip on air, and, in the round's list, Exclude a clip or Pin one
  * to play first. The live game audio picked is turned down while the replays play (replay/audio.ts),
  * and Test replays (replay/test-run.ts) plays two sample clips through this same path.
+ *
+ * Highlights on air (replay/highlights-air.ts, ADR-063) play a map's kept clips through this same
+ * path too, on the highlights scene and its twin (a Stage): the same fades, graphic, sound, controls
+ * and status, with their own transitions, and back to where the program came from.
  */
 
 export const AutoReplaySettings = z.object({
@@ -154,15 +159,55 @@ export type TraceEvent =
   | { type: "audio-down"; inputs: string[] }
   | { type: "audio-back"; ok: boolean; detail: string };
 
-/** A clip chosen for the break, and how much of it to show. */
+/** A clip chosen for the break (or highlights), and how much of it to show. */
 interface Planned {
   item: QueueItem;
   playMs: number;
   leadMs: number | null;
 }
 
-/** A break's replays once chosen: the clips in play order, and how it went. */
+/** What a sequence of clips is: a break's replays, Test replays' sample clips, or highlights on air (ADR-063). */
+export type SequenceKind = "break" | "test" | "highlights";
+
+/** One of the two scenes clips alternate between (a scene and its twin), with its media source. */
+export interface Slot {
+  scene: string;
+  input: string;
+}
+
+/**
+ * Where a sequence plays and who has the program meanwhile: the replay scene (a break's replays, Test
+ * replays; REPLAY_PLAYING, automation) or the highlights scene (HIGHLIGHTS, the operator who pressed
+ * Play or the automatic start). With vMix, its transitions in and out.
+ */
+export interface Stage {
+  mode: "REPLAY_PLAYING" | "HIGHLIGHTS";
+  owner: ProgramOwner;
+  holder: string;
+  /** OBS: the scene and its media source (null: not set up). */
+  main(): Slot | null;
+  /** OBS: the scene's twin, built or brought up to date off air (null: none; `twinDetail` says why). */
+  twin(): Promise<Slot | null>;
+  twinDetail(): string;
+  /** OBS: the scenes it plays on as the program knows them (the scene and its twin). */
+  scenes(): string[];
+  vmixIn: VmixTransition;
+  vmixOut: VmixTransition;
+}
+
+/** How a sequence went: clips played (of them skipped), failed, the last error, and why it stopped. */
+export interface SequenceResult {
+  played: number;
+  skipped: number;
+  failed: number;
+  error: string | null;
+  stopped: Stop | null;
+}
+
+/** A break's replays once chosen (or Test replays, or highlights): the clips in play order, and how it went. */
 interface Sequence {
+  kind: SequenceKind;
+  stage: Stage;
   round: number | null;
   /** Every clip chosen for it (and a pinned one that joined it). */
   ids: string[];
@@ -186,8 +231,8 @@ interface Sequence {
   resumable: boolean;
   /** Clips the operator skipped. */
   skipped: number;
-  /** The Test replays button's sample clips (never a round's): no round clock, nothing marked or recorded as played. */
-  test: boolean;
+  /** The break had none: highlights went on air in it (ADR-063). */
+  yielded?: boolean;
   /** For the Test replays report: what the path did. */
   trace: ((ev: TraceEvent) => void) | null;
   /** The live audio going down (once, as the first clip goes on air). */
@@ -210,18 +255,12 @@ interface Controls {
  * starting), the operator stopped the replays, automatic replays were turned off, or someone else
  * changed the program.
  */
-type Stop = "ended" | "late" | "skipped" | "deadline" | "stopped" | "off" | "taken";
+export type Stop = "ended" | "late" | "skipped" | "deadline" | "stopped" | "off" | "taken";
 /** A clip that ended one of these ways lets the next one play. */
 const goesOn = (s: Stop) => s === "ended" || s === "late" || s === "skipped";
 /** A clip that may still play automatically (not played, rejected or failed). */
 const playable = (it: QueueItem) => it.state === "prepared" || it.state === "approved";
 const refuse = (status: number, code: string, message: string) => Object.assign(new Error(message), { status, code });
-
-/** One of the two scenes a break's replays alternate between (the replay scene and its twin), with its media source. */
-interface Slot {
-  scene: string;
-  input: string;
-}
 
 /** A clip loaded in a scene off air, at its part, waiting to go on air. */
 interface Cued {
@@ -383,8 +422,7 @@ export class AutoReplay {
       this.sequence.stopped = "stopped";
       if (this.sequence.round !== null) this.closedThrough = Math.max(this.closedThrough ?? this.sequence.round, this.sequence.round);
     } else if (this.breakStartedAt !== null && !this.sequence && this.e.session.state()?.roundPhase !== "live") {
-      this.sequence = { round: this.breakRound, ids: [], rest: [], taken: 0, chosenAt: Date.now(), running: false, played: 0, failed: 0, error: null, wentLive: null, stopped: "stopped", obsChanges: 0, resumable: false, skipped: 0, test: false, trace: null, ducking: null };
-      if (this.breakRound !== null) this.closedThrough = Math.max(this.closedThrough ?? this.breakRound, this.breakRound);
+      this.sequence = this.noReplays("stopped");
     } else throw refuse(409, "no_replays", "No replays are playing or about to play.");
     this.e.audit.record(HOLDER, "replay.auto_stop", this.status.playing?.id ?? null, {});
     return this.getStatus();
@@ -600,10 +638,35 @@ export class AutoReplay {
     this.status = { ...this.status, state, detail, playing, position };
   }
 
-  /** The status while a clip is on air: "Replay 2 of 3: <label>". */
+  /** The status while a clip is on air: "Replay 2 of 3: <label>" (or "Test replay …", "Highlight 3 of 8: …"). */
   private onAirStatus(seq: Sequence, n: number, it: QueueItem): void {
     const of = n + seq.rest.length;
-    this.setStatus("playing", `${seq.test ? "Test replay" : "Replay"} ${n} of ${of}: ${it.label}`, { id: it.id, label: it.label }, { n, of });
+    this.setStatus("playing", `${seq.kind === "test" ? "Test replay" : seq.kind === "highlights" ? "Highlight" : "Replay"} ${n} of ${of}: ${it.label}`, { id: it.id, label: it.label }, { n, of });
+  }
+
+  /** The break of the round that just ended, with no replays: stopped by the operator, or highlights went on air in it. */
+  private noReplays(why: "stopped" | "highlights"): Sequence {
+    if (this.breakRound !== null) this.closedThrough = Math.max(this.closedThrough ?? this.breakRound, this.breakRound);
+    return { kind: "break", stage: this.replayStage(), round: this.breakRound, ids: [], rest: [], taken: 0, chosenAt: Date.now(), running: false, played: 0, failed: 0, error: null, wentLive: null, stopped: why === "stopped" ? "stopped" : null, obsChanges: 0, resumable: false, skipped: 0, yielded: why === "highlights", trace: null, ducking: null };
+  }
+
+  /** Where a break's replays and Test replays play: the replay scene and its twin, automation's, Replay in and out in vMix. */
+  private replayStage(): Stage {
+    const st = this.settings();
+    return {
+      mode: "REPLAY_PLAYING",
+      owner: "automation",
+      holder: HOLDER,
+      main: () => {
+        const scene = this.e.program.sceneMap.REPLAY;
+        return scene ? { scene, input: this.e.settings.get<string>("replay.mediaInput", "") } : null;
+      },
+      twin: () => this.e.replayTwin.sync(),
+      twinDetail: () => this.e.replayTwin.getStatus().detail,
+      scenes: () => this.e.program.replayScenes,
+      vmixIn: st.vmixTransition,
+      vmixOut: st.vmixTransitionOut ?? st.vmixTransition,
+    };
   }
 
   /**
@@ -611,7 +674,7 @@ export class AutoReplay {
    * one goes first (joining the break if it wasn't chosen, when it may play automatically).
    */
   private applyOperator(seq: Sequence): void {
-    if (seq.test) return;
+    if (seq.kind !== "break") return;
     seq.rest = seq.rest.filter((c) => !this.excluded.has(c.item.id));
     const pin = this.waitingPin(seq);
     if (!pin) return;
@@ -629,7 +692,7 @@ export class AutoReplay {
   /** The clip pinned for this break that hasn't been taken from its list yet and may still play, or null. */
   private waitingPin(seq: Sequence): string | null {
     const pin = this.pinned;
-    if (seq.test || !pin || pin.round !== seq.round || this.playedIds.has(pin.id) || this.status.playing?.id === pin.id) return null;
+    if (seq.kind !== "break" || !pin || pin.round !== seq.round || this.playedIds.has(pin.id) || this.status.playing?.id === pin.id) return null;
     // Taken already (waiting off air, on air, or dropped as it didn't fit).
     if (seq.ids.includes(pin.id) && !seq.rest.some((c) => c.item.id === pin.id)) return null;
     const it = this.e.replays.get(pin.id);
@@ -652,7 +715,7 @@ export class AutoReplay {
 
   /** The clip waiting off air is no longer the next: the operator excluded it, or pinned another. */
   private stale(seq: Sequence, c: Planned): boolean {
-    if (seq.test) return false;
+    if (seq.kind !== "break") return false;
     const pin = this.waitingPin(seq);
     return this.excluded.has(c.item.id) || (pin !== null && pin !== c.item.id);
   }
@@ -710,7 +773,7 @@ export class AutoReplay {
     if (this.sequence?.resumable && !this.sequence.running && this.e.program.mode === "LIVE") this.sequence = null;
     if (this.sequence) {
       const q = this.sequence;
-      const how = [q.played ? `${q.played} played` : "", q.skipped ? `${q.skipped} skipped` : "", q.failed ? `${q.failed} didn't play` : "", q.stopped === "stopped" ? "stopped by the operator" : "", q.stopped === "deadline" ? (st.cutBack === "clock" ? `back to live by ${clock(st.cutBackClockSec)} on the round clock` : "back to live before the round started") : ""].filter(Boolean).join(", ");
+      const how = [q.played ? `${q.played} played` : "", q.skipped ? `${q.skipped} skipped` : "", q.failed ? `${q.failed} didn't play` : "", q.stopped === "stopped" ? "stopped by the operator" : "", q.yielded ? "highlights went on air instead" : "", q.stopped === "deadline" ? (st.cutBack === "clock" ? `back to live by ${clock(st.cutBackClockSec)} on the round clock` : "back to live before the round started") : ""].filter(Boolean).join(", ");
       const summary = [how, q.error].filter(Boolean).join(": ");
       return this.setStatus(q.error && !q.played ? "blocked" : "waiting", `Replays for this break are done${summary ? ` (${summary})` : ""}.`);
     }
@@ -733,8 +796,10 @@ export class AutoReplay {
       pin,
     );
     if (!plan.length) return this.setStatus("waiting", pool.length ? "The round's replays don't fit in the time left." : "No replays for this round.");
+    // (Highlights went on air while this tick waited for vMix: they have the program.)
+    if (this.running) return;
     const list: Planned[] = plan.map((p) => ({ item: pool.find((r) => r.item.id === p.id)!.item, playMs: p.playMs, leadMs: p.leadMs }));
-    const seq: Sequence = { round: this.breakRound, ids: list.map((c) => c.item.id), rest: list, taken: 0, chosenAt: Date.now(), running: true, played: 0, failed: 0, error: null, wentLive: null, stopped: null, obsChanges: this.e.obsAuto.changesInObs, resumable: false, skipped: 0, test: false, trace: null, ducking: null };
+    const seq: Sequence = { kind: "break", stage: this.replayStage(), round: this.breakRound, ids: list.map((c) => c.item.id), rest: list, taken: 0, chosenAt: Date.now(), running: true, played: 0, failed: 0, error: null, wentLive: null, stopped: null, obsChanges: this.e.obsAuto.changesInObs, resumable: false, skipped: 0, trace: null, ducking: null };
     this.sequence = seq;
     this.abort = false;
     await this.play(seq);
@@ -777,17 +842,52 @@ export class AutoReplay {
    */
   async playTest(items: QueueItem[], trace: (ev: TraceEvent) => void): Promise<{ played: number; failed: number; error: string | null; stopped: Stop | null }> {
     const list: Planned[] = items.map((item) => ({ item, playMs: this.playMsOf(item), leadMs: null }));
-    const seq: Sequence = { round: null, ids: list.map((c) => c.item.id), rest: list, taken: 0, chosenAt: Date.now(), running: true, played: 0, failed: 0, error: null, wentLive: null, stopped: null, obsChanges: this.e.obsAuto.changesInObs, resumable: false, skipped: 0, test: true, trace, ducking: null };
+    const seq: Sequence = { kind: "test", stage: this.replayStage(), round: null, ids: list.map((c) => c.item.id), rest: list, taken: 0, chosenAt: Date.now(), running: true, played: 0, failed: 0, error: null, wentLive: null, stopped: null, obsChanges: this.e.obsAuto.changesInObs, resumable: false, skipped: 0, trace, ducking: null };
     if (this.settings().mixer === "vmix") await this.checkVmix();
     await this.play(seq);
     this.setStatus("waiting", seq.played ? `Test replays done (${seq.played} played).` : "Test replays done.");
     return { played: seq.played, failed: seq.failed, error: seq.error, stopped: seq.stopped };
   }
 
+  /**
+   * Highlights on air (replay/highlights-air.ts, ADR-063): a map's kept clips, in order, played as a
+   * break's are on `stage` (the highlights scene and its twin, or vMix), with the operator's Skip,
+   * Hold and Stop. Before a round is live they play on; once one is (half time over), until the cut
+   * back on its clock (the replays' setting). Nothing is marked in the replay list. A break whose
+   * replays haven't started has none. Returns how it went once they are over.
+   */
+  async playHighlights(items: QueueItem[], stage: Stage): Promise<SequenceResult> {
+    if (this.running || this.busy) throw refuse(409, "busy", this.running?.kind === "highlights" ? "Highlights are on air already." : "The break's replays are playing: try again after them.");
+    // A break whose replays are about to play: highlights instead (they would come straight after).
+    if (this.breakStartedAt !== null && !this.sequence && this.e.session.state()?.roundPhase !== "live") this.sequence = this.noReplays("highlights");
+    const list: Planned[] = items.map((item) => ({ item, playMs: this.playMsOf(item), leadMs: item.leadMs ?? null }));
+    const seq: Sequence = { kind: "highlights", stage, round: null, ids: list.map((c) => c.item.id), rest: list, taken: 0, chosenAt: Date.now(), running: true, played: 0, failed: 0, error: null, wentLive: null, stopped: null, obsChanges: this.e.obsAuto.changesInObs, resumable: false, skipped: 0, trace: null, ducking: null };
+    await this.play(seq);
+    return { played: seq.played, skipped: seq.skipped, failed: seq.failed, error: seq.error, stopped: seq.stopped };
+  }
+
+  /** What plays now: a break's replays, Test replays or highlights; null when nothing does. */
+  runningKind(): SequenceKind | null {
+    return this.running?.kind ?? null;
+  }
+
+  /**
+   * The round's replays are playing, or about to (the round just ended and its break's replays haven't
+   * been chosen yet, while they still may be): automatic highlights wait for them (ADR-063).
+   */
+  replaysDue(): boolean {
+    if (this.running && this.running.kind !== "highlights") return true;
+    const st = this.settings();
+    if (!st.enabled || this.breakStartedAt === null || this.sequence) return false;
+    if (this.e.now() - this.breakStartedAt > st.startDelayMs + REPLAY_PC_WAIT_MS + 2000) return false;
+    return this.candidates(this.breakRound).length > 0;
+  }
+
   /** Why Test replays can't play now, or null. They play on program, so never over a live round or anything but the live program. */
   testBlocked(): string | null {
     const s = this.e.session.state();
-    if (this.running?.test) return "Test replays are playing already.";
+    if (this.running?.kind === "test") return "Test replays are playing already.";
+    if (this.running?.kind === "highlights") return "Highlights are on air: try again after them.";
     if (this.busy) return "The break's replays are playing: try again after them.";
     if (s?.roundPhase === "live") return "A round is live: Test replays play on your program output, so they only run between rounds (or without a match).";
     const theirs = this.theirScene("Test replays wait");
@@ -799,6 +899,11 @@ export class AutoReplay {
   /** How much of a clip to show (the whole clip when it says nothing). */
   private playMsOf(it: QueueItem): number {
     return it.playMs ?? it.clip?.media.durationMs ?? 8000;
+  }
+
+  /** vMix answered the last check. */
+  vmixConnected(): boolean {
+    return this.vmix?.connected === true;
   }
 
   /** Whether vMix's API answers (checked every 2 s while it is the mixer). */
@@ -830,11 +935,12 @@ export class AutoReplay {
    */
   private onAirOurs(seq: Sequence, id?: string): boolean {
     const p = this.e.program;
-    if (!(p.mode === "REPLAY_PLAYING" && p.owner.holder === HOLDER && (id === undefined || p.activeReplay === id))) return false;
+    const stage = seq.stage;
+    if (!(p.mode === stage.mode && p.owner.holder === stage.holder && (id === undefined || p.activeReplay === id))) return false;
     if (this.settings().mixer !== "obs" || !this.e.obs.state.connected) return true;
     if (seq.running && this.e.obsAuto.changesInObs !== seq.obsChanges) return false;
     const shown = this.e.obs.state.programScene;
-    return shown === null || p.replayScenes.includes(shown);
+    return shown === null || stage.scenes().includes(shown);
   }
 
   /**
@@ -844,7 +950,13 @@ export class AutoReplay {
   private interrupted(seq: Sequence): Stop | null {
     if (this.ctl.stop) return "stopped";
     const s = this.e.session.state();
-    if (seq.test) return s?.roundPhase === "live" ? "deadline" : null;
+    if (seq.kind === "test") return s?.roundPhase === "live" ? "deadline" : null;
+    if (seq.kind === "highlights") {
+      // Highlights run on until a round is live (half time over), then until the cut back on its clock.
+      if (!s) return null;
+      if (s.roundPhase === "live") seq.wentLive ??= this.e.now();
+      return seq.wentLive !== null && this.cutBackAt(s, seq.wentLive) <= this.e.now() ? "deadline" : null;
+    }
     if (this.abort || !this.settings().enabled) return "off";
     // (The time is read after: "now" from cutBackAt is then never later than it.)
     if (s && this.cutBackAt(s, seq.wentLive) <= this.e.now()) return "deadline";
@@ -858,7 +970,9 @@ export class AutoReplay {
    */
   private fitNow(c: Planned, first: boolean, seq: Sequence, startsAt = this.e.now()): number | null {
     const s = this.e.session.state();
-    if (!s || seq.test) return c.playMs;
+    if (!s || seq.kind === "test") return c.playMs;
+    // Highlights fit in nothing until a round is live (then by its clock, as a break's replays).
+    if (seq.kind === "highlights" && seq.wentLive === null && s.roundPhase !== "live") return c.playMs;
     // The first clip has the cut to the replay and back to make; a later one the switch and the cut back.
     return fitReplay(c, this.cutBackAt(s, seq.wentLive) - startsAt, this.settings().speedPercent, first ? CUT_MS : SWITCH_MS + CUT_MS / 2);
   }
@@ -867,24 +981,37 @@ export class AutoReplay {
     seq.played++;
     if (end === "skipped") seq.skipped++;
     seq.trace?.({ type: "clip", id: it.id, ok: true, error: null });
-    // Test replays' sample clips: nothing is recorded.
-    if (seq.test) return;
+    // Test replays' sample clips and highlights (kept clips, played already or not): nothing is recorded in the replay list.
+    if (seq.kind !== "break") return;
     this.e.replays.markPlayed(it.id);
     this.status = { ...this.status, lastPlayed: { id: it.id, label: it.label, at: new Date().toISOString() } };
     this.e.audit.record(HOLDER, "replay.auto_played", it.id, { label: it.label, origin: it.origin, ...(mixer === "vmix" ? { mixer } : {}), ...(end === "skipped" ? { skipped: true } : {}) });
   }
 
-  /** The clip is on air: played this break (a sample clip of Test replays isn't counted). */
+  /** The clip is on air: played this break (a sample clip of Test replays isn't counted; a highlight is a kept clip, not the replay list's). */
   private nowOnAir(it: QueueItem, seq: Sequence): void {
+    if (seq.kind === "highlights") return;
     this.e.replays.markPlaying(it.id);
-    if (!seq.test) this.playedIds.add(it.id);
+    if (seq.kind === "break") this.playedIds.add(it.id);
+  }
+
+  /** A clip of the replay list about to go on air is approved (a highlight isn't on the list). */
+  private approve(it: QueueItem, seq: Sequence): void {
+    if (seq.kind !== "highlights" && it.state === "prepared") this.e.replays.approve(it.id);
+  }
+
+  /** The clip may still go on air: not played or rejected meanwhile, nor excluded by the operator (a highlight always may). */
+  private mayPlay(it: QueueItem, seq: Sequence): boolean {
+    return seq.kind === "highlights" || (playable(it) && !this.excluded.has(it.id));
   }
 
   /** A clip that didn't play: failed (or rejected, if it never started), and the break goes on without it. */
   private clipFailed(it: QueueItem, err: unknown, seq: Sequence): void {
     const error = err instanceof Error ? err.message : String(err);
-    this.e.replays.markPlaybackFailed(it.id, error);
-    if (it.state === "approved") this.e.replays.reject(it.id);
+    if (seq.kind !== "highlights") {
+      this.e.replays.markPlaybackFailed(it.id, error);
+      if (it.state === "approved") this.e.replays.reject(it.id);
+    }
     seq.failed++;
     seq.error = error;
     seq.trace?.({ type: "clip", id: it.id, ok: false, error });
@@ -896,31 +1023,43 @@ export class AutoReplay {
    * state machine's port picks them: Replay in, Replay out). With the replay scene's twin (replay/twin.ts)
    * they alternate between the two scenes and fade (or cut) from one to the next; without one they
    * play in the replay scene's one source, as before 0.10.5. The live game audio picked goes down as
-   * the first clip goes on air and is put back after the last, however the replays end.
+   * the first clip goes on air and is put back after the last, however the replays end. Highlights
+   * the same on the highlights scene and its twin (Highlights in and out), and back to where the
+   * program came from (live, once a round is live; returnFromHighlights).
    */
   private async playObs(seq: Sequence): Promise<void> {
-    const main: Slot = { scene: this.e.program.sceneMap.REPLAY!, input: this.e.settings.get<string>("replay.mediaInput", "") };
-    const twin = await this.e.replayTwin.sync().catch(() => null);
-    if (!twin) seq.trace?.({ type: "one-source", why: this.e.replayTwin.getStatus().detail });
+    const stage = seq.stage;
+    const main = stage.main();
+    if (!main) throw new Error(stage.mode === "HIGHLIGHTS" ? "No highlights scene is mapped." : "No replay scene is mapped.");
+    const twin = await stage.twin().catch(() => null);
+    if (!twin) seq.trace?.({ type: "one-source", why: stage.twinDetail() });
     await this.audio.applyReplayVolume().catch(() => undefined);
     let end: Stop = "ended";
     try {
       end = twin ? await this.playObsTwin(seq, [main, twin]) : await this.playObsOneSource(seq, main.input);
     } finally {
       seq.stopped = end;
-      // Back to live once, unless someone else has the program.
+      // Back once (to live; highlights to where the program came from), unless someone else has the program.
       const p = this.e.program;
-      if (end !== "taken" && p.owner.holder === HOLDER && (p.mode === "REPLAY_PLAYING" || p.mode === "REPLAY_PREPARED")) {
+      if (end !== "taken" && p.owner.holder === stage.holder && (p.mode === stage.mode || p.mode === "REPLAY_PREPARED")) {
         try {
-          const t = await p.request("LIVE", "automation", HOLDER);
-          seq.trace?.({ type: "out", confirmed: t.confirmed, scene: this.e.obs.state.programScene, transition: this.e.obsAuto.lastSwitch?.transition ?? null, error: t.detail });
+          const t = stage.mode === "HIGHLIGHTS" ? await p.returnFromHighlights(stage.owner, stage.holder, { live: this.e.session.state()?.roundPhase === "live" || end === "deadline", exists: (scene) => this.e.obs.state.scenes.includes(scene) }) : await p.request("LIVE", "automation", HOLDER);
+          if (t) seq.trace?.({ type: "out", confirmed: t.confirmed, scene: this.e.obs.state.programScene, transition: this.e.obsAuto.lastSwitch?.transition ?? null, error: t.detail });
         } catch (err) {
-          this.e.logger.warn("automatic replays: could not return to live", { error: String(err) });
+          this.e.logger.warn(stage.mode === "HIGHLIGHTS" ? "highlights: could not go back" : "automatic replays: could not return to live", { error: String(err) });
           seq.trace?.({ type: "out", confirmed: false, scene: this.e.obs.state.programScene, transition: null, error: err instanceof Error ? err.message : String(err) });
         }
       }
       await this.audioBack(seq);
     }
+  }
+
+  /** The first clip goes on air (the transition in): a replay through REPLAY_PREPARED, highlights straight to HIGHLIGHTS. */
+  private async goOnAir(seq: Sequence, it: QueueItem) {
+    const { mode, owner, holder } = seq.stage;
+    if (mode === "REPLAY_PLAYING") await this.e.program.request("REPLAY_PREPARED", owner, holder, { replayItemId: it.id });
+    this.audioDown(seq);
+    return this.e.program.request(mode, owner, holder, { replayItemId: it.id });
   }
 
   /** As the first clip goes on air: the live game audio picked goes down (with its ramp, alongside the transition). */
@@ -954,7 +1093,7 @@ export class AutoReplay {
     const cue = async (slot: number, startsAt: number): Promise<Cued | null> => {
       for (let c = this.take(seq); c; c = this.take(seq)) {
         const it = c.item;
-        if (!playable(it)) continue;
+        if (!this.mayPlay(it, seq)) continue;
         const playMs = this.fitNow(c, !shown, seq, startsAt);
         if (playMs === null) continue;
         try {
@@ -973,7 +1112,7 @@ export class AutoReplay {
       const it = c.item;
       const scene = slots[slot]!;
       // Played, rejected or excluded meanwhile, or it no longer fits: the next one, in the same scene.
-      const playMs = playable(it) && !this.excluded.has(it.id) ? this.fitNow(c, !shown, seq) : null;
+      const playMs = this.mayPlay(it, seq) ? this.fitNow(c, !shown, seq) : null;
       if (playMs === null) {
         next = await cue(slot, this.e.now());
         continue;
@@ -982,7 +1121,7 @@ export class AutoReplay {
       let cued = next.cursorMs;
       let over: Promise<boolean> | null = null;
       try {
-        if (it.state === "prepared") this.e.replays.approve(it.id);
+        this.approve(it, seq);
         // Shortened again since it was loaded: further into the clip.
         const later = partStart(next.durationMs ?? it.clip!.media.durationMs, playMs);
         if (playMs < next.playMs - 300 && cued !== null && later > 0) cued = await this.obsSeek(scene.input, later, true);
@@ -997,10 +1136,8 @@ export class AutoReplay {
           }
         }
         if (!shown) {
-          // Into the replays (Replay in): the clip plays once the transition shows it (a Stinger's cut point).
-          await this.e.program.request("REPLAY_PREPARED", "automation", HOLDER, { replayItemId: it.id });
-          this.audioDown(seq);
-          const t = await this.e.program.request("REPLAY_PLAYING", "automation", HOLDER, { replayItemId: it.id });
+          // Into the replays (Replay in; highlights: Highlights in): the clip plays once the transition shows it (a Stinger's cut point).
+          const t = await this.goOnAir(seq, it);
           shown = true;
           seq.trace?.({ type: "in", scene: this.e.obs.state.programScene, confirmed: t.confirmed, transition: this.e.obsAuto.lastSwitch?.transition ?? null });
           const point = this.e.obsAuto.cutPointMs(scene.scene);
@@ -1009,7 +1146,7 @@ export class AutoReplay {
         } else {
           // From one to the next: it plays as the program fades (or cuts) over to its scene.
           await this.e.obs.mediaAction(scene.input, "play");
-          await this.e.program.request("REPLAY_PLAYING", "automation", HOLDER, { replayItemId: it.id });
+          await this.e.program.request(seq.stage.mode, seq.stage.owner, seq.stage.holder, { replayItemId: it.id });
           over = this.e.obs.waitTransitionEnd(fade ? st.fadeMs + 400 : 400);
           const confirmed = await this.e.obsAuto.switchProgram(scene.scene, pick);
           seq.trace?.({ type: "between", scene: scene.scene, confirmed, transition: this.e.obsAuto.lastSwitch?.transition ?? null });
@@ -1053,12 +1190,12 @@ export class AutoReplay {
       const why = this.interrupted(seq) ?? (shown && !this.onAirOurs(seq) ? "taken" : null);
       if (why) return why;
       // Played or rejected by hand meanwhile, or no longer fits in the time left.
-      if (!playable(it)) continue;
+      if (!this.mayPlay(it, seq)) continue;
       const playMs = this.fitNow(c, !shown, seq);
       if (playMs === null) continue;
       this.onAirStatus(seq, seq.taken, it);
       try {
-        if (it.state === "prepared") this.e.replays.approve(it.id);
+        this.approve(it, seq);
         if (!shown) {
           // Off air: the clip is loaded (an earlier one still playing there is held first) and, if OBS
           // plays it hidden, skipped to its part, so the cut opens on it.
@@ -1067,9 +1204,7 @@ export class AutoReplay {
           const hidden = await this.obsPlaying(input, false);
           const startHidden = partStart(hidden?.durationMs ?? it.clip!.media.durationMs, playMs);
           const cued = hidden ? (startHidden ? await this.obsSeek(input, startHidden) : hidden.cursorMs) : null;
-          await this.e.program.request("REPLAY_PREPARED", "automation", HOLDER, { replayItemId: it.id });
-          this.audioDown(seq);
-          const t = await this.e.program.request("REPLAY_PLAYING", "automation", HOLDER, { replayItemId: it.id });
+          const t = await this.goOnAir(seq, it);
           shown = true;
           seq.trace?.({ type: "in", scene: this.e.obs.state.programScene, confirmed: t.confirmed, transition: this.e.obsAuto.lastSwitch?.transition ?? null });
           this.nowOnAir(it, seq);
@@ -1078,7 +1213,7 @@ export class AutoReplay {
           // On air: the next clip goes into the same source; until it plays, the last frame of the one before stays.
           if (end === "late" || end === "skipped") await this.e.obs.mediaAction(input, "pause").catch(() => undefined);
           await this.e.obs.setMediaFile(input, it.clip!.media.path!, { speedPercent: st.speedPercent });
-          await this.e.program.request("REPLAY_PLAYING", "automation", HOLDER, { replayItemId: it.id });
+          await this.e.program.request(seq.stage.mode, seq.stage.owner, seq.stage.holder, { replayItemId: it.id });
           this.nowOnAir(it, seq);
           const media = (await this.obsPlaying(input, true))!;
           const start = partStart(media.durationMs ?? it.clip!.media.durationMs, playMs);
@@ -1250,6 +1385,7 @@ export class AutoReplay {
    */
   private async playVmix(seq: Sequence): Promise<void> {
     const st = this.settings();
+    const stage = seq.stage;
     const vmix = new VmixClient(st.vmixUrl);
     const fade = st.between === "fade";
     const added: string[] = [];
@@ -1261,7 +1397,7 @@ export class AutoReplay {
     const load = async (): Promise<Loaded | null> => {
       for (let c = this.take(seq); c; c = this.take(seq)) {
         const it = c.item;
-        if (!playable(it)) continue;
+        if (!this.mayPlay(it, seq)) continue;
         try {
           const path = it.clip!.media.path!;
           const name = path.split(/[\\/]/).pop()!;
@@ -1299,22 +1435,22 @@ export class AutoReplay {
         }
         const { c, key, duration } = next;
         const it = c.item;
-        const playMs = playable(it) && !this.excluded.has(it.id) ? this.fitNow(c, !onAir, seq) : null;
+        const playMs = this.mayPlay(it, seq) ? this.fitNow(c, !onAir, seq) : null;
         if (playMs === null) {
           next = await load();
           continue;
         }
         this.onAirStatus(seq, next.n, it);
         try {
-          if (it.state === "prepared") this.e.replays.approve(it.id);
+          this.approve(it, seq);
           // Shortened to fit the time left.
           if (playMs < c.playMs && duration > playMs + 300) await vmix.call("SetPosition", { Input: key, Value: Math.round(duration - playMs) });
           await vmix.call("Play", { Input: key });
-          // To the first replay with the chosen transition; from one replay to the next a fade (or a cut).
+          // To the first replay with the chosen transition (Replay in; highlights: Highlights in); from one clip to the next a fade (or a cut).
           if (!onAir) {
             this.audioDown(seq);
-            await vmix.call(st.vmixTransition, { Input: key });
-            seq.trace?.({ type: "in", scene: it.label, confirmed: true, transition: st.vmixTransition });
+            await vmix.call(stage.vmixIn, { Input: key });
+            seq.trace?.({ type: "in", scene: it.label, confirmed: true, transition: stage.vmixIn });
           } else {
             await vmix.call(fade ? "Fade" : "CutDirect", { Input: key, ...(fade ? { Duration: st.fadeMs } : {}) });
             seq.trace?.({ type: "between", scene: it.label, confirmed: true, transition: fade ? `Fade ${st.fadeMs} ms` : "CutDirect" });
@@ -1346,7 +1482,7 @@ export class AutoReplay {
       this.e.logger.warn("automatic replays: vMix didn't answer", { error: seq.error });
     } finally {
       seq.stopped = end;
-      const out = st.vmixTransitionOut ?? st.vmixTransition;
+      const out = stage.vmixOut;
       if (onAir && end !== "taken" && live) {
         try {
           await vmix.call(out, { Input: live.key });

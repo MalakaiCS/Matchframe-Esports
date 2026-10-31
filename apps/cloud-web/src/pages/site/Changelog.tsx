@@ -11,6 +11,22 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.7",
+    title: "Highlights on air",
+    summary: "A highlights scene that plays a map's best clips on air and goes back to the scene you came from.",
+    sections: [
+      {
+        heading: "Highlights",
+        items: [
+          "One click sets up a highlights scene in OBS, with fades and the replay graphic.",
+          "Play this map's, the last half's or the previous map's best clips from a button, hotkey or Stream Deck.",
+          "Afterwards it goes back to the scene you came from, such as your analysis scene.",
+          "Don't show highlights at halftime: one switch, on by default.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.10.6",
     title: "Replay graphic, controls and highlight reels",
     summary: "A replay graphic in every Matchframe HUD, controls and sound for replays, a Test replays button, highlight reels and storage on another drive.",

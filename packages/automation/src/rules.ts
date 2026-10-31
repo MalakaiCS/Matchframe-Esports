@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-export const PROGRAM_MODES = ["LIVE", "REPLAY_PREPARED", "REPLAY_PLAYING", "STUDIO", "BREAK", "MANUAL", "DEGRADED"] as const;
+/** HIGHLIGHTS: a map's best clips on the highlights scene (ADR-063), then back to where the program came from. */
+export const PROGRAM_MODES = ["LIVE", "REPLAY_PREPARED", "REPLAY_PLAYING", "STUDIO", "BREAK", "MANUAL", "DEGRADED", "HIGHLIGHTS"] as const;
 export type ProgramMode = (typeof PROGRAM_MODES)[number];
 
 export const TRIGGERS = [

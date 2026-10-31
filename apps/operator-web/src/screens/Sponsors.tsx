@@ -21,7 +21,7 @@ const ZONES = [
 
 export const TRIGGERS = ["round_phase", "round_end", "bomb_state", "player_died", "kills_increased", "probable_kill_link", "game_phase", "observer_changed", "epoch_changed", "map_end", "utility_activated", "source_stale", "source_recovered", "timeout_called"] as const;
 const ACTION_KINDS = ["hud_cue", "hud_variant", "obs_scene", "obs_source_visibility", "sponsor_show", "replay_bookmark", "alert"] as const;
-const PROGRAM_MODES = ["LIVE", "REPLAY_PREPARED", "REPLAY_PLAYING", "STUDIO", "BREAK", "MANUAL", "DEGRADED"];
+const PROGRAM_MODES = ["LIVE", "REPLAY_PREPARED", "REPLAY_PLAYING", "STUDIO", "BREAK", "MANUAL", "DEGRADED", "HIGHLIGHTS"];
 
 type SponsorDraft = Omit<Sponsor, "id">;
 const EMPTY_SPONSOR: SponsorDraft = { name: "", assetIds: [], placements: [], displaySeconds: 10, weight: 1, active: true };

@@ -9710,6 +9710,28 @@
                   "otherScenes": {
                     "type": "string",
                     "maxLength": 200
+                  },
+                  "highlightsIn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "highlightsOut": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 }
               }
@@ -10190,6 +10212,333 @@
       "post": {
         "operationId": "post_api_v1_highlights_ffmpeg",
         "summary": "POST /api/v1/highlights/ffmpeg",
+        "description": "Requires permission `settings.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/highlights/air": {
+      "get": {
+        "operationId": "get_api_v1_highlights_air",
+        "summary": "GET /api/v1/highlights/air",
+        "description": "Requires permission `state.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put_api_v1_highlights_air",
+        "summary": "PUT /api/v1/highlights/air",
+        "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "what": {
+                    "type": "string",
+                    "enum": [
+                      "map",
+                      "half",
+                      "previous"
+                    ]
+                  },
+                  "count": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "const": "all"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 60
+                      }
+                    ]
+                  },
+                  "unplayed": {
+                    "type": "boolean"
+                  },
+                  "noHalftime": {
+                    "type": "boolean"
+                  },
+                  "autoHalftime": {
+                    "type": "boolean"
+                  },
+                  "autoMapEnd": {
+                    "type": "boolean"
+                  },
+                  "vmixIn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "CutDirect",
+                          "Fade",
+                          "Stinger1",
+                          "Stinger2"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "vmixOut": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "CutDirect",
+                          "Fade",
+                          "Stinger1",
+                          "Stinger2"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/highlights/air/play": {
+      "post": {
+        "operationId": "post_api_v1_highlights_air_play",
+        "summary": "POST /api/v1/highlights/air/play",
+        "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/highlights/air/stop": {
+      "post": {
+        "operationId": "post_api_v1_highlights_air_stop",
+        "summary": "POST /api/v1/highlights/air/stop",
+        "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/highlights/air/obs-setup": {
+      "post": {
+        "operationId": "post_api_v1_highlights_air_obs_setup",
+        "summary": "POST /api/v1/highlights/air/obs-setup",
+        "description": "Requires permission `settings.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/highlights/air/scene": {
+      "put": {
+        "operationId": "put_api_v1_highlights_air_scene",
+        "summary": "PUT /api/v1/highlights/air/scene",
+        "description": "Requires permission `settings.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "scene": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "input": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "scene",
+                  "input"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/highlights/air/graphic": {
+      "post": {
+        "operationId": "post_api_v1_highlights_air_graphic",
+        "summary": "POST /api/v1/highlights/air/graphic",
         "description": "Requires permission `settings.manage`.",
         "security": [
           {

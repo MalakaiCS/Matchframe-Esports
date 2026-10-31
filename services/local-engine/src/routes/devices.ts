@@ -40,6 +40,9 @@ function clipFor(e: Engine, p: z.infer<typeof ClipTarget>): string {
   throw new HttpError(400, "give the clip's id, its rank in the round's list, or next: true", "validation");
 }
 
+/** What a highlights action reports: the highlights' state now. */
+const highlightsResult = (st: ReturnType<Engine["highlightsAir"]["status"]>) => ({ state: st.state, detail: st.detail, running: st.running, held: st.held, onAir: st.playing, position: st.position });
+
 /** What a replay action reports: the replays' state now. */
 const replayResult = (e: Engine, st: ReturnType<Engine["autoReplay"]["getStatus"]>) => ({ state: st.state, detail: st.detail, running: st.running, held: st.held, onAir: st.playing, position: st.position });
 
@@ -212,6 +215,32 @@ const ACTIONS: DeviceAction[] = [
     run: (e, _req, p: z.infer<typeof ClipTarget> & { pinned?: boolean }) => replayResult(e, e.autoReplay.pin(clipFor(e, p), p.pinned)),
   },
   {
+    id: "highlights_play",
+    label: "Highlights: play the map's best clips on air now (Highlights on air: what and how many as set there), then back to the scene the program came from",
+    permission: "replay.control",
+    params: NoParams,
+    run: async (e, req) => highlightsResult(await e.highlightsAir.play({ owner: "operator", who: req.principal!.label })),
+  },
+  {
+    id: "highlights_stop",
+    label: "Highlights: stop now, back to the scene the program came from (Highlights out). Skip and Hold: replay_skip, replay_hold",
+    permission: "replay.control",
+    params: NoParams,
+    run: (e, req) => highlightsResult(e.highlightsAir.stop(req.principal!.label)),
+  },
+  {
+    id: "highlights_halftime",
+    label: "Highlights: Don't show highlights at halftime, on (true) or off (false); toggles when not given",
+    permission: "replay.control",
+    params: z.object({ on: z.boolean().optional() }),
+    run: (e, req, p: { on?: boolean }) => {
+      const on = p.on ?? !e.highlightsAir.settings().noHalftime;
+      e.highlightsAir.setSettings({ noHalftime: on });
+      e.audit.record(req.principal!.label, "highlights.no_halftime", null, { on });
+      return { noHalftime: on, halftime: e.highlightsAir.halftime() };
+    },
+  },
+  {
     id: "return_live",
     label: "Return program to LIVE",
     permission: "program.control",
@@ -248,6 +277,8 @@ export function tally(e: Engine) {
     director: { mode: e.session.director.currentMode, hold: e.session.director.controls.hold !== null, cinematic: e.session.director.shotPlanner.activeCinematic?.shotKey ?? null },
     control: { owner: own.owner, holder: own.holder, automationActive: e.session.arbiter.automationAllowed, manualSticky: own.manualSticky, emergencyStopped: own.emergencyStopped, resumeInMs: e.session.arbiter.resumePendingInMs() },
     replay: replayTally(e),
+    /** Highlights on air (ADR-063): playing (which clip, of how many), held, ready to play, halftime now, and Don't show highlights at halftime. */
+    highlights: e.highlightsAir.brief(),
     pov: observed,
     slots: (s?.players ?? [])
       .filter((p) => p.observerKey !== null && !p.coach)

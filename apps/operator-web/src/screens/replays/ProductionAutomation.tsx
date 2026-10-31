@@ -36,15 +36,15 @@ const KIND_LABEL: Record<string, string> = { obs_stinger_transition: "Stinger", 
 /** In a select: Replay out the same as Replay in. */
 const SAME = "__same_as_replay_in__";
 
-/** One of OBS's transitions, OBS's own (""), or, with `same`, the same as Replay in (null). */
-function TransitionSelect({ label, hint, value, transitions, same, disabled, onChange }: { label: string; hint: string; value: string | null; transitions: ObsAutoResponse["transitions"]; same?: boolean; disabled: boolean; onChange: (v: string | null) => void }) {
+/** One of OBS's transitions, OBS's own (""), or, with `same`, the same as another one (null: Replay in, or `same` names it). */
+export function TransitionSelect({ label, hint, value, transitions, same, disabled, onChange }: { label: string; hint: string; value: string | null; transitions: ObsAutoResponse["transitions"]; same?: boolean | string; disabled: boolean; onChange: (v: string | null) => void }) {
   const names = transitions?.names ?? [];
   const kindOf = new Map((transitions?.kinds ?? []).map((k) => [k.name, k.kind]));
   const missing = value && !names.includes(value) ? value : null;
   return (
     <Field label={label} hint={hint}>
       <select value={value === null ? SAME : value} disabled={disabled} onChange={(e) => onChange(e.target.value === SAME ? null : e.target.value)}>
-        {same ? <option value={SAME}>Same as Replay in</option> : null}
+        {same ? <option value={SAME}>{typeof same === "string" ? same : "Same as Replay in"}</option> : null}
         <option value="">OBS's current transition</option>
         {names.map((n) => {
           const kind = KIND_LABEL[kindOf.get(n) ?? ""];
@@ -103,11 +103,23 @@ export function ObsAutomationPanel() {
           <TransitionSelect label="Replay in" hint="From the live scene to a replay." value={st?.replayIn ?? ""} transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} onChange={(v) => void save({ replayIn: v ?? "" })} />
           <TransitionSelect label="Replay out" hint="From a replay back to live, also after a replay played by hand and Return live." value={st ? st.replayOut : null} same transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} onChange={(v) => void save({ replayOut: v })} />
           <TransitionSelect label="Other scenes" hint="To and from the break and studio scenes: by themselves (above) or with your program buttons." value={st?.otherScenes ?? ""} transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} onChange={(v) => void save({ otherScenes: v ?? "" })} />
+          <HighlightTransitions settings={st ?? null} transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} save={save} />
         </div>
+        {scenes?.HIGHLIGHTS !== undefined ? <p className="muted small">Highlights scene: {scenes.HIGHLIGHTS ?? "not set up"}. Set it up, or pick your own, under Highlights on air.</p> : null}
         <p className="muted small">A Stinger has to be made once in OBS first (Scene Transitions → + → Stinger, with its video); then it can be picked here. OBS's own transition is put back after each change. From one replay to the next: Between replays, under Automatic replays.</p>
         <p className="muted small">Scenes only change from the live scene, and only back from a scene Matchframe chose. Your own program choices are never undone.</p>
       </div>
     </Panel>
+  );
+}
+
+/** Highlights in and Highlights out (ADR-063): the same as Replay in and Replay out until chosen. */
+export function HighlightTransitions({ settings, transitions, disabled, save }: { settings: ObsAutoResponse["settings"] | null; transitions: ObsAutoResponse["transitions"]; disabled: boolean; save: (patch: Partial<ObsAutoResponse["settings"]>) => Promise<void> }) {
+  return (
+    <>
+      <TransitionSelect label="Highlights in" hint="To highlights on air, from the scene the program is on." value={settings ? (settings.highlightsIn ?? null) : null} same="Same as Replay in" transitions={transitions} disabled={disabled} onChange={(v) => void save({ highlightsIn: v })} />
+      <TransitionSelect label="Highlights out" hint="From highlights back to the scene the program came from (or to live)." value={settings ? (settings.highlightsOut ?? null) : null} same="Same as Replay out" transitions={transitions} disabled={disabled} onChange={(v) => void save({ highlightsOut: v })} />
+    </>
   );
 }
 

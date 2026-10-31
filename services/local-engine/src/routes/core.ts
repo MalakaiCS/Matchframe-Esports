@@ -11,6 +11,7 @@ import { HUD_ART_KEY } from "../hud/art.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
 import { redact } from "../logger.ts";
+import { sceneMapOf, type SceneMap } from "../production/program.ts";
 
 async function waitFor(pred: () => boolean, timeoutMs: number, stepMs = 50): Promise<boolean> {
   const start = Date.now();
@@ -158,9 +159,9 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
     const p = SetupProfile.parse(e.setupProfiles.require(req.params.id!).data);
     if (Object.keys(p.observerAdapter).length > 0) e.settings.set("observer.adapter", ObserverAdapterSettings.parse(p.observerAdapter));
     if (Object.keys(p.programScenes).length > 0) {
-      const scenes = { LIVE: null, REPLAY: null, STUDIO: null, BREAK: null, ...p.programScenes };
+      const scenes = sceneMapOf(p.programScenes);
       e.settings.set("program.scenes", scenes);
-      e.program.setScenes(scenes as never);
+      e.program.setScenes(scenes);
     }
     await e.applyObserverAdapter();
     e.audit.record(req.principal!.label, "setup.apply_profile", p.id);
@@ -244,6 +245,8 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
           // The replay scene and its twin (a break's replays fade between the two): both count as the replay scene.
           replayScenes: e.program.replayScenes,
           twin: e.replayTwin.getStatus(),
+          // Highlights on air (ADR-063): their scenes, twin, the return target while on air, the last run.
+          highlights: { scenes: e.program.highlightsScenes, twin: e.highlightsAir.twin.getStatus(), mediaInput: e.highlightsAir.mediaInput(), returnTo: e.program.highlightsReturn, settings: e.highlightsAir.settings(), status: e.highlightsAir.status() },
           transitions: e.obsAuto.settings(),
           obs: { connected: e.obs.state.connected, replayBuffer: e.obs.state.replayBuffer, programScene: e.obs.state.programScene },
           clips: e.replays
@@ -267,10 +270,16 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
     if (!/^(hud|program|replay|director|demos|ui)\./.test(req.params.key!)) throw new HttpError(403, "setting not writable here", "forbidden");
     // HUD images are checked (uploaded pictures only) by their own route.
     if (req.params.key === HUD_ART_KEY) throw new HttpError(403, "set HUD images with PUT /api/v1/hud/art", "forbidden");
-    e.settings.set(req.params.key!, req.body.value);
-    if (req.params.key === "program.scenes") e.program.setScenes(req.body.value as never);
+    let value = req.body.value;
+    if (req.params.key === "program.scenes") {
+      // Every mode (a scene map from a console without highlights keeps the highlights scene mapped).
+      const given = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+      value = sceneMapOf({ HIGHLIGHTS: e.program.sceneMap.HIGHLIGHTS, ...given });
+      e.program.setScenes(value as SceneMap);
+    }
+    e.settings.set(req.params.key!, value);
     if (req.params.key === "replay.provider") e.configureReplay();
-    e.audit.record(req.principal!.label, "settings.set", req.params.key!, req.body.value);
-    return { key: req.params.key, value: req.body.value };
+    e.audit.record(req.principal!.label, "settings.set", req.params.key!, value);
+    return { key: req.params.key, value };
   });
 }

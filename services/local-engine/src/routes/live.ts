@@ -172,7 +172,7 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
   r.get("/api/v1/observer/log", { permission: "state.read" }, () => s.arbiter.log.slice(-200));
 
   // ---- program / production -------------------------------------------------------------
-  r.get("/api/v1/program", { permission: "state.read" }, () => ({ mode: e.program.mode, owner: e.program.owner, scenes: e.program.sceneMap, replayScenes: e.program.replayScenes, activeReplay: e.program.activeReplay, history: e.program.history.slice(-50) }));
+  r.get("/api/v1/program", { permission: "state.read" }, () => ({ mode: e.program.mode, owner: e.program.owner, scenes: e.program.sceneMap, replayScenes: e.program.replayScenes, highlightsScenes: e.program.highlightsScenes, highlightsReturn: e.program.highlightsReturn, activeReplay: e.program.activeReplay, history: e.program.history.slice(-50) }));
   r.post("/api/v1/program/cues", { permission: "program.control", body: z.object({ mode: z.enum(["LIVE", "REPLAY_PREPARED", "REPLAY_PLAYING", "STUDIO", "BREAK", "MANUAL"]), replayItemId: z.string().optional() }) }, async (req) => {
     const t = await e.program.request(req.body.mode, "operator", req.principal!.label, req.body.replayItemId ? { replayItemId: req.body.replayItemId } : {});
     e.audit.record(req.principal!.label, "program.cue", req.body.mode, t);

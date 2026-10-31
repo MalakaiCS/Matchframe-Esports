@@ -14,6 +14,7 @@ import { VmixClient, vmixVolumeAfter } from "./vmix.ts";
  *
  * The replay media sources' own volume (both of OBS's, the replay scene's and its twin's, or each
  * vMix replay input) is a setting too, so replays can be louder or quieter than they were recorded.
+ * Highlights on air (ADR-063) go the same way: their media sources count as replay sources.
  */
 
 /** What the live audio goes down to: muted, or this many dB lower. */
@@ -306,11 +307,13 @@ export class ReplayAudio {
     await this.e.obs.setInputVolume(name, { mul: to });
   }
 
-  /** The OBS replay media sources: the replay scene's and its twin's. */
+  /** The OBS replay media sources: the replay scene's and its twin's, and the highlights scene's and its twin's (ADR-063). */
   replayInputs(): string[] {
     const main = this.e.settings.get<string | null>("replay.mediaInput", null);
     const twin = this.e.replayTwin.getStatus().input;
-    return [main, twin].filter((x): x is string => !!x);
+    const highlights = this.e.highlightsAir?.mediaInput() ?? null;
+    const highlightsTwin = this.e.highlightsAir?.twin.getStatus().input ?? null;
+    return [...new Set([main, twin, highlights, highlightsTwin].filter((x): x is string => !!x))];
   }
 
   /** OBS: the replay media sources' volume as set (before a break, and when the setting changes). */

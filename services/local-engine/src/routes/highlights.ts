@@ -3,6 +3,7 @@ import type { Engine } from "../app.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
 import { mapDisplayName } from "../live/projection.ts";
+import { HighlightsAirPatch } from "../replay/highlights-air.ts";
 
 /** Lower thirds sent with a reel: up to 60 PNGs (a 1920×1080 one with a lower third is some 50–150 KB). */
 const REEL_MAX_BYTES = 40 * 1024 * 1024;
@@ -15,7 +16,7 @@ const Choice = z.object({
   fadeMs: z.number().int().min(0).max(2000).default(500),
 });
 
-/** Highlight reels (ADR-061): the kept clips per map, a reel's plan, and making it with ffmpeg. */
+/** Highlight reels (ADR-061): the kept clips per map, a reel's plan, and making it with ffmpeg. Highlights on air (ADR-063). */
 export function registerHighlightRoutes(r: Router, e: Engine): void {
   const overview = () => {
     const h = e.highlights;
@@ -84,5 +85,52 @@ export function registerHighlightRoutes(r: Router, e: Engine): void {
     e.audit.record(req.principal!.label, "highlights.ffmpeg_download", null, { ok: !status.error });
     if (status.error) throw new HttpError(502, status.error, "ffmpeg_download_failed");
     return status;
+  });
+
+  // ---- highlights on air (ADR-063) -----------------------------------------------------------
+  const air = async () => ({ settings: e.highlightsAir.settings(), status: e.highlightsAir.status(), setup: await e.highlightsAir.setup() });
+
+  /** What Play plays now (the clips in order, the running time), why it can't, the highlights scene in OBS. */
+  r.get("/api/v1/highlights/air", { permission: "state.read" }, () => air());
+
+  r.put("/api/v1/highlights/air", { permission: "replay.control", body: HighlightsAirPatch }, async (req) => {
+    e.highlightsAir.setSettings(req.body);
+    e.audit.record(req.principal!.label, "highlights.on_air_settings", null, req.body);
+    return air();
+  });
+
+  /** Play: the highlights on the program now, then back to where it came from. 409 with why when they can't. */
+  r.post("/api/v1/highlights/air/play", { permission: "replay.control" }, async (req) => {
+    await e.highlightsAir.play({ owner: "operator", who: req.principal!.label });
+    return air();
+  });
+
+  /** Stop: the highlights end now, back to where the program came from (Highlights out). Skip and Hold: /api/v1/replays/auto/skip, /hold. */
+  r.post("/api/v1/highlights/air/stop", { permission: "replay.control" }, async (req) => {
+    e.highlightsAir.stop(req.principal!.label);
+    return air();
+  });
+
+  /** One click: the "Matchframe Highlights" scene with its media source and twin, mapped, the replay graphic on top. */
+  r.post("/api/v1/highlights/air/obs-setup", { permission: "settings.manage" }, async (req) => {
+    const res = await e.highlightsAir.setupObs();
+    e.audit.record(req.principal!.label, "highlights.obs_setup", res.scene, { input: res.input, created: res.created, graphic: res.graphic, twin: res.setup.twin?.scene ?? null });
+    return res;
+  });
+
+  /** Your own scene for highlights, and its media source (scene null: none). */
+  r.put("/api/v1/highlights/air/scene", { permission: "settings.manage", body: z.object({ scene: z.string().min(1).max(200).nullable(), input: z.string().min(1).max(200).nullable() }) }, async (req) => {
+    const setup = await e.highlightsAir.mapScene(req.body.scene, req.body.input);
+    e.audit.record(req.principal!.label, "highlights.scene", req.body.scene, { input: req.body.input });
+    return { settings: e.highlightsAir.settings(), status: e.highlightsAir.status(), setup };
+  });
+
+  /** The replay graphic's browser source on top of the highlights scene (the same source as the replay scene's). */
+  r.post("/api/v1/highlights/air/graphic", { permission: "settings.manage" }, async (req) => {
+    const scene = e.program.sceneMap.HIGHLIGHTS;
+    if (!scene) throw new HttpError(409, "set up the highlights scene first", "no_highlights_scene");
+    const res = await e.replayGraphic.setupObs(scene);
+    e.audit.record(req.principal!.label, "highlights.graphic_obs", res.scene, { source: res.source, created: res.created });
+    return res;
   });
 }

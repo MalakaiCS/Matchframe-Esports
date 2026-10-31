@@ -17,7 +17,7 @@ PC 2's picture reaches PC 1 in one of two ways:
 
 PC 1 can also replay big plays its own camera showed (a 3K or more, a won clutch) from its own OBS replay buffer, without a replay PC.
 
-The replay graphic over replays (a REPLAY tag and a lower third) and highlight reels of a map's best clips: [replay-graphics-and-highlights.md](replay-graphics-and-highlights.md).
+The replay graphic over replays (a REPLAY tag and a lower third), highlight reels of a map's best clips, and highlights on air (a map's best clips on the program, then back to your scene): [replay-graphics-and-highlights.md](replay-graphics-and-highlights.md).
 
 ## Replay feed (NDI)
 
@@ -156,6 +156,7 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
 - **Transitions:** one transition to the replays for the whole break (**Replay in**), the clips one after another, fading into each other (**Between replays**), and one transition back to the live scene after the last (**Replay out**). The status reads *Replay 2 of 3: …* meanwhile.
   - **Replay in / Replay out** (OBS scenes → Transitions): any of OBS's transitions, such as a Stinger, or OBS's current one. Replay out is the same as Replay in unless chosen. They are used whoever changes the program: automatic replays, a clip played by hand, **Return live**.
   - **Other scenes:** the transition to and from the break and studio scenes, by the OBS automation or your own program buttons.
+  - **Highlights in / Highlights out:** into highlights on air and back out of them (to the scene the program came from). The same as Replay in and Replay out unless chosen. See [replay-graphics-and-highlights.md → Highlights on air](replay-graphics-and-highlights.md#highlights-on-air).
   - **OBS's own transition** (and its duration) is put back once OBS says the transition has ended: a Stinger's whole video, not a fixed time.
   - **A Stinger** has to be made once in OBS first (Scene Transitions → + → Stinger, with its video); then it can be picked here. With a Stinger in, the first clip plays from the Stinger's cut point (its transition point), when the replay scene shows.
   - **Match graphics:** putting a match's stingers in OBS makes *Matchframe Replay Stinger* Replay in and out where none is chosen.
@@ -235,6 +236,9 @@ The same controls are actions of Matchframe's control-surface API (see [Companio
 | Exclude the next clip | `replay_exclude` | `{"next":true}` |
 | Exclude the round's best clip | `replay_exclude` | `{"rank":1}` (its place in the round's list, as shown) |
 | Pin the round's 2nd clip first | `replay_pin` | `{"rank":2}` (`{"id":"rp_…"}` for a clip by its id) |
+| Play highlights | `highlights_play` | `{}` (what and how many as set under Highlights on air) |
+| Stop highlights | `highlights_stop` | `{}` (Skip and Hold on a highlight: `replay_skip`, `replay_hold`) |
+| Don't show highlights at halftime | `highlights_halftime` | `{}` (toggles; `{"on":true}`, `{"on":false}`) |
 
 Exclude and Pin toggle; `"excluded":false` or `"pinned":false` undoes one.
 
@@ -243,7 +247,7 @@ Exclude and Pin toggle; `"excluded":false` or `"pinned":false` undoes one.
 **Bitfocus Companion** (the *Generic: HTTP Requests* module), one button per action:
 1. Add a connection *Generic: HTTP Requests*, Base URL `http://127.0.0.1:37211` (or the main PC's address, with **Let other computers on the network connect** on).
 2. Button → Press action **POST**: URL `/api/v1/devices/actions/replay_skip`, Body `{}`, Header `{"Authorization":"Bearer <token>"}`, Content type `application/json`.
-3. For lights, Companion can read `GET /api/v1/devices/tally` (same header): `replay.running` (replays playing), `replay.held`, `replay.onAir` (the clip's label), `replay.position` (`{"n":2,"of":3}`), `replay.waiting`, `replay.pinned`.
+3. For lights, Companion can read `GET /api/v1/devices/tally` (same header): `replay.running` (replays playing), `replay.held`, `replay.onAir` (the clip's label), `replay.position` (`{"n":2,"of":3}`), `replay.waiting`, `replay.pinned`; for highlights `highlights.running`, `highlights.held`, `highlights.onAir`, `highlights.position`, `highlights.ready`, `highlights.halftime` and `highlights.noHalftime` (Don't show highlights at halftime).
 
 **Elgato Stream Deck** with a web-request plugin that sends a POST with headers (for example BarRaider's *API Ninja* from the Stream Deck store): URL `http://127.0.0.1:37211/api/v1/devices/actions/replay_skip`, method POST, content type `application/json`, header `Authorization: Bearer <token>`, body `{}`. One button per action. A plugin that can only open a URL (GET) won't do: the actions need POST and the header.
 
@@ -251,11 +255,12 @@ An answer of 409 means nothing to do now (no replay on air), 403 a token without
 
 ## Hotkeys
 
-- **In the console** (while its window has the focus, not while you type in a field): **Ctrl+Shift+F5** Skip, **Ctrl+Shift+F6** Hold / Resume, **Ctrl+Shift+F7** Stop and go live. On any screen.
+- **In the console** (while its window has the focus, not while you type in a field): **Ctrl+Shift+F5** Skip, **Ctrl+Shift+F6** Hold / Resume, **Ctrl+Shift+F7** Stop and go live. On any screen. Highlights on air: **Ctrl+Shift+F9** Play highlights, **Ctrl+Shift+F10** Stop highlights (Skip and Hold are F5 and F6).
 - **Global hotkeys** (the Matchframe program; they work with CS2 or OBS in front): Automatic replays → **Hotkeys and Stream Deck**. Off until you set them, since a global hotkey takes its keys from every other program. **Use the suggested keys** sets the same three, which CS2 and OBS don't use by default; or type your own (for example `Ctrl+Alt+F9`), a modifier and a key, or a function key alone.
   - A key another program (or Windows) holds isn't registered: the panel says so in red, *Ctrl+Shift+F5 is already taken by another program (or Windows): choose another key for Skip.* Choose another, or free it in the other program (for example a hotkey you set in OBS).
   - The program's own hotkeys (emergency stop Ctrl+Shift+F12, save the CS2 view Ctrl+Shift+F11, the desktop HUD hotkeys) are refused.
   - They are kept on this computer, with the program's settings.
+  - **Highlights on air → Hotkeys and Stream Deck:** Play highlights and Stop highlights the same way (suggested Ctrl+Shift+F9 and Ctrl+Shift+F10), also off until set.
 
 ## Sound
 
@@ -314,13 +319,14 @@ Automatic replays → **Test replays** plays two sample clips (*Test clip 1* in 
 | OBS scenes → Transitions (PC 1) | Replay in (e.g. a Stinger) | OBS's current one |
 | | Replay out | The same as Replay in |
 | | Other scenes (to and from the break and studio scenes) | OBS's current one |
+| | Highlights in, Highlights out (highlights on air) | The same as Replay in, Replay out |
 | Replay feed (PC 1) | Record the replay PC's screen; its NDI source; encoder | Off; none; the best this computer has |
 | Replay PC (PC 2) | Kills to film | Every kill |
 | | On the same CSTV as the main PC: go back and stay behind, go back for each missed kill, or don't | Go back and stay behind |
 | | How far behind | 7 s |
 
 **API:**
-- **PC 1:** `GET`/`PUT /api/v1/replays/auto` (`perBreak`, `order` (`round`, `best`), `cutBack` (`clock`, `before_round`), `cutBackClockSec` (110 = 1:50), `between` (`fade`, `cut`), `fadeMs`, `mixer`, `vmixUrl`, `vmixTransition`, `vmixTransitionOut` (null: as `vmixTransition`), `replayVolumeDb` (null: as set in OBS), `duckInputs` (OBS input names), `duckVmixInputs` (vMix input keys), `duckTo` (`"mute"` or dB, −20), `duckRampMs` (300); status `round`, `ranked` (with `note`, `excluded`, `pinned`), `vmix`, `twin`, `roundSec`, `running`, `held`, `position`, `audio`, `test`), `POST /api/v1/replays/auto/skip`, `POST /api/v1/replays/auto/stop`, `POST /api/v1/replays/auto/hold` (`{"held":true|false}`, toggles without), `PUT /api/v1/replays/auto/clips/:id` (`{"excluded":…, "pinned":…}`), `POST /api/v1/replays/auto/test` (409 with why it can't play now), `GET /api/v1/replays/audio-inputs`, the device actions `replay_skip`, `replay_hold`, `replay_stop`, `replay_exclude`, `replay_pin` and `replay` in `GET /api/v1/devices/tally`, `GET`/`PUT /api/v1/obs/auto` (`replayIn`, `replayOut` (null: as `replayIn`), `otherScenes`; "" is OBS's current transition; it took `replayTransition` before 0.10.5, kept as `replayIn`), `POST /api/v1/replays/vmix/test`, `POST /api/v1/replays/obs-setup` (with `twin`), `GET`/`PUT /api/v1/replays/feed`, `POST /api/v1/replays/feed/sources`, `POST /api/v1/replays/feed/ffmpeg`, `GET /api/v1/network`.
+- **PC 1:** `GET`/`PUT /api/v1/replays/auto` (`perBreak`, `order` (`round`, `best`), `cutBack` (`clock`, `before_round`), `cutBackClockSec` (110 = 1:50), `between` (`fade`, `cut`), `fadeMs`, `mixer`, `vmixUrl`, `vmixTransition`, `vmixTransitionOut` (null: as `vmixTransition`), `replayVolumeDb` (null: as set in OBS), `duckInputs` (OBS input names), `duckVmixInputs` (vMix input keys), `duckTo` (`"mute"` or dB, −20), `duckRampMs` (300); status `round`, `ranked` (with `note`, `excluded`, `pinned`), `vmix`, `twin`, `roundSec`, `running`, `held`, `position`, `audio`, `test`), `POST /api/v1/replays/auto/skip`, `POST /api/v1/replays/auto/stop`, `POST /api/v1/replays/auto/hold` (`{"held":true|false}`, toggles without), `PUT /api/v1/replays/auto/clips/:id` (`{"excluded":…, "pinned":…}`), `POST /api/v1/replays/auto/test` (409 with why it can't play now), `GET /api/v1/replays/audio-inputs`, the device actions `replay_skip`, `replay_hold`, `replay_stop`, `replay_exclude`, `replay_pin` and `replay` in `GET /api/v1/devices/tally`, `GET`/`PUT /api/v1/obs/auto` (`replayIn`, `replayOut` (null: as `replayIn`), `otherScenes`, `highlightsIn`, `highlightsOut` (null: as Replay in, Replay out); "" is OBS's current transition; it took `replayTransition` before 0.10.5, kept as `replayIn`), the device actions `highlights_play`, `highlights_stop`, `highlights_halftime` and `highlights` in the tally (Highlights on air: [replay-graphics-and-highlights.md](replay-graphics-and-highlights.md#highlights-on-air)), `POST /api/v1/replays/vmix/test`, `POST /api/v1/replays/obs-setup` (with `twin`), `GET`/`PUT /api/v1/replays/feed`, `POST /api/v1/replays/feed/sources`, `POST /api/v1/replays/feed/ffmpeg`, `GET /api/v1/network`.
 - **PC 2:** `GET`/`PUT /api/v1/replay-pc` (settings `preRollMs`, `postRollMs`, `sameCstv` (`stay_behind`, `each_kill`, `off`), `behindMs`; status `timing`, `rewind`, `filming`, `skipped`, `lastSkip`).
 - **The link itself:** `GET /api/v1/replay-link/on-air?pending=<rounds>`, `POST /api/v1/replays/incoming` (a clip file) and `POST /api/v1/replays/mark` (a moment, with the replay feed) on PC 1, with the replay code (a `replay` role token). On-air answers carry `clock` (PC 1's round clock), `kills` (the last 30 s, each with `shown`: `killer`, `victim` or `none`) and `feed.recording`.
 

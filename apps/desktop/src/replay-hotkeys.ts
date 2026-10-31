@@ -8,16 +8,21 @@ import { acceleratorArg, acceleratorKey } from "./hud/validate.ts";
  * another program (or Windows) holds isn't registered and says so; the program's own hotkeys are
  * refused. Pressed, a hotkey runs the engine's control-surface action (replay_skip, replay_hold,
  * replay_stop), the same as a Stream Deck button.
+ *
+ * Highlights on air (ADR-063): Play highlights and Stop highlights (highlights_play, highlights_stop;
+ * suggested Ctrl+Shift+F9 and F10), also off until set. Skip and Hold are the replays' keys.
  */
 
-export const REPLAY_KEY_ACTIONS = ["skip", "hold", "stop"] as const;
+export const REPLAY_KEY_ACTIONS = ["skip", "hold", "stop", "highlights", "highlightsStop"] as const;
 export type ReplayKeyAction = (typeof REPLAY_KEY_ACTIONS)[number];
 export type ReplayKeys = Record<ReplayKeyAction, string | null>;
 
-export const SUGGESTED_REPLAY_KEYS: Record<ReplayKeyAction, string> = { skip: "CommandOrControl+Shift+F5", hold: "CommandOrControl+Shift+F6", stop: "CommandOrControl+Shift+F7" };
-const NAMES: Record<ReplayKeyAction, string> = { skip: "Skip", hold: "Hold / Resume", stop: "Stop and go live" };
+export const SUGGESTED_REPLAY_KEYS: Record<ReplayKeyAction, string> = { skip: "CommandOrControl+Shift+F5", hold: "CommandOrControl+Shift+F6", stop: "CommandOrControl+Shift+F7", highlights: "CommandOrControl+Shift+F9", highlightsStop: "CommandOrControl+Shift+F10" };
+const NAMES: Record<ReplayKeyAction, string> = { skip: "Skip", hold: "Hold / Resume", stop: "Stop and go live", highlights: "Play highlights", highlightsStop: "Stop highlights" };
 /** The engine's control-surface action each hotkey runs. */
-export const DEVICE_ACTION: Record<ReplayKeyAction, string> = { skip: "replay_skip", hold: "replay_hold", stop: "replay_stop" };
+export const DEVICE_ACTION: Record<ReplayKeyAction, string> = { skip: "replay_skip", hold: "replay_hold", stop: "replay_stop", highlights: "highlights_play", highlightsStop: "highlights_stop" };
+/** The highlights' hotkeys (their notifications say Highlights). */
+export const HIGHLIGHT_KEY_ACTIONS: readonly ReplayKeyAction[] = ["highlights", "highlightsStop"];
 
 export interface ReplayKeysState {
   keys: ReplayKeys;
@@ -34,7 +39,7 @@ export interface ShortcutRegistry {
   unregister(accelerator: string): void;
 }
 
-const none = <T>(v: T): Record<ReplayKeyAction, T> => ({ skip: v, hold: v, stop: v });
+const none = <T>(v: T): Record<ReplayKeyAction, T> => ({ skip: v, hold: v, stop: v, highlights: v, highlightsStop: v });
 
 /** For comparing two keys: CommandOrControl is Ctrl on Windows and Linux, Cmd on a Mac. */
 const keyOf = (accel: string, platform: string = process.platform) => acceleratorKey(accel.replace(/\b(CommandOrControl|CmdOrCtrl)\b/gi, platform === "darwin" ? "Command" : "Control"));

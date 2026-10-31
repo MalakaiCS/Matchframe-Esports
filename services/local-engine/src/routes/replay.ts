@@ -249,11 +249,11 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
     const t = await e.obs.transitionKinds().catch(() => null);
     return t ? { current: t.current, names: t.transitions.map((x) => x.name), kinds: t.transitions.map((x) => ({ name: x.name, kind: x.kind })) } : null;
   };
-  r.get("/api/v1/obs/auto", { permission: "state.read" }, async () => ({ settings: e.obsAuto.settings(), scenes: e.program.sceneMap, replayScenes: e.program.replayScenes, transitions: await transitionList() }));
+  r.get("/api/v1/obs/auto", { permission: "state.read" }, async () => ({ settings: e.obsAuto.settings(), scenes: e.program.sceneMap, replayScenes: e.program.replayScenes, highlightsScenes: e.program.highlightsScenes, transitions: await transitionList() }));
   r.put("/api/v1/obs/auto", { permission: "program.control", body: ObsAutoPatch }, (req) => {
     const next = e.obsAuto.setSettings(req.body);
     e.audit.record(req.principal!.label, "obs.auto_settings", null, req.body);
-    return { settings: next, scenes: e.program.sceneMap, replayScenes: e.program.replayScenes, transitions: null };
+    return { settings: next, scenes: e.program.sceneMap, replayScenes: e.program.replayScenes, highlightsScenes: e.program.highlightsScenes, transitions: null };
   });
 
   // ---- this computer on the network --------------------------------------------------------------

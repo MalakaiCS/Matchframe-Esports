@@ -10,14 +10,30 @@ import { isTypingTarget } from "./hooks.ts";
  * - from any program, in the Matchframe program on Windows: global hotkeys, off until set (the
  *   desktop bridge, replayHotkeys()). The same three keys are suggested, so one set of keys works
  *   whichever program is in front.
+ *
+ * Highlights on air (ADR-063) the same way: Ctrl+Shift+F9 Play highlights, Ctrl+Shift+F10 Stop
+ * highlights; Skip and Hold are the replays' (F5, F6). Not F8: the console's own F8 stops automation.
  */
 
-export type ReplayKeyAction = "skip" | "hold" | "stop";
+export type ReplayKeyAction = "skip" | "hold" | "stop" | "highlights" | "highlightsStop";
 
-export const REPLAY_KEYS: { id: ReplayKeyAction; label: string; key: string; path: string }[] = [
+export interface ReplayKey {
+  id: ReplayKeyAction;
+  label: string;
+  key: string;
+  path: string;
+}
+
+export const REPLAY_KEYS: ReplayKey[] = [
   { id: "skip", label: "Skip", key: "F5", path: "/api/v1/replays/auto/skip" },
   { id: "hold", label: "Hold / Resume", key: "F6", path: "/api/v1/replays/auto/hold" },
   { id: "stop", label: "Stop and go live", key: "F7", path: "/api/v1/replays/auto/stop" },
+];
+
+/** Highlights on air: Play and Stop (Skip and Hold are the replays' keys). */
+export const HIGHLIGHT_KEYS: ReplayKey[] = [
+  { id: "highlights", label: "Play highlights", key: "F9", path: "/api/v1/highlights/air/play" },
+  { id: "highlightsStop", label: "Stop highlights", key: "F10", path: "/api/v1/highlights/air/stop" },
 ];
 
 /** As the console shows a console shortcut. */
@@ -30,12 +46,13 @@ export function useReplayShortcuts(enabled = true): void {
     if (!enabled) return;
     const onKey = (e: KeyboardEvent) => {
       if (!e.ctrlKey || !e.shiftKey || e.altKey || e.metaKey || isTypingTarget(e.target)) return;
-      const k = REPLAY_KEYS.find((x) => x.key === e.key);
+      const k = REPLAY_KEYS.find((x) => x.key === e.key) ?? HIGHLIGHT_KEYS.find((x) => x.key === e.key);
       if (!k) return;
       e.preventDefault();
+      const what = HIGHLIGHT_KEYS.includes(k) ? "Highlights" : "Replays";
       api.post(k.path).then(
-        () => toast.push("ok", `Replays: ${k.label}`),
-        (err) => toast.push("warn", `Replays: ${k.label}`, describeError(err)),
+        () => toast.push("ok", `${what}: ${k.label}`),
+        (err) => toast.push("warn", `${what}: ${k.label}`, describeError(err)),
       );
     };
     window.addEventListener("keydown", onKey);

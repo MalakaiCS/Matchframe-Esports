@@ -339,6 +339,7 @@ export function StudioScreen() {
                       ["Studio", p.scenes.STUDIO ?? MISSING],
                       ["Break", p.scenes.BREAK ?? MISSING],
                       ["Replay", p.scenes.REPLAY ?? MISSING],
+                      ["Highlights", p.scenes.HIGHLIGHTS ?? MISSING],
                     ]}
                   />
                 </Details>

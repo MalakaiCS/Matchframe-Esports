@@ -4,7 +4,7 @@ import type { AutoReplayResponse, AutoReplaySettings, NetworkInfo, RankedReplay,
 import { ActionButton, Badge, Button, Checkbox, CopyButton, Field, Note, Panel, Tabs } from "../../components/ui.tsx";
 import { useToast } from "../../components/toasts.tsx";
 import { useApi } from "../../lib/hooks.ts";
-import { REPLAY_KEYS, replayHotkeys, shortcutLabel, type ReplayHotkeyState, type ReplayKeyAction } from "../../lib/replay-keys.ts";
+import { REPLAY_KEYS, replayHotkeys, shortcutLabel, type ReplayHotkeyState, type ReplayKey, type ReplayKeyAction } from "../../lib/replay-keys.ts";
 import { useSnapshot } from "../../state/live.ts";
 import { usePermission } from "../../state/session.tsx";
 
@@ -352,16 +352,26 @@ function TestReplays({ report, running, reason, onDone }: { report: ReplayTestRe
 
 /** Keys for the replays playing: the console's own, and (in the program) global hotkeys that work with CS2 or OBS in front. */
 function ReplayHotkeys() {
+  return <Hotkeys keys={REPLAY_KEYS} label="Replay hotkeys" devices="the device actions replay_skip, replay_hold, replay_stop, replay_exclude and replay_pin (see the Replay PC guide)" />;
+}
+
+/**
+ * Console shortcuts and (in the program) global hotkeys for some of the replay keys (`keys`: the
+ * replays' Skip, Hold, Stop; or the highlights' Play and Stop). Global hotkeys are off until set.
+ */
+export function Hotkeys({ keys, label, devices }: { keys: ReplayKey[]; label: string; devices: string }) {
   const bridge = replayHotkeys();
+  const ids = keys.map((k) => k.id);
+  const pick = <T,>(o: Partial<Record<ReplayKeyAction, T>>, fill: T) => Object.fromEntries(ids.map((id) => [id, o[id] ?? fill])) as Record<ReplayKeyAction, T>;
   const [state, setState] = useState<ReplayHotkeyState | null>(null);
-  const [draft, setDraft] = useState<Record<ReplayKeyAction, string>>({ skip: "", hold: "", stop: "" });
+  const [draft, setDraft] = useState<Record<ReplayKeyAction, string>>(() => pick<string>({}, ""));
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     void bridge
       ?.get()
       .then((s) => {
         setState(s);
-        setDraft({ skip: s.keys.skip ?? "", hold: s.keys.hold ?? "", stop: s.keys.stop ?? "" });
+        setDraft(pick<string>(s.keys as Partial<Record<ReplayKeyAction, string>>, ""));
       })
       .catch((e) => setError(describeError(e)));
   }, [bridge]);
@@ -371,38 +381,40 @@ function ReplayHotkeys() {
     try {
       const s = await bridge.set(patch);
       setState(s);
-      setDraft({ skip: s.keys.skip ?? "", hold: s.keys.hold ?? "", stop: s.keys.stop ?? "" });
+      setDraft(pick<string>(s.keys as Partial<Record<ReplayKeyAction, string>>, ""));
     } catch (e) {
       setError(describeError(e));
     }
   };
   return (
-    <div className="stack-sm" aria-label="Replay hotkeys">
+    <div className="stack-sm" aria-label={label}>
       <h4 className="hud-section-title">Hotkeys and Stream Deck</h4>
-      <p className="muted small">In the console: {REPLAY_KEYS.map((k) => `${shortcutLabel(k.key)} ${k.label}`).join(" · ")}. Stream Deck and Bitfocus Companion: the device actions replay_skip, replay_hold, replay_stop, replay_exclude and replay_pin (see the Replay PC guide).</p>
+      <p className="muted small">In the console: {keys.map((k) => `${shortcutLabel(k.key)} ${k.label}`).join(" · ")}. Stream Deck and Bitfocus Companion: {devices}.</p>
       {bridge ? (
         <div className="stack-sm">
           <span className="small muted">Global hotkeys work with CS2 or OBS in front. They are off until set; the suggested keys aren't used by CS2 or OBS.</span>
           <div className="form-grid">
-            {REPLAY_KEYS.map((k) => (
+            {keys.map((k) => (
               <Field key={k.id} label={`${k.label} (global)`} hint={state?.errors[k.id] ?? (state?.keys[k.id] ? (state.registered[k.id] ? "Registered" : "Not registered") : "Off")}>
-                <input value={draft[k.id]} placeholder={state?.suggested[k.id] ?? ""} spellCheck={false} onChange={(e) => setDraft((d) => ({ ...d, [k.id]: e.target.value }))} onBlur={() => draft[k.id] !== (state?.keys[k.id] ?? "") && void set({ [k.id]: draft[k.id].trim() || null })} />
+                <input value={draft[k.id] ?? ""} placeholder={state?.suggested[k.id] ?? ""} spellCheck={false} onChange={(e) => setDraft((d) => ({ ...d, [k.id]: e.target.value }))} onBlur={() => (draft[k.id] ?? "") !== (state?.keys[k.id] ?? "") && void set({ [k.id]: (draft[k.id] ?? "").trim() || null })} />
               </Field>
             ))}
           </div>
           <div className="row">
-            <Button size="sm" disabledReason={!state ? "Loading…" : null} onClick={() => state && void set(state.suggested)}>
+            <Button size="sm" disabledReason={!state ? "Loading…" : null} onClick={() => state && void set(Object.fromEntries(ids.filter((id) => state.suggested[id]).map((id) => [id, state.suggested[id]])))}>
               Use the suggested keys
             </Button>
-            <Button size="sm" variant="ghost" disabledReason={!state ? "Loading…" : null} onClick={() => void set({ skip: null, hold: null, stop: null })}>
+            <Button size="sm" variant="ghost" disabledReason={!state ? "Loading…" : null} onClick={() => void set(Object.fromEntries(ids.map((id) => [id, null])))}>
               Turn them off
             </Button>
           </div>
-          {REPLAY_KEYS.filter((k) => state?.errors[k.id]).map((k) => (
-            <span key={k.id} className="small text-warn" role="alert">
-              {state!.errors[k.id]}
-            </span>
-          ))}
+          {keys
+            .filter((k) => state?.errors[k.id])
+            .map((k) => (
+              <span key={k.id} className="small text-warn" role="alert">
+                {state!.errors[k.id]}
+              </span>
+            ))}
           {error ? (
             <span className="small text-warn" role="alert">
               {error}

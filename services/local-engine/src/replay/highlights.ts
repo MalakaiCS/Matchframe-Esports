@@ -193,6 +193,52 @@ export class HighlightStore {
     return key ? (this.index.maps.find((m) => m.key === key) ?? null) : this.current();
   }
 
+  /** The map before the current one, or null. */
+  previous(): KeptMap | null {
+    return this.index.maps[this.index.maps.length - 2] ?? null;
+  }
+
+  /** A kept clip by its id (the replay list's), with its map. */
+  find(id: string): { map: KeptMap; clip: KeptClip } | null {
+    for (const map of this.index.maps) {
+      const clip = map.clips.find((c) => c.id === id);
+      if (clip) return { map, clip };
+    }
+    return null;
+  }
+
+  /** The last round a map has anything of (a round won, a kill, a clip). */
+  lastRound(map: KeptMap): number | null {
+    const rounds = [...Object.keys(map.winners).map(Number), ...map.kills.map((k) => k.round), ...map.clips.map((c) => c.roundNumber ?? 0)].filter((r) => Number.isFinite(r) && r > 0);
+    return rounds.length ? Math.max(...rounds) : null;
+  }
+
+  /**
+   * A kept clip as a replay list item, for playing it on air (highlights, ADR-063): its kept file,
+   * the part replays show (playMs, the play and its lead-up, from the end), its play. Not added to
+   * the list.
+   */
+  asItem(c: KeptClip): QueueItem {
+    const m = c.media;
+    return {
+      id: c.id,
+      state: "prepared",
+      label: c.label,
+      reason: c.reason,
+      roundNumber: c.roundNumber,
+      createdAt: c.createdAt,
+      clip: { clipId: `kept_${c.id}`, providerId: "highlights", sourceId: "highlights", angle: "recorded_angle", matchTimeFromMs: null, matchTimeToMs: null, timeUncertaintyMs: null, epoch: null, roundNumber: c.roundNumber, media: { path: this.filePath(c), durationMs: m.durationMs, frameRate: m.frameRate, timebase: null, startPts: null, hasAudio: m.hasAudio, width: m.width, height: m.height }, createdAt: c.createdAt },
+      error: null,
+      order: 0,
+      trim: null,
+      origin: c.origin,
+      priority: 0,
+      playMs: c.playMs,
+      leadMs: c.leadMs,
+      play: c.play,
+    };
+  }
+
   filePath(c: KeptClip): string {
     return join(c.root ?? this.defaultClipsDir, c.file);
   }
@@ -428,15 +474,14 @@ export class HighlightStore {
   }
 
   /**
-   * A map's reel: every played clip, or the best N by the replay ranking's score (rank.ts), with
-   * unplayed clips too when asked; the same kills only once (the better clip). In round order, and
-   * in a round by when its play happened.
+   * A map's clips for a reel or for highlights on air (ADR-063): every played clip, or the best N by
+   * the replay ranking's score (rank.ts), with unplayed clips too when asked; the same kills only
+   * once (the better clip); only `rounds` when given (a half). In round order, and in a round by when
+   * its play happened. Only clips whose kept file is there.
    */
-  plan(choice: ReelChoice): ReelPlan | null {
-    this.tick();
-    const map = this.map(choice.map);
-    if (!map) return null;
-    const pool = map.clips.filter((c) => (c.played || (choice.count !== "all" && choice.unplayed)) && existsSync(this.filePath(c)) && !this.copying.has(c.id));
+  choose(map: KeptMap, choice: { count: "all" | number; unplayed: boolean; rounds?: { from: number; to: number } | null }): { c: KeptClip; score: number; reasons: string[] }[] {
+    const inRounds = (c: KeptClip) => !choice.rounds || (c.roundNumber !== null && c.roundNumber >= choice.rounds.from && c.roundNumber <= choice.rounds.to);
+    const pool = map.clips.filter((c) => (c.played || (choice.count !== "all" && choice.unplayed)) && inRounds(c) && existsSync(this.filePath(c)) && !this.copying.has(c.id));
     const scored = pool
       .map((c) => ({ c, ...(c.play ? clipScore(c.play, this.facts(map, c)) : { score: 0, reasons: [] as string[] }) }))
       .sort((a, b) => b.score - a.score || Number(b.c.played) - Number(a.c.played) || (a.c.origin === "replay_pc" ? -1 : 0) - (b.c.origin === "replay_pc" ? -1 : 0) || a.c.createdAt.localeCompare(b.c.createdAt));
@@ -448,7 +493,19 @@ export class HighlightStore {
     }
     const chosen = choice.count === "all" ? kept : kept.slice(0, Math.max(1, choice.count));
     const at = (c: KeptClip) => this.firstKill(map, c.roundNumber, c.play)?.at ?? c.killAt;
-    chosen.sort((a, b) => (a.c.roundNumber ?? Number.MAX_SAFE_INTEGER) - (b.c.roundNumber ?? Number.MAX_SAFE_INTEGER) || at(a.c) - at(b.c));
+    return chosen.sort((a, b) => (a.c.roundNumber ?? Number.MAX_SAFE_INTEGER) - (b.c.roundNumber ?? Number.MAX_SAFE_INTEGER) || at(a.c) - at(b.c));
+  }
+
+  /**
+   * A map's reel: every played clip, or the best N by the replay ranking's score (rank.ts), with
+   * unplayed clips too when asked; the same kills only once (the better clip). In round order, and
+   * in a round by when its play happened.
+   */
+  plan(choice: ReelChoice): ReelPlan | null {
+    this.tick();
+    const map = this.map(choice.map);
+    if (!map) return null;
+    const chosen = this.choose(map, choice);
     const clips: ReelClip[] = chosen.map(({ c, score, reasons }) => ({
       id: c.id,
       label: c.label,

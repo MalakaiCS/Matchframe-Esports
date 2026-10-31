@@ -13,7 +13,8 @@ import { displayWeaponName } from "../live/weapons.ts";
  * `replay` entry point: a page that is transparent but for that, made for the replay scene. The
  * live HUD never shows it. An LHM-format HUD (kaiHUD…) has no such page: the built-in Broadcast
  * HUD's is used. The clip on air is the program's replay (played by hand, or automatic replays in
- * OBS), else the automatic replays' clip when they play in vMix.
+ * OBS), else the automatic replays' clip when they play in vMix; highlights on air (ADR-063) the same,
+ * their clips found among the clips kept for highlights when the replay list has dropped them.
  */
 
 export const ReplayGraphicSettings = z.object({
@@ -76,15 +77,35 @@ export function replayClip(it: Pick<QueueItem, "id" | "label" | "reason" | "roun
 }
 
 /**
+ * Which half of a map a round is in: the first or second half of regulation ("r1", "r2"; MR12: rounds
+ * 1–12 and 13–24), or an overtime half of 3 rounds ("ot0" is 25–27, "ot1" 28–30, …).
+ */
+export function halfOf(round: number, regulation = 24): string {
+  return round <= regulation ? (round <= regulation / 2 ? "r1" : "r2") : `ot${Math.floor((round - regulation - 1) / 3)}`;
+}
+
+/** The rounds of the half a round is in (MR12: 1–12, 13–24, then 25–27, 28–30, …). */
+export function halfRounds(round: number, regulation = 24): { from: number; to: number } {
+  if (round <= regulation / 2) return { from: 1, to: regulation / 2 };
+  if (round <= regulation) return { from: regulation / 2 + 1, to: regulation };
+  const k = Math.floor((round - regulation - 1) / 3);
+  return { from: regulation + 1 + 3 * k, to: regulation + 3 + 3 * k };
+}
+
+/** The first round of a half other than the map's first (MR12: 13, 25, 28, 31, …): halftime comes before it. */
+export function isHalfStart(round: number, regulation = 24): boolean {
+  return round > 1 && halfOf(round, regulation) !== halfOf(round - 1, regulation);
+}
+
+/**
  * The side a player had in another round, from the side they have now: the same in the same half,
  * the other in the other half of regulation, the same in the same half of an overtime (3 rounds);
  * null otherwise (across regulation and overtime, sides depend on the server's settings).
  */
 export function sideInRound(sideNow: HudSide, roundNow: number, roundThen: number, regulation = 24): HudSide | null {
   if (roundNow === roundThen) return sideNow;
-  const half = (r: number) => (r <= regulation ? (r <= regulation / 2 ? "r1" : "r2") : `ot${Math.floor((r - regulation - 1) / 3)}`);
-  const a = half(roundNow);
-  const b = half(roundThen);
+  const a = halfOf(roundNow, regulation);
+  const b = halfOf(roundThen, regulation);
   if (a === b) return sideNow;
   if (a.startsWith("r") && b.startsWith("r")) return sideNow === "CT" ? "T" : "CT";
   return null;
@@ -129,18 +150,23 @@ export class ReplayGraphic {
       this.vmixId = st.state === "playing" ? (st.playing?.id ?? null) : null;
     } else this.vmixId = null;
     const id = this.onAirId();
-    const it = id ? this.e.replays.get(id) : undefined;
+    const it = id ? this.clip(id) : null;
     const key = `${this.settings().enabled}|${id ?? ""}|${it?.label ?? ""}`;
     if (key === this.lastKey) return;
     this.lastKey = key;
     this.e.refreshHuds();
   }
 
-  /** The replay clip on air: the program's (by hand, or automatic replays in OBS), else automatic replays' in vMix. */
+  /** The replay clip on air: the program's (by hand, automatic replays or highlights in OBS), else automatic replays' (or highlights') in vMix. */
   onAirId(): string | null {
     const p = this.e.program;
-    if (p.mode === "REPLAY_PLAYING" && p.activeReplay) return p.activeReplay;
+    if ((p.mode === "REPLAY_PLAYING" || p.mode === "HIGHLIGHTS") && p.activeReplay) return p.activeReplay;
     return this.vmixId;
+  }
+
+  /** A clip by its id: in the replay list, else kept for highlights (a highlight of a clip the list has dropped). */
+  private clip(id: string): (Pick<QueueItem, "id" | "label" | "reason" | "roundNumber" | "play"> & { team?: ClipTeam | null }) | null {
+    return this.e.replays.get(id) ?? this.e.highlights.find(id)?.clip ?? null;
   }
 
   /** The clip on air for `HudState.replay.clip`, its team as `hud` shows it; null when none or turned off. */
@@ -148,10 +174,10 @@ export class ReplayGraphic {
     if (!this.settings().enabled) return null;
     const id = this.onAirId();
     if (!id) return null;
-    const it = this.e.replays.get(id);
+    const it = this.clip(id);
     if (!it) return replayClip({ id, label: "Replay", reason: "manual", roundNumber: null, play: null }, { team: null, side: null });
     const steamId = it.play?.killer?.steamId ?? null;
-    return replayClip(it, { team: steamId ? (this.teamInHud(hud, steamId) ?? this.teamOf(steamId)) : null, side: this.sideOf(it) });
+    return replayClip(it, { team: steamId ? (this.teamInHud(hud, steamId) ?? it.team ?? this.teamOf(steamId)) : null, side: this.sideOf(it) });
   }
 
   /** The player's team as the HUD shows it (left or right). */
@@ -184,11 +210,13 @@ export class ReplayGraphic {
    * The side the player had in the clip's round: from the kills seen in that round (the killer's side
    * at the kill), else as kept with the clip, else their side now moved to that round (halves).
    */
-  private sideOf(it: QueueItem): HudSide | null {
+  private sideOf(it: Pick<QueueItem, "id" | "roundNumber" | "play">): HudSide | null {
     const h = this.e.highlights;
-    const kept = h.maps().flatMap((m) => m.clips.map((c) => ({ m, c }))).find((x) => x.c.id === it.id);
-    const seen = h.sideIn(kept?.m ?? h.current(), it.roundNumber, it.play) ?? kept?.c.side ?? null;
+    const kept = h.find(it.id);
+    const seen = h.sideIn(kept?.map ?? h.current(), it.roundNumber, it.play) ?? kept?.clip.side ?? null;
     if (seen) return seen;
+    // A clip of an earlier map (highlights of the previous map): the sides now are another map's.
+    if (kept && kept.map !== h.current()) return null;
     const s = this.e.session.state();
     const side = s?.players.find((p) => p.steamId === it.play?.killer?.steamId)?.side;
     if (!side || s?.roundNumber == null || it.roundNumber === null) return null;
@@ -225,26 +253,41 @@ export class ReplayGraphic {
     return { hudId: page.id, hudName: page.name, forHudId: target.id, forHudName: target.name, style: page.id === target.id ? "own" : "builtin", url: page.urls.replay, why };
   }
 
-  /** Puts the replay graphic (a 1920×1080 browser source) on top of the mapped replay scene in OBS, or points it at the current page. */
-  async setupObs(): Promise<{ scene: string; source: string; url: string; created: boolean; onTop: boolean; output: GraphicOutput }> {
+  /**
+   * Puts the replay graphic (a 1920×1080 browser source) on top of the mapped replay scene in OBS (or
+   * `scene`: the highlights scene, ADR-063), or points it at the current page. One source for every
+   * scene: one made for another scene is added to this one as it is (OBS's Add → Existing).
+   */
+  async setupObs(scene: string | null = this.e.program.sceneMap.REPLAY): Promise<{ scene: string; source: string; url: string; created: boolean; onTop: boolean; output: GraphicOutput }> {
     if (!this.e.obs.state.connected) throw new HttpError(409, "connect OBS first (Settings → Devices)", "obs_not_connected");
-    const scene = this.e.program.sceneMap.REPLAY;
     if (!scene) throw new HttpError(409, "map the replay scene first: Replays → Set up OBS replay scene, or OBS scenes → Replay scene", "no_replay_scene");
     const out = this.output();
     if (!out) throw new HttpError(409, "no HUD has a replay graphic (the built-in HUD's files are missing)", "no_graphic");
     const r = await this.e.obs.provisionBrowserSource({ sceneName: scene, sourceName: GRAPHIC_SOURCE, url: out.url, width: 1920, height: 1080 });
-    const items = await this.e.obs.sceneItems(scene);
+    let items = await this.e.obs.sceneItems(scene);
+    if (!items.some((i) => i.sourceName === GRAPHIC_SOURCE) && this.e.obs.state.inputs.some((i) => i.name === GRAPHIC_SOURCE && i.kind === "browser_source")) {
+      // Made for another scene (the replay scene, the highlights scene): the same source here too, on top.
+      await this.e.obs.createSceneItem(scene, GRAPHIC_SOURCE).catch((err) => this.e.logger.warn("replay graphic: OBS didn't add the source to the scene", { scene, error: String(err) }));
+      items = await this.e.obs.sceneItems(scene);
+    }
     const at = items.findIndex((i) => i.sourceName === GRAPHIC_SOURCE);
     if (at < 0) throw new HttpError(409, `OBS has a source named “${GRAPHIC_SOURCE}” in another scene: add it to “${scene}” in OBS (Add → Existing), or remove it and press again`, "source_elsewhere");
     // OBS lists a scene's sources from the bottom up.
     return { scene, source: GRAPHIC_SOURCE, url: out.url, created: r.createdInput, onTop: at === items.length - 1, output: out };
   }
 
-  /** After the HUD choice changed: the browser source Matchframe made, if OBS has it, shows the new page. */
+  /** Whether the graphic's source is in a scene, and on top of it (OBS lists a scene's sources from the bottom up). */
+  async inScene(scene: string): Promise<{ inScene: boolean; onTop: boolean }> {
+    const items = await this.e.obs.sceneItems(scene);
+    const at = items.findIndex((i) => i.sourceName === GRAPHIC_SOURCE);
+    return { inScene: at >= 0, onTop: at >= 0 && at === items.length - 1 };
+  }
+
+  /** After the HUD choice changed: the browser source Matchframe made, if OBS has it, shows the new page (in every scene it is in). */
   async repointObs(): Promise<boolean> {
-    const scene = this.e.program.sceneMap.REPLAY;
+    const scene = [this.e.program.sceneMap.REPLAY, this.e.program.sceneMap.HIGHLIGHTS].find((s) => s && this.e.obs.state.scenes.includes(s));
     const out = this.output();
-    if (!scene || !out || !this.e.obs.state.connected || !this.e.obs.state.scenes.includes(scene) || !this.e.obs.state.inputs.some((i) => i.name === GRAPHIC_SOURCE && i.kind === "browser_source")) return false;
+    if (!scene || !out || !this.e.obs.state.connected || !this.e.obs.state.inputs.some((i) => i.name === GRAPHIC_SOURCE && i.kind === "browser_source")) return false;
     await this.e.obs.ensureInput({ sceneName: scene, inputName: GRAPHIC_SOURCE, inputKind: "browser_source", settings: { url: out.url, width: 1920, height: 1080 } });
     return true;
   }
