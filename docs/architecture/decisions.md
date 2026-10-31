@@ -1089,3 +1089,38 @@ Measured with kaiHUD 1.0.2 in Chromium through Matchframe, with a player running
 
 **Not checked.** In CS2 on the owner's PC; which CS2 builds name a player in the free camera.
 
+
+## ADR-055 — Vector and Lineup: two original broadcast HUDs with commercial-grade motion
+
+**Context.** The owner (0.9.x) sent two commercial CS2 HUDs, one with team columns at the sides and one with all ten players along the bottom: "Can you make copies of these huds and design them with all Animations as close as possible but keeping a different design aspect to them."
+
+**Decision.**
+- **What is copied:** layout conventions and motion only. No artwork, logos, code or fonts from the references, and their names appear nowhere in the product. The timings were measured frame by frame from the owner's screen recordings:
+  - **Going live:** the loss-bonus pills tuck into the score bar (about 200 ms), the series strip wipes away right to left (about 270 ms), and the players-alive box slides in from the right (about 150 ms, starting about 70 ms after the clock flips).
+  - **A kill:** the victim's card goes dead within about 100 ms, and about 100 ms later the killfeed row slides in (about 120 ms).
+  - **Round won:** in the side-column HUD, a winner card fades and scales in under the bar (about 180 ms). In the bottom-row HUD, a panel in the winner's colour grows from the centre of the score bar over the whole bar (about 200 ms), then the winner's logo comes in (about 60 ms later).
+- **Vector** (side columns) and **Lineup** (bottom row) are separate HUD packages in `apps/hud-designs`, one Vite build per HUD. They share the demo scenes, the format helpers, and the HUD renderer's weapon silhouettes, glyphs and radar. Their looks differ from the references:
+  - **Vector:** dark graphite panels with angled ends, thin team-colour stripes, Barlow Condensed.
+  - **Lineup:** dark cards with a team-colour top edge, a dark capsule score bar with coloured end caps, Inter.
+- **Bundled:** both are installed into the library on first start, like the Pro CS2 HUD: electron-builder copies `dist/vector` and `dist/lineup` into `sample-huds`, and the engine's dev folders include `apps/hud-designs/dist`.
+- **Performance** (the owner's imported HUD lagged):
+  - Only transform, opacity and clip-path animate.
+  - No backdrop-filter and no large blurred shadows.
+  - The only loops are the planted-bomb pulse and the radar's bomb ping.
+  - Only the round clock and the bomb bar re-render ten times a second; player cards are memoised.
+- **Tools:**
+  - `?demo=<scene>` and `?demo=cycle` show built-in sample states.
+  - `scripts/shots.mjs` records the scenes and the transitions.
+  - `scripts/thumbnail.mjs` writes each package's library picture (the browser encodes the WebP).
+
+**Checked.**
+- Typecheck, lint, and a build of both packages.
+- The bundled-package tests: valid manifests, settings defaults and thumbnails; the built packages install as they are.
+- The six demo scenes and every transition at 1920×1080, including slowed-down frame sequences for the timings.
+- Both HUDs served by the real engine on its test data for 85 s (freeze time, kills, bomb plant, round loss, next freeze time): radar, labels and every panel showed, with no page errors.
+
+**Not checked.** On the owner's PC over CS2 and in OBS.
+
+**Not available from game data.**
+- Round damage on a dead player's card: Lineup shows kills this round, and ADR when it is validated.
+- Defuse progress: the defuse bar keeps showing the bomb's time.

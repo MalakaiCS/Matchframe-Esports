@@ -67,6 +67,12 @@ All notable changes to Matchframe Esports. Versions follow semantic versioning o
   - **Spawn areas from pro demos** (`scripts/set-spawn-regions.py`): the seven pool maps' `t_spawn` / `ct_spawn` regions are where players stood at the end of freeze time (they were 100–500 units off; Ancient's and Anubis's CT spawns missed entirely). Spawn cameras and paths regenerated.
   - **Cache:** map pack from a pro demo's place names (46 areas), free-space grid and 87 cameras / 10 paths from CS2's meshes; in the default event pool with Ancient, Anubis, Dust II, Inferno, Mirage and Nuke.
   - **Team shots tuned on real positions:** finer spots (48 bearings, 6 distances, up to 300 units high), a size score, and a well-sized four over a distant five. Every round of the seven demos framed (272 shots).
+- **Vector and Lineup HUDs** (version 0.10.0, ADR-055, from two commercial HUDs the owner sent):
+  - Two original broadcast HUD packages in `apps/hud-designs`, bundled into the library like the Pro CS2 HUD. They copy the references' layout and motion, timed frame by frame from the owner's recordings, but have their own design.
+  - **Vector** (`matchframe.vector`): team columns at the sides, angled dark-glass panels. Freeze-time loss bonus, series strip and utility rows; going-live sequence; collapsing dead cards; bomb and defuse bar; winner card.
+  - **Lineup** (`matchframe.lineup`): ten cards along the bottom with the observed player in the middle, a capsule score bar that becomes the winner's banner, an event and series panel, and a sponsor slot.
+  - **Performance:** only transform, opacity and clip-path animate; no backdrop-filter; only the clocks re-render at 10 Hz.
+  - **Tools:** `?demo=<scene>` / `?demo=cycle` sample states, `scripts/shots.mjs` (scenes and transitions) and `scripts/thumbnail.mjs`. The CI builds both packages; the installed-program smoke test checks that both are installed.
 - **Smooth paths, players-only freeze time, nade cams that stay, no free camera left on air, frame cap** (version 0.9.5, ADR-054, from the owner's broadcasts):
   - **Paths:** `samplePath` uses one cubic Hermite curve (time-based Catmull-Rom tangents) for position, pitch and yaw; pitch and yaw were linear between keys. Turning jolt p90 21.3 → 1.7 °/s per frame, worst 61 → 5.3; no path over 20 °/s (169 before).
   - **Freeze time:** a map camera shows a player only in its frame (±36° yaw, ±28° pitch), in range and in sight; a path at its start, middle and end.

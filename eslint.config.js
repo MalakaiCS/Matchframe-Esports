@@ -49,6 +49,11 @@ export default tseslint.config(
     rules: { "@typescript-eslint/no-require-imports": "off" },
   },
   {
+    // The HUD designs' screenshot and thumbnail scripts (Node); page.evaluate bodies run in the browser.
+    files: ["apps/hud-designs/scripts/**/*.mjs"],
+    languageOptions: { globals: { document: "readonly", window: "readonly", Image: "readonly" } },
+  },
+  {
     // The program's connection settings page runs in its sandboxed window (classic script).
     files: ["apps/desktop/connect/**/*.js"],
     languageOptions: { sourceType: "script", globals: { document: "readonly", window: "readonly" } },

@@ -5,7 +5,8 @@
   "version": "1.0.0",
   "author": "Matchframe",
   "licence": "MIT (code, Matchframe; weapon icons, Lexogrine); fonts: SIL OFL 1.1",
-  "description": "Broadcast HUD with all ten players in a row along the bottom: series and event panel, score bar that turns into the round winner's banner, bomb bar, sponsor slot, killfeed, observed player and radar.",
+  "thumbnail": "thumbnail.webp",
+  "description": "Broadcast HUD with all ten players in a row along the bottom: series and event panel, a score bar that turns into the round winner's banner, bomb bar, sponsor slot, killfeed, the observed player (team economy in freeze time) and radar.",
   "game": "cs2",
   "category": "Broadcast",
   "tags": [
@@ -41,25 +42,29 @@
       "type": "color",
       "label": "CT colour",
       "default": "#3d8bff",
-      "group": "Look"
+      "group": "Look",
+      "description": "Colour of the team on CT, unless the team has its own colour."
     },
     "tColor": {
       "type": "color",
       "label": "T colour",
       "default": "#ff3d6e",
-      "group": "Look"
+      "group": "Look",
+      "description": "Colour of the team on T, unless the team has its own colour."
     },
     "eventTitle": {
       "type": "string",
       "label": "Title above the series",
       "default": "",
-      "group": "Text"
+      "group": "Text",
+      "description": "Shown in the title line at the top left; the event's name when empty."
     },
     "sponsorText": {
       "type": "string",
       "label": "Sponsor slot text",
       "default": "",
-      "group": "Text"
+      "group": "Text",
+      "description": "Shown in the sponsor slot at the top right when no sponsor is scheduled for the scoreboard slot or top bar."
     },
     "showRadar": {
       "type": "boolean",
@@ -77,19 +82,22 @@
       "type": "boolean",
       "label": "Observed player",
       "default": true,
-      "group": "Elements"
+      "group": "Elements",
+      "description": "The observed player's panel between the two teams' cards."
     },
     "showSeries": {
       "type": "boolean",
       "label": "Series panel",
       "default": true,
-      "group": "Elements"
+      "group": "Elements",
+      "description": "The series maps under the title line."
     },
     "showMoney": {
       "type": "boolean",
       "label": "Player money",
       "default": true,
-      "group": "Elements"
+      "group": "Elements",
+      "description": "Money on the player cards, the observed player and the team money in freeze time."
     }
   }
 }

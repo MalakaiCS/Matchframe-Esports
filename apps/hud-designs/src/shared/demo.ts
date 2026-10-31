@@ -64,7 +64,7 @@ const kill = (id: string, killer: HudPlayer, victim: HudPlayer, weapon: string, 
 
 export function demoScene(scene: DemoScene): HudState {
   let ct = [player(1, "CT", "nova"), player(2, "CT", "kestrel"), player(3, "CT", "lumen"), player(4, "CT", "orbit"), player(5, "CT", "vale", { primary: w("awp", "primary", true, 5, 20), activeWeapon: w("awp", "primary", true, 5, 20) })];
-  let t = [player(6, "T", "ember", { hasBomb: true }), player(7, "T", "riot"), player(8, "T", "saber"), player(9, "T", "dusk"), player(0, "T", "flint", { primary: w("galilar", "primary", true, 35, 90), activeWeapon: w("galilar", "primary", true, 35, 90) })];
+  const t = [player(6, "T", "ember", { hasBomb: true }), player(7, "T", "riot"), player(8, "T", "saber"), player(9, "T", "dusk"), player(0, "T", "flint", { primary: w("galilar", "primary", true, 35, 90), activeWeapon: w("galilar", "primary", true, 35, 90) })];
   let phase: HudState["match"]["phase"] = "live";
   let clock: number | null = 108;
   let bomb: HudState["bomb"] = { state: "carried", site: null, remainingSec: null, clockRunning: false };

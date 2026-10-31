@@ -11,6 +11,21 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.0",
+    title: "Vector and Lineup HUDs",
+    summary: "Two new broadcast HUDs in the HUD Library, with full animations for going live, kills, the bomb and round wins.",
+    sections: [
+      {
+        heading: "HUD Library",
+        items: [
+          "Vector: each team's players down its side of the screen, angled dark-glass panels, loss bonus and series in freeze time, a winner card when the round ends.",
+          "Lineup: all ten players in a row along the bottom, the observed player in the middle, and a score bar that turns into the round winner's banner.",
+          "Both show the radar, killfeed, bomb and defuse bar and players alive, have a compact variant, and animate smoothly without straining the graphics card.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.9.5",
     title: "Smoother cinematics",
     summary: "Moving cinematics glide, freeze-time shots show the players, nade cams stay on the action, and the free camera no longer sticks on air.",

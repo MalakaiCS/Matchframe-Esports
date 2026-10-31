@@ -1,0 +1,1683 @@
+/* Lineup HUD: all ten players along the bottom. Dark rounded panels, team-colour edges and washes.
+   Motion uses transform, opacity and clip-path only (OBS browser sources stay smooth). */
+:root {
+  --lu-ct: #3d8bff;
+  --lu-t: #ff3d6e;
+  --lu-body: rgba(16, 19, 24, 0.92);
+  --lu-raise: rgba(255, 255, 255, 0.04);
+  --lu-hair: rgba(255, 255, 255, 0.06);
+  --lu-ink: #f3f6fb;
+  --lu-ink-dim: #a3adbf;
+  --lu-ink-faint: #6c7589;
+  --lu-red: #ff4848;
+  --lu-money: #7fe0a0;
+  --lu-gold: #f2c94c;
+  --lu-c4: #ff9f1c;
+  --lu-out: cubic-bezier(0.16, 0.84, 0.3, 1);
+  --lu-in: cubic-bezier(0.55, 0, 0.75, 0.2);
+  --lu-num: "Inter", "Segoe UI", system-ui, sans-serif;
+  --lu-label: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --mf-ink-inverse: #101318;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+
+.lu-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 0 0;
+  font-family: var(--lu-num);
+  color: var(--lu-ink);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+.lu-stage * {
+  box-sizing: border-box;
+}
+.lu-stage .mf-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex: none;
+}
+
+/* ------------------------------------------------------------ badges and portraits */
+.lu-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--lu-team, #2a303b);
+}
+.lu-badge.has-logo {
+  background: transparent;
+}
+.lu-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.lu-badge-wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 48%, rgba(0, 0, 0, 0.22) 100%);
+}
+.lu-badge-text {
+  position: relative;
+  font: 800 13px/1 var(--lu-num);
+  letter-spacing: 0.02em;
+  color: var(--lu-team-ink, #fff);
+}
+
+.lu-portrait {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 9px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #1b2029;
+  box-shadow: inset 0 0 0 1px var(--lu-hair);
+}
+.lu-portrait img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.lu-portrait-wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(155deg, var(--lu-team) 0%, rgba(27, 32, 41, 0) 105%);
+  opacity: 0.5;
+}
+.lu-portrait-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 800 19px/1 var(--lu-num);
+  letter-spacing: 0.01em;
+  color: #fff;
+}
+/* Dead: a saturation-blend grey layer desaturates the portrait, a dark layer dims it. */
+.lu-portrait-grey,
+.lu-portrait-dim {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 100ms ease-out;
+}
+.lu-portrait-grey {
+  background: #808080;
+  mix-blend-mode: saturation;
+}
+.lu-portrait-dim {
+  background: #23272f;
+}
+
+/* ------------------------------------------------------------ top left: title, series, radar */
+.lu-topleft {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  width: 612px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.lu-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  height: 30px;
+  padding: 0 14px 0 13px;
+  border-radius: 8px;
+  background: var(--lu-body);
+}
+.lu-title-mark {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 2px;
+  background: var(--lu-team);
+  transform: rotate(45deg);
+}
+.lu-title-text {
+  font: 800 15px/1 var(--lu-label);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-top: 1px;
+}
+.lu-title-bo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  font: 600 14px/1 var(--lu-label);
+  letter-spacing: 0.12em;
+  color: var(--lu-ink-dim);
+  padding-top: 1px;
+}
+.lu-title-bo b {
+  font: 800 13px/1 var(--lu-num);
+  letter-spacing: 0.02em;
+  color: var(--lu-ink);
+}
+
+.lu-series {
+  display: flex;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--lu-body);
+}
+.lu-map {
+  position: relative;
+  flex: none;
+  width: 128px;
+  height: 56px;
+  padding: 9px 10px 8px;
+  border-radius: 8px;
+  background: var(--lu-raise);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+.lu-map-top,
+.lu-map-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+}
+.lu-map-name {
+  font: 800 14px/1 var(--lu-num);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lu-map.is-upcoming .lu-map-name {
+  color: var(--lu-ink-dim);
+}
+.lu-series[data-count="4"] .lu-map,
+.lu-series[data-count="5"] .lu-map {
+  width: 112px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.lu-map-live {
+  flex: none;
+  padding: 3px 3px 2px 4px;
+  border-radius: 4px;
+  background: var(--lu-red);
+  font: 800 10px/1 var(--lu-label);
+  letter-spacing: 0.1em;
+  color: #fff;
+}
+.lu-map-pick {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  font: 600 12px/1 var(--lu-label);
+  letter-spacing: 0.12em;
+  color: var(--lu-ink-dim);
+  white-space: nowrap;
+}
+.lu-map-pick > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lu-map-pick i {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--lu-team);
+}
+.lu-map-pick.is-decider {
+  color: var(--lu-gold);
+}
+.lu-map-score {
+  display: flex;
+  gap: 2px;
+  flex: none;
+  font: 800 13px/1 var(--lu-num);
+  color: var(--lu-ink-faint);
+}
+.lu-map-score b {
+  font-weight: 800;
+}
+.lu-map-score b.is-win {
+  color: var(--lu-ink);
+}
+.lu-map.is-live {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+.lu-map.is-live .lu-map-score b {
+  color: var(--lu-ink);
+}
+.lu-map.is-completed::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--lu-team, transparent);
+}
+.lu-map.is-decider:not(.is-live) {
+  box-shadow: inset 0 0 0 1px rgba(242, 201, 76, 0.28);
+}
+
+.lu-radar {
+  width: 300px;
+  height: 300px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--lu-body);
+}
+
+/* ------------------------------------------------------------ score bar */
+.lu-scorebar {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  width: 600px;
+  margin-left: -300px;
+  height: 84px;
+}
+.lu-sb {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: stretch;
+  height: 64px;
+  border-radius: 32px;
+  overflow: hidden;
+  background: var(--lu-body);
+  box-shadow: inset 0 0 0 1px var(--lu-hair);
+}
+.lu-cap {
+  position: relative;
+  flex: none;
+  width: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--lu-team-ink);
+  overflow: hidden;
+}
+.lu-cap-left {
+  padding: 0 6px 0 14px;
+}
+.lu-cap-right {
+  padding: 0 14px 0 6px;
+}
+.lu-cap-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 60%), var(--lu-team);
+}
+.lu-cap-left .lu-cap-fill {
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+}
+.lu-cap-right .lu-cap-fill {
+  clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%);
+}
+.lu-score {
+  position: relative;
+  font: 800 36px/1 var(--lu-num);
+  letter-spacing: -0.02em;
+  animation: lu-tick 280ms var(--lu-out) both;
+}
+@keyframes lu-tick {
+  0% {
+    transform: translateY(70%) scale(0.85);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.lu-sb-team {
+  position: relative;
+  flex: none;
+  width: 152px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 10px 0 12px;
+}
+.lu-sb-right {
+  flex-direction: row-reverse;
+  padding: 0 12px 0 10px;
+}
+.lu-sb-badge {
+  width: 40px;
+  height: 40px;
+}
+.lu-sb-badge .lu-badge-text {
+  font-size: 14px;
+}
+.lu-sb-id {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.lu-sb-right .lu-sb-id {
+  align-items: flex-end;
+}
+.lu-sb-name {
+  font: 800 20px/1 var(--lu-num);
+  padding-top: 1px;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.lu-sb-team.is-long .lu-sb-name {
+  font-size: 16px;
+}
+.lu-sb-pips {
+  display: flex;
+  gap: 4px;
+}
+.lu-sb-pips i {
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.16);
+}
+.lu-sb-pips i.is-won {
+  background: var(--lu-team);
+}
+
+.lu-sb-centre {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.035);
+}
+.lu-sb-time {
+  position: relative;
+  width: 100%;
+  height: 28px;
+}
+.lu-sb-clock,
+.lu-sb-glyph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms ease-out;
+}
+.lu-clock {
+  font: 800 29px/1 var(--lu-num);
+  letter-spacing: -0.01em;
+}
+.lu-clock.is-low {
+  color: var(--lu-red);
+}
+.lu-sb-glyph {
+  opacity: 0;
+  transform: scale(0.7);
+  color: var(--lu-red);
+}
+.lu-sb-glyph b {
+  font: 800 24px/1 var(--lu-num);
+  color: var(--lu-ink);
+}
+.lu-sb-glyph-kit {
+  color: var(--lu-defuse, var(--lu-ct));
+}
+.lu-sb-centre.is-bomb .lu-sb-clock {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.lu-sb-centre.is-bomb:not(.is-defuse) .lu-sb-glyph-bomb,
+.lu-sb-centre.is-defuse .lu-sb-glyph-kit {
+  opacity: 1;
+  transform: none;
+}
+/* The one looping animation: a gentle pulse on the planted bomb. */
+.lu-sb-centre.is-bomb:not(.is-defuse) .lu-sb-glyph-bomb .mf-icon {
+  animation: lu-bomb-pulse 1s ease-in-out infinite;
+}
+@keyframes lu-bomb-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+.lu-sb-round {
+  font: 600 13px/1 var(--lu-label);
+  letter-spacing: 0.16em;
+  color: var(--lu-ink-dim);
+  white-space: nowrap;
+}
+.lu-sb-round.is-paused {
+  color: var(--lu-gold);
+}
+.lu-sb-centre.is-bomb .lu-sb-round {
+  color: var(--lu-red);
+}
+.lu-sb-centre.is-defuse .lu-sb-round {
+  color: var(--lu-defuse, var(--lu-ct));
+}
+
+/* Round won: the winner's panel grows from the centre over the whole bar, then its badge comes in. */
+.lu-banner {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: var(--lu-team);
+  transform: scaleX(0);
+  transition: transform 200ms var(--lu-in);
+}
+.lu-sb.is-won .lu-banner {
+  transform: scaleX(1);
+  transition: transform 200ms var(--lu-out);
+}
+.lu-banner-sheen {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 62%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0) 26%, rgba(0, 0, 0, 0) 74%, rgba(0, 0, 0, 0.22));
+}
+.lu-banner-content {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 40px;
+  color: var(--lu-team-ink);
+  opacity: 0;
+  transform: scale(0.84);
+  transition:
+    opacity 90ms ease-in,
+    transform 90ms ease-in;
+}
+.lu-sb.is-won .lu-banner-content {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 170ms ease-out 260ms,
+    transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1.18) 260ms;
+}
+.lu-banner-badge {
+  width: 44px;
+  height: 44px;
+  background: #101318;
+}
+.lu-banner-badge .lu-badge-wash {
+  display: none;
+}
+.lu-banner-badge .lu-badge-text {
+  font-size: 15px;
+  color: var(--lu-team);
+}
+.lu-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.lu-banner-name {
+  font: 800 24px/1 var(--lu-num);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lu-banner-sub {
+  display: flex;
+  gap: 10px;
+  font: 800 13px/1 var(--lu-label);
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+}
+.lu-banner-sub em {
+  font-style: normal;
+  opacity: 0.7;
+}
+
+/* Bomb bar: slides down from under the bar, drains toward the centre, CT colour while defusing. */
+.lu-bombbar {
+  position: absolute;
+  z-index: 1;
+  top: 70px;
+  left: 44px;
+  right: 44px;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--lu-body);
+  opacity: 0;
+  transform: scaleX(0);
+  transition:
+    transform 180ms var(--lu-in),
+    opacity 180ms ease-in;
+}
+.lu-bombbar.is-on {
+  opacity: 1;
+  transform: none;
+  transition: opacity 60ms linear;
+  animation: lu-bomb-in 200ms var(--lu-out);
+}
+@keyframes lu-bomb-in {
+  from {
+    transform: translateY(-24px);
+  }
+  to {
+    transform: none;
+  }
+}
+.lu-bombbar-track {
+  position: absolute;
+  inset: 2px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.lu-bombbar-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--lu-red);
+  transform-origin: center;
+  transition: transform 100ms linear;
+}
+.lu-bombbar-ct {
+  position: absolute;
+  inset: 0;
+  background: var(--lu-defuse, var(--lu-ct));
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+.lu-bombbar.is-defuse .lu-bombbar-ct {
+  opacity: 1;
+}
+
+.lu-labels {
+  position: absolute;
+  top: 108px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.lu-label {
+  padding: 6px 10px 5px;
+  border-radius: 6px;
+  background: var(--lu-body);
+  font: 800 13px/1 var(--lu-label);
+  letter-spacing: 0.18em;
+}
+.lu-label.is-sim {
+  background: var(--lu-gold);
+  color: #101318;
+}
+.lu-label.is-stale {
+  background: var(--lu-red);
+}
+
+/* ------------------------------------------------------------ top right: sponsor, killfeed */
+.lu-topright {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.lu-sponsor {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 250px;
+  max-width: 100%;
+  height: 64px;
+  padding-right: 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--lu-body);
+  animation: lu-fade 300ms ease-out both;
+}
+.lu-sponsor-tile {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(150deg, #f6f8fc, #c9d1de);
+}
+.lu-sponsor-tile img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+.lu-sponsor-mono {
+  font: 800 28px/1 var(--lu-num);
+  color: #101318;
+}
+.lu-sponsor-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.lu-sponsor-label {
+  font: 600 12px/1 var(--lu-label);
+  letter-spacing: 0.2em;
+  color: var(--lu-ink-dim);
+}
+.lu-sponsor-name {
+  font: 800 20px/1 var(--lu-num);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@keyframes lu-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.lu-killfeed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.lu-kill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 460px;
+  height: 36px;
+  padding: 0 14px 0 17px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--lu-body);
+  font: 800 15px/1 var(--lu-num);
+  animation:
+    lu-kill-in 120ms var(--lu-out) 100ms both,
+    lu-kill-out 400ms ease-in 6600ms forwards;
+}
+.lu-kill::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--lu-team);
+}
+@keyframes lu-kill-in {
+  from {
+    transform: translateX(60px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes lu-kill-out {
+  to {
+    opacity: 0;
+  }
+}
+.lu-kill-name {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lu-kill-assist {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 110px;
+  margin-left: -4px;
+  font: 600 13px/1 var(--lu-num);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+.lu-kill-assist i {
+  font-style: normal;
+  color: var(--lu-ink-dim);
+}
+.lu-kill-way {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--lu-ink);
+}
+.lu-kill-weapon {
+  height: 20px;
+  width: auto;
+  max-width: 76px;
+}
+.lu-kill-skull {
+  color: var(--lu-ink-dim);
+}
+.lu-stage .mf-weapon-text {
+  font: 600 12px/1 var(--lu-label);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lu-ink-dim);
+}
+
+/* ------------------------------------------------------------ bottom row */
+.lu-bottom {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  height: 206px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.lu-stage.is-compact .lu-bottom {
+  justify-content: center;
+}
+.lu-cards {
+  display: flex;
+  gap: 8px;
+}
+
+.lu-card {
+  position: relative;
+  flex: none;
+  width: 144px;
+  height: 172px;
+  transition: transform 150ms var(--lu-out);
+}
+.lu-card.is-dead {
+  transform: translateY(6px);
+  transition-duration: 100ms;
+}
+.lu-card.is-observed {
+  transform: translateY(-4px);
+}
+.lu-card-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 13px;
+  border: 2px solid var(--lu-team);
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+.lu-card.is-observed .lu-card-ring {
+  opacity: 1;
+}
+.lu-card-body {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 13px 10px 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--lu-body);
+  box-shadow: inset 0 0 0 1px var(--lu-hair);
+}
+.lu-card-body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #0a0c10;
+  opacity: 0;
+  transition: opacity 100ms ease-out;
+  pointer-events: none;
+}
+.lu-card.is-dead .lu-card-body::after {
+  opacity: 0.4;
+}
+.lu-card-wash {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 86px;
+  background: linear-gradient(180deg, var(--lu-team), rgba(16, 19, 24, 0));
+  opacity: 0.24;
+  transition: opacity 100ms ease-out;
+}
+.lu-card-edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: var(--lu-team);
+  transition: opacity 100ms ease-out;
+}
+.lu-card.is-dead .lu-card-wash {
+  opacity: 0.05;
+}
+.lu-card.is-dead .lu-card-edge {
+  opacity: 0.2;
+}
+.lu-card.is-dead .lu-portrait-grey {
+  opacity: 1;
+}
+.lu-card.is-dead .lu-portrait-dim {
+  opacity: 0.5;
+}
+
+.lu-card-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+}
+.lu-card-right .lu-card-head {
+  flex-direction: row-reverse;
+}
+.lu-card-face {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 52px;
+}
+.lu-card-flash {
+  position: absolute;
+  inset: 0;
+  border-radius: 9px;
+  background: #fff;
+  transition: opacity 150ms linear;
+  pointer-events: none;
+}
+.lu-card-vitals {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+.lu-card-right .lu-card-vitals {
+  align-items: flex-start;
+}
+.lu-card-hpwrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 32px;
+}
+.lu-card-hp {
+  font: 800 36px/1 var(--lu-num);
+  letter-spacing: -0.035em;
+  transition: opacity 100ms ease-out;
+}
+.lu-card-hp.is-low {
+  color: var(--lu-red);
+}
+.lu-card-skull {
+  position: absolute;
+  top: 1px;
+  right: 0;
+  color: #7a8294;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 100ms ease-out,
+    transform 140ms var(--lu-out);
+}
+.lu-card-right .lu-card-skull {
+  right: auto;
+  left: 0;
+}
+.lu-card.is-dead .lu-card-hp {
+  opacity: 0;
+}
+.lu-card.is-dead .lu-card-skull {
+  opacity: 1;
+  transform: none;
+}
+.lu-card-armor {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 12px;
+  font: 600 13px/1 var(--lu-label);
+  letter-spacing: 0.04em;
+  color: var(--lu-ink-dim);
+}
+
+.lu-hpbar {
+  position: relative;
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+.lu-hpbar i {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+}
+.lu-card-right .lu-hpbar i {
+  transform-origin: right center;
+}
+.lu-hpbar-trail {
+  background: rgba(255, 255, 255, 0.78);
+  transition: transform 380ms cubic-bezier(0.4, 0, 0.2, 1) 300ms;
+}
+.lu-hpbar-fill {
+  background: var(--lu-team);
+  transition: transform 120ms ease-out;
+}
+.lu-hpbar-fill.is-low {
+  background: var(--lu-red);
+}
+.lu-card-hpbar {
+  flex: none;
+  margin-top: 8px;
+}
+
+.lu-card-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  height: 20px;
+  margin-top: 7px;
+  font: 800 15px/1 var(--lu-num);
+}
+.lu-card-name > span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lu-card-right .lu-card-name {
+  flex-direction: row-reverse;
+}
+.lu-card-c4 {
+  color: var(--lu-c4);
+}
+.lu-card-kit {
+  color: var(--lu-ink-dim);
+}
+.lu-card-stats {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 15px;
+  margin-top: 3px;
+  font: 600 13px/1 var(--lu-label);
+  letter-spacing: 0.06em;
+  color: var(--lu-ink-faint);
+}
+.lu-card-stats b {
+  margin-left: 3px;
+  font: 800 12px/1 var(--lu-num);
+  letter-spacing: 0;
+  color: var(--lu-ink-dim);
+}
+.lu-card-money {
+  margin-left: auto;
+  font: 800 12px/1 var(--lu-num);
+  letter-spacing: 0;
+  color: var(--lu-money);
+}
+.lu-card-right .lu-card-stats {
+  justify-content: flex-end;
+}
+.lu-card-right .lu-card-money {
+  order: -1;
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* Foot row: equipment detail (freeze time), weapon and grenades (live), the round's kills (dead). */
+.lu-card-foot {
+  position: relative;
+  flex: 1;
+  margin-top: 8px;
+}
+.lu-card-econ,
+.lu-card-gear,
+.lu-card-dead {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition:
+    opacity 200ms ease-out,
+    transform 200ms var(--lu-out);
+}
+.lu-card-econ {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 4px;
+  align-content: center;
+  transform: translateY(8px) scaleY(0.3);
+  transform-origin: center bottom;
+}
+.lu-card-econ-label {
+  font: 600 11px/1 var(--lu-label);
+  letter-spacing: 0.16em;
+  color: var(--lu-ink-faint);
+}
+.lu-card-econ-value {
+  grid-row: 2;
+  font: 800 15px/1 var(--lu-num);
+}
+.lu-card-econ-icons {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  color: var(--lu-ink-dim);
+}
+.lu-card-right .lu-card-econ {
+  grid-template-columns: 1fr auto;
+}
+.lu-card-right .lu-card-econ-label,
+.lu-card-right .lu-card-econ-value {
+  grid-column: 2;
+  text-align: right;
+}
+.lu-card-right .lu-card-econ-icons {
+  grid-column: 1;
+  justify-content: flex-start;
+}
+.lu-card-gear {
+  justify-content: space-between;
+  gap: 6px;
+  transform: translateY(10px);
+}
+.lu-card-right .lu-card-gear {
+  flex-direction: row-reverse;
+}
+.lu-card-weapon {
+  height: 21px;
+  width: auto;
+  max-width: 82px;
+  color: var(--lu-ink);
+}
+.lu-card-right .lu-card-weapon {
+  transform: scaleX(-1);
+}
+.lu-nades {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--lu-ink-dim);
+}
+.lu-card-dead {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  transform: translateY(4px);
+}
+.lu-card-right .lu-card-dead {
+  align-items: flex-end;
+}
+.lu-card-dead-value {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font: 800 14px/1 var(--lu-num);
+  color: var(--lu-ink-dim);
+}
+.lu-card-dead-value small {
+  font: 600 12px/1 var(--lu-label);
+  letter-spacing: 0.1em;
+  color: var(--lu-ink-faint);
+}
+.lu-card.mode-econ .lu-card-econ,
+.lu-card.mode-gear .lu-card-gear,
+.lu-card.mode-dead .lu-card-dead {
+  opacity: 1;
+  transform: none;
+}
+.lu-card.mode-gear .lu-card-gear,
+.lu-card.mode-econ .lu-card-econ {
+  transition-delay: 60ms;
+}
+.lu-card.mode-dead .lu-card-dead {
+  transition-duration: 100ms;
+}
+
+/* ------------------------------------------------------------ centre: observed player, buy time */
+.lu-centre {
+  position: relative;
+  flex: none;
+  width: 352px;
+  height: 206px;
+}
+.lu-obs,
+.lu-buy {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--lu-body);
+  box-shadow: inset 0 0 0 1px var(--lu-hair);
+  opacity: 0;
+  transform: translateY(110%);
+  transition:
+    transform 180ms var(--lu-in),
+    opacity 100ms linear;
+}
+/* The outgoing panel clears first; the incoming one rises in from below just behind it. */
+.lu-obs.is-shown,
+.lu-buy.is-shown {
+  opacity: 1;
+  transform: none;
+  transition:
+    transform 200ms var(--lu-out) 90ms,
+    opacity 120ms linear 90ms;
+}
+.lu-obs {
+  height: 206px;
+}
+
+.lu-obs-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 0;
+}
+.lu-obs-content.is-in {
+  animation: lu-obs-in 160ms var(--lu-out) 70ms both;
+}
+.lu-obs-content.is-out {
+  animation: lu-obs-out 120ms ease-in forwards;
+}
+@keyframes lu-obs-in {
+  from {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes lu-obs-out {
+  65% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-22px);
+  }
+}
+.lu-obs-wash {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 120px;
+  background: linear-gradient(180deg, var(--lu-team), rgba(16, 19, 24, 0));
+  opacity: 0.28;
+}
+.lu-obs-edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 4px;
+  background: var(--lu-team);
+}
+.lu-obs-top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 78px;
+}
+.lu-obs-portrait {
+  flex: none;
+  width: 78px;
+  height: 78px;
+  border-radius: 12px;
+}
+.lu-obs-portrait .lu-portrait-text {
+  font-size: 28px;
+}
+.lu-obs-id {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+.lu-obs-team {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 18px;
+  white-space: nowrap;
+  font: 800 14px/1 var(--lu-label);
+  letter-spacing: 0.16em;
+  color: var(--lu-ink-dim);
+  text-transform: uppercase;
+}
+.lu-obs-team i {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 2px;
+  background: var(--lu-team);
+  transform: rotate(45deg);
+}
+.lu-obs-team > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-top: 1px;
+}
+.lu-obs-team em {
+  flex: none;
+  margin-left: auto;
+  padding: 3px 6px 2px;
+  border-radius: 4px;
+  background: var(--lu-team);
+  color: var(--lu-team-ink);
+  font: 800 11px/1 var(--lu-label);
+  font-style: normal;
+  letter-spacing: 0.12em;
+}
+.lu-obs-name {
+  font: 800 26px/1 var(--lu-num);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lu-obs-stats {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font: 600 13px/1 var(--lu-label);
+  letter-spacing: 0.08em;
+  color: var(--lu-ink-faint);
+}
+.lu-obs-stats b {
+  margin-left: 4px;
+  font: 800 13px/1 var(--lu-num);
+  letter-spacing: 0;
+  color: var(--lu-ink);
+}
+.lu-obs-money {
+  margin-left: auto;
+  font: 800 13px/1 var(--lu-num);
+  letter-spacing: 0;
+  color: var(--lu-money);
+}
+.lu-obs-bottom {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-bottom: 24px;
+}
+.lu-obs-vitals {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.lu-obs-hp {
+  font: 800 52px/0.8 var(--lu-num);
+  letter-spacing: -0.04em;
+}
+.lu-obs-hp.is-low {
+  color: var(--lu-red);
+}
+.lu-obs-unit {
+  font: 800 14px/1 var(--lu-label);
+  letter-spacing: 0.14em;
+  color: var(--lu-ink-faint);
+}
+.lu-obs-armor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  font: 800 18px/1 var(--lu-num);
+  color: var(--lu-ink-dim);
+}
+.lu-obs-gear {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+}
+.lu-obs-weaponrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lu-obs-weapon {
+  height: 28px;
+  width: auto;
+  max-width: 118px;
+  color: var(--lu-ink);
+}
+.lu-obs-ammo {
+  font: 800 24px/1 var(--lu-num);
+  letter-spacing: -0.02em;
+}
+.lu-obs-ammo small {
+  margin-left: 1px;
+  font: 600 16px/1 var(--lu-label);
+  letter-spacing: 0.02em;
+  color: var(--lu-ink-faint);
+}
+.lu-obs-utils {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 18px;
+  color: var(--lu-ink-dim);
+}
+.lu-obs-utils .lu-nades {
+  gap: 4px;
+}
+.lu-obs-c4 {
+  color: var(--lu-c4);
+}
+.lu-obs-hpbar {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 12px;
+  height: 5px;
+}
+
+.lu-buy {
+  height: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 13px 16px 14px;
+}
+.lu-buy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 26px;
+  margin-bottom: 2px;
+}
+.lu-buy-head b {
+  font: 800 15px/1 var(--lu-label);
+  letter-spacing: 0.22em;
+  color: var(--lu-ink-dim);
+}
+.lu-buy-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 800 16px/1 var(--lu-num);
+  text-transform: uppercase;
+}
+.lu-buy-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+}
+.lu-buy-badge .lu-badge-text {
+  font-size: 9px;
+}
+.lu-buy-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: 20px;
+  font: 800 16px/1 var(--lu-num);
+}
+.lu-buy-row > :last-child {
+  justify-self: end;
+}
+.lu-buy-row label {
+  font: 600 12px/1 var(--lu-label);
+  letter-spacing: 0.18em;
+  color: var(--lu-ink-faint);
+}
+.lu-buy-split {
+  position: relative;
+  height: 4px;
+  margin: -3px 0 1px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+.lu-buy-split i {
+  position: absolute;
+  inset: 0;
+  background: var(--lu-team);
+  transform-origin: left center;
+  transition: transform 300ms var(--lu-out);
+}
+.lu-buy-split i.is-right {
+  transform-origin: right center;
+}
+.lu-buy-util {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 800 13px/1 var(--lu-num);
+  color: var(--lu-ink-dim);
+}
+.lu-buy-util > span {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.lu-buy-util > span.is-none {
+  opacity: 0.35;
+}
+
+/* ------------------------------------------------------------ radar (shared Matchframe minimap) */
+.lu-radar .mf-radar {
+  width: 100%;
+  height: 100%;
+}
+.lu-radar .mf-radar-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.lu-radar .mf-side-CT {
+  --mf-side: var(--lu-ct);
+}
+.lu-radar .mf-side-T {
+  --mf-side: var(--lu-t);
+}
+.lu-radar .mf-side-none {
+  --mf-side: var(--lu-ink-dim);
+}
+.mf-radar-bg {
+  fill: transparent;
+}
+.mf-radar-image {
+  opacity: 0.92;
+}
+.mf-radar-cell {
+  fill: rgba(255, 255, 255, 0.12);
+}
+.mf-radar-cell.k-bombsite {
+  fill: rgba(255, 72, 72, 0.22);
+}
+.mf-radar-cell.k-spawn {
+  fill: rgba(255, 255, 255, 0.06);
+}
+.mf-radar-player .mf-radar-dot {
+  fill: var(--mf-side);
+  stroke: #0b0d12;
+  stroke-width: 4;
+}
+.mf-radar-player.is-flashed .mf-radar-dot {
+  fill: #fff;
+}
+.mf-radar-facing {
+  fill: var(--mf-side);
+  opacity: 0.8;
+}
+.mf-radar-ring {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 5;
+}
+.mf-radar-label {
+  font: 800 26px var(--lu-num);
+  fill: #0b0d12;
+}
+.mf-radar-carrier {
+  fill: var(--lu-c4);
+  stroke: #0b0d12;
+  stroke-width: 3;
+}
+.mf-radar-dead {
+  stroke: var(--mf-side);
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+.mf-radar-bomb-body {
+  fill: var(--lu-c4);
+  stroke: #0b0d12;
+  stroke-width: 3;
+}
+.mf-radar-bomb-face {
+  fill: #0b0d12;
+}
+.mf-radar-bomb-pulse {
+  fill: none;
+  stroke: none;
+}
+.mf-radar-bomb.s-planted .mf-radar-bomb-body,
+.mf-radar-bomb.s-defusing .mf-radar-bomb-body {
+  fill: var(--lu-red);
+}
+.mf-radar-bomb.s-planted .mf-radar-bomb-pulse,
+.mf-radar-bomb.s-defusing .mf-radar-bomb-pulse {
+  stroke: var(--lu-red);
+  stroke-width: 4;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lu-radar-ping 1.2s ease-out infinite;
+}
+.mf-radar-bomb.s-defused .mf-radar-bomb-body {
+  fill: #3ccf7a;
+}
+.mf-radar-bomb.s-exploded .mf-radar-bomb-body {
+  fill: #ff7a1a;
+}
+.mf-radar-util {
+  stroke-width: 4;
+}
+.mf-radar-util.u-smoke {
+  fill: rgba(225, 230, 240, 0.5);
+  stroke: rgba(255, 255, 255, 0.75);
+}
+.mf-radar-util.u-smoke.mf-side-CT,
+.mf-radar-util.u-smoke.mf-side-T {
+  stroke: var(--mf-side);
+  stroke-width: 6;
+}
+.mf-radar-util.u-fire {
+  fill: rgba(240, 70, 30, 0.45);
+  stroke: rgba(255, 160, 60, 0.95);
+}
+.mf-radar-util.u-he {
+  fill: rgba(255, 72, 72, 0.18);
+  stroke: var(--lu-red);
+}
+.mf-radar-util.u-flash {
+  fill: rgba(255, 255, 255, 0.45);
+  stroke: #fff;
+}
+.mf-radar-util.u-decoy {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-dasharray: 6 4;
+}
+.mf-radar-util.is-estimated {
+  stroke-dasharray: 8 6;
+}
+@keyframes lu-radar-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
