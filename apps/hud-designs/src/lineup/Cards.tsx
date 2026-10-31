@@ -1,11 +1,15 @@
 import { memo, useRef } from "react";
 import type { HudPlayer, HudTeam } from "@matchframe/hud-sdk";
 import { mainWeapon, money } from "../shared/format.ts";
-import { ArmorIcon, BombIcon, GrenadeIcon, KitIcon, SkullIcon, WeaponIcon } from "../shared/parts.ts";
+import { ArmorIcon, BombIcon, HeadshotIcon, KitIcon, SkullIcon, WeaponIcon } from "../shared/parts.ts";
 import { Portrait } from "./Badge.tsx";
 import { teamVars, useCountdown } from "./util.ts";
 
 const NADE_ORDER = ["smoke", "flash", "hegrenade", "molotov", "incgrenade", "decoy"];
+/** Grenade slots on a card: empty ones show as dots. */
+const NADE_SLOTS = 4;
+/** Money from which a full buy is possible (rifle and armour): shown green, below it red. */
+const RICH = 3700;
 
 /** A player's grenades as a stable comma list, one entry per grenade (two flashbangs show twice). */
 export function grenadeList(p: HudPlayer): string {
@@ -20,20 +24,29 @@ export function grenadeList(p: HudPlayer): string {
   };
   return out
     .sort((a, b) => rank(a) - rank(b))
-    .slice(0, 5)
+    .slice(0, NADE_SLOTS)
     .join(",");
 }
 
-export function Nades({ list, size }: { list: string; size: number }) {
-  if (!list) return null;
+/** Grenade silhouettes, then a dot for each empty slot. */
+export function Nades({ list, dots = true }: { list: string; dots?: boolean }) {
+  const nades = list ? list.split(",") : [];
   return (
     <span className="lu-nades">
-      {list.split(",").map((g, i) => (
-        <GrenadeIcon key={`${g}-${i}`} type={g} size={size} />
+      {nades.map((g, i) => (
+        <WeaponIcon key={`${g}-${i}`} weapon={g} className="lu-nade" />
       ))}
+      {dots ? Array.from({ length: NADE_SLOTS - nades.length }, (_, i) => <i key={`d${i}`} className="lu-nade-dot" />) : null}
     </span>
   );
 }
+
+/** A round kill. */
+const Star = () => (
+  <svg viewBox="0 0 24 24" className="lu-star" aria-hidden>
+    <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7.1L12 17.3 5.8 21l1.6-7.1L2 9.2l7.1-.6z" fill="currentColor" />
+  </svg>
+);
 
 /** Health as a big number that counts down when hit. */
 export function HealthNumber({ value, className }: { value: number; className: string }) {
@@ -41,16 +54,8 @@ export function HealthNumber({ value, className }: { value: number; className: s
   return <span className={`${className} ${value <= 20 ? "is-low" : ""}`}>{shown}</span>;
 }
 
-/** Health bar with a damage trail that catches up ~300 ms after a hit. */
-export function HpBar({ health, className = "" }: { health: number; className?: string }) {
-  const f = `scaleX(${Math.max(0, Math.min(100, health)) / 100})`;
-  return (
-    <span className={`lu-hpbar ${className}`} aria-hidden>
-      <i className="lu-hpbar-trail" style={{ transform: f }} />
-      <i className={`lu-hpbar-fill ${health <= 20 ? "is-low" : ""}`} style={{ transform: f }} />
-    </span>
-  );
-}
+/** The health gauge: the team colour fills the card's upper body from the bottom; a light trail follows ~300 ms after a hit. */
+const gauge = (health: number) => ({ clipPath: `inset(${100 - Math.max(0, Math.min(100, health))}% 0 0 0)` });
 
 interface CardProps {
   name: string;
@@ -68,7 +73,6 @@ interface CardProps {
   kills: number | null;
   deaths: number | null;
   roundKills: number;
-  adr: number | null;
   weapon: string | null;
   nades: string;
   observed: boolean;
@@ -78,9 +82,10 @@ interface CardProps {
 }
 
 /**
- * One upright player card: portrait and health on top, name, K/D and money, then a foot row that is
- * the money/equipment detail in freeze time, the weapon and grenades once live, and the round's
- * kills when dead. Every prop is a primitive, so React.memo skips cards whose content is unchanged.
+ * One player card: the photo stands on the card, whose upper body is the team colour filled to the
+ * player's health, with the name and the health number; then the K/D band and money, then grenades
+ * and weapon (the equipment value in freeze time, the round's kills when dead), and a team-colour
+ * base line. Every prop is a primitive, so React.memo skips cards whose content is unchanged.
  */
 const Card = memo(function Card(p: CardProps) {
   const dead = !p.alive;
@@ -88,69 +93,62 @@ const Card = memo(function Card(p: CardProps) {
   const lastHealth = useRef(p.health);
   if (!dead) lastHealth.current = p.health;
   const mode = dead ? "dead" : p.live ? "gear" : "econ";
+  const hp = dead ? 0 : p.health;
   return (
     <div className={`lu-card lu-card-${p.align} ${dead ? "is-dead" : ""} ${p.observed ? "is-observed" : ""} mode-${mode}`} style={teamVars(p.color)}>
-      <span className="lu-card-ring" aria-hidden />
-      <div className="lu-card-body">
-        <span className="lu-card-wash" aria-hidden />
-        <span className="lu-card-edge" aria-hidden />
-        <div className="lu-card-head">
-          <span className="lu-card-face">
-            <Portrait name={p.name} avatarUrl={p.avatarUrl} className="lu-card-portrait" />
-            <span className="lu-card-flash" style={{ opacity: dead ? 0 : Math.min(1, p.flashed) * 0.85 }} aria-hidden />
-          </span>
-          <div className="lu-card-vitals">
-            <span className="lu-card-hpwrap">
-              <HealthNumber value={dead ? lastHealth.current : p.health} className="lu-card-hp" />
-              <SkullIcon size={30} className="lu-card-skull" />
+      {!dead && (p.bomb || p.kit) ? <span className="lu-card-tag">{p.bomb ? <BombIcon size={20} /> : <KitIcon size={16} />}</span> : null}
+      <div className="lu-card-top">
+        <span className="lu-card-base" aria-hidden />
+        <span className="lu-card-trail" style={gauge(hp)} aria-hidden />
+        <span className="lu-card-fill" style={gauge(hp)} aria-hidden />
+        <Portrait avatarUrl={p.avatarUrl} className="lu-card-photo" />
+        <span className="lu-card-skull" aria-hidden>
+          <SkullIcon size={58} />
+        </span>
+        <span className="lu-card-shade" aria-hidden />
+        <span className="lu-card-flash" style={{ opacity: dead ? 0 : Math.min(1, p.flashed) * 0.7 }} aria-hidden />
+        <span className="lu-card-marks">
+          {p.roundKills > 0 ? (
+            <span className="lu-card-stars" aria-label={`${p.roundKills} kills this round`}>
+              {Array.from({ length: Math.min(5, p.roundKills) }, (_, i) => (
+                <Star key={i} />
+              ))}
             </span>
-            <span className="lu-card-armor">
-              {!dead && p.armor > 0 ? (
-                <>
-                  <ArmorIcon helmet={p.helmet} size={12} />
-                  {p.armor}
-                </>
-              ) : null}
-            </span>
-          </div>
+          ) : null}
+          {!dead && p.armor > 0 ? <ArmorIcon helmet={p.helmet} size={14} className="lu-card-armor" /> : null}
+        </span>
+        <span className="lu-card-name">{p.name}</span>
+        <HealthNumber value={dead ? lastHealth.current : p.health} className="lu-card-hp" />
+      </div>
+      <div className="lu-card-stats">
+        <span className="lu-kd">
+          <i>
+            <HeadshotIcon size={13} />
+          </i>
+          <b>{p.kills ?? "–"}</b>
+          <i>
+            <SkullIcon size={14} />
+          </i>
+          <b>{p.deaths ?? "–"}</b>
+        </span>
+        {p.showMoney && p.money !== null ? <span className={`lu-card-money ${p.money >= RICH ? "is-rich" : ""}`}>{money(p.money)}</span> : null}
+      </div>
+      <div className="lu-card-foot">
+        <div className="lu-card-econ">
+          <span className="lu-card-econ-label">EQUIP</span>
+          <span className="lu-card-econ-value">{p.equip !== null ? money(p.equip) : "–"}</span>
+          {p.weapon ? <WeaponIcon weapon={p.weapon} className="lu-card-weapon" /> : null}
         </div>
-        <HpBar health={dead ? 0 : p.health} className="lu-card-hpbar" />
-        <div className="lu-card-name">
-          <span>{p.name}</span>
-          {!dead && p.bomb ? <BombIcon size={15} className="lu-card-c4" /> : !dead && p.kit ? <KitIcon size={14} className="lu-card-kit" /> : null}
+        <div className="lu-card-gear">
+          <Nades list={p.nades} />
+          {p.weapon ? <WeaponIcon weapon={p.weapon} className="lu-card-weapon" /> : null}
         </div>
-        <div className="lu-card-stats">
-          <span>
-            K<b>{p.kills ?? "–"}</b>
-          </span>
-          <span>
-            D<b>{p.deaths ?? "–"}</b>
-          </span>
-          {p.showMoney && p.money !== null ? <span className="lu-card-money">{money(p.money)}</span> : null}
-        </div>
-        <div className="lu-card-foot">
-          <div className="lu-card-econ">
-            <span className="lu-card-econ-label">EQUIP</span>
-            <span className="lu-card-econ-value">{p.equip !== null ? money(p.equip) : "–"}</span>
-            <span className="lu-card-econ-icons">
-              {p.armor > 0 ? <ArmorIcon helmet={p.helmet} size={15} /> : null}
-              {p.kit ? <KitIcon size={15} /> : null}
-              {p.bomb ? <BombIcon size={16} className="lu-card-c4" /> : null}
-            </span>
-          </div>
-          <div className="lu-card-gear">
-            {p.weapon ? <WeaponIcon weapon={p.weapon} className="lu-card-weapon" /> : <span />}
-            <Nades list={p.nades} size={13} />
-          </div>
-          <div className="lu-card-dead">
-            <span className="lu-card-econ-label">THIS ROUND</span>
-            <span className="lu-card-dead-value">
-              {p.roundKills > 0 ? `${p.roundKills} KILL${p.roundKills > 1 ? "S" : ""}` : "NO KILLS"}
-              {p.adr !== null ? <small>ADR {p.adr}</small> : null}
-            </span>
-          </div>
+        <div className="lu-card-dead">
+          THIS ROUND · {p.roundKills} KILL{p.roundKills === 1 ? "" : "S"}
         </div>
       </div>
+      <span className="lu-card-line" aria-hidden />
+      <span className="lu-card-ring" aria-hidden />
     </div>
   );
 });
@@ -173,7 +171,6 @@ function cardProps(p: HudPlayer, color: string, align: "left" | "right", live: b
     kills: p.kills,
     deaths: p.deaths,
     roundKills: p.roundKills ?? 0,
-    adr: p.adr,
     weapon: alive ? mainWeapon(p) : null,
     nades: alive ? grenadeList(p) : "",
     observed: p.observed,

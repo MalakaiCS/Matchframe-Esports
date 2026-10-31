@@ -41,14 +41,14 @@
     "ctColor": {
       "type": "color",
       "label": "CT colour",
-      "default": "#3d8bff",
+      "default": "#2380e0",
       "group": "Look",
       "description": "Colour of the team on CT, unless the team has its own colour."
     },
     "tColor": {
       "type": "color",
       "label": "T colour",
-      "default": "#ff3d6e",
+      "default": "#de1d41",
       "group": "Look",
       "description": "Colour of the team on T, unless the team has its own colour."
     },

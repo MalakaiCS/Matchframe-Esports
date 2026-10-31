@@ -10,7 +10,7 @@ import { Observed } from "./Observed.tsx";
 import { TeamColumn } from "./Players.tsx";
 import { ScoreBar } from "./ScoreBar.tsx";
 
-const FALLBACK = { ct: "#38b6ff", t: "#ff5a36" };
+const FALLBACK = { ct: "#109be3", t: "#d05354" };
 
 /** The 1920×1080 stage scales to the browser source's size. */
 function useFitStage() {

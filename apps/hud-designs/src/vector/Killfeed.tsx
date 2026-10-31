@@ -7,14 +7,13 @@ import { Flip } from "./bits.tsx";
 const LIFETIME_MS = 7000;
 const FADE_MS = 400;
 const MAX_ROWS = 5;
-const ROW = 42;
+const ROW = 34;
 
 function Kill({ k }: { k: HudKillfeedEntry }) {
   const suicide = !!k.killer && k.killer.steamId === k.victim.steamId;
   const killer = k.killer && !suicide ? k.killer : null;
   return (
-    <div className={`vx-kill kind-${k.kind}`}>
-      <i className={`vx-kill-edge vx-side-${(killer ?? k.victim).side ?? "none"}`} />
+    <div className={`vx-kill kind-${k.kind} vx-side-${(killer ?? k.victim).side ?? "none"}`}>
       {killer ? (
         <span className={`vx-kill-name vx-side-${killer.side ?? "none"}`}>
           {killer.name}
@@ -27,9 +26,9 @@ function Kill({ k }: { k: HudKillfeedEntry }) {
         </span>
       ) : null}
       <span className="vx-kill-way">
-        {k.attackerBlind ? <BlindIcon size={18} className="vx-kill-mod" /> : null}
-        {k.weapon && killer && k.kind !== "elimination" ? <WeaponIcon weapon={k.weapon === "planted_c4" ? "c4" : k.weapon} className="vx-kill-gun" /> : <SkullIcon size={18} className="vx-kill-skull" />}
-        {k.headshot ? <HeadshotIcon size={17} className="vx-kill-mod" /> : null}
+        {k.attackerBlind ? <BlindIcon size={16} className="vx-kill-mod" /> : null}
+        {k.weapon && killer && k.kind !== "elimination" ? <WeaponIcon weapon={k.weapon === "planted_c4" ? "c4" : k.weapon} className="vx-kill-gun" /> : <SkullIcon size={16} className="vx-kill-skull" />}
+        {k.headshot ? <HeadshotIcon size={15} className="vx-kill-mod" /> : null}
       </span>
       <span className={`vx-kill-name is-victim vx-side-${k.victim.side ?? "none"}`}>{k.victim.name}</span>
     </div>
@@ -80,13 +79,10 @@ export function AliveBox({ left, right, on }: { left: number; right: number; on:
       <span className="vx-alive-team vx-left">
         <Flip value={left} />
       </span>
-      <span className="vx-alive-vs">
-        <b>VS</b>
-        <span>ALIVE</span>
-      </span>
       <span className="vx-alive-team vx-right">
         <Flip value={right} />
       </span>
+      <span className="vx-alive-vs">VS</span>
     </div>
   );
 }

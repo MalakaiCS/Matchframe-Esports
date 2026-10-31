@@ -35,8 +35,6 @@ export const teamOf = (state: HudState, steamId: string): Align => (state.right.
 /** A smaller type step for longer names (CSS classes is-long, is-longer, is-longest). */
 export const sizeClass = (length: number, long: number, longer: number, longest: number): string => (length > longest ? "is-longest" : length > longer ? "is-longer" : length > long ? "is-long" : "");
 
-export const initial = (name: string): string => (/[\p{L}\p{N}]/u.exec(name)?.[0] ?? "?").toUpperCase();
-
 /**
  * The value that was just replaced, for `ms` after `key` changes (null otherwise): lets the old
  * digit or observed player animate out while the new one animates in.
@@ -80,18 +78,25 @@ export function TeamBadge({ team, className = "" }: { team: HudTeam; className?:
   );
 }
 
-/** The player's picture, else their initial on a dark tile. */
-export function Avatar({ player, className = "" }: { player: Pick<HudPlayer, "avatarUrl" | "name">; className?: string }) {
-  return <span className={`vx-ava ${className}`}>{player.avatarUrl ? <img src={player.avatarUrl} alt="" /> : <span className="vx-ava-mono">{initial(player.name)}</span>}</span>;
+/** The team's logo (or tag) enlarged and faint behind a team-colour panel. */
+export function Watermark({ team }: { team: HudTeam }) {
+  return <span className="vx-mark">{team.logoUrl ? <img src={team.logoUrl} alt="" /> : <span>{(team.shortName || team.name).slice(0, 3)}</span>}</span>;
 }
 
-/** Health with a lighter damage trail that follows after a short delay (CSS transitions on scaleX). */
-export function HealthBar({ value, className = "" }: { value: number; className?: string }) {
-  const f = Math.max(0, Math.min(100, value)) / 100;
+/** Stand-in for a missing player photo: a neutral head-and-shoulders silhouette. */
+function Silhouette({ fill }: { fill: boolean }) {
   return (
-    <span className={`vx-hp ${value > 0 && value <= 20 ? "is-low" : ""} ${className}`}>
-      <i className="vx-hp-trail" style={{ transform: `scaleX(${f})` }} />
-      <i className="vx-hp-fill" style={{ transform: `scaleX(${f})` }} />
-    </span>
+    <svg className="vx-sil" viewBox="0 0 84 80" preserveAspectRatio={fill ? "xMidYMax slice" : "xMidYMax meet"} aria-hidden="true">
+      <ellipse cx="42" cy="31" rx="14.5" ry="17" />
+      <path d="M8 80c1.5-14.5 10-22.5 22-25.5 3.5 3.5 7.5 5.2 12 5.2s8.5-1.7 12-5.2c12 3 20.5 11 22 25.5z" />
+    </svg>
   );
 }
+
+/** The player's photo, else a neutral silhouette (`fill`: scaled to the slot's height). */
+export function Avatar({ player, fill = false, className = "" }: { player: Pick<HudPlayer, "avatarUrl" | "name">; fill?: boolean; className?: string }) {
+  return <span className={`vx-ava ${className}`}>{player.avatarUrl ? <img src={player.avatarUrl} alt="" /> : <Silhouette fill={fill} />}</span>;
+}
+
+/** Fraction 0..1 of a health value (transform scaleX on bars). */
+export const healthFraction = (value: number): number => Math.max(0, Math.min(100, value)) / 100;

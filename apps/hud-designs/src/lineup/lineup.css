@@ -1,23 +1,23 @@
-/* Lineup HUD: all ten players along the bottom. Dark rounded panels, team-colour edges and washes.
-   Motion uses transform, opacity and clip-path only (OBS browser sources stay smooth). */
+/* Lineup HUD: all ten players along the bottom. Near-black bars, team-colour edges and card bodies,
+   one condensed bold face. Laid out on the 1920×1080 stage; motion uses transform, opacity and
+   clip-path only (OBS browser sources stay smooth). */
 :root {
-  --lu-ct: #3d8bff;
-  --lu-t: #ff3d6e;
-  --lu-body: rgba(16, 19, 24, 0.92);
-  --lu-raise: rgba(255, 255, 255, 0.04);
-  --lu-hair: rgba(255, 255, 255, 0.06);
-  --lu-ink: #f3f6fb;
-  --lu-ink-dim: #a3adbf;
-  --lu-ink-faint: #6c7589;
-  --lu-red: #ff4848;
-  --lu-money: #7fe0a0;
+  --lu-ct: #2380e0;
+  --lu-t: #de1d41;
+  --lu-bar: #121212;
+  --lu-card: #1f2024;
+  --lu-ink: #ffffff;
+  --lu-ink-dim: #c3c7ce;
+  --lu-ink-faint: #858b95;
+  --lu-red: #f01d48;
+  --lu-money: #7cc25e;
+  --lu-money-low: #b0353e;
   --lu-gold: #f2c94c;
   --lu-c4: #ff9f1c;
   --lu-out: cubic-bezier(0.16, 0.84, 0.3, 1);
   --lu-in: cubic-bezier(0.55, 0, 0.75, 0.2);
-  --lu-num: "Inter", "Segoe UI", system-ui, sans-serif;
-  --lu-label: "Barlow Condensed", "Arial Narrow", sans-serif;
-  --mf-ink-inverse: #101318;
+  --lu-font: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --mf-ink-inverse: #121212;
 }
 
 html,
@@ -38,7 +38,8 @@ body,
   width: 1920px;
   height: 1080px;
   transform-origin: 0 0;
-  font-family: var(--lu-num);
+  font-family: var(--lu-font);
+  font-weight: 700;
   color: var(--lu-ink);
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
@@ -47,327 +48,201 @@ body,
 .lu-stage * {
   box-sizing: border-box;
 }
-.lu-stage .mf-icon {
-  display: inline-block;
-  vertical-align: middle;
+.lu-stage .mf-icon,
+.lu-stage .mf-weapon {
+  display: block;
   flex: none;
 }
 
-/* ------------------------------------------------------------ badges and portraits */
-.lu-badge {
-  position: relative;
-  display: inline-flex;
+/* ------------------------------------------------------------ logos and photos */
+.lu-logo {
+  display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--lu-team, #2a303b);
+  font: 800 34px/1 var(--lu-font);
+  letter-spacing: -0.01em;
+  color: var(--lu-team);
+  white-space: nowrap;
 }
-.lu-badge.has-logo {
-  background: transparent;
+.lu-logo[data-len="4"] {
+  font-size: 28px;
 }
-.lu-badge img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.lu-logo[data-len="5"] {
+  font-size: 23px;
+}
+.lu-logo img {
   display: block;
-}
-.lu-badge-wash {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 48%, rgba(0, 0, 0, 0.22) 100%);
-}
-.lu-badge-text {
-  position: relative;
-  font: 800 13px/1 var(--lu-num);
-  letter-spacing: 0.02em;
-  color: var(--lu-team-ink, #fff);
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .lu-portrait {
-  position: relative;
   display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 9px;
-  overflow: hidden;
-  isolation: isolate;
-  background: #1b2029;
-  box-shadow: inset 0 0 0 1px var(--lu-hair);
 }
 .lu-portrait img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center top;
+  -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent);
+  mask-image: linear-gradient(180deg, #000 70%, transparent);
 }
-.lu-portrait-wash {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(155deg, var(--lu-team) 0%, rgba(27, 32, 41, 0) 105%);
-  opacity: 0.5;
+.lu-silhouette {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
-.lu-portrait-text {
+
+/* ------------------------------------------------------------ top left: title, series tabs, radar */
+.lu-topleft {
   position: absolute;
-  inset: 0;
+  left: 29px;
+  top: 30px;
+  width: 390px;
+}
+.lu-series-box {
+  background: var(--lu-bar);
+}
+.lu-title {
+  height: 30px;
+  padding: 0 12px 1px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font: 800 19px/1 var(--lu-num);
-  letter-spacing: 0.01em;
-  color: #fff;
-}
-/* Dead: a saturation-blend grey layer desaturates the portrait, a dark layer dims it. */
-.lu-portrait-grey,
-.lu-portrait-dim {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 100ms ease-out;
-}
-.lu-portrait-grey {
-  background: #808080;
-  mix-blend-mode: saturation;
-}
-.lu-portrait-dim {
-  background: #23272f;
-}
-
-/* ------------------------------------------------------------ top left: title, series, radar */
-.lu-topleft {
-  position: absolute;
-  top: 20px;
-  left: 24px;
-  width: 612px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-}
-.lu-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  max-width: 100%;
-  height: 30px;
-  padding: 0 14px 0 13px;
-  border-radius: 8px;
-  background: var(--lu-body);
-}
-.lu-title-mark {
-  width: 8px;
-  height: 8px;
-  flex: none;
-  border-radius: 2px;
-  background: var(--lu-team);
-  transform: rotate(45deg);
-}
-.lu-title-text {
-  font: 800 15px/1 var(--lu-label);
-  letter-spacing: 0.16em;
+  font: 700 19px/1 var(--lu-font);
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-top: 1px;
 }
-.lu-title-bo {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex: none;
-  padding-left: 10px;
-  border-left: 1px solid rgba(255, 255, 255, 0.14);
-  font: 600 14px/1 var(--lu-label);
-  letter-spacing: 0.12em;
-  color: var(--lu-ink-dim);
-  padding-top: 1px;
-}
-.lu-title-bo b {
-  font: 800 13px/1 var(--lu-num);
-  letter-spacing: 0.02em;
-  color: var(--lu-ink);
-}
-
 .lu-series {
   display: flex;
-  gap: 6px;
-  max-width: 100%;
-  padding: 6px;
-  border-radius: 12px;
-  background: var(--lu-body);
+  height: 41px;
+  padding-top: 2px;
 }
 .lu-map {
-  position: relative;
-  flex: none;
-  width: 128px;
-  height: 56px;
-  padding: 9px 10px 8px;
-  border-radius: 8px;
-  background: var(--lu-raise);
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  overflow: hidden;
-}
-.lu-map-top,
-.lu-map-bottom {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 4px;
-  min-width: 0;
-}
-.lu-map-name {
-  font: 800 14px/1 var(--lu-num);
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.lu-map.is-upcoming .lu-map-name {
-  color: var(--lu-ink-dim);
-}
-.lu-series[data-count="4"] .lu-map,
-.lu-series[data-count="5"] .lu-map {
-  width: 112px;
-  padding-left: 8px;
-  padding-right: 8px;
-}
-.lu-map-live {
-  flex: none;
-  padding: 3px 3px 2px 4px;
-  border-radius: 4px;
-  background: var(--lu-red);
-  font: 800 10px/1 var(--lu-label);
-  letter-spacing: 0.1em;
-  color: #fff;
-}
-.lu-map-pick {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  min-width: 0;
-  overflow: hidden;
-  font: 600 12px/1 var(--lu-label);
-  letter-spacing: 0.12em;
-  color: var(--lu-ink-dim);
-  white-space: nowrap;
-}
-.lu-map-pick > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.lu-map-pick i {
-  width: 6px;
-  height: 6px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--lu-team);
-}
-.lu-map-pick.is-decider {
-  color: var(--lu-gold);
-}
-.lu-map-score {
-  display: flex;
-  gap: 2px;
-  flex: none;
-  font: 800 13px/1 var(--lu-num);
-  color: var(--lu-ink-faint);
-}
-.lu-map-score b {
-  font-weight: 800;
-}
-.lu-map-score b.is-win {
+  padding: 1px 4px 0;
+  background: #171717;
   color: var(--lu-ink);
 }
 .lu-map.is-live {
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  background: #ffffff;
+  color: #121212;
 }
-.lu-map.is-live .lu-map-score b {
-  color: var(--lu-ink);
+.lu-map-name {
+  max-width: 100%;
+  font: 700 19px/1 var(--lu-font);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.lu-map.is-completed::after {
-  content: "";
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 0;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: var(--lu-team, transparent);
+.lu-map-sub {
+  max-width: 100%;
+  min-height: 9px;
+  font: 600 12px/0.8 var(--lu-font);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.lu-map.is-decider:not(.is-live) {
-  box-shadow: inset 0 0 0 1px rgba(242, 201, 76, 0.28);
+.lu-map-sub b {
+  font-weight: 800;
+}
+.lu-map.is-upcoming .lu-map-name {
+  color: #f0f0f0;
 }
 
 .lu-radar {
-  width: 300px;
-  height: 300px;
-  padding: 8px;
-  border-radius: 12px;
-  background: var(--lu-body);
+  position: absolute;
+  left: 1px;
+  top: 80px;
+  width: 330px;
+  height: 330px;
 }
 
 /* ------------------------------------------------------------ score bar */
 .lu-scorebar {
   position: absolute;
-  top: 20px;
-  left: 50%;
-  width: 600px;
-  margin-left: -300px;
-  height: 84px;
+  left: 742px;
+  top: 30px;
+  width: 435px;
+  height: 88px;
 }
 .lu-sb {
   position: relative;
   z-index: 2;
-  display: flex;
-  align-items: stretch;
-  height: 64px;
-  border-radius: 32px;
+  height: 70px;
   overflow: hidden;
-  background: var(--lu-body);
-  box-shadow: inset 0 0 0 1px var(--lu-hair);
+  background: var(--lu-bar);
 }
-.lu-cap {
-  position: relative;
-  flex: none;
-  width: 86px;
+.lu-sb-side {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 160px;
+}
+.lu-sb-left {
+  left: 0;
+}
+.lu-sb-right {
+  right: 0;
+}
+.lu-sb-edge {
+  position: absolute;
+  inset: 0;
+}
+.lu-sb-edge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--lu-team) 0, var(--lu-team) 40px, rgba(18, 18, 18, 0) 105px);
+  opacity: 0.27;
+}
+.lu-sb-edge::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--lu-team);
+}
+.lu-sb-right .lu-sb-edge {
+  transform: scaleX(-1);
+}
+.lu-sb-score {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 14px;
+  width: 62px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--lu-team-ink);
-  overflow: hidden;
 }
-.lu-cap-left {
-  padding: 0 6px 0 14px;
-}
-.lu-cap-right {
-  padding: 0 14px 0 6px;
-}
-.lu-cap-fill {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 60%), var(--lu-team);
-}
-.lu-cap-left .lu-cap-fill {
-  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
-}
-.lu-cap-right .lu-cap-fill {
-  clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%);
+.lu-sb-right .lu-sb-score {
+  left: auto;
+  right: 14px;
 }
 .lu-score {
-  position: relative;
-  font: 800 36px/1 var(--lu-num);
-  letter-spacing: -0.02em;
+  margin-top: -7px;
+  font: 700 57px/1 var(--lu-font);
   animation: lu-tick 280ms var(--lu-out) both;
 }
 @keyframes lu-tick {
   0% {
-    transform: translateY(70%) scale(0.85);
+    transform: translateY(60%) scale(0.85);
     opacity: 0;
   }
   100% {
@@ -375,78 +250,41 @@ body,
     opacity: 1;
   }
 }
-
-.lu-sb-team {
-  position: relative;
-  flex: none;
-  width: 152px;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 0 10px 0 12px;
-}
-.lu-sb-right {
-  flex-direction: row-reverse;
-  padding: 0 12px 0 10px;
-}
-.lu-sb-badge {
-  width: 40px;
-  height: 40px;
-}
-.lu-sb-badge .lu-badge-text {
-  font-size: 14px;
-}
-.lu-sb-id {
+.lu-sb-colon {
+  position: absolute;
+  left: 80px;
+  top: 26px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-width: 0;
+  gap: 5px;
 }
-.lu-sb-right .lu-sb-id {
-  align-items: flex-end;
+.lu-sb-right .lu-sb-colon {
+  left: auto;
+  right: 80px;
 }
-.lu-sb-name {
-  font: 800 20px/1 var(--lu-num);
-  padding-top: 1px;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+.lu-sb-colon i {
+  width: 7px;
+  height: 7px;
+  background: #555555;
 }
-.lu-sb-team.is-long .lu-sb-name {
-  font-size: 16px;
+.lu-sb-logo {
+  position: absolute;
+  left: 95px;
+  top: 10px;
+  width: 60px;
+  height: 50px;
 }
-.lu-sb-pips {
-  display: flex;
-  gap: 4px;
-}
-.lu-sb-pips i {
-  width: 14px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.16);
-}
-.lu-sb-pips i.is-won {
-  background: var(--lu-team);
+.lu-sb-right .lu-sb-logo {
+  left: auto;
+  right: 95px;
 }
 
 .lu-sb-centre {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  background: rgba(255, 255, 255, 0.035);
-}
-.lu-sb-time {
-  position: relative;
-  width: 100%;
-  height: 28px;
+  position: absolute;
+  left: 155px;
+  right: 155px;
+  top: 0;
+  bottom: 0;
 }
 .lu-sb-clock,
 .lu-sb-glyph {
@@ -455,83 +293,83 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
   transition:
     opacity 150ms ease-out,
     transform 150ms ease-out;
 }
+.lu-sb-clock {
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: 7px;
+}
 .lu-clock {
-  font: 800 29px/1 var(--lu-num);
-  letter-spacing: -0.01em;
+  font: 700 36px/1 var(--lu-font);
 }
 .lu-clock.is-low {
   color: var(--lu-red);
 }
-.lu-sb-glyph {
-  opacity: 0;
-  transform: scale(0.7);
-  color: var(--lu-red);
-}
-.lu-sb-glyph b {
-  font: 800 24px/1 var(--lu-num);
-  color: var(--lu-ink);
-}
-.lu-sb-glyph-kit {
-  color: var(--lu-defuse, var(--lu-ct));
-}
-.lu-sb-centre.is-bomb .lu-sb-clock {
-  opacity: 0;
-  transform: scale(0.8);
-}
-.lu-sb-centre.is-bomb:not(.is-defuse) .lu-sb-glyph-bomb,
-.lu-sb-centre.is-defuse .lu-sb-glyph-kit {
-  opacity: 1;
-  transform: none;
-}
-/* The one looping animation: a gentle pulse on the planted bomb. */
-.lu-sb-centre.is-bomb:not(.is-defuse) .lu-sb-glyph-bomb .mf-icon {
-  animation: lu-bomb-pulse 1s ease-in-out infinite;
-}
-@keyframes lu-bomb-pulse {
-  50% {
-    opacity: 0.45;
-  }
-}
 .lu-sb-round {
-  font: 600 13px/1 var(--lu-label);
-  letter-spacing: 0.16em;
-  color: var(--lu-ink-dim);
+  margin-top: 2px;
+  font: 700 16px/1 var(--lu-font);
   white-space: nowrap;
 }
 .lu-sb-round.is-paused {
   color: var(--lu-gold);
 }
-.lu-sb-centre.is-bomb .lu-sb-round {
+.lu-sb-glyph {
+  opacity: 0;
+  transform: scale(0.7);
+}
+.lu-sb-glyph-bomb {
   color: var(--lu-red);
 }
-.lu-sb-centre.is-defuse .lu-sb-round {
-  color: var(--lu-defuse, var(--lu-ct));
+.lu-sb-glyph-defused {
+  color: #3fc35a;
+}
+.lu-sb-glyph-exploded {
+  color: #ff7a1a;
+}
+.lu-sb-centre.is-bomb .lu-sb-clock,
+.lu-sb-centre.is-defused .lu-sb-clock,
+.lu-sb-centre.is-exploded .lu-sb-clock {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.lu-sb-centre.is-bomb .lu-sb-glyph-bomb,
+.lu-sb-centre.is-defused .lu-sb-glyph-defused,
+.lu-sb-centre.is-exploded .lu-sb-glyph-exploded {
+  opacity: 1;
+  transform: none;
+}
+/* The one looping animation: a gentle pulse on the planted bomb. */
+.lu-sb-centre.is-bomb .lu-sb-glyph-bomb .mf-icon {
+  animation: lu-bomb-pulse 1s ease-in-out infinite;
+}
+@keyframes lu-bomb-pulse {
+  50% {
+    opacity: 0.5;
+  }
 }
 
-/* Round won: the winner's panel grows from the centre over the whole bar, then its badge comes in. */
+/* Round won: the winner's panel grows from the centre over the whole bar, then its logo comes in. */
 .lu-banner {
   position: absolute;
   inset: 0;
   z-index: 3;
-  background: var(--lu-team);
+  background: #121418;
   transform: scaleX(0);
   transition: transform 200ms var(--lu-in);
+}
+.lu-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(18, 20, 24, 0), var(--lu-team));
+  opacity: 0.3;
 }
 .lu-sb.is-won .lu-banner {
   transform: scaleX(1);
   transition: transform 200ms var(--lu-out);
-}
-.lu-banner-sheen {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 62%),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0) 26%, rgba(0, 0, 0, 0) 74%, rgba(0, 0, 0, 0.22));
 }
 .lu-banner-content {
   position: absolute;
@@ -540,11 +378,8 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  padding: 0 40px;
-  color: var(--lu-team-ink);
   opacity: 0;
-  transform: scale(0.84);
+  transform: scale(0.6);
   transition:
     opacity 90ms ease-in,
     transform 90ms ease-in;
@@ -556,56 +391,31 @@ body,
     opacity 170ms ease-out 260ms,
     transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1.18) 260ms;
 }
-.lu-banner-badge {
-  width: 44px;
-  height: 44px;
-  background: #101318;
+.lu-banner-logo {
+  width: 150px;
+  height: 56px;
+  font-size: 58px;
 }
-.lu-banner-badge .lu-badge-wash {
-  display: none;
+.lu-banner-logo[data-len="4"] {
+  font-size: 50px;
 }
-.lu-banner-badge .lu-badge-text {
-  font-size: 15px;
-  color: var(--lu-team);
-}
-.lu-banner-text {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
-}
-.lu-banner-name {
-  font: 800 24px/1 var(--lu-num);
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.lu-banner-sub {
-  display: flex;
-  gap: 10px;
-  font: 800 13px/1 var(--lu-label);
-  letter-spacing: 0.18em;
-  white-space: nowrap;
-}
-.lu-banner-sub em {
-  font-style: normal;
-  opacity: 0.7;
+.lu-banner-logo[data-len="5"] {
+  font-size: 42px;
 }
 
-/* Bomb bar: slides down from under the bar, drains toward the centre, CT colour while defusing. */
+/* Bomb bar: slides down from under the bar, drains with the fuse toward the left. */
 .lu-bombbar {
   position: absolute;
   z-index: 1;
-  top: 70px;
-  left: 44px;
-  right: 44px;
-  height: 10px;
-  border-radius: 5px;
-  background: var(--lu-body);
+  left: 0;
+  right: 0;
+  top: 72px;
+  height: 16px;
+  overflow: hidden;
+  background: rgba(18, 18, 18, 0.88);
   opacity: 0;
   transform: scaleX(0);
+  transform-origin: left center;
   transition:
     transform 180ms var(--lu-in),
     opacity 180ms ease-in;
@@ -618,55 +428,101 @@ body,
 }
 @keyframes lu-bomb-in {
   from {
-    transform: translateY(-24px);
+    transform: translateY(-20px);
   }
   to {
     transform: none;
   }
 }
-.lu-bombbar-track {
-  position: absolute;
-  inset: 2px;
-  border-radius: 3px;
-  overflow: hidden;
-}
 .lu-bombbar-fill {
   position: absolute;
   inset: 0;
   background: var(--lu-red);
-  transform-origin: center;
+  transform-origin: left center;
   transition: transform 100ms linear;
 }
-.lu-bombbar-ct {
+
+/* Planting / defusing panel under the score bar. */
+.lu-plant {
+  position: absolute;
+  left: 810px;
+  top: 230px;
+  width: 300px;
+  height: 70px;
+  overflow: hidden;
+  background: #1b1e24;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition:
+    opacity 150ms ease-in,
+    transform 150ms ease-in;
+}
+.lu-plant::before {
+  content: "";
   position: absolute;
   inset: 0;
-  background: var(--lu-defuse, var(--lu-ct));
-  opacity: 0;
-  transition: opacity 150ms ease-out;
+  background: linear-gradient(90deg, var(--lu-team), rgba(27, 30, 36, 0) 115%);
+  opacity: 0.34;
 }
-.lu-bombbar.is-defuse .lu-bombbar-ct {
+.lu-plant.is-on {
   opacity: 1;
+  transform: none;
+  transition:
+    opacity 150ms ease-out,
+    transform 200ms var(--lu-out);
+}
+.lu-plant-text {
+  position: relative;
+  margin-top: 9px;
+  max-width: 280px;
+  font: 800 20px/1 var(--lu-font);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lu-plant-time {
+  position: relative;
+  margin-top: 3px;
+  font: 800 30px/1 var(--lu-font);
+}
+.lu-plant-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 5px;
+  background: var(--lu-bar);
+}
+.lu-plant-bar i {
+  position: absolute;
+  inset: 0;
+  background: var(--lu-team);
+  transform-origin: left center;
+  transition: transform 100ms linear;
 }
 
 .lu-labels {
   position: absolute;
-  top: 108px;
-  left: 0;
-  right: 0;
+  left: 742px;
+  width: 435px;
+  top: 124px;
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
 }
 .lu-label {
-  padding: 6px 10px 5px;
-  border-radius: 6px;
-  background: var(--lu-body);
-  font: 800 13px/1 var(--lu-label);
-  letter-spacing: 0.18em;
+  padding: 5px 10px 4px;
+  background: var(--lu-bar);
+  font: 800 14px/1 var(--lu-font);
+  letter-spacing: 0.12em;
 }
 .lu-label.is-sim {
   background: var(--lu-gold);
-  color: #101318;
+  color: #121212;
 }
 .lu-label.is-stale {
   background: var(--lu-red);
@@ -675,61 +531,55 @@ body,
 /* ------------------------------------------------------------ top right: sponsor, killfeed */
 .lu-topright {
   position: absolute;
-  top: 20px;
-  right: 24px;
-  width: 460px;
+  top: 30px;
+  right: 30px;
+  width: 560px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
 }
 .lu-sponsor {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 250px;
-  max-width: 100%;
-  height: 64px;
-  padding-right: 20px;
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--lu-body);
+  gap: 15px;
+  height: 70px;
   animation: lu-fade 300ms ease-out both;
 }
-.lu-sponsor-tile {
-  width: 64px;
-  height: 64px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(150deg, #f6f8fc, #c9d1de);
-}
-.lu-sponsor-tile img {
-  width: 50px;
-  height: 50px;
-  object-fit: contain;
-}
-.lu-sponsor-mono {
-  font: 800 28px/1 var(--lu-num);
-  color: #101318;
-}
 .lu-sponsor-text {
+  width: 200px;
+  padding: 0 12px 2px 24px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-.lu-sponsor-label {
-  font: 600 12px/1 var(--lu-label);
-  letter-spacing: 0.2em;
-  color: var(--lu-ink-dim);
+  justify-content: center;
+  gap: 2px;
+  background: rgba(24, 24, 24, 0.82);
 }
 .lu-sponsor-name {
-  font: 800 20px/1 var(--lu-num);
+  font: 800 28px/1 var(--lu-font);
+  text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.lu-sponsor-label {
+  font: 600 15px/1 var(--lu-font);
+  letter-spacing: 0.29em;
+  white-space: nowrap;
+}
+.lu-sponsor-tile {
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--lu-ev1), var(--lu-ev2));
+}
+.lu-sponsor-tile img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+.lu-sponsor-mono {
+  font: 800 44px/1 var(--lu-font);
 }
 @keyframes lu-fade {
   from {
@@ -738,35 +588,32 @@ body,
 }
 
 .lu-killfeed {
+  margin-top: 16px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  gap: 8px;
 }
 .lu-kill {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: 460px;
-  height: 36px;
-  padding: 0 14px 0 17px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--lu-body);
-  font: 800 15px/1 var(--lu-num);
+  gap: 7px;
+  max-width: 560px;
+  height: 32px;
+  padding: 1px 12px 0 10px;
+  background: rgba(16, 16, 18, 0.94);
+  font: 700 18px/1 var(--lu-font);
   animation:
     lu-kill-in 120ms var(--lu-out) 100ms both,
     lu-kill-out 400ms ease-in 6600ms forwards;
 }
-.lu-kill::before {
+.lu-kill::after {
   content: "";
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: var(--lu-team);
+  inset: 0;
+  border: 1px solid var(--lu-team);
+  opacity: 0.3;
 }
 @keyframes lu-kill-in {
   from {
@@ -784,7 +631,7 @@ body,
   }
 }
 .lu-kill-name {
-  max-width: 150px;
+  max-width: 170px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -792,310 +639,297 @@ body,
 .lu-kill-assist {
   display: flex;
   align-items: center;
-  gap: 3px;
-  max-width: 110px;
-  margin-left: -4px;
-  font: 600 13px/1 var(--lu-num);
+  gap: 5px;
+  max-width: 140px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  opacity: 0.85;
 }
 .lu-kill-assist i {
   font-style: normal;
-  color: var(--lu-ink-dim);
+  color: var(--lu-ink);
 }
 .lu-kill-way {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin: 0 6px;
   color: var(--lu-ink);
 }
 .lu-kill-weapon {
-  height: 20px;
+  height: 14px;
   width: auto;
-  max-width: 76px;
+  max-width: 66px;
 }
 .lu-kill-skull {
   color: var(--lu-ink-dim);
 }
 .lu-stage .mf-weapon-text {
-  font: 600 12px/1 var(--lu-label);
-  letter-spacing: 0.1em;
+  font: 700 12px/1 var(--lu-font);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--lu-ink-dim);
 }
 
-/* ------------------------------------------------------------ bottom row */
-.lu-bottom {
-  position: absolute;
-  left: 20px;
-  right: 20px;
-  bottom: 20px;
-  height: 206px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-}
-.lu-stage.is-compact .lu-bottom {
-  justify-content: center;
-}
+/* ------------------------------------------------------------ player cards */
 .lu-cards {
+  position: absolute;
+  top: 944px;
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
-
+.lu-cards-left {
+  left: 30px;
+}
+.lu-cards-right {
+  left: 1150px;
+}
 .lu-card {
   position: relative;
   flex: none;
-  width: 144px;
-  height: 172px;
-  transition: transform 150ms var(--lu-out);
+  width: 140px;
+  height: 106px;
 }
-.lu-card.is-dead {
-  transform: translateY(6px);
-  transition-duration: 100ms;
-}
-.lu-card.is-observed {
-  transform: translateY(-4px);
-}
-.lu-card-ring {
+.lu-card-tag {
   position: absolute;
-  inset: -3px;
-  border-radius: 13px;
-  border: 2px solid var(--lu-team);
-  opacity: 0;
-  transition: opacity 150ms ease-out;
+  top: -27px;
+  right: 2px;
+  width: 28px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lu-team);
+  color: #ffffff;
+  --mf-ink-inverse: var(--lu-team);
+  animation: lu-fade 200ms ease-out both;
 }
-.lu-card.is-observed .lu-card-ring {
-  opacity: 1;
+.lu-card-right .lu-card-tag {
+  right: auto;
+  left: 2px;
 }
-.lu-card-body {
+
+.lu-card-top {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 140px;
+  height: 62px;
+}
+.lu-card-base {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 13px 10px 10px;
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--lu-body);
-  box-shadow: inset 0 0 0 1px var(--lu-hair);
 }
-.lu-card-body::after {
+.lu-card-base::before,
+.lu-card-base::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: #0a0c10;
+  transition: opacity 100ms ease-out;
+}
+.lu-card-base::before {
+  background: var(--lu-card);
+}
+.lu-card-base::after {
+  background: linear-gradient(180deg, rgba(64, 62, 56, 0.9), rgba(40, 38, 37, 0.92) 55%, rgba(33, 33, 37, 0.96));
   opacity: 0;
   transition: opacity 100ms ease-out;
-  pointer-events: none;
 }
-.lu-card.is-dead .lu-card-body::after {
-  opacity: 0.4;
+/* Health gauge: the colour (and the light damage trail behind it) clipped from the top. */
+.lu-card-fill,
+.lu-card-trail {
+  position: absolute;
+  inset: 0;
+  transition:
+    clip-path 120ms ease-out,
+    opacity 100ms ease-out;
 }
-.lu-card-wash {
+.lu-card-fill {
+  background: linear-gradient(180deg, var(--lu-team) 0, var(--lu-team) 18%, rgba(31, 32, 36, 0) 74%);
+}
+.lu-card-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.12) 30%, rgba(0, 0, 0, 0));
+}
+.lu-card-trail {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0, rgba(255, 255, 255, 0.8) 18%, rgba(255, 255, 255, 0) 74%);
+  transition:
+    clip-path 380ms cubic-bezier(0.4, 0, 0.2, 1) 300ms,
+    opacity 100ms ease-out;
+}
+.lu-card-photo {
   position: absolute;
   left: 0;
-  right: 0;
-  top: 0;
-  height: 86px;
-  background: linear-gradient(180deg, var(--lu-team), rgba(16, 19, 24, 0));
-  opacity: 0.24;
-  transition: opacity 100ms ease-out;
+  top: -50px;
+  width: 100px;
+  height: 112px;
+  transition:
+    opacity 100ms ease-out,
+    transform 100ms ease-out;
 }
-.lu-card-edge {
+.lu-card-right .lu-card-photo {
+  left: auto;
+  right: 0;
+}
+.lu-card-right .lu-silhouette {
+  transform: scaleX(-1);
+}
+.lu-card-skull {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 3px;
-  background: var(--lu-team);
-  transition: opacity 100ms ease-out;
-}
-.lu-card.is-dead .lu-card-wash {
-  opacity: 0.05;
-}
-.lu-card.is-dead .lu-card-edge {
-  opacity: 0.2;
-}
-.lu-card.is-dead .lu-portrait-grey {
-  opacity: 1;
-}
-.lu-card.is-dead .lu-portrait-dim {
-  opacity: 0.5;
-}
-
-.lu-card-head {
-  position: relative;
+  left: 30px;
+  top: -6px;
+  width: 72px;
+  height: 66px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 52px;
+  align-items: flex-end;
+  justify-content: center;
+  color: #707070;
+  --mf-ink-inverse: #2b2a2a;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 100ms ease-out,
+    transform 100ms ease-out;
 }
-.lu-card-right .lu-card-head {
-  flex-direction: row-reverse;
+.lu-card-skull .mf-icon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: -8px;
 }
-.lu-card-face {
-  position: relative;
-  flex: none;
-  width: 52px;
-  height: 52px;
+.lu-card-right .lu-card-skull {
+  left: auto;
+  right: 30px;
+}
+.lu-card-shade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34px;
+  background: linear-gradient(180deg, rgba(31, 32, 36, 0), rgba(31, 32, 36, 0.9));
 }
 .lu-card-flash {
   position: absolute;
   inset: 0;
-  border-radius: 9px;
-  background: #fff;
+  background: #ffffff;
   transition: opacity 150ms linear;
-  pointer-events: none;
 }
-.lu-card-vitals {
+.lu-card-marks {
+  position: absolute;
+  top: 5px;
+  right: 8px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 5px;
+  gap: 3px;
 }
-.lu-card-right .lu-card-vitals {
+.lu-card-right .lu-card-marks {
+  right: auto;
+  left: 8px;
   align-items: flex-start;
 }
-.lu-card-hpwrap {
-  position: relative;
+.lu-card-stars {
   display: flex;
-  align-items: center;
-  height: 32px;
+  gap: 1px;
 }
-.lu-card-hp {
-  font: 800 36px/1 var(--lu-num);
-  letter-spacing: -0.035em;
-  transition: opacity 100ms ease-out;
-}
-.lu-card-hp.is-low {
-  color: var(--lu-red);
-}
-.lu-card-skull {
-  position: absolute;
-  top: 1px;
-  right: 0;
-  color: #7a8294;
-  opacity: 0;
-  transform: scale(0.6);
-  transition:
-    opacity 100ms ease-out,
-    transform 140ms var(--lu-out);
-}
-.lu-card-right .lu-card-skull {
-  right: auto;
-  left: 0;
-}
-.lu-card.is-dead .lu-card-hp {
-  opacity: 0;
-}
-.lu-card.is-dead .lu-card-skull {
-  opacity: 1;
-  transform: none;
+.lu-star {
+  display: block;
+  width: 10px;
+  height: 10px;
+  color: #ffffff;
 }
 .lu-card-armor {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  height: 12px;
-  font: 600 13px/1 var(--lu-label);
-  letter-spacing: 0.04em;
-  color: var(--lu-ink-dim);
+  color: #ffffff;
+  --mf-ink-inverse: rgba(0, 0, 0, 0.35);
 }
-
-.lu-hpbar {
-  position: relative;
-  display: block;
-  height: 4px;
-  border-radius: 2px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
-}
-.lu-hpbar i {
-  position: absolute;
-  inset: 0;
-  transform-origin: left center;
-}
-.lu-card-right .lu-hpbar i {
-  transform-origin: right center;
-}
-.lu-hpbar-trail {
-  background: rgba(255, 255, 255, 0.78);
-  transition: transform 380ms cubic-bezier(0.4, 0, 0.2, 1) 300ms;
-}
-.lu-hpbar-fill {
-  background: var(--lu-team);
-  transition: transform 120ms ease-out;
-}
-.lu-hpbar-fill.is-low {
-  background: var(--lu-red);
-}
-.lu-card-hpbar {
-  flex: none;
-  margin-top: 8px;
-}
-
 .lu-card-name {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  height: 20px;
-  margin-top: 7px;
-  font: 800 15px/1 var(--lu-num);
-}
-.lu-card-name > span {
-  min-width: 0;
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  max-width: 84px;
+  font: 700 18px/1 var(--lu-font);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .lu-card-right .lu-card-name {
-  flex-direction: row-reverse;
+  left: auto;
+  right: 8px;
 }
-.lu-card-c4 {
-  color: var(--lu-c4);
+.lu-card-hp {
+  position: absolute;
+  right: 7px;
+  bottom: 4px;
+  font: 800 29px/1 var(--lu-font);
+  transition: opacity 100ms ease-out;
 }
-.lu-card-kit {
-  color: var(--lu-ink-dim);
-}
-.lu-card-stats {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  height: 15px;
-  margin-top: 3px;
-  font: 600 13px/1 var(--lu-label);
-  letter-spacing: 0.06em;
-  color: var(--lu-ink-faint);
-}
-.lu-card-stats b {
-  margin-left: 3px;
-  font: 800 12px/1 var(--lu-num);
-  letter-spacing: 0;
-  color: var(--lu-ink-dim);
-}
-.lu-card-money {
-  margin-left: auto;
-  font: 800 12px/1 var(--lu-num);
-  letter-spacing: 0;
-  color: var(--lu-money);
-}
-.lu-card-right .lu-card-stats {
-  justify-content: flex-end;
-}
-.lu-card-right .lu-card-money {
-  order: -1;
-  margin-left: 0;
-  margin-right: auto;
+.lu-card-right .lu-card-hp {
+  right: auto;
+  left: 7px;
 }
 
-/* Foot row: equipment detail (freeze time), weapon and grenades (live), the round's kills (dead). */
+.lu-card-stats {
+  position: absolute;
+  left: 0;
+  top: 62px;
+  width: 140px;
+  height: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--lu-card);
+}
+.lu-kd {
+  display: flex;
+  align-items: stretch;
+  width: 80px;
+  height: 20px;
+  margin-top: 1px;
+  background: linear-gradient(90deg, var(--lu-team) 0, var(--lu-team) 82%, rgba(31, 32, 36, 0));
+}
+.lu-kd i {
+  width: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.88);
+  --mf-ink-inverse: var(--lu-team);
+}
+.lu-kd b {
+  width: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 1px;
+  font: 800 15px/1 var(--lu-font);
+  background: rgba(12, 22, 40, 0.16);
+}
+.lu-card-money {
+  margin-right: 14px;
+  padding-top: 1px;
+  font: 700 15px/1 var(--lu-font);
+  color: var(--lu-money-low);
+}
+.lu-card-money.is-rich {
+  color: var(--lu-money);
+}
+
 .lu-card-foot {
-  position: relative;
-  flex: 1;
-  margin-top: 8px;
+  position: absolute;
+  left: 0;
+  top: 83px;
+  width: 140px;
+  height: 20px;
+  background: var(--lu-card);
+}
+.lu-card-foot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(31, 32, 36, 0), var(--lu-team));
+  opacity: 0.32;
 }
 .lu-card-econ,
 .lu-card-gear,
@@ -1109,90 +943,72 @@ body,
     opacity 200ms ease-out,
     transform 200ms var(--lu-out);
 }
+.lu-card-gear,
 .lu-card-econ {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  column-gap: 8px;
-  row-gap: 4px;
-  align-content: center;
-  transform: translateY(8px) scaleY(0.3);
-  transform-origin: center bottom;
-}
-.lu-card-econ-label {
-  font: 600 11px/1 var(--lu-label);
-  letter-spacing: 0.16em;
-  color: var(--lu-ink-faint);
-}
-.lu-card-econ-value {
-  grid-row: 2;
-  font: 800 15px/1 var(--lu-num);
-}
-.lu-card-econ-icons {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  color: var(--lu-ink-dim);
-}
-.lu-card-right .lu-card-econ {
-  grid-template-columns: 1fr auto;
-}
-.lu-card-right .lu-card-econ-label,
-.lu-card-right .lu-card-econ-value {
-  grid-column: 2;
-  text-align: right;
-}
-.lu-card-right .lu-card-econ-icons {
-  grid-column: 1;
-  justify-content: flex-start;
-}
-.lu-card-gear {
   justify-content: space-between;
   gap: 6px;
-  transform: translateY(10px);
+  padding: 0 14px 0 8px;
+}
+.lu-card-gear {
+  transform: translateY(8px);
+}
+.lu-card-econ {
+  transform: translateY(6px) scaleY(0.3);
+  transform-origin: center bottom;
 }
 .lu-card-right .lu-card-gear {
   flex-direction: row-reverse;
+  padding: 0 8px 0 14px;
+}
+.lu-card-right .lu-card-econ {
+  padding: 0 8px 0 14px;
+}
+.lu-card-right .lu-card-econ .lu-card-weapon {
+  order: -1;
+  margin-right: auto;
+}
+.lu-card-econ-label {
+  font: 600 12px/1 var(--lu-font);
+  letter-spacing: 0.08em;
+  color: var(--lu-ink-faint);
+}
+.lu-card-econ-value {
+  margin-right: auto;
+  font: 700 15px/1 var(--lu-font);
+}
+.lu-card-right .lu-card-econ-value {
+  margin-right: 0;
 }
 .lu-card-weapon {
-  height: 21px;
+  height: 14px;
   width: auto;
-  max-width: 82px;
-  color: var(--lu-ink);
-}
-.lu-card-right .lu-card-weapon {
-  transform: scaleX(-1);
+  max-width: 64px;
+  color: #ffffff;
 }
 .lu-nades {
   display: flex;
   align-items: center;
-  gap: 2px;
-  color: var(--lu-ink-dim);
+  gap: 4px;
+  color: #d3d6dc;
+}
+.lu-nade {
+  height: 13px;
+  width: auto;
+  max-width: 14px;
+}
+.lu-nade-dot {
+  width: 4px;
+  height: 4px;
+  margin: 0 3px;
+  border-radius: 50%;
+  background: #c8cbd1;
 }
 .lu-card-dead {
-  flex-direction: column;
-  align-items: flex-start;
   justify-content: center;
-  gap: 4px;
+  padding-top: 1px;
+  font: 700 15px/1 var(--lu-font);
   transform: translateY(4px);
-}
-.lu-card-right .lu-card-dead {
-  align-items: flex-end;
-}
-.lu-card-dead-value {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  font: 800 14px/1 var(--lu-num);
-  color: var(--lu-ink-dim);
-}
-.lu-card-dead-value small {
-  font: 600 12px/1 var(--lu-label);
-  letter-spacing: 0.1em;
-  color: var(--lu-ink-faint);
+  white-space: nowrap;
 }
 .lu-card.mode-econ .lu-card-econ,
 .lu-card.mode-gear .lu-card-gear,
@@ -1207,13 +1023,54 @@ body,
 .lu-card.mode-dead .lu-card-dead {
   transition-duration: 100ms;
 }
+.lu-card-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 103px;
+  height: 3px;
+  background: linear-gradient(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.28)), var(--lu-team);
+}
+.lu-card-ring {
+  position: absolute;
+  inset: -2px;
+  border: 2px solid #ffffff;
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+  pointer-events: none;
+}
+.lu-card.is-observed .lu-card-ring {
+  opacity: 1;
+}
+
+/* Dead: the colour goes, the photo drops away to a skull, the health number fades. */
+.lu-card.is-dead .lu-card-base::after {
+  opacity: 1;
+}
+.lu-card.is-dead .lu-card-base::before {
+  opacity: 0;
+}
+.lu-card.is-dead .lu-card-fill,
+.lu-card.is-dead .lu-card-trail,
+.lu-card.is-dead .lu-card-hp {
+  opacity: 0;
+}
+.lu-card.is-dead .lu-card-photo {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.lu-card.is-dead .lu-card-skull {
+  opacity: 1;
+  transform: none;
+}
 
 /* ------------------------------------------------------------ centre: observed player, buy time */
 .lu-centre {
-  position: relative;
-  flex: none;
-  width: 352px;
-  height: 206px;
+  position: absolute;
+  left: 810px;
+  top: 843px;
+  width: 300px;
+  height: 207px;
 }
 .lu-obs,
 .lu-buy {
@@ -1221,10 +1078,6 @@ body,
   left: 0;
   right: 0;
   bottom: 0;
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--lu-body);
-  box-shadow: inset 0 0 0 1px var(--lu-hair);
   opacity: 0;
   transform: translateY(110%);
   transition:
@@ -1241,15 +1094,11 @@ body,
     opacity 120ms linear 90ms;
 }
 .lu-obs {
-  height: 206px;
+  top: 0;
 }
-
 .lu-obs-content {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 16px 16px 0;
 }
 .lu-obs-content.is-in {
   animation: lu-obs-in 160ms var(--lu-out) 70ms both;
@@ -1276,244 +1125,119 @@ body,
     transform: translateX(-22px);
   }
 }
-.lu-obs-wash {
+.lu-obs-photo {
+  position: absolute;
+  left: 80px;
+  top: 2px;
+  width: 140px;
+  height: 167px;
+}
+.lu-obs-box {
   position: absolute;
   left: 0;
   right: 0;
-  top: 0;
-  height: 120px;
-  background: linear-gradient(180deg, var(--lu-team), rgba(16, 19, 24, 0));
-  opacity: 0.28;
+  bottom: 0;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  background: #1d2027;
 }
-.lu-obs-edge {
+.lu-obs-box::before {
+  content: "";
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 4px;
-  background: var(--lu-team);
-}
-.lu-obs-top {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  height: 78px;
-}
-.lu-obs-portrait {
-  flex: none;
-  width: 78px;
-  height: 78px;
-  border-radius: 12px;
-}
-.lu-obs-portrait .lu-portrait-text {
-  font-size: 28px;
-}
-.lu-obs-id {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  flex: 1;
-  min-width: 0;
-}
-.lu-obs-team {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 18px;
-  white-space: nowrap;
-  font: 800 14px/1 var(--lu-label);
-  letter-spacing: 0.16em;
-  color: var(--lu-ink-dim);
-  text-transform: uppercase;
-}
-.lu-obs-team i {
-  width: 8px;
-  height: 8px;
-  flex: none;
-  border-radius: 2px;
-  background: var(--lu-team);
-  transform: rotate(45deg);
-}
-.lu-obs-team > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-top: 1px;
-}
-.lu-obs-team em {
-  flex: none;
-  margin-left: auto;
-  padding: 3px 6px 2px;
-  border-radius: 4px;
-  background: var(--lu-team);
-  color: var(--lu-team-ink);
-  font: 800 11px/1 var(--lu-label);
-  font-style: normal;
-  letter-spacing: 0.12em;
-}
-.lu-obs-name {
-  font: 800 26px/1 var(--lu-num);
-  letter-spacing: -0.005em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.lu-obs-stats {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  font: 600 13px/1 var(--lu-label);
-  letter-spacing: 0.08em;
-  color: var(--lu-ink-faint);
-}
-.lu-obs-stats b {
-  margin-left: 4px;
-  font: 800 13px/1 var(--lu-num);
-  letter-spacing: 0;
-  color: var(--lu-ink);
-}
-.lu-obs-money {
-  margin-left: auto;
-  font: 800 13px/1 var(--lu-num);
-  letter-spacing: 0;
-  color: var(--lu-money);
-}
-.lu-obs-bottom {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-top: auto;
-  padding-bottom: 24px;
+  inset: 0;
+  background: linear-gradient(90deg, var(--lu-team), rgba(29, 32, 39, 0));
+  opacity: 0.32;
 }
 .lu-obs-vitals {
+  position: absolute;
+  left: 11px;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
 }
 .lu-obs-hp {
-  font: 800 52px/0.8 var(--lu-num);
-  letter-spacing: -0.04em;
+  padding-top: 1px;
+  font: 800 25px/1 var(--lu-font);
 }
 .lu-obs-hp.is-low {
   color: var(--lu-red);
 }
-.lu-obs-unit {
-  font: 800 14px/1 var(--lu-label);
-  letter-spacing: 0.14em;
-  color: var(--lu-ink-faint);
-}
 .lu-obs-armor {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-  font: 800 18px/1 var(--lu-num);
-  color: var(--lu-ink-dim);
+  color: #ffffff;
+  --mf-ink-inverse: rgba(0, 0, 0, 0.35);
 }
-.lu-obs-gear {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 9px;
-}
-.lu-obs-weaponrow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.lu-obs-weapon {
-  height: 28px;
-  width: auto;
-  max-width: 118px;
-  color: var(--lu-ink);
+.lu-obs-name {
+  position: relative;
+  width: 100%;
+  padding: 1px 80px 0;
+  text-align: center;
+  font: 800 23px/1 var(--lu-font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .lu-obs-ammo {
-  font: 800 24px/1 var(--lu-num);
-  letter-spacing: -0.02em;
-}
-.lu-obs-ammo small {
-  margin-left: 1px;
-  font: 600 16px/1 var(--lu-label);
-  letter-spacing: 0.02em;
-  color: var(--lu-ink-faint);
-}
-.lu-obs-utils {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 18px;
+  position: absolute;
+  right: 10px;
+  padding-top: 2px;
+  font: 700 17px/1 var(--lu-font);
   color: var(--lu-ink-dim);
 }
-.lu-obs-utils .lu-nades {
-  gap: 4px;
+.lu-obs-ammo b {
+  font: 800 22px/1 var(--lu-font);
+  color: var(--lu-team);
 }
-.lu-obs-c4 {
-  color: var(--lu-c4);
-}
-.lu-obs-hpbar {
+.lu-obs-line {
   position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 12px;
-  height: 5px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.45)), var(--lu-team);
 }
 
 .lu-buy {
-  height: 190px;
+  height: 106px;
+  padding: 6px 12px 0;
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  padding: 13px 16px 14px;
+  gap: 2px;
+  background: #1b1e24;
 }
 .lu-buy-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 26px;
-  margin-bottom: 2px;
+  height: 20px;
 }
-.lu-buy-head b {
-  font: 800 15px/1 var(--lu-label);
-  letter-spacing: 0.22em;
-  color: var(--lu-ink-dim);
-}
-.lu-buy-team {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font: 800 16px/1 var(--lu-num);
+.lu-buy-head span {
+  font: 800 19px/1 var(--lu-font);
+  color: var(--lu-team);
   text-transform: uppercase;
 }
-.lu-buy-badge {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-}
-.lu-buy-badge .lu-badge-text {
-  font-size: 9px;
+.lu-buy-head b {
+  font: 800 16px/1 var(--lu-font);
+  letter-spacing: 0.08em;
 }
 .lu-buy-row {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  height: 20px;
-  font: 800 16px/1 var(--lu-num);
+  height: 15px;
+  font: 700 15px/1 var(--lu-font);
 }
 .lu-buy-row > :last-child {
   justify-self: end;
 }
 .lu-buy-row label {
-  font: 600 12px/1 var(--lu-label);
-  letter-spacing: 0.18em;
+  font: 600 11px/1 var(--lu-font);
+  letter-spacing: 0.14em;
   color: var(--lu-ink-faint);
 }
 .lu-buy-split {
   position: relative;
-  height: 4px;
-  margin: -3px 0 1px;
-  border-radius: 2px;
+  height: 3px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.08);
 }
@@ -1530,8 +1254,8 @@ body,
 .lu-buy-util {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font: 800 13px/1 var(--lu-num);
+  gap: 6px;
+  font: 700 13px/1 var(--lu-font);
   color: var(--lu-ink-dim);
 }
 .lu-buy-util > span {
@@ -1541,6 +1265,19 @@ body,
 }
 .lu-buy-util > span.is-none {
   opacity: 0.35;
+}
+.lu-buy-nade {
+  height: 12px;
+  width: auto;
+  max-width: 13px;
+}
+.lu-buy-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--lu-ct) 50%, var(--lu-t) 50%);
 }
 
 /* ------------------------------------------------------------ radar (shared Matchframe minimap) */
@@ -1566,56 +1303,56 @@ body,
   fill: transparent;
 }
 .mf-radar-image {
-  opacity: 0.92;
+  opacity: 0.95;
 }
 .mf-radar-cell {
-  fill: rgba(255, 255, 255, 0.12);
+  fill: rgba(16, 16, 16, 0.82);
 }
 .mf-radar-cell.k-bombsite {
-  fill: rgba(255, 72, 72, 0.22);
+  fill: rgba(240, 29, 72, 0.4);
 }
 .mf-radar-cell.k-spawn {
-  fill: rgba(255, 255, 255, 0.06);
+  fill: rgba(16, 16, 16, 0.6);
 }
 .mf-radar-player .mf-radar-dot {
   fill: var(--mf-side);
-  stroke: #0b0d12;
+  stroke: #ffffff;
   stroke-width: 4;
 }
 .mf-radar-player.is-flashed .mf-radar-dot {
-  fill: #fff;
+  fill: #ffffff;
 }
 .mf-radar-facing {
   fill: var(--mf-side);
-  opacity: 0.8;
+  opacity: 0.85;
 }
 .mf-radar-ring {
   fill: none;
-  stroke: #fff;
+  stroke: #ffffff;
   stroke-width: 5;
 }
 .mf-radar-label {
-  font: 800 26px var(--lu-num);
-  fill: #0b0d12;
+  font: 800 28px var(--lu-font);
+  fill: #ffffff;
 }
 .mf-radar-carrier {
   fill: var(--lu-c4);
-  stroke: #0b0d12;
+  stroke: #121212;
   stroke-width: 3;
 }
 .mf-radar-dead {
   stroke: var(--mf-side);
-  stroke-width: 5;
+  stroke-width: 6;
   stroke-linecap: round;
-  opacity: 0.55;
+  opacity: 0.8;
 }
 .mf-radar-bomb-body {
   fill: var(--lu-c4);
-  stroke: #0b0d12;
+  stroke: #121212;
   stroke-width: 3;
 }
 .mf-radar-bomb-face {
-  fill: #0b0d12;
+  fill: #121212;
 }
 .mf-radar-bomb-pulse {
   fill: none;
@@ -1634,7 +1371,7 @@ body,
   animation: lu-radar-ping 1.2s ease-out infinite;
 }
 .mf-radar-bomb.s-defused .mf-radar-bomb-body {
-  fill: #3ccf7a;
+  fill: #3fc35a;
 }
 .mf-radar-bomb.s-exploded .mf-radar-bomb-body {
   fill: #ff7a1a;
@@ -1656,12 +1393,12 @@ body,
   stroke: rgba(255, 160, 60, 0.95);
 }
 .mf-radar-util.u-he {
-  fill: rgba(255, 72, 72, 0.18);
+  fill: rgba(240, 29, 72, 0.18);
   stroke: var(--lu-red);
 }
 .mf-radar-util.u-flash {
   fill: rgba(255, 255, 255, 0.45);
-  stroke: #fff;
+  stroke: #ffffff;
 }
 .mf-radar-util.u-decoy {
   fill: none;

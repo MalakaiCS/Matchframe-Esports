@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import type { HudKillfeedEntry, HudState } from "@matchframe/hud-sdk";
 import { BlindIcon, HeadshotIcon, SkullIcon, WeaponIcon } from "../shared/parts.ts";
 import { sideColor, teamVars, type Settings } from "./util.ts";
@@ -8,17 +9,23 @@ const LIFETIME_MS = 7000;
 const MAX_ROWS = 6;
 const DEMO = new URLSearchParams(location.search).has("demo");
 
-/** Sponsor slot: the sponsor scheduled for the scoreboard slot (or top bar), else the sponsor text setting. */
+/**
+ * Sponsor slot: the sponsor scheduled for the scoreboard slot (or top bar), else the sponsor text
+ * setting; its image goes in the square tile next to the name.
+ */
 export function SponsorSlot({ state, settings }: { state: HudState; settings: Settings }) {
   const s = state.sponsors.scoreboard_slot ?? state.sponsors.top_bar ?? null;
   const name = s?.name ?? (settings.sponsorText || (DEMO ? "Your sponsor" : ""));
   if (!s && !name) return null;
+  const tile = { "--lu-ev1": state.event.primary, "--lu-ev2": state.event.secondary } as CSSProperties;
   return (
     <div className="lu-sponsor" key={s?.sponsorId ?? name}>
-      <span className="lu-sponsor-tile">{s?.assetUrl ? <img src={s.assetUrl} alt="" /> : <span className="lu-sponsor-mono">{name.slice(0, 1).toUpperCase()}</span>}</span>
       <span className="lu-sponsor-text">
-        <span className="lu-sponsor-label">PRESENTED BY</span>
         <span className="lu-sponsor-name">{name}</span>
+        <span className="lu-sponsor-label">OFFICIAL PARTNER</span>
+      </span>
+      <span className="lu-sponsor-tile" style={tile}>
+        {s?.assetUrl ? <img src={s.assetUrl} alt="" /> : <span className="lu-sponsor-mono">{name.slice(0, 1).toUpperCase()}</span>}
       </span>
     </div>
   );
@@ -43,7 +50,7 @@ function Kill({ k, state, settings }: { k: HudKillfeedEntry; state: HudState; se
       <span className="lu-kill-way">
         {k.attackerBlind ? <BlindIcon size={17} /> : null}
         {k.weapon && killer ? <WeaponIcon weapon={k.weapon} className="lu-kill-weapon" /> : <SkullIcon size={18} className="lu-kill-skull" />}
-        {k.headshot ? <HeadshotIcon size={16} /> : null}
+        {k.headshot ? <HeadshotIcon size={15} /> : null}
       </span>
       <span className="lu-kill-name lu-kill-victim" style={{ color: sideColor(state, settings, k.victim.side) }}>
         {k.victim.name}

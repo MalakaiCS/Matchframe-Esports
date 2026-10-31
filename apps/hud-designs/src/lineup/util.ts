@@ -5,8 +5,8 @@ import { teamColor } from "../shared/format.ts";
 
 /** The manifest's settings defaults (settingsSchema in package-files/lineup/manifest.json). */
 export const DEFAULTS = {
-  ctColor: "#3d8bff",
-  tColor: "#ff3d6e",
+  ctColor: "#2380e0",
+  tColor: "#de1d41",
   eventTitle: "",
   sponsorText: "",
   showRadar: true,

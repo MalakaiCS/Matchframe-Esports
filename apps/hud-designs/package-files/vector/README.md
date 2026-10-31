@@ -1,21 +1,21 @@
 # Vector HUD
 
-A broadcast HUD for CS2 in the Matchframe HUD Library: dark graphite glass panels with angled ends, thin team-colour stripes and condensed type, with each team's players down its own side of the screen.
+A broadcast HUD for CS2 in the Matchframe HUD Library: solid team-colour panels on dark bases with rounded corners and heavy geometric type, with each team's players down its own side of the screen.
 
 What it shows:
 
-- **Score bar** (top centre): team logos (or a monogram badge from the short name), names, series wins, timeouts left, scores, the round clock and round number. In **freeze time** the loss bonus hangs off both ends of the bar, the series maps sit under it (picks, decider, finished scores, the live map) and each team's grenades and equipment value sit above its players.
-- **Players** down the left and right edges: avatar (or initial), observer slot, health and armour, name, main weapon, money, kills and deaths, grenades, bomb, defuse kit and kills this round, with a health bar whose damage trail follows a moment later. A dead player's card collapses to a narrow, darker card with name, money and K/D. The observed player's card steps out from the edge.
-- **Observed player** (bottom centre): avatar, health, team and name on a team-colour health bar, weapon and ammunition, K/A/D, ADR, grenades and armour.
-- **Players alive** and the **killfeed** (top right). Kills stay seven seconds.
-- **Bomb bar** under the score bar once the bomb is planted: the seconds left and a bar that drains to the middle; in the CT colour with "bomb being defused" while it is defused.
-- **Round winner** card under the score bar until the next freeze time.
+- **Score bar** (top centre): each team's logo (or a monogram badge from its short name) and score on a team-colour panel, the round clock and "ROUND 17/24" in a dark centre block, and each team's timeouts as a small outlined capsule at the ends. In **freeze time** the loss bonus sits in a team-colour pill outside each end, the series maps sit under the bar (picking team, decider, finished score, the live map) and each team's grenades sit in a bar above its players.
+- **Players** down the left and right edges: photo on the outer side (a neutral silhouette when there is none), a team-colour band with name, armour and health whose length is the health (a lighter damage trail follows a moment later), kills and deaths, money, kills this round, main weapon, grenades, bomb and defuse kit. A dead player's card turns grey and narrows to name, K/D and money. The observed player's card is outlined.
+- **Observed player** (bottom centre): photo standing above the box, health and armour, ammunition, the name on a team-colour health bar.
+- **Players alive** ("3 VS 2", top right) and the **killfeed** under it. Kills stay seven seconds.
+- **Bomb**: the clock turns into the bomb on a T-colour centre and a bar with the seconds left drops in under the score bar and drains; while the bomb is defused the centre turns CT colour and a second bar names the defending team. A defused bomb ends the round on a green centre.
+- **Round winner** card, in the winning team's colour, under the score bar until the next freeze time.
 - **Radar** (top left) from Matchframe's map data, hidden when no trustworthy calibration exists.
 - The **SIMULATION** label while test data runs and **DATA PAUSED** when game data stops arriving.
 
-Motion follows the game: going live flips the clock, tucks the loss bonus into the bar, wipes the series away and slides the players-alive box in; a kill collapses the victim's card and then slides the kill in; a planted bomb swaps the clock for the bomb and drops the bar in; the round winner's card fades in when the round ends. Everything animates with transform, opacity and clip-path only, and only the clocks update ten times a second.
+Motion follows the game: going live flips the clock, tucks the loss bonus into the bar, wipes the series away and slides the players-alive box in; a kill collapses the victim's card and then slides the kill in; a planted bomb swaps the clock for the bomb and drops the bar in; the winner's card fades in when the round ends. Everything animates with transform, opacity and clip-path only, and only the clocks update ten times a second.
 
-Change it in the HUD Library under **Appearance**: CT and T colours (a team's own colour wins), full team names or tags, and which elements show (radar, killfeed, observed player, players alive, player money, the freeze-time loss bonus, series and utility). Variants: **live** (everything) and **compact** (no radar and no freeze-time extras).
+Change it in the HUD Library under **Appearance**: CT and T colours (a team's own colour wins), full team names or tags on the winner card and defuse bar, and which elements show (radar, killfeed, observed player, players alive, player money, the freeze-time loss bonus, series and utility). Variants: **live** (everything) and **compact** (no radar and no freeze-time extras).
 
 ## Build your own from it
 
@@ -34,5 +34,5 @@ Rules every HUD package follows: transparent `html` and `body` backgrounds; the 
 ## Licences and credits
 
 - Code: MIT, Matchframe.
-- Barlow Condensed and Inter fonts: SIL Open Font License 1.1 (`OFL-fonts.txt`).
-- The weapon silhouettes come with Lexogrine's CS2 HUD template (MIT, `LICENSE-lexogrine.txt`) and originate from Counter-Strike 2 game files (© Valve Corporation). Lexogrine's MIT licence covers the code, not Valve's artwork. Broadcast HUDs for Counter-Strike commonly use these icons; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons. The grenade, bomb, kit, armour and killfeed glyphs are original Matchframe shapes. Matchframe Esports is not affiliated with or endorsed by Valve.
+- Montserrat font: SIL Open Font License 1.1 (`OFL-Montserrat.txt`). Barlow Condensed and Inter: SIL Open Font License 1.1 (`OFL-fonts.txt`).
+- The weapon silhouettes come with Lexogrine's CS2 HUD template (MIT, `LICENSE-lexogrine.txt`) and originate from Counter-Strike 2 game files (© Valve Corporation). Lexogrine's MIT licence covers the code, not Valve's artwork. Broadcast HUDs for Counter-Strike commonly use these icons; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons. The grenade, bomb, kit, armour, killfeed and player-silhouette glyphs are original Matchframe shapes. Matchframe Esports is not affiliated with or endorsed by Valve.
