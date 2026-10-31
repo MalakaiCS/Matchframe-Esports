@@ -233,6 +233,20 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
         arbiter: e.session.arbiter.log.slice(-100),
         directorLog: e.directorLog.recent.slice(-400),
         program: e.program.history.slice(-50),
+        // Replays: why automatic replays play or not, the link to the other PC, the NDI recording, recent clips.
+        replays: {
+          programMode: e.program.mode,
+          auto: e.autoReplay.getStatus(),
+          link: e.replayLink.getStatus(),
+          feed: e.replayFeed.status(),
+          mediaInput: e.settings.get<string | null>("replay.mediaInput", null),
+          replayScene: e.program.sceneMap.REPLAY ?? null,
+          obs: { connected: e.obs.state.connected, replayBuffer: e.obs.state.replayBuffer },
+          clips: e.replays
+            .list()
+            .slice(-40)
+            .map((it) => ({ id: it.id, state: it.state, label: it.label, reason: it.reason, round: it.roundNumber, origin: it.origin, error: it.error, hasFile: !!it.clip?.media.path, durationMs: it.clip?.media.durationMs ?? null, playMs: it.playMs, createdAt: it.createdAt })),
+        },
         mapPackIssues: e.maps.issues,
         logs: e.logger.recent.slice(-300),
         migration: e.migration,
