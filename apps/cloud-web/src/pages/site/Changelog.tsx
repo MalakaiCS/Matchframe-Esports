@@ -18,7 +18,7 @@ const RELEASES: Release[] = [
       {
         heading: "HUD Library",
         items: [
-          "Vector: each team's players down its side of the screen, angled dark-glass panels, loss bonus and series in freeze time, a winner card when the round ends.",
+          "Vector: each team's players down its side of the screen on team-colour cards with photos, loss bonus and series in freeze time, a winner card when the round ends.",
           "Lineup: all ten players in a row along the bottom, the observed player in the middle, and a score bar that turns into the round winner's banner.",
           "Both show the radar, killfeed, bomb and defuse bar and players alive, have a compact variant, and animate smoothly without straining the graphics card.",
         ],

@@ -23,8 +23,8 @@ Matchframe Esports is original software. This file lists third-party components 
 | ↳ base64id, cookie, cors, object-assign, vary | 2.0.0, 0.7.2, 2.8.6, 4.1.1, 1.1.2 | MIT | socket.io, engine.io |
 | ↳ debug, ws | 4.3.7, 8.21.3 | MIT | socket.io, engine.io |
 | react, react-dom, scheduler | 19.3.1, 19.3.1, 0.28.0 | MIT | HUD renderer, operator UI |
-| @fontsource/inter | 5.3.0 | OFL-1.1 (font: Inter, © The Inter Project Authors) | HUD renderer; Vector and Lineup HUDs |
-| @fontsource/barlow-condensed | 5.3.0 | OFL-1.1 (font: Barlow, © The Barlow Project Authors) | HUD renderer (Arena preset); operator console (match thumbnails and stingers); Vector and Lineup HUDs |
+| @fontsource/inter | 5.3.0 | OFL-1.1 (font: Inter, © The Inter Project Authors) | HUD renderer; Vector HUD |
+| @fontsource/barlow-condensed | 5.3.0 | OFL-1.1 (font: Barlow, © The Barlow Project Authors) | HUD renderer (Arena preset); operator console (match thumbnails and stingers); Lineup HUD |
 | Electron | 44.9.3 | MIT (bundles Chromium and Node.js; their licences ship in `LICENSES.chromium.html` / `LICENSE` inside the Electron distribution) | Desktop shell |
 | koffi (optional, Windows keyboard adapter) | not bundled by default | MIT | Observer keyboard fallback |
 | grandi | 2.0.2 | Apache-2.0 (`NOTICE`: derived from Streampunk's Grandiose, © 2018 Streampunk Media Ltd., and community forks) | Replay feed: receiving the replay PC's screen over NDI (in the feed's own process) |
@@ -43,7 +43,7 @@ Operator UI dependencies are listed in `apps/operator-web/package.json` and incl
 |---|---|---|
 | Matchframe Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2`) | Original code and artwork; weapon icons from Lexogrine's CS2 React HUD (`images/weapons`); Inter font files | Code MIT; weapon icons MIT (`images/weapons/LICENSE-lexogrine.txt`, see the note below); Inter SIL OFL 1.1 (`fonts/OFL.txt`) |
 | Matchframe Pro CS2 HUD (`apps/hud-template`) | Adapted from Lexogrine's CS2 React HUD (https://github.com/lexogrine/cs2-react-hud, © 2021 Lexogrine); Montserrat font files | Lexogrine code MIT (`LICENSE-lexogrine.txt`); Montserrat SIL OFL 1.1 (© 2011 The Montserrat Project Authors) |
-| Matchframe Vector and Lineup HUDs (`apps/hud-designs`) | Original code and design; weapon icons from Lexogrine's CS2 React HUD (shared with the HUD renderer); Barlow Condensed and Inter font files | Code MIT; weapon icons MIT (`LICENSE-lexogrine.txt` in each package); fonts SIL OFL 1.1 (`OFL-fonts.txt` in each package) |
+| Matchframe Vector and Lineup HUDs (`apps/hud-designs`) | Original Matchframe code; weapon icons from Lexogrine's CS2 React HUD (shared with the HUD renderer); Montserrat and Inter font files (Vector), Barlow Condensed font files (Lineup) | Code MIT; weapon icons MIT (`LICENSE-lexogrine.txt` in each package); fonts SIL OFL 1.1 (`OFL-fonts.txt` in each package; Vector also `OFL-Montserrat.txt`) |
 
 The weapon and equipment icons in the Pro CS2 HUD (also used by the Matchframe Broadcast HUD's killfeed and the Sample CS2 HUD) come with Lexogrine's template and originate from Counter-Strike 2 game files (© Valve Corporation). Lexogrine's MIT licence covers their code, not Valve's artwork. Counter-Strike broadcast HUDs commonly use these icons; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons.
 

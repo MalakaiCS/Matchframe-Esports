@@ -1095,13 +1095,26 @@ Measured with kaiHUD 1.0.2 in Chromium through Matchframe, with a player running
 **Context.** The owner (0.9.x) sent two commercial CS2 HUDs, one with team columns at the sides and one with all ten players along the bottom: "Can you make copies of these huds and design them with all Animations as close as possible but keeping a different design aspect to them."
 
 **Decision.**
-- **What is copied:** layout conventions and motion only. No artwork, logos, code or fonts from the references, and their names appear nowhere in the product. The timings were measured frame by frame from the owner's screen recordings:
+- **What is copied:** layout, sizes, positions, colour treatment and motion. The first versions had a deliberately different look (dark panels with thin team-colour stripes); the owner found them nothing like the references, so both were redone to match them closely. Every component was measured from the recordings and checked side by side with them. No artwork, logos, branding text, code or fonts come from the references, and their names appear nowhere in the product. The timings were measured frame by frame from the owner's screen recordings:
   - **Going live:** the loss-bonus pills tuck into the score bar (about 200 ms), the series strip wipes away right to left (about 270 ms), and the players-alive box slides in from the right (about 150 ms, starting about 70 ms after the clock flips).
   - **A kill:** the victim's card goes dead within about 100 ms, and about 100 ms later the killfeed row slides in (about 120 ms).
   - **Round won:** in the side-column HUD, a winner card fades and scales in under the bar (about 180 ms). In the bottom-row HUD, a panel in the winner's colour grows from the centre of the score bar over the whole bar (about 200 ms), then the winner's logo comes in (about 60 ms later).
-- **Vector** (side columns) and **Lineup** (bottom row) are separate HUD packages in `apps/hud-designs`, one Vite build per HUD. They share the demo scenes, the format helpers, and the HUD renderer's weapon silhouettes, glyphs and radar. Their looks differ from the references:
-  - **Vector:** dark graphite panels with angled ends, thin team-colour stripes, Barlow Condensed.
-  - **Lineup:** dark cards with a team-colour top edge, a dark capsule score bar with coloured end caps, Inter.
+- **Vector** (side columns) and **Lineup** (bottom row) are separate HUD packages in `apps/hud-designs`, one Vite build per HUD. They share the demo scenes, the format helpers, and the HUD renderer's weapon silhouettes, glyphs and radar.
+  - **Vector** (Montserrat, bundled with the Pro CS2 HUD; OFL):
+    - a score bar of solid team-colour halves and a dark clock block;
+    - player cards with a photo slot, a team-colour band and a dark stats area;
+    - solid loss-bonus pills;
+    - a solid two-colour players-alive box;
+    - outlined killfeed rows.
+  - **Lineup** (Barlow Condensed):
+    - a title bar with series tabs;
+    - a near-black score bar with team-colour ends;
+    - a sponsor box;
+    - small solid team-colour cards with the portrait standing above each card.
+  - **Different from the references:**
+    - our own icons and fonts;
+    - a neutral silhouette where a player has no photo;
+    - a monogram or wordmark where a team has no logo.
 - **Bundled:** both are installed into the library on first start, like the Pro CS2 HUD: electron-builder copies `dist/vector` and `dist/lineup` into `sample-huds`, and the engine's dev folders include `apps/hud-designs/dist`.
 - **Performance** (the owner's imported HUD lagged):
   - Only transform, opacity and clip-path animate.
