@@ -90,7 +90,7 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
         timeUncertaintyMs: null,
         epoch: null,
         roundNumber: b.round,
-        media: { path: file, durationMs: cut.durationMs, frameRate: cut.fps, timebase: null, startPts: null, hasAudio: false, width: cut.width, height: cut.height },
+        media: { path: file, durationMs: cut.durationMs, frameRate: cut.fps, timebase: null, startPts: null, hasAudio: cut.hasAudio, width: cut.width, height: cut.height },
         createdAt: new Date().toISOString(),
       }, { priority: playPriority(b.kind), playMs: Math.max(1000, Math.round(to - startsAt)), leadMs: Math.max(0, Math.round(kill - startsAt)), play });
       e.audit.record(req.principal!.label, "replay.feed_clip", item.id, { label: item.label, durationMs: cut.durationMs });
@@ -167,6 +167,42 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
     e.audit.record(req.principal!.label, "replay.auto_settings", null, req.body);
     return { settings: e.autoReplay.settings(), status: e.autoReplay.getStatus() };
   });
+
+  // ---- main PC: the operator's controls of the break's replays (also device actions, routes/devices.ts) --
+  const auto = () => ({ settings: e.autoReplay.settings(), status: e.autoReplay.getStatus() });
+  /** Skip: the clip on air ends now; the next one comes in as usual, or back to live after the last. */
+  r.post("/api/v1/replays/auto/skip", { permission: "replay.control" }, () => {
+    e.autoReplay.skip();
+    return auto();
+  });
+  /** Stop and go live: the break's replays end now, with the Replay out transition. */
+  r.post("/api/v1/replays/auto/stop", { permission: "replay.control" }, () => {
+    e.autoReplay.stop();
+    return auto();
+  });
+  /** Hold (held: true) the clip on air, or Resume (false); toggles without a body. The break's end still cuts back to live. */
+  r.post("/api/v1/replays/auto/hold", { permission: "replay.control", body: z.object({ held: z.boolean().optional() }) }, (req) => {
+    e.autoReplay.hold(req.body.held);
+    return auto();
+  });
+  /** A clip of the current (or next) break's round: excluded (never played automatically) or pinned to play first, if it fits. */
+  r.put("/api/v1/replays/auto/clips/:id", { permission: "replay.control", body: z.object({ excluded: z.boolean().optional(), pinned: z.boolean().optional() }) }, (req) => {
+    if (req.body.excluded !== undefined) e.autoReplay.exclude(req.params.id!, req.body.excluded);
+    if (req.body.pinned !== undefined) e.autoReplay.pin(req.params.id!, req.body.pinned);
+    return auto();
+  });
+  /**
+   * Test replays: two sample clips on the program output now, through the same path as a break's
+   * replays; the report (status.test) fills in step by step. Refused (409) while a round is live, the
+   * program isn't live, or a break's replays play.
+   */
+  r.post("/api/v1/replays/auto/test", { permission: "replay.control" }, async (req) => {
+    await e.autoReplay.test.start();
+    e.audit.record(req.principal!.label, "replay.test", null, {});
+    return auto();
+  });
+  /** The mixer's inputs with audio, for picking the live game audio turned down during replays. */
+  r.get("/api/v1/replays/audio-inputs", { permission: "state.read" }, () => e.autoReplay.audio.inputs());
 
   /**
    * One click: the replay scene and its media source in OBS, mapped for replays, and its twin (for

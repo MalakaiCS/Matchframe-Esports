@@ -9060,6 +9060,54 @@
                     "type": "integer",
                     "minimum": 100,
                     "maximum": 2000
+                  },
+                  "replayVolumeDb": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": -30,
+                        "maximum": 12
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "duckInputs": {
+                    "maxItems": 16,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    }
+                  },
+                  "duckVmixInputs": {
+                    "maxItems": 16,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    }
+                  },
+                  "duckTo": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "const": "mute"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": -60,
+                        "maximum": -3
+                      }
+                    ]
+                  },
+                  "duckRampMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2000
                   }
                 }
               }
@@ -9073,6 +9121,230 @@
         "operationId": "post_api_v1_replays_vmix_test",
         "summary": "POST /api/v1/replays/vmix/test",
         "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/replays/auto/skip": {
+      "post": {
+        "operationId": "post_api_v1_replays_auto_skip",
+        "summary": "POST /api/v1/replays/auto/skip",
+        "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/replays/auto/stop": {
+      "post": {
+        "operationId": "post_api_v1_replays_auto_stop",
+        "summary": "POST /api/v1/replays/auto/stop",
+        "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/replays/auto/hold": {
+      "post": {
+        "operationId": "post_api_v1_replays_auto_hold",
+        "summary": "POST /api/v1/replays/auto/hold",
+        "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "held": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/replays/auto/clips/{id}": {
+      "put": {
+        "operationId": "put_api_v1_replays_auto_clips_id",
+        "summary": "PUT /api/v1/replays/auto/clips/:id",
+        "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "excluded": {
+                    "type": "boolean"
+                  },
+                  "pinned": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/replays/auto/test": {
+      "post": {
+        "operationId": "post_api_v1_replays_auto_test",
+        "summary": "POST /api/v1/replays/auto/test",
+        "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/replays/audio-inputs": {
+      "get": {
+        "operationId": "get_api_v1_replays_audio_inputs",
+        "summary": "GET /api/v1/replays/audio-inputs",
+        "description": "Requires permission `state.read`.",
         "security": [
           {
             "bearer": []

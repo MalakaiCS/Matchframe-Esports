@@ -36,6 +36,7 @@ PC 2's panel then says *The main PC records this computer's screen over NDI: no 
 - **Recording:**
   - The NDI picture is received in a process of its own, never in the engine.
   - It is encoded into one-second H.264 segments, each frame stamped with the time it arrived.
+  - **Sound:** PC 2's sound, when its NDI sender sends it, is recorded with the picture (AAC, 48 kHz stereo) and every clip cut carries it (below, *Sound*).
   - The last 4 minutes are kept.
 - **Cutting:**
   - When PC 2 has filmed a kill, it sends PC 1 the moment: how long ago the clip began, the kill happened, and the clip ended.
@@ -164,10 +165,20 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
   - **No second scene** (your media source is in a group, or isn't a Media Source): the clips play in your replay scene's one source, as before 0.10.5: the next is loaded as the one before ends, which shows one black frame and about 0.1 s of the next clip's first frame. The panel says why.
   - **Keyframes:** OBS skips to the keyframe before a clip's part, not to the exact frame, so a clip can start up to one keyframe interval early (with OBS's default of 250 frames, about 4 s at 60 fps; 1 or 2 s keyframes are better). That is more lead-up, not a gap.
 - **Stops:** the break's replays stop, back to the live scene with Replay out, when the next round's clock reaches 1:50 (or, with **Before the round starts**, when the round goes live), the bomb is planted, or automatic replays are turned off. If you (or anything else) change the program meanwhile, it is left as you put it and no further clip plays: in Matchframe, or in OBS (a scene clicked, the Transition button in Studio Mode, even to one of the two replay scenes). A clip that doesn't play is skipped and the next one plays; if none plays, the program goes back to the live scene.
-- **Only from the live scene:** automatic replays play while the program is live. The status under **Automatic replays** says when it isn't, and **Return live** (top of Replays & Production) puts it back.
+- **Only from the live scene:** automatic replays play while the program is live. The status under **Automatic replays** says when it isn't, and **Return live** (top of Replays & Production) puts it back. On a scene of yours in OBS, they wait for you (see *Switching scenes yourself*).
   - **Follows OBS (0.10.2):** when OBS shows your live scene, the program counts as live again. That covers a scene you switched to by hand, and OBS reconnecting on the live scene. Before, the program could stay in "replay playing" or "degraded" while OBS showed the live scene, and automatic replays waited.
   - **Clips played by hand:** after **Approve** and **Play**, the program goes back to the live scene when the clip ends, like an automatic replay.
   - **The second replay scene** counts as the replay scene: a break that ends on it goes back to live from it, and OBS showing it never makes the program "manual".
+
+## Switching scenes yourself (multiview)
+
+You can switch OBS's scenes yourself at any time (a multiview plugin, OBS's own buttons, a hotkey, Studio Mode's Transition button): to an analysis scene between rounds, the casters during the replays, your break or studio scene. Matchframe follows OBS and never fights it:
+- **Your scene:** a scene OBS shows that Matchframe didn't put there, other than your live scene, is yours (even your mapped break, studio or replay scene). The program follows it (*manual*, yours, named after the scene) and Matchframe changes nothing until OBS shows your live scene again: no replays cut in, no break or studio scene, no cut back at 1:50. Matchframe's own changes (its replays, the second replay scene during them, the break scene for a timeout) don't count.
+- **The status says so, it isn't an error:** *OBS shows “Analysis” (your scene): replays wait until you're back on the live scene.* Test replays wait the same way.
+- **Back on the live scene** (in OBS, or **Return live**): live again, as before. During a break with time left (before the next round is live), its replays play then, the ones that still fit.
+- **During the replays:** switching OBS to one of your scenes stops them (the clip on air stays where it is in its scene); the live game audio goes back up; nothing more plays and nothing cuts away from your scene, not the 1:50 cut back, not Stop. Back on the live scene in time, the rest of the break plays; **Stop and go live** meanwhile cancels that.
+- **Break and studio scenes:** Matchframe only takes back the break or studio scene it put on itself (a timeout, the end of a map); one you put on stays until you change it.
+- **Studio Mode** (a plugin may put a scene in preview and press Transition): followed the same way. **After a restart, or OBS reconnecting,** on one of your scenes: it's yours too.
 
 ## OBS Studio Mode
 
@@ -175,7 +186,7 @@ Automatic replays work with Studio Mode on, and leave your preview alone:
 - **The program** changes with obs-websocket's *SetCurrentProgramScene*, which in Studio Mode transitions the program (with the chosen transition) without taking the preview.
 - **Swap Scenes** (on by default) then puts the scene the program left in preview, at the end of each transition. Matchframe puts your preview back a moment later (about 0.15 s; you may see it flicker), unless you changed it meanwhile.
 - **Duplicate Scene** (on by default): the program shows a private copy of the replay scene under the same name. Its media source is the same source, so loading, holding and skipping clips works. **Duplicate Sources** doesn't change that: OBS never copies a Media Source (checked with OBS 30.0.2: the clips and fades were on program with it on).
-- **Your Transition button** during a break counts as taking the program, even with a replay scene in preview: no further clip plays and the program stays where you put it. So does any program change made in OBS.
+- **Your Transition button** during a break counts as taking the program, even with a replay scene in preview: no further clip plays and the program stays where you put it, followed as your scene (above). So does any program change made in OBS.
 - **The second replay scene** isn't changed while it, or your replay scene, is in preview: the break then uses it as it is (or, before it exists, your replay scene's one source).
 - **Measured** with OBS 30.0.2 (Studio Mode, Swap Scenes and Duplicate Scene on): three clips on program with a Stinger in and out and two fades; the preview back on the operator's scene after each transition; the Transition button pressed during the first clip (with the twin in preview) seen within 0.2 s, and the break left alone.
 
@@ -191,6 +202,98 @@ For each break, through vMix's API:
 
 If someone puts another input on air during the replays, it is left there and no further replay plays.
 
+Everything below (the controls, Stream Deck, hotkeys, the sound, Test replays) works with vMix too.
+
+## Your controls during the replays
+
+While a break's replays play, **Automatic replays** shows three buttons above its settings:
+
+- **Skip:** the clip on air ends now. The next one comes in as usual (the fade, or the cut), already waiting at its start; after the last, back to live with Replay out.
+- **Hold / Resume:** the clip on air pauses where it is (OBS's or vMix's pause) and nothing plays on until **Resume**, which plays it on from there. The round clock still wins: at 1:50 (or the bomb planted, the round over) the program goes back to live, held or not, so a hold can never keep a replay over the live round.
+- **Stop and go live:** the break's replays end now, back to the live scene with **Replay out**. The clips that didn't play stay in the replay list for playing by hand. Pressed between the round's end and the first replay, the break has none.
+
+In the round's list (*Round 7: its clips, best first*), each clip that hasn't played has two buttons:
+
+- **Exclude:** it doesn't play in its break (**Include** lets it play again).
+- **Pin first:** it plays first in its break, if it fits (even a clip with the same kills as a better one). Pinned while the break's replays play, it plays next: if another clip was already waiting in the second replay scene, Matchframe loads the pinned one there instead, and a clip that wasn't chosen joins the break. One clip at a time is pinned.
+
+These apply to the current break, or the next one of that round (during the round, before it ends). A clip whose break is over can't be pinned: play it by hand.
+
+Every control is in the audit log (`replay.auto_skip`, `replay.auto_hold`, `replay.auto_resume`, `replay.auto_stop`, `replay.auto_exclude`, `replay.auto_pin`).
+
+## Stream Deck and Bitfocus Companion
+
+The same controls are actions of Matchframe's control-surface API (see [Companion / Stream Deck](../integrations/companion-streamdeck.md)): `POST http://127.0.0.1:37211/api/v1/devices/actions/<action>` with the headers `Authorization: Bearer <token>` and `Content-Type: application/json`.
+
+| Button | Action | Body |
+|---|---|---|
+| Skip | `replay_skip` | `{}` |
+| Hold / Resume (one button) | `replay_hold` | `{}` (toggles; `{"held":true}` holds, `{"held":false}` resumes) |
+| Stop and go live | `replay_stop` | `{}` |
+| Exclude the next clip | `replay_exclude` | `{"next":true}` |
+| Exclude the round's best clip | `replay_exclude` | `{"rank":1}` (its place in the round's list, as shown) |
+| Pin the round's 2nd clip first | `replay_pin` | `{"rank":2}` (`{"id":"rp_…"}` for a clip by its id) |
+
+Exclude and Pin toggle; `"excluded":false` or `"pinned":false` undoes one.
+
+**A token for the device:** Settings → Access → make a token with the **replay** role (or **producer**), labelled for the device, for example *Stream Deck*. Don't reuse the replay PC's code: a device token can be removed on its own.
+
+**Bitfocus Companion** (the *Generic: HTTP Requests* module), one button per action:
+1. Add a connection *Generic: HTTP Requests*, Base URL `http://127.0.0.1:37211` (or the main PC's address, with **Let other computers on the network connect** on).
+2. Button → Press action **POST**: URL `/api/v1/devices/actions/replay_skip`, Body `{}`, Header `{"Authorization":"Bearer <token>"}`, Content type `application/json`.
+3. For lights, Companion can read `GET /api/v1/devices/tally` (same header): `replay.running` (replays playing), `replay.held`, `replay.onAir` (the clip's label), `replay.position` (`{"n":2,"of":3}`), `replay.waiting`, `replay.pinned`.
+
+**Elgato Stream Deck** with a web-request plugin that sends a POST with headers (for example BarRaider's *API Ninja* from the Stream Deck store): URL `http://127.0.0.1:37211/api/v1/devices/actions/replay_skip`, method POST, content type `application/json`, header `Authorization: Bearer <token>`, body `{}`. One button per action. A plugin that can only open a URL (GET) won't do: the actions need POST and the header.
+
+An answer of 409 means nothing to do now (no replay on air), 403 a token without the replay role.
+
+## Hotkeys
+
+- **In the console** (while its window has the focus, not while you type in a field): **Ctrl+Shift+F5** Skip, **Ctrl+Shift+F6** Hold / Resume, **Ctrl+Shift+F7** Stop and go live. On any screen.
+- **Global hotkeys** (the Matchframe program; they work with CS2 or OBS in front): Automatic replays → **Hotkeys and Stream Deck**. Off until you set them, since a global hotkey takes its keys from every other program. **Use the suggested keys** sets the same three, which CS2 and OBS don't use by default; or type your own (for example `Ctrl+Alt+F9`), a modifier and a key, or a function key alone.
+  - A key another program (or Windows) holds isn't registered: the panel says so in red, *Ctrl+Shift+F5 is already taken by another program (or Windows): choose another key for Skip.* Choose another, or free it in the other program (for example a hotkey you set in OBS).
+  - The program's own hotkeys (emergency stop Ctrl+Shift+F12, save the CS2 view Ctrl+Shift+F11, the desktop HUD hotkeys) are refused.
+  - They are kept on this computer, with the program's settings.
+
+## Sound
+
+**Replays carry the replay PC's game sound.**
+- **Replay feed (NDI):** PC 1 records the sound PC 2's NDI sender sends with its picture. Turn the sender's sound on:
+  - **vMix Desktop Capture:** choose the computer's sound (the audio device) in it, so the NDI source carries audio.
+  - **OBS with an NDI output:** it sends OBS's mix; keep the game's sound in it (Desktop Audio, or an Application Audio Capture of cs2.exe) and mute or remove microphones.
+  - **NDI Screen Capture:** turn on its system audio.
+  - The Replay feed panel says *The replay PC's sound is recorded* while recording. A sender without sound is recorded with silence, so clips still have a sound track.
+- **Clips from PC 2's OBS replay buffer** carry whatever PC 2's OBS records. On PC 2:
+  - The game's sound in OBS's mix: **Desktop Audio** (Settings → Audio), or an **Application Audio Capture** of cs2.exe in the scene.
+  - Mute or remove **Mic/Aux** there, or every replay has PC 2's room sound.
+  - **Settings → Output:** in *Simple* mode the replay buffer records the mix; in *Advanced* mode, Recording → **Audio Track 1** ticked, and the game's source on track 1 (Edit → Advanced Audio Properties).
+  - PC 1's big plays come from its own replay buffer: the same settings on PC 1.
+
+**Replay volume** (Automatic replays → Sound): both replay media sources (your replay scene's and its copy), so replays can be louder (+3, +6 dB) or quieter (−3, −6, −10 dB) than recorded. *As set in OBS* (the default) leaves them alone. With vMix: each replay input's fader (above 0 dB, its gain).
+
+**The live game audio, turned down during replays:**
+1. Automatic replays → Sound: tick the OBS audio inputs that are the live game's sound (for example *Game capture* or *Desktop Audio*). The list has every input with audio (**Find audio inputs** reads it again). Only those ticked are touched: leave casters' microphones unticked. The replay media sources can't be ticked.
+2. **Live game audio during replays:** muted, −10 dB, −20 dB (the default) or −30 dB.
+- As the first replay comes in, they go down with a short ramp (0.3 s, in steps); after the last, back to **exactly** their volume and mute before, with the same ramp, as the program goes back to live. However the replays end: the last clip, Skip, Stop and go live, the round clock, a clip that doesn't play, someone taking the program.
+- If you move one of those faders yourself during the replays, it stays where you put it.
+- **A crash or a restart in the middle of a break:** their volumes are saved before they are touched, so the next start puts them back as soon as OBS connects (vMix: answers). The panel says *Turned down for replays: …* until then.
+- **vMix:** the same with vMix inputs (by their key; `SetVolumeFade` down and back, `AudioOff`/`AudioOn` for muted).
+
+## Test replays
+
+Automatic replays → **Test replays** plays two sample clips (*Test clip 1* in blue, *Test clip 2* in orange, each 4 s with a tone; part of the program) on your program output, through exactly the path a break's replays take: the replay scene and its copy, **Replay in**, the fade between them, **Replay out**, the live game audio turned down and back, and the replay graphic (they carry a play: *Test Player*, AK-47, headshot).
+- It asks first: *This plays on your program output now.*
+- It refuses, and says why, while a round is live, while the program isn't live, and while a break's replays play or are about to.
+- Skip, Hold and Stop work on it too.
+- **The report**, step by step, with what to do about a step that failed:
+  1. Replay scene and twin ready (vMix: vMix ready)
+  2. Transition in (Replay in), with the transition used
+  3. The fade between the clips (or the cut)
+  4. Transition out (Replay out)
+  5. Back live (the program live, OBS on your live scene)
+  6. Live audio turned down and put back exactly (skipped when none is ticked)
+- The sample clips are never in the replay list, a round's ranking, a break or a highlight.
+
 ## Settings
 
 | Where | Setting | Default |
@@ -203,6 +306,9 @@ If someone puts another input on air during the replays, it is left there and no
 | | Speed | Real time |
 | | Other angles | On |
 | | Replay big plays shown live (3K+, won clutches) | On |
+| Automatic replays → Sound (PC 1) | Replay volume | As set in OBS |
+| | Live game audio during replays (the inputs ticked: muted, −10, −20 or −30 dB) | None ticked; −20 dB |
+| Automatic replays → Hotkeys (PC 1, the program) | Global hotkeys: Skip, Hold / Resume, Stop and go live | Off (suggested: Ctrl+Shift+F5, F6, F7) |
 | OBS scenes → Transitions (PC 1) | Replay in (e.g. a Stinger) | OBS's current one |
 | | Replay out | The same as Replay in |
 | | Other scenes (to and from the break and studio scenes) | OBS's current one |
@@ -212,7 +318,7 @@ If someone puts another input on air during the replays, it is left there and no
 | | How far behind | 7 s |
 
 **API:**
-- **PC 1:** `GET`/`PUT /api/v1/replays/auto` (`perBreak`, `order` (`round`, `best`), `cutBack` (`clock`, `before_round`), `cutBackClockSec` (110 = 1:50), `between` (`fade`, `cut`), `fadeMs`, `mixer`, `vmixUrl`, `vmixTransition`, `vmixTransitionOut` (null: as `vmixTransition`); status `round`, `ranked` (with `note`), `vmix`, `twin`, `roundSec`), `GET`/`PUT /api/v1/obs/auto` (`replayIn`, `replayOut` (null: as `replayIn`), `otherScenes`; "" is OBS's current transition; it took `replayTransition` before 0.10.5, kept as `replayIn`), `POST /api/v1/replays/vmix/test`, `POST /api/v1/replays/obs-setup` (with `twin`), `GET`/`PUT /api/v1/replays/feed`, `POST /api/v1/replays/feed/sources`, `POST /api/v1/replays/feed/ffmpeg`, `GET /api/v1/network`.
+- **PC 1:** `GET`/`PUT /api/v1/replays/auto` (`perBreak`, `order` (`round`, `best`), `cutBack` (`clock`, `before_round`), `cutBackClockSec` (110 = 1:50), `between` (`fade`, `cut`), `fadeMs`, `mixer`, `vmixUrl`, `vmixTransition`, `vmixTransitionOut` (null: as `vmixTransition`), `replayVolumeDb` (null: as set in OBS), `duckInputs` (OBS input names), `duckVmixInputs` (vMix input keys), `duckTo` (`"mute"` or dB, −20), `duckRampMs` (300); status `round`, `ranked` (with `note`, `excluded`, `pinned`), `vmix`, `twin`, `roundSec`, `running`, `held`, `position`, `audio`, `test`), `POST /api/v1/replays/auto/skip`, `POST /api/v1/replays/auto/stop`, `POST /api/v1/replays/auto/hold` (`{"held":true|false}`, toggles without), `PUT /api/v1/replays/auto/clips/:id` (`{"excluded":…, "pinned":…}`), `POST /api/v1/replays/auto/test` (409 with why it can't play now), `GET /api/v1/replays/audio-inputs`, the device actions `replay_skip`, `replay_hold`, `replay_stop`, `replay_exclude`, `replay_pin` and `replay` in `GET /api/v1/devices/tally`, `GET`/`PUT /api/v1/obs/auto` (`replayIn`, `replayOut` (null: as `replayIn`), `otherScenes`; "" is OBS's current transition; it took `replayTransition` before 0.10.5, kept as `replayIn`), `POST /api/v1/replays/vmix/test`, `POST /api/v1/replays/obs-setup` (with `twin`), `GET`/`PUT /api/v1/replays/feed`, `POST /api/v1/replays/feed/sources`, `POST /api/v1/replays/feed/ffmpeg`, `GET /api/v1/network`.
 - **PC 2:** `GET`/`PUT /api/v1/replay-pc` (settings `preRollMs`, `postRollMs`, `sameCstv` (`stay_behind`, `each_kill`, `off`), `behindMs`; status `timing`, `rewind`, `filming`, `skipped`, `lastSkip`).
 - **The link itself:** `GET /api/v1/replay-link/on-air?pending=<rounds>`, `POST /api/v1/replays/incoming` (a clip file) and `POST /api/v1/replays/mark` (a moment, with the replay feed) on PC 1, with the replay code (a `replay` role token). On-air answers carry `clock` (PC 1's round clock), `kills` (the last 30 s, each with `shown`: `killer`, `victim` or `none`) and `feed.recording`.
 
@@ -252,6 +358,18 @@ If someone puts another input on air during the replays, it is left there and no
   - **Against a real OBS 30.0.2** (recordings read frame by frame): see Measured above and under Studio Mode; also 1080p60 clips with 2 s keyframes and a filter on the media source (each clip from the keyframe before its part, as before), and Duplicate Sources on.
 - **Every kill** (`replay-pc-timing.e2e.test.ts`): a kill the main camera showed is filmed from behind and sent as `shown`, with its lead-up; PC 1 knows the round is pending until it arrives.
 - **The replay feed** (`replay-feed.test.ts`, `replay-pc-timing.e2e.test.ts`, a stand-in NDI source with real ffmpeg): recording in one-second segments stamped with real time; a cut a few seconds back starts and ends on the picture of those moments (to 0.2 s, read from the picture's brightness, which tells the time); a cut whose end is still being written waits for it; two programs, the replay PC without OBS, its missed kill marked and cut on PC 1.
+- **The controls, the sound and Test replays** (`replay-controls.e2e.test.ts`, the stand-in OBS at the obs-websocket level and a stand-in vMix; `replay-feed.test.ts` with real ffmpeg; `AutoReplays.test.tsx`; `replay-hotkeys.test.ts`):
+  - **Skip:** the fade to the next starts within 0.5 s of the press, the next at its part; skipping the last goes back to live with Replay out.
+  - **Stop and go live:** back to live with Replay out at once; the rest stay *prepared*.
+  - **Hold:** the clip paused (its cursor still) for longer than it had left, nothing playing on; Resume plays it on to its fade; held again, the next round's clock at 1:51.2 still cuts back to live in under 1.5 s.
+  - **Exclude and Pin** before the break (the excluded never plays, the pinned first) and during it (the clip waiting in the twin replaced, a clip left out joining next).
+  - **The control-surface actions** with a replay token (by rank, next), 403 for a viewer, 409 with nothing on air, and the tally.
+  - **The live audio:** turned down 20 dB in at least 4 steps starting within 0.25 s of the transition in, back to exactly 0.8 (OBS's multiplier) and unmuted after the last clip, Skip, Stop, the round clock, a clip OBS can't play and the operator taking the program; muted and back; a fader moved by hand left as it was; never the caster's mic; after the engine lost OBS mid-break and was started again on the same data, back as OBS connected. With vMix: `SetVolumeFade` 80 → 44.99 → 80, the mic never.
+  - **Replay volume** on both replay sources (−6 and +6 dB; left alone when not set); vMix 84.14 for −6 dB.
+  - **Test replays:** refused while a round is live and while the program isn't live; Replay in (a Stinger), the fade to the twin, Replay out, every step *OK*; the clip on air found by its id with its play, and gone afterwards (not listed, ranked or in a playlist); a sample clip OBS can't play reported with its fix; through vMix too.
+  - **The feed's sound** (real ffmpeg, a stand-in NDI source with a tone on and off every 0.5 s by wall time): the cut clip has an AAC 48 kHz stereo track at the source's level, in time with the source to within 30 ms; a source without sound recorded with silence as long as the picture; the clock's handling of jitter, a busy moment, a real gap and a drifting sender.
+  - **Real NDI** (the NDI 6.3 runtime that comes with the binding, a local NDI sender on this computer, real ffmpeg): the cut clip's tone at the sender's level, in time to within 20 ms.
+- **Switching scenes yourself** (`obs-own-scenes.e2e.test.ts`, the stand-in OBS): an analysis scene put on in OBS between rounds followed as yours, no replays cut in, no break scene for a timeout, Test replays waiting, back to live and the break's replay played; back on the live scene before a break's replays started: they play; the casters put on during the replays: they stop, the live audio back up, the rest played on coming back in time; staying on it: no cut back at 1:50, Stop and Test replays refused; the mapped break scene put on by hand not taken back, Matchframe's own taken back; Studio Mode's preview and Transition; found on your scene when OBS connects.
 - **Not checked yet:**
   - the real NDI binding receiving a real NDI source (the Windows release build only checks that it loads), and vMix Desktop Capture;
   - the replay feed on Windows (ffmpeg's hardware encoders);
@@ -262,3 +380,6 @@ If someone puts another input on air during the replays, it is left there and no
   - Windows OBS;
   - a real CS2's round clock at the start of a live round (the round time is learned from it) and the break's end against it;
   - fades on a busy computer: here (software rendering) the blend moved every frame with 720p30 clips, every fourth frame with two 1080p60 clips.
+  - the replay feed's sound from vMix Desktop Capture, OBS's NDI output or NDI Screen Capture on another computer, and ffmpeg's second pipe on Windows (if it can't be read, the feed records without sound and says why);
+  - the controls from a real Stream Deck or Companion; the global hotkeys on Windows (registered, and a key another program holds);
+  - a real vMix's `SetVolumeFade`, `AudioOff`/`AudioOn`, `Pause` and its fader scale (vMix's knowledge base gives amplitude = (fader / 100)⁴).

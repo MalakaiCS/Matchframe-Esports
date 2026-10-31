@@ -291,22 +291,36 @@ export class Engine {
     // The program follows OBS back to the live scene: put there by hand (after a replay played by
     // hand, say), or found there after OBS reconnected. Otherwise it stayed in a replay or DEGRADED,
     // and automatic replays waited for the live scene that was already on air.
+    // And it follows OBS to the operator's own scenes (ADR-062): a scene put on in OBS itself (by
+    // hand, a multiview plugin, Studio Mode's Transition button), not the live scene and not one
+    // Matchframe put on, is the operator's (MANUAL): nothing automatic touches the program until OBS
+    // shows the live scene again.
     let shown: string | null = null;
-    const followLive = (why: string) => {
+    const followObs = (why: string) => {
+      const scene = this.obs.state.programScene;
+      if (!this.obs.state.connected || !scene) return;
       const live = this.program.sceneMap.LIVE;
-      if (!live || !this.obs.state.connected || this.obs.state.programScene !== live) return;
-      const replay = this.program.activeReplay;
-      const t = this.program.followMixerLive(why);
-      if (!t) return;
-      if (replay) this.replays.markPlayed(replay);
-      this.logger.info("program back to live: OBS shows the live scene", { from: t.from, why });
+      if (scene === live) {
+        const replay = this.program.activeReplay;
+        const t = this.program.followMixerLive(why);
+        if (!t) return;
+        if (replay) this.replays.markPlayed(replay);
+        this.logger.info("program back to live: OBS shows the live scene", { from: t.from, why });
+        return;
+      }
+      if (!live) return;
+      const who = this.obsAuto.whose(scene);
+      // Matchframe's own change, or (no change seen) the scene the program shows already.
+      if (who === "matchframe" || (who === "unknown" && this.program.showsScene(scene))) return;
+      const t = this.program.followMixerScene(scene);
+      if (t) this.logger.info("program follows OBS to the operator's scene", { scene, from: t.from, why });
     };
     this.obs.on("state", (st: { programScene: string | null }) => {
       if (st.programScene === shown) return;
       shown = st.programScene;
-      followLive("OBS changed scene");
+      followObs("OBS changed scene");
     });
-    this.obs.on("connected", () => followLive("OBS reconnected"));
+    this.obs.on("connected", () => followObs("OBS reconnected"));
     this.program = new ProgramArbiter(
       {
         connected: () => this.obs.state.connected,
@@ -365,7 +379,7 @@ export class Engine {
       },
     });
     this.ffmpeg = new FfmpegTool({ dataDir: cfg.dataDir, logger: this.logger });
-    this.replayFeed = new ReplayFeed({ settings: this.settings, logger: this.logger, dataDir: cfg.dataDir, ffmpeg: this.ffmpeg });
+    this.replayFeed = new ReplayFeed({ settings: this.settings, logger: this.logger, dataDir: cfg.dataDir, ffmpeg: this.ffmpeg, dir: () => this.replayStorage("feed") });
     this.hlaeCamera = new HlaeCameraServer({
       settings: this.settings,
       logger: this.logger,
@@ -1082,9 +1096,18 @@ export class Engine {
     return this.replayProvider;
   }
 
+  /**
+   * Where replays are stored, in one place (a later setting can move them to another drive): the
+   * clips (from the replay PC, cut from the replay feed), and the replay feed's recording of the
+   * replay PC's screen.
+   */
+  replayStorage(what: "clips" | "feed"): string {
+    return join(this.cfg.dataDir, what === "clips" ? "replays" : "replay-feed");
+  }
+
   /** Where clips from the replay PC are kept. */
   replayDir(): string {
-    return join(this.cfg.dataDir, "replays");
+    return this.replayStorage("clips");
   }
 
   // ---------------------------------------------------------------------------- lifecycle
@@ -1130,6 +1153,8 @@ export class Engine {
   }
 
   async shutdown(): Promise<void> {
+    // Live audio turned down for replays goes back first, while OBS (or vMix) is still there.
+    await this.autoReplay.beforeShutdown();
     this.autoDirector.dispose();
     this.hlaeCamera.close();
     this.cams.close();

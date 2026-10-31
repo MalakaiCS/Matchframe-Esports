@@ -19,7 +19,8 @@ const run = promisify(execFile);
  * computer records it all the time into one-second segments, keeping the last few minutes. The
  * replay PC only tells this computer when it filmed a kill (POST /api/v1/replays/mark), and the clip
  * is cut here from the recording: the replay PC needs no OBS. The NDI binding and the frames live
- * in the feed's own process (feed-worker.ts); ffmpeg comes from replay/ffmpeg.ts.
+ * in the feed's own process (feed-worker.ts); ffmpeg comes from replay/ffmpeg.ts. The source's sound
+ * (the replay PC's game, when its NDI sender sends it) is recorded too, and the clips carry it.
  */
 
 export const FeedSettings = z.object({
@@ -59,6 +60,8 @@ export interface FeedStatus {
   ndi: { available: boolean | null; version: string | null; error: string | null };
   ffmpeg: FfmpegStatus;
   clips: number;
+  /** The recording's sound: recorded (with silence where the source sends none), or why not. */
+  audio: { recording: boolean; detail: string } | null;
 }
 
 /** The engine's end of the feed process. */
@@ -93,6 +96,7 @@ interface Segment {
 interface Session {
   id: string;
   dir: string;
+  /** What list.csv's times (seconds) count from, wall ms: when its ffmpeg was started. */
   t0: number;
   width: number;
   height: number;
@@ -100,6 +104,9 @@ interface Session {
   segments: Segment[];
   /** Segments ending at or before this (wall ms) were pruned. */
   prunedUntil: number;
+  /** It records the source's sound too. */
+  audio: boolean;
+  audioNote: string | null;
 }
 
 /** The segment holding the end of a clip is listed once the next one begins: wait this long for it. */
@@ -130,11 +137,13 @@ export class ReplayFeed {
       dataDir: string;
       ffmpeg: FfmpegTool;
       spawnWorker?: () => FeedWorker;
+      /** Where the recording goes (the engine's replay storage); the data folder's replay-feed when not given. */
+      dir?: () => string;
     },
   ) {}
 
   private get dir(): string {
-    return join(this.deps.dataDir, "replay-feed");
+    return this.deps.dir?.() ?? join(this.deps.dataDir, "replay-feed");
   }
 
   settings(): FeedSettings {
@@ -227,10 +236,10 @@ export class ReplayFeed {
       this.finds.get(r.id)?.(r);
       this.finds.delete(r.id);
     } else if (r.type === "session") {
-      this.sessions.set(r.id, { id: r.id, dir: r.dir, t0: r.t0, width: r.width, height: r.height, fps: r.fps, segments: [], prunedUntil: -Infinity });
+      this.sessions.set(r.id, { id: r.id, dir: r.dir, t0: r.t0, width: r.width, height: r.height, fps: r.fps, segments: [], prunedUntil: -Infinity, audio: r.audio === true, audioNote: r.audioNote ?? null });
       this.current = r.id;
-      this.set("recording", `Recording ${source} (${r.width}×${r.height}, ${Math.round(r.fps)} fps, ${r.encoder}).`);
-      this.deps.logger.info("replay feed: recording", { source, width: r.width, height: r.height, fps: r.fps, encoder: r.encoder });
+      this.set("recording", `Recording ${source} (${r.width}×${r.height}, ${Math.round(r.fps)} fps, ${r.encoder}${r.audio ? ", with sound" : ""}).`);
+      this.deps.logger.info("replay feed: recording", { source, width: r.width, height: r.height, fps: r.fps, encoder: r.encoder, audio: r.audio, audioNote: r.audioNote });
     } else if (r.type === "stats") {
       this.stats = { fps: r.fps, dropped: r.dropped, receiving: r.receiving };
       if (!r.receiving && this.state !== "error") this.set("waiting", `No picture from ${source}: is its NDI sender running on the replay PC?`);
@@ -307,6 +316,7 @@ export class ReplayFeed {
       ndi: this.ndi,
       ffmpeg: this.deps.ffmpeg.status(),
       clips: this.clips,
+      audio: s ? (s.audio ? { recording: true, detail: "The replay PC's sound is recorded (silence when its NDI sender sends none): clips carry it." } : { recording: false, detail: `Recording without sound: ${s.audioNote ?? "not available"}.` }) : null,
     };
   }
 
@@ -332,7 +342,7 @@ export class ReplayFeed {
    * starts at the second (keyframe) at or before `from`, or the recording's start; `startWall` says
    * where. Waits for the segment holding `to` to be written.
    */
-  async cut(from: number, to: number, outFile: string): Promise<{ startWall: number; durationMs: number; width: number; height: number; fps: number }> {
+  async cut(from: number, to: number, outFile: string): Promise<{ startWall: number; durationMs: number; width: number; height: number; fps: number; hasAudio: boolean }> {
     const ffmpeg = await this.deps.ffmpeg.locate();
     if (!ffmpeg) throw new Error("ffmpeg isn't installed");
     const deadline = Date.now() + CUT_WAIT_MS;
@@ -355,7 +365,7 @@ export class ReplayFeed {
       rmSync(ts, { force: true });
     }
     this.clips++;
-    return { startWall, durationMs, width: session.width, height: session.height, fps: session.fps };
+    return { startWall, durationMs, width: session.width, height: session.height, fps: session.fps, hasAudio: session.audio };
   }
 
   /** The session holding `to` (or the latest before it), and its segments from `from` to `to`. */

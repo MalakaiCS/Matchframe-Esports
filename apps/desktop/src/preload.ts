@@ -7,7 +7,7 @@ import { contextBridge, ipcRenderer } from "electron";
 const boot = (ipcRenderer.sendSync("mf:bootstrap") ?? null) as { engineOrigin: string; connectionMode: "local" | "remote" } | null;
 const hudAvailability = (ipcRenderer.sendSync("mf:hud-availability") ?? { available: false, reason: null }) as { available: boolean; reason: string | null };
 
-/** `mf:hud-*` replies are `{ ok, value | error }`; errors become plain Error messages. */
+/** `mf:hud-*` (and `mf:replay-hotkeys*`) replies are `{ ok, value | error }`; errors become plain Error messages. */
 async function hudCall<T>(channel: string, ...args: unknown[]): Promise<T> {
   const r = (await ipcRenderer.invoke(channel, ...args)) as { ok: true; value: T } | { ok: false; error: string };
   if (!r || typeof r !== "object") throw new Error("The program did not answer.");
@@ -40,6 +40,11 @@ contextBridge.exposeInMainWorld("matchframe", {
       ipcRenderer.on("mf:update", h);
       return () => ipcRenderer.removeListener("mf:update", h);
     },
+  },
+  /** Global hotkeys for the replays playing: Skip, Hold / Resume, Stop and go live (apps/desktop/src/replay-hotkeys.ts). */
+  replayHotkeys: {
+    get: () => hudCall("mf:replay-hotkeys"),
+    set: (patch: unknown) => hudCall("mf:replay-hotkeys-set", patch),
   },
   getOperatorToken: (): Promise<string | null> => ipcRenderer.invoke("mf:token"),
   info: (): Promise<unknown> => ipcRenderer.invoke("mf:info"),

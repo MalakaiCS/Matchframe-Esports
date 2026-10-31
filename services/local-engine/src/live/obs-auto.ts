@@ -11,7 +11,9 @@ import type { ProgramMove } from "../production/program.ts";
  * - the end of a map: the STUDIO scene, back to the live scene when the next map starts.
  *
  * It only moves the program from the live scene, and only back from a scene it chose itself: an
- * operator's own program choice is never undone.
+ * operator's own program choice is never undone. A scene put on in OBS itself (by hand, a multiview,
+ * even the mapped break or studio scene) is the operator's: the program follows it (app.ts, whose)
+ * and nothing here touches it until OBS shows the live scene again.
  *
  * It also chooses the OBS transition of every program change (switchProgram, used by the program
  * state machine whoever asks for the change): one into a replay, one back out of it, one between two
@@ -62,6 +64,8 @@ const LONGEST_TRANSITION_MS = 8000;
 const OWN_START_MS = 1500;
 /** Studio Mode: OBS's Swap Scenes changes the preview within this long of the transition's end. */
 const PREVIEW_SWAP_MS = 150;
+/** OBS says which scene it shows at the end of the transition: one of ours is recognised for this long. */
+const OWN_SCENE_MS = LONGEST_TRANSITION_MS + 4000;
 
 /** A Stinger shows the new scene at its transition point (when given in ms; tp_type 1 is in frames). */
 const cutPoint = (t: ObsTransitionNow): number => {
@@ -91,6 +95,12 @@ export class ObsAutomation {
   /** Our program changes whose transition start OBS hasn't reported yet (until when it may). */
   private own: { until: number }[] = [];
   private foreign = 0;
+  /** When the last program change made in OBS itself started (wall ms). */
+  private foreignAt = 0;
+  /** Matchframe's own program changes of the last moments: the scene, and when. */
+  private ownSwitches: { scene: string; at: number }[] = [];
+  /** The last program change: its scene, the transition it used (null: not known) and whether OBS confirmed the scene (the Test replays report). */
+  lastSwitch: { scene: string; transition: string | null; confirmed: boolean; at: number } | null = null;
 
   constructor(private readonly e: Engine) {}
 
@@ -140,7 +150,11 @@ export class ObsAutomation {
     return this.serial(async () => {
       const obs = this.e.obs;
       // Already on program: no transition runs.
-      if (obs.state.programScene === scene) return (await obs.setProgram(scene)).confirmed;
+      if (obs.state.programScene === scene) {
+        const confirmed = (await obs.setProgram(scene)).confirmed;
+        this.lastSwitch = { scene, transition: null, confirmed, at: Date.now() };
+        return confirmed;
+      }
       let waitMs = 0;
       let used: ObsTransitionNow | null = null;
       try {
@@ -165,12 +179,14 @@ export class ObsAutomation {
       // This transition is ours (an operator's, from OBS, isn't: see changesInObs).
       const own = { until: Infinity };
       this.own.push(own);
+      this.ownSwitches = [...this.ownSwitches.filter((x) => Date.now() - x.at < OWN_SCENE_MS), { scene, at: Date.now() }];
       let r: { confirmed: boolean };
       try {
         r = await obs.setProgram(scene);
       } finally {
         own.until = Date.now() + OWN_START_MS;
       }
+      this.lastSwitch = { scene, transition: used?.name ?? null, confirmed: r.confirmed, at: Date.now() };
       if (ended)
         void ended.then(() =>
           this.serial(async () => {
@@ -196,7 +212,23 @@ export class ObsAutomation {
     const now = Date.now();
     this.own = this.own.filter((o) => o.until >= now);
     if (this.own.length) this.own.shift();
-    else this.foreign++;
+    else {
+      this.foreign++;
+      this.foreignAt = now;
+    }
+  }
+
+  /**
+   * Who put `scene` on OBS's program, as OBS says it shows it: Matchframe (one of its own program
+   * changes of the last moments, with none made in OBS since), OBS itself (a program change made in
+   * OBS came after Matchframe's last: the operator, by hand, a multiview, the Transition button in
+   * Studio Mode), or not known (no change seen: OBS found so on connecting).
+   */
+  whose(scene: string): "matchframe" | "obs" | "unknown" {
+    const now = Date.now();
+    const last = this.ownSwitches.at(-1);
+    if (this.foreignAt && this.foreignAt >= (last?.at ?? 0)) return "obs";
+    return this.ownSwitches.some((x) => x.scene === scene && now - x.at < OWN_SCENE_MS) ? "matchframe" : "unknown";
   }
 
   /** Studio Mode: the operator's preview back, where Swap Scenes put the scene the program left. */

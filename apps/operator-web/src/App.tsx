@@ -10,6 +10,7 @@ import { emergencyStop, OfflineBanner, STOP_SHORTCUT_LABEL, TopBar } from "./com
 import { ToastProvider, useToast } from "./components/toasts.tsx";
 import { Button, Field, Loading, Note } from "./components/ui.tsx";
 import { isTypingTarget, usePersistentState } from "./lib/hooks.ts";
+import { useReplayShortcuts } from "./lib/replay-keys.ts";
 import { Link, navigate, useLocation } from "./router.tsx";
 import type { NavId, NavItem } from "./routes.tsx";
 import { crumbsFor, navItem, redirectFor, routeFor } from "./routes.tsx";
@@ -95,6 +96,8 @@ export function Shell({ me }: { me: Me }) {
   useDesktopEvents();
   const [navCollapsed, setNavCollapsed] = usePersistentState("navCollapsed", typeof window !== "undefined" && window.innerWidth < 1440);
   useStopShortcut(true);
+  // Skip, Hold / Resume, Stop and go live for the replays playing (Ctrl+Shift+F5, F6, F7).
+  useReplayShortcuts();
   useEffect(() => {
     startLive();
     return () => stopLive();

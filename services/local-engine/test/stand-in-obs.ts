@@ -10,8 +10,9 @@ import type { Engine } from "../src/app.ts";
  * Media Source: restart when shown, clear at the end). Studio Mode as OBS 30 does it, measured:
  * SetCurrentProgramScene transitions the program and leaves the preview until the transition ends,
  * then Swap Scenes (on by default) puts the scene the program left in preview; the Transition button
- * takes the preview to program. Requests OBS 30 refuses (bounds below 1 px) are refused. Not a real
- * OBS: it certifies the engine's requests and timing, not OBS's picture.
+ * takes the preview to program. Requests OBS 30 refuses (bounds below 1 px, the volume of an input
+ * without audio) are refused. Every volume and mute change is logged with its time (volumeLog). Not a
+ * real OBS: it certifies the engine's requests and timing, not OBS's picture or sound.
  */
 
 interface Item {
@@ -47,6 +48,9 @@ interface Transition {
 
 const BASE_TRANSFORM = { positionX: 0, positionY: 0, rotation: 0, scaleX: 1, scaleY: 1, alignment: 5, boundsType: "OBS_BOUNDS_NONE", boundsAlignment: 0, boundsWidth: 0, boundsHeight: 0, cropLeft: 0, cropRight: 0, cropTop: 0, cropBottom: 0 };
 const MEDIA_DEFAULTS = { restart_on_activate: true, close_when_inactive: false, clear_on_media_end: true };
+/** Input kinds without audio: OBS refuses their volume and mute. */
+const SILENT_KINDS = new Set(["color_source_v3", "image_source", "text_ft2_source_v2", "text_gdiplus_v2"]);
+const mulToDb = (mul: number) => (mul <= 0 ? -100 : 20 * Math.log10(mul));
 
 export class StandInObs extends EventEmitter {
   scenes = new Map<string, Item[]>();
@@ -67,11 +71,15 @@ export class StandInObs extends EventEmitter {
   readonly changes: { scene: string; transition: string; durationMs: number; at: number; media: Record<string, { state: string; cursorMs: number }> }[] = [];
   /** Every media request: "<input> <what>". */
   readonly mediaLog: string[] = [];
+  /** Every volume or mute change: the input, its volume (multiplier) and mute after it, and when (ms since the stand-in started). */
+  readonly volumeLog: { input: string; mul: number; muted: boolean; at: number }[] = [];
   /** How long each file plays (ms), by its path; files not listed play this long. */
   durations = new Map<string, number>();
   defaultDurationMs = 3000;
   /** Files OBS can't open. */
   broken = new Set<string>();
+  /** For an input, this many pause requests are let go (as OBS 30 can do with one sent as a file starts). */
+  readonly dropPauses = new Map<string, number>();
   private nextId = 1;
   private readonly t0 = Date.now();
   private active = new Set<string>();
@@ -84,11 +92,16 @@ export class StandInObs extends EventEmitter {
   static async attach(e: Engine, setup?: (o: StandInObs) => void): Promise<StandInObs> {
     const o = new StandInObs();
     setup?.(o);
+    await o.connectTo(e);
+    return o;
+  }
+
+  /** Makes (another) engine talk to this stand-in, as it is: an engine restarted against the same OBS. */
+  async connectTo(e: Engine): Promise<void> {
     const m = e.obs as unknown as { obs: unknown; bindEvents(): void };
-    m.obs = o;
+    m.obs = this;
     m.bindEvents();
     await e.obs.connect({ id: "stand-in", name: "Stand-in OBS", url: "ws://stand-in", hasPassword: false });
-    return o;
   }
 
   addScene(name: string): void {
@@ -119,6 +132,18 @@ export class StandInObs extends EventEmitter {
     const i = this.inputs.get(name);
     if (!i) throw new Error(`No source was found by the name of "${name}"`);
     return i;
+  }
+
+  /** An input with audio (OBS refuses the others' volume and mute). */
+  private audible(name: string): Input {
+    const i = this.input(name);
+    if (SILENT_KINDS.has(i.kind)) throw new Error("The specified input does not support audio.");
+    return i;
+  }
+
+  private logVolume(name: string): void {
+    const a = this.input(name).audio;
+    this.volumeLog.push({ input: name, mul: a.volumeMul, muted: a.muted, at: Date.now() - this.t0 });
   }
 
   private items(scene: string): Item[] {
@@ -303,7 +328,8 @@ export class StandInObs extends EventEmitter {
         this.settle(m);
         const action = String(d.mediaAction).replace("OBS_WEBSOCKET_MEDIA_INPUT_ACTION_", "").toLowerCase();
         this.mediaLog.push(`${name} ${action}`);
-        if (action === "pause" && m.state === "PLAYING") [m.base, m.anchor, m.state] = [this.cursor(m), null, "PAUSED"];
+        if (action === "pause" && m.state === "PLAYING" && (this.dropPauses.get(name) ?? 0) > 0) this.dropPauses.set(name, this.dropPauses.get(name)! - 1);
+        else if (action === "pause" && m.state === "PLAYING") [m.base, m.anchor, m.state] = [this.cursor(m), null, "PAUSED"];
         if (action === "play" && m.state === "PAUSED") [m.anchor, m.state] = [Date.now(), "PLAYING"];
         if (action === "restart" && m.file) [m.base, m.anchor, m.state] = [0, Date.now(), "PLAYING"];
         if (action === "stop") [m.anchor, m.state] = [null, "STOPPED"];
@@ -333,10 +359,12 @@ export class StandInObs extends EventEmitter {
         if (f) f.enabled = d.filterEnabled === true;
         return {};
       }
-      case "GetInputVolume":
-        return { inputVolumeMul: this.input(String(d.inputName)).audio.volumeMul, inputVolumeDb: 0 };
+      case "GetInputVolume": {
+        const mul = this.audible(String(d.inputName)).audio.volumeMul;
+        return { inputVolumeMul: mul, inputVolumeDb: mulToDb(mul) };
+      }
       case "GetInputMute":
-        return { inputMuted: this.input(String(d.inputName)).audio.muted };
+        return { inputMuted: this.audible(String(d.inputName)).audio.muted };
       case "GetInputAudioMonitorType":
         return { monitorType: this.input(String(d.inputName)).audio.monitorType };
       case "GetInputAudioBalance":
@@ -345,11 +373,15 @@ export class StandInObs extends EventEmitter {
         return { inputAudioSyncOffset: this.input(String(d.inputName)).audio.syncOffsetMs };
       case "GetInputAudioTracks":
         return { inputAudioTracks: { ...this.input(String(d.inputName)).audio.tracks } };
-      case "SetInputVolume":
-        this.input(String(d.inputName)).audio.volumeMul = Number(d.inputVolumeMul);
+      case "SetInputVolume": {
+        const a = this.audible(String(d.inputName)).audio;
+        a.volumeMul = d.inputVolumeMul !== undefined ? Number(d.inputVolumeMul) : Number(d.inputVolumeDb) <= -100 ? 0 : 10 ** (Number(d.inputVolumeDb) / 20);
+        this.logVolume(String(d.inputName));
         return {};
+      }
       case "SetInputMute":
-        this.input(String(d.inputName)).audio.muted = d.inputMuted === true;
+        this.audible(String(d.inputName)).audio.muted = d.inputMuted === true;
+        this.logVolume(String(d.inputName));
         return {};
       case "SetInputAudioMonitorType":
         this.input(String(d.inputName)).audio.monitorType = String(d.monitorType);

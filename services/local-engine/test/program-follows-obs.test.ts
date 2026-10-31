@@ -78,6 +78,27 @@ describe("the program follows OBS to the live scene", () => {
     e.program.setReplayTwin(null, null);
   });
 
+  it("follows OBS to a scene the operator put on there (theirs, MANUAL), not to Matchframe's own, and back to live with OBS", async () => {
+    showScene("Live");
+    expect(e.program.mode).toBe("LIVE");
+    showScene("Analysis");
+    expect([e.program.mode, e.program.operatorScene, e.program.owner]).toEqual(["MANUAL", "Analysis", { kind: "operator", holder: "OBS: Analysis" }]);
+    expect(e.program.history.at(-1)).toMatchObject({ from: "LIVE", to: "MANUAL", owner: "operator", detail: "the mixer shows “Analysis”, put on by the operator" });
+    // Nothing automatic takes it from them.
+    await expect(e.program.request("REPLAY_PREPARED", "automation", "auto-replay")).rejects.toThrow(/owned by operator/);
+    showScene("Casters");
+    expect(e.program.operatorScene).toBe("Casters");
+    showScene("Live");
+    expect([e.program.mode, e.program.operatorScene]).toEqual(["LIVE", null]);
+    // Matchframe's own change to the replay scene isn't followed as theirs.
+    const item = e.replays.bookmark("own", "manual", 5);
+    await e.program.request("REPLAY_PREPARED", "automation", "auto-replay", { replayItemId: item.id });
+    await e.program.request("REPLAY_PLAYING", "automation", "auto-replay", { replayItemId: item.id });
+    showScene("Matchframe Replay");
+    expect([e.program.mode, e.program.owner.holder]).toEqual(["REPLAY_PLAYING", "auto-replay"]);
+    await e.program.request("LIVE", "automation", "auto-replay");
+  });
+
   it("stays out of live while OBS shows another scene", async () => {
     showScene("Matchframe Replay");
     await e.program.request("MANUAL", "operator", "op");

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { api, describeError } from "../../api/index.ts";
-import type { AutoReplayResponse, AutoReplaySettings, NetworkInfo, RankedReplay, ReplayFeedResponse, ReplayPcResponse } from "../../api/types.ts";
+import type { AutoReplayResponse, AutoReplaySettings, NetworkInfo, RankedReplay, ReplayAudioInputs, ReplayFeedResponse, ReplayPcResponse, ReplayTestReport } from "../../api/types.ts";
 import { ActionButton, Badge, Button, Checkbox, CopyButton, Field, Note, Panel, Tabs } from "../../components/ui.tsx";
 import { useToast } from "../../components/toasts.tsx";
 import { useApi } from "../../lib/hooks.ts";
+import { REPLAY_KEYS, replayHotkeys, shortcutLabel, type ReplayHotkeyState, type ReplayKeyAction } from "../../lib/replay-keys.ts";
 import { useSnapshot } from "../../state/live.ts";
 import { usePermission } from "../../state/session.tsx";
 
@@ -26,6 +27,12 @@ const TRANSITIONS = [
 /** When the break's replays end: by a time on the next round's clock (seconds left), or before it starts. */
 const CUT_BACK = [112, 110, 105, 100, 95, 90] as const;
 const FADES = [300, 500, 750, 1000] as const;
+/** The replay media sources' volume: as set in OBS (null), or in dB. */
+const REPLAY_VOLUMES = [null, 6, 3, 0, -3, -6, -10] as const;
+/** The live game audio during replays: muted, or this many dB down. */
+const DUCK_TO = ["mute", -10, -20, -30] as const;
+const STEP_TONE = { pending: "neutral", ok: "ok", failed: "warn", skipped: "neutral" } as const;
+const STEP_LABEL = { pending: "…", ok: "OK", failed: "Failed", skipped: "Skipped" } as const;
 /** A round clock time as CS2 shows it (110 → 1:50). */
 const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 
@@ -58,9 +65,31 @@ export function AutoReplaysPanel() {
     if (st?.vmixUrl) setVmixUrl(st.vmixUrl);
   }, [st?.vmixUrl]);
   const ranked = status?.ranked ?? [];
+  /** A control or a clip's Exclude / Pin: the answer is the panel's new state. */
+  const control = async (path: string, body?: unknown, method: "POST" | "PUT" = "POST") => {
+    try {
+      auto.setData(await (method === "PUT" ? api.put<AutoReplayResponse>(path, body) : api.post<AutoReplayResponse>(path, body)));
+    } catch (e) {
+      toast.push("warn", "Replays", describeError(e));
+    }
+  };
   return (
-    <Panel title="Automatic replays" subtitle={status?.detail} actions={status ? <Badge tone={STATE_TONE[status.state]}>{status.state === "playing" ? "Playing" : status.enabled ? "On" : "Off"}</Badge> : null}>
+    <Panel title="Automatic replays" subtitle={status?.detail} actions={status ? <Badge tone={STATE_TONE[status.state]}>{status.state === "playing" ? (status.held ? "Held" : "Playing") : status.enabled ? "On" : "Off"}</Badge> : null}>
       <div className="stack-sm">
+        {status?.running ? (
+          <div className="row" role="group" aria-label="Replays playing now">
+            <Button variant="primary" disabledReason={reason} title={`Ends the clip on air now (${shortcutLabel("F5")})`} onClick={() => void control("/api/v1/replays/auto/skip")}>
+              Skip
+            </Button>
+            <Button variant={status.held ? "primary" : "secondary"} disabledReason={reason} title={`${status.held ? "Plays it on" : "Pauses the clip on air"} (${shortcutLabel("F6")})`} onClick={() => void control("/api/v1/replays/auto/hold", { held: !status.held })}>
+              {status.held ? "Resume" : "Hold"}
+            </Button>
+            <Button variant="danger" disabledReason={reason} title={`Back to the live scene now, with Replay out (${shortcutLabel("F7")})`} onClick={() => void control("/api/v1/replays/auto/stop")}>
+              Stop and go live
+            </Button>
+            <span className="muted small">{status.held ? "Held: nothing plays on until Resume. The round clock still cuts back to live." : `${shortcutLabel("F5")} Skip · ${shortcutLabel("F6")} Hold · ${shortcutLabel("F7")} Stop`}</span>
+          </div>
+        ) : null}
         <Checkbox
           checked={st?.enabled ?? false}
           disabled={off}
@@ -176,20 +205,212 @@ export function AutoReplaysPanel() {
               {ranked.map((r) => (
                 <li key={r.id} className="row">
                   <Badge tone={RANKED_STATE[r.state].tone}>{RANKED_STATE[r.state].label}</Badge>
+                  {r.pinned ? <Badge tone="accent">Pinned first</Badge> : null}
                   <span>{r.label}</span>
                   <span className="muted">
                     {r.score}
                     {r.reasons.length ? ` · ${r.reasons.join(", ")}` : ""}
                   </span>
                   {r.note ? <span className="text-warn">{r.note}</span> : null}
+                  {r.state !== "played" && r.state !== "picked" && (!r.note || r.excluded) ? (
+                    <span className="row">
+                      <Button size="sm" variant="ghost" disabledReason={reason} aria-label={`${r.excluded ? "Include" : "Exclude"} ${r.label}`} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(r.id)}`, { excluded: !r.excluded }, "PUT")}>
+                        {r.excluded ? "Include" : "Exclude"}
+                      </Button>
+                      {!r.excluded ? (
+                        <Button size="sm" variant="ghost" disabledReason={reason} aria-label={`${r.pinned ? "Unpin" : "Pin first"} ${r.label}`} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(r.id)}`, { pinned: !r.pinned }, "PUT")}>
+                          {r.pinned ? "Unpin" : "Pin first"}
+                        </Button>
+                      ) : null}
+                    </span>
+                  ) : null}
                 </li>
               ))}
             </ol>
           </div>
         ) : null}
         {status?.lastPlayed ? <p className="small muted">Last replay: {status.lastPlayed.label}</p> : null}
+        {st ? <ReplaySound st={st} status={status ?? null} save={save} off={off} /> : null}
+        <TestReplays report={status?.test ?? null} running={!!status?.running} reason={reason} onDone={(r) => auto.setData(r)} />
+        <ReplayHotkeys />
       </div>
     </Panel>
+  );
+}
+
+/**
+ * The replays' sound: the replay media sources' volume, and the live game audio turned down while
+ * they play (the inputs picked, how far), put back exactly after.
+ */
+function ReplaySound({ st, status, save, off }: { st: AutoReplaySettings; status: AutoReplayResponse["status"] | null; save: (patch: Partial<AutoReplaySettings>) => Promise<void>; off: boolean }) {
+  const [inputs, setInputs] = useState<ReplayAudioInputs | null>(null);
+  const toast = useToast();
+  const vmix = st.mixer === "vmix";
+  const picked = (vmix ? st.duckVmixInputs : st.duckInputs) ?? [];
+  const find = async () => {
+    try {
+      setInputs(await api.get<ReplayAudioInputs>("/api/v1/replays/audio-inputs"));
+    } catch (e) {
+      toast.push("warn", "Audio inputs not read", describeError(e));
+    }
+  };
+  useEffect(() => {
+    void find();
+  }, [st.mixer]);
+  const pick = (id: string, on: boolean) => {
+    const next = on ? [...picked, id] : picked.filter((x) => x !== id);
+    void save(vmix ? { duckVmixInputs: next } : { duckInputs: next });
+  };
+  const list = inputs && inputs.mixer === st.mixer ? inputs.inputs : [];
+  // Picked inputs the mixer doesn't list (renamed, removed): still shown, so they can be unpicked.
+  const missing = picked.filter((id) => !list.some((i) => i.id === id));
+  const audio = status?.audio;
+  return (
+    <div className="stack-sm" aria-label="Sound during replays">
+      <h4 className="hud-section-title">Sound</h4>
+      <div className="form-grid">
+        <Field label="Replay volume" hint={vmix ? "Each replay input in vMix (its fader; above 0 dB its gain)." : "Both replay media sources (your replay scene's and its copy). Above 0 dB is louder than recorded."}>
+          <select value={st.replayVolumeDb === null || st.replayVolumeDb === undefined ? "" : String(st.replayVolumeDb)} disabled={off} onChange={(e) => void save({ replayVolumeDb: e.target.value === "" ? null : Number(e.target.value) })}>
+            {[...REPLAY_VOLUMES, ...(st.replayVolumeDb !== null && st.replayVolumeDb !== undefined && !(REPLAY_VOLUMES as readonly (number | null)[]).includes(st.replayVolumeDb) ? [st.replayVolumeDb] : [])].map((db) => (
+              <option key={String(db)} value={db === null ? "" : String(db)}>
+                {db === null ? (vmix ? "As vMix has it" : "As set in OBS") : db === 0 ? "0 dB (as recorded)" : `${db > 0 ? "+" : ""}${db} dB`}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Live game audio during replays" hint="Turned down with a short ramp as the replays start, and back to exactly where it was after them, however they end.">
+          <select value={String(st.duckTo ?? -20)} disabled={off} onChange={(e) => void save({ duckTo: e.target.value === "mute" ? "mute" : Number(e.target.value) })}>
+            {DUCK_TO.map((d) => (
+              <option key={String(d)} value={String(d)}>
+                {d === "mute" ? "Muted" : `${d} dB`}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <div className="stack-sm" role="group" aria-label="Live game audio inputs">
+        <span className="small muted">The live game audio: tick the {vmix ? "vMix inputs" : "OBS audio inputs"} with the game's sound. Only these are touched: leave casters' microphones unticked.</span>
+        {inputs?.error ? <span className="small text-warn">{inputs.error}</span> : null}
+        {list.map((i) => (
+          <Checkbox key={i.id} checked={picked.includes(i.id)} disabled={off || i.replay} label={`${i.name}${i.replay ? " (a replay source: never turned down)" : ""}`} hint={vmix ? `vMix volume ${Math.round(i.volume)}${i.muted ? ", off" : ""}` : `${i.volume <= -100 ? "-inf" : i.volume} dB${i.muted ? ", muted" : ""}`} onChange={(v) => pick(i.id, v)} />
+        ))}
+        {missing.map((id) => (
+          <Checkbox key={id} checked disabled={off} label={`${id} (not found in ${vmix ? "vMix" : "OBS"})`} onChange={() => pick(id, false)} />
+        ))}
+        <div className="row">
+          <Button size="sm" onClick={() => void find()}>
+            Find audio inputs
+          </Button>
+          {audio ? <span className={`small ${audio.state === "lowered" ? "text-warn" : "muted"}`}>{audio.detail}</span> : null}
+        </div>
+        {audio?.lastRestore && !audio.lastRestore.ok ? <span className="small text-warn">{audio.lastRestore.detail}</span> : null}
+      </div>
+      <p className="muted small">Replays carry the replay PC's game sound: the replay feed records it with the picture (when its NDI sender sends sound), and clips from its OBS replay buffer have the tracks its OBS records.</p>
+    </div>
+  );
+}
+
+/** Test replays: two sample clips on program now, through the whole chain, then what worked and how to fix what didn't. */
+function TestReplays({ report, running, reason, onDone }: { report: ReplayTestReport | null; running: boolean; reason: string | null; onDone: (r: AutoReplayResponse) => void }) {
+  return (
+    <div className="stack-sm" aria-label="Test replays">
+      <h4 className="hud-section-title">Test replays</h4>
+      <div className="row">
+        <ActionButton
+          action={() => api.post<AutoReplayResponse>("/api/v1/replays/auto/test")}
+          confirm={{
+            title: "Test replays on air?",
+            body: "This plays on your program output now: two sample clips (Test clip 1 and 2) with Replay in, the fade between them and Replay out, the live game audio turned down meanwhile. It takes about 10 seconds.",
+            confirmLabel: "Play the test now",
+          }}
+          success={null}
+          onDone={onDone}
+          disabledReason={reason ?? (report?.state === "running" ? "Test replays are playing" : running ? "Replays are playing" : null)}
+        >
+          Test replays
+        </ActionButton>
+        <span className="muted small">Plays two sample clips through the same path as a break's replays. Not while a round is live.</span>
+      </div>
+      {report ? (
+        <ol className="stack-sm small" aria-label="Test replays report">
+          {report.steps.map((s) => (
+            <li key={s.id} className="stack-sm">
+              <div className="row">
+                <Badge tone={STEP_TONE[s.state]}>{STEP_LABEL[s.state]}</Badge>
+                <span>{s.label}</span>
+                {s.detail ? <span className="muted">{s.detail}</span> : null}
+              </div>
+              {s.state === "failed" && s.fix ? <span className="text-warn">Fix: {s.fix}</span> : null}
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {report && report.state !== "running" ? <span className={`small ${report.state === "passed" ? "muted" : "text-warn"}`}>{report.state === "passed" ? "Every step worked." : "Some steps failed: see Fix above, then test again."}</span> : null}
+    </div>
+  );
+}
+
+/** Keys for the replays playing: the console's own, and (in the program) global hotkeys that work with CS2 or OBS in front. */
+function ReplayHotkeys() {
+  const bridge = replayHotkeys();
+  const [state, setState] = useState<ReplayHotkeyState | null>(null);
+  const [draft, setDraft] = useState<Record<ReplayKeyAction, string>>({ skip: "", hold: "", stop: "" });
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    void bridge
+      ?.get()
+      .then((s) => {
+        setState(s);
+        setDraft({ skip: s.keys.skip ?? "", hold: s.keys.hold ?? "", stop: s.keys.stop ?? "" });
+      })
+      .catch((e) => setError(describeError(e)));
+  }, [bridge]);
+  const set = async (patch: Partial<Record<ReplayKeyAction, string | null>>) => {
+    if (!bridge) return;
+    setError(null);
+    try {
+      const s = await bridge.set(patch);
+      setState(s);
+      setDraft({ skip: s.keys.skip ?? "", hold: s.keys.hold ?? "", stop: s.keys.stop ?? "" });
+    } catch (e) {
+      setError(describeError(e));
+    }
+  };
+  return (
+    <div className="stack-sm" aria-label="Replay hotkeys">
+      <h4 className="hud-section-title">Hotkeys and Stream Deck</h4>
+      <p className="muted small">In the console: {REPLAY_KEYS.map((k) => `${shortcutLabel(k.key)} ${k.label}`).join(" · ")}. Stream Deck and Bitfocus Companion: the device actions replay_skip, replay_hold, replay_stop, replay_exclude and replay_pin (see the Replay PC guide).</p>
+      {bridge ? (
+        <div className="stack-sm">
+          <span className="small muted">Global hotkeys work with CS2 or OBS in front. They are off until set; the suggested keys aren't used by CS2 or OBS.</span>
+          <div className="form-grid">
+            {REPLAY_KEYS.map((k) => (
+              <Field key={k.id} label={`${k.label} (global)`} hint={state?.errors[k.id] ?? (state?.keys[k.id] ? (state.registered[k.id] ? "Registered" : "Not registered") : "Off")}>
+                <input value={draft[k.id]} placeholder={state?.suggested[k.id] ?? ""} spellCheck={false} onChange={(e) => setDraft((d) => ({ ...d, [k.id]: e.target.value }))} onBlur={() => draft[k.id] !== (state?.keys[k.id] ?? "") && void set({ [k.id]: draft[k.id].trim() || null })} />
+              </Field>
+            ))}
+          </div>
+          <div className="row">
+            <Button size="sm" disabledReason={!state ? "Loading…" : null} onClick={() => state && void set(state.suggested)}>
+              Use the suggested keys
+            </Button>
+            <Button size="sm" variant="ghost" disabledReason={!state ? "Loading…" : null} onClick={() => void set({ skip: null, hold: null, stop: null })}>
+              Turn them off
+            </Button>
+          </div>
+          {REPLAY_KEYS.filter((k) => state?.errors[k.id]).map((k) => (
+            <span key={k.id} className="small text-warn" role="alert">
+              {state!.errors[k.id]}
+            </span>
+          ))}
+          {error ? (
+            <span className="small text-warn" role="alert">
+              {error}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -421,6 +642,7 @@ function ReplayFeedSection() {
               {status.dropped ? ` · ${status.dropped} dropped (encoder behind: try another encoder)` : ""} · {status.clips} clips cut
             </span>
           ) : null}
+          {status.state === "recording" && status.audio ? <span className={status.audio.recording ? "muted" : "text-warn"}>{status.audio.detail}</span> : null}
         </div>
       ) : null}
     </div>

@@ -45,6 +45,9 @@ extraResources:
     to: radars
   - from: ../../assets/utility-profiles
     to: utility-profiles
+  # The Test replays button's two sample clips (Automatic replays): played on program to test the replay chain.
+  - from: ../../assets/replay-test
+    to: replay-test
   # Built-in models (the demo-trained POV model).
   - from: ../../assets/models
     to: models

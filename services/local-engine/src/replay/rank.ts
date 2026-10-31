@@ -134,11 +134,19 @@ export function nextReplay(candidates: readonly PlanCandidate[], availableMs: nu
  * A break's replays, played back to back: the best candidates that fit together in `availableMs`
  * (one cut to the replay and back, SWITCH_MS from one clip to the next), up to `max`, chosen as
  * nextReplay chooses. Then in round order (earliest play first, an unknown time last) or best first.
+ * A clip the operator pinned (`pinned`) is chosen first and plays first, if it fits.
  */
-export function planBreak(candidates: readonly PlanCandidate[], availableMs: number, speedPercent: number, max: number, order: "round" | "best" = "round"): { id: string; playMs: number; leadMs: number | null }[] {
+export function planBreak(candidates: readonly PlanCandidate[], availableMs: number, speedPercent: number, max: number, order: "round" | "best" = "round", pinned: string | null = null): { id: string; playMs: number; leadMs: number | null }[] {
   const chosen: { c: PlanCandidate; playMs: number }[] = [];
   let left = availableMs;
   let rest = [...candidates];
+  const pin = pinned ? rest.find((x) => x.id === pinned) : undefined;
+  const pinMs = pin ? fitReplay(pin, left, speedPercent, CUT_MS) : null;
+  if (pin && pinMs !== null) {
+    chosen.push({ c: pin, playMs: pinMs });
+    left -= (pinMs * 100) / speedPercent + CUT_MS;
+    rest = rest.filter((x) => x !== pin);
+  }
   while (chosen.length < max) {
     const overhead = chosen.length ? SWITCH_MS : CUT_MS;
     const pick = nextReplay(rest, left, speedPercent, overhead);
@@ -148,7 +156,7 @@ export function planBreak(candidates: readonly PlanCandidate[], availableMs: num
     left -= (pick.playMs * 100) / speedPercent + overhead;
     rest = rest.filter((x) => x !== c);
   }
-  const at = (x: { c: PlanCandidate }) => x.c.at ?? Number.MAX_SAFE_INTEGER;
+  const at = (x: { c: PlanCandidate }) => (x.c === pin ? Number.MIN_SAFE_INTEGER : (x.c.at ?? Number.MAX_SAFE_INTEGER));
   if (order === "round") chosen.sort((a, b) => at(a) - at(b));
   // A shortened clip keeps what is left of its lead-up (it may be shortened again to fit later).
   return chosen.map(({ c, playMs }) => ({ id: c.id, playMs, leadMs: c.leadMs === null ? null : c.leadMs - (c.playMs - playMs) }));

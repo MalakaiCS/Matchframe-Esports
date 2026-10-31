@@ -10,6 +10,7 @@ import { OverlayManager } from "./hud/overlays.ts";
 import { OverlayStore } from "./hud/store.ts";
 import type { Library } from "./hud/types.ts";
 import { hlaeInfo, startCs2, type PreparedLaunch } from "./game-launch.ts";
+import { DEVICE_ACTION, ReplayHotkeys, type ReplayKeyAction, type ReplayKeys } from "./replay-hotkeys.ts";
 import { createTray, type ProgramTray } from "./tray.ts";
 import { createUpdater, type Updater } from "./updater.ts";
 
@@ -62,6 +63,7 @@ let overlays: OverlayManager | null = null;
 let hotkeys: HotkeyManager | null = null;
 let tray: ProgramTray | null = null;
 let updater: Updater | null = null;
+let replayKeys: ReplayHotkeys | null = null;
 
 /** Small program preferences (not engine settings): `<userData>/program-settings.json`. */
 interface ProgramSettings {
@@ -70,14 +72,16 @@ interface ProgramSettings {
   hlaePath: string | null;
   /** The engine listens on the network (a replay PC or another operator position connects), not only on this computer. */
   networkAccess: boolean;
+  /** Global hotkeys for the replays playing (replay-hotkeys.ts); off unless set. */
+  replayHotkeys: Partial<ReplayKeys>;
 }
 const programSettingsFile = () => join(app.getPath("userData"), "program-settings.json");
 function readProgramSettings(): ProgramSettings {
   try {
     const raw = JSON.parse(readFileSync(programSettingsFile(), "utf8")) as Partial<ProgramSettings>;
-    return { autoDownloadUpdates: raw.autoDownloadUpdates !== false, hlaePath: typeof raw.hlaePath === "string" ? raw.hlaePath : null, networkAccess: raw.networkAccess === true };
+    return { autoDownloadUpdates: raw.autoDownloadUpdates !== false, hlaePath: typeof raw.hlaePath === "string" ? raw.hlaePath : null, networkAccess: raw.networkAccess === true, replayHotkeys: raw.replayHotkeys && typeof raw.replayHotkeys === "object" ? raw.replayHotkeys : {} };
   } catch {
-    return { autoDownloadUpdates: true, hlaePath: null, networkAccess: false };
+    return { autoDownloadUpdates: true, hlaePath: null, networkAccess: false, replayHotkeys: {} };
   }
 }
 function writeProgramSettings(patch: Partial<ProgramSettings>): void {
@@ -265,6 +269,8 @@ function startEngine(): void {
     MATCHFRAME_UTILITY_PROFILES: resourcesPath(isDev ? "assets/utility-profiles/measured.json" : "utility-profiles/measured.json"),
     MATCHFRAME_MODELS_DIR: resourcesPath(isDev ? "assets/models" : "models"),
     MATCHFRAME_WORKERS_DIR: resourcesPath("workers"),
+    // The Test replays button's two sample clips.
+    MATCHFRAME_REPLAY_TEST_DIR: resourcesPath(isDev ? "assets/replay-test" : "replay-test"),
     MATCHFRAME_GSI_PORT: String(PORTS.gsi),
     MATCHFRAME_API_PORT: String(PORTS.api),
     MATCHFRAME_OVERLAY_PORT: String(PORTS.overlay),
@@ -394,6 +400,20 @@ async function emergencyStop(): Promise<void> {
   } catch (e) {
     console.error("emergency stop request failed", e);
   }
+}
+
+/** A replay hotkey: the engine's control-surface action (the same as a Stream Deck button); a notification only when it can't. */
+async function runReplayKey(action: ReplayKeyAction): Promise<void> {
+  const token = accessToken();
+  if (!token) return;
+  let message: string | null = null;
+  try {
+    const res = await net.fetch(`${engineOrigin()}/api/v1/devices/actions/${DEVICE_ACTION[action]}`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: "{}", signal: AbortSignal.timeout(5000) });
+    if (!res.ok) message = ((await res.json().catch(() => ({}))) as { message?: string }).message ?? `HTTP ${res.status}`;
+  } catch (e) {
+    message = e instanceof Error ? e.message : String(e);
+  }
+  if (message && Notification.isSupported()) new Notification({ title: "Replays", body: message, silent: true }).show();
 }
 
 /** The save-view hotkey: the engine reads CS2's camera (getpos) and saves it; a notification says how it went. */
@@ -551,6 +571,16 @@ ipcMain.handle("mf:launch-cs2", async (event) => {
   }
 });
 ipcMain.handle("mf:hlae-info", (event) => (fromApp(event) ? hlaeInfo(readProgramSettings().hlaePath) : null));
+// Replay hotkeys (replay-hotkeys.ts): `{ ok, value | error }`, as the desktop HUD calls.
+ipcMain.handle("mf:replay-hotkeys", (event) => (fromApp(event) && replayKeys ? { ok: true, value: replayKeys.state() } : { ok: false, error: "not available" }));
+ipcMain.handle("mf:replay-hotkeys-set", (event, patch: unknown) => {
+  if (!fromApp(event) || fromApp(event, "/connect") || !replayKeys) return { ok: false, error: "not allowed" };
+  try {
+    return { ok: true, value: replayKeys.set(patch) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+});
 ipcMain.handle("mf:hlae-choose", async (event) => {
   if (!fromApp(event) || !win) return null;
   const r = await dialog.showOpenDialog(win, { title: "Choose HLAE.exe", properties: ["openFile"], filters: [{ name: "HLAE", extensions: ["exe"] }] });
@@ -670,6 +700,22 @@ if (!app.requestSingleInstanceLock()) {
     if (!globalShortcut.register(EMERGENCY_HOTKEY, () => void emergencyStop())) console.error(`could not register emergency-stop hotkey ${EMERGENCY_HOTKEY}`);
     if (!globalShortcut.register(SAVE_VIEW_HOTKEY, () => void saveCs2View())) console.error(`could not register save-view hotkey ${SAVE_VIEW_HOTKEY}`);
     setUpDesktopHuds();
+    replayKeys = new ReplayHotkeys({
+      shortcuts: globalShortcut,
+      reserved: () => {
+        const hud = hotkeys?.state();
+        return [
+          { accelerator: EMERGENCY_HOTKEY, name: "emergency stop" },
+          { accelerator: SAVE_VIEW_HOTKEY, name: "save the CS2 view" },
+          ...(hud ? [{ accelerator: hud.toggle, name: "show or hide the desktop HUDs" }, { accelerator: hud.emergencyHide, name: "hide all HUD graphics" }] : []),
+        ];
+      },
+      load: () => readProgramSettings().replayHotkeys,
+      save: (keys) => writeProgramSettings({ replayHotkeys: keys }),
+      run: (action) => void runReplayKey(action),
+      log: (msg) => console.error(msg),
+    });
+    replayKeys.register();
     updater = createUpdater({
       autoDownload: readProgramSettings().autoDownloadUpdates,
       saveAutoDownload: (on) => writeProgramSettings({ autoDownloadUpdates: on }),

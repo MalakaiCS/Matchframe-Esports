@@ -49,6 +49,8 @@ const fail = (status: number, message: string) => Object.assign(new Error(messag
 
 export class ReplayQueue {
   private items: QueueItem[] = [];
+  /** Clips never listed (list, playlist), found only by their id: the Test replays button's sample clips. */
+  private unlisted = new Map<string, QueueItem>();
   private counter = 0;
 
   constructor(
@@ -66,7 +68,23 @@ export class ReplayQueue {
   }
 
   get(id: string): QueueItem | undefined {
-    return this.items.find((i) => i.id === id);
+    return this.items.find((i) => i.id === id) ?? this.unlisted.get(id);
+  }
+
+  /**
+   * A clip that is never listed: not in list() (so never ranked, never in an automatic break) nor in
+   * playlist() (highlights), only found by its id until removed. For sample clips played to test the
+   * replay chain (replay/test-run.ts); `reason` is "test".
+   */
+  addUnlisted(label: string, clip: ClipRecord, extra: Partial<Pick<QueueItem, "playMs" | "leadMs" | "play">> = {}): QueueItem {
+    const it: QueueItem = { id: `test_${Date.now().toString(36)}_${this.counter++}`, state: "prepared", label, reason: "test", roundNumber: null, createdAt: new Date().toISOString(), clip, error: null, order: -1, trim: null, origin: "main", priority: 0, playMs: null, play: null, ...extra };
+    this.unlisted.set(it.id, it);
+    return it;
+  }
+
+  /** Removes an unlisted clip (listed ones stay: they are the match's). */
+  removeUnlisted(id: string): void {
+    this.unlisted.delete(id);
   }
 
   bookmark(label: string, reason: string, roundNumber: number | null, extra: Partial<Pick<QueueItem, "priority" | "playMs" | "leadMs" | "play">> = {}): QueueItem {

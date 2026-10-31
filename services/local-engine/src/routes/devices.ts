@@ -21,6 +21,28 @@ interface DeviceAction {
 
 const NoParams = z.object({}).strict();
 
+/** A clip of the round's list (automatic replays): its id, its place in the list as shown (1 = the best), or the next one to play. */
+const ClipTarget = z.object({ id: z.string().max(80).optional(), rank: z.number().int().min(1).max(30).optional(), next: z.boolean().optional() });
+
+function clipFor(e: Engine, p: z.infer<typeof ClipTarget>): string {
+  const ranked = e.autoReplay.getStatus().ranked;
+  if (p.id) return p.id;
+  if (p.rank !== undefined) {
+    const r = ranked[p.rank - 1];
+    if (!r) throw new HttpError(404, `the round's list has no clip ${p.rank}`, "no_clip");
+    return r.id;
+  }
+  if (p.next) {
+    const r = ranked.find((x) => x.state === "waiting" && !x.excluded);
+    if (!r) throw new HttpError(404, "no clip is waiting to play", "no_clip");
+    return r.id;
+  }
+  throw new HttpError(400, "give the clip's id, its rank in the round's list, or next: true", "validation");
+}
+
+/** What a replay action reports: the replays' state now. */
+const replayResult = (e: Engine, st: ReturnType<Engine["autoReplay"]["getStatus"]>) => ({ state: st.state, detail: st.detail, running: st.running, held: st.held, onAir: st.playing, position: st.position });
+
 const ACTIONS: DeviceAction[] = [
   {
     id: "emergency_stop",
@@ -155,6 +177,41 @@ const ACTIONS: DeviceAction[] = [
     },
   },
   {
+    id: "replay_skip",
+    label: "Replays: skip the clip on air (the next one comes in, or back to live after the last)",
+    permission: "replay.control",
+    params: NoParams,
+    run: (e) => replayResult(e, e.autoReplay.skip()),
+  },
+  {
+    id: "replay_stop",
+    label: "Replays: stop and go live (Replay out)",
+    permission: "replay.control",
+    params: NoParams,
+    run: (e) => replayResult(e, e.autoReplay.stop()),
+  },
+  {
+    id: "replay_hold",
+    label: "Replays: hold the clip on air, or resume (toggles; held true/false sets it)",
+    permission: "replay.control",
+    params: z.object({ held: z.boolean().optional() }),
+    run: (e, _req, p: { held?: boolean }) => replayResult(e, e.autoReplay.hold(p.held)),
+  },
+  {
+    id: "replay_exclude",
+    label: "Replays: exclude a clip of the round (id, rank in the round's list, or next: the next to play; toggles unless excluded is given)",
+    permission: "replay.control",
+    params: ClipTarget.extend({ excluded: z.boolean().optional() }),
+    run: (e, _req, p: z.infer<typeof ClipTarget> & { excluded?: boolean }) => replayResult(e, e.autoReplay.exclude(clipFor(e, p), p.excluded)),
+  },
+  {
+    id: "replay_pin",
+    label: "Replays: pin a clip of the round to play first, if it fits (id or rank in the round's list; toggles unless pinned is given)",
+    permission: "replay.control",
+    params: ClipTarget.extend({ pinned: z.boolean().optional() }),
+    run: (e, _req, p: z.infer<typeof ClipTarget> & { pinned?: boolean }) => replayResult(e, e.autoReplay.pin(clipFor(e, p), p.pinned)),
+  },
+  {
     id: "return_live",
     label: "Return program to LIVE",
     permission: "program.control",
@@ -175,6 +232,9 @@ const ACTIONS: DeviceAction[] = [
   },
 ];
 
+/** Automatic replays for button lights: playing (and which clip of how many), held, the round's clips waiting. */
+const replayTally = (e: Engine) => e.autoReplay.brief();
+
 /** Compact, poll-friendly state for button tally lights. */
 export function tally(e: Engine) {
   const s = e.session.state();
@@ -187,6 +247,7 @@ export function tally(e: Engine) {
     obs: { connected: e.obs.state.connected, programScene: e.obs.state.programScene, previewScene: e.obs.state.previewScene, streaming: e.obs.state.streaming, recording: e.obs.state.recording },
     director: { mode: e.session.director.currentMode, hold: e.session.director.controls.hold !== null, cinematic: e.session.director.shotPlanner.activeCinematic?.shotKey ?? null },
     control: { owner: own.owner, holder: own.holder, automationActive: e.session.arbiter.automationAllowed, manualSticky: own.manualSticky, emergencyStopped: own.emergencyStopped, resumeInMs: e.session.arbiter.resumePendingInMs() },
+    replay: replayTally(e),
     pov: observed,
     slots: (s?.players ?? [])
       .filter((p) => p.observerKey !== null && !p.coach)

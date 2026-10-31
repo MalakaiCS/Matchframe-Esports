@@ -56,6 +56,8 @@ export class ProgramArbiter {
   private changing: ProgramMode | null = null;
   /** The replay scene's twin (replay/twin.ts), and the replay scene it is the twin of: a break's replays alternate between the two, so it counts as the replay scene. */
   private twin: { scene: string; of: string } | null = null;
+  /** The operator's own scene the program follows (MANUAL): one OBS showed that Matchframe didn't put there. */
+  private followed: string | null = null;
 
   constructor(
     private readonly mixer: MixerPort | null,
@@ -116,9 +118,41 @@ export class ProgramArbiter {
     this.mode = "LIVE";
     this.owner = { kind: "operator", holder };
     this.replayItemId = null;
+    this.followed = null;
     this.history.push(t);
     if (this.history.length > 500) this.history.shift();
     return t;
+  }
+
+  /**
+   * The mixer shows a scene the operator put there (with OBS itself, a multiview, a hotkey): not the
+   * live scene, and not one Matchframe put on. The program is theirs (MANUAL, the operator's, its
+   * holder naming the scene) until the mixer shows the live scene again (followMixerLive): nothing
+   * automatic changes it meanwhile. Not while a change of the program's own is under way.
+   */
+  followMixerScene(scene: string): ProgramTransition | null {
+    if (this.changing || (this.mode === "MANUAL" && this.followed === scene)) return null;
+    const holder = `OBS: ${scene}`;
+    const t: ProgramTransition = { from: this.mode, to: "MANUAL", owner: "operator", holder, at: new Date().toISOString(), confirmed: true, detail: `the mixer shows “${scene}”, put on by the operator` };
+    this.mode = "MANUAL";
+    this.owner = { kind: "operator", holder };
+    this.replayItemId = null;
+    this.followed = scene;
+    this.history.push(t);
+    if (this.history.length > 500) this.history.shift();
+    return t;
+  }
+
+  /** The operator's own scene the program follows now (put on in OBS), or null. */
+  get operatorScene(): string | null {
+    return this.mode === "MANUAL" ? this.followed : null;
+  }
+
+  /** Whether `scene` is what the program shows in its mode (its mode's scene, a replay scene during a replay, the operator's scene followed). */
+  showsScene(scene: string): boolean {
+    if (this.mode === "REPLAY_PLAYING" || this.mode === "REPLAY_PREPARED") return this.replayScenes.includes(scene);
+    if (this.mode === "MANUAL") return this.followed === scene;
+    return this.sceneFor(this.mode) === scene;
   }
 
   async request(to: ProgramMode, owner: ProgramOwner, holder: string, opts: { replayItemId?: string } = {}): Promise<ProgramTransition> {
@@ -164,6 +198,7 @@ export class ProgramArbiter {
     }
     if (opts.replayItemId) this.replayItemId = opts.replayItemId;
     if (to === "LIVE") this.replayItemId = null;
+    this.followed = null;
     this.mode = to;
     this.owner = { kind: to === "LIVE" ? "operator" : owner, holder };
     const t: ProgramTransition = { from, to, owner, holder, at: new Date().toISOString(), confirmed, detail };

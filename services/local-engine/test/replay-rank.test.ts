@@ -4,6 +4,7 @@ import type { ReplayPlay } from "@matchframe/replay-agent";
 import type { Engine } from "../src/app.ts";
 import { AutoReplay } from "../src/replay/auto.ts";
 import { clipScore, CUT_MS, fitReplay, MIN_LEAD_MS, NO_FACTS, nextReplay, planBreak, replayWallMs, SWITCH_MS } from "../src/replay/rank.ts";
+import { parseVmixXml, vmixVolumeAfter } from "../src/replay/vmix.ts";
 
 const play = (p: Partial<ReplayPlay>): ReplayPlay => ({ kind: "shown", killer: { steamId: "1", name: "haze" }, victims: ["kite"], kills: 1, weapon: "ak47", headshot: false, ...p });
 
@@ -67,6 +68,10 @@ describe("ranking a round's clips", () => {
     // In slow motion (50 %) each takes twice as long: one fits in the same time.
     expect(planBreak(c, three, 50, 3).map((p) => p.id)).toEqual(["late"]);
     expect(planBreak(c, 1000, 100, 3)).toEqual([]);
+    // The operator's pin: chosen first and played first, if it fits (here the worst, in round order and best first); one that doesn't fit isn't.
+    expect(planBreak(c, 30_000, 100, 3, "round", "early").map((p) => p.id)).toEqual(["early", "late", "unknown"]);
+    expect(planBreak(c, 30_000, 100, 3, "best", "middle").map((p) => p.id)).toEqual(["middle", "late", "unknown"]);
+    expect(planBreak([...c, { id: "long", score: 1, playMs: 40_000, leadMs: null, at: 0 }], 30_000, 100, 2, "round", "long").map((p) => p.id)).toEqual(["late", "unknown"]);
     expect(fitReplay({ playMs: 4000, leadMs: 2500 }, 4000 + SWITCH_MS, 100, SWITCH_MS)).toBe(4000);
     expect(fitReplay({ playMs: 4000, leadMs: 2500 }, 3500 + SWITCH_MS, 100, SWITCH_MS)).toBe(3500);
     expect(fitReplay({ playMs: 4000, leadMs: 2500 }, 3500 + SWITCH_MS, 100, SWITCH_MS + 1)).toBeNull();
@@ -140,5 +145,21 @@ describe("when a break's replays must end", () => {
       ["c4", 6000],
     ]);
     expect(planBreak(clips, before, 100, 4).map((p) => p.id)).toEqual(["c2", "c3", "c4"]);
+  });
+});
+
+describe("vMix's audio", () => {
+  it("reads each input's fader and mute, and moves a fader by decibels on vMix's fourth-power curve", () => {
+    const st = parseVmixXml(`<vmix><version>27</version><inputs><input key="g" number="1" type="Capture" title="Game" state="Running" position="0" duration="0" volume="80" muted="False">Game</input><input key="m" number="2" type="Audio" title="Mic" state="Running" position="0" duration="0" volume="100" muted="True">Mic</input><input key="t" number="3" type="GT" title="Title" state="Running" position="0" duration="0">Title</input></inputs><active>1</active></vmix>`);
+    expect(st.inputs.map((i) => [i.key, i.volume, i.muted])).toEqual([
+      ["g", 80, false],
+      ["m", 100, true],
+      ["t", null, null],
+    ]);
+    // −20 dB is a tenth of the amplitude: (v / 100)^4 a tenth as much.
+    expect(vmixVolumeAfter(100, -20)).toBeCloseTo(56.234, 3);
+    expect((vmixVolumeAfter(80, -20) / 80) ** 4).toBeCloseTo(0.1, 6);
+    expect(vmixVolumeAfter(100, -6)).toBeCloseTo(84.14, 2);
+    expect(vmixVolumeAfter(90, 20)).toBe(100);
   });
 });

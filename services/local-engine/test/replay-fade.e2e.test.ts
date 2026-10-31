@@ -191,6 +191,28 @@ describe("Replay break: fading from one clip to the next through the replay scen
     expect([o.current, o.durationMs]).toEqual(["Fade", 300]);
   });
 
+  it("a clip waiting off air whose pause OBS lets go still comes in at its part: the pause sent again, or the clip put back before it goes on air", async () => {
+    for (const [n, drops] of [
+      [30, 1],
+      [31, 6],
+    ] as const) {
+      await feed("live", n);
+      const round = e.session.state()!.roundNumber!;
+      add(round, "first", 2, files[0]!);
+      add(round, "second", 1, files[1]!);
+      o.dropPauses.set("replay B", drops);
+      o.changes.length = 0;
+      await feed("over", n);
+      await waitFor(done);
+      await settle();
+      expect(o.changes.map((c) => c.scene)).toEqual(["My Replay", "My Replay B", "Game"]);
+      const m = o.changes[1]!.media["replay B"]!;
+      expect(m.cursorMs, `${drops} pauses let go`).toBeGreaterThanOrEqual(DURATION - PLAY);
+      expect(m.cursorMs, `${drops} pauses let go`).toBeLessThanOrEqual(DURATION - PLAY + 80);
+      expect(o.dropPauses.get("replay B")).toBe(0);
+    }
+  });
+
   it("cuts between clips when chosen: the next one as the one on air ends", async () => {
     e.autoReplay.setSettings({ between: "cut", perBreak: 2 });
     e.obsAuto.setSettings({ replayIn: "", replayOut: null });
@@ -227,7 +249,11 @@ describe("Replay break: fading from one clip to the next through the replay scen
     await new Promise((r) => setTimeout(r, 2500));
     expect(o.changes.map((c) => c.scene)).toEqual(["My Replay", "Desk"]);
     expect(e.replays.list().filter((i) => i.roundNumber === round).map((i) => i.state)).toEqual(["played", "prepared"]);
-    expect(e.autoReplay.getStatus().detail).toMatch(/isn't live/);
+    // The program follows OBS to the operator's scene (replay-controls.e2e.test.ts has the rest).
+    expect([e.program.mode, e.program.operatorScene]).toEqual(["MANUAL", "Desk"]);
+    expect(e.autoReplay.getStatus()).toMatchObject({ state: "waiting", detail: "OBS shows “Desk” (your scene): replays wait until you're back on the live scene." });
+    // (The rest of the break doesn't play when the program is back to live.)
+    e.autoReplay.stop();
     await e.program.request("LIVE", "operator", "op");
     await settle();
   });
@@ -306,12 +332,17 @@ describe("Replay break: fading from one clip to the next through the replay scen
       await o.call("SetCurrentPreviewScene", { sceneName: "My Replay B" });
       o.transitionButton();
       await new Promise((r) => setTimeout(r, 2500));
-      // A replay scene, but not Matchframe's change: nothing more from the break, no cut back.
+      // A replay scene, but not Matchframe's change: nothing more from the break, no cut back; the program follows OBS to it.
       expect(o.changes.map((c) => c.scene)).toEqual(["My Replay", "My Replay B"]);
       expect(e.replays.list().filter((i) => i.roundNumber === round).map((i) => i.state)).toEqual(["played", "prepared"]);
-      expect(e.autoReplay.getStatus().detail).toMatch(/isn't live/);
+      expect(e.autoReplay.getStatus().detail).toBe("OBS shows “My Replay B” (your scene): replays wait until you're back on the live scene.");
     } finally {
       o.off("CurrentPreviewSceneChanged", seen);
+      try {
+        e.autoReplay.stop();
+      } catch {
+        // Nothing left of the break.
+      }
       await e.program.request("LIVE", "operator", "op");
       await o.call("SetStudioModeEnabled", { studioModeEnabled: false });
       await settle();

@@ -44,6 +44,13 @@ export interface ObsInputAudio {
   tracks: Record<string, boolean>;
 }
 
+/** An input's volume: OBS's multiplier (1 = 0 dB), the same in dB, and its mute. */
+export interface ObsVolume {
+  mul: number;
+  db: number;
+  muted: boolean;
+}
+
 /** OBS's current scene transition; `durationMs` is null for a fixed one (a Cut, a Stinger). */
 export interface ObsTransitionNow {
   name: string;
@@ -354,6 +361,32 @@ export class ObsManager extends EventEmitter {
     if (a.balance !== undefined) await this.obs.call("SetInputAudioBalance", { inputName, inputAudioBalance: a.balance });
     if (a.syncOffsetMs !== undefined) await this.obs.call("SetInputAudioSyncOffset", { inputName, inputAudioSyncOffset: a.syncOffsetMs });
     if (a.tracks !== undefined) await this.obs.call("SetInputAudioTracks", { inputName, inputAudioTracks: a.tracks });
+  }
+
+  /** An input's volume (as a multiplier, and in dB) and whether it is muted. */
+  async inputVolume(inputName: string): Promise<ObsVolume> {
+    this.requireConnected();
+    const [v, m] = await Promise.all([this.obs.call("GetInputVolume", { inputName }), this.obs.call("GetInputMute", { inputName })]);
+    return { mul: v.inputVolumeMul, db: v.inputVolumeDb, muted: m.inputMuted };
+  }
+
+  /** Sets what is given of an input's volume (a multiplier is exact; dB when no multiplier) and mute. */
+  async setInputVolume(inputName: string, v: { mul?: number; db?: number; muted?: boolean }): Promise<void> {
+    this.requireConnected();
+    if (v.mul !== undefined) await this.obs.call("SetInputVolume", { inputName, inputVolumeMul: Math.max(0, Math.min(20, v.mul)) });
+    else if (v.db !== undefined) await this.obs.call("SetInputVolume", { inputName, inputVolumeDb: Math.max(-100, Math.min(26, v.db)) });
+    if (v.muted !== undefined) await this.obs.call("SetInputMute", { inputName, inputMuted: v.muted });
+  }
+
+  /**
+   * The inputs that have audio, with their volume and mute (OBS refuses the volume of an input
+   * without audio, such as a colour or image source).
+   */
+  async audioInputs(): Promise<(ObsVolume & { name: string; kind: string })[]> {
+    this.requireConnected();
+    const list = (await this.obs.call("GetInputList")).inputs as { inputName: string; inputKind: string }[];
+    const read = await Promise.all(list.map((i) => this.inputVolume(i.inputName).then((v) => ({ name: i.inputName, kind: i.inputKind, ...v })).catch(() => null)));
+    return read.filter((x): x is NonNullable<typeof x> => x !== null);
   }
 
   /** Puts a scene in preview (studio mode) and confirms by read-back. */

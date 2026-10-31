@@ -963,6 +963,8 @@ export interface DeviceTally {
   obs: { connected: boolean; programScene: string | null; previewScene: string | null; streaming: boolean | null; recording: boolean | null };
   director: { mode: DirectorMode; hold: boolean; cinematic: string | null };
   control: { owner: string; holder: string | null; automationActive: boolean; manualSticky: boolean; emergencyStopped: boolean; resumeInMs: number | null };
+  /** Automatic replays: playing (which clip, of how many), held, the round's clips that may still play, the one pinned. */
+  replay?: { state: "off" | "waiting" | "playing" | "blocked"; running: boolean; held: boolean; onAir: string | null; position: { n: number; of: number } | null; waiting: number; pinned: string | null };
   pov: string | null;
   slots: { slot: number | null; steamId: string; name: string; side: Side | null; alive: boolean; onAir: boolean }[];
 }
@@ -1069,6 +1071,14 @@ export interface AutoReplaySettings {
   /** From one replay to the next: a fade or a cut. */
   between?: "fade" | "cut";
   fadeMs?: number;
+  /** The replay media sources' volume in dB (0 = as recorded); null leaves it as set in OBS. */
+  replayVolumeDb?: number | null;
+  /** The live game audio turned down during replays: OBS input names, or vMix input keys with vMix. */
+  duckInputs?: string[];
+  duckVmixInputs?: string[];
+  /** Muted, or this many dB down. */
+  duckTo?: "mute" | number;
+  duckRampMs?: number;
 }
 
 /** A clip of the break's round, as ranked by the main PC. */
@@ -1080,6 +1090,41 @@ export interface RankedReplay {
   state: "played" | "picked" | "waiting" | "duplicate" | "left";
   /** Why a clip left never plays by itself, when it isn't only time or slots. */
   note?: string | null;
+  /** The operator excluded it from its break, or pinned it to play first. */
+  excluded?: boolean;
+  pinned?: boolean;
+}
+
+/** The live game audio turned down during replays. */
+export interface ReplayDuckStatus {
+  state: "off" | "idle" | "lowered" | "pending";
+  detail: string;
+  lowered: string[];
+  lastRestore: { at: string; ok: boolean; detail: string } | null;
+}
+
+/** One step of a Test replays run. */
+export interface ReplayTestStep {
+  id: "ready" | "in" | "fade" | "out" | "live" | "audio";
+  label: string;
+  state: "pending" | "ok" | "failed" | "skipped";
+  detail: string;
+  fix: string | null;
+}
+
+export interface ReplayTestReport {
+  state: "running" | "passed" | "failed";
+  mixer: "obs" | "vmix";
+  startedAt: string;
+  finishedAt: string | null;
+  steps: ReplayTestStep[];
+}
+
+/** GET /api/v1/replays/audio-inputs: the mixer's inputs with audio. */
+export interface ReplayAudioInputs {
+  mixer: "obs" | "vmix";
+  inputs: { id: string; name: string; kind: string; volume: number; muted: boolean; picked: boolean; replay: boolean }[];
+  error: string | null;
 }
 
 /** GET /api/v1/replays/feed: the replay PC's screen over NDI, recorded on the main PC. */
@@ -1099,6 +1144,8 @@ export interface ReplayFeedResponse {
     ndi: { available: boolean | null; version: string | null; error: string | null };
     ffmpeg: { source: "downloaded" | "path" | "missing"; path: string | null; version: string | null; encoder: string | null; downloading: number | null; error: string | null; canDownload: boolean };
     clips: number;
+    /** The replay PC's sound: recorded with the picture, or why not. */
+    audio?: { recording: boolean; detail: string } | null;
   };
 }
 export type MatchArtKind = "thumb-highlights" | "thumb-replay" | "thumb-live" | "up-next" | "stinger" | "stinger-replay";
@@ -1145,6 +1192,12 @@ export interface AutoReplayResponse {
     vmix?: { connected: boolean; version: string | null; error: string | null } | null;
     twin?: ReplayTwinStatus | null;
     roundSec?: number;
+    /** A break's replays (or Test replays) play now: Skip, Hold, Stop and go live apply. */
+    running?: boolean;
+    held?: boolean;
+    position?: { n: number; of: number } | null;
+    audio?: ReplayDuckStatus;
+    test?: ReplayTestReport | null;
   };
 }
 export interface ReplayPcResponse {

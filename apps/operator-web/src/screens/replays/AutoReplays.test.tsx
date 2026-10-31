@@ -5,6 +5,7 @@ import type { AutoReplayResponse, ReplayFeedResponse, ReplayPcResponse } from ".
 import { liveStore } from "../../state/live.ts";
 import { SessionContext } from "../../state/session.tsx";
 import { ToastProvider } from "../../components/toasts.tsx";
+import { useReplayShortcuts } from "../../lib/replay-keys.ts";
 import { AutoReplaysPanel, ReplayPcPanel } from "./AutoReplays.tsx";
 
 const auto: AutoReplayResponse = {
@@ -121,9 +122,9 @@ describe("Automatic replays: the round's clips, ranked, and vMix", () => {
     const items = screen.getByLabelText("Clips of the round, best first").querySelectorAll("li");
     expect([...items].map((li) => li.textContent)).toEqual([
       "Played3K: saber ▸ a, b, c (AK47)50 · 3K, not seen live",
-      "Same kills3K: saber ▸ a, b, c42 · 3K",
+      "Same kills3K: saber ▸ a, b, c42 · 3KExcludePin first",
       "On airnova ▸ zeal (KNIFE)30 · knife",
-      "Not playedhaze ▸ kite (AK47)10",
+      "Not playedhaze ▸ kite (AK47)10ExcludePin first",
       "Not playedrain ▸ zeal (AWP)13 · AWPfrom before the round started (a restart or a backup)",
     ]);
     expect((screen.getByLabelText(/Replays per break/) as HTMLSelectElement).value).toBe("4");
@@ -143,6 +144,165 @@ describe("Automatic replays: the round's clips, ranked, and vMix", () => {
     await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ vmixTransitionOut: "CutDirect" }));
     fireEvent.click(screen.getByRole("button", { name: "Test vMix" }));
     await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/replays/vmix/test")).toBe(true));
+  });
+});
+
+describe("Automatic replays: the operator's controls, sound, Test replays and hotkeys", () => {
+  const playing: AutoReplayResponse = {
+    ...auto,
+    settings: { ...auto.settings, enabled: true },
+    status: {
+      ...auto.status,
+      enabled: true,
+      state: "playing",
+      detail: "Replay 1 of 3: saber ▸ a (AK47)",
+      playing: { id: "a", label: "saber ▸ a (AK47)" },
+      running: true,
+      held: false,
+      position: { n: 1, of: 3 },
+      round: 7,
+      ranked: [
+        { id: "a", label: "saber ▸ a (AK47)", score: 18, reasons: [], state: "picked", excluded: false, pinned: false },
+        { id: "b", label: "nova ▸ zeal (KNIFE)", score: 30, reasons: ["knife"], state: "waiting", excluded: false, pinned: false },
+        { id: "c", label: "haze ▸ kite (AK47)", score: 10, reasons: [], state: "left", note: "excluded by the operator", excluded: true, pinned: false },
+      ],
+    },
+  };
+
+  it("while a break's replays play: Skip, Hold then Resume, and Stop and go live", async () => {
+    const held = { ...playing, status: { ...playing.status, held: true } };
+    const calls = serve({ "GET /api/v1/replays/auto": playing, "POST /api/v1/replays/auto/skip": playing, "POST /api/v1/replays/auto/hold": held, "POST /api/v1/replays/auto/stop": auto });
+    wrap(<AutoReplaysPanel />);
+    const group = await screen.findByRole("group", { name: "Replays playing now" });
+    expect(group.textContent).toContain("Ctrl+Shift+F5 Skip");
+    fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/replays/auto/skip")).toBe(true));
+    fireEvent.click(screen.getByRole("button", { name: "Hold" }));
+    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/replays/auto/hold")?.body).toEqual({ held: true }));
+    expect(await screen.findByRole("button", { name: "Resume" })).toBeTruthy();
+    expect(screen.getByText(/Held: nothing plays on until Resume. The round clock still cuts back to live./)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Stop and go live" }));
+    await waitFor(() => expect(calls.some((c) => c.path === "/api/v1/replays/auto/stop")).toBe(true));
+    await waitFor(() => expect(screen.queryByRole("group", { name: "Replays playing now" })).toBeNull());
+  });
+
+  it("excludes a clip of the round, lets an excluded one play again, and pins one to play first", async () => {
+    const calls = serve({ "GET /api/v1/replays/auto": playing, "PUT /api/v1/replays/auto/clips/b": playing, "PUT /api/v1/replays/auto/clips/c": playing });
+    wrap(<AutoReplaysPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Exclude nova ▸ zeal (KNIFE)" }));
+    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/replays/auto/clips/b")?.body).toEqual({ excluded: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Pin first nova ▸ zeal (KNIFE)" }));
+    await waitFor(() => expect(calls.filter((c) => c.path === "/api/v1/replays/auto/clips/b").at(-1)?.body).toEqual({ pinned: true }));
+    // The excluded one: Include, and no Pin; the one on air: neither.
+    fireEvent.click(screen.getByRole("button", { name: "Include haze ▸ kite (AK47)" }));
+    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/replays/auto/clips/c")?.body).toEqual({ excluded: false }));
+    expect(screen.queryByRole("button", { name: "Pin first haze ▸ kite (AK47)" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Exclude saber ▸ a (AK47)" })).toBeNull();
+  });
+
+  it("picks the live game audio (never a replay source), how far it goes down, and the replay volume", async () => {
+    const withAudio: AutoReplayResponse = { ...auto, settings: { ...auto.settings, duckInputs: [], duckTo: -20, replayVolumeDb: null }, status: { ...auto.status, audio: { state: "off", detail: "No live game audio picked: nothing is turned down during replays.", lowered: [], lastRestore: null } } };
+    const calls = serve({
+      "GET /api/v1/replays/auto": withAudio,
+      "PUT /api/v1/replays/auto": withAudio,
+      "GET /api/v1/replays/audio-inputs": {
+        mixer: "obs",
+        error: null,
+        inputs: [
+          { id: "Game audio", name: "Game audio", kind: "wasapi_output_capture", volume: -1.9, muted: false, picked: false, replay: false },
+          { id: "Caster mic", name: "Caster mic", kind: "wasapi_input_capture", volume: 0, muted: false, picked: false, replay: false },
+          { id: "Matchframe Replay Clip", name: "Matchframe Replay Clip", kind: "ffmpeg_source", volume: 0, muted: false, picked: false, replay: true },
+        ],
+      },
+    });
+    wrap(<AutoReplaysPanel />);
+    const game = (await screen.findByLabelText("Game audio")) as HTMLInputElement;
+    await waitFor(() => expect(game.disabled).toBe(false));
+    expect((screen.getByLabelText(/Matchframe Replay Clip \(a replay source/) as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByText("No live game audio picked: nothing is turned down during replays.")).toBeTruthy();
+    fireEvent.click(game);
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ duckInputs: ["Game audio"] }));
+    fireEvent.change(screen.getByLabelText(/Live game audio during replays/), { target: { value: "mute" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ duckTo: "mute" }));
+    const volume = screen.getByLabelText(/Replay volume/) as HTMLSelectElement;
+    expect(volume.selectedOptions[0]!.textContent).toBe("As set in OBS");
+    fireEvent.change(volume, { target: { value: "-6" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ replayVolumeDb: -6 }));
+  });
+
+  it("Test replays asks first (it plays on the program output), then reports each step and how to fix what failed", async () => {
+    const report: AutoReplayResponse = {
+      ...auto,
+      status: {
+        ...auto.status,
+        test: {
+          state: "failed",
+          mixer: "obs",
+          startedAt: "2026-10-31T10:00:00Z",
+          finishedAt: "2026-10-31T10:00:10Z",
+          steps: [
+            { id: "ready", label: "Replay scene and twin ready", state: "ok", detail: "“Matchframe Replay” with “Matchframe Replay Clip”.", fix: null },
+            { id: "in", label: "Transition in (Replay in)", state: "ok", detail: "Opener to “Matchframe Replay”.", fix: null },
+            { id: "fade", label: "Fade (0.5 s) between the clips", state: "failed", detail: "The sample clip didn't play.", fix: "The replay media source must be a Media Source playing local files." },
+            { id: "out", label: "Transition out (Replay out)", state: "ok", detail: "Fade back to “Game”.", fix: null },
+            { id: "live", label: "Back live", state: "ok", detail: "OBS shows “Game”, the program is live.", fix: null },
+            { id: "audio", label: "Live audio turned down and put back", state: "skipped", detail: "No live game audio picked.", fix: null },
+          ],
+        },
+      },
+    };
+    const calls = serve({ "GET /api/v1/replays/auto": auto, "POST /api/v1/replays/auto/test": report });
+    wrap(<AutoReplaysPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Test replays" }));
+    expect(await screen.findByText(/This plays on your program output now/)).toBeTruthy();
+    expect(calls.some((c) => c.path === "/api/v1/replays/auto/test")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Play the test now" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/replays/auto/test")).toBe(true));
+    const steps = (await screen.findByLabelText("Test replays report")).querySelectorAll("li");
+    expect([...steps].map((li) => li.textContent)).toEqual([
+      "OKReplay scene and twin ready“Matchframe Replay” with “Matchframe Replay Clip”.",
+      "OKTransition in (Replay in)Opener to “Matchframe Replay”.",
+      "FailedFade (0.5 s) between the clipsThe sample clip didn't play.Fix: The replay media source must be a Media Source playing local files.",
+      "OKTransition out (Replay out)Fade back to “Game”.",
+      "OKBack liveOBS shows “Game”, the program is live.",
+      "SkippedLive audio turned down and put backNo live game audio picked.",
+    ]);
+    expect(screen.getByText("Some steps failed: see Fix above, then test again.")).toBeTruthy();
+  });
+
+  it("sets global hotkeys in the program (the suggested ones, or off) and says clearly when a key is taken", async () => {
+    const state = { keys: { skip: null, hold: null, stop: null }, registered: { skip: false, hold: false, stop: false }, errors: { skip: null, hold: null, stop: null }, suggested: { skip: "CommandOrControl+Shift+F5", hold: "CommandOrControl+Shift+F6", stop: "CommandOrControl+Shift+F7" } };
+    const set = vi.fn(async (patch: Record<string, string | null>) => ({ ...state, keys: { ...state.keys, ...patch }, registered: { skip: false, hold: true, stop: true }, errors: { skip: "CommandOrControl+Shift+F5 is already taken by another program (or Windows): choose another key for Skip.", hold: null, stop: null } }));
+    (window as { matchframe?: unknown }).matchframe = { replayHotkeys: { get: async () => state, set } };
+    try {
+      serve({ "GET /api/v1/replays/auto": auto });
+      wrap(<AutoReplaysPanel />);
+      // (Enabled once the program has said which keys are set.)
+      await waitFor(() => expect((screen.getByRole("button", { name: "Use the suggested keys" }) as HTMLButtonElement).disabled).toBe(false));
+      fireEvent.click(screen.getByRole("button", { name: "Use the suggested keys" }));
+      await waitFor(() => expect(set).toHaveBeenCalledWith(state.suggested));
+      expect((await screen.findAllByText("CommandOrControl+Shift+F5 is already taken by another program (or Windows): choose another key for Skip.")).length).toBeGreaterThan(0);
+      expect((screen.getByLabelText(/Hold \/ Resume \(global\)/) as HTMLInputElement).value).toBe("CommandOrControl+Shift+F6");
+      fireEvent.click(screen.getByRole("button", { name: "Turn them off" }));
+      await waitFor(() => expect(set).toHaveBeenLastCalledWith({ skip: null, hold: null, stop: null }));
+    } finally {
+      delete (window as { matchframe?: unknown }).matchframe;
+    }
+  });
+
+  it("console shortcuts: Ctrl+Shift+F5 skips, F6 holds, F7 stops; not while typing", async () => {
+    const calls = serve({ "POST /api/v1/replays/auto/skip": auto, "POST /api/v1/replays/auto/hold": auto, "POST /api/v1/replays/auto/stop": auto });
+    function Keys() {
+      useReplayShortcuts();
+      return <input aria-label="typing" />;
+    }
+    wrap(<Keys />);
+    fireEvent.keyDown(window, { key: "F5", ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: "F6", ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: "F7", ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(window, { key: "F5" });
+    fireEvent.keyDown(screen.getByLabelText("typing"), { key: "F5", ctrlKey: true, shiftKey: true });
+    await waitFor(() => expect(calls.map((c) => c.path)).toEqual(["/api/v1/replays/auto/skip", "/api/v1/replays/auto/hold", "/api/v1/replays/auto/stop"]));
   });
 });
 

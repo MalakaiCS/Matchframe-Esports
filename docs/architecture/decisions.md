@@ -1316,3 +1316,85 @@ Before, a break ended 1.5 s before freeze time ended, and stopped the moment the
 - Against a real OBS 30.0.2 (Linux, Xvfb, recordings read frame by frame): a user-made replay scene (backdrop, scaled media source, score bug; OBS's defaults): 14 blended frames (0.47 s at 30 fps) per fade, no black frame, no clip-start frame, overlay and backdrop throughout; a transparent Stinger in with the first clip starting at its cut point, Fade out; cuts between; 1080p60 clips with 2 s keyframes and a filter on the media source; Studio Mode with a Stinger, the preview put back each time; the Transition button with the twin in preview seen in about 0.2 s; Duplicate Sources on.
 
 **Not checked.** Windows OBS; a real vMix; a real CS2 round clock and its first live reading (the round time is learned from it); OBS's `fade_transition` on a busy GPU (here llvmpipe software rendering held 30 fps with 720p30 clips; with two 1080p60 clips the blend stepped every 4 frames).
+
+## ADR-062 — The operator's controls of a break's replays, the replay sound and the live audio turned down, Test replays, and the operator's own OBS scenes
+
+**Context.** The owner asked for:
+- **Controls** while a break's replays play: Skip, Stop and go live, Hold / Resume (the 1:50 cut back still wins); Exclude and Pin first in the round's list; the same from a Stream Deck or Companion, global hotkeys and console shortcuts; vMix too.
+- **Sound:** game sound on replays (the NDI replay feed recorded none: `hasAudio: false`), a replay volume, and the live game audio turned down during replays and put back exactly, however they end, also after a crash.
+- **A Test replays button** playing sample clips through the real chain, with a report.
+- And, during the work, from the coordinator: the operator switches most OBS scenes themselves with a multiview plugin (analysis between rounds, casters during the replays). Matchframe must never fight that, nor get stuck on "the program isn't live".
+
+**Decision.**
+- **Controls** (`replay/auto.ts`):
+  - *Skip* ends the clip on air (its watch returns `skipped`): the next one comes in as usual, already waiting at its part; after the last, back to live with Replay out. A Skip is tied to the clip on air when pressed.
+  - *Stop and go live* (`stopped`) ends the break with Replay out. Pressed before its replays start, the break has none.
+  - *Hold* pauses the clip on air (OBS's pause, vMix's `Pause`) and moves its end and its late-deadline by the time held. `interrupted()` is checked before the hold, so the round clock, the bomb and Stop still end it. Skip clears a hold.
+  - *Exclude* and *Pin* act on the break's list of clips still to play (`Sequence.rest`, replacing the fixed list). `planBreak` takes a pinned clip first if it fits. During a break, the clip waiting off air (in the twin, or loaded in vMix) is replaced when the operator excludes it or pins another; a pinned clip that wasn't chosen joins the break. The watch's `onPoll` does this while the clip on air plays on.
+  - The same paths serve Test replays. The console posts to `/api/v1/replays/auto/{skip,stop,hold}` and `PUT /api/v1/replays/auto/clips/:id`; the device actions are `replay_skip`, `replay_hold`, `replay_stop`, `replay_exclude` (`id`, `rank` or `next`) and `replay_pin`; the tally has `replay`.
+- **Keys:**
+  - Console: Ctrl+Shift+F5 / F6 / F7, on every screen (`lib/replay-keys.ts`), not while typing.
+  - The program (`apps/desktop/src/replay-hotkeys.ts`): global hotkeys, off until set, saved in the program's settings, the same three suggested. CS2 and OBS don't use them by default.
+  - A key another program holds is saved but reported (*… is already taken by another program (or Windows)*). The program's own hotkeys and duplicates are refused; CommandOrControl counts as Ctrl.
+  - Pressed, a hotkey runs the device action through the engine's API, as a Stream Deck would; a notification shows only when it can't.
+- **The replay feed's sound** (`replay/feed-core.ts`):
+  - NDI's audio frames come with the video through grandi's `data()` (Float32Interleaved, unscaled), as 48 kHz stereo (`toStereo48k`: first two channels, linear resampling otherwise). They go to ffmpeg's second input (`pipe:3`, f32le) and into the segments as AAC 160 kb/s; clips cut with `-c copy` carry it (`hasAudio`).
+  - **One clock:** before, list.csv's times counted from ffmpeg's stamp of the first frame, which it reads 30–60 ms after it is written while still starting, so clips were cut that much early. Now the video input is shifted back by the session's start (`-itsoffset -t0`, stamps kept with `-copyts`; 100 ms of lead so the AAC encoder's priming never moves the streams). The segments' times, the sound's sample 0 and the engine's mapping are then the same wall clock. Absolute stamps with `-copyts` alone broke ffmpeg's constant-frame-rate output and keyframe expression (`frame duplication too large`).
+  - **AudioClock:** frames follow one another as the sender stamped them (NDI's `timestamp`, or `timecode`); a jump there is a real gap, filled with silence. Where the sound sits against the picture comes from the earliest arrivals of the last 3 s, so a stall in this process, which brings frames late and then all at once, changes nothing. It is moved when more than 60 ms off (drift). A source without sound is recorded with silence, keeping the muxer and the cuts on time.
+  - If ffmpeg can't read the second pipe (not seen; possible on Windows), the recording goes on without sound and says why.
+- **Live audio turned down** (`replay/audio.ts`):
+  - The operator picks the OBS inputs (vMix keys) that are the live game sound; nothing else is touched, and never the replay sources.
+  - As the first clip goes on air (beside the transition), their volume and mute are read and saved in the engine's settings (`replay.duck`) before any change, then ramped down in dB steps (300 ms) or muted. After the replays, however they end (`playObs`/`playVmix`'s `finally`), they ramp back and are set to the exact saved multiplier and mute.
+  - A fader the operator moved meanwhile is left alone. What can't be put back stays saved and is retried when OBS connects and every 3 s, including at the next start after a crash. The engine's shutdown restores first, while OBS is still there.
+  - vMix: `SetVolumeFade` (its fader is a fourth-power curve: −20 dB multiplies it by 10^(−20/80)), `AudioOff`/`AudioOn`.
+  - The replay volume (dB, null = as set in OBS) is set on both replay media sources (vMix: each replay input's fader, its gain above 0 dB).
+- **Test replays** (`replay/test-run.ts`):
+  - **The clips:** two 4 s sample clips (1280×720 30 fps H.264 with 1 s keyframes and an AAC tone; blue *Test clip 1* at 440 Hz, orange *Test clip 2* at 660 Hz; about 90 kB each). Made with ffmpeg's lavfi `color`, `sine` and `drawtext`; bundled in `assets/replay-test`, the installer's `replay-test`, `MATCHFRAME_REPLAY_TEST_DIR`.
+  - **Kept out of the match:** they are added *unlisted* to the replay queue (`ReplayQueue.addUnlisted`: found by id, so the replay graphic can show their play — Test Player, AK-47, headshot — but never in `list()` or `playlist()`, so never ranked, in a break or a highlight). They are removed afterwards; nothing is marked or audited as played.
+  - **The real path:** they play through `play()` → `playObs`/`playVmix`, the same as a break (a `test` sequence: no round clock; a round going live stops it), traced (`TraceEvent`) for the report: ready, in, fade, out, back live, the audio exactly as before. `ObsAutomation.lastSwitch` names the transition used.
+  - **When it refuses:** while a round is live, the program isn't live (or is the operator's scene), or a break's replays play or are about to.
+- **The operator's own OBS scenes** (`app.ts`, `ProgramArbiter.followMixerScene`, `ObsAutomation.whose`):
+  - *Whose scene:* a scene OBS shows is the operator's when a program change made in OBS itself (a transition Matchframe didn't ask for) came after Matchframe's last own change, or, with no change seen (OBS found so on connecting), when it isn't what the program shows. Matchframe's own changes of the last 12 s, and its replay scenes and twin during its replays, are its own.
+  - *What follows:* the program goes MANUAL, the operator's, holder `OBS: <scene>`, and nothing automatic can take it (automation is outranked). No replays cut in, no break or studio scene, no cut back. The live scene shown again: LIVE (`followMixerLive`).
+  - *Status:* replays and Test replays *wait* with *OBS shows “Analysis” (your scene): …*, not *blocked*.
+  - *Mid-break:* a break taken in OBS during its replays stops (the audio comes back). It is `resumable`: OBS back on the live scene before the next round is live plays what is left and still fits; Stop and go live cancels that. The break's round isn't closed meanwhile.
+  - *Break and studio scenes:* obs-auto only takes back what it chose (the operator's mapped break scene is MANUAL, not BREAK).
+- **Found on the way:**
+  - OBS 30 can let a pause sent as a file starts go: the clip waiting in the twin then ran on hidden and came in near its end. In one real-OBS run the second test clip came in at 3.4 s of 4. Now `cueHeld` checks the pause holds (and sends it again), and a clip that still ran on is put back at its part before it goes on air.
+  - The engine's storage of replay clips and of the feed's recording goes through `Engine.replayStorage()`, for a later setting to move them to another drive.
+
+**Alternatives.**
+- **The live audio by OBS's own sidechain compressor or ducking filters:** it reacts to sound levels, not to the replays being on program, and would need a filter on the user's inputs.
+- **Hold by stopping the round clock:** impossible; the 1:50 deadline is the live round's.
+- **NDI audio over a local TCP socket instead of `pipe:3`:** both work; the pipe needs no port, and a failure falls back to no sound with a message.
+- **The sample clips generated with ffmpeg on the user's PC:** not every PC has ffmpeg.
+- **The operator's scene as an error to clear with Return live:** the owner switches scenes on purpose.
+
+**Checked.**
+- Stand-in OBS and vMix (`replay-controls.e2e.test.ts`):
+  - Skip: the fade 0.5 s after the press, the next at its part.
+  - Stop; Hold for longer than the clip, then the 1:50 cut back while held.
+  - Exclude and Pin, before and during a break; the device actions with a replay token; the tally.
+  - The live audio down in steps and back to exactly 0.8 after every kind of ending, muted, a fader moved by hand, and after an engine lost OBS and was started again; the replay volume.
+  - Test replays: refusals, a passing run (a Stinger in, the fade, out, audio), a failing step with its fix, vMix.
+- `obs-own-scenes.e2e.test.ts` (stand-in OBS): the analysis scene between rounds (no replays, no break scene, Test refused), back on live with the break's replay played; back before the replays; the casters during them (stopped, audio back, the rest played on coming back in time; staying: no cut back, Stop and Test refused); the mapped break scene by hand; Studio Mode's Transition; found on connect.
+- `replay-fade.e2e.test.ts`: a pause OBS lets go once (sent again) or six times (the clip put back), the next clip in at its part.
+- `replay-feed.test.ts` (real ffmpeg, a stand-in NDI source whose tone switches every 0.5 s of wall time):
+  - the cut clip's AAC track, in time with the source to 30 ms; the picture to the frame; a source without sound;
+  - the clock's behaviour with jitter, a busy moment, a gap and drift; the channel and rate conversion.
+- **Real NDI** (grandi with the NDI 6.3 runtime, a local sender found with `extraIPs`, real ffmpeg; a scratch script): the cut clip's tone at the sender's level, in time to within 20 ms.
+- Console (`AutoReplays.test.tsx`), the desktop hotkeys (`replay-hotkeys.test.ts`), the OBS adapter's audio (`obs-adapter/test/audio.test.ts`), the planner's pin and vMix's fader curve (`replay-rank.test.ts`), following OBS (`program-follows-obs.test.ts`).
+- **Real OBS 30.0.2** (Linux, Xvfb; the scratch script drove the engine's API):
+  - Skip: OBS's fade to the twin started 0.13–0.17 s after the press.
+  - Hold: the twin's clip *PAUSED* at the same cursor 2.5 s later, playing on from there after Resume, the next fade when what was left had played.
+  - The live audio: an input at 0.8 (OBS: 0.800000011920929) down to 0.08 in steps, and back to the same multiplier, bit for bit.
+  - Test replays: every step *OK* with the bundled clips (each on air about 4 s, the fade between).
+  - Following: a scene put on by another obs-websocket client, and Studio Mode's preview and Transition, followed as the operator's; a round ending on it changed nothing; Test replays refused; back to live with the live scene.
+
+**Not checked.**
+- Windows (ffmpeg's second pipe, the global hotkeys).
+- A real vMix (`SetVolumeFade`, `AudioOff`, `Pause`, its fader scale).
+- A real Stream Deck or Companion.
+- vMix Desktop Capture's, OBS NDI output's or NDI Screen Capture's sound over a real network.
+- A real multiview plugin (its scene changes look like any change made in OBS, which is what is followed).
+- The replay graphic with the sample clips (built separately, ADR-061).

@@ -16,6 +16,9 @@ export interface VmixInput {
   state: string;
   position: number;
   duration: number;
+  /** Its audio fader (0–100; null: no audio), and whether its audio is off (muted). */
+  volume: number | null;
+  muted: boolean | null;
 }
 
 export interface VmixState {
@@ -43,6 +46,8 @@ export function parseVmixXml(xml: string): VmixState {
       state: attrs.get("state") ?? "",
       position: Number(attrs.get("position") ?? 0),
       duration: Number(attrs.get("duration") ?? 0),
+      volume: attrs.has("volume") && Number.isFinite(Number(attrs.get("volume"))) ? Number(attrs.get("volume")) : null,
+      muted: attrs.has("muted") ? attrs.get("muted")!.toLowerCase() === "true" : null,
     });
   }
   const active = /<active>(\d+)<\/active>/.exec(xml);
@@ -77,3 +82,10 @@ export class VmixClient {
 /** The vMix transition functions a replay can use (each takes the input to go to). */
 export const VMIX_TRANSITIONS = ["CutDirect", "Fade", "Stinger1", "Stinger2"] as const;
 export type VmixTransition = (typeof VMIX_TRANSITIONS)[number];
+
+/**
+ * vMix's audio fader (0–100, as SetVolume takes it and its XML says) is a fourth-power curve:
+ * amplitude = (volume / 100)^4 (vMix's knowledge base, "vMix API audio levels"). So a change of
+ * `db` decibels multiplies the fader by 10^(db / 80): −20 dB from 100 is 56.2.
+ */
+export const vmixVolumeAfter = (volume: number, db: number): number => Math.max(0, Math.min(100, volume * 10 ** (db / 80)));

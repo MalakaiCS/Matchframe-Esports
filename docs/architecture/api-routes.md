@@ -190,6 +190,12 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | GET | `/api/v1/replays/auto` | state.read |
 | POST | `/api/v1/replays/vmix/test` | replay.control |
 | PUT | `/api/v1/replays/auto` | replay.control |
+| POST | `/api/v1/replays/auto/skip` | replay.control |
+| POST | `/api/v1/replays/auto/stop` | replay.control |
+| POST | `/api/v1/replays/auto/hold` | replay.control |
+| PUT | `/api/v1/replays/auto/clips/:id` | replay.control |
+| POST | `/api/v1/replays/auto/test` | replay.control |
+| GET | `/api/v1/replays/audio-inputs` | state.read |
 | POST | `/api/v1/replays/obs-setup` | settings.manage |
 | GET | `/api/v1/replay-pc` | state.read |
 | PUT | `/api/v1/replay-pc` | settings.manage |
