@@ -1263,3 +1263,97 @@ Measured with kaiHUD 1.0.2 in Chromium through Matchframe, with a player running
 - Against real OBS 30: the replay integration tests, and recorded three-clip breaks with 720p30 and 1080p60 clips and both media-source settings.
 
 **Not checked.** Windows OBS and a real vMix. Clips from a real replay buffer with long keyframe intervals on air.
+
+## ADR-061 — A replay graphic on each Matchframe HUD's replay page, and highlight reels from kept clips
+
+**Context.** The owner asked for two things:
+
+- While a replay is on air: a "REPLAY" tag and a lower third with the play (player, weapon, headshot, victims, 2K–ACE, clutch, round), in each Matchframe HUD's own style.
+- One button to export a map's best clips as one MP4 for social media.
+
+The replay plays on OBS's replay scene, and the HUD's browser source is normally only in the live scene. The replay queue deletes clip files to save space: 200 items in memory, the replay PC's newest 120 files on disk.
+
+**Decision.**
+
+- **HUD state:** `HudState.replay.clip` (`HudReplayClip`), null when no clip is on air or the graphic is off (setting `replay.graphic.enabled`). `active` and `label` stay as they were.
+  - **The clip on air:** the program's `activeReplay` in `REPLAY_PLAYING` (not `REPLAY_PREPARED`, still the live scene), else automatic replays' `playing` clip when they play in vMix.
+  - **Pushed to HUDs:** a 100 ms watch pushes a new state when the clip changes (`Engine.refreshHuds`), not only with the next game data.
+  - **Fields:** from the queue item's `play`; for a clutch (`reason` `clutch`), `play.kills` is the number of opponents.
+- **Team:** as the HUD shows it (the player in `left` or `right`, with name, logo and colour). Else the roster's team (left or right by the active match), else the in-game team name.
+- **Side in that round:**
+  - The killer's side at a kill of that round, as this computer saw it (the killfeed's `killer.side`, kept per map).
+  - Else the side kept with the clip.
+  - Else the side now, moved to that round: the same half of regulation the same side, the other half the other side, halves of three rounds in overtime.
+  - Otherwise null (across regulation and overtime, it depends on the server), and HUDs use the team colour.
+  - HUDs colour the play by the team's own colour, else that side's colour.
+- **Where it is drawn:** the HUD's `replay` entry point (`/hud/<id>/replay?t=…`). The page reads `variant=replay` (also `layer=replay`) from its own address and draws only the replay graphic, transparent elsewhere. The live HUD never draws it.
+  - The address isn't taken from `state.variant`: a live output turns to `replay` there while a replay is on air.
+  - Vector, Lineup and the Pro CS2 HUD get a `replay` entry point (manifests 1.2.0, 1.2.0, 1.3.0, so installed copies update). The built-in HUD already had one.
+  - **For an LHM-format HUD** (no such page), the built-in Broadcast HUD's page is used.
+- **Which HUD** (setting `replay.graphic.hudId`):
+  - Chosen by the operator.
+  - Or automatic: the HUD with an OBS output started last (the built-in one counted only when nothing else is, since it may be in OBS only as another HUD's replay page), else the one started last, else the built-in.
+- **OBS:** `POST /api/v1/replay-graphic/obs` puts a 1920×1080 browser source, *Matchframe Replay Graphic*, on top of the mapped replay scene (`provisionBrowserSource`). `obs.ts` is unchanged.
+  - A new input is created on top.
+  - An existing one is re-pointed.
+  - If the scene's source list doesn't have it (an input of that name in another scene), the route says so.
+  - Choosing another HUD re-points the source when OBS has it.
+- **Timing (HUD SDK `ReplayGraphicSequencer`):**
+  - Tag in 0.35 s and lower third in 0.75 s after a clip starts.
+  - The lower third out and back in per clip, the tag staying.
+  - Both out when the replays end.
+  - Each HUD animates the changes in its own style (transform, opacity, clip-path).
+- **Kept clips** (`replay/highlights.ts`):
+  - Every queue item with a local file is kept as soon as it is in the queue: a hard link under `<data>/highlights/clips/<map>/`. It takes no extra space and outlives the queue's deletions. On another drive, a background copy.
+  - With each map: its kills (killer, side, victim, time) and round winners.
+  - The current and previous map are kept, up to `highlights.settings.keepGb` (3 GB). Over that, unplayed clips go first, then the oldest played.
+  - A new map: the map or the active match changes. The list is `<data>/highlights/index.json`.
+  - No hook in `routes/replay.ts`, the queue or `app.ts`'s eviction callback: a 2 s check follows the queue (state, trim, label).
+- **Reel plan:**
+  - Every played clip, or the best N (optionally with unplayed ones) by `clipScore` (rank.ts, unchanged), with the facts the automatic replays use (opening, closing, clutch, multi-kill speed) from the kept kills.
+  - The same kills once.
+  - Round order, and in a round the first kill's time.
+  - Each clip's part: its trim, else the end `playMs` the replay showed, else all of it.
+- **Reel encode** (`replay/reel.ts`): one ffmpeg run with the program's ffmpeg (`FfmpegTool`).
+  - Each part with `-ss`/`-t`; scaled and padded into 1920×1080 (or the largest clip's size); one frame rate (the highest, at most 60); yuv420p.
+  - Padded or cut to its exact length, so the xfade offsets hold.
+  - Sound resampled to 48 kHz stereo, or `anullsrc`, cut to the same length.
+  - Joined with xfade and acrossfade (concat without a fade).
+  - libx264 CRF 18 (a hardware encoder when the build has no libx264), AAC.
+  - A clip's lower third: a 1920×1080 PNG the console draws on a canvas (match-art's font), laid over with an alpha fade in and out.
+  - Probing uses `ffmpeg -i` (the downloaded Windows build has no ffprobe).
+  - A long filter graph goes in a file (`-/filter_complex` from ffmpeg 7, `-filter_complex_script` before).
+  - Background job with progress (`-progress`); Cancel kills ffmpeg and keeps no file.
+  - Output: `<Videos>/Matchframe Highlights` in the desktop program (`MATCHFRAME_VIDEOS_DIR`), else `<data>/exports/highlights`. The program opens it on this computer (`mf:open-highlights`).
+
+**Alternatives.**
+
+- **The live HUD drawing the graphic** with its browser source also in the replay scene: one source in two scenes would show the full HUD over replays.
+- **A second "layer" output id:** HUD Library outputs are per HUD and variant already, and `replay` is an existing variant.
+- **Keeping clips by hooking the queue's deletions** (`routes/replay.ts`, `app.ts`): those files are left alone instead; hard links make the copy free.
+- **Two-pass encodes** (normalise each clip, then join): twice the encoding for the same result; ffmpeg's scheduler only decodes the inputs the graph asks for.
+
+**Checked.**
+
+- HUD state with a stand-in OBS (`replay-graphic.e2e.test.ts`):
+  - The clip on air with every field, its team as the HUD shows it, the side in its round from the kills seen (the other side from now), and from halves.
+  - A break's next clip; cleared after; the vMix clip; turned off.
+  - The replay pages' addresses, for Vector and for an LHM HUD (the built-in one).
+  - The OBS route.
+- Sequencer unit tests.
+- Kept clips and reels with real ffmpeg (`highlights.e2e.test.ts`):
+  - Three generated clips: 1280×720 30 fps with 44.1 kHz sound, 640×480 25 fps mono, 960×540 60 fps silent.
+  - Kept after the originals were deleted.
+  - Round and kill order; best N with unplayed.
+  - The MP4's duration (the clips less the fades, ±0.1 s), 1920×1080 60 fps h264 yuv420p, AAC 48 kHz stereo; the burned-in graphic's pixels; Cancel.
+  - Two maps kept; unplayed clips dropped first over the cap.
+- Console panel tests.
+- Screenshots of every HUD's replay page (demo `?demo=replay&play=…`).
+
+**Not checked.**
+
+- OBS itself with the browser source in the replay scene, and with a twin of the replay scene made for fades.
+- vMix.
+- Windows hard links and the Videos folder.
+- The downloaded Windows ffmpeg build.
+- Reels of a full map's clips from a real replay buffer.
