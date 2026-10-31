@@ -37,6 +37,14 @@ const SAVE_VIEW_HOTKEY = process.env.MATCHFRAME_SAVE_VIEW_HOTKEY ?? "CommandOrCo
 
 /** Engine data folder; the program's own settings (credential key, connection, browser storage) live in its `program` subfolder. */
 const dataDir = () => process.env.MATCHFRAME_DATA_DIR ?? join(app.getPath("appData"), "Matchframe Esports");
+/** The user's Videos folder: the engine puts highlight reels in "Matchframe Highlights" there (null when the system has none). */
+const videosDir = (): string | null => {
+  try {
+    return process.env.MATCHFRAME_VIDEOS_DIR || app.getPath("videos");
+  } catch {
+    return null;
+  }
+};
 app.setPath("userData", join(dataDir(), "program"));
 
 // HUD outputs must keep animating and receiving data while the manager is minimised or covered by
@@ -274,6 +282,7 @@ function startEngine(): void {
     MATCHFRAME_GSI_PORT: String(PORTS.gsi),
     MATCHFRAME_API_PORT: String(PORTS.api),
     MATCHFRAME_OVERLAY_PORT: String(PORTS.overlay),
+    ...(videosDir() ? { MATCHFRAME_VIDEOS_DIR: videosDir()! } : {}),
   };
   // Network access: every interface (access still needs a token); otherwise this computer only.
   if (readProgramSettings().networkAccess && !process.env.MATCHFRAME_HOST) env.MATCHFRAME_HOST = "0.0.0.0";
@@ -594,6 +603,14 @@ ipcMain.on("mf:hud-availability", (event) => {
   event.returnValue = fromApp(event) && !fromApp(event, "/connect") ? { available: connection.mode === "local", reason: connection.mode === "remote" ? REMOTE_REASON : null } : { available: false, reason: "not allowed" };
 });
 ipcMain.handle("mf:open-data-dir", () => shell.openPath(dataDir()));
+// The highlight reels' folder (the engine's rule: the Videos folder's "Matchframe Highlights", else the data folder's).
+ipcMain.handle("mf:open-highlights", (event) => {
+  if (!fromApp(event) || connection.mode !== "local") return null;
+  const videos = videosDir();
+  const dir = videos ? join(videos, "Matchframe Highlights") : join(dataDir(), "exports", "highlights");
+  mkdirSync(dir, { recursive: true });
+  return shell.openPath(dir);
+});
 function restartEngine(): boolean {
   if (connection.mode !== "local" || !engine) return false;
   const child = engine;

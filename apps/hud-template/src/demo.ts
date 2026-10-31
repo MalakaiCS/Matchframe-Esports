@@ -95,7 +95,7 @@ export function demoState(): HudState {
     event: { name: null, logoUrl: null, primary: "#5ab8f4", secondary: "#f0c941" },
     sponsors: {},
     cues: [],
-    replay: { active: false, label: null },
+    replay: { active: false, label: null, clip: null },
     annotations: [],
     veto: null,
     standings: null,
@@ -103,4 +103,21 @@ export function demoState(): HudState {
     settings: {},
     art: { defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null } },
   };
+}
+
+/**
+ * `?demo=replay&play=<3k|kill|ace|clutch>`: the replay layer with a sample clip on air (made-up
+ * players). Round 14 of a map where the left team is CT now, so earlier rounds were on T.
+ */
+export function demoReplayState(play: string | null): HudState {
+  const s = demoState();
+  const team = (t: HudTeam) => ({ key: t.key as "left" | "right", name: t.name, shortName: t.shortName, logoUrl: t.logoUrl, color: t.color });
+  const clips: Record<string, NonNullable<HudState["replay"]["clip"]>> = {
+    "3k": { id: "demo-3k", roundNumber: 14, label: "3K: riot", player: { steamId: s.right.players[1]!.steamId, name: "riot" }, team: team(s.right), side: "T", weapon: { name: "weapon_ak47", displayName: "AK-47" }, headshot: true, victims: ["nova", "lumen", "vale"], kills: 3, multiKill: "3K", clutchVersus: null },
+    kill: { id: "demo-kill", roundNumber: 15, label: "vale ▸ ember", player: { steamId: s.left.players[4]!.steamId, name: "vale" }, team: team(s.left), side: "CT", weapon: { name: "weapon_awp", displayName: "AWP" }, headshot: false, victims: ["ember"], kills: 1, multiKill: null, clutchVersus: null },
+    ace: { id: "demo-ace", roundNumber: 6, label: "5K: nova", player: { steamId: s.left.players[0]!.steamId, name: "nova" }, team: team(s.left), side: "T", weapon: { name: "weapon_m4a1_silencer", displayName: "M4A1-S" }, headshot: true, victims: ["ember", "riot", "saber", "dusk", "flint"], kills: 5, multiKill: "ACE", clutchVersus: null },
+    clutch: { id: "demo-clutch", roundNumber: 16, label: "Clutch 1v3: kestrel", player: { steamId: s.left.players[1]!.steamId, name: "kestrel" }, team: team(s.left), side: "CT", weapon: null, headshot: false, victims: [], kills: null, multiKill: null, clutchVersus: 3 },
+  };
+  const clip = play === "none" ? null : (clips[play ?? "3k"] ?? clips["3k"]!);
+  return { ...s, variant: "replay", replay: { active: clip !== null, label: clip ? "REPLAY" : null, clip } };
 }

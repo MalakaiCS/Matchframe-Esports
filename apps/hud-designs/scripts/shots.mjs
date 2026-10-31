@@ -3,7 +3,9 @@
 // --query adds demo parameters to every page, e.g. --query "art=1&radar=1&bo=5" (sample HUD images,
 // sample radar, best of 5).
 // --frames records an animation: the page shows <scene>, then switches to <scene2>, and a frame is
-// taken every <ms> from the switch (e.g. --frames freeze,live 50 12 for going live).
+// taken every <ms> from the switch (e.g. --frames freeze,live 50 12 for going live; replay:none,replay:3k
+// for the replay graphic coming in).
+// --replay takes the replay layer (?demo=replay) with each sample play, with and without team logos.
 import { createServer } from "node:http";
 import { mkdirSync, readFileSync, existsSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -33,7 +35,18 @@ const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 // A stand-in for the game behind the HUD: a mid-tone scene with some contrast.
 const backdrop = `document.documentElement.style.background = "linear-gradient(160deg,#6f6a5c 0%,#9c8f74 35%,#4e5a63 70%,#2e3236 100%)";`;
 const frames = rest[0] === "--frames" ? { scenes: rest[1].split(","), every: Number(rest[2] ?? 50), count: Number(rest[3] ?? 12) } : null;
-if (!frames) {
+if (rest[0] === "--replay") {
+  for (const play of ["3k", "kill", "ace", "clutch", "manual"]) {
+    for (const logo of ["0", "1"]) {
+      await page.goto(`${base}?demo=replay&play=${play}&logo=${logo}${extra}`);
+      await page.evaluate(backdrop);
+      await page.waitForTimeout(2000);
+      const file = join(out, `replay-${play}${logo === "1" ? "-logo" : ""}.png`);
+      await page.screenshot({ path: file });
+      console.log(file);
+    }
+  }
+} else if (!frames) {
   for (const scene of ["freeze", "live", "kill", "bomb", "defuse", "over"]) {
     await page.goto(`${base}?demo=${scene}${extra}`);
     await page.evaluate(backdrop);
@@ -44,12 +57,13 @@ if (!frames) {
 } else {
   // Plays the first scene, then switches to the second through the page's demo cycle hook.
   const [a, b] = frames.scenes;
-  await page.goto(`${base}?demo=${a}${extra}`);
+  // A replay:<play> scene is shown on the replay layer's page.
+  await page.goto(`${base}?demo=${a.startsWith("replay") ? `replay&play=${a.slice(7) || "none"}` : a}${extra}`);
   await page.evaluate(backdrop);
   await page.waitForTimeout(1500);
   await page.evaluate((scene) => window.__mfDemo?.(scene), b);
   for (let i = 0; i < frames.count; i++) {
-    await page.screenshot({ path: join(out, `${a}-to-${b}-${String(i).padStart(2, "0")}.png`) });
+    await page.screenshot({ path: join(out, `${a}-to-${b}-${String(i).padStart(2, "0")}.png`.replace(/:/g, "-")) });
     await page.waitForTimeout(frames.every);
   }
   console.log(`${frames.count} frames in ${out}`);

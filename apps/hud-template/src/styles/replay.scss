@@ -1,0 +1,232 @@
+/* The Pro CS2 HUD's replay graphic (its replay entry point): a "REPLAY" panel where the match bar sits
+   and a lower third where the observed player is, in the HUD's dark panels and side colours. Original
+   Matchframe markup and styles. */
+.replay-layer {
+  position: fixed;
+  inset: 0;
+  --rp-ease: cubic-bezier(0.2, 0.75, 0.3, 1);
+}
+
+/* ---- tag */
+.rp-tag {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  height: 54px;
+  padding: 0 0 0 20px;
+  transform: translateX(-50%);
+  background-color: var(--sub-panel-color);
+  border-bottom: 3px solid var(--rp-side, var(--white-full));
+  .rp-icon {
+    color: var(--rp-side, var(--white-full));
+  }
+  .rp-tag-text {
+    padding: 0 22px 0 14px;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+  }
+  .rp-tag-round {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--color-gray);
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+  &.rp-in {
+    animation: rp-open 320ms var(--rp-ease) both;
+  }
+  &.rp-out {
+    animation: rp-close 200ms ease-in both;
+  }
+}
+
+/* ---- lower third */
+.rp-card {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  min-width: 700px;
+  max-width: 1100px;
+  transform: translateX(-50%);
+  color: white;
+  &.rp-in {
+    .rp-main {
+      animation: rp-rise 340ms var(--rp-ease) both;
+    }
+    .rp-stats {
+      animation: rp-rise 340ms var(--rp-ease) 110ms both;
+    }
+    .rp-badge {
+      animation: rp-flip 380ms var(--rp-ease) 260ms both;
+    }
+  }
+  &.rp-out {
+    .rp-main,
+    .rp-stats {
+      animation: rp-sink 200ms ease-in both;
+    }
+  }
+}
+.rp-main {
+  display: flex;
+  align-items: stretch;
+  height: 76px;
+  background-color: var(--main-panel-color);
+  border-top: 3px solid var(--rp-side);
+}
+.rp-logo {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 82px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  img {
+    max-width: 56px;
+    max-height: 56px;
+    object-fit: contain;
+  }
+  span {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--rp-side);
+  }
+}
+.rp-who {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 40px 0 18px;
+}
+.rp-name {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rp-team {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rp-side);
+}
+.rp-badge {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 118px;
+  padding: 0 16px;
+  background-color: var(--rp-side);
+  color: #0c0f12;
+  b {
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+  span {
+    margin-top: 1px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+}
+.rp-stats {
+  display: flex;
+  height: 40px;
+  background-color: var(--sub-panel-color);
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+}
+.rp-cell {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 96px;
+  padding: 0 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  .label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: #b2b2b2;
+  }
+  .stat {
+    margin-top: 2px;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rp-yes {
+    color: var(--rp-side);
+  }
+  &.rp-wide {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  &.rp-round {
+    margin-left: auto;
+    border-right: none;
+    text-align: right;
+  }
+}
+
+@keyframes rp-open {
+  from {
+    opacity: 0;
+    clip-path: inset(0 50% 0 50%);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes rp-close {
+  to {
+    opacity: 0;
+    clip-path: inset(0 50% 0 50%);
+  }
+}
+@keyframes rp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+}
+@keyframes rp-sink {
+  to {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+@keyframes rp-flip {
+  from {
+    opacity: 0;
+    transform: perspective(500px) rotateY(80deg);
+  }
+}
+
+.rp-sim {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+}

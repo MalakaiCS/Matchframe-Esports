@@ -22,6 +22,8 @@ import { lhmViews } from "./hud/lhm.ts";
 import { registerLiveRoutes } from "./routes/live.ts";
 import { registerReplayRoutes } from "./routes/replay.ts";
 import { registerMatchArtRoutes } from "./routes/match-art.ts";
+import { registerReplayGraphicRoutes } from "./routes/replay-graphic.ts";
+import { registerHighlightRoutes } from "./routes/highlights.ts";
 import { registerDemoRoutes } from "./routes/demos.ts";
 import { registerDeviceRoutes, tally } from "./routes/devices.ts";
 import { registerReportRoutes } from "./routes/reports.ts";
@@ -102,6 +104,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerMatchArtRoutes(router, e);
   registerLiveRoutes(router, e);
   registerReplayRoutes(router, e);
+  registerReplayGraphicRoutes(router, e);
+  registerHighlightRoutes(router, e);
   registerHudRoutes(router, e);
   registerHudLibraryRoutes(router, e);
   registerDemoRoutes(router, e);

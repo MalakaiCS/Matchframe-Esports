@@ -45,6 +45,9 @@ import { GraphicsDirector } from "./live/graphics.ts";
 import { ObsAutomation } from "./live/obs-auto.ts";
 import { ReplayLink } from "./replay/link.ts";
 import { ReplayTwin } from "./replay/twin.ts";
+import { ReplayGraphic } from "./replay/graphic.ts";
+import { HighlightStore } from "./replay/highlights.ts";
+import { HighlightReels } from "./replay/reel.ts";
 import { OnAirLog } from "./replay/onair.ts";
 import { LiveSession } from "./live/session.ts";
 import { TeamSideTracker } from "./live/team-sides.ts";
@@ -192,6 +195,11 @@ export class Engine {
   readonly autoReplay: AutoReplay;
   /** The replay scene's twin in OBS, for fading from one replay of a break to the next. */
   readonly replayTwin: ReplayTwin;
+  /** The replay graphic on Matchframe HUDs while a replay clip is on air (ADR-061). */
+  readonly replayGraphic: ReplayGraphic;
+  /** Clips and kills of the current and previous map kept for highlight reels (ADR-061). */
+  readonly highlights: HighlightStore;
+  readonly reels: HighlightReels;
   readonly graphics: GraphicsDirector;
   readonly obsAuto: ObsAutomation;
   /** Each match's thumbnails, "Up next" screen and stingers (and OBS's stinger transitions). */
@@ -410,6 +418,9 @@ export class Engine {
     this.onAir = new OnAirLog(() => this.now());
     this.autoReplay = new AutoReplay(this);
     this.replayTwin = new ReplayTwin(this);
+    this.replayGraphic = new ReplayGraphic(this);
+    this.highlights = new HighlightStore(this);
+    this.reels = new HighlightReels(this);
     this.graphics = new GraphicsDirector(this);
     this.obsAuto = new ObsAutomation(this);
     this.matchArt = new MatchArt(this);
@@ -641,7 +652,7 @@ export class Engine {
       killfeed: { mode: this.killfeed.mode, entries: this.killfeed.list() },
       sponsors: sponsorMap,
       cues: profile === "clean" ? [] : cues,
-      replay: { active: replayActive, label: replayActive ? "REPLAY" : null },
+      replay: { active: replayActive, label: replayActive ? "REPLAY" : null, clip: null },
       annotations: this.annotations.filter((a) => a.expiresAtMs === null || a.expiresAtMs > Date.now()),
       veto: null,
       ...this.stageProjection(typeof settings.stageId === "string" ? settings.stageId : (match?.stageId ?? null), variant),
@@ -713,7 +724,13 @@ export class Engine {
     const hud = buildHudState(state, ctx, this.sides, now);
     // Round history winners recorded at round end with the side assignment at that time.
     for (const r of hud.roundHistory) if (r.winner === null) r.winner = this.roundWinnersLR.get(r.roundNumber) ?? null;
+    hud.replay = { ...hud.replay, clip: this.replayGraphic.forHud(hud) };
     return hud;
+  }
+
+  /** Sends every HUD a new state now (something they show changed outside the game data). */
+  refreshHuds(urgent = true): void {
+    for (const fn of this.hudListeners) fn("*", urgent);
   }
 
   private onState(s: MatchState): void {
@@ -1120,6 +1137,8 @@ export class Engine {
     this.replayTwin.init();
     this.replayLink.start();
     this.autoReplay.start();
+    this.replayGraphic.start();
+    this.highlights.start();
     this.graphics.start();
     this.obsAuto.start();
     this.gameConsole.sync();
@@ -1160,6 +1179,9 @@ export class Engine {
     this.cams.close();
     this.replayLink.stop();
     this.autoReplay.dispose();
+    this.replayGraphic.dispose();
+    this.reels.dispose();
+    this.highlights.dispose();
     this.graphics.dispose();
     this.obsAuto.dispose();
     await this.stopSimulation().catch(() => undefined);

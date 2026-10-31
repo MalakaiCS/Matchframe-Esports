@@ -5,8 +5,11 @@ import { Killfeed } from "./components/Killfeed.tsx";
 import { ObservedPanel, TeamPanel } from "./components/Players.tsx";
 import { Radar } from "./components/Radar.tsx";
 import { Annotations, Badges, Cues, SponsorZone } from "./components/Overlays.tsx";
+import { ReplayGraphic } from "./components/ReplayGraphic.tsx";
+import { isReplayLayer } from "./components/replay.ts";
 import { RoundHistory, Scoreboard, SeriesStrip } from "./components/Scoreboard.tsx";
 import { BracketBoard, BreakScreen, PostMap, PostSeries, PreMatch, ReplayFrame, StandingsBoard, VetoBoard } from "./components/Screens.tsx";
+import { demoReplayState } from "./demo.ts";
 import { readParams } from "./params.ts";
 import { useHud, useTicker } from "./useHud.ts";
 
@@ -96,10 +99,17 @@ function LiveHud({ state, receivedAt, now, onSponsorShown }: { state: HudState; 
 
 export function App() {
   const params = readParams();
-  const feed = useHud(params.wsUrl);
+  // `?demo=replay`: the replay layer with a sample clip (no engine needed).
+  const [demo] = useState(() => {
+    const q = new URLSearchParams(window.location.search);
+    return params.demo === "replay" ? demoReplayState(q.get("play"), q.get("preset")) : null;
+  });
+  const feed = useHud(demo ? null : params.wsUrl);
   const now = useTicker(200);
   const scale = useStageScale();
-  const state = feed.state;
+  const state = demo ?? feed.state;
+  // The `replay` entry point (the page in the replay scene): only the replay graphic.
+  const replayLayer = params.variant === "replay" || isReplayLayer() || demo !== null;
   const preset = state?.presetId && PRESETS.has(state.presetId) ? state.presetId : "classic";
   const variant = state?.variant ?? params.variant;
   const reducedMotion = state?.settings.reducedMotion === true;
@@ -108,7 +118,8 @@ export function App() {
   const onSponsorShown = useCallback((sponsorId: string, zone: string) => ack(sponsorId, zone), [ack]);
 
   let body: React.ReactNode = null;
-  if (state) {
+  if (state && replayLayer) body = <ReplayGraphic state={state} />;
+  else if (state) {
     if (state.replay.active || variant === "replay") body = <ReplayFrame />;
     else if (variant === "pre-match") body = <PreMatch state={state} />;
     else if (variant === "break")
@@ -140,8 +151,9 @@ export function App() {
     <div className={`mf-viewport ${reducedMotion ? "mf-reduced-motion" : ""} ${params.preview ? "is-preview" : ""}`}>
       <div className={`mf-stage mf-preset-${preset} mf-variant-${variant} ${state?.stale ? "is-stale" : ""}`} style={{ transform: `scale(${scale})` }} data-preset={preset}>
         {body}
-        {state ? <Annotations state={state} /> : null}
-        <Badges state={state} connected={feed.status === "open"} />
+        {state && !replayLayer ? <Annotations state={state} /> : null}
+        {/* The replay layer is on air in the replay scene: only the simulation label, never a connection warning. */}
+        <Badges state={state} connected={replayLayer || feed.status === "open"} />
       </div>
     </div>
   );

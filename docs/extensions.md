@@ -67,6 +67,21 @@ Honour the flags in the state: show a SIMULATION marker when `state.simulated` i
 
 **Killfeed** (`state.killfeed.entries`, the current round): `killer`, `victim`, `weapon` (e.g. `"weapon_ak47"`), `headshot`, `assister` and `attackerBlind`. Game state integration reports no kill events, so `kind: "probable"` entries are paired from counter changes (the weapon is the killer's weapon in hand) and `kind: "elimination"` has no killer; any field can be `null`. Keep each row on screen for a few seconds after it first arrives (the bundled HUDs use 5–7 s). The Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2/app.js`) shows both in plain JavaScript.
 
+**Replay graphic** (`state.replay.clip`, ADR-061): while a replay clip is on air, `clip` says what it shows:
+
+- `player`, and `team` as the HUD shows it (`key` left/right, name, logo, colour).
+- `side`: the side the player had **in that round**, or `null`.
+- `weapon`, `headshot`, `victims`, `kills`.
+- `multiKill`: `"2K"` to `"ACE"`.
+- `clutchVersus`: N of a won 1vN clutch.
+- `roundNumber`, and `id` (a new id is the next clip of a break's replays).
+
+It is `null` when nothing is on air or the operator turned the graphic off.
+
+Draw it only on your `replay` entry point: the page for the replay scene, transparent but for the graphic. Read `variant=replay` from your page's address, not `state.variant`, which is `replay` for live outputs too while a replay is on air. Never draw it on the live HUD.
+
+The SDK's `ReplayGraphicSequencer` times it: feed it every state's `clip`, and it says when the tag and the lower third come in (a moment after a clip starts), swap per clip and go out. `multiKillTag` and `replayBadge` name the play. Vector, Lineup, the Pro CS2 HUD and the built-in HUD are examples (`?demo=replay&play=3k|kill|ace|clutch` shows each without a running program).
+
 ## 2. Local API
 
 OpenAPI 3.1: [`docs/architecture/openapi.json`](architecture/openapi.json) (regenerate with `pnpm openapi`); route table with permissions: [`docs/architecture/api-routes.md`](architecture/api-routes.md). Issue a role-scoped token (`POST /api/v1/tokens`) per integration. Mutations are refused from foreign browser origins. Operator WebSocket topics are listed in the route table.

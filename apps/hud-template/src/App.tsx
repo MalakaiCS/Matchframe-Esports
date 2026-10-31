@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import type { HudState } from "@matchframe/hud-sdk";
 import Layout from "./hud/Layout.tsx";
-import { useHud, useNow } from "./useHud.ts";
+import ReplayLayer from "./hud/Replay.tsx";
+import { REPLAY_LAYER, useHud, useNow } from "./useHud.ts";
 import { setting } from "./util.ts";
 
 const HEX = /^#[0-9a-f]{3,8}$/i;
@@ -27,6 +28,8 @@ export default function App() {
   useAppearance(state);
   // Nothing until the first state arrives: the page stays fully transparent.
   if (!state) return null;
+  // The `replay` entry point: only the replay graphic (the page in the replay scene).
+  if (REPLAY_LAYER) return <ReplayLayer state={state} />;
   return (
     <>
       <Layout state={state} receivedAt={receivedAt} now={now} />

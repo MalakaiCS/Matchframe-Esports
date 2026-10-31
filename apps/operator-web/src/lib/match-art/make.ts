@@ -24,7 +24,7 @@ export interface ArtJob {
   error: string | null;
 }
 
-const FAMILY = "Matchframe Display";
+export const FAMILY = "Matchframe Display";
 const DEFAULT_ACCENT = "#ffd23f";
 const DEFAULT_EVENT_BRAND = "#2f7cf6";
 
@@ -53,7 +53,7 @@ export function useArtJob(matchId: string): ArtJob | null {
 // ------------------------------------------------------------------ loading
 
 let fontsReady: Promise<void> | null = null;
-function loadFonts(): Promise<void> {
+export function loadFonts(): Promise<void> {
   fontsReady ??= (async () => {
     const faces = [new FontFace(FAMILY, `url(${display700})`, { weight: "700", style: "normal" }), new FontFace(FAMILY, `url(${display800})`, { weight: "800", style: "normal" }), new FontFace(FAMILY, `url(${display800i})`, { weight: "800", style: "italic" })];
     for (const f of faces) document.fonts.add(await f.load());
@@ -65,7 +65,7 @@ function loadFonts(): Promise<void> {
 }
 
 /** A picture by URL, decoded (logos may be PNG, JPG, WebP, GIF or SVG); null if it can't be read. */
-async function loadImage(url: string | null): Promise<HTMLImageElement | null> {
+export async function loadImage(url: string | null): Promise<HTMLImageElement | null> {
   if (!url) return null;
   try {
     const res = await fetch(url);

@@ -17,6 +17,8 @@ PC 2's picture reaches PC 1 in one of two ways:
 
 PC 1 can also replay big plays its own camera showed (a 3K or more, a won clutch) from its own OBS replay buffer, without a replay PC.
 
+The replay graphic over replays (a REPLAY tag and a lower third) and highlight reels of a map's best clips: [replay-graphics-and-highlights.md](replay-graphics-and-highlights.md).
+
 ## Replay feed (NDI)
 
 **On PC 2 (the replay PC):**

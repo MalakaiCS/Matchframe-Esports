@@ -1,0 +1,292 @@
+/* The Broadcast HUD's replay graphic (its replay entry point): a "REPLAY" tag top left and a lower
+   third in the HUD's panels (a team-colour rule on top, like the observed player), in each preset's
+   style. Transform, opacity and clip-path only. */
+.mf-rp {
+  position: absolute;
+  inset: 0;
+  --mf-rp-ease: cubic-bezier(0.18, 0.8, 0.3, 1);
+}
+
+/* ---- tag */
+.mf-rp-tag {
+  position: absolute;
+  top: 36px;
+  left: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  padding: 0 0 0 16px;
+  background: var(--mf-panel);
+  border-left: 4px solid var(--mf-rp, var(--mf-accent));
+  box-shadow: var(--mf-shadow);
+}
+.mf-rp-tag .mf-icon {
+  color: var(--mf-rp, var(--mf-accent));
+}
+.mf-rp-tag-text {
+  padding-right: 4px;
+  font-family: var(--mf-font-display);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.mf-rp-tag-round {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mf-ink-dim);
+  border-left: 1px solid var(--mf-line);
+}
+.mf-rp-tag.is-in {
+  animation: mf-rp-slide 300ms var(--mf-rp-ease) both;
+}
+.mf-rp-tag.is-out {
+  animation: mf-rp-leave 200ms ease-in both;
+}
+
+/* ---- lower third */
+.mf-rp-card {
+  position: absolute;
+  left: 44px;
+  bottom: 52px;
+  display: flex;
+  align-items: stretch;
+  min-width: 640px;
+  max-width: 1200px;
+  height: 108px;
+  background: var(--mf-panel);
+  border-top: 4px solid var(--mf-rp);
+  box-shadow: var(--mf-shadow);
+}
+.mf-rp-logo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 108px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--mf-rp) 26%, transparent), color-mix(in srgb, var(--mf-rp) 6%, transparent));
+}
+.mf-rp-logo img {
+  max-width: 68px;
+  max-height: 68px;
+  object-fit: contain;
+}
+.mf-rp-logo span {
+  font-family: var(--mf-font-display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--mf-rp);
+}
+.mf-rp-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 36px 2px 22px;
+}
+.mf-rp-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.mf-rp-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--mf-font-display);
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+}
+.mf-rp-team {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mf-rp);
+}
+.mf-rp-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--mf-ink-dim);
+}
+.mf-rp-weapon {
+  padding: 4px 8px;
+  border-radius: var(--mf-radius);
+  background: var(--mf-panel-2);
+  color: var(--mf-ink);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.mf-rp-hs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mf-hp-low);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.mf-rp-victims {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--mf-ink);
+}
+.mf-rp-victims::before {
+  content: "\25B8";
+  margin-right: 8px;
+  color: var(--mf-rp);
+}
+.mf-rp-badge {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 0 18px;
+  background: var(--mf-rp);
+  color: var(--mf-ink-inverse);
+}
+.mf-rp-badge b {
+  font-family: var(--mf-font-display);
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.mf-rp-badge span {
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.mf-rp-card.is-in {
+  animation: mf-rp-slide 380ms var(--mf-rp-ease) both;
+}
+.mf-rp-card.is-in .mf-rp-head,
+.mf-rp-card.is-in .mf-rp-meta {
+  animation: mf-rp-rise 340ms var(--mf-rp-ease) both;
+}
+.mf-rp-card.is-in .mf-rp-head {
+  animation-delay: 120ms;
+}
+.mf-rp-card.is-in .mf-rp-meta {
+  animation-delay: 190ms;
+}
+.mf-rp-card.is-in .mf-rp-badge {
+  animation: mf-rp-badge 380ms var(--mf-rp-ease) 260ms both;
+}
+.mf-rp-card.is-out {
+  animation: mf-rp-leave 220ms ease-in both;
+}
+
+/* ---- presets */
+.mf-preset-minimal .mf-rp-tag,
+.mf-preset-minimal .mf-rp-card {
+  box-shadow: none;
+}
+.mf-preset-minimal .mf-rp-card {
+  height: 92px;
+  border-top-width: 2px;
+}
+.mf-preset-minimal .mf-rp-logo {
+  width: 92px;
+}
+.mf-preset-minimal .mf-rp-name {
+  font-size: 28px;
+}
+.mf-preset-minimal .mf-rp-badge b {
+  font-size: 34px;
+}
+.mf-preset-arena .mf-rp-tag {
+  padding-right: 10px;
+  border-left: none;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--mf-rp, var(--mf-accent)) 35%, var(--mf-panel)) 0%, var(--mf-panel) 60%);
+}
+.mf-preset-arena .mf-rp-tag-text,
+.mf-preset-arena .mf-rp-name,
+.mf-preset-arena .mf-rp-team,
+.mf-preset-arena .mf-rp-meta {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.mf-preset-arena .mf-rp-tag-text {
+  font-size: 26px;
+  letter-spacing: 0.16em;
+}
+.mf-preset-arena .mf-rp-card {
+  border-top: none;
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 100%, 0 100%);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--mf-rp) 30%, var(--mf-panel)) 0%, var(--mf-panel) 45%);
+}
+.mf-preset-arena .mf-rp-name {
+  font-size: 44px;
+}
+.mf-preset-arena .mf-rp-badge {
+  padding-right: 34px;
+}
+.mf-preset-arena .mf-rp-badge b {
+  font-size: 54px;
+}
+.mf-preset-arena .mf-rp-card.is-in {
+  animation: mf-rp-wipe 360ms var(--mf-rp-ease) both;
+}
+
+.mf-reduced-motion .mf-rp-tag,
+.mf-reduced-motion .mf-rp-card,
+.mf-reduced-motion .mf-rp-card * {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+}
+
+@keyframes mf-rp-slide {
+  from {
+    opacity: 0;
+    transform: translateX(-36px);
+  }
+}
+@keyframes mf-rp-leave {
+  to {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+@keyframes mf-rp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@keyframes mf-rp-badge {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+@keyframes mf-rp-wipe {
+  from {
+    clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+  }
+}
