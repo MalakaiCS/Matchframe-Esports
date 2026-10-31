@@ -97,8 +97,8 @@ async function check(app, ports, shot) {
   win.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   await waitFor(() => win.evaluate(() => !!document.querySelector('[data-testid="hud-library"]')), 120000);
   assert(await win.evaluate(() => document.querySelectorAll("nav a").length >= 10), "the program opens into the HUD Library without signing in");
-  const huds = await waitFor(() => win.evaluate(() => [...document.querySelectorAll("article[data-hud]")].map((c) => c.getAttribute("data-hud"))).then((l) => (l.length >= 3 ? l : null)), 30000);
-  assert(huds.includes("matchframe.sample-cs2") && huds.includes("matchframe.pro-cs2"), `bundled HUDs installed (${huds.join(", ")})`);
+  const huds = await waitFor(() => win.evaluate(() => [...document.querySelectorAll("article[data-hud]")].map((c) => c.getAttribute("data-hud"))).then((l) => (l.length >= 5 ? l : null)), 30000);
+  assert(["matchframe.sample-cs2", "matchframe.pro-cs2", "matchframe.vector", "matchframe.lineup"].every((id) => huds.includes(id)), `bundled HUDs installed (${huds.join(", ")})`);
   await waitFor(() => win.evaluate(() => [...document.querySelectorAll("article[data-hud] img")].every((i) => i.complete && i.naturalWidth > 0)), 15000);
   if (shot) await win.screenshot({ path: shot.replace(/(\.png)?$/, "-library.png") });
   await signInThroughAccount(win, "producer@example.com", PASSWORD);

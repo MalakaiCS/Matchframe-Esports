@@ -1,0 +1,89 @@
+{
+  "manifestVersion": 1,
+  "id": "matchframe.vector",
+  "name": "Vector HUD",
+  "version": "1.0.0",
+  "author": "Matchframe",
+  "licence": "MIT (code, Matchframe; weapon icons, Lexogrine); fonts: SIL OFL 1.1",
+  "description": "Angled, dark-glass broadcast HUD with each team's players down its side of the screen: score bar with loss bonus and series in freeze time, bomb and defuse bar, players alive, killfeed, observed player and radar. Panels slide, wipe and collapse with the game.",
+  "game": "cs2",
+  "category": "Broadcast",
+  "tags": [
+    "broadcast",
+    "radar",
+    "killfeed",
+    "animated",
+    "side columns"
+  ],
+  "schemaVersions": [
+    1
+  ],
+  "entryPoints": {
+    "live": "index.html",
+    "compact": "index.html"
+  },
+  "designResolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "resolutions": [
+    "1920x1080"
+  ],
+  "permissions": [
+    "match.public",
+    "players.public",
+    "radar.public",
+    "series",
+    "event"
+  ],
+  "settingsSchema": {
+    "ctColor": {
+      "type": "color",
+      "label": "CT colour",
+      "default": "#38b6ff",
+      "group": "Look"
+    },
+    "tColor": {
+      "type": "color",
+      "label": "T colour",
+      "default": "#ff5a36",
+      "group": "Look"
+    },
+    "showRadar": {
+      "type": "boolean",
+      "label": "Radar",
+      "default": true,
+      "group": "Elements"
+    },
+    "showKillfeed": {
+      "type": "boolean",
+      "label": "Killfeed",
+      "default": true,
+      "group": "Elements"
+    },
+    "showObserved": {
+      "type": "boolean",
+      "label": "Observed player",
+      "default": true,
+      "group": "Elements"
+    },
+    "showAlive": {
+      "type": "boolean",
+      "label": "Players alive",
+      "default": true,
+      "group": "Elements"
+    },
+    "showMoney": {
+      "type": "boolean",
+      "label": "Player money",
+      "default": true,
+      "group": "Elements"
+    },
+    "showFreezeExtras": {
+      "type": "boolean",
+      "label": "Loss bonus, series and utility in freeze time",
+      "default": true,
+      "group": "Elements"
+    }
+  }
+}

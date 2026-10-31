@@ -6,7 +6,11 @@ Matchframe opens into the **HUD Library**: the HUDs installed on this computer, 
 
 1. Run `MatchframeEsports-Setup-<version>.exe` (per-user install, no administrator rights; unsigned development builds show a SmartScreen prompt: More info → Run anyway). Nothing else is needed: no Node.js, npm or development server.
 2. Start **Matchframe Esports**. The program starts its local HUD server automatically (`127.0.0.1`, ports 37210 for game data, 37211 for the program, 37212 for HUD outputs) and opens the HUD Library. The bottom status bar shows the server, active HUD outputs and the last game-data update.
-3. The library already contains the **Matchframe Broadcast HUD** (built in), the **Matchframe Sample CS2 HUD** (a small package to copy and learn from) and the **Pro CS2 HUD** (a full broadcast HUD adapted from Lexogrine's open-source CS2 React HUD; its source in `apps/hud-template` is a starter kit for your own).
+3. The library already contains:
+   - the **Matchframe Broadcast HUD** (built in);
+   - the **Matchframe Sample CS2 HUD**, a small package to copy and learn from;
+   - the **Pro CS2 HUD**, a full broadcast HUD adapted from Lexogrine's open-source CS2 React HUD (its source in `apps/hud-template` is a starter kit for your own);
+   - **Vector** and **Lineup**, Matchframe's own broadcast HUDs. Vector puts the teams in columns at the sides; Lineup puts all ten players in one row along the bottom. Their source is in `apps/hud-designs`.
 
 Installed HUDs and their settings are kept in `%APPDATA%\Matchframe Esports\huds\<hud-id>\` and the program database; they survive restarts and updates. **Add HUD → Open HUDs folder** shows the folder.
 
@@ -30,7 +34,7 @@ The program updates itself from the Matchframe Esports releases on GitHub, so yo
 
 ## Minimap and killfeed
 
-Every bundled HUD shows a minimap (top left) and a killfeed (top right), each in its own style: the Matchframe Broadcast HUD (Classic, Minimal and Arena presets), the Pro CS2 HUD and the Sample CS2 HUD. Turn either off in the HUD's details → **Appearance**.
+Every bundled HUD shows a minimap (top left) and a killfeed (top right), each in its own style: the Matchframe Broadcast HUD (Classic, Minimal and Arena presets), the Pro CS2 HUD, Vector, Lineup and the Sample CS2 HUD. Turn either off in the HUD's details → **Appearance**.
 
 - **Minimap:** the map drawing for Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo (Nuke and Vertigo show both levels), and Matchframe's generated outline for Anubis. Players show their slot number in the team colour: bigger with a ring when observed, lighter while flashed, marked when carrying the bomb, a faded cross when dead. Smokes are outlined in the thrower's team colour; fires, flashes and HE grenades show briefly; the bomb shows when dropped or planted (pulsing) and when defused. **Utility on the radar** in the library turns the utility off. A radar image you calibrate in Maps & Cameras replaces the built-in one.
 - **Killfeed:** killer (+ assister), weapon, headshot and blind-killer marks, victim; each kill stays for a few seconds. CS2's game data does not report kills, so Matchframe pairs them from the score changes in the same update, like every game-data HUD: the weapon is the one the killer was holding (a grenade or fire kill can show their gun), and when two players get kills in the same instant the victims are shown without a killer. Wallbang, no-scope, through-smoke and flash-assist marks are not available from game data.

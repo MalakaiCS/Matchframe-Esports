@@ -27,6 +27,7 @@ on:
       - "apps/operator-web/**"
       - "apps/hud-renderer/**"
       - "apps/hud-template/**"
+      - "apps/hud-designs/**"
       - "services/local-engine/**"
       - "services/observer-agent/**"
       - "services/replay-agent/**"
@@ -101,6 +102,7 @@ jobs:
         run: |
           pnpm --filter @matchframe/hud-renderer build
           pnpm --filter @matchframe/hud-template build
+          pnpm --filter @matchframe/hud-designs build
           pnpm --filter @matchframe/operator-web build
           pnpm --filter @matchframe/desktop build
 

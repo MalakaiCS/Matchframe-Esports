@@ -1,0 +1,26 @@
+{
+  "name": "@matchframe/hud-designs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Two broadcast HUD packages with their own looks: Vector (players down both sides) and Lineup (players along the bottom).",
+  "scripts": {
+    "dev:vector": "vite --mode vector",
+    "dev:lineup": "vite --mode lineup",
+    "build": "vite build --mode vector && vite build --mode lineup && node scripts/finish-packages.mjs",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@fontsource/barlow-condensed": "5.3.0",
+    "@fontsource/inter": "5.3.0",
+    "@matchframe/hud-sdk": "workspace:*",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "vite": "8.3.5"
+  }
+}

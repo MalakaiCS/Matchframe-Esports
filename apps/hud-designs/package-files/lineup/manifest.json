@@ -1,0 +1,95 @@
+{
+  "manifestVersion": 1,
+  "id": "matchframe.lineup",
+  "name": "Lineup HUD",
+  "version": "1.0.0",
+  "author": "Matchframe",
+  "licence": "MIT (code, Matchframe; weapon icons, Lexogrine); fonts: SIL OFL 1.1",
+  "description": "Broadcast HUD with all ten players in a row along the bottom: series and event panel, score bar that turns into the round winner's banner, bomb bar, sponsor slot, killfeed, observed player and radar.",
+  "game": "cs2",
+  "category": "Broadcast",
+  "tags": [
+    "broadcast",
+    "radar",
+    "killfeed",
+    "animated",
+    "bottom row"
+  ],
+  "schemaVersions": [
+    1
+  ],
+  "entryPoints": {
+    "live": "index.html",
+    "compact": "index.html"
+  },
+  "designResolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "resolutions": [
+    "1920x1080"
+  ],
+  "permissions": [
+    "match.public",
+    "players.public",
+    "radar.public",
+    "series",
+    "event"
+  ],
+  "settingsSchema": {
+    "ctColor": {
+      "type": "color",
+      "label": "CT colour",
+      "default": "#3d8bff",
+      "group": "Look"
+    },
+    "tColor": {
+      "type": "color",
+      "label": "T colour",
+      "default": "#ff3d6e",
+      "group": "Look"
+    },
+    "eventTitle": {
+      "type": "string",
+      "label": "Title above the series",
+      "default": "",
+      "group": "Text"
+    },
+    "sponsorText": {
+      "type": "string",
+      "label": "Sponsor slot text",
+      "default": "",
+      "group": "Text"
+    },
+    "showRadar": {
+      "type": "boolean",
+      "label": "Radar",
+      "default": true,
+      "group": "Elements"
+    },
+    "showKillfeed": {
+      "type": "boolean",
+      "label": "Killfeed",
+      "default": true,
+      "group": "Elements"
+    },
+    "showObserved": {
+      "type": "boolean",
+      "label": "Observed player",
+      "default": true,
+      "group": "Elements"
+    },
+    "showSeries": {
+      "type": "boolean",
+      "label": "Series panel",
+      "default": true,
+      "group": "Elements"
+    },
+    "showMoney": {
+      "type": "boolean",
+      "label": "Player money",
+      "default": true,
+      "group": "Elements"
+    }
+  }
+}

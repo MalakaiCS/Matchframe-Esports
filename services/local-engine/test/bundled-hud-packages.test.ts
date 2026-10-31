@@ -6,10 +6,12 @@ import { readDirectory, validateManifest } from "../src/hud/packages.ts";
 
 const repo = join(import.meta.dirname, "..", "..", "..");
 
-/** The HUD packages installed into the library on first start: the sample package and the Pro CS2 HUD. */
+/** The HUD packages installed into the library on first start: the sample package, the Pro CS2 HUD, Vector and Lineup. */
 const folders = [
   ...readdirSync(join(repo, "assets", "hud-packages")).map((n) => join(repo, "assets", "hud-packages", n)),
   join(repo, "apps", "hud-template", "package-files"),
+  join(repo, "apps", "hud-designs", "package-files", "vector"),
+  join(repo, "apps", "hud-designs", "package-files", "lineup"),
 ];
 
 describe("bundled HUD packages", () => {
@@ -36,4 +38,14 @@ describe("bundled HUD packages", () => {
     // Relative asset paths: installed packages are served under /huds/<id>/.
     expect(html).toMatch(/src="\.\/assets\//);
   });
+
+  for (const hud of ["vector", "lineup"])
+    it.skipIf(!existsSync(join(repo, "apps", "hud-designs", "dist", hud, "manifest.json")))(`the built ${hud} HUD package (apps/hud-designs/dist) installs as is`, () => {
+      const files = readDirectory(join(repo, "apps", "hud-designs", "dist", hud));
+      const m = validateManifest(files);
+      expect(m.id).toBe(`matchframe.${hud}`);
+      for (const name of ["index.html", "thumbnail.webp", "LICENSE-lexogrine.txt", "OFL-fonts.txt", "README.md"]) expect(files.has(name)).toBe(true);
+      const html = new TextDecoder().decode(files.get("index.html"));
+      expect(html).toMatch(/src="\.\/assets\//);
+    });
 });

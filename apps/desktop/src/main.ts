@@ -92,7 +92,7 @@ function resourcesPath(...p: string[]): string {
 const consoleDir = () => resourcesPath(isDev ? "apps/operator-web/dist" : "operator-web");
 const iconFile = () => (isDev ? join(app.getAppPath(), "build", "icon.png") : resourcesPath("icon.png"));
 /** HUD packages installed into the library on first start (each folder holds package folders). */
-const sampleHudDirs = () => (isDev ? [resourcesPath("assets", "hud-packages"), resourcesPath("apps", "hud-template", "dist")] : [resourcesPath("sample-huds")]);
+const sampleHudDirs = () => (isDev ? [resourcesPath("assets", "hud-packages"), resourcesPath("apps", "hud-template", "dist"), resourcesPath("apps", "hud-designs", "dist")] : [resourcesPath("sample-huds")]);
 const connectDir = () => resourcesPath(isDev ? "apps/desktop/connect" : "connect");
 
 /** Master key for encrypting stored credentials, protected by the OS credential store. */
