@@ -231,6 +231,38 @@ CREATE TABLE usage_resets (
 CREATE INDEX usage_resets_org_period ON usage_resets(org_id, period_start);
 `,
   },
+  {
+    version: 6,
+    name: "account sync: shared items, files and a per-organisation change counter",
+    sql: `
+CREATE TABLE sync_counters (
+  org_id text PRIMARY KEY REFERENCES orgs(id) ON DELETE CASCADE,
+  seq bigint NOT NULL DEFAULT 0
+);
+CREATE TABLE sync_items (
+  org_id text NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  kind text NOT NULL,
+  id text NOT NULL,
+  data json,
+  blobs jsonb NOT NULL DEFAULT '[]',
+  seq bigint NOT NULL,
+  edited_at timestamptz NOT NULL,
+  device_id text NOT NULL,
+  device_name text NOT NULL,
+  PRIMARY KEY (org_id, kind, id)
+);
+CREATE UNIQUE INDEX sync_items_org_seq ON sync_items(org_id, seq);
+CREATE TABLE sync_blobs (
+  org_id text NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  sha256 text NOT NULL,
+  size bigint NOT NULL,
+  data bytea NOT NULL,
+  uploaded_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (org_id, sha256)
+);
+ALTER TABLE sync_blobs ALTER COLUMN data SET STORAGE EXTERNAL;
+`,
+  },
 ];
 
 export async function migrate(sql: Sql): Promise<{ from: number; to: number }> {

@@ -1,8 +1,9 @@
 import type { OrgScope } from "../../App.tsx";
 import { api } from "../../api/index.ts";
+import type { SyncStatus } from "../../api/index.ts";
 import { AllowanceMeter } from "../../components/AllowanceMeter.tsx";
 import { Alert, Badge, Card, ErrorState, Hours, Loading, PageHeader } from "../../components/ui.tsx";
-import { formatDate } from "../../lib/format.ts";
+import { formatBytes, formatDate } from "../../lib/format.ts";
 import { useResource, useTitle } from "../../lib/hooks.ts";
 import { STATUS_LABEL, can, statusTone } from "../../lib/roles.ts";
 import { Link } from "../../router.tsx";
@@ -18,6 +19,7 @@ export function Dashboard({ scope }: { scope: OrgScope }) {
   const billing = useResource(viewBilling ? `billing:${orgId}` : null, () => api.billing(orgId));
   const usage = useResource(viewBilling ? null : `usage:${orgId}`, () => api.usage(orgId));
   const devices = useResource(`devices:${orgId}`, () => api.devices(orgId));
+  const sync = useResource(`sync:${orgId}`, () => api.syncStatus(orgId));
   const name = org.data?.name ?? me?.orgs.find((o) => o.id === orgId)?.name ?? "Organisation";
   useTitle(name);
   const base = `/orgs/${encodeURIComponent(orgId)}`;
@@ -88,8 +90,40 @@ export function Dashboard({ scope }: { scope: OrgScope }) {
           )}
         </Card>
 
+        <Card title="Shared with your computers" className="dash-sync">
+          {!sync.data && !sync.error && <Loading />}
+          {sync.error && <ErrorState error={sync.error} onRetry={sync.reload} />}
+          {sync.data && <SharedSummary status={sync.data} />}
+        </Card>
+
         <DownloadCard />
       </div>
+    </>
+  );
+}
+
+/** What the program shares between the organisation's computers ("12 players, 4 teams, 3 matches, 2 HUDs"). */
+export function sharedItems(items: SyncStatus["items"]): string {
+  const counts: [number, string, string][] = [
+    [items.player, "player", "players"],
+    [items.team, "team", "teams"],
+    [items.match, "match", "matches"],
+    [items.hud, "HUD", "HUDs"],
+  ];
+  return counts.map(([n, one, many]) => `${n} ${n === 1 ? one : many}`).join(", ");
+}
+
+function SharedSummary({ status }: { status: SyncStatus }) {
+  const files = `${formatBytes(status.blobBytes)} of ${formatBytes(status.quotaBytes)}`;
+  if (status.cursor === 0) {
+    return <p className="muted">Nothing shared yet. Players, teams, matches and imported HUDs appear here once a computer linked to this organisation shares them.</p>;
+  }
+  return (
+    <>
+      <p className="dash-sync-line">
+        {sharedItems(status.items)} · {files}
+      </p>
+      <p className="muted small">Every computer linked to this organisation sees and edits the same players, teams, matches and HUDs. HUD files and pictures count towards the {formatBytes(status.quotaBytes)}.</p>
     </>
   );
 }

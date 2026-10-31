@@ -191,4 +191,31 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 4,
+    name: "account sync",
+    sql: `
+      -- Account sync: per shared record, the version this computer and its organisation agree on.
+      CREATE TABLE sync_state (
+        kind TEXT NOT NULL,
+        id TEXT NOT NULL,
+        -- Content hash of that version: '' never shared yet, '-' deleted.
+        hash TEXT NOT NULL,
+        seq INTEGER,
+        edited_at TEXT,
+        blobs TEXT NOT NULL DEFAULT '[]',
+        -- What the blobs were made from (a HUD's installed files), so an unchanged package is not uploaded again.
+        blob_key TEXT,
+        -- A local change the organisation has not accepted yet ('-' a deletion) and when it was made.
+        pending TEXT,
+        pending_at TEXT,
+        -- The organisation refused this content; not sent again until it changes (or after a while).
+        rejected TEXT,
+        rejected_hash TEXT,
+        rejected_at TEXT,
+        PRIMARY KEY (kind, id)
+      );
+      CREATE INDEX sync_state_pending ON sync_state(pending) WHERE pending IS NOT NULL;
+    `,
+  },
 ];

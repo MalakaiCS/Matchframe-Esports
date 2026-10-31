@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCountdown, formatExactSeconds, formatHours, formatMoney, formatRelative, formatSessionLength, fromDateInput, isoDuration, platformLabel, toDateInput } from "./format.ts";
+import { formatBytes, formatCountdown, formatExactSeconds, formatHours, formatMoney, formatRelative, formatSessionLength, fromDateInput, isoDuration, platformLabel, toDateInput } from "./format.ts";
 
 describe("formatHours (h mm, truncated toward zero)", () => {
   it.each([
@@ -88,4 +88,19 @@ describe("dates", () => {
     expect(platformLabel("win32")).toBe("Windows");
     expect(platformLabel("haiku")).toBe("haiku");
   });
+});
+
+describe("formatBytes (1024 steps)", () => {
+  it.each([
+    [0, "0 bytes"],
+    [1, "1 byte"],
+    [1023, "1023 bytes"],
+    [1536, "1.5 KB"],
+    [820 * 1024, "820 KB"],
+    [140 * 1024 ** 2, "140 MB"],
+    [1.5 * 1024 ** 3, "1.5 GB"],
+    [2 * 1024 ** 3, "2 GB"],
+  ])("%d → %s", (n, out) => expect(formatBytes(n, "en-GB")).toBe(out));
+
+  it("survives bad input", () => expect(formatBytes(Number.NaN)).toBe("—"));
 });

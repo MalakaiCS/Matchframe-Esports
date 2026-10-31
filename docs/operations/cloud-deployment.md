@@ -42,6 +42,8 @@ docker compose -f docker-compose.cloud.yml --env-file config/cloud.env up -d --b
 The service listens on `127.0.0.1:8080`. Put a TLS-terminating reverse proxy (Caddy, nginx, a
 cloud load balancer) in front of it and set `MF_CLOUD_PUBLIC_URL` to the public `https://` address:
 it is used in emails, Stripe return URLs and the desktop link page, and turns on `Secure` cookies.
+The proxy must accept request bodies up to 64 MB: computers upload shared HUD packages and pictures
+(account sync, up to 60 MB each) to `/v1/sync/` (nginx: `client_max_body_size 64m;`).
 
 ### Railway
 
@@ -183,6 +185,7 @@ invitation links can be recovered by staff if delivery fails.
 | `MF_OFFLINE_GRACE_DAYS` | no | `7` | How long a computer keeps working offline after its last successful licence refresh |
 | `MF_DOWNLOAD_DIR` | recommended | — | Directory with `MatchframeEsports-Setup-<version>.exe` installers served at `/downloads/` (newest shown with its SHA-256) |
 | `MF_DOWNLOAD_VERSION`, `MF_DOWNLOAD_WINDOWS_URL`, `MF_DOWNLOAD_WINDOWS_SHA256`, `MF_DOWNLOAD_NOTES_URL` | no | — | External installer URL instead of `MF_DOWNLOAD_DIR`; release notes link |
+| `MF_SYNC_QUOTA_BYTES` | no | `2147483648` (2 GB) | Account sync: the most bytes of shared files (HUD packages, logos, photos) one organisation can keep in the database |
 | `MF_DEV_LOG_EMAILS` | no | off | `1` prints emails to the console (development only) |
 
 Desktop side: `MATCHFRAME_CLOUD_URL` and `MATCHFRAME_CLOUD_PUBLIC_KEYS` (or the shipped
@@ -193,11 +196,13 @@ automatic direction without an account (`MATCHFRAME_SIGN_IN=off` reports sign-in
 ## 7. Operations
 
 - **Backups:** back up Postgres (`pg_dump` or the provider's point-in-time recovery). Usage records,
-  credits, Stripe event history and the audit log are all in the database; the service itself is
-  stateless.
+  credits, Stripe event history, the audit log and account sync (shared items and their files, up
+  to `MF_SYNC_QUOTA_BYTES` per organisation) are all in the database; the service itself is
+  stateless. Size the database for the shared files.
 - **Scaling:** run more than one instance behind the proxy if needed. Usage ingestion takes a
   per-organisation row lock, so concurrent uploads from several computers cannot double-spend
-  credits (verified on Postgres 16 with six concurrent computers). Rate limits are per instance.
+  credits (verified on Postgres 16 with six concurrent computers). Account sync hands out change
+  numbers under a per-organisation row lock in the same way. Rate limits are per instance.
 - **Monitoring:** `/v1/health` reports database kind, billing and email configuration and the
   signing key id; the staff pages show organisations, usage, credits, audit and Stripe events.
 - **Support credits:** admins can grant auto-director hours to an organisation (trial extensions,

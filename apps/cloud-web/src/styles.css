@@ -1407,6 +1407,12 @@ input[type="radio"] {
   align-items: center;
 }
 
+.dash-sync-line {
+  font-size: 16px;
+  font-weight: 650;
+  margin: 0 0 6px;
+}
+
 .big-stat {
   font-size: 40px;
   font-weight: 790;

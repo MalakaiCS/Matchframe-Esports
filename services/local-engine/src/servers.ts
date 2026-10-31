@@ -188,6 +188,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     metrics: e.session.metrics(),
     tally: tally(e),
     cloud: cloudSummary(e),
+    /** Bumped when account sync changed teams, players, matches or HUDs here (the console reloads those lists). */
+    dataVersion: e.cloudSync.version,
   });
   const operatorHub = new WsHub({
     onConnect: (c) => operatorHub.sendTo(c, env("state.snapshot", operatorSnapshot()), { snapshot: true }),
@@ -231,7 +233,11 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   // ------------------------------------------------------------------ API server
   const api = createServer(async (req, res) => {
     try {
-      if (await router.handle(req, res)) return;
+      if (await router.handle(req, res)) {
+        // A change through the API: account sync compares the shared records soon.
+        if (req.method !== "GET" && req.method !== "HEAD") e.cloudSync.noteLocalWrite();
+        return;
+      }
       const url = new URL(req.url ?? "/", "http://local");
       if (url.pathname.startsWith("/assets/")) {
         const f = safeResolve(assetDir(e), url.pathname.slice("/assets/".length));

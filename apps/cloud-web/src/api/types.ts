@@ -2,9 +2,9 @@
  * Response shapes of services/cloud-api (read from its route handlers). Request bodies and shared
  * entities come from @matchframe/cloud-contracts.
  */
-import type { AutoDirectorAllowance, HourPack, OrgRole, OrgView, Plan, StaffRole, SubscriptionStatus, UserView } from "@matchframe/cloud-contracts";
+import type { AutoDirectorAllowance, HourPack, OrgRole, OrgView, Plan, StaffRole, SubscriptionStatus, SyncStatus, UserView } from "@matchframe/cloud-contracts";
 
-export type { AutoDirectorAllowance, HourPack, OrgRole, OrgView, Plan, SubscriptionStatus, UserView };
+export type { AutoDirectorAllowance, HourPack, OrgRole, OrgView, Plan, SubscriptionStatus, SyncStatus, UserView };
 
 /** GET /v1/auth/me — `user.staffRole` is "support" or "admin" for staff (`staff` is true for either). */
 export interface Me {

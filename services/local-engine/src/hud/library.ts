@@ -1,7 +1,6 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { zipSync } from "fflate";
 import type { HudLibrary, HudLibraryEntry, HudManifest, HudOutputMode, HudOutputSmoothness, HudRuntimeControl, HudVariant } from "@matchframe/contracts";
 import { HUD_OUTPUT_MODES, HUD_VARIANTS, HudSettingField, RESERVED_HUD_IDS } from "@matchframe/contracts";
 import type { Database } from "../db/database.ts";
@@ -11,7 +10,7 @@ import type { Logger } from "../logger.ts";
 import type { OutputService } from "./outputs.ts";
 import type { HudPackageManager, InstalledPackage } from "./packages.ts";
 import { convertLhmPackage, lhmViews, panelSettings, parsePanel } from "./lhm.ts";
-import { PackageError, readDirectory, safeEntryPath, validateManifest } from "./packages.ts";
+import { PackageError, readDirectory, safeEntryPath, validateManifest, zipPackageDir } from "./packages.ts";
 
 export type LibraryKind = HudLibraryEntry["kind"];
 export type OnConflict = "fail" | "replace" | "copy";
@@ -590,12 +589,11 @@ export class HudLibraryService {
     return this.entry(newId);
   }
 
-  /** ZIP of the installed folder (manifest.json at the root), re-importable as is. */
-  exportZip(id: string): { filename: string; bytes: Uint8Array } {
+  /** ZIP of the installed folder (manifest.json at the root), re-importable as is; the same bytes for the same files (account sync shares it). */
+  async exportZip(id: string): Promise<{ filename: string; bytes: Uint8Array }> {
     const { pkg } = this.require(id);
     if (pkg.classification === "builtin") throw new HttpError(409, "the built-in HUD is part of the program and cannot be exported", "builtin");
-    const files = readDirectory(pkg.installDir);
-    return { filename: `${pkg.id}-${pkg.manifest.version}.zip`, bytes: zipSync(Object.fromEntries(files), { level: 6 }) };
+    return { filename: `${pkg.id}-${pkg.manifest.version}.zip`, bytes: await zipPackageDir(pkg.installDir) };
   }
 
   /** Removes the HUD, its files and settings. The built-in HUD and HUDs used by published broadcast outputs are refused. */
@@ -671,6 +669,47 @@ export class HudLibraryService {
     this.d.settings.set(HIDDEN_ALL_KEY, hidden);
     this.emit({ type: "control", hudId: null });
     return hidden;
+  }
+
+  // ---------------------------------------------------------------------------- account sync
+
+  /** HUDs the user imported (normal and LHM-format), with their stored settings: what account sync shares. Never the built-in HUD or bundled samples. */
+  importedHuds(): { id: string; manifest: HudManifest; checksums: Record<string, string>; installDir: string; settings: Record<string, unknown>; presetId: string | null }[] {
+    const pkgs = new Map(this.d.packages.list().map((p) => [p.id, p]));
+    return this.rows().flatMap((r) => {
+      const p = pkgs.get(r.id);
+      return r.kind === "imported" && p?.classification === "imported" ? [{ id: p.id, manifest: p.manifest, checksums: p.checksums, installDir: p.installDir, settings: r.settings, presetId: r.presetId }] : [];
+    });
+  }
+
+  /** Installs (or installs over) a HUD shared by another computer of the organisation. This computer's token, outputs and stopped state are kept. */
+  installShared(files: Map<string, Uint8Array>): string {
+    const manifest = validateManifest(files);
+    this.sync();
+    const existing = this.d.packages.get(manifest.id);
+    if (existing?.classification === "builtin") throw new PackageError(`HUD id ${manifest.id} is the built-in HUD's`);
+    if (existing) this.replace(files, "imported");
+    else {
+      this.d.packages.install(files);
+      this.insertRow(manifest.id, "imported");
+    }
+    return manifest.id;
+  }
+
+  /** Settings and preset shared by another computer (kept as sent when they no longer fit this HUD's form). Marks the HUD as imported. */
+  applySharedSettings(id: string, settings: Record<string, unknown>, presetId: string | null): void {
+    const { pkg, row } = this.require(id);
+    let clean = settings;
+    try {
+      clean = validateSettings(normalizeSettingsSchema(rawSchemaOf(pkg)), settings);
+    } catch {
+      // valid on the computer that changed them; kept as they are
+    }
+    const json = JSON.stringify(clean);
+    if (Buffer.byteLength(json) > MAX_SETTINGS_BYTES) throw new HttpError(400, `settings are too large (${MAX_SETTINGS_BYTES / 1024} KB at most)`, "settings_too_large");
+    const changed = json !== JSON.stringify(row.settings) || presetId !== row.presetId;
+    this.d.db.run("UPDATE hud_library SET kind = 'imported', settings = ?, preset_id = ? WHERE id = ?", json, presetId, id);
+    if (changed) this.emit({ type: "settings", hudId: id });
   }
 
   // ---------------------------------------------------------------------------- bundled samples

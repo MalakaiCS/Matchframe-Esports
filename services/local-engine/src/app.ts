@@ -19,6 +19,8 @@ import { ObsReplayBufferProvider, ReplayBridgeProvider, ReplayQueue } from "@mat
 import { z } from "zod";
 import { SecretStore } from "./auth.ts";
 import { CloudLink } from "./cloud/link.ts";
+import { CloudSync } from "./cloud/sync.ts";
+import { SyncLocal } from "./cloud/sync-local.ts";
 import type { MeterInput } from "./cloud/meter.ts";
 import { AutoDirectorMeter, UsageLedger } from "./cloud/meter.ts";
 import type { EngineConfig } from "./config.ts";
@@ -172,6 +174,8 @@ export class Engine {
   readonly migration: { from: number; to: number; backup: string | null };
   /** Matchframe account link, signed licence and auto-director hour metering. */
   readonly cloud: CloudLink;
+  /** Account sync: teams, players, matches and imported HUDs shared with every computer of the organisation. */
+  readonly cloudSync: CloudSync;
   readonly usageLedger: UsageLedger;
   readonly meter: AutoDirectorMeter;
   /** Start CS2 (launch profile) and the game's console while it runs (console options). */
@@ -297,6 +301,13 @@ export class Engine {
     // Settings (and installed version) changes push a new snapshot to every output of that HUD.
     this.hudLibrary.onChange((ev) => {
       if (ev.type === "settings") for (const fn of this.hudListeners) fn(libraryOutputId(ev.hudId));
+    });
+    this.cloudSync = new CloudSync({
+      cloud: this.cloud,
+      settings: this.settings,
+      db: this.db,
+      logger: this.logger,
+      local: new SyncLocal({ db: this.db, settings: this.settings, teams: this.teams, players: this.players, events: this.events, matches: this.matches, steamIndex: this.steamIndex, huds: this.hudLibrary, assetsDir: join(cfg.dataDir, "assets") }),
     });
 
     this.pythonSetup = new PythonSetup({ settings: this.settings, logger: this.logger, dataDir: cfg.dataDir, workersDir: cfg.workersDir, fromEnv: cfg.pythonPath });
@@ -1019,6 +1030,7 @@ export class Engine {
     this.replayFeed.start();
     this.meterTimer = setInterval(() => this.meter.tick(this.meterInput()), 1000);
     void this.cloud.start();
+    this.cloudSync.start();
     this.demos.start();
     const shadowIssue = this.training.restore();
     this.povModel.apply();
@@ -1055,6 +1067,7 @@ export class Engine {
     this.session.stop();
     if (this.meterTimer) clearInterval(this.meterTimer);
     this.meterTimer = null;
+    await this.cloudSync.stop().catch(() => undefined);
     await this.cloud.stop().catch(() => undefined);
     await this.obs.disconnect().catch(() => undefined);
     await this.session.setAdapter(null);

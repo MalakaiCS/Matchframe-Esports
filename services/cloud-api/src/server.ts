@@ -11,6 +11,7 @@ import { registerBillingRoutes } from "./routes/billing.ts";
 import { registerDeviceRoutes } from "./routes/devices.ts";
 import { registerOrgRoutes } from "./routes/orgs.ts";
 import { registerSiteRoutes } from "./routes/site.ts";
+import { registerSyncRoutes } from "./routes/sync.ts";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -56,6 +57,7 @@ export function buildRouter(app: CloudApp): Router {
   registerOrgRoutes(router, app);
   registerBillingRoutes(router, app);
   registerDeviceRoutes(router, app);
+  registerSyncRoutes(router, app);
   registerAdminRoutes(router, app);
   router.add("GET", "/v1/cams/:room", { summary: "Player cams: the match being played and the video settings for a cam link (ADR-048)" }, (ctx) => {
     app.rateLimit(app.limits.cams, `cam-info:${ctx.ip}`);

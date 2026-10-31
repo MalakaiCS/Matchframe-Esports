@@ -70,8 +70,8 @@ export function registerHudLibraryRoutes(r: Router, e: Engine): void {
     return entry;
   });
 
-  r.get("/api/v1/hud/library/:id/export", { permission: "metadata.read" }, (req) => {
-    const { filename, bytes } = lib.exportZip(req.params.id!);
+  r.get("/api/v1/hud/library/:id/export", { permission: "metadata.read" }, async (req) => {
+    const { filename, bytes } = await lib.exportZip(req.params.id!);
     return { body: Buffer.from(bytes), contentType: "application/zip", headers: { "content-disposition": `attachment; filename="${filename}"`, "cache-control": "no-store" } };
   });
 

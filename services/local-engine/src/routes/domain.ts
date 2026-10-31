@@ -13,7 +13,7 @@ import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
 import { pushResultIfEnabled } from "./integrations.ts";
 
-const ASSET_EXT = new Set([".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".webm", ".mp4"]);
+export const ASSET_EXT = new Set([".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".webm", ".mp4"]);
 const ASSET_MAX = 20 * 1024 * 1024;
 
 export function assetDir(e: Engine): string {
@@ -30,8 +30,8 @@ export function storeAsset(e: Engine, body: Buffer, ext: string): string {
   return id;
 }
 
-/** Duplicate detection for imports: same SteamID or same normalized name. */
-function normalizeName(n: string): string {
+/** Duplicate detection for imports (and account sync): same SteamID or same normalized name. */
+export function normalizeName(n: string): string {
   return n.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 

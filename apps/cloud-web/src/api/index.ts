@@ -27,6 +27,7 @@ import type {
   SiteInfo,
   StaffRole,
   StripeEventRow,
+  SyncStatus,
   UsageResponse,
 } from "./types.ts";
 
@@ -90,6 +91,7 @@ export const api = {
   devices: (orgId: string) => client.get<Device[]>(`/v1/orgs/${seg(orgId)}/devices`),
   unlinkDevice: (orgId: string, deviceId: string) => client.del<{ ok: true }>(`/v1/orgs/${seg(orgId)}/devices/${seg(deviceId)}`),
   usage: (orgId: string, range: { from?: string; to?: string } = {}) => client.get<UsageResponse>(usagePath(orgId, range)),
+  syncStatus: (orgId: string) => client.get<SyncStatus>(`/v1/orgs/${seg(orgId)}/sync`),
 
   // staff
   adminOrgs: (q: string) => client.get<AdminOrg[]>(`/v1/admin/orgs?q=${encodeURIComponent(q)}`),

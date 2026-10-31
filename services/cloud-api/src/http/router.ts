@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { Readable } from "node:stream";
 import { z } from "zod";
 
 export class HttpError extends Error {
@@ -17,8 +18,14 @@ export interface Ctx<B = unknown> {
   path: string;
   params: Record<string, string>;
   query: URLSearchParams;
+  /** The validated JSON body (routes with `lazyBody`: not read yet, see `readBody`). */
   body: B;
   rawBody: Buffer;
+  /**
+   * The body. Routes with `lazyBody` read it only now, up to their own limit, so a handler can
+   * check who is calling before a large body is taken in; it is validated like `body`.
+   */
+  readBody(): Promise<{ raw: Buffer; body: B }>;
   headers: IncomingMessage["headers"];
   ip: string;
   cookies: Record<string, string>;
@@ -49,6 +56,8 @@ interface Route {
   pattern: RegExp;
   keys: string[];
   body: z.ZodTypeAny | undefined;
+  /** Largest body when the handler reads it itself (`ctx.readBody()`); null: read before the handler. */
+  lazyBody: number | null;
   /** Cookie-authenticated browser mutation: requires a same-origin Origin header when present. */
   browserMutation: boolean;
   summary: string;
@@ -75,7 +84,12 @@ export class Router {
 
   constructor(private readonly opts: { allowedOrigins: string[]; maxBodyBytes?: number; onError?: (e: unknown, ctx: { method: string; path: string }) => void }) {}
 
-  add<S extends z.ZodTypeAny | undefined>(method: string, path: string, opts: { body?: S; browserMutation?: boolean; summary?: string }, handler: Handler<S extends z.ZodTypeAny ? z.infer<S> : unknown>): void {
+  add<S extends z.ZodTypeAny | undefined>(
+    method: string,
+    path: string,
+    opts: { body?: S; lazyBody?: { maxBytes: number }; browserMutation?: boolean; summary?: string },
+    handler: Handler<S extends z.ZodTypeAny ? z.infer<S> : unknown>,
+  ): void {
     const keys: string[] = [];
     const src = path
       .split("/")
@@ -87,7 +101,17 @@ export class Router {
         return seg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       })
       .join("/");
-    this.routes.push({ method, path, pattern: new RegExp(`^${src}/?$`), keys, body: opts.body, browserMutation: opts.browserMutation ?? method !== "GET", summary: opts.summary ?? `${method} ${path}`, handler: handler as Handler<unknown> });
+    this.routes.push({
+      method,
+      path,
+      pattern: new RegExp(`^${src}/?$`),
+      keys,
+      body: opts.body,
+      lazyBody: opts.lazyBody?.maxBytes ?? null,
+      browserMutation: opts.browserMutation ?? method !== "GET",
+      summary: opts.summary ?? `${method} ${path}`,
+      handler: handler as Handler<unknown>,
+    });
   }
 
   routeList(): { method: string; path: string; summary: string }[] {
@@ -105,6 +129,8 @@ export class Router {
         } catch {
           op.requestBody = { required: true, content: { "application/json": { schema: {} } } };
         }
+      } else if (r.lazyBody !== null) {
+        op.requestBody = { required: true, content: { "application/octet-stream": { schema: { type: "string", format: "binary", maxLength: r.lazyBody } } } };
       }
       paths[p] = { ...(paths[p] ?? {}), [r.method.toLowerCase()]: op };
     }
@@ -132,36 +158,54 @@ export class Router {
       }
       const params: Record<string, string> = {};
       route.keys.forEach((k, i) => (params[k] = decodeURIComponent(m![i + 1] ?? "")));
-      const rawBody = method === "GET" || method === "HEAD" ? Buffer.alloc(0) : await readBody(req, this.opts.maxBodyBytes ?? 1024 * 1024);
-      let body: unknown = undefined;
-      if (rawBody.length && (req.headers["content-type"] ?? "").includes("application/json")) {
-        try {
-          body = JSON.parse(rawBody.toString("utf8"));
-        } catch {
-          throw new HttpError(400, "bad_json", "invalid JSON body");
+      const parse = (raw: Buffer): unknown => {
+        let body: unknown = undefined;
+        if (raw.length && (req.headers["content-type"] ?? "").includes("application/json")) {
+          try {
+            body = JSON.parse(raw.toString("utf8"));
+          } catch {
+            throw new HttpError(400, "bad_json", "invalid JSON body");
+          }
         }
-      }
-      if (route.body) {
-        const r = route.body.safeParse(body ?? {});
-        if (!r.success) throw new HttpError(400, "validation", "request validation failed", r.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })));
-        body = r.data;
+        if (route.body) {
+          const r = route.body.safeParse(body ?? {});
+          if (!r.success) throw new HttpError(400, "validation", "request validation failed", r.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })));
+          body = r.data;
+        }
+        return body;
+      };
+      let rawBody: Buffer = Buffer.alloc(0);
+      let body: unknown = undefined;
+      let read: () => Promise<{ raw: Buffer; body: unknown }>;
+      if (route.lazyBody !== null) {
+        const max = route.lazyBody;
+        let pending: Promise<{ raw: Buffer; body: unknown }> | null = null;
+        // A lazy route without a schema takes the bytes as they are (a file upload), whatever their type.
+        read = () => (pending ??= readBody(req, max).then((raw) => ({ raw, body: route.body ? parse(raw) : undefined })));
+      } else {
+        if (method !== "GET" && method !== "HEAD") rawBody = await readBody(req, this.opts.maxBodyBytes ?? 1024 * 1024);
+        body = parse(rawBody);
+        const done = Promise.resolve({ raw: rawBody, body });
+        read = () => done;
       }
       const ip = (req.socket.remoteAddress ?? "unknown").replace(/^::ffff:/, "");
-      const out = await route.handler({ method, path: url.pathname, params, query: url.searchParams, body, rawBody, headers: req.headers, ip, cookies: parseCookies(req.headers.cookie) });
+      const out = await route.handler({ method, path: url.pathname, params, query: url.searchParams, body, rawBody, readBody: read, headers: req.headers, ip, cookies: parseCookies(req.headers.cookie) });
       send(res, out);
     } catch (e) {
       const status = e instanceof HttpError ? e.status : typeof (e as { status?: unknown })?.status === "number" ? (e as { status: number }).status : 500;
       if (status >= 500) this.opts.onError?.(e, { method, path: url.pathname });
       const code = e instanceof HttpError ? e.code : status >= 500 ? "internal" : "error";
       const message = status >= 500 && !(e instanceof HttpError) ? "internal error" : e instanceof Error ? e.message : String(e);
-      if (status === 413) res.setHeader("connection", "close");
+      // A body over the limit is not read further: drop the connection rather than take in the rest.
+      if (e instanceof HttpError && e.code === "too_large") res.setHeader("connection", "close");
       json(res, status, { error: code, message, detail: e instanceof HttpError ? e.detail : null });
     }
     return true;
   }
 }
 
-function readBody(req: IncomingMessage, max: number): Promise<Buffer> {
+/** Reads a request body, refusing (413) one declared or found to be over `max` bytes without keeping more than `max`. */
+export function readBody(req: Readable & Pick<IncomingMessage, "headers">, max: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const declared = Number(req.headers["content-length"]);
     if (Number.isFinite(declared) && declared > max) return reject(new HttpError(413, "too_large", `body exceeds ${max} bytes`));

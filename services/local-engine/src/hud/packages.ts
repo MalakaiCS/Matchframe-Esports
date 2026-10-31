@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, createReadStream, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { lstat, readdir } from "node:fs/promises";
 import { extname, join, normalize, relative, sep } from "node:path";
-import { unzipSync } from "fflate";
+import { setImmediate as nextTurn } from "node:timers/promises";
+import { unzipSync, Zip, ZipDeflate } from "fflate";
 import type { HudManifest } from "@matchframe/contracts";
 import { HudManifest as HudManifestSchema, RESERVED_HUD_IDS } from "@matchframe/contracts";
 import type { Database } from "../db/database.ts";
@@ -94,6 +96,73 @@ export function readDirectory(dir: string): Map<string, Uint8Array> {
   };
   walk(dir);
   return files;
+}
+
+/** One value for an installed package's files (from the checksums recorded at install): equal files, equal fingerprint. */
+export function packageFingerprint(checksums: Record<string, string>): string {
+  const lines = Object.keys(checksums)
+    .sort()
+    .map((f) => `${f}\u0000${checksums[f]}`)
+    .join("\n");
+  return createHash("sha256").update(lines).digest("hex");
+}
+
+/** Every file of a package folder (sorted), with the same checks as readDirectory, without blocking. */
+async function listPackageFiles(dir: string): Promise<string[]> {
+  const out: string[] = [];
+  let total = 0;
+  const walk = async (d: string) => {
+    for (const name of await readdir(d)) {
+      const full = join(d, name);
+      const st = await lstat(full);
+      if (st.isSymbolicLink()) throw new PackageError(`symbolic links are not allowed: ${relative(dir, full)}`);
+      if (st.isDirectory()) await walk(full);
+      else if (st.isFile()) {
+        const rel = safeEntryPath(relative(dir, full).split(sep).join("/"));
+        checkFile(rel, st.size);
+        total += st.size;
+        if (total > PACKAGE_LIMITS.maxTotalBytes) throw new PackageError("package too large");
+        if (out.length >= PACKAGE_LIMITS.maxFiles) throw new PackageError("too many files");
+        out.push(rel);
+      }
+    }
+  };
+  await walk(dir);
+  return out.sort();
+}
+
+/** Local midnight, 1 Jan 1980: ZIP dates are local time, so this reads the same in every time zone. */
+const ZIP_DATE = new Date(1980, 0, 1, 0, 0, 0);
+
+/**
+ * A package folder as a ZIP that has the same bytes every time for the same files (sorted names,
+ * fixed dates), re-importable as is. Files are read in chunks and compressed between event-loop
+ * turns, so a large package does not hold up the HUD server.
+ */
+export async function zipPackageDir(dir: string): Promise<Buffer> {
+  const files = await listPackageFiles(dir);
+  const chunks: Uint8Array[] = [];
+  const out: { failure: Error | null; done: boolean } = { failure: null, done: false };
+  const zip = new Zip((err, data, final) => {
+    if (err) out.failure = err;
+    else chunks.push(data);
+    if (final) out.done = true;
+  });
+  for (const rel of files) {
+    const entry = new ZipDeflate(rel, { level: 6 });
+    entry.mtime = ZIP_DATE;
+    zip.add(entry);
+    for await (const chunk of createReadStream(join(dir, ...rel.split("/")), { highWaterMark: 1024 * 1024 })) {
+      entry.push(chunk as Buffer);
+      await nextTurn();
+    }
+    entry.push(new Uint8Array(0), true);
+    if (out.failure) throw out.failure;
+  }
+  zip.end();
+  if (out.failure) throw out.failure;
+  if (!out.done) throw new PackageError("the package could not be zipped");
+  return Buffer.concat(chunks);
 }
 
 function stripCommonRoot(files: Map<string, Uint8Array>): Map<string, Uint8Array> {

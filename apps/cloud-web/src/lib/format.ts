@@ -64,6 +64,20 @@ export function formatMoney(minor: number, currency: string, locale?: string): s
   }
 }
 
+/** File sizes in 1024 steps, as Windows shows them: "820 KB", "140 MB", "1.5 GB", "2 GB". */
+export function formatBytes(bytes: number, locale?: string): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return "—";
+  if (bytes < 1024) return `${bytes} ${bytes === 1 ? "byte" : "bytes"}`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let v = bytes / 1024;
+  let u = 0;
+  while (v >= 1024 && u < units.length - 1) {
+    v /= 1024;
+    u++;
+  }
+  return `${v.toLocaleString(locale, { maximumFractionDigits: v < 10 ? 1 : 0 })} ${units[u]}`;
+}
+
 /** Names as a sentence list: "Studio", "Pro and Studio", "Free, Pro and Studio". */
 export function listNames(names: string[]): string {
   return new Intl.ListFormat("en-GB", { style: "long", type: "conjunction" }).format(names);

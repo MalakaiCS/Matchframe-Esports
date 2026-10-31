@@ -157,6 +157,43 @@ export class CloudLink {
     return { status: res.status, data: data as T };
   }
 
+  /** Linked to an organisation with this computer's credential (account sync runs only then). */
+  get deviceLinked(): boolean {
+    return !!this.link && !!this.url && !this.revoked && !!this.deps.secrets.getSecret("cloud.deviceToken");
+  }
+
+  /**
+   * A device-authenticated request for account sync: a JSON body or raw bytes in, JSON or (with
+   * `raw`) the raw bytes out. Network failures throw. A 401 means this computer was signed out on
+   * the website, handled as for the licence.
+   */
+  async deviceRequest(method: string, path: string, opts: { json?: unknown; bytes?: Uint8Array; raw?: boolean; timeoutMs?: number; signal?: AbortSignal } = {}): Promise<{ status: number; data: unknown; bytes: Buffer | null }> {
+    const url = this.url;
+    const token = this.deps.secrets.getSecret("cloud.deviceToken");
+    if (!url || !token || !this.link) throw Object.assign(new Error("this computer is not linked"), { status: 409 });
+    const headers: Record<string, string> = { authorization: `Bearer ${token}`, "x-matchframe-version": this.deps.appVersion };
+    let body: string | Uint8Array | undefined;
+    if (opts.bytes) {
+      headers["content-type"] = "application/octet-stream";
+      body = opts.bytes;
+    } else if (opts.json !== undefined) {
+      headers["content-type"] = "application/json";
+      body = JSON.stringify(opts.json);
+    }
+    const timeout = AbortSignal.timeout(opts.timeoutMs ?? 15_000);
+    const res = await this.fetch(url + path, { method, headers, body, signal: opts.signal ? AbortSignal.any([timeout, opts.signal]) : timeout });
+    if (opts.raw && res.ok) return { status: res.status, data: null, bytes: Buffer.from(await res.arrayBuffer()) };
+    const text = await res.text();
+    let data: unknown = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = { error: "bad_response", message: text.slice(0, 200) };
+    }
+    if (res.status === 401) this.markRevoked((data as { message?: string } | null)?.message ?? "this computer was signed out on the website");
+    return { status: res.status, data, bytes: null };
+  }
+
   // ------------------------------------------------------------------ signing in
 
   /**

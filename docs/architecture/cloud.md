@@ -17,7 +17,9 @@ Matchframe is two products that work together:
   user management — verify emails, staff roles, disable accounts — organisations, hour grants, the
   plan catalogue, the support inbox, the email log, Stripe events and the audit log). It also has
   the public pages (product, pricing, help, contact, legal). Signed-in accounts can download the
-  program installer there. The website has no HUD, director, camera or match features.
+  program installer there. The website has no HUD, director, camera or match features; it keeps
+  the players, teams, matches and imported HUDs the organisation's computers share (account sync,
+  below) and shows only how many there are.
 
 ```
  Browser ──HTTPS (session cookie, same-origin)──▶ website + cloud API ──▶ Postgres
@@ -26,6 +28,7 @@ Matchframe is two products that work together:
                                                             │
  Desktop engine ──HTTPS (device token, Bearer)──────────────┘
    • device-code linking   • signed licence (Ed25519)   • usage upload (idempotent)
+   • account sync (shared players, teams, matches, HUDs and their files)
 ```
 
 ## What needs the website
@@ -118,6 +121,46 @@ continues to the end of the map and hands the camera back to the operator at the
 as `cloud.allowance_takeover`). If the plan stops including Full Action Observer, the program
 switches to Observer & Cinematics at the map change (`cloud.observer_mode_reduced`).
 
+**Account sync.** Every computer linked to an organisation sees and edits the same players,
+teams, rosters, events, matches, maps, vetoes, assets and imported HUDs (contract:
+`packages/cloud-contracts`, "account sync"; server: `services/cloud-api/src/routes/sync.ts`,
+migration 6). Each local record is an *item* keyed by kind and id (the same id on every computer);
+files it needs (HUD packages, logos, photos) are *blobs*, stored once per organisation by SHA-256
+(`bytea` in Postgres). All routes use the computer's device token and only ever see its own
+organisation's items and files.
+
+- `PUT /v1/sync/blobs/<sha256>` uploads a file first: raw bytes (`application/octet-stream`) up to
+  60 MB. The body is read only after the device token is checked, and never beyond 60 MB (a
+  declared length over it is refused at once, 413). The SHA-256 must match the name (else 400). A
+  file the organisation already has is answered 204 without reading the body. An upload that would
+  take the organisation's files over its quota (2 GB, `MF_SYNC_QUOTA_BYTES`) gets 413
+  `quota_exceeded`.
+- `POST /v1/sync/push` sends up to 200 changes; all are handled in one transaction. Its body is
+  also read only after the token is checked, up to 54,067,200 bytes (200 records of 256 KB plus
+  room for the rest of each change). A change is *stale* when another computer changed the item
+  after the version this one had (`baseSeq`) with a later edit time: the last edit wins, and the
+  newer item comes back to apply locally. An edit time ahead of the server's clock counts as the
+  server's, so a computer whose clock runs fast can't win every conflict. A change is *rejected*
+  when its record is over 256 KB (`too_large <bytes>`) or names a file not uploaded yet
+  (`missing_blob <sha256>`). Otherwise it is *applied* with the organisation's next `seq`. A
+  deletion is kept as a tombstone (`data: null`) so the other computers delete the item too.
+- `GET /v1/sync/changes?since=<seq>&limit=<n>` lists the organisation's items changed after a
+  cursor, oldest first (500 by default, at most 1000; `more` when another page waits). Computers
+  poll it every few seconds (index on `(org_id, seq)`) and fetch files with
+  `GET /v1/sync/blobs/<sha256>`. `GET /v1/sync/status` (and, for members on the website,
+  `GET /v1/orgs/<orgId>/sync`) counts live items per kind, the bytes of files and the quota; the
+  organisation's dashboard shows it.
+
+Seqs are handed out under a per-organisation lock: the organisation's `sync_counters` row, taken
+with `SELECT … FOR UPDATE` at the start of every push, file upload and clean-up and held until
+commit. Pushes from several computers therefore take seqs one transaction at a time and commit in
+seq order. Seqs are unique (a unique index backs this) and a computer polling with its cursor
+never skips a change that commits later with a lower seq. This was checked on Postgres 16 with six
+computers pushing 30 batches at once while another polled. Files no live item names are deleted
+once their last upload is more than an hour old, which leaves time to upload files before the push
+that names them. This runs after a push, at most once a minute per organisation. Sync requests are
+rate-limited per computer (600 a minute).
+
 **Program download.** An installer placed in `MF_DOWNLOAD_DIR` (`MatchframeEsports-Setup-<version>.exe`)
 is served by the website at `/downloads/…`; `/v1/downloads` reports the newest version with its
 SHA-256, shown in the signed-in area. Alternatively `MF_DOWNLOAD_WINDOWS_URL` points at an external
@@ -129,7 +172,7 @@ also installs and smoke-tests it on Windows.
 | Boundary | Controls |
 |---|---|
 | Browser ↔ website | HttpOnly SameSite=Lax session cookie (Secure on https), Origin check on every cookie-authenticated mutation, rate limits on signup/login/email/linking, enumeration-safe login and reset, single-use hashed email tokens, role checks per organisation, CSP and security headers on the website. |
-| Desktop ↔ API | Device token (random, stored hashed server-side, encrypted at rest on the desktop), revocable from the website; licences signed with Ed25519 and verified offline against pinned keys; usage validated and idempotent server-side. |
+| Desktop ↔ API | Device token (random, stored hashed server-side, encrypted at rest on the desktop), revocable from the website; licences signed with Ed25519 and verified offline against pinned keys; usage validated and idempotent server-side; synced items and files scoped to the computer's organisation, with upload bodies read only after the token is checked and only up to their limits. |
 | Stripe ↔ API | Webhook signatures verified with the endpoint secret; events stored once; billing state only changes from verified events or direct reads from Stripe; customer creation is idempotent per organisation. |
 | Staff | Two staff roles. Support can view accounts and organisations, verify emails, send reset links, sign users out, clear an account's sign-in and email lockouts (the in-memory rate-limit counters for its email address, user id and the addresses its browsers signed in from), sign an organisation's computers out (one or all, to free the computer limit) and work the support inbox; admin can also give staff roles, disable accounts, edit users, grant hours, reset a period's usage, set or remove subscription overrides and edit the catalogue. The first admins come from `MF_STAFF_EMAILS` and cannot be demoted or disabled from the website; nobody can change their own role. Disabled accounts cannot sign in. Every staff action is audited. |
 

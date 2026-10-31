@@ -44,7 +44,7 @@ export class CloudApp {
   publicKeys: Record<string, string>;
   kid: string;
   signingKeySource: "environment" | "database" = "environment";
-  readonly limits: { auth: RateLimiter; email: RateLimiter; deviceAuthorize: RateLimiter; deviceLink: RateLimiter; contact: RateLimiter; cams: RateLimiter };
+  readonly limits: { auth: RateLimiter; email: RateLimiter; deviceAuthorize: RateLimiter; deviceLink: RateLimiter; contact: RateLimiter; cams: RateLimiter; sync: RateLimiter };
   /** Player cams relay (ADR-048). */
   readonly cams: CamRelay;
   readonly origin: string;
@@ -62,6 +62,8 @@ export class CloudApp {
       contact: new RateLimiter(5 * k, 15 * 60_000),
       // Cam pages and their connections (a player refreshing, a team of five on one address at a LAN).
       cams: new RateLimiter(60 * k, 60_000),
+      // Account sync, per computer: polling every 5 s plus catching up and fetching files after a while offline.
+      sync: new RateLimiter(600 * k, 60_000),
     };
     this.sql = deps.sql ?? openSql(cfg.databaseUrl, cfg.pgliteDir ?? undefined);
     this.mailer = new Mailer(this.sql, cfg.smtpUrl, cfg.mailFrom, cfg.devLogEmails && !cfg.smtpUrl);

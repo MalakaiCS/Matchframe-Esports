@@ -46,6 +46,21 @@ export function registerCloudRoutes(r: Router, e: Engine): void {
     return e.cloud.status(simulated(), e.session.observerMode);
   });
 
+  // ---- account sync: teams, players, matches and imported HUDs shared with the organisation
+  r.get("/api/v1/cloud/sync", { permission: "state.read" }, () => e.cloudSync.status());
+
+  r.post("/api/v1/cloud/sync", { permission: "settings.manage", body: z.object({ enabled: z.boolean() }) }, (req) => {
+    e.cloudSync.setEnabled(req.body.enabled);
+    e.audit.record(req.principal!.label, req.body.enabled ? "cloud.sync_on" : "cloud.sync_off", null);
+    return e.cloudSync.status();
+  });
+
+  /** Shares now; answers when done, or after 20 s with the progress so far (a large HUD keeps uploading). */
+  r.post("/api/v1/cloud/sync/now", { permission: "settings.manage" }, async () => {
+    await Promise.race([e.cloudSync.syncNow(), new Promise((resolve) => setTimeout(resolve, 20_000).unref())]);
+    return e.cloudSync.status();
+  });
+
   r.get("/api/v1/cloud/usage", { permission: "state.read" }, (req) => ({
     records: e.usageLedger.recent(Math.min(500, Number(req.query.get("limit") ?? 100))),
     stats: e.usageLedger.stats(),
