@@ -347,3 +347,91 @@ export function decodeCamFrame(buf: Uint8Array): { key: boolean; timestampUs: nu
   if (!Number.isFinite(timestampUs)) return null;
   return { key: (v.getUint8(1) & 1) === 1, timestampUs, data: buf.subarray(CAM_FRAME_HEADER) };
 }
+
+// ---------------------------------------------------------------------------------- account sync
+
+/**
+ * What a program shares with every computer linked to its organisation: the people, teams and
+ * matches it knows, and the HUDs it imported. Each local record is one item, keyed by its kind and
+ * its local id (the same id on every computer). Files (HUD packages, logos, photos) are blobs,
+ * stored once per organisation by their SHA-256 and referenced from items.
+ */
+export const SyncKind = z.enum(["team", "player", "roster", "event", "match", "map", "veto", "asset", "hud"]);
+export type SyncKind = z.infer<typeof SyncKind>;
+
+export const Sha256 = z.string().regex(/^[0-9a-f]{64}$/);
+
+/** One record as the organisation has it. `seq` orders every change in the organisation (the cursor). */
+export const SyncItem = z.object({
+  kind: SyncKind,
+  id: z.string().min(1).max(200),
+  /** The record itself (null once deleted: a tombstone, so other computers delete it too). */
+  data: z.record(z.string(), z.unknown()).nullable(),
+  /** Blobs the record needs (a HUD package, a logo): fetched before the record is applied. */
+  blobs: z.array(Sha256).max(20).default([]),
+  seq: z.number().int().positive(),
+  /** When the change was made on the computer that made it (last edit wins). */
+  editedAt: z.string().datetime(),
+  deviceId: z.string(),
+  deviceName: z.string(),
+});
+export type SyncItem = z.infer<typeof SyncItem>;
+
+/** GET /v1/sync/changes?since=<seq>&limit=<n>: the organisation's changes after a cursor, oldest first. */
+export const SyncChanges = z.object({
+  items: z.array(SyncItem),
+  /** The seq of the last item returned (or `since` when none): pass it as `since` next time. */
+  cursor: z.number().int().nonnegative(),
+  /** More changes wait after this page. */
+  more: z.boolean(),
+});
+export type SyncChanges = z.infer<typeof SyncChanges>;
+
+/** One local change to send. `baseSeq`: the seq of the item this computer last had (null: new to it). */
+export const SyncChange = z.object({
+  kind: SyncKind,
+  id: z.string().min(1).max(200),
+  data: z.record(z.string(), z.unknown()).nullable(),
+  blobs: z.array(Sha256).max(20).default([]),
+  baseSeq: z.number().int().nonnegative().nullable(),
+  editedAt: z.string().datetime(),
+});
+export type SyncChange = z.infer<typeof SyncChange>;
+
+/** POST /v1/sync/push. Every blob a change names must be uploaded first (else that change is rejected). */
+export const SyncPush = z.object({ changes: z.array(SyncChange).min(1).max(200) });
+export type SyncPush = z.infer<typeof SyncPush>;
+
+/**
+ * Per change: "applied" (it is the organisation's now; `item` has its new seq), "stale" (another
+ * computer changed the item after `baseSeq` with a later `editedAt`: `item` is that newer version,
+ * to apply locally), or "rejected" (`reason`: missing blob, too large, unknown kind...).
+ */
+export const SyncPushResult = z.object({
+  results: z.array(
+    z.object({
+      kind: SyncKind,
+      id: z.string(),
+      status: z.enum(["applied", "stale", "rejected"]),
+      item: SyncItem.nullable(),
+      reason: z.string().nullable(),
+    }),
+  ),
+  cursor: z.number().int().nonnegative(),
+});
+export type SyncPushResult = z.infer<typeof SyncPushResult>;
+
+/** GET /v1/sync/status: the organisation's shared data at a glance. */
+export const SyncStatus = z.object({
+  cursor: z.number().int().nonnegative(),
+  items: z.record(SyncKind, z.number().int().nonnegative()),
+  blobBytes: z.number().int().nonnegative(),
+  quotaBytes: z.number().int().positive(),
+});
+export type SyncStatus = z.infer<typeof SyncStatus>;
+
+/** A blob's largest size (a HUD package's limit) and an organisation's total for blobs. */
+export const SYNC_BLOB_MAX_BYTES = 60 * 1024 * 1024;
+export const SYNC_ORG_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;
+/** Largest record (`data` as JSON). */
+export const SYNC_ITEM_MAX_BYTES = 256 * 1024;
