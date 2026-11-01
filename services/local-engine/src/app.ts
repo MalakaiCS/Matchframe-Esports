@@ -74,6 +74,7 @@ import { GameConsoleService } from "./game/console.ts";
 import { BuiltinRadars } from "./live/builtin-radars.ts";
 import { MatchArt } from "./domain/match-art.ts";
 import { TeamComms } from "./comms/service.ts";
+import { CommsPublic } from "./comms/public.ts";
 
 export const SetupProfile = z.object({
   id: z.string(),
@@ -211,6 +212,8 @@ export class Engine {
   readonly matchArt: MatchArt;
   /** Team Comms (ADR-065): both teams' TeamSpeak voices per person, delayed and mixed. */
   readonly teamComms: TeamComms;
+  /** Team Comms on air (ADR-066): the public listen-in, NDI outputs, preview, caster ducking, the team-only overlay. */
+  readonly commsPublic: CommsPublic;
   private meterTimer: ReturnType<typeof setInterval> | null = null;
   private readonly rawGsiListeners = new Set<(payload: Record<string, unknown>, simulated: boolean) => void>();
   private readonly killListeners = new Set<(entry: HudKillfeedEntry) => void>();
@@ -446,8 +449,21 @@ export class Engine {
         team: (id) => this.teams.get(id)?.data ?? null,
         player: (id) => this.players.get(id)?.data ?? null,
         assetUrl: (id) => this.assetUrl(id),
+        players: (teamId) => this.roster.forTeam(teamId).flatMap((m) => this.players.get(m.playerId)?.data ?? []),
       },
     });
+    this.commsPublic = new CommsPublic({
+      comms: this.teamComms,
+      settings: this.settings,
+      logger: this.logger,
+      obs: this.obs,
+      now: this.now,
+      overlayPort: () => this.cfg.overlayPort,
+      liveScene: () => this.program.sceneMap.LIVE,
+      replayDuck: () => this.autoReplay.audio,
+    });
+    // A break's replays and a listen-in may hold the same OBS input down: whichever lets go last puts it back.
+    this.autoReplay.audio.peer = this.commsPublic.ducking;
     this.radars = BuiltinRadars.load(cfg.radarDir, (msg, data) => this.logger.warn(msg, data));
     this.cleanRadars = new CleanRadars((mapName) => this.radars.get(mapName));
 
@@ -1206,6 +1222,7 @@ export class Engine {
     this.feed.start();
     this.replayFeed.start();
     await this.teamComms.start();
+    this.commsPublic.start();
     this.meterTimer = setInterval(() => this.meter.tick(this.meterInput()), 1000);
     void this.cloud.start();
     this.cloudSync.start();
@@ -1231,8 +1248,9 @@ export class Engine {
   }
 
   async shutdown(): Promise<void> {
-    // Live audio turned down for replays goes back first, while OBS (or vMix) is still there.
+    // Live audio turned down for replays goes back first, while OBS (or vMix) is still there; so do casters turned down for a listen-in.
     await this.autoReplay.beforeShutdown();
+    await this.commsPublic.beforeShutdown();
     this.autoDirector.dispose();
     this.hlaeCamera.close();
     this.cams.close();
@@ -1248,6 +1266,7 @@ export class Engine {
     this.demos.stop();
     this.feed.stop();
     this.replayFeed.stop();
+    this.commsPublic.stop();
     await this.teamComms.stop().catch(() => undefined);
     this.session.stop();
     if (this.meterTimer) clearInterval(this.meterTimer);

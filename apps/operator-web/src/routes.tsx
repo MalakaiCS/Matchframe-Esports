@@ -23,6 +23,7 @@ const ReplaysScreen = lazy(() => import("./screens/Replays.tsx").then((m) => ({ 
 const SetupScreen = lazy(() => import("./screens/Setup.tsx").then((m) => ({ default: m.SetupScreen })));
 const SponsorsScreen = lazy(() => import("./screens/Sponsors.tsx").then((m) => ({ default: m.SponsorsScreen })));
 const StudioScreen = lazy(() => import("./screens/Studio.tsx").then((m) => ({ default: m.StudioScreen })));
+const TeamCommsScreen = lazy(() => import("./screens/TeamComms.tsx").then((m) => ({ default: m.TeamCommsScreen })));
 const TeamsScreen = lazy(() => import("./screens/Teams.tsx").then((m) => ({ default: m.TeamsScreen })));
 const TrainingScreen = lazy(() => import("./screens/Training.tsx").then((m) => ({ default: m.TrainingScreen })));
 
@@ -78,6 +79,7 @@ export const NAV: NavItem[] = [
     icon: "live",
     sub: [
       { path: "/live", label: "Live Control" },
+      { path: "/live/comms", label: "Team Comms" },
       { path: "/live/studio", label: "Studio & rundown" },
     ],
   },
@@ -144,6 +146,7 @@ export const ROUTES: RouteDef[] = [
   { path: "/matches", nav: "matches", title: "Matches & veto", component: MatchesScreen },
   { path: "/tournaments", nav: "tournaments", title: "Tournaments", component: EventsScreen },
   { path: "/live", nav: "live", title: "Live Control", component: LiveControlScreen },
+  { path: "/live/comms", nav: "live", title: "Team Comms", component: TeamCommsScreen },
   { path: "/live/studio", nav: "live", title: "Studio & rundown", component: StudioScreen },
   { path: "/director", nav: "director", title: "Auto Director", component: DirectorScreen },
   { path: "/director/demos", nav: "director", title: "Demo library", component: DemosScreen },
@@ -171,6 +174,7 @@ export const REDIRECTS: Record<string, string> = {
   "/maps": "/cameras",
   "/player-cameras": "/cameras/players",
   "/studio": "/live/studio",
+  "/comms": "/live/comms",
   "/sponsors": "/hud/sponsors",
   "/demos": "/director/demos",
   "/training": "/director/training",

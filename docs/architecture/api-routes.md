@@ -320,6 +320,13 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | PUT | `/api/v1/comms/slots/:slot` | settings.manage |
 | PUT | `/api/v1/comms/participants/:key` | program.control |
 | POST | `/api/v1/comms/bridge/rotate-token` | settings.manage |
+| POST | `/api/v1/comms/listen-in` | program.control |
+| POST | `/api/v1/comms/listen-in/end` | program.control |
+| POST | `/api/v1/comms/mute-all` | program.control |
+| PUT | `/api/v1/comms/public` | program.control |
+| GET | `/api/v1/comms/obs/inputs` | state.read |
+| GET | `/api/v1/comms/obs/check` | state.read |
+| POST | `/api/v1/comms/overlay/obs` | settings.manage |
 | GET | `/api/v1/openapi.json` | public |
 
 ## WebSockets

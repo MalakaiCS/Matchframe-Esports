@@ -33,6 +33,7 @@ import { registerCloudRoutes } from "./routes/cloud.ts";
 import { registerCamRoutes } from "./routes/cams.ts";
 import { registerCommsRoutes } from "./routes/comms.ts";
 import { CAM_PAGE_JS, CAMS_JS, LHM_CAMS_JS, camPage, injectLhmCams } from "./hud/cams-runtime.ts";
+import { COMMS_OVERLAY_JS, commsOverlayPage } from "./comms/overlay.ts";
 import { bearer, json, readBody, Router } from "./http/router.ts";
 import { overlayCsp, safeResolve, serveFile, serveStatic } from "./http/static.ts";
 import type { HubClient } from "./http/ws-hub.ts";
@@ -272,7 +273,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     const url = new URL(req.url ?? "/", "http://local");
     // The HLAE camera script in CS2 (this computer only, token checked there).
     if (url.pathname === "/hlae") return e.hlaeCamera.upgrade(req, socket, head);
-    if (url.pathname !== "/api/v1/ws" && url.pathname !== "/api/v1/cams/ws") return socket.destroy();
+    if (url.pathname !== "/api/v1/ws" && url.pathname !== "/api/v1/cams/ws" && url.pathname !== "/api/v1/comms/preview/ws") return socket.destroy();
     const principal = e.secrets.authenticate(bearer(req, url.searchParams));
     if (!principal || !can(principal.role, "state.read")) {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
@@ -285,6 +286,14 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     }
     // Player cams preview (every cam as it arrives) for the Player cams screen.
     if (url.pathname === "/api/v1/cams/ws") return e.cams.upgrade(req, socket, head, { all: true });
+    // Team Comms' private preview (ADR-066): the operator's headphones, never OBS. Production roles only.
+    if (url.pathname === "/api/v1/comms/preview/ws") {
+      if (!can(principal.role, "program.control")) {
+        socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+        return socket.destroy();
+      }
+      return e.commsPublic.outputs.preview.upgrade(req, socket, head);
+    }
     operatorHub.upgrade(req, socket, head, { principal: principal.label, role: principal.role });
   });
 
@@ -482,6 +491,18 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       res.end(camPage({ title: player ? `Player ${player}` : "Observed player", player }));
       return;
     }
+    // Team Comms' public overlay (ADR-066): the TEAM COMMS banner for the live scene, team-level state only.
+    if (p === "/comms/public" || p === "/comms/public/") {
+      if (!e.commsPublic.overlay.checkToken(url.searchParams.get("t"))) return json(res, 401, { error: "unauthorized", message: "invalid or missing Team Comms overlay token (copy the address from Team Comms)" });
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers });
+      res.end(commsOverlayPage());
+      return;
+    }
+    if (p === "/comms/public.js") {
+      res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache", "x-content-type-options": "nosniff", ...headers });
+      res.end(COMMS_OVERLAY_JS);
+      return;
+    }
     if (p === "/hud-runtime/wrapper.js") {
       res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache", "x-content-type-options": "nosniff", ...headers });
       res.end(WRAPPER_JS);
@@ -571,6 +592,10 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       const ok = e.cams.checkToken(token) || (hudId !== null && e.hudLibrary.checkToken(hudId, token)) || (!!out && hudId === null && e.outputs.checkToken(out, token)) || lhm.allowedHuds(req).length > 0;
       if (!ok) return unauthorized();
       return e.cams.upgrade(req, socket, head, { all: false });
+    }
+    if (url.pathname === "/comms-ws") {
+      if (!e.commsPublic.overlay.checkToken(token)) return unauthorized();
+      return e.commsPublic.overlay.upgrade(req, socket, head);
     }
     if (url.pathname === "/hud-runtime-ws") {
       const hudId = url.searchParams.get("hud") ?? "";

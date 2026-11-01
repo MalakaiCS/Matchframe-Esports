@@ -18,6 +18,7 @@ import { liveStore, useEngineNow, useLive, useNow, useSnapshot } from "../state/
 import { usePermission } from "../state/session.tsx";
 import type { PovRole } from "./live/RosterCard.tsx";
 import { RosterCard } from "./live/RosterCard.tsx";
+import { TeamCommsCard } from "./live/TeamCommsCard.tsx";
 import { Timeline } from "./live/Timeline.tsx";
 
 const PHASE_LABEL: Record<string, string> = {
@@ -624,6 +625,7 @@ export function LiveControlScreen() {
           <Timeline nameOf={nameOf} />
         </Panel>
         <div className="stack">
+          <TeamCommsCard />
           <Panel title="Utility">
             <OpportunityList opportunities={snap.opportunities} nameOf={nameOf} />
           </Panel>

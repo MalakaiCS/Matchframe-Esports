@@ -54,8 +54,11 @@ export interface MixBlock {
   /** The public gate as heard in this block. */
   public: { team: string | null; gain: number; activity: Activity };
   recording: { team: string | null; gain: number };
-  /** Per person, from what is in that output's block. Public is absent on purpose: team level only. */
-  activity: { recording: Map<string, Activity>; preview: Map<string, Activity> };
+  /**
+   * Per person, from what is in that output's block. Public is absent on purpose: team level only.
+   * `delayed`: each person at the playhead before inclusion (the operator's "delayed" meter; never an output).
+   */
+  activity: { recording: Map<string, Activity>; preview: Map<string, Activity>; delayed: Map<string, Activity> };
 }
 
 export interface MixerOptions {
@@ -80,7 +83,12 @@ class TeamGate {
   /** The team heard now, and its gain. */
   current: string | null = null;
   gain = 0;
+  /** Closing at once (Mute All Comms): MUTE_FADE instead of the gate's own fade, until closed. */
+  fast = false;
 }
+
+/** Mute All Comms closes the public gate in 5 ms: as fast as it goes without a click. */
+export const MUTE_FADE_MS = 5;
 
 class Meter {
   db = -100;
@@ -95,7 +103,7 @@ class Meter {
 
 interface SourceState {
   gain: Record<OutputName, number>;
-  meters: { recording: Meter; preview: Meter };
+  meters: { recording: Meter; preview: Meter; delayed: Meter };
 }
 
 export class CommsMixer {
@@ -119,6 +127,13 @@ export class CommsMixer {
   /** The team on air through the public output, or null (closed). */
   setPublicTeam(teamId: string | null): void {
     this.publicGate.target = teamId;
+    if (teamId !== null) this.publicGate.fast = false;
+  }
+
+  /** Mute All Comms: the public gate closes in MUTE_FADE_MS (the recording and preview are untouched). */
+  mutePublic(): void {
+    this.publicGate.target = null;
+    if (this.publicGate.current !== null) this.publicGate.fast = true;
   }
 
   setRecordingTeam(teamId: string | null): void {
@@ -145,12 +160,13 @@ export class CommsMixer {
     const blockMs = (BLOCK / RATE) * 1000;
     const recAct = new Map<string, Activity>();
     const prevAct = new Map<string, Activity>();
+    const delayedAct = new Map<string, Activity>();
     const live = new Set<string>();
     for (const src of sources) {
       live.add(src.key);
       let st = this.state.get(src.key);
       if (!st) {
-        st = { gain: { public: 0, recording: 0, preview: 0 }, meters: { recording: new Meter(), preview: new Meter() } };
+        st = { gain: { public: 0, recording: 0, preview: 0 }, meters: { recording: new Meter(), preview: new Meter(), delayed: new Meter() } };
         this.state.set(src.key, st);
       }
       const teamReady = src.teamId !== null && ready(src.teamId);
@@ -160,9 +176,12 @@ export class CommsMixer {
         recording: !mute && teamReady && src.include.recording ? level : 0,
         preview: !mute && teamReady && src.include.preview ? 1 : 0,
       };
-      const audible = OUTPUTS.some((n) => target[n] > 0 || st.gain[n] > 0);
       this.tmp.fill(0);
-      const has = audible && teamReady && src.buffer.readInto(playhead, this.tmp);
+      // Read whether or not anything includes them: the console's delayed meter shows everyone at the playhead.
+      const has = teamReady && src.buffer.readInto(playhead, this.tmp);
+      let sig = 0;
+      if (has) for (let i = 0; i < BLOCK; i++) sig += this.tmp[i]! * this.tmp[i]!;
+      delayedAct.set(src.key, st.meters.delayed.push(Math.sqrt(sig / BLOCK), blockMs, o));
       for (const name of OUTPUTS) {
         let g = st.gain[name];
         const t = target[name];
@@ -209,7 +228,7 @@ export class CommsMixer {
       out,
       public: { team: this.publicGate.current, gain: this.publicGate.gain, activity: pubAct },
       recording: { team: this.recordingGate.current, gain: this.recordingGate.gain },
-      activity: { recording: recAct, preview: prevAct },
+      activity: { recording: recAct, preview: prevAct, delayed: delayedAct },
     };
     for (const name of OUTPUTS) for (const s of this.sinks[name]) s.write(out[name], start);
     return block;
@@ -218,12 +237,14 @@ export class CommsMixer {
   private stepGate(gate: TeamGate, gains: Float32Array, teams: (string | null)[]): void {
     // Per sample: which team is heard and how loud (the gate may switch team inside a block).
     const rate = 1 / Math.max(1, gate === this.publicGate ? (this.options.publicFadeMs * RATE) / 1000 : (this.options.fadeMs * RATE) / 1000);
+    const fastRate = 1 / ((MUTE_FADE_MS * RATE) / 1000);
     for (let i = 0; i < BLOCK; i++) {
       if (gate.current !== gate.target) {
-        if (gate.current !== null && gate.gain > 0) gate.gain = Math.max(0, gate.gain - rate);
+        if (gate.current !== null && gate.gain > 0) gate.gain = Math.max(0, gate.gain - (gate.fast ? Math.max(rate, fastRate) : rate));
         else {
           gate.current = gate.target;
           gate.gain = 0;
+          gate.fast = false;
         }
       } else if (gate.current !== null && gate.gain < 1) gate.gain = Math.min(1, gate.gain + rate);
       gains[i] = gate.current === null ? 0 : gate.gain;

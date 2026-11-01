@@ -32,6 +32,18 @@ await build({
   external: ["grandi"],
   banner: { js: "import { createRequire as __mfCreateRequire } from 'node:module'; const require = __mfCreateRequire(import.meta.url);" },
 });
+// Team Comms' NDI output process (ADR-066: "MatchFrame Comms" and "MatchFrame Comms Recording";
+// services/local-engine/src/comms/ndi-worker.ts): it loads the NDI binding too.
+await build({
+  entryPoints: [join(root, "services", "local-engine", "src", "comms", "ndi-worker.ts")],
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  target: "node22",
+  outfile: join(here, "dist", "engine", "comms-ndi-worker.mjs"),
+  external: ["grandi"],
+  banner: { js: "import { createRequire as __mfCreateRequire } from 'node:module'; const require = __mfCreateRequire(import.meta.url);" },
+});
 
 // The NDI binding next to the bundles (engine/node_modules): grandi, its loader, and this platform's
 // prebuilt addon with the NDI runtime (Processing.NDI.Lib.x64.dll on Windows) and its licences.

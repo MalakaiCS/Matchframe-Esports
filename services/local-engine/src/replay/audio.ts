@@ -77,6 +77,17 @@ export interface AudioInput {
   replay: boolean;
 }
 
+/**
+ * Another holder of OBS inputs turned down (Team Comms' caster ducking, ADR-066). When both hold the
+ * same input, whichever lets go last puts the volume back: the replays take the volume from before
+ * either as the one to put back, never go above the other's level, and as they end leave the input
+ * at the other's level while it still holds it.
+ */
+export interface DuckPeer {
+  /** If the peer holds this OBS input down now: its volume and mute before any ducking, and the level it holds it at. */
+  holding(input: string): { volume: number; muted: boolean; setVolume: number } | null;
+}
+
 const SAVED_KEY = "replay.duck";
 /** One volume step of a ramp every this long. */
 const STEP_MS = 50;
@@ -95,6 +106,8 @@ export class ReplayAudio {
   private lastRestore: DuckStatus["lastRestore"] = null;
   private triedAt = 0;
   private readonly cleanup: (() => void)[] = [];
+  /** Team Comms' caster ducking (ADR-066), when the engine has it. */
+  peer: DuckPeer | null = null;
 
   constructor(
     private readonly e: Engine,
@@ -140,6 +153,13 @@ export class ReplayAudio {
     this.e.settings.set(SAVED_KEY, s && s.inputs.length ? s : null);
   }
 
+  /** An OBS input the replays hold down now: its volume and mute before, and as turned down (for DuckPeer). */
+  heldInput(id: string): { volume: number; muted: boolean; setVolume: number; setMuted: boolean } | null {
+    const s = this.saved();
+    const i = s?.mixer === "obs" ? s.inputs.find((x) => x.id === id) : undefined;
+    return i ? { volume: i.volume, muted: i.muted, setVolume: i.setVolume, setMuted: i.setMuted } : null;
+  }
+
   /** Whether live audio is turned down now (by a break, or left so by one). */
   get lowered(): boolean {
     return this.saved() !== null;
@@ -182,9 +202,12 @@ export class ReplayAudio {
       if (!r) continue;
       // Still down from an earlier break that couldn't put it back: its volume before that one is the one to put back.
       const old = known.get(r.name);
-      const volume = old ? old.volume : r.v.mul;
-      const muted = old ? old.muted : r.v.muted;
-      const setVolume = st.duckTo === "mute" ? mulOf(dbOf(volume) + MUTE_FLOOR_DB) : mulOf(dbOf(volume) + st.duckTo);
+      // Held down by Team Comms too: its volume before that is the one to put back, and the replays never raise it.
+      const held = old ? null : (this.peer?.holding(r.name) ?? null);
+      const volume = old ? old.volume : held ? held.volume : r.v.mul;
+      const muted = old ? old.muted : held ? held.muted : r.v.muted;
+      let setVolume = st.duckTo === "mute" ? mulOf(dbOf(volume) + MUTE_FLOOR_DB) : mulOf(dbOf(volume) + st.duckTo);
+      if (held) setVolume = Math.min(setVolume, held.setVolume);
       inputs.push({ id: r.name, name: r.name, volume, muted, setVolume, setMuted: st.duckTo === "mute" ? true : muted });
     }
     // Saved before anything changes.
@@ -245,10 +268,13 @@ export class ReplayAudio {
               const now = await obs.inputVolume(i.id);
               const ours = Math.abs(now.mul - i.setVolume) <= SAME_MUL * Math.max(i.setVolume, 0.01) && now.muted === i.setMuted;
               if (!ours) return void kept.push(i.name);
-              if (now.muted && !i.muted) await obs.setInputVolume(i.id, { muted: false });
-              await this.rampObs(i.id, now.mul, i.volume, st.duckRampMs);
-              await obs.setInputVolume(i.id, { mul: i.volume, muted: i.muted });
-              done.push(i.name);
+              // Still held down by Team Comms: to its level; it puts the volume back when it lets go.
+              const held = this.peer?.holding(i.id) ?? null;
+              const to = held ? { mul: held.setVolume, muted: held.muted } : { mul: i.volume, muted: i.muted };
+              if (now.muted && !to.muted) await obs.setInputVolume(i.id, { muted: false });
+              await this.rampObs(i.id, now.mul, to.mul, st.duckRampMs);
+              await obs.setInputVolume(i.id, to);
+              done.push(held ? `${i.name} (still down for Team Comms)` : i.name);
             } catch (err) {
               left.push(i);
               problems.push(`${i.name}: ${err instanceof Error ? err.message : String(err)}`);

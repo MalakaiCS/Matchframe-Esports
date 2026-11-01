@@ -124,6 +124,8 @@ export interface CommsRoster {
   team(id: string): Team | null;
   player(id: string): Player | null;
   assetUrl(id: string | null): string | null;
+  /** The team's current roster (for mapping a TeamSpeak identity to a player in the console). */
+  players?(teamId: string): Player[];
 }
 
 export interface TeamCommsOptions {
@@ -179,7 +181,8 @@ interface Person {
   present: boolean;
   buffer: VoiceBuffer;
   incoming: { db: number; atMs: number | null; talking: boolean };
-  delayed: { recording: Activity | null; preview: Activity | null };
+  /** At the playhead: as mixed into the recording and the preview, and before inclusion (the console's delayed meter). */
+  delayed: { recording: Activity | null; preview: Activity | null; signal: Activity | null };
 }
 
 const norm = (s: string | undefined | null) => (s ?? "").trim().toLowerCase();
@@ -188,6 +191,7 @@ const shortUid = (uid: string) => (uid.length > 10 ? `${uid.slice(0, 8)}…` : u
 export class TeamComms {
   readonly mixer = new CommsMixer();
   private bridge: CommsBridge | null = null;
+  private readonly stoppedBridges = new WeakSet<CommsBridge>();
   private bridgeError: string | null = null;
   private readonly tabs = new Map<string, Tab>();
   private readonly slots: Record<SlotId, SlotRuntime>;
@@ -204,6 +208,7 @@ export class TeamComms {
   private recordingSignal = false;
   private publicClosed: { atMs: number; reason: string } | null = null;
   private readonly blockListeners = new Set<(b: MixBlock) => void>();
+  private readonly publicClosedListeners = new Set<(reason: string) => void>();
   private readonly counters = { blocks: 0, skippedBlocks: 0, memoryDrops: 0, memoryDroppedBytes: 0, closedSessions: 0 };
 
   constructor(private readonly o: TeamCommsOptions) {
@@ -236,18 +241,19 @@ export class TeamComms {
 
   private async startBridge(): Promise<void> {
     if (this.bridge) return;
-    const bridge = new CommsBridge({
+    const bridge: CommsBridge = new CommsBridge({
       port: this.cfg.bridgePort,
       token: () => this.token(),
       now: this.o.now,
       logger: this.o.logger,
       pingMs: this.o.pingMs,
+      // Ignored once this bridge is stopped: its sockets may still report closing after Team Comms (or the engine) stopped.
       handlers: {
-        onSession: (s) => this.onSession(s),
-        onClose: (s, reason) => this.onClose(s, reason),
-        onEvent: (s, ev) => this.onEvent(s, ev),
-        onAudio: (s, a, at) => this.onAudio(s, a, at),
-        onStats: (s, st) => this.onStats(s, st),
+        onSession: (s) => !this.stoppedBridges.has(bridge) && this.onSession(s),
+        onClose: (s, reason) => !this.stoppedBridges.has(bridge) && this.onClose(s, reason),
+        onEvent: (s, ev) => !this.stoppedBridges.has(bridge) && this.onEvent(s, ev),
+        onAudio: (s, a, at) => !this.stoppedBridges.has(bridge) && this.onAudio(s, a, at),
+        onStats: (s, st) => !this.stoppedBridges.has(bridge) && this.onStats(s, st),
       },
     });
     try {
@@ -273,6 +279,7 @@ export class TeamComms {
     const b = this.bridge;
     this.bridge = null;
     if (b) {
+      this.stoppedBridges.add(b);
       await b.stop();
       rmSync(this.bridgeFile(), { force: true });
     }
@@ -604,7 +611,7 @@ export class TeamComms {
     const key = this.personKey(slot, serverUid, uid);
     let p = this.people.get(key);
     if (!p) {
-      p = { key, slot, teamId: this.slots[slot].teamId, serverUid, uid, nickname: c?.nickname ?? "", clientId: c?.clientId ?? null, present: true, buffer: new VoiceBuffer(), incoming: { db: -100, atMs: null, talking: false }, delayed: { recording: null, preview: null } };
+      p = { key, slot, teamId: this.slots[slot].teamId, serverUid, uid, nickname: c?.nickname ?? "", clientId: c?.clientId ?? null, present: true, buffer: new VoiceBuffer(), incoming: { db: -100, atMs: null, talking: false }, delayed: { recording: null, preview: null, signal: null } };
       this.people.set(key, p);
       this.ensureRecord(p);
     }
@@ -713,10 +720,40 @@ export class TeamComms {
     if (teamId !== null) this.publicClosed = null;
   }
 
+  /** Mute All Comms: the public listen-in closed in 5 ms (not a fault; the recording and preview carry on). */
+  mutePublic(): void {
+    this.mixer.mutePublic();
+  }
+
   private closePublic(reason: string): void {
     this.mixer.setPublicTeam(null);
     this.publicClosed = { atMs: this.o.now(), reason };
     this.o.logger.warn("team comms: public listen-in closed", { reason });
+    for (const fn of this.publicClosedListeners) fn(reason);
+  }
+
+  /** The public listen-in closed itself (its team's source lost, the bridge or a slot reset): the output-state controller's FAULT. */
+  onPublicClosed(fn: (reason: string) => void): () => void {
+    this.publicClosedListeners.add(fn);
+    return () => this.publicClosedListeners.delete(fn);
+  }
+
+  /** Team Comms is switched on (the bridge listens, the mixes render). */
+  get enabled(): boolean {
+    return this.cfg.enabled;
+  }
+
+  /** A team's slot and whether its delayed audio is complete at the current playhead (and if not, roughly when). */
+  teamReadiness(teamId: string): { slot: SlotId; ready: boolean; readyInMs: number | null; state: string; issue: string | null } | null {
+    const slot = this.slotOfTeam(teamId);
+    if (!slot) return null;
+    const v = this.slotView(slot.id);
+    return { slot: slot.id, ready: v.ready && this.pendingDelay === null, readyInMs: v.readyInMs, state: v.state, issue: v.issue ?? (v.lost ? v.lost.reason : null) };
+  }
+
+  /** The playhead (timeline samples) a block starting at `start` plays, with the delay in effect. */
+  playheadOf(start: number): number {
+    return start - msToSample(this.delayMs);
   }
 
   /** The dedicated recording's team (phase 4), or null. */
@@ -790,6 +827,7 @@ export class TeamComms {
     for (const p of this.people.values()) {
       p.delayed.recording = block.activity.recording.get(p.key) ?? null;
       p.delayed.preview = block.activity.preview.get(p.key) ?? null;
+      p.delayed.signal = block.activity.delayed.get(p.key) ?? null;
     }
     for (const fn of this.blockListeners) fn(block);
   }
@@ -817,14 +855,16 @@ export class TeamComms {
     const team = slot.teamId ? this.o.roster.team(slot.teamId) : null;
     const tab = slot.tab ? this.tabs.get(slot.tab) : undefined;
     const now = this.o.now();
-    const playhead = msToSample(now - this.delayMs);
+    // Readiness for the delay asked for (a change still fading counts as made).
+    const playhead = msToSample(now - (this.pendingDelay?.ms ?? this.delayMs));
     const open = slot.coverage[slot.coverage.length - 1];
     const ready = slot.teamId ? this.readyAt(slot.teamId, playhead) : false;
     const readyInMs = !ready && open && open.to === null ? Math.max(0, sampleToMs(Math.max(open.from, slot.floor) - playhead)) : null;
     const state = !this.bridge ? "off" : !tab ? "waiting" : !tab.capturing ? "connecting" : ready ? "ready" : "buffering";
     return {
       id,
-      team: slot.teamId ? { id: slot.teamId, name: team?.name ?? null } : null,
+      team: slot.teamId ? { id: slot.teamId, name: team?.name ?? null, shortName: team?.shortName ?? null, logoUrl: this.o.roster.assetUrl(team?.logoAssetId ?? null), color: team?.primaryColor ?? null } : null,
+      roster: slot.teamId && this.o.roster.players ? this.o.roster.players(slot.teamId).map((pl) => ({ id: pl.id, displayName: pl.displayName, pictureUrl: this.o.roster.assetUrl(pl.avatarAssetId) })) : [],
       config: cfg,
       serverPasswordSaved: this.o.secrets.hasSecret(slotSecret(id, "serverPassword")),
       channelPasswordSaved: this.o.secrets.hasSecret(slotSecret(id, "channelPassword")),

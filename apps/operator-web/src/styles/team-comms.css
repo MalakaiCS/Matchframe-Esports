@@ -1,0 +1,127 @@
+/* Team Comms (ADR-066): the public state is a shape and words first, colour second. */
+.comms-onair .panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.comms-state {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 2px solid var(--line-strong);
+  background: var(--bg-sunken);
+}
+.comms-state-icon {
+  font-size: 30px;
+  line-height: 1;
+  width: 34px;
+  text-align: center;
+}
+.comms-state-kicker {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.comms-state-tag {
+  font-weight: 700;
+}
+.comms-state-label {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.comms-state-detail {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.comms-state.is-compact {
+  padding: 8px 12px;
+  gap: 10px;
+}
+.comms-state.is-compact .comms-state-label {
+  font-size: 18px;
+}
+.comms-state.is-compact .comms-state-icon {
+  font-size: 22px;
+}
+.comms-state-listening {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+.comms-state-listening .comms-state-icon,
+.comms-state-listening .comms-state-tag {
+  color: var(--danger);
+}
+.comms-state-buffering {
+  border-color: var(--info);
+  border-style: dashed;
+  background: var(--info-bg);
+}
+.comms-state-fault {
+  border-color: var(--warn);
+  background: var(--warn-bg);
+}
+.comms-state-fault .comms-state-icon,
+.comms-state-fault .comms-state-tag {
+  color: var(--warn);
+}
+.comms-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+}
+.comms-people td {
+  vertical-align: middle;
+}
+.comms-people tr.is-away td {
+  opacity: 0.55;
+}
+.comms-people .meter {
+  width: 90px;
+}
+.comms-person {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.comms-level {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.comms-level input[type="range"] {
+  width: 90px;
+}
+.comms-slot-form {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 12px 12px;
+}
+.comms-slot-form legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+.comms-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.comms-checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.comms-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

@@ -260,6 +260,8 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
         // Team Comms (ADR-065): the TeamSpeak plugin(s), both team slots, the people heard, buffers, readiness, drops, clock drift.
         // Built without passwords, token or full identities (redact() would cut its nested plugin statistics at depth 6).
         teamComms: e.teamComms.diagnostics(),
+        // Team Comms on air (ADR-066): the listen-in's state, the NDI outputs' counters, caster ducking, the overlay (its token left out).
+        teamCommsPublic: e.commsPublic.diagnostics(),
         mapPackIssues: e.maps.issues,
         logs: e.logger.recent.slice(-300),
         migration: e.migration,

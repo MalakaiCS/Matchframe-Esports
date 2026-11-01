@@ -27,11 +27,11 @@ Matchframe Esports is original software. This file lists third-party components 
 | @fontsource/barlow-condensed | 5.3.0 | OFL-1.1 (font: Barlow, © The Barlow Project Authors) | HUD renderer (Arena preset); operator console (match thumbnails and stingers); Lineup HUD |
 | Electron | 44.9.3 | MIT (bundles Chromium and Node.js; their licences ship in `LICENSES.chromium.html` / `LICENSE` inside the Electron distribution) | Desktop shell |
 | koffi (optional, Windows keyboard adapter) | not bundled by default | MIT | Observer keyboard fallback |
-| grandi | 2.0.2 | Apache-2.0 (`NOTICE`: derived from Streampunk's Grandiose, © 2018 Streampunk Media Ltd., and community forks) | Replay feed: receiving the replay PC's screen over NDI (in the feed's own process) |
+| grandi | 2.0.2 | Apache-2.0 (`NOTICE`: derived from Streampunk's Grandiose, © 2018 Streampunk Media Ltd., and community forks) | Replay feed: receiving the replay PC's screen over NDI (in the feed's own process); Team Comms: sending two audio-only NDI sources, "MatchFrame Comms" and "MatchFrame Comms Recording" (in their own process) |
 | ↳ @grandi/win32-x64 (prebuilt addon) | 2.0.2 | Apache-2.0; the NDI runtime inside it (`Processing.NDI.Lib.x64.dll`) under the NDI SDK licence (https://ndi.link/ndisdk_license; `libndi_licenses.txt` ships beside it) | grandi |
 | ↳ node-gyp-build | 4.8.4 | MIT | grandi (loads the addon) |
 
-**NDI®** is a registered trademark of Vizrt NV. The program ships the NDI runtime only as part of the grandi addon, unmodified, with its licence files, for receiving NDI sources. More about NDI: https://ndi.video.
+**NDI®** is a registered trademark of Vizrt NV. The program ships the NDI runtime only as part of the grandi addon, unmodified, with its licence files, for receiving NDI sources (the replay feed) and sending audio-only NDI sources (Team Comms). More about NDI: https://ndi.video.
 
 **ffmpeg** is not shipped. For the replay feed, the program downloads one fixed build on request (Windows): ffmpeg 7.1, the essentials build by gyan.dev (https://www.gyan.dev/ffmpeg/builds/, from https://github.com/GyanD/codexffmpeg/releases/tag/7.1), checked against its SHA-256 before use, and keeps it with its licence (GPL v3) in the data folder (`tools/ffmpeg`). Its source: https://github.com/FFmpeg/FFmpeg/commit/b08d7969c5. An ffmpeg already on the PATH is used instead when there is no download.
 
