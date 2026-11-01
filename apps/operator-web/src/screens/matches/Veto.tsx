@@ -146,7 +146,7 @@ export function VetoBoard({ match, teamA, teamB, onMapsChanged }: { match: Match
                   </ol>
                 )}
                 <div className="ga-actions">
-                  <ActionButton variant="primary" action={() => api.post<{ maps: unknown[] }>(`/api/v1/veto/${seg(match.id)}/apply-to-maps`)} success={(r) => `${r.maps.length} map(s) written to the match`} onDone={onMapsChanged} disabledReason={reason ?? (v.complete ? null : "Finish the veto first")} confirm={{ title: "Apply veto result to the match maps?", body: "Replaces the match's map list with the veto picks (scores reset to 0–0)." }}>
+                  <ActionButton variant="primary" action={() => api.post<{ maps: unknown[] }>(`/api/v1/veto/${seg(match.id)}/apply-to-maps`)} success={(r) => `${r.maps.length} map(s) written to the match`} onDone={onMapsChanged} disabledReason={reason ?? (v.complete ? null : "Finish the veto first")} confirm={{ title: "Apply veto result to the match maps?", body: "The captain decisions become the match's veto (replacing entries edited in the match editor) and its maps follow the picks. A map that stays in place keeps its result; a map with a result is never replaced." }}>
                     Apply to match maps
                   </ActionButton>
                   <ActionButton
