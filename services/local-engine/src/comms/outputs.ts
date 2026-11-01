@@ -14,8 +14,9 @@ import type { TeamComms } from "./service.ts";
  * - **public** → the NDI sender "MatchFrame Comms" (OBS receives it with DistroAV, into the program's
  *   audio). Its silence is enforced here, before NDI: while the public gate is closed the block sent
  *   is zeros whatever the mix holds (Mute All Comms closes the gate itself in 5 ms, in the mixer).
- * - **recording** → the NDI sender "MatchFrame Comms Recording" (the dedicated recording, phase 4).
- *   Mute All Comms and the public gate never touch it.
+ * - **recording** → the NDI sender "MatchFrame Comms Recording" (the dedicated recording, ADR-068),
+ *   at the recording's comms level (a gain ramped over each 10 ms block). Mute All Comms and the
+ *   public gate never touch it.
  * - **preview** → the operator's headphones only, over the console's WebSocket (PreviewHub). Never
  *   NDI, never OBS.
  *
@@ -98,6 +99,10 @@ export class CommsOutputs {
   /** After the process stopped: not started again before this (Date.now()), unless asked to. */
   private restartAfter = 0;
   private readonly taps = new Set<(samples: Float32Array, start: number, block: MixBlock) => void>();
+  private readonly recTaps = new Set<(samples: Float32Array, start: number, block: MixBlock) => void>();
+  /** The recording's comms level as a gain: where the last block ended, and where the next goes. */
+  private recGain = 1;
+  private recGainTarget = 1;
   private readonly off: () => void;
   private generation = 0;
 
@@ -109,6 +114,17 @@ export class CommsOutputs {
   onPublic(fn: (samples: Float32Array, start: number, block: MixBlock) => void): () => void {
     this.taps.add(fn);
     return () => this.taps.delete(fn);
+  }
+
+  /** The recording mix as it leaves for NDI, at the comms level (tests, the real-OBS rig). */
+  onRecording(fn: (samples: Float32Array, start: number, block: MixBlock) => void): () => void {
+    this.recTaps.add(fn);
+    return () => this.recTaps.delete(fn);
+  }
+
+  /** The dedicated recording's comms level (dB; −60 or less: off). Ramped over the next block. */
+  setRecordingGainDb(db: number): void {
+    this.recGainTarget = db <= -60 ? 0 : 10 ** (db / 20);
   }
 
   private wallOf(start: number): number {
@@ -123,7 +139,16 @@ export class CommsOutputs {
     if (closed) this.blocksSilenced++;
     else pub.set(b.out.public);
     for (const fn of this.taps) fn(pub, b.start, b);
-    if (this.worker && this.ndiState !== "error") this.worker.send({ type: "block", start: b.start, wallMs: this.wallOf(b.start), pub, rec: b.out.recording });
+    let rec = b.out.recording;
+    if (this.recGain !== 1 || this.recGainTarget !== 1) {
+      rec = new Float32Array(BLOCK);
+      const from = this.recGain;
+      const step = (this.recGainTarget - from) / BLOCK;
+      for (let i = 0; i < BLOCK; i++) rec[i] = b.out.recording[i]! * (from + step * (i + 1));
+      this.recGain = this.recGainTarget;
+    }
+    for (const fn of this.recTaps) fn(rec, b.start, b);
+    if (this.worker && this.ndiState !== "error") this.worker.send({ type: "block", start: b.start, wallMs: this.wallOf(b.start), pub, rec });
     this.preview.push(b.out.preview, b.start);
   }
 

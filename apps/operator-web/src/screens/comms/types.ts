@@ -133,6 +133,112 @@ export interface CommsOnAir {
   overlay: { url: string; source: string; liveScene: string | null; obsConnected: boolean; pages: number; onAir: boolean; placement: { anchor: "top" | "bottom"; offsetPx: number } };
 }
 
+/** The dedicated recording (services/local-engine/src/comms/recording.ts status(), ADR-068). */
+export interface RecordingSettings {
+  teamId: string | null;
+  folder: string | null;
+  format: "mkv" | "hybrid_mp4" | "fragmented_mp4" | "mp4" | "mov";
+  encoder: string;
+  bitrateKbps: number;
+  audioBitrateKbps: number;
+  splitMinutes: number;
+  gameLevelDb: number;
+  commsLevelDb: number;
+  warnFreeGB: number;
+  obs: { scene: string; gameSource: string | null; hudSource: string | null; gameAudioSource: string | null };
+}
+
+export interface SetupStep {
+  id: string;
+  ok: boolean | null;
+  title: string;
+  detail: string;
+}
+
+export interface RecorderStatus {
+  state: "idle" | "recording" | "fault";
+  label: string;
+  detail: string;
+  team: { id: string; name: string | null; inMatch: boolean } | null;
+  heardTeamId: string | null;
+  startedAt: string | null;
+  elapsedMs: number | null;
+  file: { path: string; bytes: number; growing: boolean; files: string[] } | null;
+  last: { path: string | null; bytes: number; durationMs: number; endedAt: string; reason: string } | null;
+  folder: string;
+  freeBytes: number | null;
+  warnings: string[];
+  errors: string[];
+  settings: RecordingSettings;
+  teamspeakSignal: boolean;
+  obs: {
+    connected: boolean;
+    scene: string;
+    sceneExists: boolean;
+    sourceRecord: { available: boolean | null; install: string[]; kind: string };
+    filter: { name: string; recordMode: number | null };
+    track1: { inUse: boolean | null; detail: string };
+    lastSetup: { at: string; ok: boolean; steps: SetupStep[] } | null;
+  };
+  actions: { start: { disabledReason: string | null }; stop: { disabledReason: string | null } };
+}
+
+export type StripAnchor = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
+export interface PortraitCrop {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+export interface StripSettings {
+  anchor: StripAnchor;
+  offsetX: number;
+  offsetY: number;
+  cardPx: number;
+  gapPx: number;
+  borderPx: number;
+  activeColor: string;
+  idleColor: string;
+  insetColor: string;
+  attackMs: number;
+  releaseMs: number;
+  labels: boolean;
+  useHudDefaults: boolean;
+  placeholderAssetId: string | null;
+  crops: Record<string, PortraitCrop>;
+  timingOffsetMs: number;
+}
+
+export interface StripStatus {
+  url: string;
+  source: string;
+  pages: number;
+  team: string | null;
+  cards: { id: string; name: string; picture: "own" | "hud-default" | "placeholder" | "silhouette"; pictureUrl: string; crop: PortraitCrop; cropKey: string }[];
+  /** Names of the people lit now. */
+  speaking: string[];
+  overLimit: number;
+  warning: string | null;
+  settings: StripSettings;
+}
+
+export interface CalibrationStatus {
+  settings: { reactionMs: number; onsetDb: number };
+  armed: { teamId: string; forMs: number } | null;
+  live: { who: string; teamId: string; agoMs: number } | null;
+  marks: { who: string; offsetMs: number; agoMs: number }[];
+  suggestion: { n: number; medianOffsetMs: number; spreadMs: number; delayMs: number; delaySec: number; fineMs: number } | null;
+  sendLatencyMs: number;
+}
+
+export interface LiveSources {
+  liveScene: string | null;
+  sources: { name: string; kind: string | null }[];
+  suggested: { gameSource: string | null; hudSource: string | null; gameAudioSource: string | null };
+  sourceRecord: boolean | null;
+  error: string | null;
+}
+
 export interface CommsView {
   enabled: boolean;
   settings: { enabled: boolean; bridgePort: number; delaySec: number; fineMs: number };
@@ -149,6 +255,9 @@ export interface CommsView {
   participants: CommsParticipant[];
   recording: { team: string | null; signal: boolean };
   onAir: CommsOnAir;
+  recorder: RecorderStatus;
+  strip: StripStatus;
+  calibration: CalibrationStatus;
 }
 
 export interface ObsCheck {

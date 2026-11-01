@@ -102,6 +102,15 @@ export class StandInObs extends EventEmitter {
   wedgeAfterRestartPause = false;
   /** Inputs whose clip stops moving once it reaches `atMs` (still saying it plays), until it is played again (`clearsOn` "play"), loaded again ("load"), or never. */
   readonly stalls = new Map<string, { atMs: number; clearsOn: "play" | "load" | "never" }>();
+  /** Input kinds this OBS has (browser_source needs obs-browser, ndi_source DistroAV). */
+  inputKinds = ["ffmpeg_source", "color_source_v3", "browser_source", "image_source", "game_capture", "wasapi_process_output_capture", "wasapi_input_capture", "wasapi_output_capture", "ndi_source"];
+  /** Filter kinds plugins add (Source Record's `source_record_filter`); OBS's own filters are always there. */
+  filterKinds = new Set(["source_record_filter"]);
+  /** Filters on scenes (inputs keep theirs on the input). */
+  readonly sceneFilters = new Map<string, Input["filters"]>();
+  /** OBS's outputs (streaming, recording, replay buffer) and the profile's values (category/name). */
+  outputs = { stream: false, record: false, replay: false };
+  readonly profile = new Map<string, string>([["Output/Mode", "Simple"]]);
   private nextId = 1;
   private readonly t0 = Date.now();
   private active = new Set<string>();
@@ -148,6 +157,16 @@ export class StandInObs extends EventEmitter {
     const m = this.input(name).media;
     this.settle(m, name);
     return { state: m.state, cursorMs: Math.round(this.cursor(m)), file: m.file };
+  }
+
+  /** A source's filters: an input's own, or a scene's. */
+  filtersOf(name: string): Input["filters"] {
+    const i = this.inputs.get(name);
+    if (i) return i.filters;
+    if (!this.scenes.has(name)) throw new Error(`No source was found by the name of "${name}"`);
+    let f = this.sceneFilters.get(name);
+    if (!f) this.sceneFilters.set(name, (f = []));
+    return f;
   }
 
   private input(name: string): Input {
@@ -241,11 +260,17 @@ export class StandInObs extends EventEmitter {
         this.setPreview(String(d.sceneName));
         return {};
       case "GetInputKindList":
-        return { inputKinds: ["ffmpeg_source", "color_source_v3", "browser_source", "image_source"] };
+        return { inputKinds: [...this.inputKinds] };
       case "GetRecordStatus":
+        return { outputActive: this.outputs.record };
       case "GetStreamStatus":
+        return { outputActive: this.outputs.stream };
       case "GetReplayBufferStatus":
-        return { outputActive: false };
+        return { outputActive: this.outputs.replay };
+      case "GetProfileParameter": {
+        const v = this.profile.get(`${String(d.parameterCategory)}/${String(d.parameterName)}`);
+        return { parameterValue: v ?? null, defaultParameterValue: null };
+      }
       case "GetCurrentProgramScene":
         return { currentProgramSceneName: this.program };
       case "SetCurrentProgramScene":
@@ -280,6 +305,7 @@ export class StandInObs extends EventEmitter {
       case "RemoveScene":
         this.items(String(d.sceneName));
         this.scenes.delete(String(d.sceneName));
+        this.sceneFilters.delete(String(d.sceneName));
         return {};
       case "CreateSceneItem": {
         const source = String(d.sourceName);
@@ -398,17 +424,42 @@ export class StandInObs extends EventEmitter {
         return {};
       }
       case "GetSourceFilterList":
-        return { filters: this.input(String(d.sourceName)).filters.map((f, k) => ({ filterName: f.name, filterKind: f.kind, filterIndex: k, filterEnabled: f.enabled, filterSettings: { ...f.settings } })) };
-      case "CreateSourceFilter":
-        this.input(String(d.sourceName)).filters.push({ name: String(d.filterName), kind: String(d.filterKind), enabled: true, settings: { ...((d.filterSettings ?? {}) as Record<string, unknown>) } });
+        return { filters: this.filtersOf(String(d.sourceName)).map((f, k) => ({ filterName: f.name, filterKind: f.kind, filterIndex: k, filterEnabled: f.enabled, filterSettings: { ...f.settings } })) };
+      case "GetSourceFilterDefaultSettings": {
+        const kind = String(d.filterKind);
+        // OBS 30's obs-websocket refuses a kind it doesn't have with 607 (InvalidFilterKind).
+        if (!this.filterKinds.has(kind) && !kind.startsWith("color_") && !kind.endsWith("_filter_v2")) throw Object.assign(new Error(""), { code: 607 });
+        return { defaultFilterSettings: kind === "source_record_filter" ? { record_mode: 0, rec_format: "mkv", encoder: "obs_x264" } : {} };
+      }
+      case "CreateSourceFilter": {
+        const list = this.filtersOf(String(d.sourceName));
+        if (list.some((f) => f.name === d.filterName)) throw Object.assign(new Error("A filter already exists by that name."), { code: 601 });
+        if (String(d.filterKind) === "source_record_filter" && !this.filterKinds.has("source_record_filter")) throw Object.assign(new Error(""), { code: 607 });
+        list.push({ name: String(d.filterName), kind: String(d.filterKind), enabled: true, settings: { ...((d.filterSettings ?? {}) as Record<string, unknown>) } });
+        this.emit("filterChange", { source: String(d.sourceName), filter: String(d.filterName) });
         return {};
+      }
+      case "GetSourceFilter": {
+        const f = this.filtersOf(String(d.sourceName)).find((x) => x.name === d.filterName);
+        if (!f) throw Object.assign(new Error(`No filter was found in the source "${String(d.sourceName)}" with that name.`), { code: 600 });
+        return { filterEnabled: f.enabled, filterIndex: 0, filterKind: f.kind, filterSettings: { ...f.settings } };
+      }
+      case "SetSourceFilterSettings": {
+        const f = this.filtersOf(String(d.sourceName)).find((x) => x.name === d.filterName);
+        if (!f) throw Object.assign(new Error(`No filter was found in the source "${String(d.sourceName)}" with that name.`), { code: 600 });
+        const next = (d.filterSettings ?? {}) as Record<string, unknown>;
+        f.settings = d.overlay === false ? { ...next } : { ...f.settings, ...next };
+        this.emit("filterChange", { source: String(d.sourceName), filter: String(d.filterName), settings: { ...f.settings } });
+        return {};
+      }
       case "RemoveSourceFilter": {
-        const i = this.input(String(d.sourceName));
-        i.filters = i.filters.filter((f) => f.name !== d.filterName);
+        const list = this.filtersOf(String(d.sourceName));
+        const k = list.findIndex((f) => f.name === d.filterName);
+        if (k >= 0) list.splice(k, 1);
         return {};
       }
       case "SetSourceFilterEnabled": {
-        const f = this.input(String(d.sourceName)).filters.find((x) => x.name === d.filterName);
+        const f = this.filtersOf(String(d.sourceName)).find((x) => x.name === d.filterName);
         if (f) f.enabled = d.filterEnabled === true;
         return {};
       }

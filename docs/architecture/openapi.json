@@ -15324,6 +15324,837 @@
         }
       }
     },
+    "/api/v1/comms/recording/start": {
+      "post": {
+        "operationId": "post_api_v1_comms_recording_start",
+        "summary": "POST /api/v1/comms/recording/start",
+        "description": "Requires permission `program.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comms/recording/stop": {
+      "post": {
+        "operationId": "post_api_v1_comms_recording_stop",
+        "summary": "POST /api/v1/comms/recording/stop",
+        "description": "Requires permission `program.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comms/recording/team": {
+      "post": {
+        "operationId": "post_api_v1_comms_recording_team",
+        "summary": "POST /api/v1/comms/recording/team",
+        "description": "Requires permission `program.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "teamId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "teamId"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comms/recording": {
+      "put": {
+        "operationId": "put_api_v1_comms_recording",
+        "summary": "PUT /api/v1/comms/recording",
+        "description": "Requires permission `program.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "teamId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "folder": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 400
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "mkv",
+                      "hybrid_mp4",
+                      "fragmented_mp4",
+                      "mp4",
+                      "mov"
+                    ]
+                  },
+                  "encoder": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "bitrateKbps": {
+                    "type": "integer",
+                    "minimum": 1000,
+                    "maximum": 150000
+                  },
+                  "audioBitrateKbps": {
+                    "type": "integer",
+                    "minimum": 64,
+                    "maximum": 512
+                  },
+                  "splitMinutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 720
+                  },
+                  "gameLevelDb": {
+                    "type": "number",
+                    "minimum": -60,
+                    "maximum": 12
+                  },
+                  "commsLevelDb": {
+                    "type": "number",
+                    "minimum": -60,
+                    "maximum": 12
+                  },
+                  "warnFreeGB": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 10000
+                  },
+                  "obs": {
+                    "type": "object",
+                    "properties": {
+                      "scene": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "gameSource": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "hudSource": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "gameAudioSource": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comms/recording/obs/sources": {
+      "get": {
+        "operationId": "get_api_v1_comms_recording_obs_sources",
+        "summary": "GET /api/v1/comms/recording/obs/sources",
+        "description": "Requires permission `state.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/comms/recording/obs": {
+      "post": {
+        "operationId": "post_api_v1_comms_recording_obs",
+        "summary": "POST /api/v1/comms/recording/obs",
+        "description": "Requires permission `settings.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "gameSource": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "hudSource": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "gameAudioSource": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comms/strip": {
+      "put": {
+        "operationId": "put_api_v1_comms_strip",
+        "summary": "PUT /api/v1/comms/strip",
+        "description": "Requires permission `program.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "anchor": {
+                    "type": "string",
+                    "enum": [
+                      "top-left",
+                      "top-center",
+                      "top-right",
+                      "bottom-left",
+                      "bottom-center",
+                      "bottom-right"
+                    ]
+                  },
+                  "offsetX": {
+                    "type": "integer",
+                    "minimum": -1920,
+                    "maximum": 1920
+                  },
+                  "offsetY": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1080
+                  },
+                  "cardPx": {
+                    "type": "integer",
+                    "minimum": 48,
+                    "maximum": 400
+                  },
+                  "gapPx": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 200
+                  },
+                  "borderPx": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 30
+                  },
+                  "activeColor": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "idleColor": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "insetColor": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "attackMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 500
+                  },
+                  "releaseMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3000
+                  },
+                  "labels": {
+                    "type": "boolean"
+                  },
+                  "useHudDefaults": {
+                    "type": "boolean"
+                  },
+                  "placeholderAssetId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "timingOffsetMs": {
+                    "type": "integer",
+                    "minimum": -1000,
+                    "maximum": 2000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comms/strip/crop": {
+      "put": {
+        "operationId": "put_api_v1_comms_strip_crop",
+        "summary": "PUT /api/v1/comms/strip/crop",
+        "description": "Requires permission `program.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "crop": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "x": {
+                            "default": 50,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100
+                          },
+                          "y": {
+                            "default": 30,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100
+                          },
+                          "zoom": {
+                            "default": 1,
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 3
+                          }
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "crop"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comms/calibration/arm": {
+      "post": {
+        "operationId": "post_api_v1_comms_calibration_arm",
+        "summary": "POST /api/v1/comms/calibration/arm",
+        "description": "Requires permission `program.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "teamId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "teamId"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comms/calibration/seen": {
+      "post": {
+        "operationId": "post_api_v1_comms_calibration_seen",
+        "summary": "POST /api/v1/comms/calibration/seen",
+        "description": "Requires permission `program.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comms/calibration/clear": {
+      "post": {
+        "operationId": "post_api_v1_comms_calibration_clear",
+        "summary": "POST /api/v1/comms/calibration/clear",
+        "description": "Requires permission `program.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comms/calibration": {
+      "put": {
+        "operationId": "put_api_v1_comms_calibration",
+        "summary": "PUT /api/v1/comms/calibration",
+        "description": "Requires permission `program.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "reactionMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000
+                  },
+                  "onsetDb": {
+                    "type": "number",
+                    "minimum": -80,
+                    "maximum": -6
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comms/calibration/apply": {
+      "post": {
+        "operationId": "post_api_v1_comms_calibration_apply",
+        "summary": "POST /api/v1/comms/calibration/apply",
+        "description": "Requires permission `program.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/openapi.json": {
       "get": {
         "operationId": "get_api_v1_openapi_json",

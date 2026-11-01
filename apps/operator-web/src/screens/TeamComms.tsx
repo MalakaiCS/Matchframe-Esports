@@ -1,18 +1,22 @@
 import { Async, Note } from "../components/ui.tsx";
 import { useApi } from "../lib/hooks.ts";
 import { ListenInButtons, PublicStateBanner } from "./comms/PublicControls.tsx";
+import { CalibrationPanel } from "./comms/CalibrationPanel.tsx";
 import { PreviewPanel } from "./comms/PreviewPanel.tsx";
+import { RecordingPanel } from "./comms/RecordingPanel.tsx";
+import { StripPanel } from "./comms/StripPanel.tsx";
 import { BridgePanel, DuckingPanel, ObsCheckPanel, OutputsPanel, OverlayPanel, TimingPanel } from "./comms/SetupPanels.tsx";
 import { TeamPanel } from "./comms/TeamPanel.tsx";
 import type { CommsView } from "./comms/types.ts";
 import "../styles/team-comms.css";
 
 /**
- * Team Comms (ADR-065, ADR-066): both teams' TeamSpeak, each person, delayed. The public listen-in's
- * state and its four actions on top; each team's connection, buffer and people (Include in Broadcast,
- * Include in Recording, level, live and delayed meters, Solo); the preview in the operator's
- * headphones; the delay; the outputs to OBS, caster ducking, the team-only graphic; the plugin and
- * bridge setup. The dedicated recording's controls are phase 4.
+ * Team Comms (ADR-065, ADR-066, ADR-068): both teams' TeamSpeak, each person, delayed. The public
+ * listen-in's state and its four actions on top; each team's connection, buffer and people (Include in
+ * Broadcast, Include in Recording, level, live and delayed meters, Solo); the dedicated recording (its
+ * own Start/Stop, team, levels, folder, status, OBS scene) and its speaker strip; the preview in the
+ * operator's headphones; the delay and its calibration against the gameplay; the outputs to OBS,
+ * caster ducking, the team-only graphic; the plugin and bridge setup.
  */
 export function TeamCommsScreen() {
   const st = useApi<CommsView>("/api/v1/comms", { refreshMs: 300 });
@@ -36,9 +40,14 @@ export function TeamCommsScreen() {
               ))}
             </div>
             <div className="grid-2">
+              <RecordingPanel view={v} onChanged={reload} />
+              <StripPanel view={v} onChanged={reload} />
+            </div>
+            <div className="grid-2">
               <PreviewPanel people={v.participants} />
               <TimingPanel view={v} onChanged={reload} />
             </div>
+            <CalibrationPanel view={v} onChanged={reload} />
             <div className="grid-2">
               <OutputsPanel view={v} onChanged={reload} />
               <OverlayPanel view={v} onChanged={reload} />

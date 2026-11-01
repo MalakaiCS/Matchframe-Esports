@@ -327,6 +327,19 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | GET | `/api/v1/comms/obs/inputs` | state.read |
 | GET | `/api/v1/comms/obs/check` | state.read |
 | POST | `/api/v1/comms/overlay/obs` | settings.manage |
+| POST | `/api/v1/comms/recording/start` | program.control |
+| POST | `/api/v1/comms/recording/stop` | program.control |
+| POST | `/api/v1/comms/recording/team` | program.control |
+| PUT | `/api/v1/comms/recording` | program.control |
+| GET | `/api/v1/comms/recording/obs/sources` | state.read |
+| POST | `/api/v1/comms/recording/obs` | settings.manage |
+| PUT | `/api/v1/comms/strip` | program.control |
+| PUT | `/api/v1/comms/strip/crop` | program.control |
+| POST | `/api/v1/comms/calibration/arm` | program.control |
+| POST | `/api/v1/comms/calibration/seen` | program.control |
+| POST | `/api/v1/comms/calibration/clear` | program.control |
+| PUT | `/api/v1/comms/calibration` | program.control |
+| POST | `/api/v1/comms/calibration/apply` | program.control |
 | GET | `/api/v1/openapi.json` | public |
 
 ## WebSockets

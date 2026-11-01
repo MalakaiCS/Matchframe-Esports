@@ -119,6 +119,27 @@ const PEOPLE_KEY = "comms.participants";
 const TOKEN_SECRET = "comms.bridgeToken";
 const slotSecret = (id: SlotId, what: "serverPassword" | "channelPassword") => `comms.slot.${id}.${what}`;
 
+/** A person's voice as it arrives (undelayed): for the calibration's live mark only, never an output. */
+export interface IncomingAudio {
+  key: string;
+  teamId: string | null;
+  /** Its capture time on the engine's timeline (ms) and length. */
+  atMs: number;
+  durationMs: number;
+  /** RMS level of the block (dBFS). */
+  db: number;
+}
+
+/** One of a team's people as the dedicated recording sees them (its speaker strip). */
+export interface RecordingPerson {
+  key: string;
+  displayName: string;
+  playerId: string | null;
+  includeRecording: boolean;
+  present: boolean;
+  firstSeen: string;
+}
+
 export interface CommsRoster {
   activeMatch(): Match | null;
   team(id: string): Team | null;
@@ -209,6 +230,9 @@ export class TeamComms {
   private publicClosed: { atMs: number; reason: string } | null = null;
   private readonly blockListeners = new Set<(b: MixBlock) => void>();
   private readonly publicClosedListeners = new Set<(reason: string) => void>();
+  private readonly incomingListeners = new Set<(a: IncomingAudio) => void>();
+  /** Bumped whenever who is who changes (a person seen, a choice or mapping saved, the teams): the recording's speaker strip rebuilds its cards then. */
+  private version = 0;
   private readonly counters = { blocks: 0, skippedBlocks: 0, memoryDrops: 0, memoryDroppedBytes: 0, closedSessions: 0 };
 
   constructor(private readonly o: TeamCommsOptions) {
@@ -393,6 +417,7 @@ export class TeamComms {
         this.people.set(p.key, p);
         this.ensureRecord(p);
       }
+      this.version++;
     }
   }
 
@@ -614,6 +639,7 @@ export class TeamComms {
       p = { key, slot, teamId: this.slots[slot].teamId, serverUid, uid, nickname: c?.nickname ?? "", clientId: c?.clientId ?? null, present: true, buffer: new VoiceBuffer(), incoming: { db: -100, atMs: null, talking: false }, delayed: { recording: null, preview: null, signal: null } };
       this.people.set(key, p);
       this.ensureRecord(p);
+      this.version++;
     }
     if (c) {
       p.clientId = c.clientId;
@@ -654,6 +680,11 @@ export class TeamComms {
     const db = sq > 0 ? 10 * Math.log10(sq / a.pcm.length) : -100;
     p.incoming.db = Math.max(db, p.incoming.db - 6);
     p.incoming.atMs = arrivalMs;
+    if (this.incomingListeners.size) {
+      const frames = a.pcm.length / a.channels;
+      const ev: IncomingAudio = { key: p.key, teamId: p.teamId, atMs: sampleToMs(start), durationMs: (frames / a.sampleRate) * 1000, db };
+      for (const fn of this.incomingListeners) fn(ev);
+    }
     this.capMemory();
   }
 
@@ -697,6 +728,7 @@ export class TeamComms {
       if (!this.o.roster.player(patch.playerId)) throw new Error(`no player ${patch.playerId}`);
     }
     Object.assign(r, ParticipantPatch.parse(patch));
+    this.version++;
     this.dirty = true;
     this.flush(true);
     return r;
@@ -756,10 +788,15 @@ export class TeamComms {
     return start - msToSample(this.delayMs);
   }
 
-  /** The dedicated recording's team (phase 4), or null. */
+  /** The dedicated recording's team (ADR-068), or null. */
   setRecordingTeam(teamId: string | null): void {
     if (teamId !== null && !this.slotOfTeam(teamId)) throw new Error(`team ${teamId} has no Team Comms slot`);
     this.mixer.setRecordingTeam(teamId);
+  }
+
+  /** TeamSpeak's recording indicator is asked for (while the dedicated recording records). */
+  get recordingSignalOn(): boolean {
+    return this.recordingSignal;
   }
 
   /** TeamSpeak's recording indicator on both listener tabs (while Matchframe records comms). */
@@ -776,6 +813,40 @@ export class TeamComms {
   onBlock(fn: (b: MixBlock) => void): () => void {
     this.blockListeners.add(fn);
     return () => this.blockListeners.delete(fn);
+  }
+
+  /** Each person's voice as it arrives (undelayed, never an output): the delay calibration's live mark. */
+  onIncoming(fn: (a: IncomingAudio) => void): () => void {
+    this.incomingListeners.add(fn);
+    return () => this.incomingListeners.delete(fn);
+  }
+
+  /** Changes whenever who is who changes (people seen, choices and mappings saved, teams). */
+  get peopleVersion(): number {
+    return this.version;
+  }
+
+  /** A team's people as the dedicated recording sees them (its speaker strip): everyone of that team's slot, with their saved choice. */
+  recordingPeople(teamId: string): RecordingPerson[] {
+    const out: RecordingPerson[] = [];
+    for (const p of this.people.values()) {
+      if (p.teamId !== teamId) continue;
+      const r = this.records[p.key];
+      if (!r) continue;
+      const player = r.playerId ? this.o.roster.player(r.playerId) : null;
+      out.push({ key: p.key, displayName: r.displayName ?? player?.displayName ?? p.nickname, playerId: r.playerId, includeRecording: r.includeRecording, present: p.present, firstSeen: r.firstSeen });
+    }
+    return out;
+  }
+
+  /** The dedicated recording's team as asked for (null: none). */
+  get recordingTeam(): string | null {
+    return this.mixer.recordingGate.target;
+  }
+
+  /** Whether a team has a Team Comms slot now (the active match's team A or B). */
+  hasTeam(teamId: string): boolean {
+    return this.slotOfTeam(teamId) !== null;
   }
 
   /** Whether a team's audio is complete at a timeline sample (its tab captured since before it). */

@@ -125,3 +125,55 @@
   flex-direction: column;
   gap: 4px;
 }
+/* The dedicated recording (ADR-068): its state in a shape and words, like the public one. */
+.comms-rec-recording {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+.comms-rec-recording .comms-state-icon,
+.comms-rec-recording .comms-state-tag {
+  color: var(--danger);
+}
+.comms-rec-fault {
+  border-color: var(--warn);
+  background: var(--warn-bg);
+}
+.comms-rec-fault .comms-state-icon,
+.comms-rec-fault .comms-state-tag {
+  color: var(--warn);
+}
+.comms-rec-elapsed {
+  font-variant-numeric: tabular-nums;
+}
+.comms-subhead {
+  margin: 8px 0 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+.comms-steps .is-current {
+  font-weight: 700;
+}
+/* The speaker strip's preview: the cards as the recording shows them, on a dark backdrop. */
+.strip-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: #1c2229;
+  min-height: 72px;
+}
+.strip-preview-card {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #e9edf3;
+}
+.strip-crop {
+  align-items: flex-start;
+  gap: 16px;
+}

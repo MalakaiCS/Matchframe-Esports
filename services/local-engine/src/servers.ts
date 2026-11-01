@@ -34,6 +34,7 @@ import { registerCamRoutes } from "./routes/cams.ts";
 import { registerCommsRoutes } from "./routes/comms.ts";
 import { CAM_PAGE_JS, CAMS_JS, LHM_CAMS_JS, camPage, injectLhmCams } from "./hud/cams-runtime.ts";
 import { COMMS_OVERLAY_JS, commsOverlayPage } from "./comms/overlay.ts";
+import { STRIP_JS, stripPage } from "./comms/strip.ts";
 import { bearer, json, readBody, Router } from "./http/router.ts";
 import { overlayCsp, safeResolve, serveFile, serveStatic } from "./http/static.ts";
 import type { HubClient } from "./http/ws-hub.ts";
@@ -503,6 +504,18 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       res.end(COMMS_OVERLAY_JS);
       return;
     }
+    // The dedicated recording's speaker strip (ADR-068): its own token, never the public overlay's; only in the recording scene.
+    if (p === "/comms/recording" || p === "/comms/recording/") {
+      if (!e.speakerStrip.checkToken(url.searchParams.get("t"))) return json(res, 401, { error: "unauthorized", message: "invalid or missing speaker strip token (copy the address from Team Comms → Speaker strip)" });
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers });
+      res.end(stripPage());
+      return;
+    }
+    if (p === "/comms/recording.js") {
+      res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache", "x-content-type-options": "nosniff", ...headers });
+      res.end(STRIP_JS);
+      return;
+    }
     if (p === "/hud-runtime/wrapper.js") {
       res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache", "x-content-type-options": "nosniff", ...headers });
       res.end(WRAPPER_JS);
@@ -596,6 +609,10 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     if (url.pathname === "/comms-ws") {
       if (!e.commsPublic.overlay.checkToken(token)) return unauthorized();
       return e.commsPublic.overlay.upgrade(req, socket, head);
+    }
+    if (url.pathname === "/comms-rec-ws") {
+      if (!e.speakerStrip.checkToken(token)) return unauthorized();
+      return e.speakerStrip.upgrade(req, socket, head);
     }
     if (url.pathname === "/hud-runtime-ws") {
       const hudId = url.searchParams.get("hud") ?? "";

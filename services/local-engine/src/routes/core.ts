@@ -262,6 +262,10 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
         teamComms: e.teamComms.diagnostics(),
         // Team Comms on air (ADR-066): the listen-in's state, the NDI outputs' counters, caster ducking, the overlay (its token left out).
         teamCommsPublic: e.commsPublic.diagnostics(),
+        // The dedicated recording (ADR-068): its state, file, folder, Source Record and track 1; the strip (its token and names left out); the calibration marks.
+        teamCommsRecording: e.commsRecording.diagnostics(),
+        teamCommsStrip: e.speakerStrip.diagnostics(),
+        teamCommsCalibration: e.commsCalibration.status(),
         mapPackIssues: e.maps.issues,
         logs: e.logger.recent.slice(-300),
         migration: e.migration,

@@ -10,7 +10,7 @@ import type { ListenInTeam } from "./controller.ts";
  * The public broadcast's Team Comms graphic (ADR-066): a TEAM COMMS banner with the team's name and
  * logo while that team's comms are on air, animated in and out, for the live scene in OBS. It is its
  * own overlay page (`/comms/public` on the overlay server, transparent but for the banner), apart from
- * the HUDs and from the recording's speaker strip (phase 4), and it receives **team-level state
+ * the HUDs and from the recording's speaker strip (comms/strip.ts, ADR-068), and it receives **team-level state
  * only**: whether comms are on air, the team's name, short name, logo and colour. Nothing about any
  * person ever reaches it: no name, identity, roster card, avatar or voice activity.
  */

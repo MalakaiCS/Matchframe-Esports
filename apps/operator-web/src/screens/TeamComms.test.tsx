@@ -8,7 +8,7 @@ import { TeamCommsScreen } from "./TeamComms.tsx";
 import { TeamCommsCard } from "./live/TeamCommsCard.tsx";
 import { PreviewPanel } from "./comms/PreviewPanel.tsx";
 import type { CommsPreviewPlayer, PreviewStatus } from "../lib/commsPreview.ts";
-import type { CommsParticipant, CommsView, ListenInView } from "./comms/types.ts";
+import type { CalibrationStatus, CommsParticipant, CommsView, ListenInView, RecorderStatus, StripStatus } from "./comms/types.ts";
 
 function serve(routes: Record<string, unknown | ((body: unknown) => unknown)>) {
   const calls: { method: string; path: string; body: unknown }[] = [];
@@ -89,6 +89,46 @@ const slot = (id: "A" | "B", name: string) => ({
   tab: { key: "i#1", status: "established", error: null, server: { uid: "srv", name: "Scrims", host: "ts.example.org", port: 9987 }, channel: { id: 1, name: `Team ${name}` }, listener: { clientId: 2, nickname: "MF Listener", inputMuted: true, inputDeactivated: true, outputMuted: false, recording: false }, capturing: true, clients: 3 },
 });
 
+const recorder = (patch: Partial<RecorderStatus> = {}): RecorderStatus => ({
+  state: "idle",
+  label: "NOT RECORDING",
+  detail: "Not recording. Start Recording is independent of the public listen-in.",
+  team: { id: "team-A", name: "Alpha Wolves", inMatch: true },
+  heardTeamId: "team-A",
+  startedAt: null,
+  elapsedMs: null,
+  file: null,
+  last: null,
+  folder: "D:\\Comms",
+  freeBytes: 500 * 1024 ** 3,
+  warnings: [],
+  errors: [],
+  settings: { teamId: "team-A", folder: "D:\\Comms", format: "mkv", encoder: "", bitrateKbps: 16000, audioBitrateKbps: 192, splitMinutes: 0, gameLevelDb: 0, commsLevelDb: 0, warnFreeGB: 20, obs: { scene: "Matchframe Comms Recording", gameSource: "Game Capture", hudSource: "Matchframe HUD", gameAudioSource: "Game audio" } },
+  teamspeakSignal: false,
+  obs: { connected: true, scene: "Matchframe Comms Recording", sceneExists: true, sourceRecord: { available: true, install: ["Close OBS.", "Download Source Record from the OBS forum."], kind: "source_record_filter" }, filter: { name: "MatchFrame Recorder", recordMode: 0 }, track1: { inUse: true, detail: "OBS is streaming: track 1 is mixed." }, lastSetup: null },
+  actions: { start: { disabledReason: null }, stop: { disabledReason: "Not recording" } },
+  ...patch,
+});
+
+const STRIP_SETTINGS = { anchor: "bottom-center" as const, offsetX: 0, offsetY: 40, cardPx: 132, gapPx: 8, borderPx: 6, activeColor: "#20FF00", idleColor: "#808086", insetColor: "#0D0F12", attackMs: 30, releaseMs: 350, labels: false, useHudDefaults: true, placeholderAssetId: null, crops: {}, timingOffsetMs: 0 };
+const stripStatus = (patch: Partial<StripStatus> = {}): StripStatus => ({
+  url: "http://127.0.0.1:37212/comms/recording?t=strip-token",
+  source: "MatchFrame Speaker Strip",
+  pages: 1,
+  team: "team-A",
+  cards: [
+    { id: "c1", name: "Alpha 1", picture: "own", pictureUrl: "/assets/a1.png", crop: { x: 50, y: 30, zoom: 1 }, cropKey: "player:pl-A1" },
+    { id: "c2", name: "Alpha 2", picture: "silhouette", pictureUrl: "data:image/svg+xml,x", crop: { x: 50, y: 30, zoom: 1 }, cropKey: "person:c2" },
+  ],
+  speaking: ["Alpha 2"],
+  overLimit: 0,
+  warning: null,
+  settings: STRIP_SETTINGS,
+  ...patch,
+});
+
+const calibration = (patch: Partial<CalibrationStatus> = {}): CalibrationStatus => ({ settings: { reactionMs: 200, onsetDb: -40 }, armed: null, live: null, marks: [], suggestion: null, sendLatencyMs: 60, ...patch });
+
 const view = (patch: Partial<CommsView> = {}, li: Partial<ListenInView> = {}): CommsView => ({
   enabled: true,
   settings: { enabled: true, bridgePort: 37213, delaySec: 90, fineMs: 250 },
@@ -108,6 +148,9 @@ const view = (patch: Partial<CommsView> = {}, li: Partial<ListenInView> = {}): C
     ducking: { state: "lowered", detail: "Casters down 10 dB for the listen-in: Casters.", lowered: ["Casters"], lastRelease: null },
     overlay: { url: "http://127.0.0.1:37212/comms/public?t=abc123", source: "MatchFrame Team Comms", liveScene: "Game", obsConnected: true, pages: 1, onAir: true, placement: { anchor: "top", offsetPx: 140 } },
   },
+  recorder: recorder(),
+  strip: stripStatus(),
+  calibration: calibration(),
   ...patch,
 });
 
@@ -267,5 +310,137 @@ describe("Team Comms preview panel", () => {
     expect(calls).toContain("device spk");
     fireEvent.click(screen.getByRole("button", { name: "Stop listening" }));
     expect(calls).toContain("stop");
+  });
+});
+
+describe("the dedicated comms recording", () => {
+  const sources = { liveScene: "Game", sources: [{ name: "Game Capture", kind: "game_capture" }, { name: "Matchframe HUD", kind: "browser_source" }, { name: "Game audio", kind: "wasapi_process_output_capture" }, { name: "Casters", kind: "wasapi_input_capture" }], suggested: { gameSource: "Game Capture", hudSource: "Matchframe HUD", gameAudioSource: "Game audio" }, sourceRecord: true, error: null };
+
+  it("its own Start/Stop and state in words with the elapsed time; the team by team id; game and comms levels; the folder", async () => {
+    let current = view();
+    const calls = serve({
+      "GET /api/v1/comms": () => current,
+      "GET /api/v1/comms/obs/inputs": { inputs: [], error: null },
+      "GET /api/v1/comms/recording/obs/sources": sources,
+      "POST /api/v1/comms/recording/start": () => {
+        current = view({ recorder: recorder({ state: "recording", label: "RECORDING — ALPHA WOLVES", elapsedMs: 83_000, teamspeakSignal: true, file: { path: "D:\\Comms\\MatchFrame Comms ALP 2026-11-01 10-00-00.mkv", bytes: 52_000_000, growing: true, files: [] }, actions: { start: { disabledReason: "Recording" }, stop: { disabledReason: null } } }) });
+        return current.recorder;
+      },
+      "POST /api/v1/comms/recording/stop": () => (current = view({ recorder: recorder({ last: { path: "D:\\Comms\\x.mkv", bytes: 1, durationMs: 90_000, endedAt: "2026-11-01T10:01:30Z", reason: "stopped by the operator" } }) })).recorder,
+      "POST /api/v1/comms/recording/team": (b: unknown) => ({ ...current.recorder, body: b }),
+      "PUT /api/v1/comms/recording": (b: unknown) => ({ ...current.recorder, body: b }),
+    });
+    wrap(<TeamCommsScreen />);
+    const banner = await screen.findByRole("status", { name: "Comms recording: NOT RECORDING" });
+    expect(within(banner).getByText("○")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Start Recording" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/comms/recording/start")).toBe(true));
+    const rec = await screen.findByRole("status", { name: "Comms recording: RECORDING — ALPHA WOLVES" });
+    // Not colour alone: the word, the shape and the elapsed time.
+    expect(within(rec).getByText("Recording")).toBeTruthy();
+    expect(within(rec).getByText("●")).toBeTruthy();
+    expect(within(rec).getByText(/1:23/)).toBeTruthy();
+    expect(screen.getByText("Shows recording on both listener tabs")).toBeTruthy();
+    expect(screen.getByText(/MatchFrame Comms ALP 2026-11-01 10-00-00.mkv/)).toBeTruthy();
+    // The recording team, by team id.
+    fireEvent.change(screen.getByRole("combobox", { name: "Recording team" }), { target: { value: "team-B" } });
+    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/comms/recording/team")?.body).toEqual({ teamId: "team-B" }));
+    // Levels.
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Game level" }), { target: { value: "-6" } });
+    fireEvent.click(screen.getByRole("button", { name: "Set game level" }));
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT" && c.path === "/api/v1/comms/recording")?.body).toEqual({ gameLevelDb: -6 }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Comms level" }), { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "Set comms level" }));
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT" && c.path === "/api/v1/comms/recording").at(-1)?.body).toEqual({ commsLevelDb: 3 }));
+    // Stop asks first.
+    fireEvent.click(screen.getByRole("button", { name: "Stop Recording" }));
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Stop Recording" }).length).toBe(2));
+    fireEvent.click(screen.getAllByRole("button", { name: "Stop Recording" }).at(-1)!);
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/comms/recording/stop")).toBe(true));
+  });
+
+  it("the folder (typed or chosen), Source Record missing with its install steps, and the scene set up in OBS from the live scene's sources", async () => {
+    const steps = [{ id: "gameplay", ok: true, title: "Gameplay “Game Capture”", detail: "Shared with the live scene." }, { id: "comms", ok: false, title: "Recording comms “MatchFrame Comms Recording”", detail: "OBS has no NDI source: install DistroAV." }];
+    const calls = serve({
+      "GET /api/v1/comms": view({ recorder: recorder({ obs: { ...recorder().obs, sourceRecord: { available: false, install: ["Close OBS.", "Download Source Record (by exeldro) from the OBS forum."], kind: "source_record_filter" } }, actions: { start: { disabledReason: "Source Record isn't installed in OBS" }, stop: { disabledReason: "Not recording" } } }) }),
+      "GET /api/v1/comms/obs/inputs": { inputs: [], error: null },
+      "GET /api/v1/comms/recording/obs/sources": { ...sources, sourceRecord: false },
+      "PUT /api/v1/comms/recording": (b: unknown) => ({ ...recorder(), body: b }),
+      "POST /api/v1/comms/recording/obs": { scene: "Matchframe Comms Recording", ok: false, steps },
+    });
+    wrap(<TeamCommsScreen />);
+    expect((await screen.findAllByText("Source Record isn't installed in OBS")).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Download Source Record \(by exeldro\)/)).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Start Recording" }) as HTMLButtonElement).disabled).toBe(true);
+    const folder = screen.getByRole("textbox", { name: "Destination folder" }) as HTMLInputElement;
+    fireEvent.change(folder, { target: { value: "E:\\Recordings" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Save" }).find((b) => b.closest("label, .field")?.textContent?.includes("Destination folder"))!);
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT" && c.path === "/api/v1/comms/recording")?.body).toEqual({ folder: "E:\\Recordings" }));
+    await waitFor(() => expect((screen.getByRole("combobox", { name: "Gameplay (from the live scene)" }) as HTMLSelectElement).value).toBe("Game Capture"));
+    fireEvent.change(screen.getByRole("combobox", { name: "HUD (from the live scene)" }), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Set up the recording scene in OBS" }));
+    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/comms/recording/obs")?.body).toEqual({ gameSource: "Game Capture", hudSource: null, gameAudioSource: "Game audio" }));
+    expect(await screen.findByText(/OBS has no NDI source: install DistroAV/)).toBeTruthy();
+    expect(screen.getByText("Fix")).toBeTruthy();
+  });
+
+  it("the speaker strip: who is lit now, its settings and each portrait's crop", async () => {
+    const calls = serve({
+      "GET /api/v1/comms": view(),
+      "GET /api/v1/comms/obs/inputs": { inputs: [], error: null },
+      "GET /api/v1/comms/recording/obs/sources": sources,
+      "PUT /api/v1/comms/strip": (b: unknown) => ({ ...stripStatus(), body: b }),
+      "PUT /api/v1/comms/strip/crop": (b: unknown) => ({ ...stripStatus(), body: b }),
+    });
+    wrap(<TeamCommsScreen />);
+    // The preview says who speaks in words (not only by colour).
+    expect(await screen.findByRole("img", { name: "Alpha 2: speaking (colour, active frame)" })).toBeTruthy();
+    expect(screen.getAllByRole("img", { name: "Alpha 1: silent (grayscale, grey frame)" }).length).toBeGreaterThan(0);
+    expect((screen.getByRole("textbox", { name: "Speaker strip address" }) as HTMLInputElement).value).toContain("/comms/recording?t=");
+    fireEvent.change(screen.getByRole("combobox", { name: "Anchor" }), { target: { value: "top-right" } });
+    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/comms/strip")?.body).toEqual({ anchor: "top-right" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /Names under the portraits/ }));
+    await waitFor(() => expect(calls.filter((c) => c.path === "/api/v1/comms/strip").at(-1)?.body).toEqual({ labels: true }));
+    const zoom = screen.getByRole("slider", { name: "Alpha 1: Zoom" });
+    fireEvent.change(zoom, { target: { value: "1.5" } });
+    fireEvent.mouseUp(zoom);
+    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/comms/strip/crop")?.body).toEqual({ key: "player:pl-A1", crop: { x: 50, y: 30, zoom: 1.5 } }));
+  });
+
+  it("calibration: arm for a team, Seen once the call was heard, then use the suggested delay", async () => {
+    let current = view({ calibration: calibration() });
+    const calls = serve({
+      "GET /api/v1/comms": () => current,
+      "GET /api/v1/comms/obs/inputs": { inputs: [], error: null },
+      "GET /api/v1/comms/recording/obs/sources": sources,
+      "POST /api/v1/comms/calibration/arm": () => (current = view({ calibration: calibration({ live: { who: "Alpha 4", teamId: "team-B", agoMs: 1200 } }) })).calibration,
+      "POST /api/v1/comms/calibration/seen": () => (current = view({ calibration: calibration({ marks: [{ who: "Alpha 4", offsetMs: 90_210, agoMs: 0 }], suggestion: { n: 1, medianOffsetMs: 90_210, spreadMs: 0, delayMs: 89_950, delaySec: 89, fineMs: 950 } }) })).calibration,
+      "POST /api/v1/comms/calibration/apply": { delaySec: 89, fineMs: 950 },
+    });
+    wrap(<TeamCommsScreen />);
+    expect(((await screen.findByRole("button", { name: "Seen in gameplay" })) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByRole("combobox", { name: "Calibration team" }), { target: { value: "team-B" } });
+    fireEvent.click(screen.getByRole("button", { name: "Arm: listen for the call" }));
+    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/comms/calibration/arm")?.body).toEqual({ teamId: "team-B" }));
+    expect(await screen.findByText(/Heard Alpha 4 1.2 s ago/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Seen in gameplay" }));
+    expect(await screen.findByText("Suggested delay: 89.950 s")).toBeTruthy();
+    expect(screen.getByText(/Take a few more marks/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Use this delay" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Use this delay" }).at(-1)!);
+    await waitFor(() => expect(calls.some((c) => c.path === "/api/v1/comms/calibration/apply")).toBe(true));
+  });
+
+  it("the live room card: the recording's state and its own Start; a viewer can't start it", async () => {
+    const calls = serve({ "GET /api/v1/comms": view({ recorder: recorder({ state: "fault", label: "RECORDING FAULT", detail: "The file hasn't grown for 12 s.", elapsedMs: 5000 }) }), "POST /api/v1/comms/recording/start": recorder() });
+    wrap(<TeamCommsCard />);
+    const b = await screen.findByRole("status", { name: "Comms recording: RECORDING FAULT" });
+    expect(within(b).getByText("The file hasn't grown for 12 s.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Start Recording" }));
+    await waitFor(() => expect(calls.some((c) => c.path === "/api/v1/comms/recording/start")).toBe(true));
+    cleanup();
+    serve({ "GET /api/v1/comms": view(), "GET /api/v1/comms/obs/inputs": { inputs: [], error: null } });
+    wrap(<TeamCommsCard />, "viewer");
+    expect(((await screen.findByRole("button", { name: "Start Recording" })) as HTMLButtonElement).disabled).toBe(true);
   });
 });

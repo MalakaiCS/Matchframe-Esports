@@ -7,6 +7,7 @@ import { CommsDucking, type ReplayDuckLike } from "./ducking.ts";
 import { CommsOutputs, PUBLIC_NDI_NAME, RECORDING_NDI_NAME, type NdiWorkerLike } from "./outputs.ts";
 import { CommsOverlay, OVERLAY_SOURCE } from "./overlay.ts";
 import { patchOf, type TeamComms } from "./service.ts";
+import { STRIP_SOURCE } from "./strip.ts";
 
 /**
  * Team Comms on air (ADR-066, phase 3): the public listen-in's controller, the outputs (NDI senders,
@@ -223,7 +224,10 @@ export class CommsPublic {
     const monitored = pub.filter((p) => p.monitor && p.monitor !== "OBS_MONITORING_TYPE_NONE");
     if (pub.length) checks.push({ id: "public-monitor", ok: monitored.length === 0, title: "Comms not monitored to the desktop", detail: monitored.length ? `Audio monitoring is on for ${monitored.map((m) => m.name).join(", ")}: OBS plays the comms on its monitoring device, which a desktop capture can take back in (duplication, echo). Advanced Audio Properties → Audio Monitoring: Monitor Off.` : "Monitor Off." });
     const recLive = rec.filter((r) => inLive(r.name));
-    checks.push({ id: "recording-off-air", ok: recLive.length === 0, title: `“${RECORDING_NDI_NAME}” kept off the live scene`, detail: recLive.length ? `${recLive.map((r) => r.name).join(", ")} is in the live scene: the recording's comms (its own team and people) would go on air. Remove it from “${live}”; it belongs only in the dedicated recording's scene.` : rec.length ? "Only outside the live scene." : "Not in OBS yet (the dedicated recording is phase 4)." });
+    checks.push({ id: "recording-off-air", ok: recLive.length === 0, title: `“${RECORDING_NDI_NAME}” kept off the live scene`, detail: recLive.length ? `${recLive.map((r) => r.name).join(", ")} is in the live scene: the recording's comms (its own team and people) would go on air. Remove it from “${live}”; it belongs only in the dedicated recording's scene.` : rec.length ? "Only outside the live scene." : "Not in OBS yet (Team Comms → Dedicated recording → Set up the recording scene)." });
+    // The recording's speaker strip identifies who speaks: never on the public output.
+    const stripLive = inLive(STRIP_SOURCE);
+    checks.push({ id: "strip-off-air", ok: !stripLive, title: `“${STRIP_SOURCE}” kept off the live scene`, detail: stripLive ? `The recording's speaker strip is in “${live}”: it shows who is speaking, which the public broadcast must never show. Remove it from the live scene; it belongs only in the dedicated recording's scene.` : "Not in the live scene." });
     // TeamSpeak captured directly.
     const ts: string[] = [];
     for (const i of inputs) {

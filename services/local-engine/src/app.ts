@@ -75,6 +75,9 @@ import { BuiltinRadars } from "./live/builtin-radars.ts";
 import { MatchArt } from "./domain/match-art.ts";
 import { TeamComms } from "./comms/service.ts";
 import { CommsPublic } from "./comms/public.ts";
+import { CommsRecording } from "./comms/recording.ts";
+import { SpeakerStrip, StripSettings } from "./comms/strip.ts";
+import { CommsCalibration } from "./comms/calibrate.ts";
 
 export const SetupProfile = z.object({
   id: z.string(),
@@ -214,6 +217,12 @@ export class Engine {
   readonly teamComms: TeamComms;
   /** Team Comms on air (ADR-066): the public listen-in, NDI outputs, preview, caster ducking, the team-only overlay. */
   readonly commsPublic: CommsPublic;
+  /** The dedicated comms recording (ADR-068): Source Record on a recording-only scene, its controls and status. */
+  readonly commsRecording: CommsRecording;
+  /** The recording's speaker strip (ADR-068): its own overlay page, driven by the recording mix's delayed activity. */
+  readonly speakerStrip: SpeakerStrip;
+  /** The comms delay measured against the observer's gameplay (ADR-068). */
+  readonly commsCalibration: CommsCalibration;
   private meterTimer: ReturnType<typeof setInterval> | null = null;
   private readonly rawGsiListeners = new Set<(payload: Record<string, unknown>, simulated: boolean) => void>();
   private readonly killListeners = new Set<(entry: HudKillfeedEntry) => void>();
@@ -464,6 +473,46 @@ export class Engine {
     });
     // A break's replays and a listen-in may hold the same OBS input down: whichever lets go last puts it back.
     this.autoReplay.audio.peer = this.commsPublic.ducking;
+    const ndiLatency = () => this.commsPublic.settings().ndi.latencyMs;
+    this.speakerStrip = new SpeakerStrip({
+      comms: this.teamComms,
+      settings: this.settings,
+      config: () => this.stripSettings(),
+      pictures: {
+        player: (id) => {
+          const p = this.players.get(id)?.data;
+          return p ? { displayName: p.displayName, pictureUrl: p.photoVisible ? this.assetUrl(p.avatarAssetId) : null } : null;
+        },
+        rosterOrder: (teamId) => this.roster.forTeam(teamId).map((m) => m.playerId),
+        defaultPicture: (teamId, index) => {
+          const st = this.session.state();
+          const side = st?.teams.T.teamId === teamId ? "t" : "ct";
+          const list = this.hudArtSetting().defaultPlayers[side];
+          return list.length ? this.assetUrl(list[index % list.length]!) : null;
+        },
+        assetUrl: (id) => this.assetUrl(id),
+      },
+      overlayPort: () => this.cfg.overlayPort,
+      sendLatencyMs: ndiLatency,
+      commsAudible: () => this.commsRecording?.commsAudible ?? true,
+      now: this.now,
+    });
+    this.commsRecording = new CommsRecording({
+      comms: this.teamComms,
+      outputs: this.commsPublic.outputs,
+      strip: this.speakerStrip,
+      obs: this.obs,
+      settings: this.settings,
+      logger: this.logger,
+      liveScene: () => this.program.sceneMap.LIVE,
+      defaultFolder: () => (this.cfg.videosDir ? join(this.cfg.videosDir, "Matchframe Comms Recordings") : join(this.cfg.dataDir, "exports", "comms-recordings")),
+      teamName: (id) => {
+        const t = this.teams.get(id)?.data;
+        return t ? { name: t.name, shortName: t.shortName } : null;
+      },
+      overlayPort: () => this.cfg.overlayPort,
+    });
+    this.commsCalibration = new CommsCalibration({ comms: this.teamComms, settings: this.settings, logger: this.logger, now: this.now, sendLatencyMs: ndiLatency });
     this.radars = BuiltinRadars.load(cfg.radarDir, (msg, data) => this.logger.warn(msg, data));
     this.cleanRadars = new CleanRadars((mapName) => this.radars.get(mapName));
 
@@ -1223,6 +1272,7 @@ export class Engine {
     this.replayFeed.start();
     await this.teamComms.start();
     this.commsPublic.start();
+    this.commsRecording.startMonitor();
     this.meterTimer = setInterval(() => this.meter.tick(this.meterInput()), 1000);
     void this.cloud.start();
     this.cloudSync.start();
@@ -1266,6 +1316,9 @@ export class Engine {
     this.demos.stop();
     this.feed.stop();
     this.replayFeed.stop();
+    this.commsRecording.dispose();
+    this.commsCalibration.dispose();
+    this.speakerStrip.close();
     this.commsPublic.stop();
     await this.teamComms.stop().catch(() => undefined);
     this.session.stop();
@@ -1277,6 +1330,19 @@ export class Engine {
     await this.session.setAdapter(null);
     this.gameConsole.stop();
     this.db.close();
+  }
+
+  /** The recording speaker strip's settings (Team Comms → Speaker strip). */
+  stripSettings(): StripSettings {
+    const r = StripSettings.safeParse(this.settings.get("comms.strip", {}));
+    return r.success ? r.data : StripSettings.parse({});
+  }
+
+  /** Saves the strip's settings; its pages get the new look at once. */
+  setStripSettings(next: StripSettings): StripSettings {
+    this.settings.set("comms.strip", StripSettings.parse(next));
+    this.speakerStrip.refresh();
+    return this.stripSettings();
   }
 
   /** Sanitized health summary. */

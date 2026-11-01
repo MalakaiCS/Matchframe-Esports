@@ -339,6 +339,61 @@ export class ObsManager extends EventEmitter {
     await this.obs.call("RemoveSourceFilter", { sourceName, filterName });
   }
 
+  /** One filter of a source (a scene is a source too), or null when it has none by that name. */
+  async filter(sourceName: string, filterName: string): Promise<ObsFilter | null> {
+    this.requireConnected();
+    try {
+      const r = await this.obs.call("GetSourceFilter", { sourceName, filterName });
+      return { name: filterName, kind: r.filterKind, enabled: r.filterEnabled, settings: (r.filterSettings ?? {}) as Record<string, unknown> };
+    } catch (err) {
+      // 600: ResourceNotFound (no such filter on that source).
+      if ((err as { code?: number }).code === 600) return null;
+      throw err;
+    }
+  }
+
+  /** Changes a filter's settings: merged into them (`overlay`), or replacing them. */
+  async setFilterSettings(sourceName: string, filterName: string, settings: Record<string, unknown>, overlay = true): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("SetSourceFilterSettings", { sourceName, filterName, filterSettings: settings as never, overlay });
+  }
+
+  async setFilterEnabled(sourceName: string, filterName: string, enabled: boolean): Promise<void> {
+    this.requireConnected();
+    await this.obs.call("SetSourceFilterEnabled", { sourceName, filterName, filterEnabled: enabled });
+  }
+
+  /**
+   * Whether this OBS has a filter kind (a plugin's filter, e.g. Source Record's `source_record_filter`),
+   * and its defaults. obs-websocket 5.4+ lists filter kinds; before that (OBS 30.0's 5.3) a filter
+   * kind's defaults are asked for, which OBS refuses for a kind it doesn't have (607: InvalidFilterKind).
+   */
+  async filterKind(kind: string): Promise<{ available: boolean; defaults: Record<string, unknown> | null }> {
+    this.requireConnected();
+    if (this.supports("GetSourceFilterKindList")) {
+      const r = await this.obs.call("GetSourceFilterKindList");
+      if (!(r.sourceFilterKinds as string[]).includes(kind)) return { available: false, defaults: null };
+    }
+    try {
+      const r = await this.obs.call("GetSourceFilterDefaultSettings", { filterKind: kind });
+      return { available: true, defaults: (r.defaultFilterSettings ?? {}) as Record<string, unknown> };
+    } catch (err) {
+      if ((err as { code?: number }).code === 607) return { available: false, defaults: null };
+      throw err;
+    }
+  }
+
+  /** A value of OBS's current profile (e.g. Output/Mode, AdvOut/TrackIndex), or null when unset or unreadable. */
+  async profileParameter(category: string, name: string): Promise<string | null> {
+    this.requireConnected();
+    try {
+      const r = await this.obs.call("GetProfileParameter", { parameterCategory: category, parameterName: name });
+      return r.parameterValue ?? r.defaultParameterValue ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   async inputAudio(inputName: string): Promise<ObsInputAudio> {
     this.requireConnected();
     const [v, m, mon, bal, sync, tracks] = await Promise.all([

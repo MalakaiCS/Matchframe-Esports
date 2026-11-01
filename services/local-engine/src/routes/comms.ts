@@ -1,9 +1,12 @@
 import { z } from "zod";
 import type { Engine } from "../app.ts";
+import { CalibrationError, CalibrationSettings } from "../comms/calibrate.ts";
 import { ListenInError } from "../comms/controller.ts";
 import { OverlaySetupError } from "../comms/overlay.ts";
 import { CommsPublicPatch } from "../comms/public.ts";
-import { CommsSettingsPatch, ParticipantPatch, SlotPatch, type SlotId } from "../comms/service.ts";
+import { RecordingError, RecordingPatch, SetupRequest } from "../comms/recording.ts";
+import { PortraitCrop, StripSettings } from "../comms/strip.ts";
+import { CommsSettingsPatch, ParticipantPatch, patchOf, SlotPatch, type SlotId } from "../comms/service.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
 
@@ -12,10 +15,11 @@ import type { Router } from "../http/router.ts";
  * and what each output includes; the public listen-in (one output-state controller: Listen In by team
  * id, End Listen-In, Mute All Comms), the NDI outputs, caster ducking and the team-only overlay. The
  * operator's preview is a WebSocket (`/api/v1/comms/preview/ws`, servers.ts). The dedicated
- * recording's controls come with it (phase 4).
+ * recording (ADR-068): Start/Stop, its team, levels, folder and OBS scene; the speaker strip's
+ * settings; the delay calibration against the gameplay.
  */
 export function registerCommsRoutes(r: Router, e: Engine): void {
-  const view = () => ({ ...e.teamComms.status(), onAir: e.commsPublic.status() });
+  const view = () => ({ ...e.teamComms.status(), onAir: e.commsPublic.status(), recorder: e.commsRecording.status(), strip: { ...e.speakerStrip.status(), settings: e.stripSettings() }, calibration: e.commsCalibration.status() });
   r.get("/api/v1/comms", { permission: "state.read" }, () => view());
 
   r.put("/api/v1/comms/settings", { permission: "program.control", body: CommsSettingsPatch }, async (req) => {
@@ -98,5 +102,79 @@ export function registerCommsRoutes(r: Router, e: Engine): void {
       if (err instanceof OverlaySetupError) throw new HttpError(409, err.message, err.code);
       throw err;
     }
+  });
+
+  // ------------------------------------------------------------------ the dedicated recording (ADR-068)
+  const rec = async <T>(fn: () => Promise<T> | T): Promise<T> => {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err instanceof RecordingError || err instanceof CalibrationError) throw new HttpError(err.status, err.message, err.code);
+      if ((err as { status?: number }).status === 400) throw new HttpError(400, (err as Error).message, "bad_folder");
+      throw err;
+    }
+  };
+
+  r.post("/api/v1/comms/recording/start", { permission: "program.control", body: z.object({}).optional() }, async (req) => {
+    const st = await rec(() => e.commsRecording.start(req.principal!.label));
+    e.audit.record(req.principal!.label, "comms.recording_start", st.team?.id ?? null, { team: st.team?.name ?? null, folder: st.folder });
+    return st;
+  });
+
+  r.post("/api/v1/comms/recording/stop", { permission: "program.control", body: z.object({}).optional() }, async (req) => {
+    const st = await rec(() => e.commsRecording.stop(req.principal!.label));
+    e.audit.record(req.principal!.label, "comms.recording_stop", null, { file: st.last?.path ?? null });
+    return st;
+  });
+
+  r.post("/api/v1/comms/recording/team", { permission: "program.control", body: z.object({ teamId: z.string().min(1).max(100).nullable() }) }, async (req) => {
+    await rec(() => e.commsRecording.setTeam(req.body.teamId));
+    e.audit.record(req.principal!.label, "comms.recording_team", req.body.teamId, null);
+    return e.commsRecording.status();
+  });
+
+  r.put("/api/v1/comms/recording", { permission: "program.control", body: RecordingPatch }, async (req) => {
+    const s = await rec(() => e.commsRecording.setSettings(req.body));
+    e.audit.record(req.principal!.label, "comms.recording_settings", null, s);
+    return e.commsRecording.status();
+  });
+
+  r.get("/api/v1/comms/recording/obs/sources", { permission: "state.read" }, () => e.commsRecording.liveSources());
+
+  r.post("/api/v1/comms/recording/obs", { permission: "settings.manage", body: SetupRequest.optional() }, async (req) => {
+    const res = await rec(() => e.commsRecording.setupObs(req.body ?? {}));
+    e.audit.record(req.principal!.label, "comms.recording_obs", res.scene, { ok: res.ok, failed: res.steps.filter((s) => s.ok === false).map((s) => s.id) });
+    return res;
+  });
+
+  r.put("/api/v1/comms/strip", { permission: "program.control", body: patchOf(StripSettings.omit({ crops: true })) }, (req) => {
+    const prev = e.stripSettings();
+    const s = e.setStripSettings({ ...prev, ...Object.fromEntries(Object.entries(req.body).filter(([, v]) => v !== undefined)) } as typeof prev);
+    e.audit.record(req.principal!.label, "comms.strip", null, { ...s, crops: Object.keys(s.crops).length });
+    return { ...e.speakerStrip.status(), settings: s };
+  });
+
+  r.put("/api/v1/comms/strip/crop", { permission: "program.control", body: z.object({ key: z.string().min(1).max(160), crop: PortraitCrop.nullable() }) }, (req) => {
+    const prev = e.stripSettings();
+    const crops = { ...prev.crops };
+    if (req.body.crop) crops[req.body.key] = req.body.crop;
+    else delete crops[req.body.key];
+    const s = e.setStripSettings({ ...prev, crops });
+    e.audit.record(req.principal!.label, "comms.strip_crop", req.body.key, req.body.crop);
+    return { ...e.speakerStrip.status(), settings: s };
+  });
+
+  r.post("/api/v1/comms/calibration/arm", { permission: "program.control", body: z.object({ teamId: z.string().min(1).max(100) }) }, (req) => rec(() => e.commsCalibration.arm(req.body.teamId)));
+  r.post("/api/v1/comms/calibration/seen", { permission: "program.control", body: z.object({}).optional() }, () => rec(() => e.commsCalibration.seen()));
+  r.post("/api/v1/comms/calibration/clear", { permission: "program.control", body: z.object({}).optional() }, () => e.commsCalibration.clear());
+  r.put("/api/v1/comms/calibration", { permission: "program.control", body: patchOf(CalibrationSettings) }, (req) => {
+    e.commsCalibration.setSettings(req.body);
+    return e.commsCalibration.status();
+  });
+  r.post("/api/v1/comms/calibration/apply", { permission: "program.control", body: z.object({}).optional() }, async (req) => {
+    const d = await rec(() => e.commsCalibration.apply());
+    e.commsPublic.sync();
+    e.audit.record(req.principal!.label, "comms.calibration_apply", null, d);
+    return { ...d, calibration: e.commsCalibration.status() };
   });
 }

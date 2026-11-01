@@ -175,7 +175,7 @@ export function OutputsPanel({ view, onChanged }: { view: CommsView; onChanged: 
         <KV
           items={[
             [o.names.public, st ? `${st.connections.public} receiver${st.connections.public === 1 ? "" : "s"} connected (OBS is one)` : "—"],
-            [o.names.recording, st ? `${st.connections.recording} receiver${st.connections.recording === 1 ? "" : "s"} connected · for the dedicated recording (phase 4)` : "—"],
+            [o.names.recording, st ? `${st.connections.recording} receiver${st.connections.recording === 1 ? "" : "s"} connected · for the dedicated recording` : "—"],
             ["Format", "48 kHz stereo, 32-bit float, 10 ms frames"],
             ["Timing", st ? `sent ${Math.round(st.lagMs)} ms after the output time (set ${s.latencyMs} ms) · ${st.underruns} gaps · ${st.late} late · ${st.resyncs} resyncs` : "—"],
             ["Public silenced", `${view.onAir.outputs.publicGuard.blocksSilenced} blocks sent as silence while closed`],
