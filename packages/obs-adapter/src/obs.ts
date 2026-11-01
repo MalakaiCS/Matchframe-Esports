@@ -665,6 +665,12 @@ export class ObsManager extends EventEmitter {
     await this.obs.call("SetMediaInputCursor", { inputName, mediaCursor: Math.max(0, Math.round(cursorMs)) });
   }
 
+  /** OBS's performance: processor use, frames a second, render time, and frames skipped by rendering and by the outputs. */
+  async stats(): Promise<Record<string, number>> {
+    this.requireConnected();
+    return (await this.obs.call("GetStats")) as unknown as Record<string, number>;
+  }
+
   async screenshot(sourceName: string, width = 640): Promise<string> {
     this.requireConnected();
     const r = await this.obs.call("GetSourceScreenshot", { sourceName, imageFormat: "png", imageWidth: width });

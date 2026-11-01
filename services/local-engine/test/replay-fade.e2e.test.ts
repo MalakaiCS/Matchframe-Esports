@@ -189,6 +189,8 @@ describe("Replay break: fading from one clip to the next through the replay scen
     expect(e.replays.list().filter((i) => i.roundNumber === round).map((i) => i.state)).toEqual(["played", "played", "played"]);
     // OBS's own transition and duration are back.
     expect([o.current, o.durationMs]).toEqual(["Fade", 300]);
+    // Once the transition back is over, both replay sources are emptied: the next break can't open on this one's last frame.
+    await waitFor(() => o.inputs.get("replay")!.settings.local_file === "" && o.inputs.get("replay B")!.settings.local_file === "", 8000);
   });
 
   it("a clip waiting off air whose pause OBS lets go still comes in at its part: the pause sent again, or the clip put back before it goes on air", async () => {

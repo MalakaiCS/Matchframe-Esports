@@ -207,7 +207,9 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
   // ---- audit, logs, diagnostics ---------------------------------------------------------------
   r.get("/api/v1/audit", { permission: "settings.manage" }, (req) => e.audit.recent(Number(req.query.get("limit") ?? 200)));
   r.get("/api/v1/logs/recent", { permission: "settings.manage" }, () => e.logger.recent.slice(-300));
-  r.get("/api/v1/diagnostics/bundle", { permission: "settings.manage" }, () => {
+  r.get("/api/v1/diagnostics/bundle", { permission: "settings.manage" }, async () => {
+    // OBS's own performance (processor, frames a second, render time, frames it skipped): whether replays lag in OBS.
+    const obsStats = e.obs.state.connected ? await e.obs.stats().catch(() => null) : null;
     const s = e.session.state();
     return {
       json: {
@@ -248,11 +250,11 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
           // Highlights on air (ADR-063): their scenes, twin, the return target while on air, the last run.
           highlights: { scenes: e.program.highlightsScenes, twin: e.highlightsAir.twin.getStatus(), mediaInput: e.highlightsAir.mediaInput(), returnTo: e.program.highlightsReturn, settings: e.highlightsAir.settings(), status: e.highlightsAir.status() },
           transitions: e.obsAuto.settings(),
-          obs: { connected: e.obs.state.connected, replayBuffer: e.obs.state.replayBuffer, programScene: e.obs.state.programScene },
+          obs: { connected: e.obs.state.connected, replayBuffer: e.obs.state.replayBuffer, programScene: e.obs.state.programScene, stats: obsStats },
           clips: e.replays
             .list()
             .slice(-40)
-            .map((it) => ({ id: it.id, state: it.state, label: it.label, reason: it.reason, round: it.roundNumber, origin: it.origin, error: it.error, hasFile: !!it.clip?.media.path, durationMs: it.clip?.media.durationMs ?? null, playMs: it.playMs, createdAt: it.createdAt })),
+            .map((it) => ({ id: it.id, state: it.state, label: it.label, reason: it.reason, round: it.roundNumber, origin: it.origin, error: it.error, hasFile: !!it.clip?.media.path, durationMs: it.clip?.media.durationMs ?? null, playMs: it.playMs, createdAt: it.createdAt, video: it.clip ? { width: it.clip.media.width, height: it.clip.media.height, fps: it.clip.media.frameRate, audio: it.clip.media.hasAudio } : null })),
         },
         mapPackIssues: e.maps.issues,
         logs: e.logger.recent.slice(-300),

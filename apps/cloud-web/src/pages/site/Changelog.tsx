@@ -11,6 +11,17 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.9",
+    title: "Smoother replays",
+    summary: "Replays no longer open with a flash of the previous break's clip, and play with hardware decoding.",
+    sections: [
+      {
+        heading: "Replays",
+        items: ["No flash of the previous break's last clip when the next break's replays start.", "Replay clips decode on the graphics card where it can.", "The support file shows OBS's performance and each clip's format."],
+      },
+    ],
+  },
+  {
     version: "0.10.8",
     title: "X-ray and smoke colours",
     summary: "Colour the X-ray, the names above the players, grenade trails and smokes by side, in your observer game only.",

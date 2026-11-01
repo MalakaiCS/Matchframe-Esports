@@ -308,10 +308,14 @@ const KEEP_FOR_REPLAYS_MS = 16000;
 const KEEP_ROUNDS = 6;
 /** OBS starts a clip at the keyframe before its part: it may run this much longer than planned (media time). */
 const KEYFRAME_SLACK_MS = 10_000;
+/** The replay sources are emptied this long after the replays (the transition back, a Stinger too, is over by then). */
+const EMPTY_AFTER_MS = 4000;
 
 export class AutoReplay {
   private timer: ReturnType<typeof setInterval> | null = null;
   private busy = false;
+  /** OBS runs started (a break's replays, Test replays, highlights): emptying the sources after one never touches the next. */
+  private obsRuns = 0;
   private status: Pick<AutoReplayStatus, "state" | "detail" | "playing" | "lastPlayed" | "position"> = { state: "off", detail: "Automatic replays are off.", playing: null, lastPlayed: null, position: null };
   private vmix: { connected: boolean; version: string | null; error: string | null; checkedAt: number } | null = null;
   private phase: string | null = null;
@@ -1034,6 +1038,7 @@ export class AutoReplay {
     const twin = await stage.twin().catch(() => null);
     if (!twin) seq.trace?.({ type: "one-source", why: stage.twinDetail() });
     await this.audio.applyReplayVolume().catch(() => undefined);
+    const run = ++this.obsRuns;
     let end: Stop = "ended";
     try {
       end = twin ? await this.playObsTwin(seq, [main, twin]) : await this.playObsOneSource(seq, main.input);
@@ -1051,7 +1056,20 @@ export class AutoReplay {
         }
       }
       await this.audioBack(seq);
+      if (end !== "taken") void this.emptySources(run, twin ? [main, twin] : [main]);
     }
+  }
+
+  /**
+   * After the replays, once the transition back has finished: the replay sources are emptied, so the
+   * next break can't open on the last frame of this one's last clip (OBS can show a source's old
+   * frame for a moment as it comes on air, before the new clip's first one). Not while a source's
+   * scene is still on program, or once another run has started.
+   */
+  private async emptySources(run: number, slots: Slot[]): Promise<void> {
+    await sleep(EMPTY_AFTER_MS);
+    if (run !== this.obsRuns || !this.e.obs.state.connected || slots.some((s) => this.e.obs.state.programScene === s.scene)) return;
+    for (const s of slots) await this.e.obs.setMediaFile(s.input, "").catch(() => undefined);
   }
 
   /** The first clip goes on air (the transition in): a replay through REPLAY_PREPARED, highlights straight to HIGHLIGHTS. */
