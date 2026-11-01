@@ -11,6 +11,24 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.11.0",
+    title: "Team Comms",
+    summary: "Put a team's TeamSpeak comms on the broadcast, delayed to match the gameplay, and record one team's comms with the gameplay and a speaker strip.",
+    sections: [
+      {
+        heading: "Team Comms (off until you switch it on)",
+        items: [
+          "Listen In puts one team's comms on air, delayed to line up with the gameplay; End Listen-In and Mute All Comms take them off.",
+          "You choose who is heard. Anyone new is left out until you include them, and the casters go down while comms are on air.",
+          "A TEAM COMMS banner with the team's name and logo; it never shows who is speaking.",
+          "Listen to any player privately in your headphones first.",
+          "A separate recording of one team's comms with the gameplay and hexagon portraits that light up when someone talks, made in OBS with Source Record.",
+          "Setup checklist, TeamSpeak plugin install from the program, calibration, and saved setups per event.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.10.13",
     title: "Replays in one scene",
     summary: "A break's replays play as one video in one scene, fading into each other with sound that fades in and out.",
