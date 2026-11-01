@@ -113,8 +113,11 @@ jobs:
           cmake -S native/ts3-matchframe-plugin -B native/ts3-matchframe-plugin/build -A x64
           cmake --build native/ts3-matchframe-plugin/build --config Release
           node native/ts3-matchframe-plugin/scripts/package.mjs native/ts3-matchframe-plugin/build/Release/matchframe_comms_win64.dll
-          $exports = & dumpbin /exports native/ts3-matchframe-plugin/build/Release/matchframe_comms_win64.dll 2>$null
-          if ($LASTEXITCODE -eq 0 -and -not ($exports -match 'ts3plugin_onEditPlaybackVoiceDataEvent')) { throw "the plugin DLL does not export ts3plugin_onEditPlaybackVoiceDataEvent" }
+          # dumpbin is only on PATH in a Visual Studio developer shell: the export check runs where it is.
+          if (Get-Command dumpbin -ErrorAction SilentlyContinue) {
+            $exports = & dumpbin /exports native/ts3-matchframe-plugin/build/Release/matchframe_comms_win64.dll 2>$null
+            if ($LASTEXITCODE -eq 0 -and -not ($exports -match 'ts3plugin_onEditPlaybackVoiceDataEvent')) { throw "the plugin DLL does not export ts3plugin_onEditPlaybackVoiceDataEvent" }
+          }
 
       - name: Build the console, captain page, HUD renderer, bundled HUD packages and program bundles
         run: |
