@@ -11,6 +11,22 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.13",
+    title: "Replays in one scene",
+    summary: "A break's replays play as one video in one scene, fading into each other with sound that fades in and out.",
+    sections: [
+      {
+        heading: "Replays",
+        items: [
+          "A break's clips are joined into one video with fades, picture and sound, and play in your one replay scene.",
+          "No more clips freezing and skipping between replays.",
+          "Highlights on air and Test replays work the same way.",
+          "The replay feed drops a few frames instead of restarting when the encoder falls behind.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.10.12",
     title: "Smooth replays, clean sound",
     summary: "The replay feed records the replay PC's picture at a steady 60 fps with clean sound, and shows where any frames are lost.",
