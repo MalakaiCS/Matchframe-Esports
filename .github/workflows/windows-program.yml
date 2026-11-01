@@ -40,6 +40,7 @@ on:
       - "scripts/smoke-match-art.cjs"
       - "scripts/write-cloud-config.mjs"
       - "services/cloud-api/**"
+      - "native/ts3-matchframe-plugin/**"
       - "pnpm-lock.yaml"
       - ".github/workflows/windows-program.yml"
   release:
@@ -97,6 +98,23 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Team Comms' TeamSpeak 3 plugin (ADR-065): MSVC, static runtime. The SDK headers are TeamSpeak's
+      # (not in the repository): fetched from the official repository at a pinned commit and checked
+      # against their SHA-256 (native/ts3-matchframe-plugin/sdk.json). The program ships the .ts3_plugin
+      # package and the DLL (apps/desktop/scripts-build.mjs copies them into its resources).
+      - name: Build the TeamSpeak 3 plugin (Team Comms)
+        shell: pwsh
+        # Until this build is proven on the runner, a failure leaves the program without the plugin
+        # (plugin.json says built: false) rather than stopping the program's own build and release.
+        continue-on-error: true
+        run: |
+          node native/ts3-matchframe-plugin/scripts/fetch-sdk.mjs
+          cmake -S native/ts3-matchframe-plugin -B native/ts3-matchframe-plugin/build -A x64
+          cmake --build native/ts3-matchframe-plugin/build --config Release
+          node native/ts3-matchframe-plugin/scripts/package.mjs native/ts3-matchframe-plugin/build/Release/matchframe_comms_win64.dll
+          $exports = & dumpbin /exports native/ts3-matchframe-plugin/build/Release/matchframe_comms_win64.dll 2>$null
+          if ($LASTEXITCODE -eq 0 -and -not ($exports -match 'ts3plugin_onEditPlaybackVoiceDataEvent')) { throw "the plugin DLL does not export ts3plugin_onEditPlaybackVoiceDataEvent" }
 
       - name: Build the console, captain page, HUD renderer, bundled HUD packages and program bundles
         run: |

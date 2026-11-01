@@ -1,0 +1,15 @@
+{
+  "comment": "TeamSpeak 3 Client Plugin SDK headers (Copyright TeamSpeak Systems GmbH, all rights reserved): not in this repository. scripts/fetch-sdk.mjs downloads these files at this commit into .sdk/ and checks each one's SHA-256 before a build. Plugin API 26 is the one TeamSpeak 3 client 3.6.x loads.",
+  "repository": "https://github.com/TeamSpeak-Systems/ts3client-pluginsdk",
+  "commit": "4aa90a53aa150cbf81e13bc97e68c0431b26499f",
+  "pluginApi": 26,
+  "files": {
+    "include/plugin_definitions.h": "09839fd1aa076df3e12a2f1d01b0c54fa00d129df6786ded4d3221f3ea7f8326",
+    "include/ts3_functions.h": "0cad4df43e0dd2cf713a2db4fcb8ca84bb2fab97e1a54502f5e62f2e49bc9643",
+    "include/teamlog/logtypes.h": "7630586c5f3dfd0ab37f31b3358633d24784f9257c1d1c04defb440a673fc91c",
+    "include/teamspeak/public_definitions.h": "b41171b42e0bc525f77cbcc01d37b7e0449642fd177851564473ddd033b7f870",
+    "include/teamspeak/public_errors.h": "f154710929381834dc4c79160b013a0894cae4049e22ee95daf47bf89253bb40",
+    "include/teamspeak/public_errors_rare.h": "6a8c44f38806eec8e0822e44cc91b9fd98f2acc145474e50c900f408fef4cdf3",
+    "include/teamspeak/public_rare_definitions.h": "a201480d4ce253cca0dd471be9e495fe0a4673b302d2897a2dd9d172dac606c8"
+  }
+}

@@ -1,6 +1,6 @@
 // Bundles the Electron main/preload and the local engine (single ESM file) with esbuild.
 import { build } from "esbuild";
-import { cpSync, existsSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,5 +48,15 @@ const fromGrandi = createRequire(join(grandi, "package.json"));
 const prebuilt = `@grandi/${process.platform}-${process.arch}`;
 for (const [name, dir] of [["grandi", grandi], ["node-gyp-build", packageRoot(fromGrandi.resolve("node-gyp-build"))], [prebuilt, packageRoot(fromGrandi.resolve(prebuilt))]]) {
   cpSync(dir, join(modules, name), { recursive: true, dereference: true, filter: (src) => !/[\\/]node_modules[\\/]\.bin([\\/]|$)/.test(src) });
+}
+// Team Comms' TeamSpeak 3 plugin (ADR-065), when built (native/ts3-matchframe-plugin; windows-program.yml
+// builds it): the .ts3_plugin package, the binary and plugin.json, in the program's resources (ts3-plugin).
+const pluginOut = join(here, "dist", "ts3-plugin");
+rmSync(pluginOut, { recursive: true, force: true });
+const pluginBuilt = join(root, "native", "ts3-matchframe-plugin", "dist");
+if (existsSync(join(pluginBuilt, "plugin.json"))) cpSync(pluginBuilt, pluginOut, { recursive: true });
+else {
+  mkdirSync(pluginOut, { recursive: true });
+  writeFileSync(join(pluginOut, "plugin.json"), JSON.stringify({ built: false, note: "Build native/ts3-matchframe-plugin (docs/operations/team-comms.md) to include the TeamSpeak plugin." }, null, 2));
 }
 console.log("desktop bundles written to apps/desktop/dist");

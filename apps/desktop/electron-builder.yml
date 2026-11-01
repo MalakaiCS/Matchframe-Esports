@@ -17,6 +17,9 @@ extraResources:
     to: engine/node_modules
     filter:
       - "**/*"
+  # Team Comms' TeamSpeak 3 plugin (.ts3_plugin package, DLL, plugin.json; built: false when not built).
+  - from: dist/ts3-plugin
+    to: ts3-plugin
   # Operator console (shown only inside the program from app://matchframe) and its connection page.
   - from: ../operator-web/dist
     to: operator-web

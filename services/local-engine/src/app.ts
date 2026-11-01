@@ -73,6 +73,7 @@ import { RoundSimulator } from "./sim/simulator.ts";
 import { GameConsoleService } from "./game/console.ts";
 import { BuiltinRadars } from "./live/builtin-radars.ts";
 import { MatchArt } from "./domain/match-art.ts";
+import { TeamComms } from "./comms/service.ts";
 
 export const SetupProfile = z.object({
   id: z.string(),
@@ -208,6 +209,8 @@ export class Engine {
   readonly obsAuto: ObsAutomation;
   /** Each match's thumbnails, "Up next" screen and stingers (and OBS's stinger transitions). */
   readonly matchArt: MatchArt;
+  /** Team Comms (ADR-065): both teams' TeamSpeak voices per person, delayed and mixed. */
+  readonly teamComms: TeamComms;
   private meterTimer: ReturnType<typeof setInterval> | null = null;
   private readonly rawGsiListeners = new Set<(payload: Record<string, unknown>, simulated: boolean) => void>();
   private readonly killListeners = new Set<(entry: HudKillfeedEntry) => void>();
@@ -432,6 +435,19 @@ export class Engine {
     this.graphics = new GraphicsDirector(this);
     this.obsAuto = new ObsAutomation(this);
     this.matchArt = new MatchArt(this);
+    this.teamComms = new TeamComms({
+      settings: this.settings,
+      secrets: this.secrets,
+      logger: this.logger,
+      dataDir: cfg.dataDir,
+      now: this.now,
+      roster: {
+        activeMatch: () => this.activeMatch(),
+        team: (id) => this.teams.get(id)?.data ?? null,
+        player: (id) => this.players.get(id)?.data ?? null,
+        assetUrl: (id) => this.assetUrl(id),
+      },
+    });
     this.radars = BuiltinRadars.load(cfg.radarDir, (msg, data) => this.logger.warn(msg, data));
     this.cleanRadars = new CleanRadars((mapName) => this.radars.get(mapName));
 
@@ -586,6 +602,7 @@ export class Engine {
     const m = matchId ? this.matches.get(matchId)?.data : null;
     this.sides = new TeamSideTracker({ leftTeamId: m?.teamAId ?? null, rightTeamId: m?.teamBId ?? null });
     this.roundWinnersLR.clear();
+    this.teamComms?.refreshTeams();
     if (matchId) void this.matchArt.onActivated(matchId);
   }
 
@@ -1188,6 +1205,7 @@ export class Engine {
     this.session.start();
     this.feed.start();
     this.replayFeed.start();
+    await this.teamComms.start();
     this.meterTimer = setInterval(() => this.meter.tick(this.meterInput()), 1000);
     void this.cloud.start();
     this.cloudSync.start();
@@ -1230,6 +1248,7 @@ export class Engine {
     this.demos.stop();
     this.feed.stop();
     this.replayFeed.stop();
+    await this.teamComms.stop().catch(() => undefined);
     this.session.stop();
     if (this.meterTimer) clearInterval(this.meterTimer);
     this.meterTimer = null;

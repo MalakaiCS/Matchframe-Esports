@@ -256,6 +256,9 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
             .slice(-40)
             .map((it) => ({ id: it.id, state: it.state, label: it.label, reason: it.reason, round: it.roundNumber, origin: it.origin, error: it.error, hasFile: !!it.clip?.media.path, durationMs: it.clip?.media.durationMs ?? null, playMs: it.playMs, createdAt: it.createdAt, video: it.clip ? { width: it.clip.media.width, height: it.clip.media.height, fps: it.clip.media.frameRate, audio: it.clip.media.hasAudio } : null })),
         },
+        // Team Comms (ADR-065): the TeamSpeak plugin(s), both team slots, the people heard, buffers, readiness, drops, clock drift.
+        // Built without passwords, token or full identities (redact() would cut its nested plugin statistics at depth 6).
+        teamComms: e.teamComms.diagnostics(),
         mapPackIssues: e.maps.issues,
         logs: e.logger.recent.slice(-300),
         migration: e.migration,

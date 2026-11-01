@@ -315,6 +315,11 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/cams/players/:steamId/approve` | hud.publish |
 | PUT | `/api/v1/cams/players/:steamId/hidden` | hud.publish |
 | POST | `/api/v1/cams/players/:steamId/kick` | hud.publish |
+| GET | `/api/v1/comms` | state.read |
+| PUT | `/api/v1/comms/settings` | program.control |
+| PUT | `/api/v1/comms/slots/:slot` | settings.manage |
+| PUT | `/api/v1/comms/participants/:key` | program.control |
+| POST | `/api/v1/comms/bridge/rotate-token` | settings.manage |
 | GET | `/api/v1/openapi.json` | public |
 
 ## WebSockets

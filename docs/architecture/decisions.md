@@ -1642,3 +1642,31 @@ In both, the frames' stamps are 16.67 ms apart (ffmpeg's constant rate before, t
 - CS2 loading the replay PC (here a sender in a process beside CPU hogs).
 - NDI's frame-sync.
 - The first second or so of each recording still shows its first frames held while ffmpeg starts, as before.
+
+## ADR-065 — Team Comms: a TeamSpeak 3 plugin hands each person's voice to the engine, which delays and mixes it per output
+
+**Context.** The owner's brief (docs/specs/team-comms-brief.md): both teams' TeamSpeak channels, each person separately, delayed to match the observer's gameplay, into a public listen-in (one team at a time, no individual attribution), a separate gameplay recording with its own selection and a speaker strip, and the operator's preview. Phases 1 and 2: prove per-person capture and the second recording, then build the bridge, identities and buffers. Evidence and numbers: docs/operations/team-comms.md.
+
+**Decision.**
+- **Capture in a TeamSpeak 3 client plugin** (`native/ts3-matchframe-plugin`, C++17, plugin API 26 for TeamSpeak 3.6.x): `onEditPlaybackVoiceDataEvent` gives each person's decoded voice before TeamSpeak mixes it (measured: mono, 48 kHz, 360 samples every 7.5 ms). The callback copies into a bounded lock-free queue and zeroes the samples; a sender thread does everything else. The standalone TeamSpeak SDK (not a client for normal servers) and ServerQuery (no audio) were not options; a desktop or NDI capture of the mixed output can't remove one person from overlapping speech.
+- **The engine decides which tabs are captured** (MANAGE by server and channel); unmanaged tabs are untouched. Managed tabs are listen-only (input deactivated and muted, never deafened: the callbacks need playback running) and silent here (per-person and mixed playback zeroed), and carry TeamSpeak's recording status while Matchframe records.
+- **Bridge: TCP on 127.0.0.1** with a token Matchframe generates (secret store; written with the port to `<data>/team-comms/bridge.json` for the plugin), binary audio + JSON events, validated, bounded, the plugin reconnecting. Not a named pipe: one transport on every platform, testable here as on Windows.
+- **Identity:** a person is `team id / server unique id / TeamSpeak unique identity`; session client ids are re-resolved from events; the listener is never a person; anyone new is excluded everywhere until approved. Team slots A/B are the active match's team A/B by id, so a halftime changes nothing.
+- **Timeline:** the engine's monotonic clock; the plugin stamps each block with its own monotonic clock, mapped by pings (shortest round trip, slewed, jumps detected). Each person's buffer holds sparse chunks, contiguous through jitter, bounded by delay + 2 s and an overall memory cap. Readiness is "captured without a break since before the playhead".
+- **Outputs after the buffers:** every 10 ms the mixer reads each person at now − delay (at least 150 ms) and applies inclusion, level and team gates there (10 ms ramps; the public listen-in 40 ms, closing one team before opening the other). Never undelayed audio: a team not ready contributes silence. The public gate is closed at start, closes itself on its team's source loss, and is never restored at startup. Per-person activity comes from the samples mixed into each output (team level only for public).
+- **Second recording: OBS's Source Record filter** on a recording-only scene (measured in OBS 30.0.2: gameplay throughout while the program cut to casters, its own encoder, the scene's own audio). **Audio into OBS: NDI audio-only from the engine** (grandi, already shipped), received by DistroAV; the preview goes to headphones from the console (Web Audio, `setSinkId`), never through OBS. Both phase 3–4 work.
+
+**Alternatives.**
+- **A virtual audio cable (VB-CABLE)** for the public bus: not redistributable without VB-Audio's licence, and Node needs a native WASAPI module; kept as an operator-installed fallback.
+- **A second OBS instance** for the recording: a second renderer and game capture to keep in step; the fallback if Source Record can't hold 1080p60 on the owner's PC.
+- **One TeamSpeak client with two tabs vs two clients:** both supported (the bridge takes up to 4 plugins). Two tabs on one server need two identities on a default server (one connection per identity).
+- **Placing every block at its own stamp:** 1–10 ms of timestamp jitter would add clicks and gaps; contiguous within a sentence, re-laid only on a jump.
+
+**Checked.**
+- Real TeamSpeak (Linux; client 3.6.2, server 3.13.8, two team channels, 7 talkers each with a distinct tone, one listener client with two tabs; and the in-repo rig with one listener per team): per-person streams by identity, never across teams; −59 to −70 dB between people during overlapping speech; listener muted and not deafened on the server, recording status shown; its playback exactly silent once managed while the callbacks kept coming; 195 784 blocks, 0 lost; plugin→engine median 1.3 ms; drift under 0.3 ppm; the delayed output's speech onsets 0.0 ms from capture + 20 s; a server kick and a client crash handled (public closed and not reopened; slots back after the delay); an excluded person gone from the next 20 ms though still buffered.
+- The real plugin binary in a stand-in host, on Linux in the tests and the Windows DLL under Wine, against the real bridge.
+- Fixture tests on a simulated clock (`team-comms*.test.ts`): the brief's cases, incl. 90 s alignment within 10 ms.
+- Source Record 0.4.8 in OBS 30.0.2 at 1080p60 (software rendering): see the operations document.
+- NDI audio-only between two processes: 0 of 17 989 frames dropped, 10.5 ms.
+
+**Not checked.** Windows TeamSpeak with the MSVC build; DistroAV receiving the engine's NDI audio (not buildable for OBS 30.0.2 here); Source Record and the whole single-PC load with a GPU encoder; TeamSpeak 6.

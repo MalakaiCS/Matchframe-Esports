@@ -31,6 +31,7 @@ import { registerReportRoutes } from "./routes/reports.ts";
 import { registerIntegrationRoutes } from "./routes/integrations.ts";
 import { registerCloudRoutes } from "./routes/cloud.ts";
 import { registerCamRoutes } from "./routes/cams.ts";
+import { registerCommsRoutes } from "./routes/comms.ts";
 import { CAM_PAGE_JS, CAMS_JS, LHM_CAMS_JS, camPage, injectLhmCams } from "./hud/cams-runtime.ts";
 import { bearer, json, readBody, Router } from "./http/router.ts";
 import { overlayCsp, safeResolve, serveFile, serveStatic } from "./http/static.ts";
@@ -116,6 +117,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerIntegrationRoutes(router, e);
   registerCloudRoutes(router, e);
   registerCamRoutes(router, e);
+  registerCommsRoutes(router, e);
   router.get("/api/v1/openapi.json", { permission: "public" }, () => router.openapi({ title: "Matchframe Esports local API", version: APP_VERSION }));
 
   // ------------------------------------------------------------------ GSI ingest server

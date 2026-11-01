@@ -37,6 +37,12 @@ Matchframe Esports is original software. This file lists third-party components 
 
 Operator UI dependencies are listed in `apps/operator-web/package.json` and included in `pnpm licenses list --prod` output.
 
+## TeamSpeak 3 plugin (Team Comms)
+
+The program ships Matchframe's own TeamSpeak 3 client plugin (`native/ts3-matchframe-plugin`, original code), built in CI with the compiler's static runtime (MSVC; mingw-w64's libstdc++/libgcc/winpthreads when cross-compiled, under their runtime-library exceptions).
+
+- **TeamSpeak 3 Client Plugin SDK** headers (https://github.com/TeamSpeak-Systems/ts3client-pluginsdk, commit `4aa90a5`, plugin API 26): Copyright TeamSpeak Systems GmbH, all rights reserved. **Not in this repository and not shipped as source:** `scripts/fetch-sdk.mjs` downloads them at build time and checks their SHA-256. The plugin is compiled against them, which is what TeamSpeak publishes them for (building plugins for its client). "TeamSpeak" is a trademark of TeamSpeak Systems GmbH; the plugin is not made or endorsed by TeamSpeak.
+
 ## Bundled HUD packages
 
 | Package | Contents and origin | Licence |
@@ -79,6 +85,8 @@ The weapon and equipment icons in the Pro CS2 HUD (also used by the Matchframe B
 ## Development tooling (not shipped)
 
 TypeScript 6.0.3 (Apache-2.0), Vitest 5.0.5 (MIT), ESLint 10.13.0 (MIT), typescript-eslint 8.72.0 (MIT), tsx 4.23.15 (MIT), esbuild 0.28.2 (MIT), Vite 8.3.5 (MIT), @vitejs/plugin-react 6.1.2 (MIT), electron-builder 26.18.0 (MIT), Playwright/Chromium (pre-installed in the test environment, Apache-2.0), OBS Studio 30.0.2 (GPL-2.0; used only as an external test target over its WebSocket API, not linked or shipped), FFmpeg/ffprobe (external tools invoked as processes for clip probing/trimming; not shipped).
+
+Team Comms tests (ADR-065), used here only, never shipped or committed: TeamSpeak 3 Server 3.13.8 and TeamSpeak 3 Client 3.6.2 for Linux (proprietary, TeamSpeak Systems GmbH; downloaded from TeamSpeak, the server's free licence accepted with `TS3SERVER_LICENSE=accept` and the client's terms through its installer, for testing; `native/ts3-matchframe-plugin/test/real/ts3-rig.sh` expects them already downloaded); Source Record 0.4.8 by exeldro (GPL-2.0; built from https://github.com/exeldro/obs-source-record for an OBS test; the program does not include or link it, the operator installs it into OBS); DistroAV 6.2.2 (GPL-2.0; evaluated, not built); PulseAudio 16.1, Xvfb, mingw-w64 13 (GCC runtime-library exception), Wine 9.0, CMake (test and build tools).
 
 ## Test data (not redistributed)
 
