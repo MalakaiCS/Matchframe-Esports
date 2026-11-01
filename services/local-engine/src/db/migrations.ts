@@ -218,4 +218,29 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX sync_state_pending ON sync_state(pending) WHERE pending IS NOT NULL;
     `,
   },
+  {
+    version: 5,
+    name: "player first and last names",
+    sql: `
+      -- Players get firstName and lastName; realName ("First Last") stays as a derived compatibility
+      -- field. Existing real names are split on their first space. Records that already have names
+      -- are left alone, so this is safe to run on any copy.
+      UPDATE documents
+         SET data = json_set(
+               data,
+               '$.firstName',
+               CASE WHEN instr(trim(json_extract(data, '$.realName')), ' ') > 0
+                    THEN substr(trim(json_extract(data, '$.realName')), 1, instr(trim(json_extract(data, '$.realName')), ' ') - 1)
+                    ELSE trim(json_extract(data, '$.realName')) END,
+               '$.lastName',
+               CASE WHEN instr(trim(json_extract(data, '$.realName')), ' ') > 0
+                    THEN trim(substr(trim(json_extract(data, '$.realName')), instr(trim(json_extract(data, '$.realName')), ' ') + 1))
+                    ELSE NULL END)
+       WHERE kind = 'player'
+         AND json_type(data, '$.realName') = 'text'
+         AND trim(json_extract(data, '$.realName')) != ''
+         AND json_extract(data, '$.firstName') IS NULL
+         AND json_extract(data, '$.lastName') IS NULL;
+    `,
+  },
 ];

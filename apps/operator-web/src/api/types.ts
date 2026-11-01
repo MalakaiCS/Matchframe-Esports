@@ -37,6 +37,7 @@ import type {
   Vec3,
   VetoDecision,
   VetoStep,
+  VetoEntry,
 } from "@matchframe/contracts";
 
 export type {
@@ -483,31 +484,52 @@ export interface LogEntry {
   [k: string]: unknown;
 }
 
-export type TeamRow = Team & { revision: number; archived: boolean };
-export type PlayerRow = Player & { revision: number; teamId: string | null };
-export type TeamDetail = Team & { revision: number; roster: (RosterMembership & { player: Player | null })[] };
-export type PlayerDetail = Player & { revision: number; history: RosterMembership[] };
-export type { Player, RosterMembership, Team };
+export type TeamRow = Team & { revision: number; archived: boolean; playerCount: number };
+export type PlayerRow = Player & { revision: number; archived: boolean; firstName: string; lastName: string; teamId: string | null; role: RosterMembership["role"] | null };
+export type TeamDetail = TeamRow & { roster: (RosterMembership & { player: Player | null })[] };
+export type PlayerDetail = PlayerRow & { history: RosterMembership[] };
+export type { Player, RosterMembership, Team, VetoEntry };
 
-export interface ImportRowInput {
-  displayName: string;
-  realName?: string;
-  steamId?: string;
-  team?: string;
-  countryCode?: string;
+/** An image uploaded by an editor, checked by the engine and kept until Save and Exit (or Cancel). */
+export interface StagedImage {
+  stagedId: string;
+  previewUrl: string;
+  type: "png" | "jpeg" | "webp";
+  width: number;
+  height: number;
+  bytes: number;
+  advice: string | null;
 }
 
-export interface ImportPreviewRow {
-  row: number;
-  ok: boolean;
-  errors: string[];
-  data?: ImportRowInput;
-  duplicateOf?: string | null;
-  duplicateReason?: "steamId" | "name" | null;
+/** What deleting a record would do, from POST /api/v1/{teams|players|matches}/delete-preview. */
+export interface DeleteImpact {
+  id: string;
+  label: string;
+  deletable: boolean;
+  blockers: string[];
+  effects: string[];
 }
 
-export type MatchRow = Match & { maps: MapInstance[] };
-export type MatchDetail = Match & { revision: number; maps: MapInstance[]; corrections: StatCorrection[] };
+export interface ImportPreview {
+  rows: { row: number; values: Record<string, string>; errors: string[] }[];
+  ignoredColumns: string[];
+  total: number;
+  valid: number;
+  invalid: number;
+}
+
+export type MatchGroup = "ended" | "current" | "future";
+export type MatchRow = Match & { revision: number; archived: boolean; maps: MapInstance[]; group: MatchGroup; active: boolean };
+export type MatchDetail = MatchRow & {
+  corrections: StatCorrection[];
+  /** The veto the editor shows: the match's own entries, else the captain veto's decisions, else its maps. */
+  vetoEntries: VetoEntry[];
+  vetoSource: "match" | "captain" | "maps" | "none";
+  captainDecisions: number;
+  pool: string[];
+  poolSource: "match" | "event" | "app";
+  seriesFromMaps: { a: number; b: number };
+};
 export type { StatCorrection };
 
 export interface SeriesScore {

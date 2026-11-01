@@ -3,15 +3,17 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import { z } from "zod";
 import type { MapInstance } from "@matchframe/contracts";
-import { BracketNode, MapInstance as MapInstanceSchema, MatchFormat, Side, StageKind, StageTiebreaker } from "@matchframe/contracts";
+import { BracketNode, MapInstance as MapInstanceSchema, Side, StageKind, StageTiebreaker } from "@matchframe/contracts";
 import { buildBracket, computeStandings, validateBracket } from "../domain/standings.ts";
 import type { Engine } from "../app.ts";
 import { newId } from "../db/store.ts";
-import { mapWinner, seriesScore } from "../domain/series.ts";
+import { mapWinner, seriesTotals } from "../domain/series.ts";
 import { standardSequence } from "../domain/veto.ts";
+import { deriveMapInstances, vetoEntriesFromDecisions } from "../domain/veto-entries.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
 import { pushResultIfEnabled } from "./integrations.ts";
+import { registerRecordRoutes } from "./records.ts";
 
 export const ASSET_EXT = new Set([".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".webm", ".mp4"]);
 const ASSET_MAX = 20 * 1024 * 1024;
@@ -36,6 +38,7 @@ export function normalizeName(n: string): string {
 }
 
 export function registerDomainRoutes(r: Router, e: Engine): void {
+  registerRecordRoutes(r, e);
   // ---- assets (logos, avatars, sponsor media) ---------------------------------------------
   r.post("/api/v1/assets", { permission: "metadata.write", maxBodyBytes: ASSET_MAX }, (req) => {
     const name = String(req.query.get("name") ?? "asset");
@@ -48,23 +51,7 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
   });
 
   // ---- teams -------------------------------------------------------------------------------
-  r.get("/api/v1/teams", { permission: "metadata.read" }, (req) => e.teams.list({ includeArchived: req.query.get("archived") === "1" }).map((d) => ({ ...d.data, revision: d.revision, archived: d.archived })));
-  r.post("/api/v1/teams", { permission: "metadata.write" }, (req) => {
-    const d = e.teams.create(req.body as Record<string, unknown>, "team");
-    e.audit.record(req.principal!.label, "team.create", d.id);
-    return d.data;
-  });
-  r.get("/api/v1/teams/:id", { permission: "metadata.read" }, (req) => {
-    const d = e.teams.require(req.params.id!);
-    return { ...d.data, revision: d.revision, roster: e.roster.forTeam(d.id).map((m) => ({ ...m, player: e.players.get(m.playerId)?.data ?? null })) };
-  });
-  r.patch("/api/v1/teams/:id", { permission: "metadata.write" }, (req) => {
-    const body = req.body as Record<string, unknown> & { revision?: number };
-    const { revision, ...patch } = body;
-    const d = e.teams.update(req.params.id!, patch, revision);
-    e.audit.record(req.principal!.label, "team.update", d.id, patch);
-    return d.data;
-  });
+  // Teams, players, matches (list/editor routes), uploads, deletes and imports: routes/records.ts.
   r.post("/api/v1/teams/:id/archive", { permission: "metadata.write", body: z.object({ archived: z.boolean().default(true) }) }, (req) => {
     e.teams.archive(req.params.id!, req.body.archived);
     e.audit.record(req.principal!.label, req.body.archived ? "team.archive" : "team.unarchive", req.params.id!);
@@ -84,34 +71,7 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
   });
 
   // ---- players -----------------------------------------------------------------------------
-  r.get("/api/v1/players", { permission: "metadata.read" }, () =>
-    e.players.list().map((d) => ({ ...d.data, revision: d.revision, teamId: e.roster.teamOf(d.id) })),
-  );
-  r.post("/api/v1/players", { permission: "metadata.write" }, (req) => {
-    const body = req.body as Record<string, unknown>;
-    if (typeof body.steamId === "string" && e.steamIndex.lookup(body.steamId)) throw new HttpError(409, "a player with this SteamID already exists", "duplicate_steamid");
-    const d = e.players.create(body, "player");
-    if (d.data.steamId) e.steamIndex.set(d.data.steamId, d.id);
-    e.audit.record(req.principal!.label, "player.create", d.id);
-    return d.data;
-  });
-  r.get("/api/v1/players/:id", { permission: "metadata.read" }, (req) => {
-    const d = e.players.require(req.params.id!);
-    return { ...d.data, revision: d.revision, history: e.roster.history(d.id) };
-  });
-  r.patch("/api/v1/players/:id", { permission: "metadata.write" }, (req) => {
-    const { revision, ...patch } = req.body as Record<string, unknown> & { revision?: number };
-    const before = e.players.require(req.params.id!).data;
-    if (typeof patch.steamId === "string" && patch.steamId !== before.steamId) {
-      const other = e.steamIndex.lookup(patch.steamId);
-      if (other && other !== before.id) throw new HttpError(409, "SteamID already assigned to another player", "duplicate_steamid");
-    }
-    const d = e.players.update(req.params.id!, patch, revision);
-    if (before.steamId && before.steamId !== d.data.steamId) e.steamIndex.remove(before.steamId);
-    if (d.data.steamId) e.steamIndex.set(d.data.steamId, d.id);
-    e.audit.record(req.principal!.label, "player.update", d.id, patch);
-    return d.data;
-  });
+  // ---- players (list and editor routes in routes/records.ts) ----------------------------
   /** Merge a duplicate into a primary player, preserving roster history and aliases. */
   r.post("/api/v1/players/:id/archive", { permission: "metadata.write", body: z.object({ archived: z.boolean().default(true) }) }, (req) => {
     e.players.archive(req.params.id!, req.body.archived);
@@ -133,39 +93,7 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
     return merged.data;
   });
 
-  /** CSV/JSON import preview with validation and duplicate detection; nothing is written. */
-  const ImportRow = z.object({ displayName: z.string().min(1), realName: z.string().optional(), steamId: z.string().optional(), team: z.string().optional(), countryCode: z.string().optional() });
-  r.post("/api/v1/import/players/preview", { permission: "metadata.write", body: z.object({ rows: z.array(z.unknown()).max(5000) }) }, (req) => {
-    const existing = e.players.list();
-    const byName = new Map(existing.map((p) => [normalizeName(p.data.displayName), p.id]));
-    return req.body.rows.map((raw, i) => {
-      const r2 = ImportRow.safeParse(raw);
-      if (!r2.success) return { row: i, ok: false, errors: r2.error.issues.map((x) => `${x.path.join(".")}: ${x.message}`) };
-      const row = r2.data;
-      const errors: string[] = [];
-      if (row.steamId && !/^\d{17}$/.test(row.steamId)) errors.push("steamId must be a 17-digit SteamID64 string");
-      const dupSteam = row.steamId ? e.steamIndex.lookup(row.steamId) : null;
-      const dupName = byName.get(normalizeName(row.displayName)) ?? null;
-      return { row: i, ok: errors.length === 0, errors, data: row, duplicateOf: dupSteam ?? dupName, duplicateReason: dupSteam ? "steamId" : dupName ? "name" : null };
-    });
-  });
-  r.post("/api/v1/import/players/commit", { permission: "metadata.write", body: z.object({ rows: z.array(ImportRow).max(5000), skipDuplicates: z.boolean().default(true) }) }, (req) => {
-    const created: string[] = [];
-    const skipped: number[] = [];
-    const teamsByName = new Map(e.teams.list().map((t) => [normalizeName(t.data.name), t.id]));
-    req.body.rows.forEach((row, i) => {
-      if (row.steamId && e.steamIndex.lookup(row.steamId)) {
-        if (req.body.skipDuplicates) return void skipped.push(i);
-      }
-      const d = e.players.create({ displayName: row.displayName, realName: row.realName ?? null, steamId: row.steamId ?? null, countryCode: row.countryCode ?? null }, "player");
-      if (d.data.steamId) e.steamIndex.set(d.data.steamId, d.id);
-      const teamId = row.team ? teamsByName.get(normalizeName(row.team)) : undefined;
-      if (teamId) e.roster.join(teamId, d.id);
-      created.push(d.id);
-    });
-    e.audit.record(req.principal!.label, "import.players", null, { created: created.length, skipped: skipped.length });
-    return { created, skipped };
-  });
+
 
   // ---- events ------------------------------------------------------------------------------
   r.get("/api/v1/events", { permission: "metadata.read" }, () => e.events.list().map((d) => d.data));
@@ -189,44 +117,7 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
     return d.data;
   });
 
-  // ---- matches -----------------------------------------------------------------------------
-  const MatchCreate = z.object({
-    eventId: z.string().nullable().default(null),
-    stageId: z.string().nullable().default(null),
-    teamAId: z.string(),
-    teamBId: z.string(),
-    format: MatchFormat.default({ bestOf: 3, regulationRounds: 24, overtimeEnabled: true, overtimeRounds: 6, allowTie: false }),
-    mapPool: z.array(z.string()).default([]),
-    scheduledAt: z.string().nullable().default(null),
-    title: z.string().nullable().default(null),
-  });
-  r.get("/api/v1/matches", { permission: "metadata.read" }, () => e.matches.list().map((d) => ({ ...d.data, maps: e.mapInstances.forMatch(d.id) })));
-  r.post("/api/v1/matches", { permission: "metadata.write", body: MatchCreate }, (req) => {
-    if (req.body.teamAId === req.body.teamBId) throw new HttpError(400, "a match needs two different teams", "same_team");
-    e.teams.require(req.body.teamAId);
-    e.teams.require(req.body.teamBId);
-    if (req.body.stageId && !e.stages.get(req.body.stageId)) throw new HttpError(400, `unknown stage ${req.body.stageId}`, "bad_stage");
-    const d = e.matches.create({ ...req.body, status: "scheduled", seriesScoreA: 0, seriesScoreB: 0 }, "match");
-    e.audit.record(req.principal!.label, "match.create", d.id);
-    return d.data;
-  });
-  r.get("/api/v1/matches/:id", { permission: "metadata.read" }, (req) => {
-    const d = e.matches.require(req.params.id!);
-    return { ...d.data, revision: d.revision, maps: e.mapInstances.forMatch(d.id), corrections: e.corrections.list().filter((c) => c.data.matchId === d.id).map((c) => c.data) };
-  });
-  r.patch("/api/v1/matches/:id", { permission: "metadata.write" }, (req) => {
-    const { revision, ...patch } = req.body as Record<string, unknown> & { revision?: number };
-    const d = e.matches.update(req.params.id!, patch, revision);
-    e.audit.record(req.principal!.label, "match.update", d.id, patch);
-    return d.data;
-  });
-  r.post("/api/v1/matches/:id/activate", { permission: "program.control" }, (req) => {
-    e.matches.require(req.params.id!);
-    e.setActiveMatch(req.params.id!);
-    e.matches.update(req.params.id!, { status: "live" });
-    e.audit.record(req.principal!.label, "match.activate", req.params.id!);
-    return { active: req.params.id };
-  });
+  // ---- matches (list and editor routes in routes/records.ts) ---------------------------
   r.post("/api/v1/live/deactivate-match", { permission: "program.control" }, (req) => {
     e.setActiveMatch(null);
     e.audit.record(req.principal!.label, "match.deactivate", null);
@@ -238,7 +129,7 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
     const existing = e.mapInstances.forMatch(match.id);
     for (const old of existing) if (!req.body.maps.some((m) => m.id === old.id)) e.mapInstances.remove(old.id);
     const saved: MapInstance[] = req.body.maps.map((m) => e.mapInstances.upsert({ ...m, id: m.id ?? newId("map"), matchId: match.id } as MapInstance));
-    const s = seriesScore(match, saved);
+    const s = seriesTotals(match, saved);
     e.matches.update(match.id, { seriesScoreA: s.a, seriesScoreB: s.b, ...(s.winnerTeamId ? { status: "completed" } : {}) });
     e.audit.record(req.principal!.label, "match.maps.set", match.id, { maps: saved.length });
     return { maps: saved, series: s };
@@ -261,7 +152,8 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
       status = winner ? "completed" : "live";
     }
     const updated = e.mapInstances.upsert({ ...mi, scoreA: req.body.scoreA, scoreB: req.body.scoreB, winnerTeamId: winner, status });
-    const s = seriesScore(match, e.mapInstances.forMatch(match.id));
+    // Series = maps won (each completed map once) + the stored manual correction.
+    const s = seriesTotals(match, e.mapInstances.forMatch(match.id));
     e.matches.update(match.id, { seriesScoreA: s.a, seriesScoreB: s.b, status: s.winnerTeamId ? "completed" : match.status });
     e.audit.record(req.principal!.label, "map.result", mi.id, { ...req.body, winner });
     pushResultIfEnabled(e, match.id);
@@ -326,23 +218,17 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
     const { match, steps } = stepsFor(req.params.matchId!);
     const st = e.veto.status(match, steps);
     if (!st.complete) throw new HttpError(409, "veto not complete", "incomplete");
-    const maps = st.pickedMaps.map((p, i) =>
-      e.mapInstances.upsert({
-        id: newId("map"),
-        matchId: match.id,
-        order: i + 1,
-        mapName: p.mapName,
-        pickedByTeamId: p.pickedBy === "A" ? match.teamAId : p.pickedBy === "B" ? match.teamBId : null,
-        isDecider: p.decider,
-        startingCtTeamId: p.startingSide ? ((p.startingSide.side === "CT") === (p.startingSide.team === "A") ? match.teamAId : match.teamBId) : null,
-        status: "upcoming",
-        scoreA: 0,
-        scoreB: 0,
-        winnerTeamId: null,
-        mapRevision: null,
-      }),
-    );
-    for (const old of e.mapInstances.forMatch(match.id)) if (!maps.some((m) => m.id === old.id)) e.mapInstances.remove(old.id);
+    // The captain decisions become the match's veto (replacing manual entries); a map that stays in
+    // place keeps its result, and a played map is never replaced or removed.
+    const entries = vetoEntriesFromDecisions(match, st.decisions);
+    const maps = e.db.transaction(() => {
+      const { maps: next, removed } = deriveMapInstances(match, entries, e.mapInstances.forMatch(match.id));
+      for (const old of removed) e.mapInstances.remove(old.id);
+      const saved = next.map((m) => e.mapInstances.upsert(m));
+      const s = seriesTotals(match, saved);
+      e.matches.update(match.id, { veto: [], seriesScoreA: s.a, seriesScoreB: s.b });
+      return saved;
+    });
     e.audit.record(req.principal!.label, "veto.apply", match.id, { maps: maps.map((m) => m.mapName) });
     return { maps };
   });
@@ -515,7 +401,7 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
 
   r.post("/api/v1/import/event-package", { permission: "settings.manage", body: z.object({ package: z.record(z.string(), z.unknown()), mode: z.enum(["preview", "commit"]).default("preview") }) }, (req) => {
     const pkg = req.body.package as { format?: string; formatVersion?: number; checksum?: string; data?: Record<string, unknown[]>; assets?: Record<string, string> };
-    if (pkg.format !== "matchframe-event-package" || pkg.formatVersion !== 1) throw new HttpError(400, "not a Matchframe event package (v1)", "bad_format");
+    if (pkg.format !== "matchframe-event-package" || pkg.formatVersion !== 1) throw new HttpError(400, "not a MatchFrame event package (v1)", "bad_format");
     const { checksum, ...rest } = pkg;
     const actual = createHash("sha256").update(JSON.stringify(rest)).digest("hex");
     if (checksum !== actual) throw new HttpError(400, "checksum mismatch: package is corrupt or modified", "checksum");

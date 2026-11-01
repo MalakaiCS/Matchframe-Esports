@@ -112,7 +112,7 @@ export function MatchArtPanel({ matchId, teams }: { matchId: string; teams: stri
               </Details>
               <h3 className="ga-section-title">Stinger transitions in OBS</h3>
               <p className="small">
-                Once in OBS: <strong>Scene Transitions → + → Stinger</strong>, named <span className="mono">{a.obs.transitions.stinger}</span>, and a second one named <span className="mono">{a.obs.transitions["stinger-replay"]}</span> (any video file; Matchframe replaces it). Then put this match's stingers in them. The active match's stingers go in by themselves when you activate it.
+                Once in OBS: <strong>Scene Transitions → + → Stinger</strong>, named <span className="mono">{a.obs.transitions.stinger}</span>, and a second one named <span className="mono">{a.obs.transitions["stinger-replay"]}</span> (any video file; MatchFrame replaces it). Then put this match's stingers in them. The active match's stingers go in by themselves when you activate it.
               </p>
               <div className="row" style={{ gap: 16 }}>
                 <ActionButton
@@ -124,7 +124,7 @@ export function MatchArtPanel({ matchId, teams }: { matchId: string; teams: stri
                 >
                   Put the stingers in OBS
                 </ActionButton>
-                <Checkbox checked={useStinger} onChange={setUseStinger} label="Use the stinger for every scene change" hint="Makes Matchframe Stinger OBS's current transition. Replays use the replay stinger." />
+                <Checkbox checked={useStinger} onChange={setUseStinger} label="Use the stinger for every scene change" hint="Makes MatchFrame Stinger OBS's current transition. Replays use the replay stinger." />
               </div>
               {obsResult ? (
                 <div className="stack small" style={{ marginTop: 8 }}>

@@ -17,7 +17,11 @@ export type Team = z.infer<typeof Team>;
 
 export const Player = z.object({
   id: z.string(),
+  /** Nickname: the broadcast display name. Never used to link game data (that is steamId). */
   displayName: z.string().min(1).max(64),
+  firstName: z.string().max(60).nullable().optional(),
+  lastName: z.string().max(60).nullable().optional(),
+  /** Compatibility field derived from firstName and lastName ("First Last"); older records only have this. */
   realName: z.string().max(120).nullable().default(null),
   steamId: SteamId64.nullable().default(null),
   countryCode: z.string().length(2).nullable().default(null),
@@ -71,6 +75,21 @@ export const MapInstance = z.object({
 });
 export type MapInstance = z.infer<typeof MapInstance>;
 
+/**
+ * One line of a match's map veto, in order. Picks and the decider become the match's maps in order.
+ * sideChoice is the starting side the opponent of the picking team chose (null: not chosen);
+ * reversedSides swaps the resulting starting sides.
+ */
+export const VetoEntry = z.object({
+  id: z.string().min(1).max(40),
+  type: z.enum(["pick", "ban", "decider"]),
+  teamId: z.string().nullable().default(null),
+  mapName: z.string().min(1).max(64),
+  sideChoice: z.enum(["CT", "T"]).nullable().default(null),
+  reversedSides: z.boolean().default(false),
+});
+export type VetoEntry = z.infer<typeof VetoEntry>;
+
 export const Match = z.object({
   id: z.string(),
   eventId: z.string().nullable(),
@@ -83,7 +102,12 @@ export const Match = z.object({
   /** Series score derived from completed maps; never auto-advanced by tied/unfinished maps. */
   seriesScoreA: z.number().int().min(0).default(0),
   seriesScoreB: z.number().int().min(0).default(0),
+  /** Manual series adjustment on top of the maps won (e.g. a map not recorded here). seriesScore = maps won + correction. */
+  seriesCorrectionA: z.number().int().min(-9).max(9).optional(),
+  seriesCorrectionB: z.number().int().min(-9).max(9).optional(),
   mapPool: z.array(z.string()).default([]),
+  /** The ordered map veto as the operator set it (empty: none yet, or the captain veto's decisions apply). */
+  veto: z.array(VetoEntry).max(40).optional(),
   vetoSequenceId: z.string().nullable().default(null),
   title: z.string().nullable().default(null),
 });

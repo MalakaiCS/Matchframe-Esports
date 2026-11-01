@@ -73,6 +73,7 @@ import { RoundSimulator } from "./sim/simulator.ts";
 import { GameConsoleService } from "./game/console.ts";
 import { BuiltinRadars } from "./live/builtin-radars.ts";
 import { MatchArt } from "./domain/match-art.ts";
+import { StagedUploads } from "./domain/staged-uploads.ts";
 import { TeamComms } from "./comms/service.ts";
 import { CommsPublic } from "./comms/public.ts";
 import { CommsRecording } from "./comms/recording.ts";
@@ -149,6 +150,8 @@ export class Engine {
   readonly roster: RosterRepo;
   readonly steamIndex: SteamIndexRepo;
   readonly mapInstances: MapInstanceRepo;
+  /** Logos and avatars uploaded by an editor before Save and Exit (promoted to assets on save). */
+  readonly staged: StagedUploads;
   readonly vetoRepo: VetoRepo;
   readonly veto: VetoService;
   readonly demoJobs: DemoJobRepo;
@@ -233,6 +236,7 @@ export class Engine {
   /** Team Comms setup (ADR-069): the TeamSpeak plugin from the program, the guided checklist. */
   readonly commsSetup: CommsSetup;
   private meterTimer: ReturnType<typeof setInterval> | null = null;
+  private stagedSweepTimer: ReturnType<typeof setInterval> | null = null;
   private readonly rawGsiListeners = new Set<(payload: Record<string, unknown>, simulated: boolean) => void>();
   private readonly killListeners = new Set<(entry: HudKillfeedEntry) => void>();
   private cloudMap: string | null = null;
@@ -276,6 +280,7 @@ export class Engine {
     this.roster = new RosterRepo(this.db);
     this.steamIndex = new SteamIndexRepo(this.db);
     this.mapInstances = new MapInstanceRepo(this.db);
+    this.staged = new StagedUploads(join(cfg.dataDir, "staging"));
     this.vetoRepo = new VetoRepo(this.db);
     this.veto = new VetoService(this.vetoRepo);
     this.demoJobs = new DemoJobRepo(this.db);
@@ -1310,6 +1315,10 @@ export class Engine {
     this.commsPublic.start();
     this.commsRecording.startMonitor();
     this.meterTimer = setInterval(() => this.meter.tick(this.meterInput()), 1000);
+    // Editor uploads never saved (window closed, engine stopped mid-edit) are removed now and every 30 minutes.
+    this.sweepStaged();
+    this.stagedSweepTimer = setInterval(() => this.sweepStaged(), 30 * 60 * 1000);
+    this.stagedSweepTimer.unref?.();
     void this.cloud.start();
     this.cloudSync.start();
     this.demos.start();
@@ -1319,6 +1328,15 @@ export class Engine {
     // Restart always resumes in manual/disarmed mode until sources and ownership are validated.
     this.session.setMode("advisory");
     this.audit.record("system", "engine.start", null, { version: APP_VERSION, migration: this.migration });
+  }
+
+  private sweepStaged(): void {
+    try {
+      const n = this.staged.sweep();
+      if (n) this.logger.info("removed unsaved editor uploads", { count: n });
+    } catch (err) {
+      this.logger.warn("could not clean up unsaved editor uploads", { error: err instanceof Error ? err.message : String(err) });
+    }
   }
 
   /** Keeps Matchframe's game-data config in CS2's folder on the current timing (CS2 reads it when it starts). */
@@ -1360,6 +1378,8 @@ export class Engine {
     this.session.stop();
     if (this.meterTimer) clearInterval(this.meterTimer);
     this.meterTimer = null;
+    if (this.stagedSweepTimer) clearInterval(this.stagedSweepTimer);
+    this.stagedSweepTimer = null;
     await this.cloudSync.stop().catch(() => undefined);
     await this.cloud.stop().catch(() => undefined);
     await this.obs.disconnect().catch(() => undefined);

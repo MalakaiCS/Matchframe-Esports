@@ -22,3 +22,15 @@ export function seriesScore(match: Match, maps: MapInstance[]): { a: number; b: 
   const needed = Math.floor(match.format.bestOf / 2) + 1;
   return { a, b, winnerTeamId: a >= needed ? match.teamAId : b >= needed ? match.teamBId : null };
 }
+
+/**
+ * The match's series score: maps won (completed maps only, each counted once) plus the stored
+ * manual correction. The winner is decided on this total.
+ */
+export function seriesTotals(match: Match, maps: MapInstance[]): { a: number; b: number; fromMapsA: number; fromMapsB: number; winnerTeamId: string | null } {
+  const s = seriesScore(match, maps);
+  const a = Math.max(0, s.a + (match.seriesCorrectionA ?? 0));
+  const b = Math.max(0, s.b + (match.seriesCorrectionB ?? 0));
+  const needed = Math.floor(match.format.bestOf / 2) + 1;
+  return { a, b, fromMapsA: s.a, fromMapsB: s.b, winnerTeamId: a >= needed && a > b ? match.teamAId : b >= needed && b > a ? match.teamBId : null };
+}

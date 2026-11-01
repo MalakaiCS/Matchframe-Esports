@@ -17,14 +17,17 @@ const HudComposerScreen = lazy(() => import("./screens/Huds.tsx").then((m) => ({
 const LiveControlScreen = lazy(() => import("./screens/LiveControl.tsx").then((m) => ({ default: m.LiveControlScreen })));
 const MapsScreen = lazy(() => import("./screens/Maps.tsx").then((m) => ({ default: m.MapsScreen })));
 const MatchesScreen = lazy(() => import("./screens/Matches.tsx").then((m) => ({ default: m.MatchesScreen })));
+const MatchEditorScreen = lazy(() => import("./screens/Matches.tsx").then((m) => ({ default: m.MatchEditorScreen })));
 const PlayerCamerasScreen = lazy(() => import("./screens/PlayerCameras.tsx").then((m) => ({ default: m.PlayerCamerasScreen })));
 const PlayersScreen = lazy(() => import("./screens/Teams.tsx").then((m) => ({ default: m.PlayersScreen })));
+const PlayerEditorScreen = lazy(() => import("./screens/Teams.tsx").then((m) => ({ default: m.PlayerEditorScreen })));
 const ReplaysScreen = lazy(() => import("./screens/Replays.tsx").then((m) => ({ default: m.ReplaysScreen })));
 const SetupScreen = lazy(() => import("./screens/Setup.tsx").then((m) => ({ default: m.SetupScreen })));
 const SponsorsScreen = lazy(() => import("./screens/Sponsors.tsx").then((m) => ({ default: m.SponsorsScreen })));
 const StudioScreen = lazy(() => import("./screens/Studio.tsx").then((m) => ({ default: m.StudioScreen })));
 const TeamCommsScreen = lazy(() => import("./screens/TeamComms.tsx").then((m) => ({ default: m.TeamCommsScreen })));
 const TeamsScreen = lazy(() => import("./screens/Teams.tsx").then((m) => ({ default: m.TeamsScreen })));
+const TeamEditorScreen = lazy(() => import("./screens/Teams.tsx").then((m) => ({ default: m.TeamEditorScreen })));
 const TrainingScreen = lazy(() => import("./screens/Training.tsx").then((m) => ({ default: m.TrainingScreen })));
 
 const settingsPage = (tab: SettingsTabId) =>
@@ -130,6 +133,8 @@ export interface RouteDef {
   /** Page name (toolbar and window title). */
   title: string;
   component: ComponentType;
+  /** For pages with an id in the path (/teams/:id/edit): matches the path instead of `path`. */
+  pattern?: RegExp;
 }
 
 export const ROUTES: RouteDef[] = [
@@ -143,7 +148,13 @@ export const ROUTES: RouteDef[] = [
   { path: "/hud/sponsors", nav: "huds", title: "Sponsors & automation", component: SponsorsScreen },
   { path: "/teams", nav: "teams", title: "Teams", component: TeamsScreen },
   { path: "/players", nav: "players", title: "Players", component: PlayersScreen },
-  { path: "/matches", nav: "matches", title: "Matches & veto", component: MatchesScreen },
+  { path: "/teams/new", nav: "teams", title: "Add Team", component: TeamEditorScreen },
+  { path: "/teams/:id/edit", nav: "teams", title: "Edit Team", component: TeamEditorScreen, pattern: /^\/teams\/[^/]+\/edit$/ },
+  { path: "/players/new", nav: "players", title: "Add Player", component: PlayerEditorScreen },
+  { path: "/players/:id/edit", nav: "players", title: "Edit Player", component: PlayerEditorScreen, pattern: /^\/players\/[^/]+\/edit$/ },
+  { path: "/matches", nav: "matches", title: "Matches", component: MatchesScreen },
+  { path: "/matches/new", nav: "matches", title: "Create Match", component: MatchEditorScreen },
+  { path: "/matches/:id/edit", nav: "matches", title: "Edit Match", component: MatchEditorScreen, pattern: /^\/matches\/[^/]+\/edit$/ },
   { path: "/tournaments", nav: "tournaments", title: "Tournaments", component: EventsScreen },
   { path: "/live", nav: "live", title: "Live Control", component: LiveControlScreen },
   { path: "/live/comms", nav: "live", title: "Team Comms", component: TeamCommsScreen },
@@ -189,7 +200,7 @@ export function redirectFor(path: string): string | null {
 }
 
 export function routeFor(path: string): RouteDef | null {
-  return ROUTES.find((r) => r.path === path) ?? null;
+  return ROUTES.find((r) => (r.pattern ? r.pattern.test(path) : r.path === path)) ?? null;
 }
 
 export function navItem(id: NavId): NavItem {
@@ -201,6 +212,7 @@ export function crumbsFor(path: string): string[] {
   const r = routeFor(path);
   if (!r) return ["Page not found"];
   const n = navItem(r.nav);
-  if (!n.sub || r.path === n.path) return n.sub && r.title !== n.label ? [n.label, r.title] : [n.label];
+  if (r.path === n.path) return n.sub && r.title !== n.label ? [n.label, r.title] : [n.label];
+  // Sub-pages and editors (Teams › Add Team).
   return [n.label, r.title];
 }

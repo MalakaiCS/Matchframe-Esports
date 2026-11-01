@@ -1,31 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api, seg } from "../api/index.ts";
-import type { EventRecord, MapInstance, MapResultResponse, Match, MatchDetail, MatchRow, PlayerRow, StatCorrection, TeamRow } from "../api/types.ts";
-import { MapPoolEditor } from "../components/AssetUpload.tsx";
-import { ActionButton, Async, Badge, Button, Checkbox, Details, EmptyState, Field, Note, Panel, Tabs } from "../components/ui.tsx";
-import { fmtTime, MISSING } from "../lib/format.ts";
+import type { EventRecord, MatchGroup, MatchRow, TeamRow } from "../api/types.ts";
+import { TeamLogo } from "../components/forms.tsx";
+import { ListHeader, SearchBox, SelectAll, SortHeader, useSelection } from "../components/listing.tsx";
+import { DeleteDialog } from "../components/RecordDialogs.tsx";
+import { ActionButton, Async, Badge, Button, Checkbox, EmptyState, Tabs } from "../components/ui.tsx";
 import { useApi } from "../lib/hooks.ts";
-import { useMapSuggestions } from "../lib/maps.ts";
+import { sortRows, useListState, useRestoreScroll } from "../lib/listState.ts";
+import { navigate } from "../router.tsx";
 import { usePermission } from "../state/session.tsx";
-import { makeMatchArt } from "../lib/match-art/make.ts";
-import { MatchArtPanel } from "./matches/MatchArt.tsx";
-import { VetoBoard } from "./matches/Veto.tsx";
 import "../styles/group-a.css";
+import "../styles/records.css";
 
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-function formatText(f: Match["format"]): string {
-  return `BO${f.bestOf} · MR${f.regulationRounds / 2}${f.overtimeEnabled ? ` + OT${f.overtimeRounds / 2}` : ""}`;
-}
-
-/** "New team…" in a team picker: the team is created with the match. */
-const NEW_TEAM = "__new";
-
-interface TeamChoice {
-  id: string;
-  name: string;
-  shortName: string;
-}
+export { MatchEditorScreen } from "./matches/MatchEditor.tsx";
 
 /** A short name from a team name: the initials of several words, or the first four letters of one. */
 export function shortNameOf(name: string): string {
@@ -34,564 +21,207 @@ export function shortNameOf(name: string): string {
   return s.toUpperCase();
 }
 
-function TeamPicker({ label, teams, value, onChange }: { label: string; teams: TeamRow[]; value: TeamChoice; onChange: (v: TeamChoice) => void }) {
-  return (
-    <>
-      <Field label={label}>
-        <select value={value.id} onChange={(e) => onChange({ ...value, id: e.target.value })}>
-          {teams.length ? <option value="">Choose…</option> : null}
-          {teams.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-          <option value={NEW_TEAM}>New team…</option>
-        </select>
-      </Field>
-      {value.id === NEW_TEAM ? (
-        <>
-          <Field label={`${label} name`}>
-            <input value={value.name} maxLength={80} onChange={(e) => onChange({ ...value, name: e.target.value })} placeholder="Team name" />
-          </Field>
-          <Field label={`${label} short name`} hint="Shown on the HUD (logo: Teams)">
-            <input value={value.shortName} maxLength={12} onChange={(e) => onChange({ ...value, shortName: e.target.value })} placeholder={shortNameOf(value.name) || "TAG"} />
-          </Field>
-        </>
-      ) : null}
-    </>
-  );
+const GROUPS: { id: MatchGroup; label: string; empty: string }[] = [
+  { id: "current", label: "Current", empty: "No match is in progress. A match moves here when its veto or its first map starts (set its status, or record a map result)." },
+  { id: "future", label: "Future", empty: "No upcoming matches. Create a match to prepare a fixture in advance." },
+  { id: "ended", label: "Ended", empty: "No completed or cancelled matches yet." },
+];
+
+function when(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-function CreateMatch({ teams, events, onCreated, onTeamCreated }: { teams: TeamRow[]; events: EventRecord[]; onCreated: (id: string) => void; onTeamCreated: () => void }) {
-  const reason = usePermission("metadata.write");
-  const suggestions = useMapSuggestions();
-  // With fewer than two teams, the pickers start on "New team…": a match can be made from here alone.
-  const blank = (i: number): TeamChoice => ({ id: teams.length > i ? "" : NEW_TEAM, name: "", shortName: "" });
-  const [a, setA] = useState<TeamChoice>(() => blank(1));
-  const [b, setB] = useState<TeamChoice>(() => blank(1));
-  const [eventId, setEvent] = useState("");
-  const [title, setTitle] = useState("");
-  const [scheduledAt, setScheduled] = useState("");
-  const [bestOf, setBestOf] = useState(3);
-  const [regulationRounds, setReg] = useState(24);
-  const [overtimeEnabled, setOt] = useState(true);
-  const [overtimeRounds, setOtRounds] = useState(6);
-  const [allowTie, setTie] = useState(false);
-  const [mapPool, setPool] = useState<string[]>([]);
-  useEffect(() => {
-    const ev = events.find((e) => e.id === eventId);
-    if (ev && ev.mapPool.length && mapPool.length === 0) setPool(ev.mapPool);
-  }, [eventId, events, mapPool.length]);
-  const unnamed = [a, b].some((t) => t.id === NEW_TEAM && !t.name.trim());
-  const same = a.id === NEW_TEAM && b.id === NEW_TEAM ? a.name.trim().toLowerCase() === b.name.trim().toLowerCase() : a.id === b.id;
-  const missing = !a.id || !b.id ? "Choose both teams" : unnamed ? "Name the new team" : same ? "A match needs two different teams" : mapPool.length < bestOf ? `Map pool needs at least ${bestOf} maps for BO${bestOf}` : null;
-  /** The team's id, creating it first if it is new (and keeping it, so a second try doesn't make it twice). */
-  const teamId = async (t: TeamChoice, set: (v: TeamChoice) => void): Promise<string> => {
-    if (t.id !== NEW_TEAM) return t.id;
-    const created = await api.post<TeamRow>("/api/v1/teams", { name: t.name.trim(), shortName: (t.shortName.trim() || shortNameOf(t.name)).slice(0, 12) });
-    set({ ...t, id: created.id });
-    onTeamCreated();
-    return created.id;
-  };
-  const rules = `MR${regulationRounds / 2}${overtimeEnabled ? ` + OT${overtimeRounds / 2}` : ", no overtime"}${allowTie ? ", ties allowed" : ""}`;
+function TeamCell({ team, right }: { team: TeamRow | undefined; right?: boolean }) {
   return (
-    <>
-      <div className="form-grid">
-        <TeamPicker label="Team A" teams={teams} value={a} onChange={setA} />
-        <TeamPicker label="Team B" teams={teams} value={b} onChange={setB} />
-        <Field label="Event">
-          <select value={eventId} onChange={(e) => setEvent(e.target.value)}>
-            <option value="">None</option>
-            {events.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Title">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Grand final" />
-        </Field>
-        <Field label="Scheduled">
-          <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduled(e.target.value)} />
-        </Field>
-        <Field label="Format">
-          <div className="seg" role="radiogroup" aria-label="Best of" style={{ alignSelf: "flex-start" }}>
-            {[1, 3, 5].map((n) => (
-              <button key={n} role="radio" aria-checked={bestOf === n} className={`seg-btn ${bestOf === n ? "is-on" : ""}`} onClick={() => setBestOf(n)}>
-                BO{n}
-              </button>
-            ))}
-          </div>
-        </Field>
-      </div>
-      <Details summary={`Round rules: ${rules}`}>
-        <div className="form-grid">
-          <Field label="Regulation rounds" hint="24 = MR12">
-            <input type="number" min={2} max={60} value={regulationRounds} onChange={(e) => setReg(Number(e.target.value))} />
-          </Field>
-          <Field label="Overtime rounds">
-            <input type="number" min={2} max={20} value={overtimeRounds} disabled={!overtimeEnabled} onChange={(e) => setOtRounds(Number(e.target.value))} />
-          </Field>
-        </div>
-        <div className="row" style={{ marginTop: 8, gap: 16 }}>
-          <Checkbox checked={overtimeEnabled} onChange={setOt} label="Overtime enabled" />
-          <Checkbox checked={allowTie} onChange={setTie} label="Allow regulation tie" />
-        </div>
-      </Details>
-      <div style={{ marginTop: 12 }}>
-        <MapPoolEditor value={mapPool} onChange={setPool} suggestions={suggestions} />
-      </div>
-      <div className="form-actions">
-        <ActionButton
-          variant="primary"
-          action={async () =>
-            api.post<Match>("/api/v1/matches", {
-              teamAId: await teamId(a, setA),
-              teamBId: await teamId(b, setB),
-              eventId: eventId || null,
-              title: title || null,
-              scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
-              format: { bestOf, regulationRounds, overtimeEnabled, overtimeRounds, allowTie },
-              mapPool,
-            })
-          }
-          success="Match created"
-          onDone={(m) => onCreated(m.id)}
-          disabledReason={reason ?? missing}
-        >
-          Create match
-        </ActionButton>
-      </div>
-    </>
-  );
-}
-
-function MapResultRow({ match, mi, teamA, teamB, onSaved }: { match: MatchDetail; mi: MapInstance; teamA: string; teamB: string; onSaved: () => void }) {
-  const reason = usePermission("metadata.write");
-  const [a, setA] = useState(mi.scoreA);
-  const [b, setB] = useState(mi.scoreB);
-  const [completed, setCompleted] = useState(mi.status === "completed");
-  const [forfeit, setForfeit] = useState("");
-  const [note, setNote] = useState<string | null>(null);
-  const winner = mi.winnerTeamId === match.teamAId ? teamA : mi.winnerTeamId === match.teamBId ? teamB : null;
-  return (
-    <tr>
-      <td>{mi.order}</td>
-      <td>
-        <strong>{mi.mapName}</strong>
-        <div className="small muted">
-          {mi.isDecider ? "Decider" : mi.pickedByTeamId ? `Pick: ${mi.pickedByTeamId === match.teamAId ? teamA : teamB}` : ""}
-          {mi.startingCtTeamId ? ` · CT start: ${mi.startingCtTeamId === match.teamAId ? teamA : teamB}` : ""}
-        </div>
-      </td>
-      <td>
-        {mi.status === "live" ? <Badge tone="info">Live</Badge> : capitalize(mi.status)}
-        {winner ? <div className="small muted">Winner: {winner}</div> : null}
-      </td>
-      <td>
-        <div className="row">
-          <input type="number" min={0} aria-label={`${teamA} score on ${mi.mapName}`} value={a} onChange={(e) => setA(Number(e.target.value))} style={{ width: 64 }} />
-          <span>–</span>
-          <input type="number" min={0} aria-label={`${teamB} score on ${mi.mapName}`} value={b} onChange={(e) => setB(Number(e.target.value))} style={{ width: 64 }} />
-          <Checkbox checked={completed} onChange={setCompleted} label="Map finished" hint="Ties and unfinished maps never advance the series" />
-          <select aria-label="Forfeit winner" value={forfeit} onChange={(e) => setForfeit(e.target.value)}>
-            <option value="">No forfeit</option>
-            <option value={match.teamAId}>Forfeit → {teamA}</option>
-            <option value={match.teamBId}>Forfeit → {teamB}</option>
-          </select>
-          <ActionButton
-            size="sm"
-            variant="primary"
-            action={() => api.post<MapResultResponse>(`/api/v1/matches/${seg(match.id)}/maps/${seg(mi.id)}/result`, { scoreA: a, scoreB: b, completed, ...(forfeit ? { forfeitWinnerTeamId: forfeit } : {}) })}
-            success={(r) => `Result saved · series ${r.series.a}–${r.series.b}`}
-            onDone={(r) => {
-              setNote(r.note);
-              onSaved();
-            }}
-            disabledReason={reason}
-          >
-            Save result
-          </ActionButton>
-        </div>
-        {note ? (
-          <Note tone="warn" title="Series not advanced">
-            {note}
-          </Note>
-        ) : null}
-      </td>
-    </tr>
-  );
-}
-
-function Corrections({ match, players }: { match: MatchDetail; players: PlayerRow[] }) {
-  const reason = usePermission("metadata.write");
-  const [field, setField] = useState("kills");
-  const [steamId, setSteamId] = useState("");
-  const [mapId, setMapId] = useState("");
-  const [src, setSrc] = useState("");
-  const [corr, setCorr] = useState("");
-  const [round, setRound] = useState("");
-  const [why, setWhy] = useState("");
-  const [list, setList] = useState<StatCorrection[]>(match.corrections);
-  useEffect(() => setList(match.corrections), [match.corrections]);
-  const name = (sid: string | null) => players.find((p) => p.steamId === sid)?.displayName ?? sid ?? "team/match";
-  return (
-    <>
-      <p className="small muted">Corrections keep the source value, the round they apply from and an audit trail.</p>
-      {list.length ? (
-        <table className="table table-compact">
-          <thead>
-            <tr>
-              <th>Field</th>
-              <th>Player</th>
-              <th>Source → corrected</th>
-              <th>From round</th>
-              <th>Reason</th>
-              <th>By / at</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((c) => (
-              <tr key={c.id}>
-                <td>{c.field}</td>
-                <td>{name(c.steamId)}</td>
-                <td>
-                  {c.sourceValue ?? MISSING} → <strong>{c.correctedValue ?? MISSING}</strong>
-                </td>
-                <td>{c.effectiveFromRound ?? "all"}</td>
-                <td className="small">{c.reason}</td>
-                <td className="small">
-                  {c.operator} · {fmtTime(c.createdAt)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : null}
-      <div className="form-grid" style={{ marginTop: 8 }}>
-        <Field label="Field">
-          <input list="corr-fields" value={field} onChange={(e) => setField(e.target.value)} />
-          <datalist id="corr-fields">
-            {["kills", "deaths", "assists", "adr", "score", "mvps"].map((f) => (
-              <option key={f} value={f} />
-            ))}
-          </datalist>
-        </Field>
-        <Field label="Player">
-          <select value={steamId} onChange={(e) => setSteamId(e.target.value)}>
-            <option value="">Not player-specific</option>
-            {players
-              .filter((p) => p.steamId)
-              .map((p) => (
-                <option key={p.id} value={p.steamId!}>
-                  {p.displayName}
-                </option>
-              ))}
-          </select>
-        </Field>
-        <Field label="Map">
-          <select value={mapId} onChange={(e) => setMapId(e.target.value)}>
-            <option value="">Whole match</option>
-            {match.maps.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.order}. {m.mapName}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Source value">
-          <input type="number" value={src} onChange={(e) => setSrc(e.target.value)} />
-        </Field>
-        <Field label="Corrected value">
-          <input type="number" value={corr} onChange={(e) => setCorr(e.target.value)} />
-        </Field>
-        <Field label="Effective from round">
-          <input type="number" value={round} onChange={(e) => setRound(e.target.value)} placeholder="All" />
-        </Field>
-        <Field label="Reason (audited)">
-          <input value={why} onChange={(e) => setWhy(e.target.value)} />
-        </Field>
-      </div>
-      <div className="form-actions">
-        <ActionButton
-          action={() =>
-            api.post<StatCorrection>(`/api/v1/matches/${seg(match.id)}/corrections`, {
-              field,
-              steamId: steamId || null,
-              mapInstanceId: mapId || null,
-              sourceValue: src === "" ? null : Number(src),
-              correctedValue: corr === "" ? null : Number(corr),
-              effectiveFromRound: round === "" ? null : Number(round),
-              reason: why,
-            })
-          }
-          success="Correction recorded"
-          onDone={(c) => {
-            setList([...list, c]);
-            setWhy("");
-          }}
-          disabledReason={reason ?? (field.trim() && why.trim().length >= 3 ? null : "Enter a field and a reason (≥3 characters)")}
-        >
-          Record correction
-        </ActionButton>
-      </div>
-    </>
-  );
-}
-
-function MatchOverview({ match, teamA, teamB, activeId, players, reload, reloadActive }: { match: MatchDetail; teamA: TeamRow | null; teamB: TeamRow | null; activeId: string | null; players: PlayerRow[]; reload: () => void; reloadActive: () => void }) {
-  const writeReason = usePermission("metadata.write");
-  const programReason = usePermission("program.control");
-  const suggestions = useMapSuggestions();
-  const [title, setTitle] = useState(match.title ?? "");
-  const [status, setStatus] = useState(match.status);
-  const [pool, setPool] = useState(match.mapPool);
-  const [newMap, setNewMap] = useState("");
-  useEffect(() => {
-    setTitle(match.title ?? "");
-    setStatus(match.status);
-    setPool(match.mapPool);
-  }, [match]);
-  const A = teamA?.name ?? "Team A";
-  const B = teamB?.name ?? "Team B";
-  const isActive = activeId === match.id;
-  return (
-    <Panel
-      title={`${A} vs ${B}`}
-      subtitle={[match.title ?? "Untitled match", formatText(match.format), match.scheduledAt ? fmtTime(match.scheduledAt) : null, capitalize(match.status)].filter(Boolean).join(" · ")}
-      actions={
-        isActive ? (
-          <>
-            <Badge tone="ok" icon="●" title="HUDs and live state use this match">
-              Active
-            </Badge>
-            <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/live/deactivate-match")} success="Match deactivated" onDone={reloadActive} disabledReason={programReason}>
-              Deactivate
-            </ActionButton>
-          </>
-        ) : (
-          <ActionButton size="sm" variant="primary" action={() => api.post(`/api/v1/matches/${seg(match.id)}/activate`)} success={`${A} vs ${B} is now the active match`} onDone={() => (reload(), reloadActive())} disabledReason={programReason} confirm={{ title: "Activate this match?", body: "HUDs and live state use this match's teams, series and map list. The previously active match is replaced." }}>
-            Activate match
-          </ActionButton>
-        )
-      }
-    >
-      <h3 className="ga-section-title">
-        Maps{" "}
-        <span className="muted small">
-          Series {match.seriesScoreA}–{match.seriesScoreB}
-        </span>
-      </h3>
-      {match.maps.length === 0 ? (
-        <p className="muted">No maps yet. Run the veto and apply it, or add maps below.</p>
-      ) : (
-        <table className="table table-compact">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Map</th>
-              <th>Status</th>
-              <th>
-                Score ({A} – {B})
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {match.maps.map((mi) => (
-              <MapResultRow key={mi.id} match={match} mi={mi} teamA={A} teamB={B} onSaved={reload} />
-            ))}
-          </tbody>
-        </table>
-      )}
-      <div className="row-end" style={{ marginTop: 10 }}>
-        <Field label="Add a map">
-          <select value={newMap} onChange={(e) => setNewMap(e.target.value)}>
-            <option value="">Choose…</option>
-            {(match.mapPool.length ? match.mapPool : suggestions).map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <ActionButton
-          action={() =>
-            api.put(`/api/v1/matches/${seg(match.id)}/maps`, {
-              maps: [...match.maps, { order: match.maps.length + 1, mapName: newMap, pickedByTeamId: null, isDecider: false, startingCtTeamId: null, status: "upcoming", scoreA: 0, scoreB: 0, winnerTeamId: null, mapRevision: null }],
-            })
-          }
-          success="Map added"
-          onDone={() => {
-            setNewMap("");
-            reload();
-          }}
-          disabledReason={writeReason ?? (newMap ? null : "Choose a map")}
-        >
-          Add map
-        </ActionButton>
-        {match.maps.length ? (
-          <ActionButton variant="ghost" action={() => api.put(`/api/v1/matches/${seg(match.id)}/maps`, { maps: match.maps.slice(0, -1) })} success="Last map removed" onDone={reload} disabledReason={writeReason} confirm={{ title: `Remove map ${match.maps[match.maps.length - 1]?.mapName}?`, body: "Removes the last map and its score from the match.", danger: true }}>
-            Remove last map
-          </ActionButton>
-        ) : null}
-      </div>
-      <Details summary="Edit match details" className="ga-section">
-        <div className="form-grid">
-          <Field label="Title">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </Field>
-          <Field label="Status">
-            <select value={status} onChange={(e) => setStatus(e.target.value as Match["status"])}>
-              {["scheduled", "veto", "live", "completed", "cancelled"].map((s) => (
-                <option key={s} value={s}>
-                  {capitalize(s)}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-        <div style={{ marginTop: 10 }}>
-          <MapPoolEditor value={pool} onChange={setPool} suggestions={suggestions} />
-        </div>
-        <div className="form-actions">
-          <ActionButton variant="primary" action={() => api.patch(`/api/v1/matches/${seg(match.id)}`, { title: title || null, status, mapPool: pool, revision: match.revision })} success="Match saved" onDone={reload} disabledReason={writeReason}>
-            Save match
-          </ActionButton>
-        </div>
-      </Details>
-      <Details summary={`Stat corrections${match.corrections.length ? ` (${match.corrections.length})` : ""}`}>
-        <Corrections match={match} players={players} />
-      </Details>
-    </Panel>
-  );
-}
-
-function MatchDetailView({ matchId, teams, players, activeId, reloadList, reloadActive }: { matchId: string; teams: TeamRow[]; players: PlayerRow[]; activeId: string | null; reloadList: () => void; reloadActive: () => void }) {
-  const m = useApi<MatchDetail>(`/api/v1/matches/${seg(matchId)}`);
-  const [tab, setTab] = useState<"overview" | "veto" | "art">("overview");
-  const reload = () => {
-    void m.reload();
-    reloadList();
-  };
-  return (
-    <Async state={m}>
-      {(match) => {
-        const teamA = teams.find((t) => t.id === match.teamAId) ?? null;
-        const teamB = teams.find((t) => t.id === match.teamBId) ?? null;
-        return (
-          <div>
-            <Tabs
-              label="Match sections"
-              value={tab}
-              onChange={setTab}
-              tabs={[
-                { id: "overview", label: "Match & maps" },
-                { id: "veto", label: "Veto" },
-                { id: "art", label: "Thumbnails & stingers" },
-              ]}
-            />
-            {tab === "overview" ? (
-              <MatchOverview match={match} teamA={teamA} teamB={teamB} activeId={activeId} players={players} reload={reload} reloadActive={reloadActive} />
-            ) : tab === "veto" ? (
-              <VetoBoard match={match} teamA={teamA} teamB={teamB} onMapsChanged={reload} />
-            ) : (
-              <MatchArtPanel matchId={match.id} teams={`${teamA?.shortName ?? "A"}-vs-${teamB?.shortName ?? "B"}`} />
-            )}
-          </div>
-        );
-      }}
-    </Async>
+    <span className={`match-team ${right ? "is-right" : ""}`}>
+      <TeamLogo assetId={team?.logoAssetId} size={28} name={team?.name ?? "?"} />
+      <span className="match-team-name">{team?.name ?? <span className="muted">Deleted team</span>}</span>
+    </span>
   );
 }
 
 export function MatchesScreen() {
-  const matches = useApi<MatchRow[]>("/api/v1/matches");
-  const teams = useApi<TeamRow[]>("/api/v1/teams");
+  const reason = usePermission("metadata.write");
+  const programReason = usePermission("program.control");
+  const { state, update } = useListState<{ tab: string; archived: string }>("matches", { search: "", filters: { tab: "", archived: "" }, sort: { key: "when", dir: "asc" } });
+  const matches = useApi<MatchRow[]>(`/api/v1/matches${state.filters.archived ? "?archived=1" : ""}`);
+  const teams = useApi<TeamRow[]>("/api/v1/teams?archived=1");
   const events = useApi<EventRecord[]>("/api/v1/events");
-  const players = useApi<PlayerRow[]>("/api/v1/players");
-  const active = useApi<{ value: string | null }>("/api/v1/settings/live.activeMatchId");
-  const [picked, setSel] = useState<string | null>(null);
-  const sel = picked ?? active.data?.value ?? matches.data?.[0]?.id ?? null;
-  const [creating, setCreating] = useState(false);
-  const teamName = (id: string) => teams.data?.find((t) => t.id === id)?.shortName ?? "?";
-  const showCreate = creating || (!sel && matches.data !== undefined);
+  const selection = useSelection();
+  const [deleting, setDeleting] = useState<string[] | null>(null);
+  const teamById = useMemo(() => new Map((teams.data ?? []).map((t) => [t.id, t])), [teams.data]);
+  const eventName = (id: string | null) => (id ? (events.data ?? []).find((e) => e.id === id)?.name : undefined);
+  const all = matches.data ?? [];
+  const tab = (state.filters.tab as MatchGroup) || (all.some((m) => m.group === "current") ? "current" : "future");
+  const counts = { current: 0, future: 0, ended: 0 } as Record<MatchGroup, number>;
+  for (const m of all) counts[m.group]++;
+  const active = all.find((m) => m.active);
+  const rows = useMemo(() => {
+    const q = state.search.trim().toLowerCase();
+    const list = (matches.data ?? []).filter((m) => {
+      if (m.group !== tab) return false;
+      if (!q) return true;
+      const text = [teamById.get(m.teamAId)?.name, teamById.get(m.teamAId)?.shortName, teamById.get(m.teamBId)?.name, teamById.get(m.teamBId)?.shortName, m.title, eventName(m.eventId)].join(" ").toLowerCase();
+      return text.includes(q);
+    });
+    // Future matches soonest first; ended ones most recent first unless sorted otherwise.
+    return sortRows(list, state.sort, (m, k) => (k === "when" ? m.scheduledAt : k === "teamA" ? teamById.get(m.teamAId)?.name : k === "teamB" ? teamById.get(m.teamBId)?.name : k === "format" ? m.format.bestOf : k === "event" ? eventName(m.eventId) : null));
+  }, [matches.data, state.search, state.sort, tab, teamById, events.data]);
+  const visibleIds = rows.map((m) => m.id);
+  useEffect(() => selection.keep(visibleIds), [visibleIds.join(",")]);
+  useRestoreScroll(state.scrollTop, matches.data !== undefined);
+  const selected = [...selection.ids];
+  const label = (m: MatchRow) => `${teamById.get(m.teamAId)?.name ?? "?"} vs ${teamById.get(m.teamBId)?.name ?? "?"}`;
   return (
-    <div className="page">
-      <div className="page-head">
-        <h1 className="page-title">Matches &amp; Veto</h1>
-        {!showCreate ? (
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            Create match
-          </Button>
-        ) : sel ? (
-          <Button variant="secondary" onClick={() => setCreating(false)}>
-            Cancel
-          </Button>
-        ) : null}
-      </div>
-      <div className="grid-1-2">
-        <Panel title="Matches">
-          <Async state={matches}>
-            {(list) =>
-              list.length === 0 ? (
-                <EmptyState title="No matches yet">Create a match between two teams, run the veto, then activate it for the broadcast. New teams can be made in the form.</EmptyState>
-              ) : (
-                <ul className="select-list">
-                  {list.map((m) => (
-                    <li key={m.id}>
-                      <button
-                        className={!creating && sel === m.id ? "is-selected" : ""}
-                        onClick={() => {
-                          setSel(m.id);
-                          setCreating(false);
-                        }}
-                      >
-                        <span style={{ flex: 1 }}>
-                          <strong>
-                            {teamName(m.teamAId)} vs {teamName(m.teamBId)}
-                          </strong>{" "}
-                          <span className="muted small">
-                            BO{m.format.bestOf} · {m.seriesScoreA}–{m.seriesScoreB}
-                          </span>
-                          <div className="small muted">
-                            {m.title ?? "Untitled match"} · {capitalize(m.status)}
-                          </div>
+    <div className="page list-page">
+      <ListHeader
+        title="Matches"
+        actions={
+          <>
+            {selected.length ? (
+              <Button variant="danger" onClick={() => setDeleting(selected)} disabledReason={reason}>
+                Delete {selected.length} selected
+              </Button>
+            ) : null}
+            <Button variant="primary" onClick={() => navigate("/matches/new")} disabledReason={reason}>
+              Create Match
+            </Button>
+          </>
+        }
+      >
+        <SearchBox label="Search matches" placeholder="Search teams, title or tournament" value={state.search} onChange={(search) => update({ search })} />
+        <Checkbox checked={!!state.filters.archived} onChange={(v) => update({ filters: { ...state.filters, archived: v ? "1" : "" } })} label="Show archived" />
+        <span className="active-summary">
+          {active ? (
+            <>
+              <Badge tone="ok" icon="●">
+                Active for HUD
+              </Badge>{" "}
+              {label(active)}{" "}
+              <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/live/deactivate-match")} success="No match is active now" onDone={() => void matches.reload()} disabledReason={programReason}>
+                Deactivate
+              </ActionButton>
+            </>
+          ) : (
+            <span className="muted small">No match is active for the HUDs.</span>
+          )}
+        </span>
+      </ListHeader>
+      <Tabs
+        label="Match groups"
+        value={tab}
+        onChange={(t) => {
+          selection.clear();
+          update({ filters: { ...state.filters, tab: t } });
+        }}
+        tabs={GROUPS.map((g) => ({ id: g.id, label: `${g.label} (${counts[g.id]})` }))}
+      />
+      <Async state={matches}>
+        {() =>
+          all.length === 0 ? (
+            <EmptyState
+              title="No matches yet"
+              action={
+                <Button variant="primary" onClick={() => navigate("/matches/new")} disabledReason={reason}>
+                  Create Match
+                </Button>
+              }
+            >
+              Create a match between two saved teams, set its format and map veto, then make it active for the broadcast.
+            </EmptyState>
+          ) : rows.length === 0 ? (
+            <EmptyState title={state.search ? "No matches match the search" : `No ${GROUPS.find((g) => g.id === tab)!.label.toLowerCase()} matches`}>{state.search ? "Change the search." : GROUPS.find((g) => g.id === tab)!.empty}</EmptyState>
+          ) : (
+            <div className="table-wrap">
+              <table className="table records-table matches-table">
+                <thead>
+                  <tr>
+                    <th className="col-check">
+                      <SelectAll visible={visibleIds} selection={selection} label="Select all matches shown" />
+                    </th>
+                    <SortHeader label="Team 1" k="teamA" sort={state.sort} onSort={(sort) => update({ sort })} />
+                    <th className="col-score">Series</th>
+                    <SortHeader label="Team 2" k="teamB" sort={state.sort} onSort={(sort) => update({ sort })} />
+                    <SortHeader label="Format" k="format" sort={state.sort} onSort={(sort) => update({ sort })} />
+                    <SortHeader label="Date and time" k="when" sort={state.sort} onSort={(sort) => update({ sort })} />
+                    <SortHeader label="Tournament" k="event" sort={state.sort} onSort={(sort) => update({ sort })} />
+                    <th className="col-actions">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((m) => (
+                    <tr key={m.id} className={`${selection.has(m.id) ? "is-selected" : ""} ${m.active ? "is-active" : ""}`}>
+                      <td className="col-check">
+                        <input type="checkbox" aria-label={`Select ${label(m)}`} checked={selection.has(m.id)} onChange={() => selection.toggle(m.id)} />
+                      </td>
+                      <td>
+                        <TeamCell team={teamById.get(m.teamAId)} />
+                      </td>
+                      <td className="col-score">
+                        <span className="series-score">
+                          <b className={m.seriesScoreA > m.seriesScoreB ? "is-lead" : ""}>{m.seriesScoreA}</b>
+                          <i>–</i>
+                          <b className={m.seriesScoreB > m.seriesScoreA ? "is-lead" : ""}>{m.seriesScoreB}</b>
                         </span>
-                        {active.data?.value === m.id ? (
-                          <Badge tone="ok" title="HUDs and live state use this match">
+                      </td>
+                      <td>
+                        <TeamCell team={teamById.get(m.teamBId)} />
+                      </td>
+                      <td>BO{m.format.bestOf}</td>
+                      <td>{when(m.scheduledAt) || <span className="muted">Not scheduled</span>}</td>
+                      <td>
+                        {eventName(m.eventId) ?? <span className="muted">—</span>}
+                        {m.title ? <div className="small muted">{m.title}</div> : null}
+                        {m.archived ? <Badge>Archived</Badge> : null}
+                      </td>
+                      <td className="col-actions">
+                        {m.active ? (
+                          <Badge tone="ok" icon="●" title="HUDs and live state use this match">
                             Active
                           </Badge>
-                        ) : null}
-                      </button>
-                    </li>
+                        ) : (
+                          <ActionButton
+                            size="sm"
+                            action={() => api.post(`/api/v1/matches/${seg(m.id)}/activate`)}
+                            success={`${label(m)} is now the active match`}
+                            onDone={() => void matches.reload()}
+                            disabledReason={programReason ?? (m.archived ? "Restore the match first" : null)}
+                            confirm={{ title: `Make ${label(m)} active?`, body: active ? `HUDs and live state switch to this match now; ${label(active)} stops being active. Its status and tab do not change.` : "HUDs and live state switch to this match now. Its status and tab do not change.", confirmLabel: "Make Active" }}
+                          >
+                            Make Active
+                          </ActionButton>
+                        )}
+                        <Button size="sm" onClick={() => navigate(`/matches/${seg(m.id)}/edit`)} aria-label={`Edit ${label(m)}`}>
+                          Edit
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setDeleting([m.id])} disabledReason={reason} aria-label={`Delete ${label(m)}`}>
+                          Delete
+                        </Button>
+                      </td>
+                    </tr>
                   ))}
-                </ul>
-              )
-            }
-          </Async>
-        </Panel>
-        {showCreate ? (
-          <Panel title="New match">
-            {teams.data === undefined ? null : (
-              <CreateMatch
-                teams={teams.data}
-                events={events.data ?? []}
-                onTeamCreated={() => void teams.reload()}
-                onCreated={(id) => {
-                  setCreating(false);
-                  setSel(id);
-                  void matches.reload();
-                  // Thumbnails and stingers for the new match, made in the background.
-                  void makeMatchArt(id);
-                }}
-              />
-            )}
-          </Panel>
-        ) : sel ? (
-          <MatchDetailView key={sel} matchId={sel} teams={teams.data ?? []} players={players.data ?? []} activeId={active.data?.value ?? null} reloadList={() => void matches.reload()} reloadActive={() => void active.reload()} />
-        ) : null}
-      </div>
+                </tbody>
+              </table>
+            </div>
+          )
+        }
+      </Async>
+      {deleting ? (
+        <DeleteDialog
+          kind="matches"
+          ids={deleting}
+          onClose={() => setDeleting(null)}
+          onDone={() => {
+            setDeleting(null);
+            selection.clear();
+            void matches.reload();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

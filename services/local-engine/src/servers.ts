@@ -250,6 +250,12 @@ export async function startServers(e: Engine): Promise<RunningServers> {
         return;
       }
       const url = new URL(req.url ?? "/", "http://local");
+      // Editor previews of uploads not saved yet (unguessable ids, like assets' content hashes).
+      if (url.pathname.startsWith("/assets/staged/")) {
+        const f = /^stg_[0-9a-f]{32}\.(png|jpg|webp)$/.test(url.pathname.slice("/assets/staged/".length)) ? safeResolve(e.staged.dir, url.pathname.slice("/assets/staged/".length)) : null;
+        if (f) return serveFile(res, f);
+        return json(res, 404, { error: "not_found", message: "this upload is no longer available" });
+      }
       if (url.pathname.startsWith("/assets/")) {
         const f = safeResolve(assetDir(e), url.pathname.slice("/assets/".length));
         if (f) return serveFile(res, f);

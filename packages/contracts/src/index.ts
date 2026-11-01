@@ -8,3 +8,5 @@ export * from "./maps.ts";
 export * from "./hud.ts";
 export * from "./domain.ts";
 export * from "./jobs.ts";
+export * from "./veto-entries.ts";
+export * from "./countries.ts";

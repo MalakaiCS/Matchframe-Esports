@@ -8,7 +8,7 @@ Matchframe Esports is original software. This file lists third-party components 
 |---|---|---|---|
 | zod | 4.6.7 | MIT | contracts, engine |
 | ws | 8.22.0 | MIT | engine WebSockets |
-| fflate | 0.8.2 | MIT | HUD package archive import |
+| fflate | 0.8.2 | MIT | HUD package archive import; .xlsx team and player imports and templates |
 | obs-websocket-js | 5.0.8 | MIT | OBS adapter |
 | ↳ @msgpack/msgpack | 2.8.0 | ISC | obs-websocket-js |
 | ↳ crypto-js | 4.2.0 | MIT | obs-websocket-js |
@@ -23,6 +23,7 @@ Matchframe Esports is original software. This file lists third-party components 
 | ↳ base64id, cookie, cors, object-assign, vary | 2.0.0, 0.7.2, 2.8.6, 4.1.1, 1.1.2 | MIT | socket.io, engine.io |
 | ↳ debug, ws | 4.3.7, 8.21.3 | MIT | socket.io, engine.io |
 | react, react-dom, scheduler | 19.3.1, 19.3.1, 0.28.0 | MIT | HUD renderer, operator UI |
+| country-flag-icons | 1.5.21 | MIT (© 2020 @catamphetamine) | Operator console: country flags (SVG files) in the team and player lists and country pickers |
 | @fontsource/inter | 5.3.0 | OFL-1.1 (font: Inter, © The Inter Project Authors) | HUD renderer; Vector HUD |
 | @fontsource/barlow-condensed | 5.3.0 | OFL-1.1 (font: Barlow, © The Barlow Project Authors) | HUD renderer (Arena preset); operator console (match thumbnails and stingers); Lineup HUD |
 | Electron | 44.9.3 | MIT (bundles Chromium and Node.js; their licences ship in `LICENSES.chromium.html` / `LICENSE` inside the Electron distribution) | Desktop shell |

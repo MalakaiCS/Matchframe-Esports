@@ -367,6 +367,20 @@ function createWindow(): BrowserWindow {
   });
   w.setMenuBarVisibility(false);
   w.on("page-title-updated", (e) => e.preventDefault());
+  // A console form with unsaved changes holds the window open (beforeunload): ask before closing or reloading.
+  w.webContents.on("will-prevent-unload", (e) => {
+    const choice = dialog.showMessageBoxSync(w, {
+      type: "question",
+      buttons: ["Keep editing", "Discard changes"],
+      defaultId: 0,
+      cancelId: 0,
+      title: "Unsaved changes",
+      message: "You have unsaved changes in MatchFrame.",
+      detail: "Discard them and close the window?",
+    });
+    // preventDefault here lets the window close despite the page's beforeunload.
+    if (choice === 1) e.preventDefault();
+  });
   // Closing the manager while desktop HUDs run keeps them running: the program stays in the tray.
   w.on("close", (e) => {
     if (quitting || !tray || !overlays?.hasOutputs()) return;
