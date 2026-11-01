@@ -177,3 +177,32 @@
   align-items: flex-start;
   gap: 16px;
 }
+
+/* Phase 5 (ADR-069): the setup checklist and event presets. */
+.comms-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.comms-checklist > li {
+  border-left: 3px solid var(--line);
+  padding-left: 10px;
+}
+.comms-checklist > li.comms-check-done {
+  border-left-color: var(--ok);
+}
+.comms-checklist > li.comms-check-todo {
+  border-left-color: var(--warn);
+}
+.comms-checklist p {
+  margin: 2px 0;
+}
+.comms-presets tr.is-active td {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.comms-tabs td {
+  vertical-align: top;
+}

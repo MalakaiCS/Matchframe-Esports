@@ -2,7 +2,9 @@ import { Async, Note } from "../components/ui.tsx";
 import { useApi } from "../lib/hooks.ts";
 import { ListenInButtons, PublicStateBanner } from "./comms/PublicControls.tsx";
 import { CalibrationPanel } from "./comms/CalibrationPanel.tsx";
+import { PresetsPanel } from "./comms/PresetsPanel.tsx";
 import { PreviewPanel } from "./comms/PreviewPanel.tsx";
+import { SetupChecklist } from "./comms/SetupChecklist.tsx";
 import { RecordingPanel } from "./comms/RecordingPanel.tsx";
 import { StripPanel } from "./comms/StripPanel.tsx";
 import { BridgePanel, DuckingPanel, ObsCheckPanel, OutputsPanel, OverlayPanel, TimingPanel } from "./comms/SetupPanels.tsx";
@@ -16,7 +18,8 @@ import "../styles/team-comms.css";
  * Broadcast, Include in Recording, level, live and delayed meters, Solo); the dedicated recording (its
  * own Start/Stop, team, levels, folder, status, OBS scene) and its speaker strip; the preview in the
  * operator's headphones; the delay and its calibration against the gameplay; the outputs to OBS,
- * caster ducking, the team-only graphic; the plugin and bridge setup.
+ * caster ducking, the team-only graphic; the plugin and bridge setup. Phase 5 (ADR-069): event presets
+ * and the guided setup checklist with Install TeamSpeak plugin.
  */
 export function TeamCommsScreen() {
   const st = useApi<CommsView>("/api/v1/comms", { refreshMs: 300 });
@@ -34,6 +37,10 @@ export function TeamCommsScreen() {
                 <p className="muted small">Listen In opens only a team whose buffer holds the delay, and closes the other team first (never both). Mute All Comms silences the public route at once; the recording carries on. Comms come back on air only with a new Listen In: never after a restart, a reset or a lost connection.</p>
               </div>
             </section>
+            <div className="grid-2">
+              <PresetsPanel onChanged={reload} />
+              <SetupChecklist />
+            </div>
             <div className="grid-2 comms-teams">
               {v.slots.map((s) => (
                 <TeamPanel key={s.id} slot={s} people={v.participants.filter((p) => p.slot === s.id)} delayMs={v.delay.effectiveMs} onChanged={reload} />

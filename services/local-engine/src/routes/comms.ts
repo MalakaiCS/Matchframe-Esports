@@ -3,6 +3,9 @@ import type { Engine } from "../app.ts";
 import { CalibrationError, CalibrationSettings } from "../comms/calibrate.ts";
 import { ListenInError } from "../comms/controller.ts";
 import { OverlaySetupError } from "../comms/overlay.ts";
+import { PresetError, PresetRename, PresetSaveAs } from "../comms/presets.ts";
+import { SetupError } from "../comms/setup.ts";
+import { TimingTestError } from "../comms/timing-test.ts";
 import { CommsPublicPatch } from "../comms/public.ts";
 import { RecordingError, RecordingPatch, SetupRequest } from "../comms/recording.ts";
 import { PortraitCrop, StripSettings } from "../comms/strip.ts";
@@ -16,10 +19,11 @@ import type { Router } from "../http/router.ts";
  * id, End Listen-In, Mute All Comms), the NDI outputs, caster ducking and the team-only overlay. The
  * operator's preview is a WebSocket (`/api/v1/comms/preview/ws`, servers.ts). The dedicated
  * recording (ADR-068): Start/Stop, its team, levels, folder and OBS scene; the speaker strip's
- * settings; the delay calibration against the gameplay.
+ * settings; the delay calibration against the gameplay. Event presets (ADR-069): save as, save, load,
+ * rename, delete.
  */
 export function registerCommsRoutes(r: Router, e: Engine): void {
-  const view = () => ({ ...e.teamComms.status(), onAir: e.commsPublic.status(), recorder: e.commsRecording.status(), strip: { ...e.speakerStrip.status(), settings: e.stripSettings() }, calibration: e.commsCalibration.status() });
+  const view = () => ({ ...e.teamComms.status(), onAir: e.commsPublic.status(), recorder: e.commsRecording.status(), strip: { ...e.speakerStrip.status(), settings: e.stripSettings() }, calibration: e.commsCalibration.status(), timingTest: e.commsTimingTest.status() });
   r.get("/api/v1/comms", { permission: "state.read" }, () => view());
 
   r.put("/api/v1/comms/settings", { permission: "program.control", body: CommsSettingsPatch }, async (req) => {
@@ -109,7 +113,7 @@ export function registerCommsRoutes(r: Router, e: Engine): void {
     try {
       return await fn();
     } catch (err) {
-      if (err instanceof RecordingError || err instanceof CalibrationError) throw new HttpError(err.status, err.message, err.code);
+      if (err instanceof RecordingError || err instanceof CalibrationError || err instanceof TimingTestError || err instanceof SetupError) throw new HttpError(err.status, err.message, err.code);
       if ((err as { status?: number }).status === 400) throw new HttpError(400, (err as Error).message, "bad_folder");
       throw err;
     }
@@ -162,6 +166,69 @@ export function registerCommsRoutes(r: Router, e: Engine): void {
     const s = e.setStripSettings({ ...prev, crops });
     e.audit.record(req.principal!.label, "comms.strip_crop", req.body.key, req.body.crop);
     return { ...e.speakerStrip.status(), settings: s };
+  });
+
+  // ------------------------------------------------------------------ the recording's timing test (ADR-069)
+  r.post("/api/v1/comms/timing-test/start", { permission: "program.control", body: z.object({}).optional() }, async (req) => {
+    const st = await rec(() => e.commsTimingTest.start());
+    e.audit.record(req.principal!.label, "comms.timing_test", null, { beeps: st.running?.beeps ?? null });
+    return st;
+  });
+  r.post("/api/v1/comms/timing-test/analyse", { permission: "program.control", body: z.object({ file: z.string().min(1).max(1000).optional() }).optional() }, async (req) => {
+    const res = await rec(() => e.commsTimingTest.analyse(req.body?.file));
+    e.audit.record(req.principal!.label, "comms.timing_test_analyse", null, { pairs: res.pairs, medianMs: res.medianMs });
+    return e.commsTimingTest.status();
+  });
+  r.post("/api/v1/comms/timing-test/apply", { permission: "program.control", body: z.object({}).optional() }, async (req) => {
+    const res = await rec(() => e.commsTimingTest.apply());
+    e.commsPublic.sync();
+    e.audit.record(req.principal!.label, "comms.timing_test_apply", null, res.suggestion);
+    return e.commsTimingTest.status();
+  });
+
+  // ------------------------------------------------------------------ setup: the TeamSpeak plugin, the checklist (ADR-069)
+  r.get("/api/v1/comms/setup", { permission: "state.read" }, () => e.commsSetup.checklist());
+  r.post("/api/v1/comms/teamspeak-plugin/install", { permission: "settings.manage", body: z.object({}).optional() }, async (req) => {
+    const p = await rec(() => e.commsSetup.install());
+    e.audit.record(req.principal!.label, "comms.teamspeak_plugin_install", null, { to: p.installed.path, version: p.bundled.version });
+    return p;
+  });
+
+  // ------------------------------------------------------------------ event presets (ADR-069)
+  const preset = async <T>(fn: () => Promise<T> | T): Promise<T> => {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err instanceof PresetError || err instanceof RecordingError) throw new HttpError(err.status, err.message, err.code);
+      throw err;
+    }
+  };
+  r.get("/api/v1/comms/presets", { permission: "state.read" }, () => e.commsPresets.status());
+  r.post("/api/v1/comms/presets", { permission: "program.control", body: PresetSaveAs }, async (req) => {
+    const p = await preset(() => e.commsPresets.saveAs(req.body.name, req.body.eventId));
+    e.audit.record(req.principal!.label, "comms.preset_save_as", p.id, { name: p.name, eventId: p.eventId, people: p.content.people.length });
+    return e.commsPresets.status();
+  });
+  r.post("/api/v1/comms/presets/:id/save", { permission: "program.control", body: z.object({}).optional() }, async (req) => {
+    const p = await preset(() => e.commsPresets.overwrite(req.params.id!));
+    e.audit.record(req.principal!.label, "comms.preset_save", p.id, { name: p.name, people: p.content.people.length });
+    return e.commsPresets.status();
+  });
+  r.post("/api/v1/comms/presets/:id/load", { permission: "program.control", body: z.object({}).optional() }, async (req) => {
+    const res = await preset(() => e.commsPresets.load(req.params.id!));
+    e.commsPublic.sync();
+    e.audit.record(req.principal!.label, "comms.preset_load", res.preset.id, { name: res.preset.name, skipped: res.skipped });
+    return { ...e.commsPresets.status(), loaded: { name: res.preset.name, skipped: res.skipped } };
+  });
+  r.put("/api/v1/comms/presets/:id", { permission: "program.control", body: PresetRename }, async (req) => {
+    const p = await preset(() => e.commsPresets.rename(req.params.id!, req.body));
+    e.audit.record(req.principal!.label, "comms.preset_rename", p.id, { name: p.name, eventId: p.eventId });
+    return e.commsPresets.status();
+  });
+  r.delete("/api/v1/comms/presets/:id", { permission: "program.control" }, async (req) => {
+    await preset(() => e.commsPresets.remove(req.params.id!));
+    e.audit.record(req.principal!.label, "comms.preset_delete", req.params.id!, null);
+    return e.commsPresets.status();
   });
 
   r.post("/api/v1/comms/calibration/arm", { permission: "program.control", body: z.object({ teamId: z.string().min(1).max(100) }) }, (req) => rec(() => e.commsCalibration.arm(req.body.teamId)));

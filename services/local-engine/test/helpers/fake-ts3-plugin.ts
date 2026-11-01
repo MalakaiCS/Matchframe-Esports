@@ -30,13 +30,17 @@ export class FakeTs3Plugin {
   private readonly reader = new FrameReader();
   readonly tabs = new Map<number, FakeTab>();
   readonly managed = new Map<number, { capture: boolean; listenOnly: boolean; suppressPlayback: boolean }>();
+  /** Every MANAGE received, in order. */
+  readonly manageLog: Array<{ schid: number; capture: boolean; listenOnly: boolean; suppressPlayback: boolean }> = [];
   recording = false;
   welcomed = false;
   errors: string[] = [];
+  /** Frozen: the connection stays open but nothing is sent or answered (TeamSpeak hung). */
+  frozen = false;
   private seq = 0;
 
   constructor(
-    private readonly port: number,
+    private port: number,
     private readonly token: string,
     /** The test's simulated time (ms). */
     private readonly now: () => number,
@@ -48,8 +52,11 @@ export class FakeTs3Plugin {
     return Math.round((atMs * (1 + (this.opts.driftPpm ?? 0) / 1e6) + (this.opts.offsetMs ?? 5_000_000)) * 1000);
   }
 
-  async connect(token = this.token): Promise<void> {
+  /** Connects (again); `port`: the bridge's port as its file says now (the engine restarted). */
+  async connect(token = this.token, port = this.port): Promise<void> {
+    this.port = port;
     this.welcomed = false;
+    this.frozen = false;
     await new Promise<void>((resolve, reject) => {
       const s = connect({ host: "127.0.0.1", port: this.port }, () => resolve());
       s.once("error", reject);
@@ -75,10 +82,21 @@ export class FakeTs3Plugin {
   }
 
   send(buf: Buffer): void {
+    if (this.frozen) return;
     this.socket?.write(buf);
   }
 
+  /** TeamSpeak hangs: the connection stays open, nothing more is sent or answered. */
+  freeze(): void {
+    this.frozen = true;
+  }
+
+  get closedByPeer(): boolean {
+    return !this.socket || this.socket.destroyed;
+  }
+
   private receive(chunk: Buffer): void {
+    if (this.frozen) return;
     for (const f of this.reader.push(chunk)) {
       if (f.type === MsgType.WELCOME) {
         this.welcomed = true;
@@ -87,6 +105,7 @@ export class FakeTs3Plugin {
       else if (f.type === MsgType.MANAGE) {
         const schid = Number(f.payload.readBigUInt64LE(0));
         this.managed.set(schid, { capture: f.payload[8] === 1, listenOnly: f.payload[9] === 1, suppressPlayback: f.payload[10] === 1 });
+        this.manageLog.push({ schid, ...this.managed.get(schid)! });
         const t = this.tabs.get(schid);
         if (t) this.report(t, "managed");
       } else if (f.type === MsgType.RECORDING) this.recording = f.payload[0] === 1;
@@ -140,6 +159,14 @@ export class FakeTs3Plugin {
         clients: established ? t.clients.map((c) => ({ ...c, channelId: t.channel.id })) : [],
       }),
     );
+  }
+
+  /** The listener's own client moved to another channel (an admin dragged it), with the people there. */
+  moveSelf(schid: number, channel: { id: number; name: string }, clients: FakeClient[]): void {
+    const t = this.tabs.get(schid)!;
+    t.channel = channel;
+    t.clients = clients;
+    this.report(t, "moved");
   }
 
   join(schid: number, c: FakeClient): void {

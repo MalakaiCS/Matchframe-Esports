@@ -84,6 +84,36 @@ export function BridgePanel({ view, onChanged }: { view: CommsView; onChanged: R
             ...b.plugins.map((p) => [`Plugin ${p.instance.slice(0, 8)}`, `${p.plugin?.name ?? "plugin"} ${p.plugin?.version ?? ""} (API ${p.plugin?.apiVersion ?? "?"}) · TeamSpeak ${p.ts3?.clientLibVersion ?? "?"} · ${p.platform ?? "?"}`] as [string, string]),
           ]}
         />
+        {view.tabs && view.tabs.length ? (
+          <table className="table comms-tabs" aria-label="TeamSpeak tabs">
+            <thead>
+              <tr>
+                <th>TeamSpeak tab</th>
+                <th>Is</th>
+              </tr>
+            </thead>
+            <tbody>
+              {view.tabs.map((t) => (
+                <tr key={t.key}>
+                  <td className="small">
+                    {`${t.channel?.name ?? "—"} on ${t.server?.name ?? t.server?.host ?? "—"}`}
+                    <div className="muted">{`as ${t.listener?.nickname ?? "?"} · ${t.status}`}</div>
+                  </td>
+                  <td className="small">
+                    {t.team ? (
+                      <Badge tone={t.capturing ? "ok" : "warn"} icon={t.capturing ? "●" : "◔"}>
+                        {`Team ${t.team.slot}: ${t.team.name ?? "?"}${t.capturing ? " (captured)" : " (connecting)"}`}
+                      </Badge>
+                    ) : (
+                      <span className="muted">{t.released ? "Not a team tab (handed back to TeamSpeak)" : "Not a team tab"}</span>
+                    )}
+                    {t.restoredByPlugin ? <div className="muted">Kept listen-only and silent by the plugin before Matchframe asked: it remembers the team tabs across a TeamSpeak restart.</div> : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
         <div className="row">
           <ActionButton size="sm" action={() => api.post("/api/v1/comms/bridge/rotate-token")} success="New token: the plugin reconnects with it" onDone={onChanged} disabledReason={setup} confirm={{ title: "Rotate the plugin's token?", body: "The TeamSpeak plugin is disconnected and reconnects with the new token from the bridge file. An open listen-in closes (FAULT).", confirmLabel: "Rotate token" }}>
             Rotate token
@@ -93,7 +123,7 @@ export function BridgePanel({ view, onChanged }: { view: CommsView; onChanged: R
           <ol className="small comms-steps">
             <li>Close TeamSpeak 3. Double-click <Mono>matchframe-team-comms.ts3_plugin</Mono> (in the program's <Mono>resources\ts3-plugin</Mono> folder), or copy the DLL into <Mono>%APPDATA%\TS3Client\plugins\</Mono>.</li>
             <li>Start TeamSpeak 3: Tools → Options → Add-ons → <em>Matchframe Team Comms</em> enabled.</li>
-            <li>Connect one tab to each team's channel (a bookmark per team with Connect on startup). On a default server, give the second tab its own identity (Tools → Identities).</li>
+            <li>Connect one tab to each team's channel: open each team's TeamSpeak link below in TeamSpeak (or a bookmark per team with Connect on startup). On a default server, give the second tab its own identity (Tools → Identities). The plugin remembers the team tabs: after a TeamSpeak restart they are listen-only and silent here before Matchframe even answers.</li>
             <li>Set each team's server and channel below. Matchframe takes over those two tabs: microphone off, sound silent on this computer, each person captured.</li>
           </ol>
         </Details>
@@ -135,6 +165,16 @@ function SlotForm({ slot, onChanged, disabledReason }: { slot: CommsSlot; onChan
           <input value={f.channel} onChange={field("channel")} placeholder="Team channel name" />
         </Field>
       </div>
+      {slot.connectLink ? (
+        <div className="row small">
+          <span>TeamSpeak link (no password in it):</span> <Mono>{slot.connectLink}</Mono> <CopyButton text={slot.connectLink} label="Copy link" />
+          {window.matchframe?.connectionMode !== "remote" ? (
+            <a className="btn btn-sm" href={slot.connectLink} target="_blank" rel="noreferrer">
+              Connect in TeamSpeak
+            </a>
+          ) : null}
+        </div>
+      ) : null}
       <div className="row-end">
         <Field label="Server password" hint={slot.serverPasswordSaved ? "Saved (not shown)" : "None saved"}>
           <input type="password" autoComplete="off" value={f.serverPassword} onChange={field("serverPassword")} />
@@ -179,8 +219,10 @@ export function OutputsPanel({ view, onChanged }: { view: CommsView; onChanged: 
             ["Format", "48 kHz stereo, 32-bit float, 10 ms frames"],
             ["Timing", st ? `sent ${Math.round(st.lagMs)} ms after the output time (set ${s.latencyMs} ms) · ${st.underruns} gaps · ${st.late} late · ${st.resyncs} resyncs` : "—"],
             ["Public silenced", `${view.onAir.outputs.publicGuard.blocksSilenced} blocks sent as silence while closed`],
+            ...(o.restarts ? [["Restarts", `${o.restarts} (last: exit ${o.lastExit?.code ?? "?"} after ${Math.round((o.lastExit?.ranMs ?? 0) / 1000)} s)${o.nextStartInMs != null ? ` · starting again in ${Math.ceil(o.nextStartInMs / 1000)} s` : ""}`] as [string, string]] : []),
           ]}
         />
+        {o.state === "error" ? <Note tone="danger" title="Nothing reaches OBS">{`${o.detail} The public route is silent and the dedicated recording shows a fault until it runs again; a listen-in needs a new Listen In.`}</Note> : null}
         <Details summary="Output settings">
           <div className="stack-sm">
             <Checkbox checked={s.enabled} disabled={!!reason} label="Send the NDI outputs" hint="Off: nothing reaches OBS (a listen-in can still be opened)." onChange={(v) => void save({ enabled: v })} />

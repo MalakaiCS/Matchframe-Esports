@@ -36,6 +36,12 @@ import { STRIP_SOURCE, type SpeakerStrip } from "./strip.ts";
  *   while it records.
  * - **Never started by itself:** after a restart it is adopted only if Source Record is still
  *   recording in OBS.
+ * - **Faults are explicit** (RECORDING FAULT with the reason, never a quiet warning): Source Record
+ *   stopped or gone in OBS, no file or a file that stopped growing, OBS disconnected (Matchframe can't
+ *   confirm it), and the recording comms not reaching it (the NDI process down or restarting, Team
+ *   Comms or its NDI output off): the file then has gameplay without comms. After OBS comes back and
+ *   Source Record still records, the fault clears by itself; if OBS restarted (Source Record stopped),
+ *   Start Recording starts a new file.
  */
 
 export const RECORDING_SCENE = "Matchframe Comms Recording";
@@ -168,6 +174,8 @@ export class CommsRecording {
   private timer: ReturnType<typeof setInterval> | null = null;
   private ticking = false;
   private adopted = false;
+  /** OBS went away while recording (wall ms): a stopped filter found after it came back is named as such. */
+  private obsLostAt: number | null = null;
   private readonly offs: (() => void)[] = [];
 
   constructor(private readonly d: RecordingDeps) {
@@ -178,10 +186,17 @@ export class CommsRecording {
     const onConnect = () => {
       this.sourceRecord.checkedAtMs = -Infinity;
       this.track1.checkedAtMs = -Infinity;
-      void this.tick();
+      void this.tick().catch(() => undefined);
+    };
+    const onDisconnect = () => {
+      if (this.state === "recording") {
+        this.obsLostAt = this.wall();
+        this.d.logger.warn("comms recording: OBS disconnected while recording", { scene: this.settings().obs.scene });
+      }
     };
     d.obs.on("connected", onConnect);
-    this.offs.push(() => d.obs.off("connected", onConnect));
+    d.obs.on("disconnected", onDisconnect);
+    this.offs.push(() => d.obs.off("connected", onConnect), () => d.obs.off("disconnected", onDisconnect));
   }
 
   private wall(): number {
@@ -528,7 +543,10 @@ export class CommsRecording {
 
   /** Start Recording: Source Record writes the scene from now (its own file), TeamSpeak shows recording. Never touches the public listen-in. */
   async start(who = "operator"): Promise<ReturnType<CommsRecording["status"]>> {
-    if (this.state === "recording") return this.status();
+    // Recording (or a fault Source Record still records through): nothing to start. A fault where OBS
+    // stopped recording (OBS restarted, stopped by hand): Start begins a new file.
+    if (this.state === "recording" && !(this.fault && this.filterMode !== 1)) return this.status();
+    if (this.state === "recording") this.finish(`ended by a fault: ${this.fault!.reason}`);
     const obs = this.d.obs;
     const cfg = this.settings();
     if (!obs.state.connected) throw new RecordingError(409, "obs_not_connected", "Connect OBS first (Settings → Devices).");
@@ -560,6 +578,7 @@ export class CommsRecording {
     this.d.settings.set(RUN_KEY, run);
     this.state = "recording";
     this.fault = null;
+    this.obsLostAt = null;
     this.file = null;
     this.filterMode = 1;
     this.d.comms.setRecordingSignal(true);
@@ -607,7 +626,7 @@ export class CommsRecording {
   /** The status checks every second. */
   startMonitor(): void {
     if (this.timer) return;
-    this.timer = setInterval(() => void this.tick(), 1000);
+    this.timer = setInterval(() => void this.tick().catch((err: unknown) => this.d.logger.warn("comms recording: status check failed", { error: String(err) })), 1000);
     this.timer.unref?.();
   }
 
@@ -655,18 +674,31 @@ export class CommsRecording {
           // Saved as recording when the engine stopped, but OBS stopped it since: that recording is over.
           else if (this.state === "idle" && this.run) this.finish("OBS wasn't recording it any more");
         }
-        await this.checkTrack1();
+        // OBS may go away in the middle of these requests: the next second tries again.
+        await this.checkTrack1().catch((err: unknown) => {
+          this.track1 = { inUse: null, detail: `Couldn't ask OBS: ${err instanceof Error ? err.message : String(err)}`, checkedAtMs: this.wall() };
+        });
       }
       if (this.state === "recording") {
         this.refreshFile();
         const now = this.wall();
         const since = this.run ? now - this.run.startedAtMs : 0;
         let fault: string | null = null;
-        if (obs.state.connected && this.filterMode !== 1) fault = this.filterMode === null ? `The Source Record filter “${RECORDER_FILTER}” is gone from “${scene}”: the recording stopped.` : "Source Record was stopped in OBS.";
+        if (obs.state.connected && this.filterMode !== 1)
+          fault =
+            this.filterMode === null
+              ? `The Source Record filter “${RECORDER_FILTER}” is gone from “${scene}”: the recording stopped.`
+              : this.obsLostAt !== null
+                ? "OBS was disconnected (restarted?) and Source Record isn't recording any more: the file ends where OBS stopped. Press Start Recording for a new file."
+                : "Source Record was stopped in OBS. Press Start Recording for a new file.";
         else if (!this.file && since > STALL_MS) fault = `No file from Source Record in ${this.run?.folder} after ${secs(since)} s: check OBS's log (Help → Log Files) for “Source Record”.`;
         else if (this.file && now - this.file.grewAtMs > STALL_MS) fault = `The file hasn't grown for ${secs(now - this.file.grewAtMs)} s: Source Record may have stopped writing (disk full, encoder error); check OBS's log.`;
         if (fault) this.setFault(fault);
-        else this.fault = null;
+        else {
+          if (this.fault) this.d.logger.info("comms recording: fault cleared", { was: this.fault.reason });
+          this.fault = null;
+          if (obs.state.connected) this.obsLostAt = null;
+        }
       }
     } finally {
       this.ticking = false;
@@ -686,6 +718,17 @@ export class CommsRecording {
 
   // ---------------------------------------------------------------------------------------- status
 
+  /** While recording: why the file is missing something now (OBS away, the comms not sent), else null. */
+  private liveFault(): string | null {
+    if (this.state !== "recording") return null;
+    if (!this.d.obs.state.connected) return "OBS isn't connected: Matchframe can't confirm the recording (Source Record carries on in OBS by itself if OBS still runs; if OBS stopped, so did the file).";
+    const ndi = this.d.outputs.status().ndi;
+    if (!this.d.comms.enabled) return `Team Comms is off: the recording has gameplay without comms (NDI “${RECORDING_NDI_NAME}” isn't sent).`;
+    if (!ndi.enabled) return `The NDI output is off (Team Comms → Public output): the recording has gameplay without comms.`;
+    if (ndi.state !== "running") return `The recording comms (NDI “${RECORDING_NDI_NAME}”) aren't being sent: ${ndi.detail} The file has gameplay without comms until it runs again.`;
+    return null;
+  }
+
   status() {
     const cfg = this.settings();
     const now = this.wall();
@@ -693,28 +736,30 @@ export class CommsRecording {
     const free = (this.d.freeBytes ?? freeBytes)(folder);
     const obs = this.d.obs;
     const recording = this.state === "recording";
-    const state: RecordingState = recording && this.fault ? "fault" : this.state;
+    const live = this.liveFault();
+    const faultReason = recording ? (this.fault?.reason ?? live) : null;
+    const state: RecordingState = recording && faultReason ? "fault" : this.state;
     const team = cfg.teamId ? this.d.teamName(cfg.teamId) : null;
     const teamName = team?.name ?? null;
     const warnings: string[] = [];
     const errors: string[] = [];
     if (this.fault && recording) errors.push(this.fault.reason);
+    if (live && recording) errors.push(live);
     if (free !== null && free < CRITICAL_FREE_BYTES) errors.push(`Only ${(free / GB).toFixed(1)} GB free on the recording's drive: the file stops when it is full.`);
     else if (free !== null && free < cfg.warnFreeGB * GB) warnings.push(`${(free / GB).toFixed(1)} GB free on the recording's drive (warning under ${cfg.warnFreeGB} GB): at ${(cfg.bitrateKbps / 8 / 1000).toFixed(1)} MB/s that is about ${Math.floor(free / ((cfg.bitrateKbps * 1000) / 8) / 60)} minutes.`);
-    if (!obs.state.connected) (recording ? errors : warnings).push(recording ? "OBS isn't connected: Matchframe can't confirm the recording (Source Record carries on in OBS by itself)." : "OBS isn't connected.");
+    if (!obs.state.connected && !recording) warnings.push("OBS isn't connected.");
     if (this.track1.inUse === false) (recording ? errors : warnings).push(this.track1.detail);
     if (cfg.teamId && !this.d.comms.hasTeam(cfg.teamId)) warnings.push("The recording team isn't one of the active match's teams: the recording has no comms.");
     if (!cfg.teamId) warnings.push("No recording team chosen.");
     const ndi = this.d.outputs.status().ndi;
     if (recording && this.d.comms.enabled && ndi.enabled && ndi.state === "running" && ndi.stats && ndi.stats.connections.recording === 0) warnings.push(`Nothing receives “${RECORDING_NDI_NAME}”: the recording has no comms. Check its DistroAV source in “${cfg.obs.scene}”.`);
-    if (recording && (!this.d.comms.enabled || !ndi.enabled || ndi.state !== "running")) warnings.push(`The recording comms (NDI “${RECORDING_NDI_NAME}”) aren't being sent: ${!this.d.comms.enabled ? "Team Comms is off" : ndi.detail}`);
     if (!this.commsAudible) warnings.push("The comms level is off: the recording has no comms and the strip lights nobody.");
     const sw = this.d.strip.status().warning;
     if (sw) warnings.push(sw);
     const label = state === "recording" ? `RECORDING — ${(teamName ?? "NO TEAM").toUpperCase()}` : state === "fault" ? "RECORDING FAULT" : "NOT RECORDING";
     const detail =
       state === "fault"
-        ? this.fault!.reason
+        ? faultReason!
         : state === "recording"
           ? `${teamName ?? "No team"}'s permitted, delayed comms with the gameplay, written by Source Record.`
           : this.last
@@ -746,7 +791,7 @@ export class CommsRecording {
         lastSetup: this.lastSetup,
       },
       actions: {
-        start: { disabledReason: recording ? "Recording" : !obs.state.connected ? "Connect OBS first" : this.sourceRecord.available === false ? "Source Record isn't installed in OBS" : !obs.state.scenes.includes(cfg.obs.scene) ? "Set up the recording scene in OBS first" : !cfg.teamId ? "Choose the recording team first" : null },
+        start: { disabledReason: recording && !(this.fault && this.filterMode !== 1) ? "Recording" : !obs.state.connected ? "Connect OBS first" : this.sourceRecord.available === false ? "Source Record isn't installed in OBS" : !obs.state.scenes.includes(cfg.obs.scene) ? "Set up the recording scene in OBS first" : !cfg.teamId ? "Choose the recording team first" : null },
         stop: { disabledReason: recording ? null : "Not recording" },
       },
     };

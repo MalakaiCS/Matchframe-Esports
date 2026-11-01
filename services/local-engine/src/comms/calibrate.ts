@@ -31,6 +31,8 @@ export const CalibrationSettings = z.object({
 export type CalibrationSettings = z.infer<typeof CalibrationSettings>;
 
 const SETTINGS_KEY = "comms.calibration";
+/** The last suggestion applied (when, the delay it set, from how many marks): the setup checklist and the timing test read it. */
+const APPLIED_KEY = "comms.calibration.applied";
 /** Silence before the live mark (ms): the start of a sound, not a word in the middle of a sentence. */
 const SILENCE_BEFORE_MS = 300;
 /** An armed mark waits this long for a sound (ms). */
@@ -156,8 +158,21 @@ export class CommsCalibration {
     const s = this.suggestion();
     if (!s) throw new CalibrationError(409, "no_marks", "No marks yet.");
     await this.d.comms.updateSettings({ delaySec: s.delaySec, fineMs: s.fineMs });
+    this.d.settings.set(APPLIED_KEY, { at: new Date().toISOString(), delayMs: s.delaySec * 1000 + s.fineMs, marks: s.n, spreadMs: s.spreadMs });
     this.d.logger.info("team comms calibration: delay applied", { delayMs: s.delayMs, marks: s.n, spreadMs: s.spreadMs });
     return { delaySec: s.delaySec, fineMs: s.fineMs };
+  }
+
+  /** The last suggestion applied, if any. */
+  applied(): { at: string; delayMs: number; marks: number; spreadMs: number } | null {
+    return this.d.settings.get<{ at: string; delayMs: number; marks: number; spreadMs: number } | null>(APPLIED_KEY, null);
+  }
+
+  /** The delay the marks set, while it is still the one in use (null: never applied, or changed since). */
+  calibratedDelayMs(): number | null {
+    const a = this.applied();
+    const c = this.d.comms.settings();
+    return a && a.delayMs === c.delaySec * 1000 + c.fineMs ? a.delayMs : null;
   }
 
   status() {
@@ -170,6 +185,7 @@ export class CommsCalibration {
       marks: this.marks.map((m) => ({ who: m.who, offsetMs: m.offsetMs, agoMs: Math.round(now - m.seenAtMs) })),
       suggestion: this.suggestion(),
       sendLatencyMs: this.d.sendLatencyMs(),
+      applied: this.applied(),
     };
   }
 

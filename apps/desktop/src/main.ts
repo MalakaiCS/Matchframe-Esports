@@ -279,6 +279,8 @@ function startEngine(): void {
     MATCHFRAME_WORKERS_DIR: resourcesPath("workers"),
     // The Test replays button's two sample clips.
     MATCHFRAME_REPLAY_TEST_DIR: resourcesPath(isDev ? "assets/replay-test" : "replay-test"),
+    // Team Comms' TeamSpeak plugin as the program ships it (Install TeamSpeak plugin copies it into TeamSpeak's folder).
+    MATCHFRAME_TS3_PLUGIN_DIR: resourcesPath(isDev ? "native/ts3-matchframe-plugin/dist" : "ts3-plugin"),
     MATCHFRAME_GSI_PORT: String(PORTS.gsi),
     MATCHFRAME_API_PORT: String(PORTS.api),
     MATCHFRAME_OVERLAY_PORT: String(PORTS.overlay),
@@ -359,6 +361,8 @@ function createWindow(): BrowserWindow {
   });
   w.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https:\/\//.test(url) || (isDev && /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(url))) void shell.openExternal(url);
+    // Team Comms (ADR-069): a team's TeamSpeak link as Matchframe makes it (server, port, nickname, channel; no password): TeamSpeak opens it.
+    else if (/^ts3server:\/\/[A-Za-z0-9.\-[\]:]+\?port=\d{1,5}&nickname=[^&\s]*&channel=[^&\s]*$/.test(url)) void shell.openExternal(url);
     return { action: "deny" };
   });
   w.setMenuBarVisibility(false);
@@ -616,6 +620,16 @@ ipcMain.handle("mf:open-highlights", (event, folder: unknown) => {
   if (typeof folder === "string" && isAbsolute(folder) && existsSync(folder) && statSync(folder).isDirectory()) return shell.openPath(folder);
   const videos = videosDir();
   const dir = videos ? join(videos, "Matchframe Highlights") : join(dataDir(), "exports", "highlights");
+  mkdirSync(dir, { recursive: true });
+  return shell.openPath(dir);
+});
+// Team Comms (ADR-069): TeamSpeak 3's plugins folder (made if missing), or the program's own plugin
+// files (the .ts3_plugin package TeamSpeak's add-on installer opens), for installing the plugin by hand.
+ipcMain.handle("mf:open-ts3-folder", (event, which: unknown) => {
+  if (!fromApp(event) || connection.mode !== "local") return null;
+  if (which === "package") return shell.openPath(resourcesPath(isDev ? "native/ts3-matchframe-plugin/dist" : "ts3-plugin"));
+  const ts3 = process.platform === "win32" ? join(app.getPath("appData"), "TS3Client") : process.platform === "darwin" ? join(app.getPath("home"), "Library", "Application Support", "TeamSpeak 3") : join(app.getPath("home"), ".ts3client");
+  const dir = join(ts3, "plugins");
   mkdirSync(dir, { recursive: true });
   return shell.openPath(dir);
 });

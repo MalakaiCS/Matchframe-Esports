@@ -51,6 +51,8 @@ contextBridge.exposeInMainWorld("matchframe", {
   openDataDir: (): Promise<string> => ipcRenderer.invoke("mf:open-data-dir"),
   /** The folder highlight reels go in, on this computer (the engine's folder when given). */
   openHighlights: (folder?: string): Promise<string> => ipcRenderer.invoke("mf:open-highlights", folder),
+  /** Team Comms: TeamSpeak 3's plugins folder, or the program's TeamSpeak plugin files ("package"). */
+  openTs3Folder: (which: "plugins" | "package"): Promise<string | null> => ipcRenderer.invoke("mf:open-ts3-folder", which),
   /** Choose a folder on this computer (null when cancelled, or not the production computer). */
   pickDirectory: (title: string): Promise<string | null> => ipcRenderer.invoke("mf:pick-directory", title),
   restartEngine: (): Promise<boolean> => ipcRenderer.invoke("mf:restart-engine"),

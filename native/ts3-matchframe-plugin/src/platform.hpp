@@ -88,6 +88,29 @@ inline std::string readSmallFile(const std::string& path, size_t maxBytes) {
   return s;
 }
 
+#if defined(_WIN32)
+constexpr char kPathSep = '\\';
+#else
+constexpr char kPathSep = '/';
+#endif
+
+// Writes a small file named by a UTF-8 path (whole, replacing it). False on failure.
+inline bool writeSmallFile(const std::string& path, const std::string& content) {
+  if (path.empty()) return false;
+#if defined(_WIN32)
+  int wl = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
+  if (wl <= 0) return false;
+  std::wstring wp(static_cast<size_t>(wl), L'\0');
+  MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, &wp[0], wl);
+  FILE* f = _wfopen(wp.c_str(), L"wb");
+#else
+  FILE* f = std::fopen(path.c_str(), "wb");
+#endif
+  if (!f) return false;
+  const bool ok = std::fwrite(content.data(), 1, content.size(), f) == content.size();
+  return std::fclose(f) == 0 && ok;
+}
+
 // The bridge file the engine writes (port and token): MATCHFRAME_COMMS_BRIDGE_FILE, else
 // <data folder>/team-comms/bridge.json with the engine's data folder (MATCHFRAME_DATA_DIR, else
 // %APPDATA%\Matchframe Esports, ~/Library/Application Support/Matchframe Esports or

@@ -4,7 +4,11 @@
 // on one audio thread per tab (360 samples every 7.5 ms, as measured in TeamSpeak 3.6.2). It prints
 // one JSON line: what the plugin did to the samples, the microphone and the recording status.
 //
-//   host <plugin.so|.dll> <seconds>       (the bridge file comes from MATCHFRAME_COMMS_BRIDGE_FILE)
+//   host <plugin.so|.dll> <seconds> [still]   (the bridge file comes from MATCHFRAME_COMMS_BRIDGE_FILE)
+//
+// Halfway through, Alpha 2 reconnects with a new session id (unless "still"). The JSON line also has
+// the counts per tab, so a run can show which tabs the plugin made silent by itself (a restarted
+// TeamSpeak with remembered team tabs: MATCHFRAME_COMMS_TABS_FILE, or the config folder below).
 //
 // Builds for Linux (g++) and Windows (MSVC or mingw-w64; run under Wine on Linux to test the
 // Windows plugin's sockets, clock and paths). Not evidence of TeamSpeak capture: the TeamSpeak
@@ -141,6 +145,10 @@ unsigned int getServerConnectInfo(uint64, char* host, unsigned short* port, char
   *port = 9987;
   return ERROR_ok;
 }
+void getConfigPath(char* path, size_t maxLen) {
+  const char* d = std::getenv("HOST_TS3_CONFIG_DIR");
+  std::snprintf(path, maxLen, "%s", d ? d : "");
+}
 unsigned int startVoiceRecording(uint64 schid) { { std::lock_guard<std::mutex> l(mu); selfInts[{schid, CLIENT_IS_RECORDING}] = 1; } note("startVoiceRecording " + std::to_string(schid)); return ERROR_ok; }
 unsigned int stopVoiceRecording(uint64 schid) { { std::lock_guard<std::mutex> l(mu); selfInts[{schid, CLIENT_IS_RECORDING}] = 0; } note("stopVoiceRecording " + std::to_string(schid)); return ERROR_ok; }
 
@@ -164,6 +172,7 @@ int main(int argc, char** argv) {
     return 2;
   }
   const double seconds = std::atof(argv[2]);
+  const bool still = argc > 3 && std::strcmp(argv[3], "still") == 0;
   auto apiVersion = sym<int (*)()>(h, "ts3plugin_apiVersion");
   auto setFns = sym<void (*)(const TS3Functions)>(h, "ts3plugin_setFunctionPointers");
   auto init = sym<int (*)()>(h, "ts3plugin_init");
@@ -173,6 +182,7 @@ int main(int argc, char** argv) {
   auto mixed = sym<void (*)(uint64, short*, int, int, const unsigned int*, unsigned int*)>(h, "ts3plugin_onEditMixedPlaybackVoiceDataEvent");
   auto captured = sym<void (*)(uint64, short*, int, int, int*)>(h, "ts3plugin_onEditCapturedVoiceDataEvent");
   auto move = sym<void (*)(uint64, anyID, uint64, uint64, int, const char*)>(h, "ts3plugin_onClientMoveEvent");
+  auto talk = sym<void (*)(uint64, int, int, anyID)>(h, "ts3plugin_onTalkStatusChangeEvent");
   for (const char* req : {"ts3plugin_name", "ts3plugin_version", "ts3plugin_author", "ts3plugin_description"}) sym<void*>(h, req);
 
   TS3Functions f{};
@@ -197,12 +207,30 @@ int main(int argc, char** argv) {
   f.getServerConnectInfo = getServerConnectInfo;
   f.startVoiceRecording = startVoiceRecording;
   f.stopVoiceRecording = stopVoiceRecording;
+  f.getConfigPath = getConfigPath;
   setFns(f);
   if (init() != 0) return 3;
-  for (auto& t : tabs) status(t.schid, STATUS_CONNECTION_ESTABLISHED, ERROR_ok);
+  // Each tab connects as TeamSpeak does it, and voices can play before the connection is established
+  // (TeamSpeak 3.6.2, measured in the phase 5 soak): one block per person then.
+  long earlyCalls[3] = {0, 0, 0}, earlyZeroed[3] = {0, 0, 0};
+  for (auto& t : tabs) {
+    status(t.schid, STATUS_CONNECTING, ERROR_ok);
+    status(t.schid, STATUS_CONNECTION_ESTABLISHING, ERROR_ok);
+    for (auto& p : t.people) {
+      short s[360];
+      for (int i = 0; i < 360; i++) s[i] = 1000;
+      voice(t.schid, p.id, s, 360, 1);
+      bool z = true;
+      for (short v : s) z = z && v == 0;
+      earlyCalls[t.schid]++;
+      if (z) earlyZeroed[t.schid]++;
+    }
+    status(t.schid, STATUS_CONNECTION_ESTABLISHED, ERROR_ok);
+  }
 
   std::atomic<bool> run{true};
   std::atomic<long> voiceCalls{0}, zeroed{0}, untouched{0}, mixedZeroed{0}, mixedCalls{0}, sendBlocked{0};
+  std::atomic<long> tabZeroed[3] = {{0}, {0}, {0}}, tabUntouched[3] = {{0}, {0}, {0}};
   auto start = std::chrono::steady_clock::now();
   std::vector<std::thread> audio;
   for (auto& tab : tabs) {
@@ -224,6 +252,7 @@ int main(int argc, char** argv) {
           for (short v : s) allZero = allZero && v == 0;
           voiceCalls++;
           (allZero ? zeroed : untouched)++;
+          (allZero ? tabZeroed : tabUntouched)[schid]++;
         }
         short mix[720];
         for (int i = 0; i < 720; i++) mix[i] = 1000;
@@ -245,12 +274,18 @@ int main(int argc, char** argv) {
   }
   // Halfway: Alpha 2 reconnects with a new session id (same identity).
   std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(seconds * 500)));
-  {
-    std::lock_guard<std::mutex> l(mu);
-    tabOf(1)->people[1].id = 15;
+  if (!still) {
+    {
+      std::lock_guard<std::mutex> l(mu);
+      tabOf(1)->people[1].id = 15;
+    }
+    move(1, 11, 11, 0, 0, "");
+    move(1, 15, 0, 11, 0, "");
+  } else {
+    // Late in the run someone starts talking on each tab (TeamSpeak's talk event, main thread).
+    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(seconds * 300)));
+    for (auto& t : tabs) talk(t.schid, STATUS_TALKING, 0, t.people[0].id);
   }
-  move(1, 11, 11, 0, 0, "");
-  move(1, 15, 0, 11, 0, "");
   std::this_thread::sleep_until(start + std::chrono::milliseconds(static_cast<int>(seconds * 1000)));
   run = false;
   for (auto& t : audio) t.join();
@@ -263,6 +298,6 @@ int main(int argc, char** argv) {
     for (auto& c : calls) list += (list.empty() ? "\"" : ",\"") + c + "\"";
   }
   std::fflush(stderr);
-  std::printf("{\"apiVersion\":%d,\"voiceCalls\":%ld,\"zeroed\":%ld,\"untouched\":%ld,\"mixedCalls\":%ld,\"mixedZeroed\":%ld,\"micBlocked\":%ld,\"calls\":[%s]}\n", api, voiceCalls.load(), zeroed.load(), untouched.load(), mixedCalls.load(), mixedZeroed.load(), sendBlocked.load(), list.c_str());
+  std::printf("{\"apiVersion\":%d,\"voiceCalls\":%ld,\"zeroed\":%ld,\"untouched\":%ld,\"mixedCalls\":%ld,\"mixedZeroed\":%ld,\"micBlocked\":%ld,\"tabs\":{\"1\":{\"zeroed\":%ld,\"untouched\":%ld,\"earlyCalls\":%ld,\"earlyZeroed\":%ld},\"2\":{\"zeroed\":%ld,\"untouched\":%ld,\"earlyCalls\":%ld,\"earlyZeroed\":%ld}},\"calls\":[%s]}\n", api, voiceCalls.load(), zeroed.load(), untouched.load(), mixedCalls.load(), mixedZeroed.load(), sendBlocked.load(), tabZeroed[1].load(), tabUntouched[1].load(), earlyCalls[1], earlyZeroed[1], tabZeroed[2].load(), tabUntouched[2].load(), earlyCalls[2], earlyZeroed[2], list.c_str());
   return 0;
 }

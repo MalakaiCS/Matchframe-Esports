@@ -266,6 +266,8 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
         teamCommsRecording: e.commsRecording.diagnostics(),
         teamCommsStrip: e.speakerStrip.diagnostics(),
         teamCommsCalibration: e.commsCalibration.status(),
+        // Team Comms event presets (ADR-069): names, events and counts only (no identities; never a password).
+        teamCommsPresets: e.commsPresets.diagnostics(),
         mapPackIssues: e.maps.issues,
         logs: e.logger.recent.slice(-300),
         migration: e.migration,

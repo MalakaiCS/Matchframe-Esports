@@ -115,9 +115,26 @@ export class StandInObs extends EventEmitter {
   private readonly t0 = Date.now();
   private active = new Set<string>();
 
+  /** OBS isn't running (it quit or crashed): connecting and every request fail until up(). */
+  down = false;
+
   // ---- obs-websocket-js's client ------------------------------------------------------------
-  connect = async () => ({ obsWebSocketVersion: "5.3.4", rpcVersion: 1, negotiatedRpcVersion: 1 });
+  connect = async () => {
+    if (this.down) throw new Error("connect ECONNREFUSED 127.0.0.1:4455");
+    return { obsWebSocketVersion: "5.3.4", rpcVersion: 1, negotiatedRpcVersion: 1 };
+  };
   disconnect = async () => undefined;
+
+  /** OBS goes away (quits or crashes): the connection closes; the manager tries to reconnect. */
+  drop(): void {
+    this.down = true;
+    this.emit("ConnectionClosed", new Error("OBS closed the connection"));
+  }
+
+  /** OBS runs again: the manager's next reconnect attempt gets through. */
+  up(): void {
+    this.down = false;
+  }
 
   /** Makes an engine talk to this stand-in, connected. */
   static async attach(e: Engine, setup?: (o: StandInObs) => void): Promise<StandInObs> {
@@ -237,6 +254,7 @@ export class StandInObs extends EventEmitter {
 
   call = async (req: string, d: Record<string, unknown> = {}): Promise<Record<string, unknown>> => {
     await new Promise((r) => setImmediate(r));
+    if (this.down) throw new Error("Not connected to OBS");
     switch (req) {
       case "GetVersion":
         return { obsVersion: "30.0.2", obsWebSocketVersion: "5.3.4", platformDescription: "stand-in", availableRequests: [] };

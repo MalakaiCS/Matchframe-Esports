@@ -4,7 +4,7 @@ import { useToast } from "../../components/toasts.tsx";
 import { ActionButton, Button, Details, Field, KV, Note, Panel } from "../../components/ui.tsx";
 import { usePermission } from "../../state/session.tsx";
 import { fmtDelay } from "./TeamPanel.tsx";
-import type { CalibrationStatus, CommsView } from "./types.ts";
+import type { CalibrationStatus, CommsView, TimingTestStatus } from "./types.ts";
 
 type Reload = () => void;
 
@@ -67,6 +67,7 @@ export function CalibrationPanel({ view, onChanged }: { view: CommsView; onChang
         {cal.marks.length ? (
           <KV items={cal.marks.map((m, i) => [`Mark ${i + 1} (${m.who})`, `${fmtDelay(m.offsetMs)} from the call to the gameplay`] as [string, string])} />
         ) : null}
+        {cal.applied ? <p className="small muted">{`In use since ${cal.applied.at.slice(0, 16).replace("T", " ")}: ${fmtDelay(cal.applied.delayMs)} from ${cal.applied.marks} mark${cal.applied.marks === 1 ? "" : "s"}.`}</p> : null}
         {sug ? (
           <Note tone="info" title={`Suggested delay: ${fmtDelay(sug.delayMs)}`}>
             Median of {sug.n} mark{sug.n === 1 ? "" : "s"} {fmtDelay(sug.medianOffsetMs)} (spread {sug.spreadMs} ms), less {cal.settings.reactionMs} ms reaction and {cal.sendLatencyMs} ms for the comms to reach OBS. {sug.n < 3 ? "Take a few more marks: one is a guess." : sug.spreadMs > 300 ? "The marks disagree by more than 300 ms: take more." : ""}
@@ -91,11 +92,55 @@ export function CalibrationPanel({ view, onChanged }: { view: CommsView; onChang
               </span>
             </Field>
             <p className="small">
-              The check: record a minute with marks, open the file, step frame by frame to a mark. The call and the moment in the gameplay should be within a frame or two; move the delay's fine milliseconds by what's left (positive: comms later). Then compare the call with its card lighting and set the strip's timing offset the same way.
+              The check: record a minute with marks, open the file, step frame by frame to a mark. The call and the moment in the gameplay should be within a frame or two; move the delay's fine milliseconds by what's left (positive: comms later). Then compare the call with its card lighting and set the strip's timing offset the same way, or let the timing test below measure it.
             </p>
           </div>
         </Details>
+        {view.timingTest ? <TimingTest view={view} test={view.timingTest} onChanged={onChanged} /> : null}
       </div>
     </Panel>
+  );
+}
+
+/**
+ * The timing test in a recording (ADR-069): beeps in the recording comms with every strip card lit on
+ * the same blocks; Matchframe finds both in the finished file and suggests the strip's timing offset
+ * (and the fine ms, when the delay is the marks' suggestion).
+ */
+function TimingTest({ view, test, onChanged }: { view: CommsView; test: TimingTestStatus; onChanged: Reload }) {
+  const reason = usePermission("program.control");
+  const r = test.result;
+  const recording = view.recorder.state !== "idle";
+  const cards = view.strip.cards.length;
+  return (
+    <section className="stack-sm" aria-label="Timing test in a recording">
+      <h4 className="comms-subhead">Timing test in a recording</h4>
+      <ol className="small comms-steps">
+        <li>Start the dedicated recording (a minute is enough) with someone included in it, so the strip shows cards.</li>
+        <li>
+          Press Run timing test: {test.beep.count} beeps ({test.beep.hz} Hz, {test.beep.ms} ms, one a second) in the recording comms only, every card lit on the same moments. Never on the public output.
+        </li>
+        <li>Stop the recording, then Find it in the recording: Matchframe reads the file with ffmpeg.</li>
+      </ol>
+      <div className="row">
+        <ActionButton disabledReason={reason ?? (!recording ? "Start the dedicated recording first" : cards < 1 ? "The strip shows nobody: include someone in the recording" : test.running ? "Running" : null)} action={() => api.post<TimingTestStatus>("/api/v1/comms/timing-test/start")} onDone={onChanged} success="Beeps on their way to the recording">
+          Run timing test
+        </ActionButton>
+        <ActionButton disabledReason={reason ?? (!test.lastRun ? "Run the timing test first" : test.analysing ? "Analysing" : view.recorder.state === "recording" ? "Stop the recording first (its file must be finished)" : null)} action={() => api.post<TimingTestStatus>("/api/v1/comms/timing-test/analyse")} onDone={onChanged} success="Found in the recording">
+          Find it in the recording
+        </ActionButton>
+        <ActionButton variant="primary" disabledReason={reason ?? (!r ? "Nothing found yet" : r.applied ? "Applied" : null)} action={() => api.post<TimingTestStatus>("/api/v1/comms/timing-test/apply")} onDone={onChanged} success="Applied" confirm={r && r.suggestion.fineMs !== null ? { title: "Apply the timing test?", body: "The strip's timing offset changes, and so does the delay (every output fades out for a moment).", confirmLabel: "Apply" } : undefined}>
+          Apply the suggestion
+        </ActionButton>
+      </div>
+      <p className="small" role="status" aria-live="polite">
+        {test.running ? `Beeping: ${Math.ceil(test.running.endsInMs / 1000)} s left.` : test.lastRun && !r ? `Last test ${test.lastRun.startedAt.slice(11, 19)} with ${test.lastRun.cards} card${test.lastRun.cards === 1 ? "" : "s"}: not analysed yet.` : null}
+      </p>
+      {r ? (
+        <Note tone={r.pairs >= 3 && r.spreadMs <= 2 * Math.max(17, r.frameMs) ? "info" : "warn"} title={`The strip lit ${Math.abs(r.medianMs)} ms ${r.medianMs >= 0 ? "after" : "before"} the beep in the recording`}>
+          {`${r.pairs} of ${r.beeps} beeps matched (spread ${r.spreadMs} ms, one frame ${r.frameMs} ms). Suggested: strip timing offset ${r.suggestion.stripOffsetMs} ms${r.suggestion.fineMs !== null ? `, delay ${r.suggestion.delaySec} s + ${r.suggestion.fineMs} ms` : ""}. ${r.suggestion.note}${r.applied ? " Applied." : ""}`}
+        </Note>
+      ) : null}
+    </section>
   );
 }

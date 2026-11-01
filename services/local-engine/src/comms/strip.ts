@@ -190,6 +190,8 @@ export class SpeakerStrip {
   /** Sent messages with when they were due and sent (tests, the support file's last few). */
   readonly log: { dueMs: number; sentMs: number; msg: StripMessage }[] = [];
   private counters = { configs: 0, speakingChanges: 0, late: 0 };
+  /** The timing test: every card lit on the blocks of these timeline sample ranges (the beep's own blocks). */
+  private forced: { start: number; end: number }[] = [];
   /** The settings and the other inputs, read at most every INPUTS_MS (every block is 10 ms; each read is a database row and a parse). */
   private inputs: { atMs: number; cfg: StripSettings; sig: string; latencyMs: number; audible: boolean } | null = null;
 
@@ -220,6 +222,11 @@ export class SpeakerStrip {
 
   url(): string {
     return `http://127.0.0.1:${this.d.overlayPort()}/comms/recording?t=${this.token()}`;
+  }
+
+  /** The timing test (comms/timing-test.ts): every card lit on the blocks overlapping these ranges (timeline samples), timed like speech. */
+  setForced(ranges: { start: number; end: number }[]): void {
+    this.forced = ranges.map((r) => ({ ...r }));
   }
 
   /** `/comms-rec-ws` on the overlay server (token checked there). Read-only. */
@@ -323,6 +330,12 @@ export class SpeakerStrip {
         if (st.lit && (st.lastRaw === null || endMs - st.lastRaw >= s.releaseMs)) st.lit = false;
       }
       if (st.lit) speaking.push(c.id);
+    }
+    // The timing test: all cards on the beep's blocks (the same blocks the recording output beeps on).
+    if (this.forced.length) {
+      const end = b.start + BLOCK;
+      if (this.forced.some((f) => f.start < end && f.end > b.start)) speaking.splice(0, speaking.length, ...this.cards.map((c) => c.id));
+      this.forced = this.forced.filter((f) => f.end > end);
     }
     const ssig = speaking.join(",");
     if (ssig !== this.speakingSig) {

@@ -26,6 +26,8 @@ export interface FrameLine {
   type: "frame";
   s: number;
   at: number;
+  /** The frame's own time as its sender put it in the NDI timecode (wall ms): the block it carries. */
+  tc?: number;
   n: number;
   rate: number;
   ch: number;
@@ -47,6 +49,8 @@ export interface NdiRunResult {
   latency: { public: number[]; recording: number[] };
   /** Public sound received that belongs to a burst sent while the gate was closed (must be 0). */
   leaked: number;
+  /** The first leaked frames: their time in the run (ms), level and how late they arrived. */
+  leakDetail: { t: number; peak: number; arrivedAfterMs: number }[];
   /** Onsets that belong to no burst sent (a burst cut by a gap starts again: counted here, not as a leak). */
   unexplained: { public: number; recording: number };
   /** Bursts heard with a gap inside (an underrun or a skip while they played). */
@@ -186,8 +190,18 @@ export async function runNdi(o: { ms: number; latencyMs?: number; clockAudio?: b
   const owner = <T extends { wall: number }>(a: number, want: T[]) => want.find((w) => a - w.wall > -5 && a - w.wall < 400) ?? null;
   const pubOwners = onsetsOf(frames.public).map((a) => owner(a, sent.public));
   const recOwners = onsetsOf(frames.recording).map((a) => owner(a, sent.recording));
-  // A leak: sound heard from a burst sent while the gate was closed.
-  const leaked = pubOwners.filter((w) => w && !w.open).length;
+  // A leak: sound heard from a block the guard must silence (the gate closed at its start and its
+  // end: the block where it closes carries the mixer's fade, here the burst as it was). Exact by each
+  // frame's own time (its timecode: the block it carries) when the frames have one; else by the burst
+  // an onset follows (which a burst arriving very late under load can misname as the next one).
+  const openAt = (tc: number) => {
+    const t = tc - performance.timeOrigin - tStart;
+    return t >= 1000 && t < o.ms / 2;
+  };
+  const timed = frames.public.length > 0 && frames.public.every((f) => typeof f.tc === "number" && f.tc > 0);
+  const leakedFrames = timed ? frames.public.filter((f) => f.peak >= 0.02 && !openAt(f.tc!) && !openAt(f.tc! - BLOCK / 48)) : [];
+  const leaked = timed ? leakedFrames.length : pubOwners.filter((w) => w && !w.open).length;
+  const leakDetail = leakedFrames.slice(0, 5).map((f) => ({ t: Math.round(f.tc! - performance.timeOrigin - tStart), peak: Math.round(f.peak * 1000) / 1000, arrivedAfterMs: Math.round(f.at - f.tc!) }));
   const brokenOf = (owners: ({ wall: number } | null)[]) => owners.length - new Set(owners.filter(Boolean)).size - owners.filter((w) => !w).length;
   const gotPub = new Set(pubPairs.filter((p) => p.sent?.open).map((p) => p.sent!.wall));
   const gotRec = new Set(recPairs.filter((p) => p.sent).map((p) => p.sent!.wall));
@@ -200,6 +214,7 @@ export async function runNdi(o: { ms: number; latencyMs?: number; clockAudio?: b
     sent,
     latency: { public: pubPairs.filter((p) => p.sent?.open).map((p) => p.at - p.sent!.wall), recording: recPairs.filter((p) => p.sent).map((p) => p.at - p.sent!.wall) },
     leaked,
+    leakDetail,
     unexplained: { public: pubOwners.filter((w) => !w).length, recording: recOwners.filter((w) => !w).length },
     broken: { public: brokenOf(pubOwners), recording: brokenOf(recOwners) },
     missedPublic: inWindow(sent.public.filter((x) => x.open)).filter((x) => !gotPub.has(x.wall)).length,

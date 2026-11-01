@@ -84,6 +84,13 @@ export interface CommsTab {
   listener: { clientId: number; nickname: string; inputMuted: boolean; inputDeactivated: boolean; outputMuted: boolean; recording: boolean } | null;
   capturing: boolean;
   clients: number;
+  schid?: number;
+  /** The team this tab is (slot A or B's). */
+  team?: { slot: SlotId; id: string | null; name: string | null } | null;
+  /** The plugin made it listen-only by itself (it remembered the team tab across a TeamSpeak restart). */
+  restoredByPlugin?: boolean;
+  /** Matchframe handed it back to TeamSpeak (a remembered tab that is no team's now). */
+  released?: boolean;
 }
 
 export interface CommsSlot {
@@ -99,6 +106,8 @@ export interface CommsSlot {
   issue: string | null;
   lost: { atMs: number; reason: string } | null;
   tab: CommsTab | null;
+  /** TeamSpeak's own link into the team's channel (no password in it). */
+  connectLink?: string | null;
 }
 
 export interface NdiStats {
@@ -125,7 +134,7 @@ export interface CommsOnAir {
   listenIn: ListenInView;
   settings: CommsPublicSettings;
   outputs: {
-    ndi: { enabled: boolean; state: "off" | "starting" | "running" | "error"; detail: string; version: string | null; names: { public: string; recording: string }; stats: NdiStats | null };
+    ndi: { enabled: boolean; state: "off" | "starting" | "running" | "error"; detail: string; version: string | null; names: { public: string; recording: string }; stats: NdiStats | null; restarts?: number; lastExit?: { code: number | null; at: string; ranMs: number } | null; nextStartInMs?: number | null; backoffMs?: number };
     publicGuard: { blocksSilenced: number };
     preview: { listeners: number; messages: number; dropped: number; connects: number };
   };
@@ -229,6 +238,52 @@ export interface CalibrationStatus {
   marks: { who: string; offsetMs: number; agoMs: number }[];
   suggestion: { n: number; medianOffsetMs: number; spreadMs: number; delayMs: number; delaySec: number; fineMs: number } | null;
   sendLatencyMs: number;
+  /** The last suggestion applied. */
+  applied?: { at: string; delayMs: number; marks: number; spreadMs: number } | null;
+}
+
+/** The recording's timing test (services/local-engine/src/comms/timing-test.ts, ADR-069). */
+export interface TimingTestResult {
+  file: string;
+  analysedAt: string;
+  beeps: number;
+  flashes: number;
+  pairs: number;
+  medianMs: number;
+  spreadMs: number;
+  frameMs: number;
+  suggestion: { stripOffsetMs: number; fineMs: number | null; delaySec: number | null; note: string };
+  applied: boolean;
+}
+
+export interface TimingTestStatus {
+  running: { startsInMs: number; endsInMs: number; beeps: number } | null;
+  lastRun: { startedAt: string; beeps: number; cards: number; file: string | null } | null;
+  result: TimingTestResult | null;
+  analysing: boolean;
+  beep: { hz: number; ms: number; everyMs: number; count: number };
+}
+
+/** GET /api/v1/comms/presets (comms/presets.ts, ADR-069). */
+export interface PresetsView {
+  currentEventId: string | null;
+  currentEventName: string | null;
+  active: { id: string; name: string; changed: boolean; differs: string[] } | null;
+  presets: { id: string; name: string; eventId: string | null; eventName: string | null; createdAt: string; savedAt: string; teams: { id: string; name: string | null }[]; people: number; included: { broadcast: number; recording: number }; delayMs: number; active: boolean }[];
+  loaded?: { name: string; skipped: string[] };
+}
+
+/** GET /api/v1/comms/setup (comms/setup.ts, ADR-069). */
+export interface SetupChecklistView {
+  steps: { id: "teamspeak-plugin" | "distroav" | "source-record" | "obs-scenes" | "calibration"; title: string; state: "done" | "todo" | "unknown"; label: string; detail: string; items: { label: string; ok: boolean | null; detail: string }[] }[];
+  obsConnected: boolean;
+  plugin: {
+    platform: string | null;
+    bundled: { built: boolean; version: string | null; pluginApi: number | null; binary: string | null; package: string | null; sha256: string | null; note: string | null };
+    installed: { teamspeakFolder: string | null; teamspeakFound: boolean; pluginsDir: string | null; path: string | null; same: boolean };
+    connected: { version: string | null; apiVersion: number | null; platform: string | null; ts3: string | null }[];
+    lastInstall: { at: string; ok: boolean; detail: string } | null;
+  };
 }
 
 export interface LiveSources {
@@ -252,12 +307,15 @@ export interface CommsView {
     plugins: { session: string; instance: string; plugin: { name: string; version: string; apiVersion: number } | null; ts3: { clientLibVersion: string } | null; platform: string | null; connectedForMs: number }[];
   };
   slots: CommsSlot[];
+  /** Every TeamSpeak tab the plugin reports (which is which team). */
+  tabs?: CommsTab[];
   participants: CommsParticipant[];
   recording: { team: string | null; signal: boolean };
   onAir: CommsOnAir;
   recorder: RecorderStatus;
   strip: StripStatus;
   calibration: CalibrationStatus;
+  timingTest?: TimingTestStatus;
 }
 
 export interface ObsCheck {

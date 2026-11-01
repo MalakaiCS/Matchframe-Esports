@@ -11,6 +11,7 @@ import { RECORDING_NDI_NAME } from "../src/comms/outputs.ts";
 import { STRIP_SOURCE, type SpeakerStrip } from "../src/comms/strip.ts";
 import { startServers } from "../src/servers.ts";
 import { StandInObs } from "./stand-in-obs.ts";
+import { FakeNdiWorker } from "./helpers/fake-ndi-worker.ts";
 import { FakeTs3Plugin, tone, until } from "./helpers/fake-ts3-plugin.ts";
 
 async function freePort(): Promise<number> {
@@ -30,7 +31,8 @@ const GB = 1024 ** 3;
  * in a stand-in OBS (Source Record's filter kind there or not), Start/Stop over the filter's record
  * mode, the TeamSpeak recording signal, the team by id, levels, folder, status (file, free space,
  * OBS's track 1, faults), adoption after a restart; the speaker strip's page, token and socket, kept
- * apart from the public overlay. The engine's own clock; a stand-in TeamSpeak plugin; NDI off.
+ * apart from the public overlay. The engine's own clock; a stand-in TeamSpeak plugin; a stand-in NDI
+ * process (the recording comms must be sent for the recording not to be in fault).
  */
 describe("the dedicated comms recording through the engine", () => {
   let e: Engine;
@@ -43,6 +45,7 @@ describe("the dedicated comms recording through the engine", () => {
   let teamA: string;
   let teamB: string;
   let folder: string;
+  let ndiWorkers: FakeNdiWorker[] = [];
   const get = async (path: string) => fetch(`${api}${path}`, { headers: auth });
   const post = async (path: string, body: unknown = {}) => fetch(`${api}${path}`, { method: "POST", headers: auth, body: JSON.stringify(body) });
   const put = async (path: string, body: unknown) => fetch(`${api}${path}`, { method: "PUT", headers: auth, body: JSON.stringify(body) });
@@ -64,7 +67,13 @@ describe("the dedicated comms recording through the engine", () => {
     const dir = mkdtempSync(join(tmpdir(), "mf-comms-rec-"));
     folder = join(dir, "recordings");
     e = new Engine(loadConfig({ dataDir: dir, gsiPort: ports.gsi, apiPort: ports.api, overlayPort: ports.overlay, host: "127.0.0.1", captainUiDir: null, hudRendererDir: null, mapPackDir: null, workersDir: null, pythonPath: null, cloudEnforcement: "off" }));
-    e.settings.set("comms.public", { ndi: { enabled: false } });
+    // A stand-in NDI process (the real one is tested in team-comms-ndi.test.ts).
+    ndiWorkers = [];
+    (e.commsPublic.outputs as unknown as { d: { spawnWorker?: () => FakeNdiWorker } }).d.spawnWorker = () => {
+      const w = new FakeNdiWorker();
+      ndiWorkers.push(w);
+      return w;
+    };
     await e.init();
     servers = await startServers(e);
     auth = { authorization: `Bearer ${e.secrets.operatorToken}`, "content-type": "application/json" };
@@ -287,6 +296,82 @@ describe("the dedicated comms recording through the engine", () => {
     expect(idle.status().state).toBe("idle");
     idle.dispose();
     await post("/api/v1/comms/recording/stop");
+  });
+
+  it("the timing test through the API: refused unless recording; while recording, beeps scheduled and the strip's cards to light; nothing to analyse before a file", async () => {
+    let r = await post("/api/v1/comms/timing-test/start");
+    expect(r.status).toBe(409);
+    expect(((await r.json()) as { message: string }).message).toMatch(/Start the dedicated recording first/);
+    expect((await post("/api/v1/comms/recording/team", { teamId: teamA })).status).toBe(200);
+    expect((await post("/api/v1/comms/recording/start")).status).toBe(200);
+    r = await post("/api/v1/comms/timing-test/start");
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ running: { beeps: 5 }, beep: { hz: 3150, ms: 200, everyMs: 1000 } });
+    const v = (await (await get("/api/v1/comms")).json()) as { timingTest: { lastRun: { cards: number } } };
+    expect(v.timingTest.lastRun.cards).toBe(2);
+    expect((await post("/api/v1/comms/timing-test/analyse", { file: "/etc/passwd" })).status).toBe(400);
+    expect((await post("/api/v1/comms/timing-test/apply")).status).toBe(409);
+    expect((await post("/api/v1/comms/recording/stop")).status).toBe(200);
+  });
+
+  it("an explicit RECORDING FAULT while the recording comms aren't sent (the NDI process stopped) or OBS is away; back by itself when OBS still records; OBS restarted with Source Record stopped: Start makes a new file", async () => {
+    const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+    const settle = async (want: string) => {
+      for (let i = 0; i < 100 && (await view()).recorder.state !== want; i++) {
+        await e.commsRecording.tick();
+        await sleep(20);
+      }
+      return view();
+    };
+    expect((await post("/api/v1/comms/recording/team", { teamId: teamA })).status).toBe(200);
+    expect((await post("/api/v1/comms/recording/start")).status).toBe(200);
+    mkdirSync(folder, { recursive: true });
+    const first = join(folder, "MatchFrame Comms NL 2026-11-01 11-00-00.mkv");
+    writeFileSync(first, Buffer.alloc(2000));
+    let v = await settle("recording");
+    expect(v.recorder.state).toBe("recording");
+    // The NDI process dies: the file would have gameplay without comms: said as a fault, not a warning.
+    ndiWorkers.at(-1)!.crash(1);
+    v = await view();
+    expect(v.recorder).toMatchObject({ state: "fault", label: "RECORDING FAULT" });
+    expect(v.recorder.detail).toMatch(/recording comms \(NDI “MatchFrame Comms Recording”\) aren't being sent: The NDI output process stopped \(exit 1\)/);
+    // Source Record carries on in OBS meanwhile; the fault clears when the comms are sent again.
+    expect(filter()!.settings.record_mode).toBe(1);
+    e.commsPublic.outputs.sync(true);
+    appendFileSync(first, Buffer.alloc(1000));
+    v = await settle("recording");
+    expect(v.recorder.state).toBe("recording");
+    // OBS goes away: Matchframe can't confirm the recording: a fault.
+    obs.drop();
+    await until(() => !e.obs.state.connected, 3000, "OBS gone");
+    v = await view();
+    expect(v.recorder.state).toBe("fault");
+    expect(v.recorder.detail).toMatch(/OBS isn't connected: Matchframe can't confirm the recording/);
+    // ...and back, Source Record still recording (or recording again by itself into a new file after an OBS restart): recording, its newest file.
+    const second = join(folder, "MatchFrame Comms NL 2026-11-01 11-05-00.mkv");
+    writeFileSync(second, Buffer.alloc(500));
+    obs.up();
+    await until(() => e.obs.state.connected, 5000, "OBS back");
+    v = await settle("recording");
+    expect(v.recorder.state).toBe("recording");
+    expect(v.recorder.file).toMatchObject({ path: second });
+    expect(v.recorder.file!.files).toEqual(expect.arrayContaining([first, second]));
+    // OBS restarted and Source Record isn't recording: an explicit fault naming it, and Start makes a new file.
+    obs.drop();
+    await until(() => !e.obs.state.connected, 3000, "OBS gone again");
+    filter()!.settings.record_mode = 0;
+    obs.up();
+    await until(() => e.obs.state.connected, 5000, "OBS back again");
+    v = await settle("fault");
+    expect(v.recorder.state).toBe("fault");
+    expect(v.recorder.detail).toMatch(/OBS was disconnected \(restarted\?\) and Source Record isn't recording any more/);
+    expect((v.recorder as unknown as { actions: { start: { disabledReason: string | null } } }).actions.start.disabledReason).toBeNull();
+    const again = await post("/api/v1/comms/recording/start");
+    expect(again.status).toBe(200);
+    expect(await again.json()).toMatchObject({ state: "recording", last: { reason: expect.stringMatching(/ended by a fault/) } });
+    expect(filter()!.settings.record_mode).toBe(1);
+    expect(plugin.recording || e.teamComms.recordingSignalOn).toBe(true);
+    expect((await post("/api/v1/comms/recording/stop")).status).toBe(200);
   });
 
   it("the strip page has its own token and socket, carries the included people of the recording team only, and the public overlay never carries any of it", async () => {

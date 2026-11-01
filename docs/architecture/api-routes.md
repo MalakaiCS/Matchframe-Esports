@@ -335,6 +335,17 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/comms/recording/obs` | settings.manage |
 | PUT | `/api/v1/comms/strip` | program.control |
 | PUT | `/api/v1/comms/strip/crop` | program.control |
+| POST | `/api/v1/comms/timing-test/start` | program.control |
+| POST | `/api/v1/comms/timing-test/analyse` | program.control |
+| POST | `/api/v1/comms/timing-test/apply` | program.control |
+| GET | `/api/v1/comms/setup` | state.read |
+| POST | `/api/v1/comms/teamspeak-plugin/install` | settings.manage |
+| GET | `/api/v1/comms/presets` | state.read |
+| POST | `/api/v1/comms/presets` | program.control |
+| POST | `/api/v1/comms/presets/:id/save` | program.control |
+| POST | `/api/v1/comms/presets/:id/load` | program.control |
+| PUT | `/api/v1/comms/presets/:id` | program.control |
+| DELETE | `/api/v1/comms/presets/:id` | program.control |
 | POST | `/api/v1/comms/calibration/arm` | program.control |
 | POST | `/api/v1/comms/calibration/seen` | program.control |
 | POST | `/api/v1/comms/calibration/clear` | program.control |

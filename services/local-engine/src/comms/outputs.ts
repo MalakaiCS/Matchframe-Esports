@@ -6,6 +6,7 @@ import type { Logger } from "../logger.ts";
 import { BLOCK, type MixBlock } from "./mixer.ts";
 import type { NdiReply, NdiRequest, NdiStats } from "./ndi-worker.ts";
 import { PreviewHub } from "./preview.ts";
+import { BEEP_AMP, BEEP_HZ, BEEP_RAMP_SAMPLES } from "./timing-test.ts";
 import type { TeamComms } from "./service.ts";
 
 /**
@@ -21,12 +22,19 @@ import type { TeamComms } from "./service.ts";
  *   NDI, never OBS.
  *
  * The NDI senders run in their own process (ndi-worker.ts) so a stall there can't block the engine;
- * if it stops while a listen-in is open, the controller closes the listen-in (FAULT).
+ * if it stops while a listen-in is open, the controller closes the listen-in (FAULT). While it is down
+ * nothing leaves for OBS (the public route is silent; the recording shows a fault): it is started
+ * again after RESTART_MS, doubling each time it stops again soon after (up to MAX_RESTART_MS), back
+ * to RESTART_MS once it has run STABLE_MS. The status says how many restarts, the last exit and when
+ * the next try is.
  */
 
 export const PUBLIC_NDI_NAME = "MatchFrame Comms";
 export const RECORDING_NDI_NAME = "MatchFrame Comms Recording";
-const RESTART_MS = 3000;
+export const RESTART_MS = 3000;
+export const MAX_RESTART_MS = 30_000;
+/** Running this long without stopping resets the back-off. */
+export const STABLE_MS = 60_000;
 
 export interface NdiWorkerLike {
   send(req: NdiRequest): void;
@@ -69,6 +77,12 @@ export interface OutputsStatus {
     version: string | null;
     names: { public: string; recording: string };
     stats: NdiStats | null;
+    /** The NDI process stopped by itself this many times since Team Comms started it. */
+    restarts: number;
+    lastExit: { code: number | null; at: string; ranMs: number } | null;
+    /** While stopped: when it is started again (ms from now), and the back-off in effect. */
+    nextStartInMs: number | null;
+    backoffMs: number;
   };
   /** Blocks sent as zeros because the public gate was closed. */
   publicGuard: { blocksSilenced: number };
@@ -84,6 +98,8 @@ export interface CommsOutputsDeps {
   spawnWorker?: () => NdiWorkerLike;
   /** The NDI output stopped or failed while it should run (the controller closes a listen-in). */
   onFault?: (reason: string) => void;
+  /** The computer's clock (ms since 1970) for the restart back-off (tests). */
+  wallNow?: () => number;
 }
 
 export class CommsOutputs {
@@ -96,8 +112,12 @@ export class CommsOutputs {
   private ndiVersion: string | null = null;
   private stats: NdiStats | null = null;
   private restartTimer: ReturnType<typeof setTimeout> | null = null;
-  /** After the process stopped: not started again before this (Date.now()), unless asked to. */
+  /** After the process stopped: not started again before this (wall ms), unless asked to. */
   private restartAfter = 0;
+  private backoff = RESTART_MS;
+  private restarts = 0;
+  private lastExit: OutputsStatus["ndi"]["lastExit"] = null;
+  private runningSince: number | null = null;
   private readonly taps = new Set<(samples: Float32Array, start: number, block: MixBlock) => void>();
   private readonly recTaps = new Set<(samples: Float32Array, start: number, block: MixBlock) => void>();
   /** The recording's comms level as a gain: where the last block ended, and where the next goes. */
@@ -105,6 +125,8 @@ export class CommsOutputs {
   private recGainTarget = 1;
   private readonly off: () => void;
   private generation = 0;
+  /** The timing test's beeps (timeline samples), added to the recording output only. */
+  private beeps: { start: number; end: number }[] = [];
 
   constructor(private readonly d: CommsOutputsDeps) {
     this.off = d.comms.onBlock((b) => this.onBlock(b));
@@ -122,9 +144,22 @@ export class CommsOutputs {
     return () => this.recTaps.delete(fn);
   }
 
+  /**
+   * The timing test (comms/timing-test.ts): a BEEP_HZ tone in the recording output over these
+   * timeline sample ranges, at a fixed level after the comms level. Never the public output or the
+   * preview, never the mixes (so no activity sees it).
+   */
+  setBeeps(beeps: { start: number; end: number }[]): void {
+    this.beeps = beeps.map((b) => ({ ...b }));
+  }
+
   /** The dedicated recording's comms level (dB; −60 or less: off). Ramped over the next block. */
   setRecordingGainDb(db: number): void {
     this.recGainTarget = db <= -60 ? 0 : 10 ** (db / 20);
+  }
+
+  private wall(): number {
+    return this.d.wallNow ? this.d.wallNow() : Date.now();
   }
 
   private wallOf(start: number): number {
@@ -147,6 +182,21 @@ export class CommsOutputs {
       for (let i = 0; i < BLOCK; i++) rec[i] = b.out.recording[i]! * (from + step * (i + 1));
       this.recGain = this.recGainTarget;
     }
+    if (this.beeps.length) {
+      const end = b.start + BLOCK;
+      for (const bp of this.beeps) {
+        if (bp.start >= end || bp.end <= b.start) continue;
+        if (rec === b.out.recording) rec = Float32Array.from(rec);
+        for (let i = 0; i < BLOCK; i++) {
+          const s = b.start + i;
+          if (s < bp.start || s >= bp.end) continue;
+          const k = s - bp.start;
+          const env = Math.min(1, k / BEEP_RAMP_SAMPLES, (bp.end - s) / BEEP_RAMP_SAMPLES);
+          rec[i] = rec[i]! + BEEP_AMP * env * Math.sin((2 * Math.PI * BEEP_HZ * k) / 48_000);
+        }
+      }
+      this.beeps = this.beeps.filter((bp) => bp.end > end);
+    }
     for (const fn of this.recTaps) fn(rec, b.start, b);
     if (this.worker && this.ndiState !== "error") this.worker.send({ type: "block", start: b.start, wallMs: this.wallOf(b.start), pub, rec });
     this.preview.push(b.out.preview, b.start);
@@ -155,7 +205,7 @@ export class CommsOutputs {
   /** Starts or stops the NDI process for Team Comms on/off and the NDI setting (`now`: start it again without waiting out the back-off). */
   sync(now = false): void {
     const want = this.d.comms.enabled && this.d.settings().enabled;
-    if (want && !this.worker && !now && Date.now() < this.restartAfter) return;
+    if (want && !this.worker && !now && this.wall() < this.restartAfter) return;
     if (want && !this.worker) this.startWorker();
     else if (!want && this.worker) this.stopWorker(this.d.comms.enabled ? "The NDI output is off (Team Comms → Public output)." : "Team Comms is off.");
     else if (!want) this.ndiDetail = this.d.comms.enabled ? "The NDI output is off (Team Comms → Public output)." : "Team Comms is off.";
@@ -183,6 +233,7 @@ export class CommsOutputs {
         this.ndiVersion = r.ndi ?? this.ndiVersion;
         if (r.state === "running") {
           this.ndiState = "running";
+          this.runningSince = this.wall();
           this.ndiDetail = `Sending “${PUBLIC_NDI_NAME}” and “${RECORDING_NDI_NAME}” (${r.ndi ?? "NDI"}).`;
           this.d.logger.info("team comms: NDI output running", { ndi: r.ndi });
         } else if (r.state === "error") {
@@ -193,15 +244,24 @@ export class CommsOutputs {
         }
       }
     });
+    const startedAt = this.wall();
     w.onExit((code) => {
       if (gen !== this.generation || this.worker !== w) return;
+      const now = this.wall();
+      const ranMs = now - (this.runningSince ?? startedAt);
       this.worker = null;
+      this.runningSince = null;
+      this.restarts++;
+      // Stopped again soon after a start: wait longer each time; after a long good run, the shortest wait.
+      this.backoff = ranMs >= STABLE_MS ? RESTART_MS : this.lastExit ? Math.min(MAX_RESTART_MS, this.backoff * 2) : RESTART_MS;
+      this.lastExit = { code, at: new Date(now).toISOString(), ranMs: Math.round(ranMs) };
       this.ndiState = "error";
-      this.ndiDetail = `The NDI output process stopped (${code ?? "killed"}); starting it again.`;
-      this.d.logger.warn("team comms: NDI output process stopped", { code });
+      this.ndiDetail = `The NDI output process stopped (exit ${code ?? "killed"}${this.restarts > 1 ? `, ${this.restarts} times` : ""}): nothing reaches OBS. Starting it again in ${Math.round(this.backoff / 1000)} s.`;
+      this.d.logger.warn("team comms: NDI output process stopped", { code, restarts: this.restarts, backoffMs: this.backoff });
       this.d.onFault?.("the public output (NDI) process stopped");
-      this.restartAfter = Date.now() + RESTART_MS;
-      this.restartTimer = setTimeout(() => this.sync(), RESTART_MS);
+      this.restartAfter = now + this.backoff;
+      if (this.restartTimer) clearTimeout(this.restartTimer);
+      this.restartTimer = setTimeout(() => this.sync(), this.backoff);
       this.restartTimer.unref?.();
     });
     const s = this.d.settings();
@@ -212,6 +272,7 @@ export class CommsOutputs {
     this.generation++;
     const w = this.worker;
     this.worker = null;
+    this.runningSince = null;
     w?.send({ type: "stop" });
     w?.kill();
     this.ndiState = "off";
@@ -234,8 +295,9 @@ export class CommsOutputs {
 
   status(): OutputsStatus {
     const s = this.d.settings();
+    const waiting = !this.worker && this.ndiState === "error" && this.restartAfter > 0 ? Math.max(0, this.restartAfter - this.wall()) : null;
     return {
-      ndi: { enabled: s.enabled, state: this.ndiState, detail: this.ndiDetail, version: this.ndiVersion, names: { public: PUBLIC_NDI_NAME, recording: RECORDING_NDI_NAME }, stats: this.stats },
+      ndi: { enabled: s.enabled, state: this.ndiState, detail: this.ndiDetail, version: this.ndiVersion, names: { public: PUBLIC_NDI_NAME, recording: RECORDING_NDI_NAME }, stats: this.stats, restarts: this.restarts, lastExit: this.lastExit, nextStartInMs: waiting, backoffMs: this.backoff },
       publicGuard: { blocksSilenced: this.blocksSilenced },
       preview: this.preview.status(),
     };

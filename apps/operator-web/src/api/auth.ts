@@ -26,6 +26,8 @@ declare global {
       openDataDir?: () => Promise<string>;
       /** Opens the folder highlight reels go in (the engine's folder when given, else the Videos folder's "Matchframe Highlights"). */
       openHighlights?: (folder?: string) => Promise<string>;
+      /** Team Comms: opens TeamSpeak 3's plugins folder, or the program's TeamSpeak plugin files ("package"). */
+      openTs3Folder?: (which: "plugins" | "package") => Promise<string | null>;
       /** Choose a folder on this computer (Storage); null when cancelled. */
       pickDirectory?: (title: string) => Promise<string | null>;
       /** Let other computers on the network reach this computer's engine (restarts it). */

@@ -537,4 +537,33 @@ describe("Team Comms on air: caster ducking through OBS, with the replays' ducki
     await until(() => !next.ducking.lowered, 2000, "put back at start");
     expect(vol()).toMatchObject({ volumeMul: 0.8, muted: false });
   });
+
+  it("OBS goes away and comes back during a listen-in: the listen-in stays on air (comms reach OBS over NDI), the casters go down again from their saved volume; ended while OBS is away, they go back once it answers", async () => {
+    const { pub, vol, obs, r, air } = await withObs();
+    // As the engine runs it: watching OBS (re)connect, retrying what couldn't be put back.
+    pub.start();
+    pub.controller.listenIn(TEAM_A);
+    await until(() => vol().volumeMul < 0.5, 2000, "ducked");
+    // OBS restarts: it comes back with the casters at their own volume (its saved scene collection).
+    obs.drop();
+    obs.inputs.get("Casters")!.audio.volumeMul = 0.8;
+    const t0 = r.sim;
+    await r.run(400, () => [r.a[0]!]);
+    expect(pub.controller.view().state).toBe("listening");
+    expect(peakAmplitude(slice(air, t0 + 100, t0 + 400), r.a[0]!.freq)).toBeGreaterThan(PRESENT);
+    obs.up();
+    // The manager reconnects by itself (about a second): down again, from the saved 0.8.
+    await until(() => Math.abs(vol().volumeMul - 0.8 * 10 ** (-10 / 20)) < 1e-4, 5000, "ducked again after OBS came back");
+    expect(pub.ducking.status()).toMatchObject({ state: "lowered", lowered: ["Casters"] });
+    // End Listen-In while OBS is away: nothing can be put back yet, kept (pending) and done when OBS answers.
+    obs.drop();
+    await new Promise((res) => setTimeout(res, 30));
+    pub.controller.end();
+    await until(() => /Not put back yet/.test(pub.ducking.status().lastRelease?.detail ?? ""), 2000, "release tried");
+    expect(pub.ducking.status().state).toBe("pending");
+    obs.up();
+    await until(() => pub.ducking.status().state === "idle", 6000, "put back once OBS answered");
+    expect(vol()).toMatchObject({ volumeMul: 0.8, muted: false });
+    expect(pub.controller.view().state).toBe("off");
+  });
 });

@@ -8,7 +8,7 @@ import { TeamCommsScreen } from "./TeamComms.tsx";
 import { TeamCommsCard } from "./live/TeamCommsCard.tsx";
 import { PreviewPanel } from "./comms/PreviewPanel.tsx";
 import type { CommsPreviewPlayer, PreviewStatus } from "../lib/commsPreview.ts";
-import type { CalibrationStatus, CommsParticipant, CommsView, ListenInView, RecorderStatus, StripStatus } from "./comms/types.ts";
+import type { CalibrationStatus, CommsParticipant, CommsView, ListenInView, PresetsView, RecorderStatus, SetupChecklistView, StripStatus, TimingTestStatus } from "./comms/types.ts";
 
 function serve(routes: Record<string, unknown | ((body: unknown) => unknown)>) {
   const calls: { method: string; path: string; body: unknown }[] = [];
@@ -442,5 +442,137 @@ describe("the dedicated comms recording", () => {
     serve({ "GET /api/v1/comms": view(), "GET /api/v1/comms/obs/inputs": { inputs: [], error: null } });
     wrap(<TeamCommsCard />, "viewer");
     expect(((await screen.findByRole("button", { name: "Start Recording" })) as HTMLButtonElement).disabled).toBe(true);
+  });
+});
+
+describe("Team Comms phase 5: presets, the setup checklist, the timing test, which tab is which team", () => {
+  const presetsView = (patch: Partial<PresetsView> = {}): PresetsView => ({
+    currentEventId: "ev1",
+    currentEventName: "Spring Cup",
+    active: { id: "p1", name: "Group stage", changed: true, differs: ["people and choices", "delay"] },
+    presets: [
+      { id: "p1", name: "Group stage", eventId: "ev1", eventName: "Spring Cup", createdAt: "2026-11-01T10:00:00.000Z", savedAt: "2026-11-01T10:00:00.000Z", teams: [{ id: "team-A", name: "Alpha Wolves" }, { id: "team-B", name: "Bravo Hawks" }], people: 14, included: { broadcast: 5, recording: 5 }, delayMs: 90_250, active: true },
+      { id: "p2", name: "Playoffs", eventId: null, eventName: null, createdAt: "2026-11-01T10:00:00.000Z", savedAt: "2026-11-01T10:00:00.000Z", teams: [], people: 0, included: { broadcast: 0, recording: 0 }, delayMs: 0, active: false },
+    ],
+    ...patch,
+  });
+  const checklistView = (patch: Partial<SetupChecklistView["plugin"]> = {}): SetupChecklistView => ({
+    obsConnected: true,
+    steps: [
+      { id: "teamspeak-plugin", title: "TeamSpeak plugin", state: "todo", label: "To do", detail: "Install the plugin, start TeamSpeak 3 and connect a tab to each team's channel.", items: [{ label: "Installed in TeamSpeak 3", ok: false, detail: "Not in TeamSpeak's plugins folder yet: Install TeamSpeak plugin." }] },
+      { id: "distroav", title: "DistroAV (NDI in OBS)", state: "done", label: "Done", detail: "OBS receives both.", items: [] },
+      { id: "source-record", title: "Source Record (the comms recording)", state: "done", label: "Done", detail: "Installed.", items: [] },
+      { id: "obs-scenes", title: "OBS scenes", state: "unknown", label: "Not checked", detail: "Connect OBS to check.", items: [] },
+      { id: "calibration", title: "Calibration against the gameplay", state: "todo", label: "To do", detail: "Measure the delay.", items: [] },
+    ],
+    plugin: { platform: "win64", bundled: { built: true, version: "0.2.0", pluginApi: 26, binary: "C:\\Program Files\\Matchframe\\resources\\ts3-plugin\\matchframe_comms_win64.dll", package: "C:\\Program Files\\Matchframe\\resources\\ts3-plugin\\matchframe-team-comms.ts3_plugin", sha256: "x", note: null }, installed: { teamspeakFolder: "C:\\Users\\op\\AppData\\Roaming\\TS3Client", teamspeakFound: true, pluginsDir: "C:\\Users\\op\\AppData\\Roaming\\TS3Client\\plugins", path: null, same: false }, connected: [], lastInstall: null, ...patch },
+  });
+
+  it("presets: the active one and what changed, save as, load (confirmed over changes), rename, delete", async () => {
+    let pv = presetsView();
+    const calls = serve({
+      "GET /api/v1/comms": view(),
+      "GET /api/v1/comms/obs/inputs": { inputs: [], error: null },
+      "GET /api/v1/comms/setup": checklistView(),
+      "GET /api/v1/comms/presets": () => pv,
+      "POST /api/v1/comms/presets": () => pv,
+      "POST /api/v1/comms/presets/p2/load": () => (pv = { ...presetsView({ active: { id: "p2", name: "Playoffs", changed: false, differs: [] } }), loaded: { name: "Playoffs", skipped: [] } }),
+      "PUT /api/v1/comms/presets/p1": () => pv,
+      "DELETE /api/v1/comms/presets/p1": () => pv,
+    });
+    wrap(<TeamCommsScreen />);
+    expect(await screen.findByText("Active preset: Group stage. Changed since: people and choices, delay.")).toBeTruthy();
+    expect(screen.getByText("Group stage: changed")).toBeTruthy();
+    expect(screen.getByText("14 (5 broadcast, 5 recording)")).toBeTruthy();
+    expect(screen.getByText("Any event")).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", { name: "New preset name" }), { target: { value: "  Finals day " } });
+    fireEvent.click(screen.getByRole("button", { name: "Save as" }));
+    await waitFor(() => expect(calls.find((c) => c.method === "POST" && c.path === "/api/v1/comms/presets")?.body).toEqual({ name: "Finals day" }));
+    // Loading over changes asks first.
+    const loads = screen.getAllByRole("button", { name: "Load" });
+    fireEvent.click(loads[1]!);
+    expect(await screen.findByText(/has changes not saved in “Group stage” \(people and choices, delay\)/)).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Load" }));
+    await waitFor(() => expect(calls.filter((c) => c.method !== "GET").map((c) => c.path)).toContain("/api/v1/comms/presets/p2/load"));
+    expect(await screen.findByText("Active preset: Playoffs (as saved).")).toBeTruthy();
+    // Rename and delete.
+    fireEvent.click(screen.getAllByRole("button", { name: "Rename" })[0]!);
+    fireEvent.change(screen.getByRole("textbox", { name: "Rename Group stage" }), { target: { value: "Group stage A" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Rename" })[0]!);
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT" && c.path === "/api/v1/comms/presets/p1")?.body).toEqual({ name: "Group stage A" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Delete" })[0]!);
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "DELETE" && c.path === "/api/v1/comms/presets/p1")).toBe(true));
+  });
+
+  it("the setup checklist: each step in words, Install TeamSpeak plugin, the folders to install it by hand; a viewer can't install", async () => {
+    const open = vi.fn(async () => "");
+    window.matchframe = { connectionMode: "local", openTs3Folder: open } as never;
+    const calls = serve({
+      "GET /api/v1/comms": view(),
+      "GET /api/v1/comms/obs/inputs": { inputs: [], error: null },
+      "GET /api/v1/comms/presets": presetsView({ active: null, presets: [] }),
+      "GET /api/v1/comms/setup": checklistView(),
+      "POST /api/v1/comms/teamspeak-plugin/install": checklistView({ installed: { teamspeakFolder: "x", teamspeakFound: true, pluginsDir: "x", path: "x\\matchframe_comms_win64.dll", same: true }, lastInstall: { at: "2026-11-01T10:00:00.000Z", ok: true, detail: "Copied to x." } }).plugin,
+    });
+    wrap(<TeamCommsScreen />);
+    const list = await screen.findByRole("list", { name: "Team Comms setup steps" });
+    // Each step's state in a word (and a shape), not colour alone.
+    expect([...list.querySelectorAll(":scope > li")].map((li) => [li.className, li.querySelector(".badge")?.textContent])).toEqual([
+      ["comms-check-todo", "!To do"],
+      ["comms-check-done", "✓Done"],
+      ["comms-check-done", "✓Done"],
+      ["comms-check-unknown", "?Not checked"],
+      ["comms-check-todo", "!To do"],
+    ]);
+    expect(screen.getByText("2 of 5 done")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Install TeamSpeak plugin" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/comms/teamspeak-plugin/install")).toBe(true));
+    fireEvent.click(screen.getByRole("button", { name: "Open TeamSpeak's plugins folder" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show the plugin package" }));
+    expect(open.mock.calls.map((c) => (c as unknown[])[0])).toEqual(["plugins", "package"]);
+    cleanup();
+    window.matchframe = undefined;
+    serve({ "GET /api/v1/comms": view(), "GET /api/v1/comms/obs/inputs": { inputs: [], error: null }, "GET /api/v1/comms/presets": presetsView(), "GET /api/v1/comms/setup": checklistView() });
+    wrap(<TeamCommsScreen />, "viewer");
+    expect(((await screen.findByRole("button", { name: "Install TeamSpeak plugin" })) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Open TeamSpeak's plugins folder" })).toBeNull();
+  });
+
+  it("which TeamSpeak tab is which team, each team's TeamSpeak link, the NDI process restarting, the timing test", async () => {
+    const tabA = { ...slot("A", "Alpha Wolves").tab, schid: 2, team: { slot: "A" as const, id: "team-A", name: "Alpha Wolves" }, restoredByPlugin: true, released: false };
+    const lobby = { ...slot("B", "Bravo Hawks").tab, key: "i#3", schid: 3, channel: { id: 9, name: "Lobby" }, team: null, restoredByPlugin: true, released: true, capturing: false };
+    let tt: TimingTestStatus = { running: null, lastRun: null, result: null, analysing: false, beep: { hz: 3150, ms: 200, everyMs: 1000, count: 5 } };
+    const base = () =>
+      view({
+        slots: [{ ...slot("A", "Alpha Wolves"), connectLink: "ts3server://ts.example.org?port=9987&nickname=MF%20Listener%20A&channel=Team%20Alpha%20Wolves" }, slot("B", "Bravo Hawks")],
+        tabs: [tabA, lobby],
+        recorder: recorder({ state: "recording", label: "RECORDING — ALPHA WOLVES", elapsedMs: 30_000 }),
+        timingTest: tt,
+        onAir: { ...view().onAir, outputs: { ...view().onAir.outputs, ndi: { ...view().onAir.outputs.ndi, state: "error", detail: "The NDI output process stopped (exit 1, 2 times): nothing reaches OBS. Starting it again in 6 s.", restarts: 2, lastExit: { code: 1, at: "2026-11-01T10:00:00.000Z", ranMs: 4000 }, nextStartInMs: 5200, backoffMs: 6000 } } },
+      });
+    const calls = serve({
+      "GET /api/v1/comms": () => base(),
+      "GET /api/v1/comms/obs/inputs": { inputs: [], error: null },
+      "GET /api/v1/comms/presets": presetsView(),
+      "GET /api/v1/comms/setup": checklistView(),
+      "POST /api/v1/comms/timing-test/start": () => (tt = { ...tt, running: { startsInMs: 500, endsInMs: 4700, beeps: 5 }, lastRun: { startedAt: "2026-11-01T10:00:00.000Z", beeps: 5, cards: 2, file: null } }),
+      "POST /api/v1/comms/timing-test/analyse": () => (tt = { ...tt, running: null, result: { file: "D:\\Comms\\x.mkv", analysedAt: "2026-11-01T10:02:00.000Z", beeps: 5, flashes: 5, pairs: 5, medianMs: 84, spreadMs: 17, frameMs: 16.7, suggestion: { stripOffsetMs: -84, fineMs: 166, delaySec: 89, note: "The comms reach the recording 84 ms after the picture path." }, applied: false } }),
+    });
+    wrap(<TeamCommsScreen />);
+    const tabs = await screen.findByRole("table", { name: "TeamSpeak tabs" });
+    expect(within(tabs).getByText("Team A: Alpha Wolves (captured)")).toBeTruthy();
+    expect(within(tabs).getByText("Not a team tab (handed back to TeamSpeak)")).toBeTruthy();
+    expect(within(tabs).getAllByText(/Kept listen-only and silent by the plugin before Matchframe asked/)).toHaveLength(2);
+    expect(screen.getByText("ts3server://ts.example.org?port=9987&nickname=MF%20Listener%20A&channel=Team%20Alpha%20Wolves")).toBeTruthy();
+    // One click hands it to TeamSpeak (the program opens TeamSpeak's own links).
+    expect(screen.getByRole("link", { name: "Connect in TeamSpeak" }).getAttribute("href")).toBe("ts3server://ts.example.org?port=9987&nickname=MF%20Listener%20A&channel=Team%20Alpha%20Wolves");
+    expect(screen.getByText(/2 \(last: exit 1 after 4 s\) · starting again in 6 s/)).toBeTruthy();
+    expect(screen.getByText(/The public route is silent and the dedicated recording shows a fault/)).toBeTruthy();
+    // The timing test: run while recording; finding it waits for the recording to stop.
+    fireEvent.click(screen.getByRole("button", { name: "Run timing test" }));
+    await waitFor(() => expect(calls.some((c) => c.path === "/api/v1/comms/timing-test/start")).toBe(true));
+    expect(await screen.findByText(/Beeping: 5 s left/)).toBeTruthy();
+    expect(((screen.getByRole("button", { name: "Find it in the recording" })) as HTMLButtonElement).disabled).toBe(true);
   });
 });

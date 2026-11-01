@@ -35,6 +35,12 @@ import {
  *   (commands) when more than MAX_OUTBOUND bytes are waiting.
  * - **Reconnects:** a plugin that reconnects is a new session; the comms service re-binds its
  *   TeamSpeak tabs from the snapshot it sends (instance id, server, channel).
+ * - **Liveness:** a plugin sends statistics every second and answers pings; one that has sent nothing
+ *   for STALE_MS (TeamSpeak frozen, its sender thread stuck, a half-open connection) is closed as
+ *   lost, so its tabs stop counting as captured and the public listen-in closes (silence, FAULT).
+ *   Measured on the computer's own clock, not the engine's timeline. When Matchframe itself didn't
+ *   run for a while (the computer frozen or asleep, a long stall), nothing could be read meanwhile:
+ *   every plugin gets a fresh window from then instead of being closed for Matchframe's own silence.
  */
 
 const AUTH_TIMEOUT_MS = 3000;
@@ -43,6 +49,8 @@ const MAX_SESSIONS = 4;
 const MAX_OUTBOUND = 1 << 20;
 const PING_MS = 1000;
 const ERROR_NOTICE_MS = 5000;
+/** A plugin that sent nothing for this long is closed as lost (it sends statistics every second). */
+const STALE_MS = 6000;
 
 export interface BridgeHandlers {
   onSession(s: PluginSession): void;
@@ -62,6 +70,10 @@ export interface BridgeOptions {
   handlers: BridgeHandlers;
   /** Clock pings to the plugin (ms; 0: none, the audio alone sets the clock — tests on a simulated clock). */
   pingMs?: number;
+  /** A plugin silent this long (ms, on `realNow`) is closed as lost; checked with each ping round (default 6000). */
+  staleMs?: number;
+  /** The computer's own clock for liveness (ms; default performance.now): never the simulated timeline. */
+  realNow?: () => number;
 }
 
 export interface SessionCounters {
@@ -88,13 +100,17 @@ export class PluginSession {
   private lastSeq: number | null = null;
   private lastNotice = -Infinity;
   private readonly pending = new Map<number, number>();
+  /** When anything last arrived from the plugin (the computer's own clock, ms). */
+  lastHeardAt: number;
 
   constructor(
     private readonly socket: Socket,
     private readonly bridge: CommsBridge,
     now: number,
+    realNow: number,
   ) {
     this.connectedAt = now;
+    this.lastHeardAt = realNow;
   }
 
   get authenticated(): boolean {
@@ -127,9 +143,11 @@ export class PluginSession {
     this.send(encodePing(us), false);
   }
 
-  close(reason: string, notify?: string): void {
+  /** Closes the connection (`hard`: at once, for a peer that no longer answers). */
+  close(reason: string, notify?: string, hard = false): void {
     if (this.closed) return;
     this.closed = reason;
+    if (hard) return void this.socket.destroy();
     if (notify) this.socket.write(encodeFrame(MsgType.ERROR, Buffer.from(notify, "utf8")));
     this.socket.end();
     setTimeout(() => this.socket.destroy(), 500).unref();
@@ -151,8 +169,9 @@ export class PluginSession {
   }
 
   /** @internal Bytes from the socket. */
-  receive(chunk: Buffer, now: number): void {
+  receive(chunk: Buffer, now: number, realNow: number): void {
     if (this.closed) return;
+    this.lastHeardAt = realNow;
     this.counters.bytes += chunk.length;
     if (!this.authenticated && this.reader.pending + chunk.length > PRE_AUTH_BYTES) return this.close("too much before HELLO", "send HELLO first");
     let frames;
@@ -247,6 +266,10 @@ export interface BridgeStatus {
   error: string | null;
   sessions: number;
   refused: { auth: number; foreign: number; full: number };
+  /** Plugins closed because they stopped answering. */
+  staleClosed: number;
+  /** Ping rounds that came late because Matchframe itself didn't run (liveness restarted, not closed). */
+  stalls: number;
 }
 
 export class CommsBridge {
@@ -256,8 +279,14 @@ export class CommsBridge {
   private port: number | null = null;
   private error: string | null = null;
   private readonly refused = { auth: 0, foreign: 0, full: 0 };
+  private stale = 0;
+  private stalls = 0;
 
   constructor(private readonly opts: BridgeOptions) {}
+
+  private realNow(): number {
+    return (this.opts.realNow ?? (() => performance.now()))();
+  }
 
   get handlers(): BridgeHandlers {
     return this.opts.handlers;
@@ -286,9 +315,30 @@ export class CommsBridge {
     this.error = null;
     const pingMs = this.opts.pingMs ?? PING_MS;
     if (pingMs > 0) {
+      let lastRound = this.realNow();
       this.pingTimer = setInterval(() => {
         const now = this.opts.now();
-        for (const s of this.list) if (s.authenticated) s.ping(now);
+        const real = this.realNow();
+        const staleMs = this.opts.staleMs ?? STALE_MS;
+        // This round came late: Matchframe didn't run meanwhile, and what the plugins sent then is
+        // still unread (timers run before sockets are read). Their silence was ours.
+        const late = real - lastRound - pingMs;
+        lastRound = real;
+        if (late > Math.min(1000, staleMs / 2)) {
+          this.stalls++;
+          this.opts.logger.warn("team comms: Matchframe didn't run for a while: the plugins' liveness counts from now", { stalledMs: Math.round(late) });
+          for (const s of this.list) s.lastHeardAt = Math.max(s.lastHeardAt, real);
+        }
+        for (const s of this.list) {
+          if (!s.authenticated || s.closed) continue;
+          if (real - s.lastHeardAt > staleMs) {
+            this.stale++;
+            this.opts.logger.warn("team comms plugin stopped answering", { session: s.id, silentMs: Math.round(real - s.lastHeardAt) });
+            s.close(`the plugin stopped answering (nothing for ${Math.round((real - s.lastHeardAt) / 1000)} s)`, undefined, true);
+            continue;
+          }
+          s.ping(now);
+        }
       }, pingMs);
       this.pingTimer.unref();
     }
@@ -310,7 +360,7 @@ export class CommsBridge {
   }
 
   status(): BridgeStatus {
-    return { state: this.server ? "listening" : this.error ? "error" : "stopped", port: this.port, error: this.error, sessions: this.sessions().length, refused: { ...this.refused } };
+    return { state: this.server ? "listening" : this.error ? "error" : "stopped", port: this.port, error: this.error, sessions: this.sessions().length, refused: { ...this.refused }, staleClosed: this.stale, stalls: this.stalls };
   }
 
   /** @internal */
@@ -341,13 +391,13 @@ export class CommsBridge {
       return;
     }
     socket.setNoDelay(true);
-    const s = new PluginSession(socket, this, this.opts.now());
+    const s = new PluginSession(socket, this, this.opts.now(), this.realNow());
     this.list.add(s);
     const auth = setTimeout(() => {
       if (!s.authenticated) s.close("no HELLO in time", "send HELLO first");
     }, AUTH_TIMEOUT_MS);
     auth.unref();
-    socket.on("data", (chunk: Buffer) => s.receive(chunk, this.opts.now()));
+    socket.on("data", (chunk: Buffer) => s.receive(chunk, this.opts.now(), this.realNow()));
     socket.on("error", () => undefined);
     socket.on("close", () => {
       clearTimeout(auth);

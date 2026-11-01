@@ -59,11 +59,33 @@ export class Rig {
     this.secrets = new SecretStore(join(this.dir, "secrets.json"), undefined);
   }
 
-  async start(o: { delaySec?: number; fineMs?: number; slots?: boolean } = {}): Promise<void> {
+  async start(o: { delaySec?: number; fineMs?: number; slots?: boolean; staleMs?: number } = {}): Promise<void> {
+    this.staleMs = o.staleMs;
+    this.realJump = 0;
     const teams: Record<string, Team> = {
       [TEAM_A]: { id: TEAM_A, name: "Alpha Wolves", shortName: "ALP", logoAssetId: null, primaryColor: null, secondaryColor: null, region: null, countryCode: null, sponsorMetadata: {}, archived: false },
       [TEAM_B]: { id: TEAM_B, name: "Bravo Hawks", shortName: "BRV", logoAssetId: null, primaryColor: null, secondaryColor: null, region: null, countryCode: null, sponsorMetadata: {}, archived: false },
     };
+    this.teams = teams;
+    this.makeComms();
+    if (o.slots !== false) {
+      this.comms.updateSlot("A", { channel: "Team Alpha", serverHost: "ts.example.org", serverPort: 9987, serverPassword: "s3cret-server-pw" });
+      this.comms.updateSlot("B", { channel: "Team Bravo", serverHost: "ts.example.org", serverPort: 9987, channelPassword: "s3cret-channel-pw" });
+    }
+    await this.comms.updateSettings({ enabled: true, bridgePort: 0, delaySec: o.delaySec ?? 0, fineMs: o.fineMs ?? 0 });
+    this.comms.renderUntil(this.sim);
+    this.plugin = new FakeTs3Plugin(this.port, this.token, () => this.sim);
+    await this.plugin.connect();
+    await until(() => this.plugin.welcomed, 3000, "WELCOME");
+  }
+
+  private teams: Record<string, Team> = {};
+  private staleMs: number | undefined;
+  /** Added to the computer's clock the bridge's liveness reads (a test moves it: Matchframe not running for a while). */
+  realJump = 0;
+
+  private makeComms(): void {
+    const teams = this.teams;
     this.comms = new TeamComms({
       settings: this.settings,
       secrets: this.secrets,
@@ -74,18 +96,19 @@ export class Rig {
       realtime: false,
       // Pings answered while the simulated clock stands still (during the awaits) set the plugin's clock exactly.
       pingMs: 20,
+      staleMs: this.staleMs,
+      realNow: () => performance.now() + this.realJump,
     });
     for (const name of ["public", "recording", "preview"] as const) this.comms.addSink(name, { write: (b, start) => this.out[name].set(start, Float32Array.from(b)) });
     this.comms.onBlock((b) => this.activity.set(b.start, { recording: b.activity.recording, pubTeam: b.public.team }));
-    if (o.slots !== false) {
-      this.comms.updateSlot("A", { channel: "Team Alpha", serverHost: "ts.example.org", serverPort: 9987, serverPassword: "s3cret-server-pw" });
-      this.comms.updateSlot("B", { channel: "Team Bravo", serverHost: "ts.example.org", serverPort: 9987, channelPassword: "s3cret-channel-pw" });
-    }
-    await this.comms.updateSettings({ enabled: true, bridgePort: 0, delaySec: o.delaySec ?? 0, fineMs: o.fineMs ?? 0 });
+  }
+
+  /** Matchframe restarts (a new Team Comms on the same settings and secrets): a new bridge port in the bridge file. TeamSpeak keeps running. */
+  async restartEngine(): Promise<void> {
+    await this.comms.stop();
+    this.makeComms();
+    await this.comms.start();
     this.comms.renderUntil(this.sim);
-    this.plugin = new FakeTs3Plugin(this.port, this.token, () => this.sim);
-    await this.plugin.connect();
-    await until(() => this.plugin.welcomed, 3000, "WELCOME");
   }
 
   get port(): number {

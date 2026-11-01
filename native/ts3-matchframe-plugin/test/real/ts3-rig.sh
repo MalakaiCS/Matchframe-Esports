@@ -48,7 +48,8 @@ pactl load-module module-null-sink sink_name=listen_out rate=48000 channels=2 >/
 pactl load-module module-null-sink sink_name=talk_out rate=48000 channels=2 >/dev/null
 # The server (free licence: one virtual server, 32 slots), with a WebQuery key.
 cp -r "$TS3_SERVER_DIR/." "$WORK/server/"
-(cd "$WORK/server" && TS3SERVER_LICENSE=accept LD_LIBRARY_PATH=. ./ts3server serveradmin_password=rig-admin >"$WORK/server.log" 2>&1 & echo $! >"$WORK/server.pid")
+# exec: the pid saved is the server's own (stop kills it), not a shell's around it.
+(cd "$WORK/server" && TS3SERVER_LICENSE=accept LD_LIBRARY_PATH=. exec ./ts3server serveradmin_password=rig-admin >"$WORK/server.log" 2>&1 & echo $! >"$WORK/server.pid")
 # (The HTTP query starts after the SSH host key is made: seconds after the API key is printed.)
 for _ in $(seq 120); do grep -q 'listening for http query' "$WORK/server.log" 2>/dev/null && break; sleep 0.5; done
 grep -o 'apikey= "[^"]*"' "$WORK/server.log" | sed 's/apikey= "//; s/"$//' >"$WORK/apikey"

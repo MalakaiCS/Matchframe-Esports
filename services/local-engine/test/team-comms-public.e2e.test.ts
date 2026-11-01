@@ -9,7 +9,8 @@ import { loadConfig } from "../src/config.ts";
 import { OVERLAY_SOURCE } from "../src/comms/overlay.ts";
 import { startServers } from "../src/servers.ts";
 import { StandInObs } from "./stand-in-obs.ts";
-import { FakeTs3Plugin, until } from "./helpers/fake-ts3-plugin.ts";
+import { buildSyntheticGsiPayload, syntheticRoster } from "../../../packages/cs2-state/src/testing/gsi-builder.ts";
+import { FakeTs3Plugin, peakAmplitude, tone, until } from "./helpers/fake-ts3-plugin.ts";
 
 async function freePort(): Promise<number> {
   return new Promise((resolve) => {
@@ -38,6 +39,7 @@ describe("Team Comms on air through the engine", () => {
   let obs: StandInObs;
   let teamA: string;
   let teamB: string;
+  let gsi: string;
   const get = async (path: string) => fetch(`${api}${path}`, { headers: auth });
   const post = async (path: string, body: unknown = {}) => fetch(`${api}${path}`, { method: "POST", headers: auth, body: JSON.stringify(body) });
   const put = async (path: string, body: unknown) => fetch(`${api}${path}`, { method: "PUT", headers: auth, body: JSON.stringify(body) });
@@ -47,6 +49,7 @@ describe("Team Comms on air through the engine", () => {
     const ports = { gsi: await freePort(), api: await freePort(), overlay: await freePort() };
     api = `http://127.0.0.1:${ports.api}`;
     overlay = `http://127.0.0.1:${ports.overlay}`;
+    gsi = `http://127.0.0.1:${ports.gsi}/gsi`;
     e = new Engine(loadConfig({ dataDir: mkdtempSync(join(tmpdir(), "mf-comms-air-")), gsiPort: ports.gsi, apiPort: ports.api, overlayPort: ports.overlay, host: "127.0.0.1", captainUiDir: null, hudRendererDir: null, mapPackDir: null, workersDir: null, pythonPath: null, cloudEnforcement: "off" }));
     // No NDI process here: the routing is what this checks.
     e.settings.set("comms.public", { ndi: { enabled: false } });
@@ -128,6 +131,61 @@ describe("Team Comms on air through the engine", () => {
     expect(v.onAir.listenIn.state).toBe("off");
     // Audited.
     expect(e.audit.recent(50).map((x) => x.action)).toEqual(expect.arrayContaining(["comms.listen_in", "comms.mute_all", "comms.listen_in_end"]));
+  });
+
+  it("halftime in the game data (the teams swap CT and T): Team Comms' teams, the listen-in and the recording team stay with their team ids; the feeds don't swap", async () => {
+    const roster = syntheticRoster();
+    const swapped = roster.map((p) => ({ ...p, side: p.side === "CT" ? ("T" as const) : ("CT" as const) }));
+    const postGsi = async (body: unknown) => (await fetch(gsi, { method: "POST", body: JSON.stringify(body), headers: { "content-type": "application/json" } })).status;
+    const token = e.secrets.gsiToken;
+    // First half: Northern Lights on CT.
+    expect(await postGsi(buildSyntheticGsiPayload({ players: roster, token, timestamp: 1_700_000_100, round: 11, ctName: "Northern Lights", tName: "Red Harbour" }))).toBe(200);
+    await until(() => e.session.state()?.teams.CT.name === "Northern Lights", 3000, "first half");
+    for (const uid of ["nlPlayerOne=", "rhPlayerOne="]) {
+      const key = e.teamComms.status().participants.find((p) => p.uid === uid)!.key;
+      expect((await put(`/api/v1/comms/participants/${encodeURIComponent(key)}`, { includeBroadcast: true, includeRecording: true })).status).toBe(200);
+    }
+    await until(() => e.teamComms.status().slots.every((s) => s.ready), 5000, "ready");
+    expect((await post("/api/v1/comms/listen-in", { teamId: teamA })).status).toBe(200);
+    expect((await post("/api/v1/comms/recording/team", { teamId: teamA })).status).toBe(200);
+    const before = e.teamComms.status().slots.map((s) => [s.id, s.team?.id, s.tab?.channel?.name]);
+    // Halftime: intermission, then the second half with the sides swapped.
+    expect(await postGsi(buildSyntheticGsiPayload({ players: roster, token, timestamp: 1_700_000_101, round: 12, mapPhase: "intermission", ctName: "Northern Lights", tName: "Red Harbour" }))).toBe(200);
+    expect(await postGsi(buildSyntheticGsiPayload({ players: swapped, token, timestamp: 1_700_000_102, round: 12, ctName: "Red Harbour", tName: "Northern Lights" }))).toBe(200);
+    await until(() => e.session.state()?.teams.CT.name === "Red Harbour", 3000, "second half: sides swapped");
+    expect(e.teamComms.status().slots.map((s) => [s.id, s.team?.id, s.tab?.channel?.name])).toEqual(before);
+    expect(before).toEqual([
+      ["A", teamA, "Team NL"],
+      ["B", teamB, "Team RH"],
+    ]);
+    const v = (await (await get("/api/v1/comms")).json()) as { onAir: { listenIn: { state: string; team: { id: string } | null } }; recorder: { heardTeamId: string | null } };
+    expect(v.onAir.listenIn).toMatchObject({ state: "listening", team: { id: teamA } });
+    expect(v.recorder.heardTeamId).toBe(teamA);
+    // Both teams talk: the public and the recording outputs carry Northern Lights only, as before the swap.
+    const pub: Float32Array[] = [];
+    const rec: Float32Array[] = [];
+    const offs = [e.commsPublic.outputs.onPublic((x) => pub.push(Float32Array.from(x))), e.commsPublic.outputs.onRecording((x) => rec.push(Float32Array.from(x)))];
+    const t0 = performance.now();
+    let phase = 0;
+    while (performance.now() - t0 < 700) {
+      plugin.audio(1, 10, tone(470, 20, 48000, 0.2, phase), performance.now());
+      plugin.audio(2, 20, tone(1310, 20, 48000, 0.2, phase), performance.now());
+      phase += 960;
+      await new Promise((res) => setTimeout(res, 20));
+    }
+    await new Promise((res) => setTimeout(res, 400));
+    for (const off of offs) off();
+    const join2 = (bs: Float32Array[]) => {
+      const out = new Float32Array(bs.reduce((n, b) => n + b.length, 0));
+      let o = 0;
+      for (const b of bs) out.set(b, (o += b.length) - b.length);
+      return out;
+    };
+    for (const x of [join2(pub), join2(rec)]) {
+      expect(peakAmplitude(x, 470)).toBeGreaterThan(0.1);
+      expect(peakAmplitude(x, 1310)).toBeLessThan(0.002);
+    }
+    expect((await post("/api/v1/comms/listen-in/end")).status).toBe(200);
   });
 
   it("the preview socket is the operator's only (a viewer token is refused)", async () => {

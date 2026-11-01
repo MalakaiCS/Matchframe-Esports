@@ -28,7 +28,7 @@ describe.skipIf(!ndi)(`Team Comms NDI outputs, received in another process (${nd
     expect(r.perf.public?.dropped.audioFrames ?? 0).toBe(0);
     expect(r.perf.recording?.dropped.audioFrames ?? 0).toBe(0);
     // Public: bursts only while the gate was open; Matchframe's guard zeroed the ones sent closed.
-    expect(r.leaked).toBe(0);
+    expect(r.leaked, JSON.stringify(r.leakDetail)).toBe(0);
     expect(r.missedPublic).toBe(0);
     expect(r.latency.public.length).toBeGreaterThanOrEqual(4);
     expect(r.missedRecording).toBe(0);

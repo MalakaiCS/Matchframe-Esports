@@ -25,6 +25,12 @@ export const SPMS = RATE / 1000;
 const CONTINUITY = 20 * SPMS;
 /** A block this far behind what is written means the clock jumped back (200 ms). */
 const MAX_LAG = 200 * SPMS;
+/**
+ * Blocks are copied into pages of this many samples (1 s) and kept as views of them: a 90 s delay
+ * holds tens of thousands of 7.5 ms blocks, and one memory allocation each kept the garbage
+ * collector busy (measured in the phase 5 soak). A page is freed once its last block is trimmed.
+ */
+export const PAGE_SAMPLES = RATE;
 
 export const msToSample = (ms: number) => Math.round(ms * SPMS);
 export const sampleToMs = (s: number) => s / SPMS;
@@ -91,6 +97,8 @@ export interface BufferStats {
 
 export class VoiceBuffer {
   private chunks: Chunk[] = [];
+  private page: Int16Array | null = null;
+  private pageUsed = 0;
   private end: number | null = null;
   private resampler: Resampler | null = null;
   private cursor = 0;
@@ -136,12 +144,26 @@ export class VoiceBuffer {
       mono = mono.subarray(floor - at);
       at = floor;
     }
-    // One chunk per block (no copying to merge them): a 300 s delay holds ~15 000 per person who talks all the time.
-    this.chunks.push({ start: at, data: Int16Array.from(mono) });
+    // One chunk per block (no copying to merge them): a 300 s delay holds ~15 000 per person who
+    // talks all the time; each a view of the current page (a new page when it is full).
+    this.chunks.push({ start: at, data: this.store(mono) });
     this.bytes += mono.byteLength;
     this.written += mono.length;
     this.end = at + mono.length;
     return at;
+  }
+
+  /** A copy of a block in the current page (a block larger than a page gets its own memory). */
+  private store(mono: Int16Array): Int16Array {
+    if (mono.length > PAGE_SAMPLES) return Int16Array.from(mono);
+    if (!this.page || this.pageUsed + mono.length > this.page.length) {
+      this.page = new Int16Array(PAGE_SAMPLES);
+      this.pageUsed = 0;
+    }
+    const view = this.page.subarray(this.pageUsed, this.pageUsed + mono.length);
+    view.set(mono);
+    this.pageUsed += mono.length;
+    return view;
   }
 
   /** Removes everything from `at` on (the clock jumped back over it). */
@@ -230,6 +252,8 @@ export class VoiceBuffer {
 
   clear(): void {
     this.chunks = [];
+    this.page = null;
+    this.pageUsed = 0;
     this.cursor = 0;
     this.bytes = 0;
     this.end = null;

@@ -78,6 +78,9 @@ import { CommsPublic } from "./comms/public.ts";
 import { CommsRecording } from "./comms/recording.ts";
 import { SpeakerStrip, StripSettings } from "./comms/strip.ts";
 import { CommsCalibration } from "./comms/calibrate.ts";
+import { CommsPresets } from "./comms/presets.ts";
+import { CommsSetup } from "./comms/setup.ts";
+import { CommsTimingTest } from "./comms/timing-test.ts";
 
 export const SetupProfile = z.object({
   id: z.string(),
@@ -223,6 +226,12 @@ export class Engine {
   readonly speakerStrip: SpeakerStrip;
   /** The comms delay measured against the observer's gameplay (ADR-068). */
   readonly commsCalibration: CommsCalibration;
+  /** Team Comms event presets (ADR-069): people, TeamSpeak slots, delay, recording team, strip and on-air settings by name. */
+  readonly commsPresets: CommsPresets;
+  /** The recording's timing test (ADR-069): a beep and a strip flash on the same block, found in the file. */
+  readonly commsTimingTest: CommsTimingTest;
+  /** Team Comms setup (ADR-069): the TeamSpeak plugin from the program, the guided checklist. */
+  readonly commsSetup: CommsSetup;
   private meterTimer: ReturnType<typeof setInterval> | null = null;
   private readonly rawGsiListeners = new Set<(payload: Record<string, unknown>, simulated: boolean) => void>();
   private readonly killListeners = new Set<(entry: HudKillfeedEntry) => void>();
@@ -513,6 +522,33 @@ export class Engine {
       overlayPort: () => this.cfg.overlayPort,
     });
     this.commsCalibration = new CommsCalibration({ comms: this.teamComms, settings: this.settings, logger: this.logger, now: this.now, sendLatencyMs: ndiLatency });
+    this.commsPresets = new CommsPresets({
+      settings: this.settings,
+      comms: this.teamComms,
+      logger: this.logger,
+      onAir: this.commsPublic,
+      recording: this.commsRecording,
+      strip: { get: () => this.stripSettings(), set: (s) => this.setStripSettings(s) },
+      activeMatch: () => this.activeMatch(),
+      eventName: (id) => this.events.get(id)?.data.name ?? null,
+      teamName: (id) => this.teams.get(id)?.data.name ?? null,
+    });
+    this.commsTimingTest = new CommsTimingTest({
+      comms: this.teamComms,
+      settings: this.settings,
+      logger: this.logger,
+      now: this.now,
+      setBeeps: (b) => this.commsPublic.outputs.setBeeps(b),
+      setFlashes: (f) => this.speakerStrip.setForced(f),
+      strip: () => this.stripSettings(),
+      stripCards: () => this.speakerStrip.status().cards.length,
+      setStripOffset: (ms) => void this.setStripSettings({ ...this.stripSettings(), timingOffsetMs: ms }),
+      recording: () => this.commsRecording.status(),
+      ndiRunning: () => this.commsPublic.outputs.status().ndi.state === "running",
+      ffmpeg: () => this.ffmpeg.locate(),
+      calibratedDelayMs: () => this.commsCalibration.calibratedDelayMs(),
+    });
+    this.commsSetup = new CommsSetup({ comms: this.teamComms, onAir: this.commsPublic, recording: this.commsRecording, calibration: this.commsCalibration, timingTest: this.commsTimingTest, obs: this.obs, logger: this.logger, liveScene: () => this.program.sceneMap.LIVE });
     this.radars = BuiltinRadars.load(cfg.radarDir, (msg, data) => this.logger.warn(msg, data));
     this.cleanRadars = new CleanRadars((mapName) => this.radars.get(mapName));
 

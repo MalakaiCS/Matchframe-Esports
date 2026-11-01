@@ -161,6 +161,10 @@ export interface TeamCommsOptions {
   realtime?: boolean;
   /** Clock pings to the plugin (ms; 0 in tests on a simulated clock). */
   pingMs?: number;
+  /** A plugin silent this long is closed as lost (ms, the computer's own clock; tests shorten it). */
+  staleMs?: number;
+  /** The computer's own clock for that (ms; default performance.now, tests move it). */
+  realNow?: () => number;
 }
 
 interface Tab {
@@ -176,7 +180,11 @@ interface Tab {
   /** TeamSpeak's last refusal on this tab (connection errors). */
   tsError: { atMs: number; code: number; message: string } | null;
   audio: number;
-  ignored: { listener: number; notCapturing: number; noSlot: number; clock: number };
+  ignored: { listener: number; notCapturing: number; noSlot: number; clock: number; notInChannel: number };
+  /** The plugin had it listen-only and silent before Matchframe asked (after a TeamSpeak restart it remembers the team tabs; while Matchframe is away it keeps them so). */
+  restoredByPlugin: boolean;
+  /** Matchframe handed it back to TeamSpeak (a remembered tab that is no team's now). */
+  released: boolean;
 }
 
 interface SlotRuntime {
@@ -271,6 +279,8 @@ export class TeamComms {
       now: this.o.now,
       logger: this.o.logger,
       pingMs: this.o.pingMs,
+      staleMs: this.o.staleMs,
+      realNow: this.o.realNow,
       // Ignored once this bridge is stopped: its sockets may still report closing after Team Comms (or the engine) stopped.
       handlers: {
         onSession: (s) => !this.stoppedBridges.has(bridge) && this.onSession(s),
@@ -441,7 +451,7 @@ export class TeamComms {
     const key = this.tabKey(s, schid);
     let t = this.tabs.get(key);
     if (!t) {
-      t = { key, instance: s.instance, schid, session: s, conn: null, clients: new Map(), slot: null, capturing: false, asked: null, tsError: null, audio: 0, ignored: { listener: 0, notCapturing: 0, noSlot: 0, clock: 0 } };
+      t = { key, instance: s.instance, schid, session: s, conn: null, clients: new Map(), slot: null, capturing: false, asked: null, tsError: null, audio: 0, ignored: { listener: 0, notCapturing: 0, noSlot: 0, clock: 0, notInChannel: 0 }, restoredByPlugin: false, released: false };
       this.tabs.set(key, t);
     }
     t.session = s;
@@ -466,8 +476,9 @@ export class TeamComms {
   private bind(): void {
     const now = this.o.now();
     const chosen: Record<SlotId, Tab | null> = { A: null, B: null };
+    const cfgs = { A: this.slotConfig("A"), B: this.slotConfig("B") };
     for (const id of SLOT_IDS) {
-      const cfg = this.slotConfig(id);
+      const cfg = cfgs[id];
       const slot = this.slots[id];
       const cands = [...this.tabs.values()].filter((t) => this.matches(cfg, t));
       const cur = slot.tab ? this.tabs.get(slot.tab) : undefined;
@@ -494,6 +505,8 @@ export class TeamComms {
         if (old) {
           old.slot = null;
           this.endCoverage(slot, "its TeamSpeak tab is no longer in the team's channel");
+          // Nobody of this team is heard through it any more (a tab moved to another channel).
+          for (const p of this.people.values()) if (p.slot === id) p.present = false;
           // Still a listener: microphone off, silent here, just not captured.
           this.ask(old, false, now);
         }
@@ -502,8 +515,26 @@ export class TeamComms {
       if (want) {
         slot.tab = want.key;
         want.slot = id;
+        want.released = false;
         if (!want.capturing && (!want.asked || !want.asked.capture || now - want.asked.atMs > MANAGE_RETRY_MS)) this.ask(want, true, now);
       }
+    }
+    // A tab the plugin made listen-only by itself (it remembered it from before a TeamSpeak restart)
+    // that is in no team's server and channel now: handed back to TeamSpeak (the plugin forgets it).
+    for (const t of this.tabs.values()) {
+      const m = t.conn?.managed;
+      if (!m || t.slot || t.asked || t.released || !t.session || t.session.closed || t.conn?.status !== 4) continue;
+      if (!(m.capture || m.listenOnly || m.suppressPlayback)) continue;
+      // Only once TeamSpeak has said where it is: a connection still being established can report
+      // itself before its address or channel is filled in (seen with real TeamSpeak: handing it back
+      // then let its team play on this computer until the next report).
+      const c = t.conn;
+      if (!c?.server?.uid || !c.server.host || !c.channel?.id || !c.channel.name) continue;
+      if (SLOT_IDS.some((id) => this.matches(cfgs[id], t))) continue;
+      t.released = true;
+      t.asked = { capture: false, atMs: now };
+      t.session.manage(t.schid, { capture: false, listenOnly: false, suppressPlayback: false });
+      this.o.logger.info("team comms: a tab the plugin remembered is no team's now: handed back to TeamSpeak", { tab: t.key, channel: t.conn?.channel?.name ?? null });
     }
   }
 
@@ -570,6 +601,8 @@ export class TeamComms {
     const t = this.tabOf(s, ev.schid);
     switch (ev.type) {
       case "connection": {
+        // Listen-only before Matchframe asked anything: the plugin remembered this team tab.
+        if (ev.status === 4 && !t.asked && (ev.managed.listenOnly || ev.managed.suppressPlayback) && !ev.managed.capture) t.restoredByPlugin = true;
         t.conn = ev;
         if (ev.status === 4) t.clients = new Map(ev.clients.map((c) => [c.clientId, c]));
         else t.clients.clear();
@@ -670,6 +703,10 @@ export class TeamComms {
     if (!t.slot) return void t.ignored.noSlot++;
     if (a.uid === t.conn?.self?.uid || a.clientId === a.ownClientId || this.isListener(a.uid)) return void t.ignored.listener++;
     if (!s.clock.ready) return void t.ignored.clock++;
+    // Only someone in the tab's channel now (a block from before the listener's tab moved, or from someone who left, is not this team's).
+    let inChannel = false;
+    for (const x of t.clients.values()) if (x.uid === a.uid && x.channelId === t.conn?.channel?.id) inChannel = true;
+    if (!inChannel) return void t.ignored.notInChannel++;
     const c = t.clients.get(a.clientId);
     const p = this.person(t.slot, this.serverUid(t), a.uid, c && c.uid === a.uid ? c : undefined);
     const start = msToSample(s.clock.toEngineMs(a.captureUs));
@@ -734,6 +771,38 @@ export class TeamComms {
     return r;
   }
 
+  /** Saved people (mappings, choices, levels) of these teams, for an event preset. */
+  exportRecords(teamIds: string[]): ParticipantRecord[] {
+    const want = new Set(teamIds);
+    return Object.values(this.records)
+      .filter((r) => want.has(r.teamId))
+      .map((r) => ({ ...r }));
+  }
+
+  /**
+   * An event preset's people: each record's mapping, choices and level set on that identity (made if
+   * Matchframe hasn't seen them yet). The operator's private Solo is never part of a preset; people
+   * the preset doesn't name keep what they have (new arrivals stay excluded).
+   */
+  importRecords(records: ParticipantRecord[]): number {
+    const now = new Date().toISOString();
+    let n = 0;
+    for (const raw of records) {
+      const r = ParticipantRecord.safeParse(raw);
+      if (!r.success) continue;
+      const rec = r.data;
+      if (rec.playerId && !this.o.roster.player(rec.playerId)) rec.playerId = null;
+      const key = `${rec.teamId}/${rec.serverUid}/${rec.uid}`;
+      const cur = this.records[key];
+      this.records[key] = { ...(cur ?? { ...rec, firstSeen: now, lastSeen: now, lastNickname: rec.lastNickname }), playerId: rec.playerId, displayName: rec.displayName, includeBroadcast: rec.includeBroadcast, includeRecording: rec.includeRecording, levelDb: rec.levelDb, preview: cur?.preview ?? false };
+      n++;
+    }
+    this.version++;
+    this.dirty = true;
+    this.flush(true);
+    return n;
+  }
+
   private flush(force = false): void {
     if (!this.dirty) return;
     const now = this.o.now();
@@ -780,7 +849,10 @@ export class TeamComms {
     const slot = this.slotOfTeam(teamId);
     if (!slot) return null;
     const v = this.slotView(slot.id);
-    return { slot: slot.id, ready: v.ready && this.pendingDelay === null, readyInMs: v.readyInMs, state: v.state, issue: v.issue ?? (v.lost ? v.lost.reason : null) };
+    // Ready for a listen-in: its tab captured now and without a break since before the playhead (not
+    // only audio from before a loss still at the playhead: the gap after it would follow, then the
+    // reconnected tab's audio with no new Listen In), and the delay held.
+    return { slot: slot.id, ready: v.ready && v.continuous && v.state === "ready" && this.pendingDelay === null, readyInMs: v.readyInMs, state: v.state === "ready" && !v.continuous ? "buffering" : v.state, issue: v.issue ?? (v.lost ? v.lost.reason : null) };
   }
 
   /** The playhead (timeline samples) a block starting at `start` plays, with the delay in effect. */
@@ -842,6 +914,11 @@ export class TeamComms {
   /** The dedicated recording's team as asked for (null: none). */
   get recordingTeam(): string | null {
     return this.mixer.recordingGate.target;
+  }
+
+  /** Whether Matchframe has this roster player. */
+  hasPlayer(id: string): boolean {
+    return !!this.o.roster.player(id);
   }
 
   /** Whether a team has a Team Comms slot now (the active match's team A or B). */
@@ -930,7 +1007,10 @@ export class TeamComms {
     const playhead = msToSample(now - (this.pendingDelay?.ms ?? this.delayMs));
     const open = slot.coverage[slot.coverage.length - 1];
     const ready = slot.teamId ? this.readyAt(slot.teamId, playhead) : false;
-    const readyInMs = !ready && open && open.to === null ? Math.max(0, sampleToMs(Math.max(open.from, slot.floor) - playhead)) : null;
+    // Captured without a break from before the playhead until now: what a listen-in needs (audio from
+    // before a loss can still be at the playhead while the gap after it hasn't been played yet).
+    const continuous = ready && !!open && open.to === null && Math.max(open.from, slot.floor) <= playhead;
+    const readyInMs = !continuous && open && open.to === null ? Math.max(0, sampleToMs(Math.max(open.from, slot.floor) - playhead)) : null;
     const state = !this.bridge ? "off" : !tab ? "waiting" : !tab.capturing ? "connecting" : ready ? "ready" : "buffering";
     return {
       id,
@@ -941,12 +1021,33 @@ export class TeamComms {
       channelPasswordSaved: this.o.secrets.hasSecret(slotSecret(id, "channelPassword")),
       state,
       ready,
+      continuous,
       readyInMs,
       issue: slot.issue,
       lost: slot.lost,
       tab: tab ? this.tabView(tab) : null,
+      connectLink: this.connectLink(id, cfg),
       coverage: slot.coverage.slice(-3).map((c) => ({ fromMs: sampleToMs(c.from), toMs: c.to === null ? null : sampleToMs(c.to) })),
     };
+  }
+
+  /**
+   * TeamSpeak's own link to connect a tab into the team's channel (`ts3server://`, as TeamSpeak's
+   * command line and its link handler take it; the rig connects its listeners this way). No password
+   * in it: TeamSpeak asks for one, and Matchframe never shows the saved ones.
+   */
+  private connectLink(id: SlotId, cfg: SlotConfig): string | null {
+    if (!cfg.serverHost.trim() || !cfg.channel.trim()) return null;
+    const host = cfg.serverHost.trim();
+    const nick = cfg.nickname.trim() || `MF Listener ${id}`;
+    const channel = cfg.channel.trim().split("/").map(encodeURIComponent).join("/");
+    return `ts3server://${host.includes(":") && !host.startsWith("[") ? `[${host}]` : host}?port=${cfg.serverPort}&nickname=${encodeURIComponent(nick)}&channel=${channel}`;
+  }
+
+  private tabTeam(t: Tab): { slot: SlotId; id: string | null; name: string | null } | null {
+    if (!t.slot) return null;
+    const id = this.slots[t.slot].teamId;
+    return { slot: t.slot, id, name: id ? (this.o.roster.team(id)?.name ?? null) : null };
   }
 
   private tabView(t: Tab) {
@@ -962,7 +1063,11 @@ export class TeamComms {
       listener: c?.self ? { clientId: c.self.clientId, nickname: c.self.nickname, inputMuted: c.self.inputMuted === 1, inputDeactivated: c.self.inputDeactivated === 1, outputMuted: c.self.outputMuted === 1, recording: c.self.recording === 1 } : null,
       managed: c?.managed ?? null,
       slot: t.slot,
+      /** The team this tab is (slot A or B's), in words. */
+      team: this.tabTeam(t),
       capturing: t.capturing,
+      restoredByPlugin: t.restoredByPlugin,
+      released: t.released,
       clients: t.clients.size,
       audioBlocks: t.audio,
       ignored: { ...t.ignored },
@@ -1006,7 +1111,7 @@ export class TeamComms {
       settings: this.settings(),
       delay: this.delay(),
       bridge: {
-        ...(this.bridge?.status() ?? { state: this.bridgeError ? "error" : "stopped", port: null, error: this.bridgeError, sessions: 0, refused: { auth: 0, foreign: 0, full: 0 } }),
+        ...(this.bridge?.status() ?? { state: this.bridgeError ? "error" : "stopped", port: null, error: this.bridgeError, sessions: 0, refused: { auth: 0, foreign: 0, full: 0 }, staleClosed: 0, stalls: 0 }),
         file: this.bridgeFile(),
         plugins: (this.bridge?.sessions() ?? []).map((s) => ({
           session: s.id,

@@ -51,7 +51,7 @@ await Promise.all(
           // Both channels carry the same mix.
           let same = true;
           if (f.channels === 2) for (let i = 0; i < f.samples; i++) if (x[i * 2] !== x[i * 2 + 1]) same = false;
-          out({ type: "frame", s: idx, at, n: f.samples, rate: f.sampleRate, ch: f.channels, fmt: f.audioFormat, onset, peak, zero, same });
+          out({ type: "frame", s: idx, at, tc: Number(f.timecode) / 10_000, n: f.samples, rate: f.sampleRate, ch: f.channels, fmt: f.audioFormat, onset, peak, zero, same });
         }
         if (at - lastPerf >= 1000) {
           lastPerf = at;
