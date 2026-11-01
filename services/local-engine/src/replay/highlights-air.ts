@@ -12,7 +12,8 @@ import { VMIX_TRANSITIONS } from "./vmix.ts";
 /**
  * Highlights on air (ADR-063): a map's best clips played on the program when the operator presses
  * Play (or by themselves when a map ends, or at halftime when allowed), back to back on the highlights
- * scene and its twin, fading from one to the next, with the replay graphic, the live audio turned
+ * scene, fading from one to the next (by default rendered first into one file, "Preparing highlights…
+ * n%", and played in the scene's one media source, ADR-067; else through the scene and its twin), with the replay graphic, the live audio turned
  * down, Skip, Hold and Stop: automatic replays' own engine (replay/auto.ts, a Stage). Then the program
  * goes back to where it came from: the operator's own scene (a multiview's analysis scene), the live,
  * studio or break scene; to the live scene when a round is live or that scene is gone.
@@ -342,8 +343,8 @@ export class HighlightsOnAir {
     const halftime = this.halftime();
     if (running) {
       const st = a.getStatus();
-      // (Until the first clip is on air, the replays' status is still theirs.)
-      const detail = st.state === "playing" && st.playing ? st.detail : "Highlights going on air…";
+      // (Until the first clip is on air, the replays' status is still theirs; a rendered run is made first: ADR-067.)
+      const detail = st.state === "playing" && st.playing ? st.detail : st.preparing ? `Preparing highlights… ${Math.round(st.preparing.progress * 100)}%` : "Highlights going on air…";
       return { state: "playing", detail, running, held: st.held, position: st.position, playing: st.playing, blocked: null, halftime, plan, last: this.last, auto: this.autoNote };
     }
     const lastLine = this.last ? `Last highlights: ${this.last.played} played${this.last.skipped ? ` (${this.last.skipped} skipped)` : ""}${this.last.failed ? `, ${this.last.failed} didn't play` : ""}${this.last.stopped === "stopped" ? ", stopped by the operator" : this.last.stopped === "deadline" ? ", back to live by the round clock" : this.last.stopped === "taken" ? ", the program was taken" : ""}.` : null;

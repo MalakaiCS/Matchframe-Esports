@@ -11,7 +11,10 @@ import type { Engine } from "../src/app.ts";
  * SetCurrentProgramScene transitions the program and leaves the preview until the transition ends,
  * then Swap Scenes (on by default) puts the scene the program left in preview; the Transition button
  * takes the preview to program. Requests OBS 30 refuses (bounds below 1 px, the volume of an input
- * without audio) are refused. Every volume and mute change is logged with its time (volumeLog). Not a
+ * without audio) are refused. Every volume and mute change is logged with its time (volumeLog). As
+ * options, what a Windows OBS 30 did to its replay sources (0.10.12's support file): a source off
+ * program that won't stay paused (hiddenPause), a clip wedged near its start by a pause or a seek
+ * right after a restart (wedgeAfterRestartPause), and a clip that stops moving on air (stalls). Not a
  * real OBS: it certifies the engine's requests and timing, not OBS's picture or sound.
  */
 
@@ -29,6 +32,11 @@ interface Media {
   base: number;
   anchor: number | null;
   duration: number;
+  /** A restart was the last thing done to it (a pause or a seek next can wedge it: wedgeAfterRestartPause). */
+  restarted: boolean;
+  /** Stuck: says it plays, but its cursor stays (wedged, or a stall); requests do nothing until it is loaded again (a stall: or played). */
+  wedged: boolean;
+  frozen: boolean;
 }
 interface Input {
   kind: string;
@@ -80,6 +88,20 @@ export class StandInObs extends EventEmitter {
   broken = new Set<string>();
   /** For an input, this many pause requests are let go (as OBS 30 can do with one sent as a file starts). */
   readonly dropPauses = new Map<string, number>();
+  /**
+   * How a media source that isn't shown on program takes a pause, as Windows OBS 30 did for the owner
+   * of 0.10.12 (its support file: the clip waiting off air ran on, often to its end). "holds" (OBS on
+   * Linux, measured; the default): it stays paused. "ignored": it plays on, hidden, to its end.
+   * "resumes": it pauses, but a seek while it is paused plays it again.
+   */
+  hiddenPause: "holds" | "ignored" | "resumes" = "holds";
+  /**
+   * As that OBS did too: a pause or a seek right after a restart leaves the clip stuck near its start
+   * (24 ms), saying it plays; seeks, play and pause then do nothing until a file is loaded again.
+   */
+  wedgeAfterRestartPause = false;
+  /** Inputs whose clip stops moving once it reaches `atMs` (still saying it plays), until it is played again (`clearsOn` "play"), loaded again ("load"), or never. */
+  readonly stalls = new Map<string, { atMs: number; clearsOn: "play" | "load" | "never" }>();
   private nextId = 1;
   private readonly t0 = Date.now();
   private active = new Set<string>();
@@ -109,7 +131,7 @@ export class StandInObs extends EventEmitter {
   }
 
   addInput(scene: string, name: string, kind: string, settings: Record<string, unknown> = {}, transform: Record<string, unknown> = {}): number {
-    this.inputs.set(name, { kind, settings: { ...settings }, filters: [], audio: { volumeMul: 1, muted: false, monitorType: "OBS_MONITORING_TYPE_NONE", balance: 0.5, syncOffsetMs: 0, tracks: { "1": true, "2": true } }, media: { file: null, state: "NONE", base: 0, anchor: null, duration: 0 } });
+    this.inputs.set(name, { kind, settings: { ...settings }, filters: [], audio: { volumeMul: 1, muted: false, monitorType: "OBS_MONITORING_TYPE_NONE", balance: 0.5, syncOffsetMs: 0, tracks: { "1": true, "2": true } }, media: { file: null, state: "NONE", base: 0, anchor: null, duration: 0, restarted: false, wedged: false, frozen: false } });
     return this.addItem(scene, name, true, transform);
   }
 
@@ -124,7 +146,7 @@ export class StandInObs extends EventEmitter {
   /** Where a media input is (ms), and its state. */
   media(name: string): { state: string; cursorMs: number; file: string | null } {
     const m = this.input(name).media;
-    this.settle(m);
+    this.settle(m, name);
     return { state: m.state, cursorMs: Math.round(this.cursor(m)), file: m.file };
   }
 
@@ -162,8 +184,11 @@ export class StandInObs extends EventEmitter {
     return Math.min(m.duration, m.base + (m.anchor !== null ? Date.now() - m.anchor : 0));
   }
 
-  private settle(m: Media): void {
-    if (m.state === "PLAYING" && this.cursor(m) >= m.duration) [m.state, m.base, m.anchor] = ["ENDED", m.duration, null];
+  private settle(m: Media, name?: string): void {
+    if (m.state !== "PLAYING" || m.wedged || m.frozen) return;
+    const stall = name ? this.stalls.get(name) : undefined;
+    if (stall && this.cursor(m) >= stall.atMs && this.cursor(m) < m.duration) [m.base, m.anchor, m.frozen] = [this.cursor(m), null, true];
+    else if (this.cursor(m) >= m.duration) [m.state, m.base, m.anchor] = ["ENDED", m.duration, null];
   }
 
   private setting(i: Input, k: keyof typeof MEDIA_DEFAULTS): unknown {
@@ -179,7 +204,9 @@ export class StandInObs extends EventEmitter {
     const i = this.input(name);
     const m = i.media;
     this.mediaLog.push(`${name} load ${file.split(/[\\/]/).pop()}`);
-    Object.assign(m, { file, state: "OPENING", base: 0, anchor: null, duration: this.durations.get(file) ?? this.defaultDurationMs });
+    // A stall that loading the file again clears (once it has stopped the clip).
+    if (m.frozen && this.stalls.get(name)?.clearsOn === "load") this.stalls.delete(name);
+    Object.assign(m, { file, state: "OPENING", base: 0, anchor: null, duration: this.durations.get(file) ?? this.defaultDurationMs, restarted: false, wedged: false, frozen: false });
     setTimeout(() => {
       if (m.file !== file) return;
       if (this.broken.has(file)) m.state = "ERROR";
@@ -317,19 +344,38 @@ export class StandInObs extends EventEmitter {
         return {};
       }
       case "GetMediaInputStatus": {
-        const m = this.input(String(d.inputName)).media;
-        this.settle(m);
+        const name = String(d.inputName);
+        const m = this.input(name).media;
+        this.settle(m, name);
         const known = m.state === "PLAYING" || m.state === "PAUSED" || m.state === "ENDED";
         return { mediaState: `OBS_MEDIA_STATE_${m.state}`, mediaDuration: known ? m.duration : null, mediaCursor: known ? Math.round(this.cursor(m)) : null };
       }
       case "TriggerMediaInputAction": {
         const name = String(d.inputName);
         const m = this.input(name).media;
-        this.settle(m);
+        this.settle(m, name);
         const action = String(d.mediaAction).replace("OBS_WEBSOCKET_MEDIA_INPUT_ACTION_", "").toLowerCase();
         this.mediaLog.push(`${name} ${action}`);
+        const hidden = !this.active.has(name);
+        // Wedged (a pause right after a restart): nothing takes until a file is loaded again.
+        if (m.wedged) return {};
+        if (action === "pause" && m.restarted && this.wedgeAfterRestartPause) {
+          Object.assign(m, { base: 24, anchor: null, state: "PLAYING", wedged: true });
+          return {};
+        }
+        m.restarted = action === "restart";
+        if (m.frozen) {
+          // A stall that playing again clears.
+          if (action === "play" && this.stalls.get(name)?.clearsOn === "play") {
+            this.stalls.delete(name);
+            [m.anchor, m.frozen] = [Date.now(), false];
+          }
+          return {};
+        }
         if (action === "pause" && m.state === "PLAYING" && (this.dropPauses.get(name) ?? 0) > 0) this.dropPauses.set(name, this.dropPauses.get(name)! - 1);
-        else if (action === "pause" && m.state === "PLAYING") [m.base, m.anchor, m.state] = [this.cursor(m), null, "PAUSED"];
+        else if (action === "pause" && m.state === "PLAYING" && hidden && this.hiddenPause === "ignored") {
+          // Let go: it plays on, hidden.
+        } else if (action === "pause" && m.state === "PLAYING") [m.base, m.anchor, m.state] = [this.cursor(m), null, "PAUSED"];
         if (action === "play" && m.state === "PAUSED") [m.anchor, m.state] = [Date.now(), "PLAYING"];
         if (action === "restart" && m.file) [m.base, m.anchor, m.state] = [0, Date.now(), "PLAYING"];
         if (action === "stop") [m.anchor, m.state] = [null, "STOPPED"];
@@ -338,9 +384,16 @@ export class StandInObs extends EventEmitter {
       case "SetMediaInputCursor": {
         const name = String(d.inputName);
         const m = this.input(name).media;
-        this.settle(m);
+        this.settle(m, name);
         this.mediaLog.push(`${name} seek ${Number(d.mediaCursor)}`);
+        if (m.wedged || m.frozen) return {};
+        if (m.restarted && this.wedgeAfterRestartPause) {
+          Object.assign(m, { base: 24, anchor: null, state: "PLAYING", wedged: true });
+          return {};
+        }
         if (m.state === "ENDED") m.state = "PLAYING";
+        // Seeking a paused source that isn't shown plays it again ("resumes").
+        if (m.state === "PAUSED" && !this.active.has(name) && this.hiddenPause === "resumes") m.state = "PLAYING";
         [m.base, m.anchor] = [Math.min(m.duration, Number(d.mediaCursor)), m.state === "PLAYING" ? Date.now() : null];
         return {};
       }
@@ -432,6 +485,7 @@ export class StandInObs extends EventEmitter {
       if (this.active.has(name)) continue;
       this.active.add(name);
       const i = this.inputs.get(name)!;
+      if (i.media.wedged || i.media.frozen) continue;
       if (i.media.file && this.setting(i, "restart_on_activate") === true) [i.media.base, i.media.anchor, i.media.state] = [0, Date.now(), "PLAYING"];
       else if (i.media.file && i.media.state === "STOPPED") this.load(name, i.media.file);
     }

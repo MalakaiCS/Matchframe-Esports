@@ -8,6 +8,7 @@ import { buildSyntheticGsiPayload, syntheticRoster } from "../../../packages/cs2
 import { Engine } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
 import type { KeptClip, KeptMap } from "../src/replay/highlights.ts";
+import { breakLayout, type RenderedBreak, type RenderRequest } from "../src/replay/render.ts";
 import { startServers } from "../src/servers.ts";
 import { StandInObs } from "./stand-in-obs.ts";
 import { StandInVmix } from "./stand-in-vmix.ts";
@@ -173,7 +174,7 @@ describe("Highlights on air (OBS)", () => {
     const scenes = { LIVE: "Game", STUDIO: "Desk", BREAK: "Break" };
     e.settings.set("program.scenes", scenes);
     e.program.setScenes(scenes);
-    e.autoReplay.setSettings({ enabled: true, startDelayMs: 2000, perBreak: 3, order: "best", ownBigPlays: false, between: "fade", fadeMs: 400, duckInputs: ["Game audio"], duckTo: -20, duckRampMs: 150 });
+    e.autoReplay.setSettings({ enabled: true, startDelayMs: 2000, perBreak: 3, order: "best", ownBigPlays: false, between: "fade", fadeMs: 400, duckInputs: ["Game audio"], duckTo: -20, duckRampMs: 150, playback: "scenes" });
     // Replay in: the stinger; Replay out: OBS's own (Cut). Highlights in and out the same until chosen.
     e.obsAuto.setSettings({ replayIn: "Matchframe Replay Stinger", replayOut: "", otherScenes: "", mapEnd: false });
     await feed("freezetime", 2);
@@ -257,6 +258,64 @@ describe("Highlights on air (OBS)", () => {
     expect([e.program.mode, o.program, o.current]).toEqual(["LIVE", "Game", "Cut"]);
     expect(e.highlightsAir.status().last).toMatchObject({ by: "operator", played: 5, skipped: 0, failed: 0, stopped: "ended", backTo: "Game" });
     expect(e.highlightsAir.status().detail).toMatch(/^Play: 5 clips, 0:06\. Last highlights: 5 played\.$/);
+  }, 30000);
+
+  it("rendered (the default): Preparing highlights… n%, then one file on the highlights scene alone, the replay graphic of each clip as the cursor reaches it, back to the live scene", async () => {
+    const asked: RenderRequest[] = [];
+    const real = { locate: e.ffmpeg.locate.bind(e.ffmpeg), pick: e.ffmpeg.pickEncoder.bind(e.ffmpeg), renderer: e.autoReplay.renderer };
+    e.ffmpeg.locate = async () => "ffmpeg";
+    e.ffmpeg.pickEncoder = async () => "h264_nvenc";
+    // A stand-in renderer that takes 1.2 s (highlights wait for theirs).
+    e.autoReplay.renderer = (req) => {
+      asked.push(req);
+      const layout = breakLayout(
+        req.clips.map((c) => c.durationMs),
+        req.fadeMs,
+        req.audioFadeMs,
+      );
+      const started = Date.now();
+      const done = new Promise<RenderedBreak>((resolve) =>
+        setTimeout(() => {
+          writeFileSync(req.outFile, Buffer.alloc(64));
+          o.durations.set(req.outFile, layout.totalMs);
+          resolve({ file: req.outFile, layout, ms: Date.now() - started, width: 1920, height: 1080, fps: 60, encoder: req.encoder, bytes: 64 });
+        }, 1200),
+      );
+      return { done, progress: () => Math.min(0.99, (Date.now() - started) / 1200), cancel: () => undefined };
+    };
+    e.autoReplay.setSettings({ playback: "rendered" });
+    try {
+      o.changes.length = 0;
+      o.mediaLog.length = 0;
+      const preparing: string[] = [];
+      const seen = await playThrough(async () => {
+        while (!/^Highlight \d/.test(e.highlightsAir.status().detail) && running()) {
+          const d = e.highlightsAir.status().detail;
+          if (d.startsWith("Preparing") && preparing.at(-1) !== d) preparing.push(d);
+          await sleep(30);
+        }
+      });
+      expect(preparing.length).toBeGreaterThanOrEqual(2);
+      expect(preparing.every((d) => /^Preparing highlights… \d+%$/.test(d))).toBe(true);
+      expect(asked).toHaveLength(1);
+      expect(asked[0]!.clips).toHaveLength(5);
+      // The highlights scene alone (no fade through its twin), Highlights in and out.
+      expect(o.changes.map((c) => [c.scene, c.transition])).toEqual([
+        ["Matchframe Highlights", "Matchframe Replay Stinger"],
+        ["Game", "Cut"],
+      ]);
+      expect(o.mediaLog.filter((l) => l.includes(" load "))).toEqual([`Matchframe Highlights Clip load ${asked[0]!.outFile.split(/[\\/]/).pop()}`]);
+      expect(seen.lines).toEqual(["Highlight 1 of 5: 2K alpha", "Highlight 2 of 5: ACE bravo", "Highlight 3 of 5: 3K charlie", "Highlight 4 of 5: Knife delta", "Highlight 5 of 5: 3K golf"]);
+      expect(seen.graphic.filter(Boolean)).toEqual(["hl-alpha", "hl-bravo", "hl-charlie", "hl-delta", "hl-golf"]);
+      expect(e.highlightsAir.status().last).toMatchObject({ played: 5, failed: 0, stopped: "ended", backTo: "Game" });
+      expect([e.program.mode, o.program]).toEqual(["LIVE", "Game"]);
+      expect(volume()).toBe(0.8);
+    } finally {
+      e.autoReplay.setSettings({ playback: "scenes" });
+      Object.assign(e.ffmpeg, { locate: real.locate, pickEncoder: real.pick });
+      e.autoReplay.renderer = real.renderer;
+      await settle();
+    }
   }, 30000);
 
   it("plays from the operator's own scene (a multiview's analysis scene) with the chosen Highlights in and out, and goes back to it: theirs again", async () => {

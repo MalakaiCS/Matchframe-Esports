@@ -32,8 +32,10 @@ const waitFor = async (fn: () => boolean, ms = 15000) => {
  * A break's replays fading from one to the next, with a stand-in OBS at the obs-websocket level
  * (stand-in-obs.ts): the user's own replay scene (a backdrop, the media source "replay" scaled and
  * cropped, a score bug on top, a filter and a volume on the media source, OBS's defaults for a new
- * Media Source) gets a twin, kept the same, and the break's clips alternate between the two, the next
- * waiting paused at its part while one plays, the program fading over one fade length before the end.
+ * Media Source) gets a twin, kept the same, and the break's clips alternate between the two (playback
+ * "scenes": the way a break plays without a rendered file), the next loaded just in time off air and
+ * playing hidden toward its part, the program fading over one fade length before the end; with a
+ * Windows OBS's ways (a hidden source's pause let go, a clip wedged after a restart, a clip that stops).
  * The transitions in, out, between and to the other scenes are the ones chosen, and OBS's own is put
  * back after each.
  */
@@ -96,7 +98,7 @@ describe("Replay break: fading from one clip to the next through the replay scen
     e.settings.set("program.scenes", scenes);
     e.program.setScenes(scenes);
     e.settings.set("replay.mediaInput", "replay");
-    e.autoReplay.setSettings({ enabled: true, startDelayMs: 0, perBreak: 3, order: "best", ownBigPlays: false, between: "fade", fadeMs: 400 });
+    e.autoReplay.setSettings({ enabled: true, startDelayMs: 0, perBreak: 3, order: "best", ownBigPlays: false, between: "fade", fadeMs: 400, playback: "scenes" });
   });
 
   afterAll(async () => {
@@ -136,7 +138,7 @@ describe("Replay break: fading from one clip to the next through the replay scen
     user[0]!.enabled = true;
   });
 
-  it("plays a break's clips alternately in the two scenes, the next one waiting paused at its part, and fades over one fade length before the end", async () => {
+  it("plays a break's clips alternately in the two scenes, the next one loaded just in time and playing hidden toward its part, and fades over one fade length before the end", async () => {
     e.obsAuto.setSettings({ replayIn: "Matchframe Replay Stinger", replayOut: "", otherScenes: "" });
     await feed("live", 4);
     const round = e.session.state()!.roundNumber!;
@@ -164,25 +166,26 @@ describe("Replay break: fading from one clip to the next through the replay scen
     ] as const) {
       const m = o.changes[k]!.media;
       expect(m[from]!.cursorMs, `${from} at the fade`).toBeGreaterThanOrEqual(DURATION - 400 - 150);
-      expect(m[from]!.cursorMs, `${from} at the fade`).toBeLessThanOrEqual(DURATION - 400 + 60);
+      expect(m[from]!.cursorMs, `${from} at the fade`).toBeLessThanOrEqual(DURATION - 400 + 80);
       expect(m[from]!.state).toBe("PLAYING");
       expect(m[to]!.cursorMs, `${to} at the fade`).toBeGreaterThanOrEqual(DURATION - PLAY);
       expect(m[to]!.cursorMs, `${to} at the fade`).toBeLessThanOrEqual(DURATION - PLAY + 80);
+      expect(m[to]!.state).toBe("PLAYING");
     }
-    // Loaded off air, held at its part, played as it goes on air; the next one loaded only once the fade from its scene is over.
-    expect(o.mediaLog.filter((l) => !l.includes("seek"))).toEqual([
-      "replay load clip-a.mp4",
-      "replay pause",
-      "replay play",
-      "replay B load clip-b.mp4",
-      "replay B pause",
-      "replay B play",
-      "replay load clip-c.mp4",
-      "replay pause",
-      "replay play",
-    ]);
-    expect(o.mediaLog.filter((l) => l.includes("seek"))).toEqual(["replay seek 1800", "replay B seek 1800", "replay seek 1800"]);
-    // The first clip plays from the stinger's cut point (300 ms), when the replay scene shows.
+    // Never paused off air (a Windows OBS lets that go): each loaded, then skipped so it reaches its part as it shows.
+    expect(o.mediaLog.filter((l) => !l.includes("seek"))).toEqual(["replay load clip-a.mp4", "replay B load clip-b.mp4", "replay load clip-c.mp4"]);
+    const seeks = o.mediaLog.filter((l) => l.includes("seek")).map((l) => [l.replace(/ seek .*/, ""), Number(l.replace(/^.* seek /, ""))] as const);
+    // The first: at its part, then back by the stinger's cut point (300 ms) as it goes on air, so it is at its part when the scene shows.
+    expect(seeks[0]).toEqual(["replay", DURATION - PLAY]);
+    expect(seeks[1]![0]).toBe("replay");
+    expect(seeks[1]![1]).toBeGreaterThanOrEqual(DURATION - PLAY - 300);
+    expect(seeks[1]![1]).toBeLessThanOrEqual(DURATION - PLAY - 150);
+    // The next ones: loaded at most about half a second before their fade (as soon as their scene is off air, when that is later), and skipped to where they reach their part at it.
+    expect(seeks.slice(2).map(([input]) => input)).toEqual(["replay B", "replay"]);
+    for (const [, at] of seeks.slice(2)) {
+      expect(at).toBeGreaterThanOrEqual(DURATION - PLAY - 900);
+      expect(at).toBeLessThan(DURATION - PLAY);
+    }
     // One cut in and one out for the program: the clips switch scenes without leaving REPLAY_PLAYING.
     expect(e.program.history.slice(history).map((t) => t.to)).toEqual(["REPLAY_PREPARED", "REPLAY_PLAYING", "LIVE"]);
     expect(e.program.mode).toBe("LIVE");
@@ -193,27 +196,120 @@ describe("Replay break: fading from one clip to the next through the replay scen
     await waitFor(() => o.inputs.get("replay")!.settings.local_file === "" && o.inputs.get("replay B")!.settings.local_file === "", 8000);
   });
 
-  it("a clip waiting off air whose pause OBS lets go still comes in at its part: the pause sent again, or the clip put back before it goes on air", async () => {
-    for (const [n, drops] of [
-      [30, 1],
-      [31, 6],
-    ] as const) {
-      await feed("live", n);
+  /** A clip of `durationMs` whose last `playMs` play (its lead-up 600 ms of them). */
+  const addLong = (round: number, label: string, kills: number, path: string, durationMs: number, playMs: number) => {
+    o.durations.set(path, durationMs);
+    const play: ReplayPlay = { kind: "missed", killer: { steamId: `k-${label}`, name: label }, victims: [`v-${label}`], kills, weapon: "ak47", headshot: false };
+    const c = clip(round, path);
+    return e.replays.addExternal(label, play.kind, round, { ...c, media: { ...c.media, durationMs } }, { playMs, leadMs: 600, play });
+  };
+  const logsSince = (n: number) => e.logger.recent.slice(n).map((l) => l.msg);
+
+  it("a Windows OBS that won't hold a clip paused off air, and wedges one paused or skipped right after a restart (0.10.12): every clip still plays from its part, none stuck", async () => {
+    // As the owner's OBS did: the clip waiting off air ran on to its end, the restart and pause that put it back left it at 24 ms,
+    // play didn't start it on air, and 1.5 s later the break faded to the next clip: "pausing and not playing then transitioning".
+    o.hiddenPause = "ignored";
+    o.wedgeAfterRestartPause = true;
+    const long = join(dir, "clip-long.mp4");
+    writeFileSync(long, Buffer.alloc(64));
+    try {
+      await feed("live", 32);
       const round = e.session.state()!.roundNumber!;
-      add(round, "first", 2, files[0]!);
-      add(round, "second", 1, files[1]!);
-      o.dropPauses.set("replay B", drops);
+      // The first plays 4 s: the second, waiting off air from its part, would reach its end long before its fade.
+      addLong(round, "first", 3, long, 5000, 4000);
+      add(round, "second", 2, files[1]!);
+      add(round, "third", 1, files[2]!);
       o.changes.length = 0;
-      await feed("over", n);
-      await waitFor(done);
+      o.mediaLog.length = 0;
+      const logs = e.logger.recent.length;
+      await feed("over", 32);
+      await waitFor(done, 20000);
       await settle();
-      expect(o.changes.map((c) => c.scene)).toEqual(["My Replay", "My Replay B", "Game"]);
-      const m = o.changes[1]!.media["replay B"]!;
-      expect(m.cursorMs, `${drops} pauses let go`).toBeGreaterThanOrEqual(DURATION - PLAY);
-      expect(m.cursorMs, `${drops} pauses let go`).toBeLessThanOrEqual(DURATION - PLAY + 80);
-      expect(o.dropPauses.get("replay B")).toBe(0);
+      expect(o.changes.map((c) => c.scene)).toEqual(["My Replay", "My Replay B", "My Replay", "Game"]);
+      // The second comes in at its part, playing, and plays on to its own fade (not stuck near 0).
+      const atFade = o.changes[1]!.media["replay B"]!;
+      expect(atFade.state).toBe("PLAYING");
+      expect(atFade.cursorMs).toBeGreaterThanOrEqual(DURATION - PLAY);
+      expect(atFade.cursorMs).toBeLessThanOrEqual(DURATION - PLAY + 80);
+      const atNext = o.changes[2]!.media["replay B"]!;
+      expect(atNext.cursorMs, "the second clip at the fade to the third").toBeGreaterThanOrEqual(DURATION - 400 - 150);
+      expect(o.changes[2]!.media.replay!.cursorMs).toBeGreaterThanOrEqual(DURATION - PLAY);
+      expect(o.changes[2]!.media.replay!.cursorMs).toBeLessThanOrEqual(DURATION - PLAY + 80);
+      // Never restarted or paused off air; nothing stuck.
+      expect(o.mediaLog.filter((l) => / (restart|pause)$/.test(l))).toEqual([]);
+      expect(logsSince(logs).filter((m) => /stopped playing|ran on|didn't play/.test(m))).toEqual([]);
+      expect(e.autoReplay.getStatus().detail).toBe("Replays for this break are done (3 played).");
+    } finally {
+      o.hiddenPause = "holds";
+      o.wedgeAfterRestartPause = false;
     }
-  });
+  }, 30000);
+
+  it("a clip that doesn't move as it goes on air: play sent again, then loaded again at its part; one that stops on air: the same, then given up and the next one in at its part", async () => {
+    // Stuck as it reaches its part (where it shows), until it is loaded again.
+    await feed("live", 34);
+    let round = e.session.state()!.roundNumber!;
+    add(round, "first", 2, files[0]!);
+    add(round, "second", 1, files[1]!);
+    o.stalls.set("replay B", { atMs: DURATION - PLAY, clearsOn: "load" });
+    o.changes.length = 0;
+    o.mediaLog.length = 0;
+    let logs = e.logger.recent.length;
+    await feed("over", 34);
+    await waitFor(done);
+    await settle();
+    expect(o.changes.map((c) => c.scene)).toEqual(["My Replay", "My Replay B", "Game"]);
+    expect(o.mediaLog.filter((l) => l.startsWith("replay B") && !l.includes("seek"))).toEqual(["replay B load clip-b.mp4", "replay B play", "replay B load clip-b.mp4"]);
+    expect(o.mediaLog.filter((l) => l.startsWith("replay B seek")).at(-1)).toBe(`replay B seek ${DURATION - PLAY}`);
+    expect(logsSince(logs)).toEqual(expect.arrayContaining(["automatic replays: OBS didn't play the clip on air; play sent again", "automatic replays: OBS still didn't play the clip; loading it again"]));
+    // It played on to its end once loaded again.
+    expect(o.changes[2]!.media["replay B"]!.cursorMs).toBeGreaterThan(DURATION - 300);
+    expect(e.autoReplay.getStatus().detail).toBe("Replays for this break are done (2 played).");
+
+    // Stops on air: play takes it on.
+    await feed("live", 35);
+    round = e.session.state()!.roundNumber!;
+    add(round, "first", 2, files[0]!);
+    add(round, "second", 1, files[1]!);
+    o.stalls.set("replay", { atMs: 2200, clearsOn: "play" });
+    o.changes.length = 0;
+    o.mediaLog.length = 0;
+    logs = e.logger.recent.length;
+    await feed("over", 35);
+    await waitFor(done);
+    await settle();
+    expect(o.changes.map((c) => c.scene)).toEqual(["My Replay", "My Replay B", "Game"]);
+    expect(o.mediaLog.filter((l) => l === "replay play")).toEqual(["replay play"]);
+    expect(logsSince(logs)).toContain("automatic replays: OBS stopped playing the clip; play sent again");
+    expect(o.changes[1]!.media.replay!.cursorMs).toBeGreaterThanOrEqual(DURATION - 400 - 150);
+
+    // Never moves again: played again, loaded again where it was, then given up; the next one comes in.
+    await feed("live", 36);
+    round = e.session.state()!.roundNumber!;
+    add(round, "first", 2, files[0]!);
+    add(round, "second", 1, files[1]!);
+    o.stalls.set("replay", { atMs: 2200, clearsOn: "never" });
+    o.changes.length = 0;
+    o.mediaLog.length = 0;
+    logs = e.logger.recent.length;
+    try {
+      await feed("over", 36);
+      await waitFor(done, 20000);
+      await settle();
+    } finally {
+      o.stalls.delete("replay");
+    }
+    expect(o.changes.map((c) => c.scene)).toEqual(["My Replay", "My Replay B", "Game"]);
+    expect(o.mediaLog.filter((l) => /^replay (load|play|pause|restart)/.test(l))).toEqual(["replay load clip-a.mp4", "replay play", "replay load clip-a.mp4"]);
+    // Loaded again where it had stopped.
+    const again = Number(o.mediaLog.filter((l) => l.startsWith("replay seek")).at(-1)!.replace("replay seek ", ""));
+    expect(again).toBeGreaterThanOrEqual(2200);
+    expect(again).toBeLessThan(2300);
+    // (Given up by its own time, or after another 1.5 s still; the next one, which ran on off air meanwhile, loaded again at its part.)
+    expect(logsSince(logs)).toEqual(expect.arrayContaining(["automatic replays: OBS stopped playing the clip; play sent again", "automatic replays: OBS still doesn't play the clip; loading it again where it was"]));
+    expect(o.changes[1]!.media["replay B"]!.cursorMs).toBeGreaterThanOrEqual(DURATION - PLAY);
+    expect(e.autoReplay.getStatus().detail).toBe("Replays for this break are done (2 played).");
+  }, 40000);
 
   it("cuts between clips when chosen: the next one as the one on air ends", async () => {
     e.autoReplay.setSettings({ between: "cut", perBreak: 2 });

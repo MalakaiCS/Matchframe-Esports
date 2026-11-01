@@ -250,7 +250,8 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
           // Highlights on air (ADR-063): their scenes, twin, the return target while on air, the last run.
           highlights: { scenes: e.program.highlightsScenes, twin: e.highlightsAir.twin.getStatus(), mediaInput: e.highlightsAir.mediaInput(), returnTo: e.program.highlightsReturn, settings: e.highlightsAir.settings(), status: e.highlightsAir.status() },
           transitions: e.obsAuto.settings(),
-          obs: { connected: e.obs.state.connected, replayBuffer: e.obs.state.replayBuffer, programScene: e.obs.state.programScene, stats: obsStats },
+          // OBS's own version, its websocket's and its platform: how media sources behave differs between them (a Windows OBS 30 let hidden sources' pauses go).
+          obs: { connected: e.obs.state.connected, obsVersion: e.obs.state.obsVersion, websocketVersion: e.obs.state.websocketVersion, platform: e.obs.state.platform, replayBuffer: e.obs.state.replayBuffer, programScene: e.obs.state.programScene, stats: obsStats },
           clips: e.replays
             .list()
             .slice(-40)

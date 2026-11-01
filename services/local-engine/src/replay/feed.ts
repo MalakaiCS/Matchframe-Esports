@@ -164,6 +164,8 @@ interface Session {
   audio: boolean;
   audioNote: string | null;
   encoder: Encoder;
+  /** Where its recording skipped ahead (ffmpeg behind): from `at` (its time, ms from t0) on, it is `total` ms behind the wall clock. */
+  skips: { at: number; total: number }[];
 }
 
 /** The segment holding the end of a clip is listed once the next one begins: wait this long for it. */
@@ -296,7 +298,7 @@ export class ReplayFeed {
       this.finds.get(r.id)?.(r);
       this.finds.delete(r.id);
     } else if (r.type === "session") {
-      this.sessions.set(r.id, { id: r.id, dir: r.dir, t0: r.t0, width: r.width, height: r.height, fps: r.fps, segments: [], prunedUntil: -Infinity, audio: r.audio === true, audioNote: r.audioNote ?? null, encoder: r.encoder });
+      this.sessions.set(r.id, { id: r.id, dir: r.dir, t0: r.t0, width: r.width, height: r.height, fps: r.fps, segments: [], prunedUntil: -Infinity, audio: r.audio === true, audioNote: r.audioNote ?? null, encoder: r.encoder, skips: [] });
       this.current = r.id;
       this.set("recording", `Recording ${source} (${r.width}×${r.height}, ${Math.round(r.fps)} fps, ${r.encoder}${r.audio ? ", with sound" : ""}).`);
       this.deps.logger.info("replay feed: recording", { source, width: r.width, height: r.height, fps: r.fps, encoder: r.encoder, audio: r.audio, audioNote: r.audioNote });
@@ -311,6 +313,14 @@ export class ReplayFeed {
       }
       if (!r.receiving && this.state !== "error") this.set("waiting", `No picture from ${source}: is its NDI sender running on the replay PC?`);
       else if (r.receiving && this.state === "waiting" && this.current) this.set("recording", `Recording ${source}.`);
+    } else if (r.type === "skip") {
+      // ffmpeg fell behind and the recording skipped ahead (rather than starting again): its later times are that much later on the clock.
+      const s = this.sessions.get(r.id);
+      if (s) {
+        s.skips.push({ at: r.atMs, total: r.totalMs });
+        if (s.skips.length > 2000) s.skips.splice(0, s.skips.length - 2000);
+      }
+      this.deps.logger.info("replay feed: the encoder fell behind; the recording skipped ahead", { skippedMs: r.totalMs });
     } else if (r.type === "error") {
       this.deps.logger.warn("replay feed: problem", { message: r.message });
       this.set("error", r.message);
@@ -351,8 +361,8 @@ export class ReplayFeed {
     for (const line of text.split("\n")) {
       const [file, a, b] = line.trim().split(",");
       if (!file || known.has(file) || a === undefined || b === undefined) continue;
-      const start = s.t0 + Number(a) * 1000;
-      const end = s.t0 + Number(b) * 1000;
+      const start = wallOf(s, Number(a) * 1000);
+      const end = wallOf(s, Number(b) * 1000);
       if (!Number.isFinite(start) || !Number.isFinite(end) || end <= s.prunedUntil) continue;
       s.segments.push({ file, start, end });
     }
@@ -436,7 +446,8 @@ export class ReplayFeed {
     const parts = segs.map((g) => readFileSync(join(session.dir, g.file)));
     const ts = `${outFile}.ts`;
     writeFileSync(ts, Buffer.concat(parts));
-    const durationMs = Math.max(500, Math.min(to, segs[segs.length - 1]!.end) - startWall);
+    // (Less what the recording skipped meanwhile, if ffmpeg fell behind: the clip's own length.)
+    const durationMs = Math.max(500, Math.min(to, segs[segs.length - 1]!.end) - startWall - (skippedBy(session, Math.min(to, segs[segs.length - 1]!.end)) - skippedBy(session, startWall)));
     try {
       await run(ffmpeg, ["-y", "-v", "error", "-i", ts, "-t", (durationMs / 1000).toFixed(3), "-c", "copy", "-movflags", "+faststart", outFile], { timeout: 30_000, windowsHide: true });
     } finally {
@@ -462,4 +473,24 @@ export class ReplayFeed {
     const files = existsSync(dir) ? readdirSync(dir).filter((f) => f.startsWith("feed-") && f.endsWith(".mp4")) : [];
     for (const old of files.sort().reverse().slice(keep)) rmSync(join(dir, old), { force: true });
   }
+}
+
+/** Where a session's recording time (ms from its t0) is on the wall clock: later by what it had skipped by then (ffmpeg behind). */
+function wallOf(s: Session, recMs: number): number {
+  let total = 0;
+  for (const k of s.skips) {
+    if (k.at > recMs) break;
+    total = k.total;
+  }
+  return s.t0 + recMs + total;
+}
+
+/** What a session's recording had skipped (ms) by a wall time. */
+function skippedBy(s: Session, wall: number): number {
+  let total = 0;
+  for (const k of s.skips) {
+    if (s.t0 + k.at + k.total > wall) break;
+    total = k.total;
+  }
+  return total;
 }

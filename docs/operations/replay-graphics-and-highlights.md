@@ -159,7 +159,9 @@ A new map starts when the map changes, or when the active match changes.
 
 As a break's replays (Automatic replays' settings):
 
-- **Highlights in** to the first clip; **Between replays** (a fade of 0.5 s by default, or a cut) from one to the next, through the highlights scene and its twin; **Highlights out** after the last.
+- **Highlights in** to the first clip; **Between replays** from one to the next; **Highlights out** after the last.
+- **Rendered first (the default, Fade (one scene, rendered); ADR-067):** the clips are joined by ffmpeg into one file, each cut to its part, crossfaded into the next (the fade's length; with Cut, plainly), the sound fading in at the start and out at the end (**Sound fade**). The panel says *Preparing highlights… 40%* meanwhile: highlights aren't in a hurry, so they wait for their file (up to 3 minutes). Then it plays in the highlights scene's one media source: no twin is needed. The replay graphic, the status and **Skip** follow the file's cursor from one clip to the next (Skip goes to the next clip's start in it); **Hold** pauses it; **Stop** ends it. If the file can't be made (no ffmpeg, an error), they play through the highlights scene and its twin as below, and the panel says why. See [replay-pc.md → Between replays](replay-pc.md) for the file itself.
+- **Fade (two scenes, OBS):** through the highlights scene and its twin, each clip loaded just in time off air and checked to play on air, as a break's replays.
 - The replay graphic on each clip: the tag and the lower third with the play. A clip of the previous map shows its own play and round.
 - The live game audio picked under **Automatic replays → Sound** is turned down as the first clip comes in, and put back exactly afterwards, however they end.
 - The status reads *Highlight 3 of 8: …*.

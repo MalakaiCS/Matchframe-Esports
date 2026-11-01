@@ -9,7 +9,7 @@ import { useReplayShortcuts } from "../../lib/replay-keys.ts";
 import { AutoReplaysPanel, ReplayPcPanel } from "./AutoReplays.tsx";
 
 const auto: AutoReplayResponse = {
-  settings: { enabled: false, perBreak: 4, order: "round", speedPercent: 100, startDelayMs: 3500, otherAngles: true, ownBigPlays: true, mixer: "obs", vmixUrl: "http://127.0.0.1:8088", vmixTransition: "CutDirect", vmixTransitionOut: null, cutBack: "clock", cutBackClockSec: 110, between: "fade", fadeMs: 500 },
+  settings: { enabled: false, perBreak: 4, order: "round", speedPercent: 100, startDelayMs: 3500, otherAngles: true, ownBigPlays: true, mixer: "obs", vmixUrl: "http://127.0.0.1:8088", vmixTransition: "CutDirect", vmixTransitionOut: null, cutBack: "clock", cutBackClockSec: 110, between: "fade", fadeMs: 500, playback: "rendered", audioFadeMs: 400 },
   status: { enabled: false, state: "off", detail: "Automatic replays are off.", waiting: 0, playing: null, lastPlayed: null },
 };
 const link: ReplayPcResponse = {
@@ -89,12 +89,20 @@ describe("Automatic replays panel", () => {
     await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ cutBack: "clock", cutBackClockSec: 105 }));
     fireEvent.change(back, { target: { value: "before_round" } });
     await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ cutBack: "before_round" }));
+    // Between replays: one rendered file by default, OBS's fade through two scenes, or a cut; the fade's length and the sound's fade apart.
     const between = screen.getByLabelText(/Between replays/) as HTMLSelectElement;
-    expect(between.selectedOptions[0]!.textContent).toBe("Fade, 0.5 s (recommended)");
+    expect([...between.options].map((o) => o.textContent)).toEqual(["Fade (one scene, rendered)", "Fade (two scenes, OBS)", "Cut"]);
+    expect(between.selectedOptions[0]!.textContent).toBe("Fade (one scene, rendered)");
+    expect((screen.getByLabelText(/Fade length/) as HTMLSelectElement).selectedOptions[0]!.textContent).toBe("0.5 s (recommended)");
+    expect((screen.getByLabelText(/Sound fade/) as HTMLSelectElement).selectedOptions[0]!.textContent).toBe("0.4 s (recommended)");
+    fireEvent.change(screen.getByLabelText(/Sound fade/), { target: { value: "300" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ audioFadeMs: 300 }));
+    fireEvent.change(between, { target: { value: "scenes" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ between: "fade", playback: "scenes" }));
     fireEvent.change(between, { target: { value: "cut" } });
     await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ between: "cut" }));
-    fireEvent.change(between, { target: { value: "1000" } });
-    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ between: "fade", fadeMs: 1000 }));
+    fireEvent.change(screen.getByLabelText(/Fade length/), { target: { value: "1000" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ fadeMs: 1000 }));
     expect(screen.getByText(/Fades between replays through “Matchframe Replay B”/)).toBeTruthy();
     expect(screen.queryByText(/Never while a round is live/)).toBeNull();
   });

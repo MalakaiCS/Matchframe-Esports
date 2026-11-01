@@ -158,7 +158,7 @@ describe("Replay break: the round's best clips, back to back", () => {
   });
 
   it("best first: plays the best three of six, best first, back to back, and not a clip with the same kills as a better one", async () => {
-    e.autoReplay.setSettings({ enabled: true, startDelayMs: 0, perBreak: 3, order: "best" });
+    e.autoReplay.setSettings({ enabled: true, startDelayMs: 0, perBreak: 3, order: "best", playback: "scenes" });
     const round = await startRound(7);
     add(round, "single shown", {});
     add(round, "single missed", { kind: "missed", killer: { steamId: "k2", name: "kite" } });

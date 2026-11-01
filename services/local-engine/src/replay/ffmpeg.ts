@@ -57,6 +57,25 @@ export function encoderArgs(encoder: Encoder, fps: number, bitrateMbps: number):
   }
 }
 
+/**
+ * ffmpeg's video arguments for a rendered break (replay/render.ts): a fast preset that still looks
+ * good, quality-based rather than a fixed bitrate (a short local file), no B-frames, a keyframe a
+ * second (the render adds one at each clip's start).
+ */
+export function renderArgs(encoder: Encoder, fps: number): string[] {
+  const gop = ["-g", String(Math.max(1, Math.round(fps)))];
+  switch (encoder) {
+    case "h264_nvenc":
+      return ["-c:v", "h264_nvenc", "-preset", "p4", "-tune", "hq", "-rc", "vbr", "-cq", "19", "-b:v", "0", "-maxrate", "40M", "-bufsize", "80M", "-bf", "0", "-forced-idr", "1", ...gop];
+    case "h264_qsv":
+      return ["-c:v", "h264_qsv", "-preset", "faster", "-global_quality", "20", "-bf", "0", ...gop];
+    case "h264_amf":
+      return ["-c:v", "h264_amf", "-quality", "speed", "-rc", "cqp", "-qp_i", "18", "-qp_p", "20", "-bf", "0", ...gop];
+    case "libx264":
+      return ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "fastdecode", "-crf", "18", "-bf", "0", "-forced-idr", "1", ...gop];
+  }
+}
+
 export class FfmpegTool {
   private found: { source: "downloaded" | "path"; path: string; version: string } | null = null;
   private checked = false;

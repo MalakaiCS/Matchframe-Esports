@@ -119,7 +119,7 @@ describe("Replay controls, sound and Test replays (OBS)", () => {
     e.settings.set("program.scenes", scenes);
     e.program.setScenes(scenes);
     e.settings.set("replay.mediaInput", "replay");
-    e.autoReplay.setSettings({ enabled: true, startDelayMs: 0, perBreak: 3, order: "best", ownBigPlays: false, between: "fade", fadeMs: 400, duckInputs: ["Game audio"], duckTo: -20, duckRampMs: 300 });
+    e.autoReplay.setSettings({ enabled: true, startDelayMs: 0, perBreak: 3, order: "best", ownBigPlays: false, between: "fade", fadeMs: 400, duckInputs: ["Game audio"], duckTo: -20, duckRampMs: 300, playback: "scenes" });
   });
 
   afterAll(async () => {

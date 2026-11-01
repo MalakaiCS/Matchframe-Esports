@@ -275,6 +275,25 @@ describe("replay feed's sound: written as received, laid along the picture", () 
     expect(maxStep(x, x.findIndex((v) => v !== 0) + 1)).toBeLessThan(0.15);
   });
 
+  it("skips with the picture when the recording skipped ahead (ffmpeg behind): that much sound left out at one crossfaded join, then in place", () => {
+    const c = new AudioClock(0);
+    const out: Buffer[] = [];
+    const frames = sound(6, { late: 5 });
+    for (const [j, f] of frames.entries()) {
+      // 2 s in, the picture's slots of 600 ms are let go.
+      if (j === 200) c.skip(600);
+      out.push(...c.frame(f.pcm, 48000, f.at, f.end));
+    }
+    expect(c.dropouts).toBe(0);
+    // Laid where the picture is: 600 ms fewer samples than without the skip (to within the resample's last steps), and in place afterwards.
+    const plain = new AudioClock(0);
+    for (const f of frames) plain.frame(f.pcm, 48000, f.at, f.end);
+    expect(Math.abs(plain.written - c.written - 600 * 48)).toBeLessThan(48 * 40);
+    expect(Math.abs(c.offsetMs ?? 0)).toBeLessThanOrEqual(40);
+    const x = left(out);
+    expect(maxStep(x, x.findIndex((v) => v !== 0) + 1)).toBeLessThan(0.15);
+  });
+
   it("lays the first frame by its sender time, or its arrival, and fills silence for a source without sound, not while sound waits in NDI", () => {
     const c = new AudioClock(0);
     // 480 samples ending at 100 ms by the sender: 4800 − 480 samples of silence first.
@@ -294,7 +313,7 @@ describe("replay feed's sound: written as received, laid along the picture", () 
 });
 
 describe("replay feed: where frames are lost, in plain words", () => {
-  const d = (o: Partial<FeedDiagnostics>): FeedDiagnostics => ({ sourceFps: 60, received: 0, ndi: { videoFrames: 0, videoDropped: 0, audioDropped: 0 }, written: 0, repeated: 0, skipped: 0, encoderDropped: 0, startDropped: 0, backlogMax: 0, timing: "timecode", reanchored: 0, audio: null, ...o });
+  const d = (o: Partial<FeedDiagnostics>): FeedDiagnostics => ({ sourceFps: 60, received: 0, ndi: { videoFrames: 0, videoDropped: 0, audioDropped: 0 }, written: 0, repeated: 0, skipped: 0, encoderDropped: 0, startDropped: 0, skippedMs: 0, restarts: 0, backlogMax: 0, timing: "timecode", reanchored: 0, audio: null, ...o });
   const at = (t: number, o: Partial<FeedDiagnostics>) => ({ at: t, d: d(o) });
 
   it("nothing lost: nothing said", () => {

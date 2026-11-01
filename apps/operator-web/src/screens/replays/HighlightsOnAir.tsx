@@ -188,7 +188,7 @@ export function HighlightsOnAirPanel() {
             <HighlightTransitions settings={auto.data?.settings ?? null} transitions={auto.data?.transitions ?? null} disabled={!!programReason || !auto.data} save={saveObs} />
           </div>
         )}
-        <p className="muted small">Between highlights: the fade (or cut) and the speed of automatic replays. The live game audio picked under Automatic replays → Sound is turned down meanwhile and put back after.</p>
+        <p className="muted small">Between highlights: the fade (or cut) and the speed of automatic replays. With Fade (one scene, rendered), the default, they are joined into one file first (Preparing highlights… shows how far), the sound fading in and out, and play in the highlights scene alone. The live game audio picked under Automatic replays → Sound is turned down meanwhile and put back after.</p>
 
         <Hotkeys keys={HIGHLIGHT_KEYS} label="Highlights hotkeys" devices={`the device actions highlights_play, highlights_stop and highlights_halftime (Don't show highlights at halftime: on, off or toggle); Skip and Hold are replay_skip and replay_hold (${shortcutLabel("F5")}, ${shortcutLabel("F6")})`} />
         <p className="muted small">Not while a round is live. If a round goes live while they play (halftime over), they play on until the replays' cut back on its clock, then the live scene. If you switch OBS to another scene meanwhile, they stop and Matchframe leaves it there.</p>

@@ -169,7 +169,8 @@ export class FrameSlots {
   constructor(
     private readonly t0: number,
     private readonly frameMs: number,
-    first: number,
+    /** The first slot (the recording's first frame). */
+    readonly first: number,
   ) {
     this.next = first;
   }
@@ -325,7 +326,18 @@ export class AudioClock {
   private cut = 0;
   private pad = 0;
 
-  constructor(private readonly t0: number) {}
+  constructor(private t0: number) {}
+
+  /**
+   * The picture skipped ahead by `ms` (ffmpeg was behind, its slots let go): the sound skips with it,
+   * the next `ms` of it left out at a crossfaded join (or, waiting to be laid by its time, just laid later).
+   */
+  skip(ms: number): void {
+    if (!(ms > 0)) return;
+    this.t0 += ms;
+    if (!this.resync) this.cut += Math.round((ms * AUDIO_RATE) / 1000);
+    this.errs = [];
+  }
 
   private pos(at: number): number {
     return ((at - this.t0) * AUDIO_RATE) / 1000;

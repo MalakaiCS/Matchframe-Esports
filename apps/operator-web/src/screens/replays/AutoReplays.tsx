@@ -27,6 +27,8 @@ const TRANSITIONS = [
 /** When the break's replays end: by a time on the next round's clock (seconds left), or before it starts. */
 const CUT_BACK = [112, 110, 105, 100, 95, 90] as const;
 const FADES = [300, 500, 750, 1000] as const;
+/** A rendered break's sound fade in and out (ms). */
+const AUDIO_FADES = [0, 300, 400, 500] as const;
 /** The replay media sources' volume: as set in OBS (null), or in dB. */
 const REPLAY_VOLUMES = [null, 6, 3, 0, -3, -6, -10] as const;
 /** The live game audio during replays: muted, or this many dB down. */
@@ -65,6 +67,9 @@ export function AutoReplaysPanel() {
     if (st?.vmixUrl) setVmixUrl(st.vmixUrl);
   }, [st?.vmixUrl]);
   const ranked = status?.ranked ?? [];
+  const vmix = st?.mixer === "vmix";
+  /** A break playing as one rendered file now: the operator's Exclude and Pin apply from the next break. */
+  const renderedNow = !!status?.running && !vmix && st?.playback !== "scenes" && status?.render?.rendered === true && status.render.kind === "break";
   /** A control or a clip's Exclude / Pin: the answer is the panel's new state. */
   const control = async (path: string, body?: unknown, method: "POST" | "PUT" = "POST") => {
     try {
@@ -127,16 +132,36 @@ export function AutoReplaysPanel() {
               <option value="before_round">Before the round starts</option>
             </select>
           </Field>
-          <Field label="Between replays" hint="The end of one replay fades into the start of the next. In OBS through a second replay scene Matchframe keeps the same as yours.">
-            <select value={st?.between === "cut" ? "cut" : String(st?.fadeMs ?? 500)} disabled={off} onChange={(e) => void save(e.target.value === "cut" ? { between: "cut" } : { between: "fade", fadeMs: Number(e.target.value) })}>
-              {[...FADES, ...(st?.fadeMs && !(FADES as readonly number[]).includes(st.fadeMs) ? [st.fadeMs] : [])].map((ms) => (
-                <option key={ms} value={String(ms)}>
-                  {`Fade, ${ms / 1000} s${ms === 500 ? " (recommended)" : ""}`}
-                </option>
-              ))}
+          <Field label="Between replays" hint={vmix ? "The end of one replay fades into the start of the next (vMix's Fade), or a cut." : "Fade (one scene, rendered): the break's clips are joined into one file with the fade and played in your replay scene; smoothest, needs ffmpeg (Replay feed). Fade (two scenes, OBS): each clip in your replay scene and a copy of it, OBS fading between them. If the file isn't ready in time, the break plays the second way."}>
+            <select value={st?.between === "cut" ? "cut" : st?.playback === "scenes" || vmix ? "scenes" : "rendered"} disabled={off} onChange={(e) => void save(e.target.value === "cut" ? { between: "cut" } : { between: "fade", playback: e.target.value as "rendered" | "scenes" })}>
+              {vmix ? <option value="scenes">Fade</option> : null}
+              {!vmix ? <option value="rendered">Fade (one scene, rendered)</option> : null}
+              {!vmix ? <option value="scenes">Fade (two scenes, OBS)</option> : null}
               <option value="cut">Cut</option>
             </select>
           </Field>
+          {st?.between !== "cut" ? (
+            <Field label="Fade length">
+              <select value={String(st?.fadeMs ?? 500)} disabled={off} onChange={(e) => void save({ fadeMs: Number(e.target.value) })}>
+                {[...FADES, ...(st?.fadeMs && !(FADES as readonly number[]).includes(st.fadeMs) ? [st.fadeMs] : [])].map((ms) => (
+                  <option key={ms} value={String(ms)}>
+                    {`${ms / 1000} s${ms === 500 ? " (recommended)" : ""}`}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
+          {!vmix && st?.playback !== "scenes" ? (
+            <Field label="Sound fade" hint="A rendered break's sound fades in at its start and out at its end, so it never ends on a hard cut (and before Stop or the round clock ends it early).">
+              <select value={String(st?.audioFadeMs ?? 400)} disabled={off} onChange={(e) => void save({ audioFadeMs: Number(e.target.value) })}>
+                {[...AUDIO_FADES, ...(st?.audioFadeMs !== undefined && !(AUDIO_FADES as readonly number[]).includes(st.audioFadeMs) ? [st.audioFadeMs] : [])].map((ms) => (
+                  <option key={ms} value={String(ms)}>
+                    {ms === 0 ? "None" : `${ms / 1000} s${ms === 400 ? " (recommended)" : ""}`}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
           <Field label="Speed">
             <select value={st?.speedPercent ?? 100} disabled={off} onChange={(e) => void save({ speedPercent: Number(e.target.value) })}>
               {SPEEDS.map((s) => (
@@ -200,7 +225,7 @@ export function AutoReplaysPanel() {
         )}
         {ranked.length ? (
           <div className="stack-sm" aria-label="Clips of the round, best first">
-            <span className="small muted">Round {status?.round ?? "?"}: its clips, best first</span>
+            <span className="small muted">Round {status?.round ?? "?"}: its clips, best first{renderedNow ? ". This break plays as one rendered file: Exclude and Pin made now apply from the next break." : ""}</span>
             <ol className="ranked-replays small">
               {ranked.map((r) => (
                 <li key={r.id} className="row">
@@ -230,6 +255,7 @@ export function AutoReplaysPanel() {
           </div>
         ) : null}
         {status?.lastPlayed ? <p className="small muted">Last replay: {status.lastPlayed.label}</p> : null}
+        {status?.render && !vmix ? <p className={`small ${status.render.rendered ? "muted" : "text-warn"}`}>{`${status.render.kind === "highlights" ? "Last highlights" : status.render.kind === "test" ? "Last Test replays" : "Last break"}: ${status.render.detail}`}</p> : null}
         {st ? <ReplaySound st={st} status={status ?? null} save={save} off={off} /> : null}
         <TestReplays report={status?.test ?? null} running={!!status?.running} reason={reason} onDone={(r) => auto.setData(r)} />
         <ReplayHotkeys />

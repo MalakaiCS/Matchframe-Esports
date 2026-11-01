@@ -10,8 +10,8 @@ import { VmixClient } from "./vmix.ts";
 /**
  * Test replays (ADR-062): two sample clips (bundled with the program: different colours, big "Test
  * clip 1"/"Test clip 2", a tone) played on the program output through the same path as a break's
- * replays (auto.ts: playObsTwin or playVmix, the transitions, the fade between, the live audio turned
- * down), then a report, step by step, of what worked and how to fix what didn't. The clips are
+ * replays (auto.ts: one rendered file in OBS by default, or the replay scene and its twin, or vMix;
+ * the transitions, the fade between, the live audio turned down), then a report, step by step, of what worked and how to fix what didn't. The clips are
  * unlisted in the replay queue (never ranked, never in a break or a highlight; found only by their id
  * while they play, so the replay graphic can show their play) and gone afterwards. It refuses while a
  * round is live, while the program isn't live, and while a break's replays play or are about to.
@@ -61,6 +61,8 @@ const SAME = (a: number, b: number) => Math.abs(a - b) <= 1e-4 * Math.max(1, Mat
 export class ReplayTest {
   private last: TestReport | null = null;
   private busy = false;
+  /** Why the sample clips weren't rendered into one file (they then play through the scenes), or null. */
+  private notRendered: string | null = null;
 
   constructor(
     private readonly e: Engine,
@@ -87,14 +89,16 @@ export class ReplayTest {
     if (!dir) throw refuse("The sample clips aren't installed with the program (its replay-test folder): reinstall Matchframe.");
     this.busy = true;
     try {
-      const between = st.between === "fade" ? `Fade (${st.fadeMs / 1000} s) between the clips` : "Cut between the clips";
+      const rendered = st.mixer === "obs" && st.playback === "rendered";
+      const between = `${st.between === "fade" ? `Fade (${st.fadeMs / 1000} s) between the clips` : "Cut between the clips"}${rendered ? ", rendered into one file" : ""}`;
+      this.notRendered = null;
       this.last = {
         state: "running",
         mixer: st.mixer,
         startedAt: new Date().toISOString(),
         finishedAt: null,
         steps: [
-          { id: "ready", label: st.mixer === "vmix" ? "vMix ready" : "Replay scene and twin ready", state: "pending", detail: "", fix: null },
+          { id: "ready", label: st.mixer === "vmix" ? "vMix ready" : rendered ? "Replay scene ready" : "Replay scene and twin ready", state: "pending", detail: "", fix: null },
           { id: "in", label: "Transition in (Replay in)", state: "pending", detail: "", fix: null },
           { id: "fade", label: between, state: "pending", detail: "", fix: null },
           { id: "out", label: "Transition out (Replay out)", state: "pending", detail: "", fix: null },
@@ -126,6 +130,10 @@ export class ReplayTest {
     }
     const replay = this.e.program.sceneMap.REPLAY;
     const media = this.e.settings.get<string | null>("replay.mediaInput", null);
+    if (st.playback === "rendered") {
+      this.step("ready", { state: "ok", detail: `“${replay}” with “${media}”: the clips play as one rendered file in it.` });
+      return;
+    }
     const twin = await this.e.replayTwin.sync().catch(() => null);
     if (twin) this.step("ready", { state: "ok", detail: `“${replay}” with “${media}”, and its twin “${twin.scene}” for the fade.` });
     else this.step("ready", { state: "failed", detail: `“${replay}” with “${media}”, but no twin: ${this.e.replayTwin.getStatus().detail}`, fix: "Press Set up OBS replay scene. With your own replay scene, put its media source directly in the scene (not in a group) and make it a Media Source." });
@@ -158,6 +166,14 @@ export class ReplayTest {
       const replay = this.e.program.replayScenes;
       const ok = ev.confirmed && (!obs || ev.scene === null || replay.includes(ev.scene));
       this.step("in", ok ? { state: "ok", detail: `${ev.transition ?? own} to ${obs ? `“${ev.scene}”` : `the first clip (${ev.scene})`}.` } : { state: "failed", detail: `The program didn't go to the replay scene (OBS shows “${ev.scene ?? "?"}”).`, fix: "Check the replay scene in OBS scenes, and that the Replay in transition still exists in OBS (Scene Transitions)." });
+    } else if (ev.type === "rendered") {
+      if (ev.ok) this.step("fade", { state: "ok", detail: `${ev.detail.replace(/\.$/, "")}, ${st.between === "fade" ? `with a ${st.fadeMs / 1000} s fade between them` : "cut from one to the next"}.` });
+      else this.notRendered = ev.detail;
+    } else if (ev.type === "between" && this.notRendered) {
+      // Not rendered: the clips played through the two scenes instead (which works, but isn't the one-file playback chosen).
+      const why = this.notRendered;
+      const fix = /ffmpeg isn't installed/.test(why) ? "Download ffmpeg under Replay feed (or install it), or choose Fade (two scenes, OBS) under Between replays." : /longer than/.test(why) ? "This PC took too long to make the file: pick your graphics card's encoder under Replay feed → Encoder, or choose Fade (two scenes, OBS) under Between replays." : "Check the replay folder (Settings → Storage) has room and can be written, or choose Fade (two scenes, OBS) under Between replays.";
+      this.step("fade", { state: "failed", detail: `Not rendered: ${why}. The clips played through the two scenes instead (${ev.transition ?? own} to “${ev.scene}”${ev.confirmed ? "" : ", not confirmed by OBS"}).`, fix });
     } else if (ev.type === "between") {
       this.step("fade", ev.confirmed ? { state: "ok", detail: `${ev.transition ?? own} to ${obs ? `“${ev.scene}”` : `the second clip (${ev.scene})`}.` } : { state: "failed", detail: `OBS didn't confirm “${ev.scene}” on program.`, fix: "Leave the second replay scene to Matchframe, and keep a Fade among OBS's transitions." });
     } else if (ev.type === "one-source") {

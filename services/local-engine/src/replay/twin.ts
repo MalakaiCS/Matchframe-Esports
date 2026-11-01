@@ -51,9 +51,9 @@ export const REPLAY_TWIN: TwinTarget = { kind: "REPLAY", key: "replay.twin", wha
 export const HIGHLIGHTS_TWIN: TwinTarget = { kind: "HIGHLIGHTS", key: "highlights.twin", what: "highlights", setup: "Set up OBS highlights scene", mediaKey: "highlights.mediaInput" };
 
 /**
- * Both media sources (the scene's and its twin's) play while hidden and keep their place when shown (a clip waits paused at
- * its part off air, then plays as the program fades to it), and hold their last frame (it is still
- * fading out). OBS's own defaults for a new Media Source are the other way round. They decode on the
+ * Both media sources (the scene's and its twin's) play while hidden and keep their place when shown (a clip
+ * is loaded off air just before its fade and plays hidden toward its part, then on as the program fades
+ * to it), and hold their last frame (it is still fading out). OBS's own defaults for a new Media Source are the other way round. They decode on the
  * graphics card where it can (`hw_decode`), leaving the processor to CS2 and the encoder.
  */
 export const REPLAY_MEDIA_SETTINGS = { restart_on_activate: false, close_when_inactive: false, clear_on_media_end: false, hw_decode: true } as const;

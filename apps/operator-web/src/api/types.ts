@@ -1075,6 +1075,10 @@ export interface AutoReplaySettings {
   /** From one replay to the next: a fade or a cut. */
   between?: "fade" | "cut";
   fadeMs?: number;
+  /** OBS: a break as one file rendered by ffmpeg (one scene), or each clip through the replay scene and its twin. */
+  playback?: "rendered" | "scenes";
+  /** A rendered break's sound fades in at its start and out at its end over this long (ms). */
+  audioFadeMs?: number;
   /** The replay media sources' volume in dB (0 = as recorded); null leaves it as set in OBS. */
   replayVolumeDb?: number | null;
   /** The live game audio turned down during replays: OBS input names, or vMix input keys with vMix. */
@@ -1224,6 +1228,10 @@ export interface AutoReplayResponse {
     position?: { n: number; of: number } | null;
     audio?: ReplayDuckStatus;
     test?: ReplayTestReport | null;
+    /** A break's file (Test replays', highlights') being rendered: how far (0–1). */
+    preparing?: { kind: "break" | "test" | "highlights"; progress: number; clips: number } | null;
+    /** The last rendered run: how long its file took, or why its clips played through the scenes. */
+    render?: { at: string; kind: "break" | "test" | "highlights"; clips: number; rendered: boolean; ms: number | null; encoder: string | null; detail: string } | null;
   };
 }
 export interface ReplayPcResponse {

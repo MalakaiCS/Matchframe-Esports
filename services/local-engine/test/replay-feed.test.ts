@@ -176,12 +176,98 @@ describe.skipIf(!hasFfmpeg)("replay feed from a source without sound", () => {
   }, 30000);
 });
 
-/** A feed recording a stand-in NDI source with real ffmpeg (or `ffmpeg`), from a fresh data folder. */
-function feedOf(opts: FakeNdiOptions, ffmpeg?: string) {
+/**
+ * ffmpeg behind for a moment (0.10.12's support file: "can't keep up with the picture: the recording
+ * starts again" six times in 25 minutes, each a gap): frames are dropped instead, the recording skips
+ * ahead, and the times clips are cut by still hold. Only an ffmpeg that takes nothing for seconds
+ * starts the recording again.
+ */
+describe.skipIf(!hasFfmpeg)("replay feed: an encoder that falls behind for a moment", () => {
+  /** A real ffmpeg behind a pipe that stops reading for `stallMs` once, `atMs` after it starts (or for good). */
+  const stalling = (atMs: number, stallMs: number | "forever") => {
+    const dir = mkdtempSync(join(tmpdir(), "mf-stall-ffmpeg-"));
+    const wrapper = join(dir, "ffmpeg");
+    writeFileSync(
+      wrapper,
+      `#!/usr/bin/env node
+const { spawn } = require("node:child_process");
+const out = process.argv[process.argv.length - 1];
+${stallMs === "forever" ? `require("node:fs").writeFileSync(out.replace("%06d", "000000"), "");` : ""}
+const ff = ${stallMs === "forever" ? "null" : `spawn("ffmpeg", process.argv.slice(2), { stdio: process.argv.includes("pipe:3") ? ["pipe", "ignore", "inherit", 3] : ["pipe", "ignore", "inherit"] })`};
+const start = Date.now();
+let stalled = false;
+process.stdin.on("data", (b) => {
+  if (ff && !ff.stdin.write(b)) { process.stdin.pause(); ff.stdin.once("drain", () => { if (!stalledNow()) process.stdin.resume(); }); }
+  if (!stalled && Date.now() - start > ${atMs}) {
+    stalled = true;
+    process.stdin.pause();
+    ${stallMs === "forever" ? "" : `setTimeout(() => process.stdin.resume(), ${stallMs});`}
+  }
+});
+const stalledNow = () => stalled && ${stallMs === "forever" ? "true" : `Date.now() - start < ${atMs + stallMs}`};
+process.stdin.on("end", () => ff ? ff.stdin.end() : process.exit(0));
+if (ff) ff.on("exit", (c) => process.exit(c ?? 0));
+else setInterval(() => undefined, 1000);
+`,
+    );
+    chmodSync(wrapper, 0o755);
+    return wrapper;
+  };
+
+  it("drops frames and skips ahead rather than starting again, and clips are still cut on time", async () => {
+    const warned: string[] = [];
+    const { feed, data } = feedOf({ fps: 60, audio: false, counter: true }, stalling(3000, 3000), warned);
+    try {
+      await waitFor(() => feed.recording());
+      // ffmpeg takes nothing for 3 s, then catches up (the recording used to start again then: a gap in it).
+      await new Promise((r) => setTimeout(r, 9000));
+      const d = feed.status().diagnostics!;
+      expect(warned.filter((m) => /starts again|stopped/.test(m))).toEqual([]);
+      expect(d.restarts).toBe(0);
+      expect(d.encoderDropped).toBeGreaterThan(40);
+      expect(d.skippedMs).toBeGreaterThan(500);
+      expect(d.skippedMs).toBeLessThan(3000);
+      expect(feed.status().state).toBe("recording");
+      // The brightness below the counter of a clip's first frame, or of one `fromEnd` seconds before its end.
+      const lumaOf = (file: string, fromEnd: number | null) => execFileSync("ffmpeg", ["-v", "error", ...(fromEnd === null ? [] : ["-sseof", `-${fromEnd}`]), "-i", file, "-vf", "crop=320:100:0:60,scale=2:2:flags=area", "-pix_fmt", "yuv420p", "-frames:v", "1", "-f", "rawvideo", "pipe:"])[0]!;
+      // A clip across the moment ffmpeg fell behind: it ends on its moment (to 0.2 s; it would be 1 s off had the skip not been counted),
+      // and is its own length, the time skipped not in it. (Its start may be in the second or so the picture froze then.)
+      const to = Date.now() - 1500;
+      const across = join(data, "across.mp4");
+      const a = await feed.cut(to - 6000, to, across);
+      expect(lumaSteps(lumaOf(across, 0.1), lumaAt(to - 100))).toBeLessThanOrEqual(2);
+      const len = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", across]).toString()) * 1000;
+      expect(Math.abs(len - a.durationMs)).toBeLessThan(150);
+      expect(a.durationMs).toBeLessThan(to - a.startWall - 600);
+      // A clip after it: its first and last frames those of its moments.
+      const after = join(data, "after.mp4");
+      const b = await feed.cut(to - 1200, to, after);
+      expect(lumaSteps(lumaOf(after, null), lumaAt(b.startWall))).toBeLessThanOrEqual(2);
+      expect(lumaSteps(lumaOf(after, 0.1), lumaAt(to - 100))).toBeLessThanOrEqual(2);
+    } finally {
+      feed.stop();
+    }
+  }, 40000);
+
+  it("starts the recording again when ffmpeg takes nothing for several seconds", async () => {
+    const warned: string[] = [];
+    const { feed } = feedOf({ fps: 60, audio: false }, stalling(1500, "forever"), warned);
+    try {
+      await waitFor(() => feed.status().state === "recording");
+      await waitFor(() => (feed.status().diagnostics?.restarts ?? 0) >= 1, 15000);
+      expect(warned).toContain("ffmpeg (libx264) took no picture for 5 s: the recording starts again");
+    } finally {
+      feed.stop();
+    }
+  }, 30000);
+});
+
+/** A feed recording a stand-in NDI source with real ffmpeg (or `ffmpeg`), from a fresh data folder; `warned` gets its warnings. */
+function feedOf(opts: FakeNdiOptions, ffmpeg?: string, warned: string[] = []) {
   const data = mkdtempSync(join(tmpdir(), "mf-feed-busy-"));
   const db = new Database(":memory:");
   db.migrate();
-  const log = { info: () => undefined, warn: () => undefined };
+  const log = { info: () => undefined, warn: (_msg: string, d?: Record<string, unknown>) => void warned.push(String(d?.message ?? _msg)) };
   const tool = new FfmpegTool({ dataDir: data, logger: log });
   if (ffmpeg) Object.assign(tool, { locate: async () => ffmpeg, pickEncoder: async () => "libx264" });
   const feed = new ReplayFeed({ settings: new SettingsRepo(db), logger: log, dataDir: data, ffmpeg: tool, spawnWorker: () => inProcessFeedWorker(fakeNdi(opts)) });

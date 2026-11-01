@@ -98,7 +98,7 @@ describe("Switching scenes yourself (multiview): the program follows OBS and Mat
     e.settings.set("program.scenes", scenes);
     e.program.setScenes(scenes);
     e.settings.set("replay.mediaInput", "replay");
-    e.autoReplay.setSettings({ enabled: true, startDelayMs: 0, perBreak: 3, order: "best", ownBigPlays: false, between: "fade", fadeMs: 400, duckInputs: ["Game audio"], duckTo: -20 });
+    e.autoReplay.setSettings({ enabled: true, startDelayMs: 0, perBreak: 3, order: "best", ownBigPlays: false, between: "fade", fadeMs: 400, duckInputs: ["Game audio"], duckTo: -20, playback: "scenes" });
   });
 
   afterAll(async () => {

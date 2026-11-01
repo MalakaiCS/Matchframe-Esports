@@ -25,6 +25,12 @@ export { AUDIO_RATE, AudioClock, toStereo } from "./feed-clock.ts";
  * (replay/feed.ts). Up to BACKLOG_MS of frames may queue for ffmpeg; past that a frame isn't recorded (its
  * slot repeats the one before when ffmpeg catches up), and it counts as the encoder's.
  *
+ * **ffmpeg behind for a moment** (an encoder hiccup, a busy disk): frames are dropped, not the
+ * recording. Once more than LAG_MAX_MS of slots are owed, they are let go: the recording skips ahead
+ * by them (its picture jumps), and the engine is told where and by how much ("skip"), so the times it
+ * cuts clips by still hold; the sound skips with it. The recording starts again (a new session) only
+ * when ffmpeg takes nothing for STUCK_MS, or stops.
+ *
  * **The sound** (the replay PC's game) is recorded with it (AAC, 48 kHz stereo): NDI's audio frames,
  * received with the video (the binding's `data()`), are piped to ffmpeg's second input (pipe:3) as
  * 32-bit float PCM, written as received and laid along the picture by the sender's timestamps, where
@@ -115,6 +121,10 @@ export interface FeedDiagnostics {
   /** Frames not recorded because ffmpeg wasn't taking them (its encoder behind), and those lost while it started (each session's first second or so). */
   encoderDropped: number;
   startDropped: number;
+  /** The recording's time let go (ms) because ffmpeg was behind: it skipped ahead rather than starting again. */
+  skippedMs: number;
+  /** Times ffmpeg took nothing for several seconds (or stopped) and the recording started again. */
+  restarts: number;
   /** The most frames that were queued for ffmpeg. */
   backlogMax: number;
   /** What times the frames (the sender's timecode or timestamp, or their arrival), and how often the sender's clock was laid again on this computer's. */
@@ -127,6 +137,8 @@ export interface FeedDiagnostics {
 export type FeedEvent =
   | { type: "session"; id: string; dir: string; t0: number; width: number; height: number; fps: number; encoder: Encoder; audio: boolean; audioNote: string | null }
   | { type: "stats"; frames: number; dropped: number; fps: number; receiving: boolean; diag?: FeedDiagnostics }
+  /** The session's recording skipped ahead (ffmpeg behind): from `atMs` (its time, from t0) on, it is `totalMs` behind the wall clock in all. */
+  | { type: "skip"; id: string; atMs: number; totalMs: number }
   | { type: "error"; message: string }
   | { type: "stopped" };
 
@@ -146,8 +158,10 @@ const QUIET_MS = 250;
 const HOLD_MAX_MS = 3000;
 /** Frames may queue for ffmpeg up to this long of them (15 at 60 fps, about 62 MB at 1080p): a burst after a busy moment fits; more are dropped, as its encoder is behind. */
 const BACKLOG_MS = 250;
-/** The recording this far behind the picture (ffmpeg not keeping up at all): the session starts again. */
-const LAG_MAX_MS = 2000;
+/** The recording this far behind the picture (ffmpeg behind): the slots owed are let go, and the recording skips ahead by them. */
+const LAG_MAX_MS = 1000;
+/** ffmpeg took nothing for this long (frames waiting for it): stuck, so the recording starts again. */
+const STUCK_MS = 5000;
 
 const ms = (t: bigint | undefined): number | null => (typeof t === "bigint" ? Number(t) / 10_000 : null);
 
@@ -169,6 +183,11 @@ interface Session {
   flowing: boolean;
   /** When its first segment was seen. */
   segAt: number | null;
+  /** Frames written to this session's ffmpeg, and slots let go (the recording skipped ahead by them). */
+  written: number;
+  skipped: number;
+  /** When ffmpeg last took a frame (its pipe drained one). */
+  tookAt: number;
 }
 
 export class FeedRecording {
@@ -193,7 +212,9 @@ export class FeedRecording {
   private last: Buffer | null = null;
   private owed = 0;
   private sourceFps: number | null = null;
-  private counts = { received: 0, written: 0, repeated: 0, skipped: 0, encoderDropped: 0, startDropped: 0, backlogMax: 0, reanchored: 0 };
+  private counts = { received: 0, written: 0, repeated: 0, skipped: 0, encoderDropped: 0, startDropped: 0, backlogMax: 0, reanchored: 0, skippedSlots: 0, restarts: 0 };
+  /** The skipped time of sessions that ended (ms). */
+  private skippedDoneMs = 0;
   /** The sound's counts of sessions that ended. */
   private audioDone = { dropouts: 0, paddedMs: 0, corrections: 0, joins: 0 };
 
@@ -263,6 +284,8 @@ export class FeedRecording {
       skipped: c.skipped,
       encoderDropped: c.encoderDropped,
       startDropped: c.startDropped,
+      skippedMs: Math.round(this.skippedDoneMs + (this.session ? this.session.skipped * this.session.frameMs : 0)),
+      restarts: c.restarts,
       backlogMax: c.backlogMax,
       timing: this.video?.timing ?? null,
       reanchored: c.reanchored + (this.video?.reanchored ?? 0),
@@ -359,16 +382,21 @@ export class FeedRecording {
         this.owed++;
       }
     }
+    // Behind for more than a moment: the slots owed are let go (not the recording). It skips ahead by them, and says so: the engine's times hold.
     if (s.flowing && this.owed * s.frameMs > LAG_MAX_MS) {
-      this.emit({ type: "error", message: `ffmpeg (${this.o.encoder}) can't keep up with the picture: the recording starts again` });
-      this.closeFfmpeg();
+      s.skipped += this.owed;
+      this.counts.skippedSlots += this.owed;
+      this.clock?.skip(this.owed * s.frameMs);
+      this.owed = 0;
+      this.emit({ type: "skip", id: s.id, atMs: (s.slots.first + s.written) * s.frameMs, totalMs: s.skipped * s.frameMs });
     }
   }
 
   private write(b: Buffer): void {
     const s = this.session!;
     const stdin = this.ff!.stdin!;
-    stdin.write(b);
+    stdin.write(b, () => (s.tookAt = Date.now()));
+    s.written++;
     this.counts.written++;
     this.counts.backlogMax = Math.max(this.counts.backlogMax, Math.round(stdin.writableLength / s.frameBytes));
   }
@@ -380,6 +408,13 @@ export class FeedRecording {
     if (s && !s.flowing && this.ff) {
       if (s.segAt === null && existsSync(join(s.dir, "seg_000000.ts"))) s.segAt = now;
       if (s.segAt !== null && ((this.owed === 0 && (this.ff.stdin?.writableLength ?? 0) <= s.frameBytes) || now - s.segAt > 2000)) s.flowing = true;
+    }
+    // Stuck: frames wait for ffmpeg, and it has taken none for a while. It starts again (with the next frame).
+    if (s?.flowing && this.ff && (this.ff.stdin?.writableLength ?? 0) > 0 && now - s.tookAt > STUCK_MS) {
+      this.counts.restarts++;
+      this.emit({ type: "error", message: `ffmpeg (${this.o.encoder}) took no picture for ${STUCK_MS / 1000} s: the recording starts again` });
+      this.closeFfmpeg();
+      return;
     }
     if (s?.started && this.ff) {
       const quiet = now - this.lastVideo >= QUIET_MS && !this.waiting("videoFrames");
@@ -441,7 +476,7 @@ export class FeedRecording {
     // A stride wider than the picture: ffmpeg reads the whole rows and crops them (no copy here).
     const wide = f.lineStrideBytes !== width * pf.bpp && f.lineStrideBytes % pf.bpp === 0;
     const inWidth = wide ? f.lineStrideBytes / pf.bpp : width;
-    this.session = { id, dir, started: false, width, height, fps, frameMs, frameBytes: inWidth * pf.bpp * height, audio, t0, audioT0: t0 + LEAD_MS, slots: new FrameSlots(t0, frameMs, k0), flowing: false, segAt: null };
+    this.session = { id, dir, started: false, width, height, fps, frameMs, frameBytes: inWidth * pf.bpp * height, audio, t0, audioT0: t0 + LEAD_MS, slots: new FrameSlots(t0, frameMs, k0), flowing: false, segAt: null, written: 0, skipped: 0, tookAt: Date.now() };
     this.clock = null;
     this.last = null;
     this.owed = 0;
@@ -476,7 +511,10 @@ export class FeedRecording {
         this.emit({ type: "error", message: `Recording without sound: ${this.audioOff}` });
         return;
       }
-      if (!this.stopped) this.emit({ type: "error", message: `ffmpeg stopped (${code ?? "killed"}): ${message}` });
+      if (!this.stopped) {
+        this.counts.restarts++;
+        this.emit({ type: "error", message: `ffmpeg stopped (${code ?? "killed"}): ${message}` });
+      }
     });
   }
 
@@ -484,6 +522,10 @@ export class FeedRecording {
   private endSession(): ChildProcess | null {
     const ff = this.ff;
     this.ff = null;
+    if (this.session) {
+      this.skippedDoneMs += this.session.skipped * this.session.frameMs;
+      this.session.skipped = 0;
+    }
     const a = this.clock;
     if (a) {
       this.audioDone.dropouts += a.dropouts;
