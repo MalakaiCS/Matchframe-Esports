@@ -6,6 +6,10 @@ import { MIGRATIONS, migrate } from "../src/db/migrations.ts";
 import { PgliteSql } from "../src/db/sql.ts";
 import { startCloudServer } from "../src/server.ts";
 import { Client, freePort } from "./http.ts";
+import { monthSafeOffsetMs } from "./month-clock.ts";
+
+// Usage "minutes ago" must be this month (see month-clock.ts).
+const clockOffsetMs = monthSafeOffsetMs();
 
 const PASSWORD = "correct horse battery";
 
@@ -48,7 +52,7 @@ describe("website: site info, contact form, account sessions and data export, st
     base = `http://127.0.0.1:${port}`;
     const cfg = loadCloudConfig({ MF_SUPPORT_EMAIL: "help@example.com", MF_COMPANY_NAME: "Example Esports Ltd" }, { publicUrl: base, port, staffEmails: ["admin@example.com"] });
     // Real limits (scale 1): the contact form allows 5 messages per 15 minutes per address.
-    app = new CloudApp(cfg, { sql: new PgliteSql(), rateLimitScale: 1 });
+    app = new CloudApp(cfg, { sql: new PgliteSql(), rateLimitScale: 1, now: () => new Date(Date.now() + clockOffsetMs) });
     await app.init();
     ({ close } = await startCloudServer(app));
   });
@@ -301,7 +305,7 @@ describe("website: site info, contact form, account sessions and data export, st
 
     // Usage reset: the period starts again from zero; credits already spent don't count twice.
     expect((await admin.client.req("POST", `/v1/admin/orgs/${erin.orgId}/credits`, { hours: 1, note: "support credit" })).status).toBe(200);
-    const now = Date.now();
+    const now = Date.now() + clockOffsetMs;
     const rec = (minutesAgo: number, seconds: number) => ({ recordId: randomUUID(), kind: "auto_director", startedAt: new Date(now - minutesAgo * 60_000).toISOString(), endedAt: new Date(now - minutesAgo * 60_000 + seconds * 1000).toISOString(), seconds, sessionId: "s", matchRef: null, mapName: "de_nuke", appVersion: "0.3.0" });
     const upload = async (records: ReturnType<typeof rec>[]) => expect((await program().req<{ accepted: string[] }>("POST", "/v1/device/usage", { records }, bearer)).data.accepted).toHaveLength(records.length);
     await upload([rec(300, 3000), rec(240, 3000), rec(180, 3000)]);

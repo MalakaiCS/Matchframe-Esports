@@ -369,7 +369,7 @@ describe("HUD Library screen", () => {
     (window as { matchframe?: unknown }).matchframe = { hlae: { info: async () => ({ path: "C:\\HLAE\\HLAE.exe", ok: true, problem: null }), choose: async () => null } };
     const status = {
       profile: { mode: "hlae", netconPort: 2121, extraArgs: "", insecureAcknowledgedAt: "2026-10-27T10:00:00.000Z" },
-      options: { hideGameHud: true, xray: true, clutchXrayOff: true, retakeXrayOff: true, runInBackground: true, noFlash: false, killfeedTeamColours: false, hideEndOfMatch: true, hideGameKillfeed: false },
+      options: { hideGameHud: true, xray: true, clutchXrayOff: true, retakeXrayOff: true, runInBackground: true, noFlash: false, killfeedTeamColours: false, xrayColours: false, smokeColours: false, colourSource: "sides", ctColour: "#3d9bff", tColour: "#ff4a4a", hideEndOfMatch: true, hideGameKillfeed: false },
       console: "connected",
       port: 2121,
       connectedAt: "2026-10-27T10:00:00.000Z",
@@ -386,10 +386,15 @@ describe("HUD Library screen", () => {
     const card = await screen.findByRole("region", { name: "Game" });
     const hide = await within(card).findByRole("switch", { name: "Hide CS2 kill feed" });
     fireEvent.click(hide);
-    fireEvent.click(within(card).getByRole("switch", { name: "Team colours in kill feed" }));
+    fireEvent.click(within(card).getByRole("switch", { name: "Colours in kill feed" }));
+    fireEvent.click(within(card).getByRole("switch", { name: "X-ray colours" }));
+    fireEvent.click(within(card).getByRole("switch", { name: "Coloured smokes" }));
+    fireEvent.change(within(card).getByLabelText("Which colours"), { target: { value: "teams" } });
+    // A colour is saved a moment after it stops changing, both sides together.
+    fireEvent.change(within(card).getByLabelText("T colour"), { target: { value: "#ff0000" } });
     await waitFor(() => {
       const puts = calls.filter((c) => c.method === "PUT" && c.path === "/api/v1/game/console-options").map((c) => JSON.parse(String(c.body)));
-      expect(puts).toEqual([{ hideGameKillfeed: true }, { killfeedTeamColours: true }]);
+      expect(puts).toEqual([{ hideGameKillfeed: true }, { killfeedTeamColours: true }, { xrayColours: true }, { smokeColours: true }, { colourSource: "teams" }, { ctColour: "#3d9bff", tColour: "#ff0000" }]);
     });
   });
 });

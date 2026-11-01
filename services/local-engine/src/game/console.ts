@@ -81,8 +81,19 @@ export const ConsoleOptions = z.object({
   frameCap: z.number().int().min(30).max(1000).nullable().default(null),
   /** HLAE `mirv_noflash 1`: no white-out from flashbangs on the observer's screen. */
   noFlash: z.boolean().default(false),
-  /** HLAE `mirv_deathmsg colors`: CT and T names in the kill feed in the teams' colours. */
+  /** HLAE `mirv_deathmsg colors`: CT and T names in the kill feed in the CT and T colours (colourSource). */
   killfeedTeamColours: z.boolean().default(false),
+  /**
+   * HLAE `mirv_colors glow / teamid / trails`: the players' X-ray glow, the names above them and the
+   * grenade trails in the CT and T colours. Only on this computer's game: the players don't see it.
+   */
+  xrayColours: z.boolean().default(false),
+  /** HLAE `mirv_colors smokes`: smokes tinted in the CT and T colours (from the next smoke thrown). */
+  smokeColours: z.boolean().default(false),
+  /** Which colours: the ones chosen here for CT and T, or each team's own colour (Teams), swapped at half time. */
+  colourSource: z.enum(["sides", "teams"]).default("sides"),
+  ctColour: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#3D9BFF"),
+  tColour: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#FF4A4A"),
   /** HLAE `mirv_endofmatch 0`: no end-of-match scene over the game. */
   hideEndOfMatch: z.boolean().default(false),
   /**
@@ -103,6 +114,11 @@ export const ConsoleOptionsPatch = z.object({
   frameCap: z.number().int().min(30).max(1000).nullable().optional(),
   noFlash: z.boolean().optional(),
   killfeedTeamColours: z.boolean().optional(),
+  xrayColours: z.boolean().optional(),
+  smokeColours: z.boolean().optional(),
+  colourSource: ConsoleOptions.shape.colourSource.unwrap().optional(),
+  ctColour: ConsoleOptions.shape.ctColour.unwrap().optional(),
+  tColour: ConsoleOptions.shape.tColour.unwrap().optional(),
   hideEndOfMatch: z.boolean().optional(),
   hideGameKillfeed: z.boolean().optional(),
 });
@@ -113,11 +129,38 @@ export interface SideColours {
   t: string | null;
 }
 
-const rgba = (hex: string) => {
+const rgb = (hex: string) => {
   const n = Number.parseInt(hex.slice(1), 16);
-  return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255} 255`;
+  return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
 };
+const rgba = (hex: string) => `${rgb(hex)} 255`;
 const HEX = /^#[0-9a-fA-F]{6}$/;
+
+/**
+ * The CT and T colours the game is coloured in: the ones chosen in the options, or each team's own
+ * colour (the team on CT, the team on T) with the chosen one where a team has none.
+ */
+export function gameColours(o: Pick<ConsoleOptions, "colourSource" | "ctColour" | "tColour">, teams: SideColours): SideColours {
+  if (o.colourSource === "sides") return { ct: o.ctColour, t: o.tColour };
+  return { ct: teams.ct && HEX.test(teams.ct) ? teams.ct : o.ctColour, t: teams.t && HEX.test(teams.t) ? teams.t : o.tColour };
+}
+
+/**
+ * HLAE `mirv_colors` (CS2): the players' glow (X-ray), the names above them and the grenade trails,
+ * and the smokes, in the CT and T colours, or back to the game's own ("default"). Smokes take RGB
+ * only. The game takes glow and names from the next change of spectated player or mode, trails and
+ * smokes from the next grenade.
+ */
+export function gameColourCommands(o: Pick<ConsoleOptions, "xrayColours" | "smokeColours">, colours: SideColours): string[] {
+  const out: string[] = [];
+  for (const side of ["ct", "t"] as const) {
+    const hex = colours[side];
+    const ok = !!hex && HEX.test(hex);
+    for (const what of ["glow", "teamid", "trails"]) out.push(`mirv_colors ${what} ${side} ${o.xrayColours && ok ? rgba(hex) : "default"}`);
+    out.push(`mirv_colors smokes ${side} ${o.smokeColours && ok ? rgb(hex) : "default"}`);
+  }
+  return out;
+}
 
 export function killfeedColourCommands(on: boolean, colours: SideColours): string[] {
   const one = (side: "ct" | "t", hex: string | null) => `mirv_deathmsg colors ${side} ${on && hex && HEX.test(hex) ? rgba(hex) : "default"}`;
@@ -174,7 +217,8 @@ export function consoleCommands(o: ConsoleOptions, mode: GameLaunchMode, colours
   out.push(`engine_no_focus_sleep ${o.runInBackground ? 0 : 20}`, `snd_mute_losefocus ${o.runInBackground ? 0 : 1}`);
   if (o.frameCap !== null) out.push(`fps_max ${o.frameCap}`);
   if (mode === "hlae") {
-    out.push(`mirv_noflash ${o.noFlash ? 1 : 0}`, `mirv_endofmatch ${o.hideEndOfMatch ? 0 : 1}`, ...killfeedColourCommands(o.killfeedTeamColours, colours));
+    const game = gameColours(o, colours);
+    out.push(`mirv_noflash ${o.noFlash ? 1 : 0}`, `mirv_endofmatch ${o.hideEndOfMatch ? 0 : 1}`, ...killfeedColourCommands(o.killfeedTeamColours, game), ...gameColourCommands(o, game));
     // A rule with no player match applies to every kill notice. Cleared first so applying again never stacks rules.
     out.push("mirv_deathmsg filter clear");
     if (o.hideGameKillfeed) out.push("mirv_deathmsg filter add block=1", "mirv_deathmsg clear");
@@ -336,7 +380,11 @@ export class GameConsoleService {
     if (next.ct === this.colours.ct && next.t === this.colours.t) return;
     this.colours = next;
     const p = this.profile();
-    if (p.mode === "hlae" && this.options().killfeedTeamColours) void this.apply(killfeedColourCommands(true, next));
+    const o = this.options();
+    if (p.mode !== "hlae" || o.colourSource !== "teams") return;
+    const game = gameColours(o, next);
+    if (o.killfeedTeamColours) void this.apply(killfeedColourCommands(true, game));
+    if (o.xrayColours || o.smokeColours) void this.apply(gameColourCommands(o, game));
   }
 
   /**

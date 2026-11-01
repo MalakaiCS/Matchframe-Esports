@@ -16,6 +16,14 @@ export interface ConsoleOptions {
   frameCap: number | null;
   noFlash: boolean;
   killfeedTeamColours: boolean;
+  /** HLAE: the X-ray glow, the names above the players and grenade trails in the CT and T colours. */
+  xrayColours: boolean;
+  /** HLAE: smokes in the CT and T colours. */
+  smokeColours: boolean;
+  /** The CT and T colours chosen here, or each team's own (Teams → colour). */
+  colourSource: "sides" | "teams";
+  ctColour: string;
+  tColour: string;
   hideEndOfMatch: boolean;
   hideGameKillfeed: boolean;
 }

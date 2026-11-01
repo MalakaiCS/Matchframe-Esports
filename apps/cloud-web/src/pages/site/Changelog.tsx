@@ -11,6 +11,17 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.8",
+    title: "X-ray and smoke colours",
+    summary: "Colour the X-ray, the names above the players, grenade trails and smokes by side, in your observer game only.",
+    sections: [
+      {
+        heading: "Game",
+        items: ["X-ray colours and coloured smokes in your CT and T colours, or each team's colour (HLAE launch mode).", "The kill feed colours follow the same choice."],
+      },
+    ],
+  },
+  {
     version: "0.10.7",
     title: "Highlights on air",
     summary: "A highlights scene that plays a map's best clips on air and goes back to the scene you came from.",

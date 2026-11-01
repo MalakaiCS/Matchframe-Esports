@@ -12,6 +12,7 @@ import { PgliteSql } from "../src/db/sql.ts";
 import { startCloudServer } from "../src/server.ts";
 import { Client, freePort } from "./http.ts";
 import { StripeStub } from "./stripe-stub.ts";
+import { monthSafeOffsetMs } from "./month-clock.ts";
 
 const WEBHOOK_SECRET = "whsec_test_matchframe";
 const signer = new Stripe("sk_test_signer");
@@ -21,7 +22,8 @@ describe("cloud API end to end (HTTP server, PGlite Postgres, Stripe SDK against
   let close: () => Promise<void>;
   let base: string;
   const stub = new StripeStub();
-  let clockOffsetMs = 0;
+  // Usage "minutes ago" must be this month (see month-clock.ts).
+  let clockOffsetMs = monthSafeOffsetMs();
 
   const lastEmail = async (to: string) => {
     const { rows } = await app.sql.query<{ subject: string; body_text: string }>("SELECT subject, body_text FROM outbox_emails WHERE to_addr = $1 ORDER BY id DESC LIMIT 1", [to]);

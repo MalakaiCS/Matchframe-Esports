@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { HudLibrary } from "@matchframe/contracts";
 import { desktopHud } from "../../api/desktop.ts";
 import { api } from "../../api/index.ts";
@@ -19,6 +19,47 @@ const GAME_HUD_COMMAND = "cl_drawhud 1; cl_draw_only_deathnotices 1; cl_drawhud_
 const FRAME_CAPS = [60, 120, 144, 240];
 const FRAME_CAP_HINT =
   "fps_max: CS2 draws at most this many frames a second, leaving the graphics card room for the HUD, OBS and the encoder. On high graphics settings an uncapped CS2 takes the whole card, and imported HUDs like kaiHUD stutter. For a 60 fps stream, 120 keeps the game smooth. Don't change: CS2's own setting.";
+
+/**
+ * The CT and T colours for the X-ray, smokes and kill feed (HLAE): chosen here, or each team's own.
+ * A colour is saved a moment after it stops changing (the picker changes it continuously).
+ */
+function GameColours({ o, reason, save }: { o: ConsoleOptions | null; reason: string | null; save: (patch: Partial<ConsoleOptions>) => void }) {
+  const [ct, setCt] = useState(o?.ctColour ?? "#3d9bff");
+  const [t, setT] = useState(o?.tColour ?? "#ff4a4a");
+  useEffect(() => {
+    if (o) [setCt, setT].forEach((set, i) => set(i ? o.tColour : o.ctColour));
+  }, [o?.ctColour, o?.tColour]);
+  useEffect(() => {
+    if (!o || (ct.toLowerCase() === o.ctColour.toLowerCase() && t.toLowerCase() === o.tColour.toLowerCase())) return;
+    const timer = setTimeout(() => save({ ctColour: ct, tColour: t }), 400);
+    return () => clearTimeout(timer);
+  }, [ct, t]);
+  const off = !!reason || !o;
+  const hint = "The colours for the X-ray, smokes and the kill feed. Your CT and T colours stay with the side; each team's colour (Teams → colour) swaps with the teams at half time, and a team without one uses yours.";
+  return (
+    <div className="hud-option" data-option="game-colours">
+      <div className="hud-option-text">
+        <span className="hud-option-label">Colours</span>
+        <span className="hud-option-hint" title={hint}>
+          ?
+        </span>
+      </div>
+      <div className="row">
+        <select aria-label="Which colours" value={o?.colourSource ?? "sides"} disabled={off} title={reason ?? hint} onChange={(e) => save({ colourSource: e.target.value as ConsoleOptions["colourSource"] })}>
+          <option value="sides">Your CT and T colours</option>
+          <option value="teams">Each team's colour</option>
+        </select>
+        <label className="row small" title="CT side">
+          CT <input type="color" aria-label="CT colour" value={ct} disabled={off} onChange={(e) => setCt(e.target.value)} />
+        </label>
+        <label className="row small" title="T side">
+          T <input type="color" aria-label="T colour" value={t} disabled={off} onChange={(e) => setT(e.target.value)} />
+        </label>
+      </div>
+    </div>
+  );
+}
 
 function Toggle({ label, hint, on, onChange, reason, testId }: { label: string; hint: string; on: boolean | null; onChange: (v: boolean) => void; reason: string | null; testId: string }) {
   return (
@@ -237,7 +278,17 @@ export function GameCard() {
           {mode === "hlae" ? (
             <>
               <Toggle label="No flash" testId="no-flash" hint="HLAE mirv_noflash 1: flashbangs don't white out the observer's screen." on={o ? o.noFlash : null} reason={cameraReason} onChange={option("noFlash")} />
-              <Toggle label="Team colours in kill feed" testId="killfeed-colours" hint="HLAE mirv_deathmsg colors: CT and T names in the kill feed in each team's colour (Teams → colour), swapped at half time." on={o ? o.killfeedTeamColours : null} reason={cameraReason} onChange={option("killfeedTeamColours")} />
+              <Toggle
+                label="X-ray colours"
+                testId="xray-colours"
+                hint="HLAE mirv_colors: the players' glow through walls (X-ray), the names above them and grenade trails in the CT and T colours below. Only in your game: the players don't see it. The glow changes from the next switch of player; trails from the next grenade."
+                on={o ? o.xrayColours : null}
+                reason={cameraReason}
+                onChange={option("xrayColours")}
+              />
+              <Toggle label="Coloured smokes" testId="smoke-colours" hint="HLAE mirv_colors smokes: smokes in the CT and T colours below, from the next smoke thrown. Only in your game: the players don't see it." on={o ? o.smokeColours : null} reason={cameraReason} onChange={option("smokeColours")} />
+              <Toggle label="Colours in kill feed" testId="killfeed-colours" hint="HLAE mirv_deathmsg colors: CT and T names in CS2's kill feed in the CT and T colours below." on={o ? o.killfeedTeamColours : null} reason={cameraReason} onChange={option("killfeedTeamColours")} />
+              <GameColours o={o ?? null} reason={cameraReason} save={(patch) => void run("Game option", () => setConsoleOptions(patch).then(() => game.reload()))} />
               <Toggle label="Hide end-of-match screen" testId="hide-end-of-match" hint="HLAE mirv_endofmatch 0: no end-of-match scene over the game." on={o ? o.hideEndOfMatch : null} reason={cameraReason} onChange={option("hideEndOfMatch")} />
               <Toggle
                 label="Hide CS2 kill feed"

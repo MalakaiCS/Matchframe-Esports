@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Engine } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
-import { consoleCommands, ConsoleOptions, killfeedColourCommands, launchPlan, parseExtraArgs, GameLaunchProfile, retakeUnderway } from "../src/game/console.ts";
+import { consoleCommands, ConsoleOptions, gameColourCommands, gameColours, killfeedColourCommands, launchPlan, parseExtraArgs, GameLaunchProfile, retakeUnderway } from "../src/game/console.ts";
 import { buildSyntheticGsiPayload, syntheticRoster, type SyntheticPayloadSpec } from "../../../packages/cs2-state/src/testing/gsi-builder.ts";
 import { MatchStateStore, normalizeGsi, parseGsiPayload, stripAuth } from "../../../packages/cs2-state/src/index.ts";
 import { startServers } from "../src/servers.ts";
@@ -78,7 +78,7 @@ describe("console commands and launch plan", () => {
   });
 
   it("maps the options to console lines per launch mode", () => {
-    const o = ConsoleOptions.parse({ noFlash: true, killfeedTeamColours: true, hideEndOfMatch: true });
+    const o = ConsoleOptions.parse({ noFlash: true, killfeedTeamColours: true, hideEndOfMatch: true, colourSource: "teams" });
     expect(consoleCommands(o, "standard", { ct: null, t: null })).toEqual([]);
     expect(consoleCommands(o, "tools", { ct: null, t: null })).toEqual(["cl_drawhud 1", "cl_draw_only_deathnotices 1", "spec_show_xray 1", "hud_showtargetid 1", "cl_drawhud_force_teamid_overhead 1", "engine_no_focus_sleep 0", "snd_mute_losefocus 0"]);
     expect(consoleCommands(ConsoleOptions.parse({ xray: false }), "tools", { ct: null, t: null }).slice(0, 5)).toEqual(["cl_drawhud 1", "cl_draw_only_deathnotices 1", "spec_show_xray 0", "hud_showtargetid 0", "cl_drawhud_force_teamid_overhead 0"]);
@@ -94,6 +94,15 @@ describe("console commands and launch plan", () => {
       "mirv_endofmatch 0",
       "mirv_deathmsg colors ct 30 144 255 255",
       "mirv_deathmsg colors t 255 136 0 255",
+      // X-ray and smoke colours off: the game's own.
+      "mirv_colors glow ct default",
+      "mirv_colors teamid ct default",
+      "mirv_colors trails ct default",
+      "mirv_colors smokes ct default",
+      "mirv_colors glow t default",
+      "mirv_colors teamid t default",
+      "mirv_colors trails t default",
+      "mirv_colors smokes t default",
       "mirv_deathmsg filter clear",
     ]);
     // Off: back to the game's own behaviour behind other windows.
@@ -108,6 +117,31 @@ describe("console commands and launch plan", () => {
     // A team without a colour (or the option off) keeps the game's colours.
     expect(killfeedColourCommands(true, { ct: "#ffffff", t: null })).toEqual(["mirv_deathmsg colors ct 255 255 255 255", "mirv_deathmsg colors t default"]);
     expect(killfeedColourCommands(false, { ct: "#ffffff", t: "#000000" })).toEqual(["mirv_deathmsg colors ct default", "mirv_deathmsg colors t default"]);
+  });
+
+  it("colours the X-ray, the names above the players, grenade trails and smokes (HLAE mirv_colors)", () => {
+    // The CT and T colours chosen here (the default): glow, names and trails in RGBA, smokes in RGB.
+    const sides = ConsoleOptions.parse({ xrayColours: true, smokeColours: true, ctColour: "#1E90FF", tColour: "#FF0000" });
+    const lines = consoleCommands(sides, "hlae", { ct: "#00ff00", t: "#00ff00" });
+    expect(lines).toEqual(expect.arrayContaining(["mirv_colors glow ct 30 144 255 255", "mirv_colors teamid ct 30 144 255 255", "mirv_colors trails ct 30 144 255 255", "mirv_colors smokes ct 30 144 255", "mirv_colors glow t 255 0 0 255", "mirv_colors smokes t 255 0 0"]));
+    // The kill feed follows the same colours.
+    expect(consoleCommands(ConsoleOptions.parse({ killfeedTeamColours: true, ctColour: "#1E90FF", tColour: "#FF0000" }), "hlae", { ct: null, t: null })).toEqual(expect.arrayContaining(["mirv_deathmsg colors ct 30 144 255 255", "mirv_deathmsg colors t 255 0 0 255"]));
+    // Smokes only: the X-ray stays the game's.
+    expect(gameColourCommands({ xrayColours: false, smokeColours: true }, { ct: "#0000ff", t: "#ff0000" })).toEqual([
+      "mirv_colors glow ct default",
+      "mirv_colors teamid ct default",
+      "mirv_colors trails ct default",
+      "mirv_colors smokes ct 0 0 255",
+      "mirv_colors glow t default",
+      "mirv_colors teamid t default",
+      "mirv_colors trails t default",
+      "mirv_colors smokes t 255 0 0",
+    ]);
+    // Each team's colour, with the chosen one where a team has none.
+    expect(gameColours(ConsoleOptions.parse({ colourSource: "teams", ctColour: "#0000ff", tColour: "#ff0000" }), { ct: "#00ff00", t: null })).toEqual({ ct: "#00ff00", t: "#ff0000" });
+    // Not in the standard or tools modes (HLAE only), and not a colour that isn't one.
+    expect(consoleCommands(sides, "tools", { ct: null, t: null }).some((l) => l.startsWith("mirv_"))).toBe(false);
+    expect(ConsoleOptions.safeParse({ ctColour: "blue" }).success).toBe(false);
   });
 
   it("builds the launch for each mode", () => {
