@@ -11,6 +11,12 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.10",
+    title: "Lineup plant countdown",
+    summary: "Lineup counts down the bomb plant instead of showing the round clock while the bomb is planted.",
+    sections: [{ heading: "HUDs", items: ["Lineup: the planting panel counts down to the bomb being down."] }],
+  },
+  {
     version: "0.10.9",
     title: "Smoother replays",
     summary: "Replays no longer open with a flash of the previous break's clip, and play with hardware decoding.",

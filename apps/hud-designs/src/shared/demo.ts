@@ -6,7 +6,7 @@ import { demoArt, demoRadar, NO_ART } from "./demoArt.ts";
  * development, and `?demo=cycle`, which plays the scenes in turn so every animation can be seen
  * without a running program: freeze time → live → kills → bomb planted → defuse → round won.
  */
-export const DEMO_SCENES = ["freeze", "live", "kill", "bomb", "defuse", "over"] as const;
+export const DEMO_SCENES = ["freeze", "live", "kill", "plant", "bomb", "defuse", "over"] as const;
 export type DemoScene = (typeof DEMO_SCENES)[number];
 
 /** Demo extras from the page's query: `?bo=5` (series length), `?art=1` (sample HUD images), `?radar=1` (sample radar). */
@@ -105,7 +105,7 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     clock = 14;
     ct = ct.map((p) => ({ ...p, activeWeapon: p.secondary }));
   }
-  if (scene === "kill" || scene === "bomb" || scene === "defuse" || scene === "over") {
+  if (scene === "kill" || scene === "plant" || scene === "bomb" || scene === "defuse" || scene === "over") {
     feed.push(kill("k1", ct[0]!, t[2]!, "m4a1_silencer", true), kill("k2", t[1]!, ct[3]!, "ak47", false, { assister: { steamId: t[0]!.steamId, name: "ember", side: "T" } }));
     t[2] = { ...dead(t[2]!), roundDamage: 42 };
     ct[3] = { ...dead(ct[3]!), roundDamage: 27 };
@@ -114,6 +114,8 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     t[1] = { ...t[1]!, roundKills: 1, health: 58, roundDamage: 124 };
     clock = 81;
   }
+  // The bomb carrier planting (the countdown to the bomb being down).
+  if (scene === "plant") bomb = { state: "planting", site: "A", remainingSec: null, clockRunning: false };
   if (scene === "bomb" || scene === "defuse" || scene === "over") {
     feed.push(kill("k3", ct[4]!, t[3]!, "awp", false), kill("k4", t[0]!, ct[1]!, "ak47", true, { attackerBlind: true }));
     t[3] = { ...dead(t[3]!), roundDamage: 78 };

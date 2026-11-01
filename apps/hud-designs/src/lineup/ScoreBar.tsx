@@ -9,6 +9,8 @@ import { colorOf, teamVars, type Settings } from "./util.ts";
 
 /** CS2's bomb fuse. */
 const BOMB_SECONDS = 40;
+/** CS2's plant: the bomb is down this long after the carrier starts planting. */
+const PLANT_SECONDS = 3.2;
 
 const PHASE_LABEL: Partial<Record<HudPhase, string>> = {
   warmup: "WARMUP",
@@ -54,15 +56,33 @@ function BombBar({ state, receivedAt }: { state: HudState; receivedAt: number })
   );
 }
 
-/** The panel's countdown: the bomb's fuse while defusing (the defuse itself is not reported), the round clock while planting. */
-const PanelClock = memo(function PanelClock({ sec, running, receivedAt, fuse }: { sec: number | null; running: boolean; receivedAt: number; fuse: boolean }) {
+/** The panel's countdown while defusing: the bomb's fuse (the defuse itself is not reported). */
+const FuseClock = memo(function FuseClock({ sec, running, receivedAt }: { sec: number | null; running: boolean; receivedAt: number }) {
   const now = useNow(100);
   const left = secondsLeft(sec, running, receivedAt, now);
-  const frac = fuse && left !== null ? Math.max(0, Math.min(1, left / BOMB_SECONDS)) : 1;
-  const text = left === null ? "" : fuse ? left.toFixed(2).padStart(5, "0") : clockText(sec, running, receivedAt, now);
+  const frac = left !== null ? Math.max(0, Math.min(1, left / BOMB_SECONDS)) : 1;
   return (
     <>
-      <span className="lu-plant-time">{text}</span>
+      <span className="lu-plant-time">{left === null ? "" : left.toFixed(2).padStart(5, "0")}</span>
+      <span className="lu-plant-bar" aria-hidden>
+        <i style={{ transform: `scaleX(${frac.toFixed(4)})` }} />
+      </span>
+    </>
+  );
+});
+
+/**
+ * The panel's countdown while planting: the time left until the bomb is down. The game's own plant
+ * countdown when it sends one, else counted from when the planting was first seen.
+ */
+const PlantClock = memo(function PlantClock({ sec, running, receivedAt, startedAt }: { sec: number | null; running: boolean; receivedAt: number; startedAt: number }) {
+  const now = useNow(50);
+  const game = sec !== null && sec <= PLANT_SECONDS + 0.5 ? secondsLeft(sec, running, receivedAt, now) : null;
+  const left = Math.min(PLANT_SECONDS, game ?? Math.max(0, PLANT_SECONDS - (now - startedAt) / 1000));
+  const frac = Math.max(0, Math.min(1, left / PLANT_SECONDS));
+  return (
+    <>
+      <span className="lu-plant-time">{left.toFixed(2)}</span>
       <span className="lu-plant-bar" aria-hidden>
         <i style={{ transform: `scaleX(${frac.toFixed(4)})` }} />
       </span>
@@ -80,6 +100,10 @@ function PlantPanel({ state, receivedAt, settings }: { state: HudState; received
   const defusing = b?.state === "defusing" && state.match.phase !== "over";
   const lastText = useRef("");
   const lastKind = useRef<"plant" | "defuse">("plant");
+  // When this plant was first seen (the countdown to the bomb being down runs from there).
+  const plantStart = useRef<number | null>(null);
+  if (planting) plantStart.current ??= receivedAt;
+  else plantStart.current = null;
   const t = state.left.side === "T" ? state.left : state.right;
   const ct = state.left.side === "CT" ? state.left : state.right;
   if (planting) {
@@ -94,7 +118,7 @@ function PlantPanel({ state, receivedAt, settings }: { state: HudState; received
   return (
     <div className={`lu-plant is-${lastKind.current} ${planting || defusing ? "is-on" : ""}`} style={teamVars(colorOf(team, settings))} aria-hidden={!(planting || defusing)}>
       <span className="lu-plant-text">{lastText.current}</span>
-      {planting ? <PanelClock sec={state.match.phaseEndsInSec} running={state.match.clockRunning} receivedAt={receivedAt} fuse={false} /> : defusing && b ? <PanelClock sec={b.remainingSec} running={b.clockRunning} receivedAt={receivedAt} fuse /> : null}
+      {planting ? <PlantClock sec={b?.remainingSec ?? null} running={!!b?.clockRunning} receivedAt={receivedAt} startedAt={plantStart.current ?? receivedAt} /> : defusing && b ? <FuseClock sec={b.remainingSec} running={b.clockRunning} receivedAt={receivedAt} /> : null}
     </div>
   );
 }
