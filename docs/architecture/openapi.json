@@ -1289,6 +1289,27 @@
                   "killfeedTeamColours": {
                     "type": "boolean"
                   },
+                  "xrayColours": {
+                    "type": "boolean"
+                  },
+                  "smokeColours": {
+                    "type": "boolean"
+                  },
+                  "colourSource": {
+                    "type": "string",
+                    "enum": [
+                      "sides",
+                      "teams"
+                    ]
+                  },
+                  "ctColour": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "tColour": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
                   "hideEndOfMatch": {
                     "type": "boolean"
                   },

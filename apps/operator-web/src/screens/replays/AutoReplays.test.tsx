@@ -328,6 +328,37 @@ describe("Replay feed (NDI) on the main PC", () => {
     await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ source: { name: "REPLAY-PC (vMix Desktop Capture)" } }));
     expect(await screen.findByText(/Recording REPLAY-PC \(vMix Desktop Capture\) \(1920×1080/)).toBeTruthy();
     expect(screen.getByText(/182 s kept · 60 frames a second arriving · 4 clips cut/)).toBeTruthy();
+    expect(screen.getByText(/encoding with NVIDIA \(NVENC\)/)).toBeTruthy();
+  });
+
+  it("says where frames are lost, each with what to do, and which encoder records", async () => {
+    const diagnostics = { sourceFps: 60, received: 9000, ndi: { videoFrames: 9012, videoDropped: 12, audioDropped: 0 }, written: 9300, repeated: 300, skipped: 4, encoderDropped: 40, startDropped: 50, backlogMax: 15, timing: "timecode" as const, reanchored: 1, audio: { dropouts: 1, paddedMs: 240, corrections: 2, joins: 0, offsetMs: 6 } };
+    const losing: ReplayFeedResponse = {
+      settings: { ...feedOff.settings, enabled: true, encoder: "libx264", source: { name: "REPLAY-PC (NDI Screen Capture)" } },
+      status: {
+        ...feedOff.status, enabled: true, state: "recording", detail: "Recording REPLAY-PC (NDI Screen Capture).", width: 1920, height: 1080, fps: 60, receivingFps: 52, bufferedSec: 60, clips: 1, encoder: "libx264", diagnostics,
+        ffmpeg: { ...feedOff.status.ffmpeg, source: "downloaded", version: "7.1", encoder: "libx264" },
+        losses: [
+          { where: "arriving", frames: 92, seconds: 10, text: "Not arriving from the replay PC: 52 of 60 frames a second arrive, and NDI dropped 12.", hint: "Use a wired gigabit network between the two PCs, and cap CS2's frame rate on the replay PC (fps_max) so its NDI sender keeps up." },
+          { where: "encoder", frames: 30, seconds: 10, text: "This computer's encoder (x264 on the CPU) is behind: 30 frames not recorded.", hint: "x264 encodes on the CPU: choose your graphics card's encoder (NVIDIA, Intel or AMD) under Encoder." },
+        ],
+      },
+    };
+    serve({ "GET /api/v1/replay-pc": link, "GET /api/v1/network": { computer: "x", host: "127.0.0.1", apiPort: 37211, reachable: false, addresses: [] }, "GET /api/v1/replays/feed": losing });
+    wrap(<ReplayPcPanel />);
+    expect(await screen.findByText(/52 of 60 frames a second arriving/)).toBeTruthy();
+    expect(screen.getByText(/encoding with the CPU \(x264\)/)).toBeTruthy();
+    const lost = screen.getByRole("list", { name: "Frames lost" });
+    expect(lost.textContent).toContain("Not arriving from the replay PC: 52 of 60 frames a second arrive, and NDI dropped 12. Use a wired gigabit network");
+    expect(lost.textContent).toContain("This computer's encoder (x264 on the CPU) is behind: 30 frames not recorded. x264 encodes on the CPU: choose your graphics card's encoder");
+    expect(screen.getByText(/Since it started: 300 frames repeated to fill gaps, 40 not recorded by the encoder, 12 dropped by NDI; sound: 1 dropout filled with silence, put back in step with the picture 2 times\./)).toBeTruthy();
+  });
+
+  it("says when no frames are lost", async () => {
+    const fine: ReplayFeedResponse = { ...feedOff, settings: { ...feedOff.settings, enabled: true }, status: { ...feedOff.status, enabled: true, state: "recording", detail: "Recording.", receivingFps: 60, losses: [], encoder: "h264_nvenc" } };
+    serve({ "GET /api/v1/replay-pc": link, "GET /api/v1/network": { computer: "x", host: "127.0.0.1", apiPort: 37211, reachable: false, addresses: [] }, "GET /api/v1/replays/feed": fine });
+    wrap(<ReplayPcPanel />);
+    expect(await screen.findByText("No frames lost in the last 10 s.")).toBeTruthy();
   });
 
   it("tells the replay PC it needs no OBS when the main PC records its screen", async () => {

@@ -565,6 +565,9 @@ function MainSide() {
 }
 
 const FEED_TONE = { off: "neutral", starting: "info", waiting: "warn", recording: "ok", error: "warn" } as const;
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+/** An ffmpeg encoder in words. */
+const encoderName = (id: string) => ({ h264_nvenc: "NVIDIA (NVENC)", h264_qsv: "Intel (Quick Sync)", h264_amf: "AMD (AMF)", libx264: "the CPU (x264)" })[id] ?? id;
 const ENCODERS = [
   { id: "auto", label: "Best this computer has" },
   { id: "h264_nvenc", label: "NVIDIA (NVENC)" },
@@ -592,6 +595,8 @@ function ReplayFeedSection() {
   const st = feed.data?.settings;
   const status = feed.data?.status;
   const ff = status?.ffmpeg;
+  const encoder = status?.encoder ?? ff?.encoder ?? null;
+  const d = status?.diagnostics;
   const choices = [...(sources ?? []), ...(st?.source && !sources?.some((x) => x.name === st.source!.name) ? [st.source] : [])];
   return (
     <div className="stack-sm">
@@ -610,7 +615,7 @@ function ReplayFeedSection() {
           <Note tone="warn">The recording needs ffmpeg: install it with this system's package manager.</Note>
         )
       ) : ff ? (
-        <span className="small muted">ffmpeg {ff.version ?? ""}{ff.encoder ? ` · encoding with ${ff.encoder}` : ""}</span>
+        <span className="small muted">ffmpeg {ff.version ?? ""}{encoder ? ` · encoding with ${encoderName(encoder)}` : ""}</span>
       ) : null}
       {ff?.error ? <span className="small text-warn">{ff.error}</span> : null}
       <div className="form-grid">
@@ -650,8 +655,27 @@ function ReplayFeedSection() {
           </div>
           {status.state === "recording" ? (
             <span className="muted">
-              {status.bufferedSec.toFixed(0)} s kept · {status.receivingFps.toFixed(0)} frames a second arriving
-              {status.dropped ? ` · ${status.dropped} dropped (encoder behind: try another encoder)` : ""} · {status.clips} clips cut
+              {status.bufferedSec.toFixed(0)} s kept · {status.receivingFps.toFixed(0)}
+              {d?.sourceFps ? ` of ${Math.round(d.sourceFps)}` : ""} frames a second arriving · {status.clips} clips cut
+            </span>
+          ) : null}
+          {status.state === "recording" && status.losses ? (
+            status.losses.length ? (
+              <ul className="list-plain stack-sm" aria-label="Frames lost">
+                {status.losses.map((l) => (
+                  <li key={l.where}>
+                    <span className="text-warn">{l.text}</span> <span className="muted">{l.hint}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="muted">No frames lost in the last 10 s.</span>
+            )
+          ) : null}
+          {status.state === "recording" && d ? (
+            <span className="muted small">
+              Since it started: {plural(d.repeated, "frame")} repeated to fill gaps, {d.encoderDropped} not recorded by the encoder{d.ndi ? `, ${d.ndi.videoDropped} dropped by NDI` : ""}
+              {d.audio ? `; sound: ${plural(d.audio.dropouts, "dropout")} filled with silence, put back in step with the picture ${plural(d.audio.corrections + d.audio.joins, "time")}` : ""}.
             </span>
           ) : null}
           {status.state === "recording" && status.audio ? <span className={status.audio.recording ? "muted" : "text-warn"}>{status.audio.detail}</span> : null}

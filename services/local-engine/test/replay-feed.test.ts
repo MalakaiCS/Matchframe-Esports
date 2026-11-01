@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -7,8 +7,7 @@ import { Database } from "../src/db/database.ts";
 import { SettingsRepo } from "../src/db/store.ts";
 import { ReplayFeed } from "../src/replay/feed.ts";
 import { FfmpegTool } from "../src/replay/ffmpeg.ts";
-import { AudioClock, toStereo48k } from "../src/replay/feed-core.ts";
-import { fakeNdi, inProcessFeedWorker, lumaAt, lumaSteps, TONE_LEVEL, toneOnAt } from "./helpers/fake-ndi.ts";
+import { COUNTER_ROWS, fakeNdi, type FakeNdiOptions, inProcessFeedWorker, lumaAt, lumaSteps, TONE_LEVEL, toneOnAt } from "./helpers/fake-ndi.ts";
 
 const hasFfmpeg = (() => {
   try {
@@ -149,63 +148,6 @@ describe.skipIf(!hasFfmpeg)("replay feed: recording the replay PC's screen and c
   }, 30000);
 });
 
-describe("replay feed's sound on the picture's clock", () => {
-  it("takes any channels and rate as 48 kHz stereo", () => {
-    const f = (channels: number, sampleRate: number, samples: number) => {
-      const data = Buffer.alloc(samples * channels * 4);
-      for (let i = 0; i < samples; i++) for (let c = 0; c < channels; c++) data.writeFloatLE(c === 0 ? i / samples : -i / samples, (i * channels + c) * 4);
-      return { channels, sampleRate, samples, data };
-    };
-    const stereo = toStereo48k(f(2, 48000, 480));
-    expect(stereo.length).toBe(960);
-    expect([stereo[2], stereo[3]]).toEqual([Math.fround(1 / 480), Math.fround(-1 / 480)]);
-    // Mono: the one channel on both sides; eight channels: the first two.
-    const mono = toStereo48k(f(1, 48000, 100));
-    expect(mono[10]).toBe(mono[11]);
-    expect(toStereo48k(f(8, 48000, 100)).length).toBe(200);
-    // 44.1 kHz: as many samples as the same time at 48 kHz.
-    expect(toStereo48k(f(2, 44100, 441)).length).toBe(960);
-  });
-
-  it("lays frames one after another as sent, fills a real gap with silence, ignores a moment this process was busy, follows a drifting clock, and fills silence for a source without sound", () => {
-    const frame = (n: number) => new Float32Array(n * 2).fill(0.5);
-    const bytes = (out: Buffer[]) => out.map((b) => b.length / 8);
-    const c = new AudioClock(0);
-    // 1600 samples (33.3 ms) ending at 100 ms: placed by its arrival.
-    expect(bytes(c.frame(frame(1600), 100, 0))).toEqual([4800 - 1600, 1600]);
-    // The next ones arrive late, or all at once after a busy moment: still straight after, as sent.
-    expect(bytes(c.frame(frame(1600), 160, 1600 / 48))).toEqual([1600]);
-    expect(bytes(c.frame(frame(1600), 400, 3200 / 48))).toEqual([1600]);
-    expect(bytes(c.frame(frame(1600), 401, 4800 / 48))).toEqual([1600]);
-    expect(c.written).toBe(4800 + 3 * 1600);
-    // The sender skipped a second: a second of silence, then the frame.
-    expect(bytes(c.frame(frame(1600), 1300, 1000 + 6400 / 48))).toEqual([48000, 1600]);
-    // Without the sender's times: one after the other.
-    const plain = new AudioClock(0);
-    plain.frame(frame(1600), 1600 / 48);
-    expect(bytes(plain.frame(frame(1600), 3200 / 48 + 80))).toEqual([1600]);
-
-    // The sender's clock runs 4 % fast: the sound gets ahead of the picture, and is cut back once it is more than 60 ms ahead.
-    const fast = new AudioClock(0);
-    let sent = 0;
-    let at = 1600 / 48;
-    let cut = 0;
-    for (let k = 0; k < 200; k++) {
-      cut += 1600 - bytes(fast.frame(frame(1600), at, sent)).reduce((a, b) => a + b, 0);
-      sent += 1600 / 48;
-      at += 1600 / 48 / 1.04;
-    }
-    expect(cut).toBeGreaterThan(0);
-    expect(Math.abs(fast.written - Math.round(at * 48))).toBeLessThan(0.07 * 48000 + 1600);
-
-    // No sound at all: silence up to a moment behind now, once nothing has come for a while.
-    const quiet = new AudioClock(0);
-    expect(quiet.fill(200)).toBeNull();
-    expect(quiet.fill(1000)!.length).toBe(850 * 48 * 8);
-    expect(quiet.written).toBe(850 * 48);
-  });
-});
-
 describe.skipIf(!hasFfmpeg)("replay feed from a source without sound", () => {
   it("records silence with the picture, so clips still have a sound track", async () => {
     const data = mkdtempSync(join(tmpdir(), "mf-feed-silent-"));
@@ -228,6 +170,145 @@ describe.skipIf(!hasFfmpeg)("replay feed from a source without sound", () => {
       expect(audio).toBeTruthy();
       // The silence keeps up with the picture.
       expect(Math.abs(Number(audio!.duration) - Number(video!.duration))).toBeLessThan(0.3);
+    } finally {
+      feed.stop();
+    }
+  }, 30000);
+});
+
+/** A feed recording a stand-in NDI source with real ffmpeg (or `ffmpeg`), from a fresh data folder. */
+function feedOf(opts: FakeNdiOptions, ffmpeg?: string) {
+  const data = mkdtempSync(join(tmpdir(), "mf-feed-busy-"));
+  const db = new Database(":memory:");
+  db.migrate();
+  const log = { info: () => undefined, warn: () => undefined };
+  const tool = new FfmpegTool({ dataDir: data, logger: log });
+  if (ffmpeg) Object.assign(tool, { locate: async () => ffmpeg, pickEncoder: async () => "libx264" });
+  const feed = new ReplayFeed({ settings: new SettingsRepo(db), logger: log, dataDir: data, ffmpeg: tool, spawnWorker: () => inProcessFeedWorker(fakeNdi(opts)) });
+  feed.start();
+  feed.setSettings({ enabled: true, encoder: "libx264", latencyMs: 0, source: { name: "REPLAY-PC (vMix Desktop Capture)" } });
+  return { feed, data };
+}
+
+/** The frame numbers a clip shows, frame by frame (the stand-in's counter: 16 blocks along the top). */
+function frameNumbers(file: string): number[] {
+  const raw = execFileSync("ffmpeg", ["-v", "error", "-i", file, "-fps_mode", "passthrough", "-vf", `crop=320:${COUNTER_ROWS}:0:0,scale=16:1:flags=area`, "-pix_fmt", "gray", "-f", "rawvideo", "pipe:"], { maxBuffer: 64 * 1024 * 1024 });
+  const out: number[] = [];
+  for (let f = 0; f + 16 <= raw.length; f += 16) {
+    let n = 0;
+    for (let bit = 0; bit < 16; bit++) if (raw[f + bit]! > 125) n |= 1 << bit;
+    out.push(n);
+  }
+  return out;
+}
+
+/** Breaks in a clip's 1 kHz tone (its left side): 5 ms stretches where its level falls or its phase jumps (silence put in, samples cut, a click). */
+function toneBreaks(file: string): { breaks: number; minLevel: number } {
+  const pcm = execFileSync("ffmpeg", ["-v", "error", "-i", file, "-map", "0:a", "-af", "pan=mono|c0=c0", "-ar", "48000", "-f", "f32le", "pipe:"], { maxBuffer: 64 * 1024 * 1024 });
+  const x = new Float32Array(pcm.buffer, pcm.byteOffset, pcm.length / 4);
+  const w = (2 * Math.PI * 1000) / 48000;
+  let breaks = 0;
+  let minLevel = Infinity;
+  let last: number | null = null;
+  let lastBreak = -Infinity;
+  // 5 ms windows (five periods), from 50 ms in to 50 ms before the end (the AAC encoder's edges).
+  for (let s = 2400; s + 240 <= x.length - 2400; s += 120) {
+    let i = 0;
+    let q = 0;
+    for (let k = s; k < s + 240; k++) {
+      i += x[k]! * Math.cos(w * k);
+      q += x[k]! * Math.sin(w * k);
+    }
+    const level = (2 * Math.hypot(i, q)) / 240;
+    const phase = Math.atan2(q, i);
+    let jump = last === null ? 0 : Math.abs(phase - last);
+    if (jump > Math.PI) jump = 2 * Math.PI - jump;
+    last = phase;
+    minLevel = Math.min(minLevel, level);
+    if (level < TONE_LEVEL * 0.8 || jump > 0.3) {
+      if (s - lastBreak > 960) breaks++;
+      lastBreak = s;
+    }
+  }
+  return { breaks, minLevel };
+}
+
+/**
+ * A busy screen capture on a busy computer, as NDI Screen Capture at 1080p60 with its sound on the
+ * owner's two PCs (here 320×180): 60 fps whose timestamps jitter by up to 4 ms, sound in 10 ms frames
+ * stamped up to 25 ms late, every frame arriving up to 15 ms late, and this computer busy for 150 ms
+ * every 1.3 s (what came meanwhile arrives at once). Timed by arrival, this recorded repeated and
+ * skipped frames (judder), and the sound had silence put in and samples cut (crackle).
+ */
+describe.skipIf(!hasFfmpeg)("replay feed from a busy 60 fps screen capture", () => {
+  it("records every frame once at a constant 60 fps and the sound without a break, and cuts on time", async () => {
+    const { feed, data } = feedOf({ fps: 60, counter: true, tone: "continuous", audioFrame: 480, jitterMs: 4, audioJitterMs: 25, arrivalJitterMs: 15, stalls: { everyMs: 1300, ms: 150 } });
+    try {
+      await waitFor(() => feed.recording());
+      await new Promise((r) => setTimeout(r, 6000));
+      const to = Date.now() - 1200;
+      const from = to - 3000;
+      const out = join(data, "busy.mp4");
+      const cut = await feed.cut(from, to, out);
+      expect(cut).toMatchObject({ fps: 60, hasAudio: true });
+      // The picture: each frame the source sent, once, in order.
+      const shown = frameNumbers(out);
+      expect(shown.length).toBeGreaterThan(170);
+      const steps = shown.slice(1).map((n, k) => n - shown[k]!);
+      expect(steps.filter((d) => d !== 1)).toEqual([]);
+      const pts = execFileSync("ffprobe", ["-v", "error", "-select_streams", "v", "-show_entries", "frame=pts_time", "-of", "csv=p=0", out]).toString().trim().split("\n").map(Number);
+      const gaps = pts.slice(1).map((t, k) => Math.round((t - pts[k]!) * 1e4) / 1e4);
+      expect(new Set(gaps)).toEqual(new Set([0.0167]));
+      // The cut: its first and last frames are those of its moments (to 0.2 s), read from the brightness under the counter.
+      const lumaBelow = (fromEnd: number | null) => execFileSync("ffmpeg", ["-v", "error", ...(fromEnd === null ? [] : ["-sseof", `-${fromEnd}`]), "-i", out, "-vf", "crop=320:100:0:60,scale=2:2:flags=area", "-pix_fmt", "yuv420p", "-frames:v", "1", "-f", "rawvideo", "pipe:"])[0]!;
+      expect(lumaSteps(lumaBelow(null), lumaAt(cut.startWall))).toBeLessThanOrEqual(2);
+      expect(lumaSteps(lumaBelow(0.1), lumaAt(to - 100))).toBeLessThanOrEqual(2);
+      // The sound: the tone unbroken, at its level.
+      const tone = toneBreaks(out);
+      expect(tone.breaks).toBe(0);
+      expect(tone.minLevel).toBeGreaterThan(TONE_LEVEL * 0.8);
+      const d = feed.status().diagnostics!;
+      expect(d).toMatchObject({ sourceFps: 60, timing: "timecode", skipped: 0, encoderDropped: 0, audio: { dropouts: 0, joins: 0 } });
+      expect(d.repeated).toBe(0);
+      expect(feed.status().losses).toEqual([]);
+    } finally {
+      feed.stop();
+    }
+  }, 40000);
+
+  it("says where frames are lost: a source sending fewer than it declares, and NDI dropping some", async () => {
+    const { feed } = feedOf({ fps: 60, sendFps: 50, ndiDropEvery: 25 });
+    try {
+      await waitFor(() => feed.recording());
+      await new Promise((r) => setTimeout(r, 4500));
+      const st = feed.status();
+      expect(st.encoder).toBe("libx264");
+      expect(st.diagnostics!.ndi!.videoDropped).toBeGreaterThan(0);
+      const where = st.losses.map((l) => l.where);
+      expect(where).toContain("arriving");
+      expect(st.losses.find((l) => l.where === "arriving")!.text).toMatch(/^Not arriving from the replay PC: 4\d of 60 frames a second arrive, and NDI dropped \d+\.$/);
+      expect(where).toContain("gaps");
+      expect(where).not.toContain("encoder");
+    } finally {
+      feed.stop();
+    }
+  }, 30000);
+
+  it("says when this computer's encoder is behind (an ffmpeg that reads too slowly), and which encoder", async () => {
+    // A stand-in for ffmpeg that starts its first segment and then takes about 40 of the 60 frames a second.
+    const dir = mkdtempSync(join(tmpdir(), "mf-slow-ffmpeg-"));
+    const slow = join(dir, "ffmpeg");
+    writeFileSync(slow, `#!/usr/bin/env node\nrequire("node:fs").writeFileSync(process.argv[process.argv.length - 1].replace("%06d", "000000"), "");\nlet got = 0;\nconst start = Date.now();\nprocess.stdin.on("data", (b) => { got += b.length; const ahead = got / (320 * 180 * 2 * 40) * 1000 - (Date.now() - start); if (ahead > 0) { process.stdin.pause(); setTimeout(() => process.stdin.resume(), ahead); } });\n`);
+    chmodSync(slow, 0o755);
+    const { feed } = feedOf({ fps: 60, audio: false }, slow);
+    try {
+      await waitFor(() => feed.status().state === "recording");
+      await new Promise((r) => setTimeout(r, 5000));
+      const st = feed.status();
+      expect(st.diagnostics!.encoderDropped).toBeGreaterThan(20);
+      const enc = st.losses.find((l) => l.where === "encoder")!;
+      expect(enc.text).toMatch(/^This computer's encoder \(x264 on the CPU\) is behind: \d+ frames not recorded\.$/);
+      expect(enc.hint).toMatch(/choose your graphics card's encoder/);
     } finally {
       feed.stop();
     }

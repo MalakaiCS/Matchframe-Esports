@@ -30,16 +30,26 @@ The replay graphic over replays (a REPLAY tag and a lower third), highlight reel
 **On PC 1 (the main PC):** Replays & Production → Replay PC → **This is the main PC** → **Replay feed (NDI)**:
 1. **Download ffmpeg.** This is a 92 MB download of ffmpeg 7.1 (the gyan.dev essentials build). It is checked against its SHA-256 and kept in the program's data folder. ffmpeg is the encoder: it uses your graphics card's encoder (NVIDIA NVENC, Intel Quick Sync or AMD AMF) when there is one, otherwise the CPU (x264).
 2. **Find NDI sources**, then choose PC 2's source, for example *REPLAY-PC (vMix Desktop Capture)*.
-3. Tick **Record the replay PC's screen.** The status shows the picture size, frames a second, and how much is kept.
+3. Tick **Record the replay PC's screen.** The status shows the picture size, the frames a second arriving, the encoder in use, how much is kept, and where frames are lost (below).
 
 PC 2's panel then says *The main PC records this computer's screen over NDI: no OBS needed here.*
 
 **How it works:**
 - **Recording:**
   - The NDI picture is received in a process of its own, never in the engine.
-  - It is encoded into one-second H.264 segments, each frame stamped with the time it arrived.
+  - It is encoded into one-second H.264 segments stamped with real time, so a moment PC 2 marks is cut from the right place.
   - **Sound:** PC 2's sound, when its NDI sender sends it, is recorded with the picture (AAC, 48 kHz stereo) and every clip cut carries it (below, *Sound*).
   - The last 4 minutes are kept.
+- **Timing (a smooth 60 fps):**
+  - **By PC 2's clock:** each frame is timed by the clock PC 2's NDI sender stamps it with (its timecode or its timestamp, whichever runs steadier), not by when it reaches PC 1. That clock is laid on PC 1's by the shortest delay of the last 10 s, and moved only when the two drift apart by more than a frame and a half (a few times an hour at most).
+  - **Every frame written by the feed:** the recording has one place (slot) for each frame at the source's rate. A frame goes in the slot nearest its time. A slot nothing came for shows the frame before again (*repeated*). A frame for a slot already filled is left out (*skipped*). ffmpeg adds or drops none.
+  - **A busy PC 1 changes nothing:** frames that come late, or all at once after a busy moment, still go in their own slots.
+  - **Pauses:** with no picture for 0.25 s, the last frame is held. After 3 s without a picture the recording stops, and a new one starts when the picture comes back.
+  - **The encoder:** up to 0.25 s of frames may wait for ffmpeg. More than that, and a frame isn't recorded: its slot shows the frame before, and it counts as the encoder's (*not recorded by the encoder*). The first second or so of each recording, while ffmpeg starts, shows its first frames held (counted apart).
+- **Sound timing (no crackle):**
+  - PC 2's sound is written as it arrives, sample after sample. Its timestamps' jitter and overlaps are ignored: no silence is put in and nothing is cut.
+  - **A real dropout** (PC 2 sent no sound for 0.2 s or more) is filled with as much silence, faded out and back in.
+  - **In time with the picture:** checked against PC 2's timestamps (the earliest of the last 3 s; a sender may stamp late, never early). When the sound is more than 30 ms off, it is played 0.3 % faster or slower (5 cents, not heard) until it is back. Only a jump of more than 0.25 s (PC 2's sender restarted) is mended with a 2 ms crossfade.
 - **Cutting:**
   - When PC 2 has filmed a kill, it sends PC 1 the moment: how long ago the clip began, the kill happened, and the clip ended.
   - PC 1 cuts that stretch from its recording without re-encoding. The cut starts on the second before.
@@ -47,6 +57,33 @@ PC 2's panel then says *The main PC records this computer's screen over NDI: no 
 - **Fallback:** if PC 1 stops recording, PC 2 sends clips from its own OBS again, when it has one.
 
 **Bandwidth:** NDI at 1080p60 is about 100–150 Mbit/s on the network, so use a wired gigabit network between the two computers.
+
+### Dropped frames: where, and what to do
+
+The Replay feed panel says where frames are lost (the last 10 s), each with what to do:
+
+| The panel says | Where | What to do |
+| --- | --- | --- |
+| *Not arriving from the replay PC: 52 of 60 frames a second arrive, and NDI dropped 12.* | Fewer frames reach PC 1 than PC 2's source declares, or NDI dropped some on PC 1. | A wired gigabit network between the two PCs. Cap CS2's frame rate on PC 2 (`fps_max`, a little under what it reaches) so its NDI sender has room to keep up. |
+| *This computer's encoder (x264 on the CPU) is behind: 30 frames not recorded.* | ffmpeg on PC 1 didn't take the frames in time. | x264 encodes on the CPU: choose the graphics card's encoder (NVIDIA, Intel or AMD) under **Encoder**. With a graphics card's encoder already: close what else uses it or the CPU, or lower the bitrate. |
+| *9 frames repeated to fill gaps in what arrived.* | Frames came unevenly from PC 2 (its sender skipped some). | PC 2's sender isn't sending steadily: cap CS2's frame rate there, and use a wired network. |
+| *No frames lost in the last 10 s.* | | |
+
+Below it, *Since it started:* the totals (frames repeated for gaps, not recorded by the encoder, dropped by NDI; sound dropouts filled, and how often the sound was put back in step with the picture).
+
+**Tips for PC 2's sender:**
+- **NDI Screen Capture:** turn on its system audio (for the game's sound). It captures what PC 2's screen shows, so a CS2 that takes all of the GPU and CPU leaves it late and uneven: cap CS2's frame rate.
+- A wired network, not Wi-Fi. NDI's full-quality 1080p60 needs 100–150 Mbit/s.
+- If frames still don't arrive steadily, try vMix Desktop Capture or OBS's NDI output on PC 2 instead.
+- On PC 1, prefer the graphics card's encoder (the **Encoder** setting's default picks it when there is one).
+
+**In the support file** (`replays.feed`, also `GET /api/v1/replays/feed`): `receivingFps` (frames a second arriving), `dropped` (not recorded by the encoder), `encoder` (the one in use), `losses` (the panel's lines, with `where`: `arriving`, `encoder` or `gaps`, `frames`, `seconds`, `text`, `hint`), and `diagnostics`, the totals since the recording started:
+- `sourceFps`: the rate PC 2's source declares; `received`: video frames received.
+- `ndi`: NDI's own count on PC 1 (`videoFrames` received, `videoDropped` and `audioDropped`: frames NDI dropped before the feed took them).
+- `written`: frames written (one a slot); `repeated`: slots that show the frame before (nothing came for them); `skipped`: frames left out (they came for a slot already filled).
+- `encoderDropped`: frames not recorded because ffmpeg was behind; `startDropped`: those while ffmpeg started; `backlogMax`: the most frames that waited for ffmpeg.
+- `timing`: what times the frames (`timecode`, `timestamp`, or `arrival` when PC 2's sender stamps none); `reanchored`: how often PC 2's clock was laid again on PC 1's.
+- `audio`: `dropouts` filled with silence and their length (`paddedMs`), `corrections` (played slightly faster or slower to stay in step), `joins` (crossfaded after a jump), `offsetMs` (the sound against the picture, + late).
 
 ## Best: PC 2 about 7 s behind PC 1
 
@@ -366,6 +403,12 @@ Automatic replays → **Test replays** plays two sample clips (*Test clip 1* in 
   - **Against a real OBS 30.0.2** (recordings read frame by frame): see Measured above and under Studio Mode; also 1080p60 clips with 2 s keyframes and a filter on the media source (each clip from the keyframe before its part, as before), and Duplicate Sources on.
 - **Every kill** (`replay-pc-timing.e2e.test.ts`): a kill the main camera showed is filmed from behind and sent as `shown`, with its lead-up; PC 1 knows the round is pending until it arrives.
 - **The replay feed** (`replay-feed.test.ts`, `replay-pc-timing.e2e.test.ts`, a stand-in NDI source with real ffmpeg): recording in one-second segments stamped with real time; a cut a few seconds back starts and ends on the picture of those moments (to 0.2 s, read from the picture's brightness, which tells the time); a cut whose end is still being written waits for it; two programs, the replay PC without OBS, its missed kill marked and cut on PC 1.
+- **The replay feed's timing** (`replay-feed-timing.test.ts`; `replay-feed.test.ts` with real ffmpeg; ADR-064):
+  - **A busy 60 fps screen capture** (timestamps jittering 4 ms, sound stamped up to 25 ms late, frames arriving up to 15 ms late, PC 1 busy for 150 ms every 1.3 s): every frame in the clip once, in order, 16.67 ms apart; the cut on its marks to 0.2 s; the tone unbroken. The old timing gave 21–22 repeated and 22 skipped frames and 5 breaks in the tone in 3.7 s.
+  - **The clocks:** timed by the steadier of the sender's timecode and timestamp; frames never sent repeated, a duplicate skipped; clocks drifting 100 ppm for 10 minutes laid again 1–3 times; a sender restarted laid again at once; the picture held through a pause.
+  - **The sound:** written exactly as sent despite jittering timestamps and bunched arrivals; a 300 ms dropout filled once, faded; a sender 0.1 % fast followed by resampling (no cut); a sender clock jumping back mended with one crossfade; 44.1 kHz converted without a break.
+  - **Where frames are lost:** a source sending 50 of a declared 60 with NDI dropping some (*Not arriving*, and gaps); an ffmpeg taking 40 frames a second (*This computer's encoder (x264 on the CPU) is behind*, with its hint); the console's panel.
+  - **Measured with real NDI** (a local 1080p60 sender with its frame number in the picture and a 1 kHz tone, real ffmpeg, stalls and CPU load; ADR-064): repeated and skipped frames in about 37 s from 297/298 to 0/0 unloaded, 618/619 to 17/19 busy (10 dropped by NDI in 300 ms stalls); breaks in the tone from 1, 26 and 247 to none; the sound within −22 to +33 ms of the picture; *dropped* from 379–813 to 0–12.
 - **The controls, the sound and Test replays** (`replay-controls.e2e.test.ts`, the stand-in OBS at the obs-websocket level and a stand-in vMix; `replay-feed.test.ts` with real ffmpeg; `AutoReplays.test.tsx`; `replay-hotkeys.test.ts`):
   - **Skip:** the fade to the next starts within 0.5 s of the press, the next at its part; skipping the last goes back to live with Replay out.
   - **Stop and go live:** back to live with Replay out at once; the rest stay *prepared*.
@@ -375,7 +418,7 @@ Automatic replays → **Test replays** plays two sample clips (*Test clip 1* in 
   - **The live audio:** turned down 20 dB in at least 4 steps starting within 0.25 s of the transition in, back to exactly 0.8 (OBS's multiplier) and unmuted after the last clip, Skip, Stop, the round clock, a clip OBS can't play and the operator taking the program; muted and back; a fader moved by hand left as it was; never the caster's mic; after the engine lost OBS mid-break and was started again on the same data, back as OBS connected. With vMix: `SetVolumeFade` 80 → 44.99 → 80, the mic never.
   - **Replay volume** on both replay sources (−6 and +6 dB; left alone when not set); vMix 84.14 for −6 dB.
   - **Test replays:** refused while a round is live and while the program isn't live; Replay in (a Stinger), the fade to the twin, Replay out, every step *OK*; the clip on air found by its id with its play, and gone afterwards (not listed, ranked or in a playlist); a sample clip OBS can't play reported with its fix; through vMix too.
-  - **The feed's sound** (real ffmpeg, a stand-in NDI source with a tone on and off every 0.5 s by wall time): the cut clip has an AAC 48 kHz stereo track at the source's level, in time with the source to within 30 ms; a source without sound recorded with silence as long as the picture; the clock's handling of jitter, a busy moment, a real gap and a drifting sender.
+  - **The feed's sound** (real ffmpeg, a stand-in NDI source with a tone on and off every 0.5 s by wall time): the cut clip has an AAC 48 kHz stereo track at the source's level, in time with the source to within 30 ms; a source without sound recorded with silence as long as the picture; the clock's handling of jitter, a busy moment, a real gap and a drifting sender (above, *The replay feed's timing*).
   - **Real NDI** (the NDI 6.3 runtime that comes with the binding, a local NDI sender on this computer, real ffmpeg): the cut clip's tone at the sender's level, in time to within 20 ms.
 - **Switching scenes yourself** (`obs-own-scenes.e2e.test.ts`, the stand-in OBS): an analysis scene put on in OBS between rounds followed as yours, no replays cut in, no break scene for a timeout, Test replays waiting, back to live and the break's replay played; back on the live scene before a break's replays started: they play; the casters put on during the replays: they stop, the live audio back up, the rest played on coming back in time; staying on it: no cut back at 1:50, Stop and Test replays refused; the mapped break scene put on by hand not taken back, Matchframe's own taken back; Studio Mode's preview and Transition; found on your scene when OBS connects.
 - **Not checked yet:**
@@ -389,5 +432,6 @@ Automatic replays → **Test replays** plays two sample clips (*Test clip 1* in 
   - a real CS2's round clock at the start of a live round (the round time is learned from it) and the break's end against it;
   - fades on a busy computer: here (software rendering) the blend moved every frame with 720p30 clips, every fourth frame with two 1080p60 clips.
   - the replay feed's sound from vMix Desktop Capture, OBS's NDI output or NDI Screen Capture on another computer, and ffmpeg's second pipe on Windows (if it can't be read, the feed records without sound and says why);
+  - the replay feed's timing with a real NDI Screen Capture on a replay PC running CS2, over a real network (whether its timecode is NDI's even one or its own), and with a graphics card's encoder on Windows;
   - the controls from a real Stream Deck or Companion; the global hotkeys on Windows (registered, and a key another program holds);
   - a real vMix's `SetVolumeFade`, `AudioOff`/`AudioOn`, `Pause` and its fader scale (vMix's knowledge base gives amplitude = (fader / 100)⁴).

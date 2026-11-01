@@ -11,6 +11,17 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.12",
+    title: "Smooth replays, clean sound",
+    summary: "The replay feed records the replay PC's picture at a steady 60 fps with clean sound, and shows where any frames are lost.",
+    sections: [
+      {
+        heading: "Replays",
+        items: ["Replays from the NDI replay feed are smooth: frames timed by the replay PC's own clock.", "No more crackles in the replay sound.", "The replay feed panel shows where frames are lost and how to fix it."],
+      },
+    ],
+  },
+  {
     version: "0.10.11",
     title: "Kill feed fix",
     summary: "The kill that ends a round now shows in the kill feed, which stays up until the next round.",

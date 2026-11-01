@@ -1150,7 +1150,29 @@ export interface ReplayFeedResponse {
     clips: number;
     /** The replay PC's sound: recorded with the picture, or why not. */
     audio?: { recording: boolean; detail: string } | null;
+    /** The encoder the recording uses, while it records. */
+    encoder?: string | null;
+    /** What the recording has seen and done since it started. */
+    diagnostics?: ReplayFeedDiagnostics | null;
+    /** Where frames are being lost (the last 10 s), each with what to do. */
+    losses?: { where: "arriving" | "encoder" | "gaps"; frames: number; seconds: number; text: string; hint: string }[];
   };
+}
+
+/** The replay feed's counts since it started recording (services/local-engine replay/feed-core.ts FeedDiagnostics). */
+export interface ReplayFeedDiagnostics {
+  sourceFps: number | null;
+  received: number;
+  ndi: { videoFrames: number; videoDropped: number; audioDropped: number } | null;
+  written: number;
+  repeated: number;
+  skipped: number;
+  encoderDropped: number;
+  startDropped: number;
+  backlogMax: number;
+  timing: "timecode" | "timestamp" | "arrival" | null;
+  reanchored: number;
+  audio: { dropouts: number; paddedMs: number; corrections: number; joins: number; offsetMs: number | null } | null;
 }
 export type MatchArtKind = "thumb-highlights" | "thumb-replay" | "thumb-live" | "up-next" | "stinger" | "stinger-replay";
 

@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { z } from "zod";
 import type { SettingsRepo } from "../db/store.ts";
 import type { Logger } from "../logger.ts";
-import type { NdiSource } from "./feed-core.ts";
+import type { FeedDiagnostics, NdiSource } from "./feed-core.ts";
 import type { WorkerReply, WorkerRequest } from "./feed-worker.ts";
 import type { Encoder, FfmpegStatus, FfmpegTool } from "./ffmpeg.ts";
 import { ENCODERS } from "./ffmpeg.ts";
@@ -52,9 +52,15 @@ export interface FeedStatus {
   width: number | null;
   height: number | null;
   fps: number | null;
-  /** Frames a second arriving now, and frames dropped because the encoder fell behind. */
+  /** Frames a second arriving now, and frames not recorded because the encoder fell behind. */
   receivingFps: number;
   dropped: number;
+  /** The encoder this recording uses (ffmpeg's name), while it records. */
+  encoder: Encoder | null;
+  /** What the recording has seen and done since it started (the support file carries it). */
+  diagnostics: FeedDiagnostics | null;
+  /** Where frames are being lost (the last 10 s), each with what to do; empty when none are. */
+  losses: FeedLoss[];
   /** How much of the recording is kept now (seconds). */
   bufferedSec: number;
   ndi: { available: boolean | null; version: string | null; error: string | null };
@@ -62,6 +68,56 @@ export interface FeedStatus {
   clips: number;
   /** The recording's sound: recorded (with silence where the source sends none), or why not. */
   audio: { recording: boolean; detail: string } | null;
+}
+
+/** Frames lost, and where: not arriving from the replay PC, this computer's encoder behind, or gaps in what arrived (repeated frames). */
+export interface FeedLoss {
+  where: "arriving" | "encoder" | "gaps";
+  /** Frames lost (or repeated) in the last `seconds`. */
+  frames: number;
+  seconds: number;
+  text: string;
+  hint: string;
+}
+
+/** ffmpeg's encoders in words. */
+const ENCODER_NAMES: Record<Encoder, string> = { h264_nvenc: "NVIDIA NVENC", h264_qsv: "Intel Quick Sync", h264_amf: "AMD AMF", libx264: "x264 on the CPU" };
+
+/** Losses are judged over this long. */
+const LOSS_WINDOW_MS = 10_000;
+
+/** Where frames were lost between two of the recording's counts (`a` earlier), in plain words with a hint each. */
+export function feedLosses(a: { at: number; d: FeedDiagnostics }, b: { at: number; d: FeedDiagnostics }, encoder: Encoder | null, auto: boolean): FeedLoss[] {
+  const seconds = Math.round((b.at - a.at) / 1000);
+  if (seconds < 3) return [];
+  const out: FeedLoss[] = [];
+  const received = b.d.received - a.d.received;
+  const fps = received / ((b.at - a.at) / 1000);
+  const ndi = b.d.ndi && a.d.ndi ? Math.max(0, b.d.ndi.videoDropped - a.d.ndi.videoDropped) : 0;
+  const src = b.d.sourceFps;
+  const short = src ? Math.max(0, Math.round(src * ((b.at - a.at) / 1000) - received)) : 0;
+  if ((src && fps < src * 0.95) || ndi > 0) {
+    const what = src && fps < src * 0.95 ? `${Math.round(fps)} of ${Math.round(src)} frames a second arrive` : `${Math.round(fps)} frames a second arrive`;
+    out.push({ where: "arriving", frames: short + ndi, seconds, text: `Not arriving from the replay PC: ${what}${ndi ? `, and NDI dropped ${ndi}` : ""}.`, hint: "Use a wired gigabit network between the two PCs, and cap CS2's frame rate on the replay PC (fps_max) so its NDI sender keeps up." });
+  }
+  const enc = b.d.encoderDropped - a.d.encoderDropped;
+  if (enc > 0) {
+    const name = encoder ? ENCODER_NAMES[encoder] : "ffmpeg";
+    const hint =
+      encoder === "libx264"
+        ? auto
+          ? "x264 encodes on the CPU (no graphics card encoder works here): close what you can on this PC, or lower the bitrate."
+          : "x264 encodes on the CPU: choose your graphics card's encoder (NVIDIA, Intel or AMD) under Encoder."
+        : `Close other programs using ${name} or the CPU on this PC, or lower the bitrate.`;
+    out.push({ where: "encoder", frames: enc, seconds, text: `This computer's encoder (${name}) is behind: ${enc} frames not recorded.`, hint });
+  }
+  // Repeats the encoder caused are its own; the rest fill gaps in what arrived.
+  const gaps = Math.max(0, b.d.repeated - a.d.repeated - enc);
+  const written = b.d.written - a.d.written;
+  if (gaps > Math.max(3, written / 100)) {
+    out.push({ where: "gaps", frames: gaps, seconds, text: `${gaps} frames repeated to fill gaps in what arrived.`, hint: "The replay PC's NDI sender isn't sending steadily: cap CS2's frame rate there so its screen capture keeps up, and use a wired network." });
+  }
+  return out;
 }
 
 /** The engine's end of the feed process. */
@@ -107,6 +163,7 @@ interface Session {
   /** It records the source's sound too. */
   audio: boolean;
   audioNote: string | null;
+  encoder: Encoder;
 }
 
 /** The segment holding the end of a clip is listed once the next one begins: wait this long for it. */
@@ -122,6 +179,8 @@ export class ReplayFeed {
   private state: FeedStatus["state"] = "off";
   private detail = "The replay feed is off.";
   private stats = { fps: 0, dropped: 0, receiving: false };
+  /** The recording's counts as they came, the last few seconds (for where frames are lost). */
+  private counts: { at: number; d: FeedDiagnostics }[] = [];
   private ndi: FeedStatus["ndi"] = { available: null, version: null, error: null };
   private timer: ReturnType<typeof setInterval> | null = null;
   private restartTimer: ReturnType<typeof setTimeout> | null = null;
@@ -182,6 +241,7 @@ export class ReplayFeed {
     this.restartTimer = null;
     this.worker?.send({ type: "stop" });
     this.current = null;
+    this.counts = [];
     const st = this.settings();
     if (!st.enabled) return this.set("off", "The replay feed is off.");
     if (!st.source) return this.set("error", "Choose the replay PC's NDI source.");
@@ -236,12 +296,19 @@ export class ReplayFeed {
       this.finds.get(r.id)?.(r);
       this.finds.delete(r.id);
     } else if (r.type === "session") {
-      this.sessions.set(r.id, { id: r.id, dir: r.dir, t0: r.t0, width: r.width, height: r.height, fps: r.fps, segments: [], prunedUntil: -Infinity, audio: r.audio === true, audioNote: r.audioNote ?? null });
+      this.sessions.set(r.id, { id: r.id, dir: r.dir, t0: r.t0, width: r.width, height: r.height, fps: r.fps, segments: [], prunedUntil: -Infinity, audio: r.audio === true, audioNote: r.audioNote ?? null, encoder: r.encoder });
       this.current = r.id;
       this.set("recording", `Recording ${source} (${r.width}×${r.height}, ${Math.round(r.fps)} fps, ${r.encoder}${r.audio ? ", with sound" : ""}).`);
       this.deps.logger.info("replay feed: recording", { source, width: r.width, height: r.height, fps: r.fps, encoder: r.encoder, audio: r.audio, audioNote: r.audioNote });
     } else if (r.type === "stats") {
       this.stats = { fps: r.fps, dropped: r.dropped, receiving: r.receiving };
+      if (r.diag) {
+        const at = Date.now();
+        // A new count from zero: the recording started again.
+        if (this.counts.length && r.diag.received < this.counts[this.counts.length - 1]!.d.received) this.counts = [];
+        this.counts.push({ at, d: r.diag });
+        while (this.counts.length > 1 && this.counts[1]!.at <= at - LOSS_WINDOW_MS) this.counts.shift();
+      }
       if (!r.receiving && this.state !== "error") this.set("waiting", `No picture from ${source}: is its NDI sender running on the replay PC?`);
       else if (r.receiving && this.state === "waiting" && this.current) this.set("recording", `Recording ${source}.`);
     } else if (r.type === "error") {
@@ -312,12 +379,23 @@ export class ReplayFeed {
       fps: s?.fps ?? null,
       receivingFps: this.stats.fps,
       dropped: this.stats.dropped,
+      encoder: s?.encoder ?? null,
+      diagnostics: this.counts[this.counts.length - 1]?.d ?? null,
+      losses: this.losses(s?.encoder ?? null),
       bufferedSec: segs.length ? Math.round((segs[segs.length - 1]!.end - segs[0]!.start) / 100) / 10 : 0,
       ndi: this.ndi,
       ffmpeg: this.deps.ffmpeg.status(),
       clips: this.clips,
       audio: s ? (s.audio ? { recording: true, detail: "The replay PC's sound is recorded (silence when its NDI sender sends none): clips carry it." } : { recording: false, detail: `Recording without sound: ${s.audioNote ?? "not available"}.` }) : null,
     };
+  }
+
+  /** Where frames are being lost now, while recording. */
+  private losses(encoder: Encoder | null): FeedLoss[] {
+    const a = this.counts[0];
+    const b = this.counts[this.counts.length - 1];
+    if (!a || !b || this.state !== "recording") return [];
+    return feedLosses(a, b, encoder, this.settings().encoder === "auto");
   }
 
   /** NDI sources on the network (asks the feed process; NDI finds them within a second or two). */

@@ -1538,3 +1538,107 @@ The replay plays on OBS's replay scene, and the HUD's browser source is normally
 - **Real OBS 30.0.2** (Linux, Xvfb; a scratch script drove the engine's API; recordings read frame by frame): **Set up OBS highlights scene** made the scene, its Media Source with the three settings off, and the twin; this OBS build has no Browser Source (no obs-browser), so the graphic step said so (*This OBS build has no Browser Source…*) and a colour bar on top stood in for the graphic, with a backdrop and the clip scaled. Played from an analysis scene put on in OBS itself (MANUAL, `OBS: Analysis`), three kept clips (hard links, none in the replay list): OBS's Fade in (or the Matchframe Replay Stinger as Highlights in, the first clip from its cut point), 14–15 blended frames (0.47–0.5 s at 30 fps) between the clips through the twin, no black frame, no clip-start frame, the backdrop and the overlay in every frame of both scenes; the graphic's clip on the HUD state for each (alpha, bravo, charlie, then none); Fade out back to the analysis scene, the program MANUAL `OBS: Analysis` again; the live audio input at 0.8 back bit for bit (0.800000011920929); OBS's own transition back.
 
 **Not checked.** Windows; a real vMix; a real Stream Deck or Companion; a real multiview plugin; the replay graphic's browser source in a real OBS (no obs-browser in the OBS used); a real CS2 halftime (the halftime phase as CS2 sends it was taken from the game-data reconciler, and the round-over seconds before it from ADR-060's note that the round number moves on when a round ends).
+
+## ADR-064 — The replay feed timed by the replay PC's clock: a constant frame rate written by the feed, its sound written as received, and where frames are lost
+
+**Context.** The owner records the replay PC's screen over NDI (NDI Screen Capture at 1080p60, with its sound). Replays "lag quite a bit" and look choppy, the sound is "crackly", and: "the replay pc is having a lot of dropped frames how do i fix that?". Until now (ADR-062) the feed stamped each frame with the time ffmpeg read it (`-use_wallclock_as_timestamps`) and left ffmpeg's constant-frame-rate output to repeat and drop frames to fit. It dropped a frame whenever ffmpeg's stdin needed draining. The sound followed the sender's timestamps: a jump of more than 20 ms was filled with silence and an overlap cut, and the sound was moved by whole chunks when 60 ms off.
+
+**Measured first.** The setup:
+- grandi with the NDI 6.3 runtime receiving a local 1080p60 NDI sender in another process. Its picture carries its frame number; its sound is a continuous 1 kHz tone on the left and a 10 ms burst each second on the right (A/V).
+- Real ffmpeg, with x264 *ultrafast* standing in for a graphics card's encoder (this machine has none, and *veryfast* can't do 1080p60 on its 4 cores).
+- The feed's own code, with stalls of its event loop (20–150 ms every 0.4–1.5 s, now and then 300 ms) and CPU hogs beside it for CS2 and OBS.
+- The recording and a 6 s cut read frame by frame, and the tone by I/Q (level and phase every 5 ms). Scratch scripts, not in the repository.
+
+What it showed:
+- **The "dropped frames" were this computer's own.** A 4 MB frame keeps stdin needing a drain until ffmpeg has read all of it. A read slower than a frame (alone: median 1.4 ms, p99 9 ms, worst 47–55 ms) dropped the next frame, even with ffmpeg idle at 60 % of one core: 379 of 2400 in 40 s unloaded, 695 busy. The panel's *frames a second arriving* counted only those written (52, 40).
+- **Judder:** frames timed by when ffmpeg read them, then fitted to 60 fps by ffmpeg, were repeated and skipped: 297 repeats and 298 skips in 37 s unloaded, 618/619 busy, 739/739 heavy. A 6 s clip had 64, 111 and 112 of each.
+- **Crackle:** NDI's audio timestamp is when the sender submitted the frame (about its last sample). A busy sender's 10–25 ms of jitter made "gaps" of more than 20 ms: in 30 s, 17 pads of silence (379 ms) and 11 cuts to take them back. After AAC each is a 10–40 ms dip with a jump of phase. Tone breaks: 1 in 40 s unloaded, 26 busy, 247 heavy (9.3 s of broken tone); up to 45 in a 6 s clip.
+- **NDI's own queue** lost nothing with stalls up to 150 ms. Stalls of 300 ms made NDI drop 8–9 frames in 40 s.
+- **Load:** at 1080p60 the feed process's main thread is 85 % idle: garbage collection of the binding's per-frame buffers 6.5 %, writing 1.6 %, the feed's own code under 2 %. Receiving alone (NDI's decoding and grandi's copy, on their own threads) costs 29 % of a core. `ColorFormat.Fastest` gives the same UYVY for this sender. Receiving in a worker thread changed nothing (no NDI drops either way with 150 ms stalls). A lower bandwidth is NDI's preview picture.
+- **NDI's clocks:** a video frame's timecode (made by the sender's SDK) steps exactly a frame (16.67 ms), while its timestamp varies 10–25 ms with 4 ms of sender jitter. Audio timecodes aren't sample-accurate (9.38 ms steps for 10 ms frames).
+
+**Decision.**
+- **The picture's clock** (`replay/feed-clock.ts`, `VideoClock`):
+  - Each frame is timed by the sender's clock: its NDI timecode or its timestamp, whichever runs steadier over the first 30 frames (the median distance of their intervals from their median). A clock that doesn't run forward, or doesn't keep time with the arrivals, isn't used. With neither, frames are timed by their arrival.
+  - It is laid on this computer's clock by an offset: the least (arrival − sender time) of the last 10 s, moved only when that moves by more than a frame and a half (25 ms at 60 fps). A frame that came late because this computer was busy keeps its time.
+  - A sender clock more than 1 s ahead of the arrivals, or 5 s behind (the sender restarted), is laid again at once.
+  - The timestamp's offset is kept either way: the sound is laid by it.
+- **Slots** (`FrameSlots`):
+  - Slot k of a recording is t0 + k frames. A frame goes in the next slot while within 0.75 of a slot of it (sender jitter).
+  - A frame later than that first repeats the frame before for the slots between (nothing came for them). A frame earlier than that (its slot already filled) is skipped.
+- **Writing** (`FeedRecording`):
+  - The feed writes every slot to ffmpeg's stdin as raw frames at the source's rate. ffmpeg stamps them by their count from `k0` frames after t0 (`-itsoffset k0 × frame`, the stamps kept with `-copyts`, `-fps_mode passthrough`). The segments' times stay real time from t0, so cuts by the replay PC's marks are unchanged.
+  - Up to 250 ms of frames may queue for ffmpeg (about 62 MB at 1080p). A frame beyond that isn't recorded: its slot repeats the frame before once ffmpeg takes more, and it counts as the encoder's.
+  - Frames lost while ffmpeg starts (until its first segment exists and what queued is taken) are counted apart. A recording more than 2 s behind starts again with an error saying the encoder can't keep up.
+  - With no picture for 250 ms and none waiting in NDI's queue (`queue()`), the last frame is held. After 3 s without a picture the session ends; the next frame starts a new one.
+  - A stride wider than the picture is read whole and cropped by ffmpeg (`crop`) instead of copied row by row here. The frame's own buffer is written as the binding gives it (grandi copies it once, on its own thread).
+- **The sound** (`AudioClock`, `Resampler`):
+  - Written as received, sample after sample.
+  - A frame ends at its timestamp, laid on this computer's clock by the picture's timestamp offset, plus how much later the recording shows a frame than its timestamp says (the median of the last 2 s), so the sound goes with the picture as shown.
+  - Silence goes in only for a dropout: no sound sent for 200 ms or more by the sender's timestamps, filled with as much, faded out and back in over 2 ms. Shorter jumps and overlaps are jitter and ignored.
+  - Where it sits against the picture is judged over 3 s: the earliest tenth of the timestamps (a sender stamps late, never early), or the earliest arrival without them.
+  - More than 30 ms off: played 0.3 % faster or slower (5 cents) by a linear resampler that carries its position across frames, until exactly that many samples are taken out or added. More than 250 ms off (the sender's clock jumped): one 2 ms crossfaded join.
+  - The last 2 ms are held back so a join can fade them. A source without sound is filled with silence as before, but not while sound waits in NDI's queue (this process was busy).
+  - The same resampler converts any other sample rate continuously (the old per-frame rounding drifted 0.4 ms a second for 1024-sample frames at 44.1 kHz). A stereo frame's own floats are used, not a copy.
+- **Where frames are lost** (`FeedDiagnostics`, `feedLosses`, the console's Replay feed panel):
+  - The worker sends its counts each second: received, NDI's own (`performance()`), written, repeated, skipped, not recorded by the encoder, lost to ffmpeg's start, the largest queue, the timing and its re-anchors, and the sound's dropouts, moves and offset.
+  - The engine compares them over 10 s and says where frames are lost, each with a hint:
+    - *Not arriving from the replay PC* (fewer than the source declares by 5 %, or NDI dropped some): a wired gigabit network, and `fps_max` on the replay PC.
+    - *This computer's encoder is behind* (named): for x264 chosen by hand, a graphics card's encoder; for x264 picked because none works, close what you can or lower the bitrate; for a graphics card's encoder, close what else uses it or lower the bitrate.
+    - *Frames repeated to fill gaps in what arrived* (beyond the encoder's, more than 1 in 100).
+  - `status()` carries `encoder`, `diagnostics` and `losses`, so the support file (`replays.feed`) has them. `receivingFps` now counts every frame arriving, not only those written.
+- **The stand-in NDI** (`test/helpers/fake-ndi.ts`) behaves like the real one, as measured:
+  - Video frames carry a timestamp (when sent) and an even timecode. An audio frame's timestamp is when it was sent, after its last sample.
+  - Options add a declared and a real rate, sender jitter, arrival jitter, busy moments that bunch frames, NDI drops, a frame counter in the picture, a continuous tone, a drifting audio clock, `queue()` and `performance()`.
+
+**Alternatives.**
+- **Per-frame timestamps to ffmpeg** (Matroska with raw video), ffmpeg filling gaps: repeats wouldn't cross the pipe, but ffmpeg would again decide the frames, from stamps it can't check. The owner asked for the feed to write the constant rate itself.
+- **NDI's frame-sync** (`frameSync`, a time base corrector pulled at this process's own pace): a busy moment here would again decide which frame is taken. Not tried.
+- **Receiving and writing on a worker thread:** measured no change (the main thread is mostly idle; no NDI drops either way).
+- **A larger queue for ffmpeg:** 250 ms covers a 300 ms stall's burst with ffmpeg reading meanwhile; more is memory (4 MB a frame).
+- **The sound against the picture by the median of its timestamps alone:** in the heavy run a sender's late submissions under load, and NDI's timecode running a little apart from its timestamps, put it 34 ms late; by the earliest tenth, laid where the picture is shown, +4 ms.
+- **Correcting drift with silence and cuts** (as before) or a crossfade each time: audible. A resample of 0.3 % isn't.
+
+**Checked.**
+- Unit (`replay-feed-timing.test.ts`):
+  - **Picture:** a 60 fps sender with 4 ms of jitter, arrivals 3–18 ms late and a 150 ms busy moment every 1.3 s: every frame in its own slot, none repeated or skipped. Timed by arrival (as before), the same frames give more than 50 of each.
+  - **Clocks:** timestamps alone with 5 ms of jitter; three frames never sent repeated and a duplicate skipped; clocks drifting 100 ppm for 10 minutes, laid again 1 to 3 times with 3 to 5 repeats; a sender clock jumping back an hour, laid again at once; the last frame held through a pause.
+  - **Sound:** the resampler passes 48 kHz through bit for bit, converts 44.1 kHz without a break, and moves 480 samples exactly. Timestamps 0–25 ms late (3 % 40 ms late) with bunched arrivals: the samples written exactly as sent (the old rule would have broken them more than 20 times in 20 s). A 300 ms dropout filled once with 300 ms, faded. A sender 0.1 % fast followed by resampling, within 40 ms, no join. A clock jumping back a second: one crossfade. First frames placed by timestamp or arrival. Silence for a source without sound, not while sound waits.
+  - **Losses:** their texts and hints.
+- E2e (`replay-feed.test.ts`, the stand-in NDI and real ffmpeg):
+  - **A busy 60 fps screen capture** (4 ms jitter, sound in 10 ms frames up to 25 ms late, arrivals up to 15 ms late, 150 ms busy every 1.3 s): the clip's frames each once, in order, 16.67 ms apart; its first and last frames those of the marks (0.2 s); the tone without a break at its level; the diagnostics with nothing repeated or skipped and no dropout. The same scenario on the old code: 21–22 repeats, 22 skips and 5 tone breaks in a 3.7 s clip.
+  - **Where frames are lost:** a source sending 50 of a declared 60 with NDI dropping one in 25 (*Not arriving … 4x of 60 … NDI dropped …*, and gaps, no encoder); an ffmpeg stand-in taking 40 frames a second (*This computer's encoder (x264 on the CPU) is behind …* with the x264 hint).
+  - The existing feed tests unchanged: cuts to 0.2 s, the sound within 30 ms, a source without sound.
+- Console (`AutoReplays.test.tsx`): the encoder in words, *52 of 60 frames a second arriving*, the losses with their hints, the totals, *No frames lost in the last 10 s.*
+- **Real NDI, before and after** (as above; the recording after its first 3 s, about 37 s, and a 6 s clip cut by a mark):
+
+| 40 s of 1080p60 | | Before | After |
+| --- | --- | --- | --- |
+| **Unloaded** | recording: repeated / skipped frames | 297 / 298 | 0 / 0 |
+| | 6 s clip: repeated / skipped | 64 / 64 | 0 / 0 |
+| | tone breaks in the recording | 1 | 0 |
+| | sound against the picture (+ late), median | −30 ms | −6 ms |
+| | the clip's first / last frame against the mark | −4 / −40 ms | −3 / −19 ms |
+| | status: frames a second arriving; dropped | 52.5; 379 | 60; 0 |
+| **Busy** (stalls, 2 hogs, sender jitter 4 ms video, 12 ms sound) | recording: repeated / skipped | 618 / 619 | 17 / 19 (10 dropped by NDI in 300 ms stalls) |
+| | 6 s clip | 111 / 111 | 2 / 4 |
+| | tone breaks: recording; clip | 26 (725 ms); 6 | 0; 0 |
+| | sound against the picture: median (range) | −25 ms (−124 to +28) | −6 ms (−22 to +28) |
+| | the clip's first / last frame against the mark | −12 / −42 ms | −9 / +13 ms |
+| | status: arriving; dropped | 39.5; 695 | 60.5; 0 |
+| **Heavy** (stalls, 3 hogs, jitter 6 ms and 25 ms, a frame 12 ms late every 37) | recording: repeated / skipped | 739 / 739 | 23 / 23 (2 events; one 300 ms stall: 10 by NDI, 12 by the encoder) |
+| | 6 s clip | 112 / 115 | 0 / 0 |
+| | tone breaks: recording; clip | 247 (9.3 s); 45 | 0; 0 |
+| | sound against the picture: median (range) | −6 ms (−104 to +34) | +4 ms (−12 to +33) |
+| | the clip's first / last frame against the mark | 0 / −43 ms | +3 / −5 ms |
+| | status: arriving; dropped | 43; 813 | 60; 12 |
+
+In both, the frames' stamps are 16.67 ms apart (ffmpeg's constant rate before, the feed's slots after): the judder was which frame a stamp showed. The tone's pitch was steady to 0.1 cent before; after, it moved 5.3 cents during the one 0.3 % resample of a run (none unloaded). The feed process used 50–52 % of a core before and 53–61 % after (every frame written now, not 40–52 a second); ffmpeg 53–63 % both.
+
+**Not checked.**
+- Windows: ffmpeg 7.1's own threads, the named pipe's writes, the hardware encoders.
+- A real NDI Screen Capture on another computer over a real network: whether its video timecode is NDI's even one or its own, its audio frame sizes and timestamps.
+- A real graphics card's encoder.
+- CS2 loading the replay PC (here a sender in a process beside CPU hogs).
+- NDI's frame-sync.
+- The first second or so of each recording still shows its first frames held while ffmpeg starts, as before.
