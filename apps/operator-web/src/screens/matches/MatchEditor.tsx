@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import type { EventStage, Match, MatchFormat, VetoEntry } from "@matchframe/contracts";
 import { planMaps, sideChooser, validateSeriesScore, validateVetoEntries, vetoComplete, winsNeeded } from "@matchframe/contracts/veto-entries";
 import { api, seg } from "../../api/index.ts";
@@ -48,6 +49,17 @@ function toLocalInput(iso: string | null): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+/** A collapsed section whose content (live panels that poll the engine) mounts only once it is opened. */
+function LazyDetails({ summary, className = "", children }: { summary: ReactNode; className?: string; children: ReactNode }) {
+  const [opened, setOpened] = useState(false);
+  return (
+    <details className={`details ${className}`} onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && setOpened(true)}>
+      <summary>{summary}</summary>
+      <div className="details-body">{opened ? children : null}</div>
+    </details>
+  );
+}
+
 let entrySeq = 0;
 const newEntryId = () => `ve_${Date.now().toString(36)}${(entrySeq++).toString(36)}`;
 
@@ -65,7 +77,7 @@ function MatchEditorLoader({ id }: { id: string }) {
 }
 
 /** Edit one veto entry: Pick / Ban / Decider, team, map, the opponent's starting side and Reversed sides. */
-function VetoEntryDialog({ entries, index, teamA, teamB, pool, names, onSave, onRemove, onClose }: { entries: VetoEntry[]; index: number | null; teamA: TeamRow; teamB: TeamRow; pool: string[]; names: Map<string, string>; onSave: (e: VetoEntry) => void; onRemove?: () => void; onClose: () => void }) {
+function VetoEntryDialog({ entries, index, teamA, teamB, pool, bestOf, names, onSave, onRemove, onClose }: { entries: VetoEntry[]; index: number | null; teamA: TeamRow; teamB: TeamRow; pool: string[]; bestOf: number; names: Map<string, string>; onSave: (e: VetoEntry) => void; onRemove?: () => void; onClose: () => void }) {
   const initial: VetoEntry = useMemo(() => {
     if (index !== null) return entries[index]!;
     const last = entries[entries.length - 1];
@@ -79,7 +91,9 @@ function VetoEntryDialog({ entries, index, teamA, teamB, pool, names, onSave, on
   const at = index ?? entries.length;
   const chooser = e.type === "ban" ? null : sideChooser(list, at, teamA.id, teamB.id);
   const chooserName = chooser === teamA.id ? teamA.name : chooser === teamB.id ? teamB.name : null;
-  const issues = validateVetoEntries(list, { teamAId: teamA.id, teamBId: teamB.id, bestOf: 99, pool }).filter((x) => x.index === at);
+  // Map, team and side problems block the entry; order problems (a decider too early) are shown and can be fixed by moving entries.
+  const issues = validateVetoEntries(list, { teamAId: teamA.id, teamBId: teamB.id, bestOf, pool }).filter((x) => x.index === at);
+  const blocking = issues.filter((x) => x.field !== "type");
   const options = pool.map((m) => ({ key: m, label: mapLabel(m, names), keywords: m, hint: used.has(m) ? `used in entry ${used.get(m)}` : undefined }));
   const set = (p: Partial<VetoEntry>) => setE((x) => ({ ...x, ...p }));
   return (
@@ -94,7 +108,7 @@ function VetoEntryDialog({ entries, index, teamA, teamB, pool, names, onSave, on
             </Button>
           ) : null}
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabledReason={!e.mapName ? "Choose a map" : issues[0]?.message ?? null} onClick={() => onSave(e)}>
+          <Button variant="primary" disabledReason={!e.mapName ? "Choose a map" : (blocking[0]?.message ?? null)} onClick={() => onSave(e)}>
             {index === null ? "Add entry" : "Save entry"}
           </Button>
         </>
@@ -531,18 +545,18 @@ function MatchEditor({ match, reload }: { match: MatchDetail | null; reload?: ()
       </Details>
       {match ? (
         <>
-          <Details summary={`Maps and results (${match.maps.length}) · applied at once`} className="additional">
+          <LazyDetails summary={`Maps and results (${match.maps.length}) · applied at once`} className="additional">
             <MapResults match={match} teamA={teamA?.name ?? "Team 1"} teamB={teamB?.name ?? "Team 2"} onSaved={() => reload?.()} />
-          </Details>
-          <Details summary={`Stat corrections${match.corrections.length ? ` (${match.corrections.length})` : ""} · applied at once`} className="additional">
+          </LazyDetails>
+          <LazyDetails summary={`Stat corrections${match.corrections.length ? ` (${match.corrections.length})` : ""} · applied at once`} className="additional">
             <Corrections match={match} players={players.data ?? []} />
-          </Details>
-          <Details summary="Captain veto and captain links · applied at once" className="additional">
+          </LazyDetails>
+          <LazyDetails summary="Captain veto and captain links · applied at once" className="additional">
             <VetoBoard match={match} teamA={teamA} teamB={teamB} onMapsChanged={() => reload?.()} />
-          </Details>
-          <Details summary="Thumbnails and stingers" className="additional">
+          </LazyDetails>
+          <LazyDetails summary="Thumbnails and stingers" className="additional">
             <MatchArtPanel matchId={match.id} teams={`${teamA?.shortName ?? "A"}-vs-${teamB?.shortName ?? "B"}`} />
-          </Details>
+          </LazyDetails>
         </>
       ) : null}
       {editing !== null && teamA && teamB ? (
@@ -552,6 +566,7 @@ function MatchEditor({ match, reload }: { match: MatchDetail | null; reload?: ()
           teamA={teamA}
           teamB={teamB}
           pool={pool}
+          bestOf={bestOf}
           names={names}
           onClose={() => setEditing(null)}
           onRemove={editing === "new" ? undefined : () => (setEntries(d.draft.veto.filter((_, j) => j !== editing)), setEditing(null))}

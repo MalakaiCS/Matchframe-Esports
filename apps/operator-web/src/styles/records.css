@@ -396,6 +396,11 @@
   /* The footer stays in view at the bottom of the console's content area. */
   padding-bottom: 0;
 }
+/* The content area's bottom padding would leave a strip under the sticky footer. */
+.main:has(> .editor-page),
+.main:has(> * > .editor-page) {
+  padding-bottom: 0;
+}
 .editor-head {
   margin-bottom: 14px;
 }
@@ -615,6 +620,13 @@
 .veto-table td {
   vertical-align: middle;
 }
+.veto-table td:nth-child(2),
+.veto-table td:nth-child(3),
+.veto-table .team-cell,
+.veto-kind {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
 .veto-table tr.is-error td {
   background: var(--danger-bg);
 }
@@ -682,4 +694,14 @@
   position: sticky;
   top: 0;
   background: var(--bg-raised);
+}
+.import-table td:not(:last-child) {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.modal-body .ff {
+  margin-bottom: 12px;
+}
+.ff > .seg {
+  align-self: flex-start;
 }

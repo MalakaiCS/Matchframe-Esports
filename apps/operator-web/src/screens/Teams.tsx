@@ -250,7 +250,7 @@ export function PlayersScreen() {
           </>
         }
       >
-        <SearchBox label="Search players" placeholder="Search nickname, real name or SteamID64" value={state.search} onChange={(search) => update({ search })} />
+        <SearchBox label="Search players" placeholder="Nickname, name or SteamID64" value={state.search} onChange={(search) => update({ search })} />
         <div className="filter">
           <label htmlFor="players-team" className="filter-label">
             Team

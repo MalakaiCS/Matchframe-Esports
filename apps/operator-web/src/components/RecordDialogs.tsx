@@ -57,7 +57,7 @@ export function DeleteDialog({ kind, ids, onClose, onDone }: { kind: Kind; ids: 
           </Button>
           {blocked.length ? (
             <Button variant="warn" disabled={busy} onClick={() => void run("archive")}>
-              Archive {blocked.length === 1 ? "it" : `the ${blocked.length}`} instead
+              Archive {blocked.length === 1 ? blocked[0]!.label : `the ${blocked.length} blocked`} instead
             </Button>
           ) : null}
           {deletable.length ? (
@@ -95,6 +95,10 @@ export function DeleteDialog({ kind, ids, onClose, onDone }: { kind: Kind; ids: 
                   {i.effects.map((b) => (
                     <li key={b}>{b}</li>
                   ))}
+                </ul>
+              ) : i.deletable ? (
+                <ul className="impact-lines">
+                  <li>Nothing else refers to it.</li>
                 </ul>
               ) : null}
             </li>

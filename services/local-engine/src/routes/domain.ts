@@ -154,7 +154,9 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
     const updated = e.mapInstances.upsert({ ...mi, scoreA: req.body.scoreA, scoreB: req.body.scoreB, winnerTeamId: winner, status });
     // Series = maps won (each completed map once) + the stored manual correction.
     const s = seriesTotals(match, e.mapInstances.forMatch(match.id));
-    e.matches.update(match.id, { seriesScoreA: s.a, seriesScoreB: s.b, status: s.winnerTeamId ? "completed" : match.status });
+    // A result means the match is being played (Current tab, bracket score), whether or not it is the active match.
+    const playing = match.status === "scheduled" || match.status === "veto" ? "live" : match.status;
+    e.matches.update(match.id, { seriesScoreA: s.a, seriesScoreB: s.b, status: s.winnerTeamId ? "completed" : playing });
     e.audit.record(req.principal!.label, "map.result", mi.id, { ...req.body, winner });
     pushResultIfEnabled(e, match.id);
     return { map: updated, series: s, note: req.body.completed && !winner && !req.body.forfeitWinnerTeamId ? "Map tied or below the regulation win threshold: series not advanced." : null };
