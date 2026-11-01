@@ -11,6 +11,12 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.10.11",
+    title: "Kill feed fix",
+    summary: "The kill that ends a round now shows in the kill feed, which stays up until the next round.",
+    sections: [{ heading: "HUDs", items: ["The round's last kill shows in the kill feed; the feed clears when the next round starts."] }],
+  },
+  {
     version: "0.10.10",
     title: "Lineup plant countdown",
     summary: "Lineup counts down the bomb plant instead of showing the round clock while the bomb is planted.",

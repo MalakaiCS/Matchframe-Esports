@@ -217,6 +217,8 @@ export class Engine {
   private lastLiveMap: string | null = null;
 
   private readonly killfeed = new KillfeedBuilder();
+  /** The round the kill feed belongs to (see onState): kept while a round is over. */
+  private killfeedKey: string | null = null;
   private sides = new TeamSideTracker();
   private readonly delayBuffers = new Map<string, DelayBuffer<MatchState>>();
   private readonly cues = new Map<string, Cue>();
@@ -756,8 +758,12 @@ export class Engine {
         buf.push(this.now(), s);
       }
     }
-    // Keyed by session + round attempt: a restarted session must not inherit old entries.
-    this.killfeed.resetForRound(`${s.sessionId}:${s.epoch}:${s.roundAttemptId}`);
+    // Keyed by session + round attempt: a restarted session must not inherit old entries. Kept through
+    // the end of the round: the game's round counter moves on as the round ends (a new attempt), and
+    // the kills of that same update, the round-winning one among them, came just before this state.
+    // The feed clears when the next round starts (freeze time), as CS2's does.
+    if (s.roundPhase !== "over" || this.killfeedKey === null) this.killfeedKey = `${s.sessionId}:${s.epoch}:${s.roundAttemptId}`;
+    this.killfeed.resetForRound(this.killfeedKey);
     const map = s.mapName ? this.maps.get(s.mapName) : undefined;
     this.session.director.setMap(map);
     this.enforceAllowanceAtMapChange(s);
