@@ -67,6 +67,12 @@ All notable changes to MatchFrame Esports. Versions follow semantic versioning o
   - **Spawn areas from pro demos** (`scripts/set-spawn-regions.py`): the seven pool maps' `t_spawn` / `ct_spawn` regions are where players stood at the end of freeze time (they were 100–500 units off; Ancient's and Anubis's CT spawns missed entirely). Spawn cameras and paths regenerated.
   - **Cache:** map pack from a pro demo's place names (46 areas), free-space grid and 87 cameras / 10 paths from CS2's meshes; in the default event pool with Ancient, Anubis, Dust II, Inferno, Mirage and Nuke.
   - **Team shots tuned on real positions:** finer spots (48 bearings, 6 distances, up to 300 units high), a size score, and a well-sized four over a distant five. Every round of the seven demos framed (272 shots).
+- **Active match's teams always on the HUD** (version 0.12.2, the owner: "the active match which has the teams isn't showing the logos in game"):
+  - **Cause:** a side's team was only set by the reconciler's roster rule (3 or more of the side's players rostered by SteamID64), so without rostered players the HUDs showed no team, name or logo once game data arrived.
+  - **Fix:** `live/side-teams.ts` fills the sides from the active match, in order: roster (one side is enough), CS2 team names against name or short name, a few rostered players without conflict, the veto's starting side (regulation), then Team 1 on CT. Veto and assumed placements follow the players across halftime by SteamID64.
+  - **Where it applies:** `Engine.hudState` and round-end winner sides, so MatchFrame HUDs, imported HUDs and the replay graphic all use it.
+  - **Live Control:** "On screen" line with Swap teams (`GET /api/v1/live/side-teams`, `POST /api/v1/live/side-teams/swap`).
+  - **Tests:** `side-teams.test.ts` and `side-teams.e2e.test.ts`; the e2e fails without the fix.
 - **Default player picture** (version 0.12.1, the owner: "a default picture if no one has a picture attached"):
   - **Setting:** Settings → General; `players.defaultPicture`, set from a staged upload through `GET`/`PUT /api/v1/default-player-picture`.
   - **Where it's used, for players without their own picture:**

@@ -11,6 +11,20 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.12.2",
+    title: "Team logos in game",
+    summary: "The active match's team names and logos now always show in the HUDs during the game.",
+    sections: [
+      {
+        heading: "Matches",
+        items: [
+          "The active match's teams are always on the HUD, even before players' SteamID64s are saved.",
+          "MatchFrame places them by the players, CS2's team names or the veto; Live Control shows how, with Swap teams when it had to guess.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.12.1",
     title: "Default player picture",
     summary: "One picture, set in Settings, shown for every player who has no picture of their own.",
