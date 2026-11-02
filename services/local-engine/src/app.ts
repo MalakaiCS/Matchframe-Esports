@@ -262,6 +262,8 @@ export class Engine {
       return t ? { name: t.name, shortName: t.shortName } : null;
     },
     startingCt: (m, mapName) => (mapName ? (this.mapInstances.forMatch(m.id).find((mi) => mi.mapName === mapName)?.startingCtTeamId ?? null) : null),
+    loadSwap: () => this.settings.get<string | null>("live.sideSwap", null),
+    saveSwap: (key) => this.settings.set("live.sideSwap", key),
   });
   private readonly delayBuffers = new Map<string, DelayBuffer<MatchState>>();
   private readonly cues = new Map<string, Cue>();

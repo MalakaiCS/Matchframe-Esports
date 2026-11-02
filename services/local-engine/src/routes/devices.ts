@@ -5,6 +5,7 @@ import type { Permission } from "../auth.ts";
 import { can } from "../auth.ts";
 import { HttpError } from "../http/router.ts";
 import type { Req, Router } from "../http/router.ts";
+import { swapSideTeams } from "./domain.ts";
 
 /**
  * Control-surface API for hotkeys, Stream Deck, Bitfocus Companion and similar devices.
@@ -213,6 +214,13 @@ const ACTIONS: DeviceAction[] = [
     permission: "replay.control",
     params: ClipTarget.extend({ pinned: z.boolean().optional() }),
     run: (e, _req, p: z.infer<typeof ClipTarget> & { pinned?: boolean }) => replayResult(e, e.autoReplay.pin(clipFor(e, p), p.pinned)),
+  },
+  {
+    id: "teams_swap",
+    label: "Teams: swap the active match's two teams on the HUDs (which team is on CT and which on T), for this map; again to swap back",
+    permission: "program.control",
+    params: NoParams,
+    run: (e, req) => swapSideTeams(e, req.principal!.label),
   },
   {
     id: "highlights_play",

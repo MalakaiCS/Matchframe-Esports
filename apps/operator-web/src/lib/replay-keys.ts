@@ -13,9 +13,10 @@ import { isTypingTarget } from "./hooks.ts";
  *
  * Highlights on air (ADR-063) the same way: Ctrl+Shift+F9 Play highlights, Ctrl+Shift+F10 Stop
  * highlights; Skip and Hold are the replays' (F5, F6). Not F8: the console's own F8 stops automation.
+ * Swap teams (Live Control): Ctrl+Shift+F11.
  */
 
-export type ReplayKeyAction = "skip" | "hold" | "stop" | "highlights" | "highlightsStop";
+export type ReplayKeyAction = "skip" | "hold" | "stop" | "highlights" | "highlightsStop" | "swapTeams";
 
 export interface ReplayKey {
   id: ReplayKeyAction;
@@ -36,6 +37,9 @@ export const HIGHLIGHT_KEYS: ReplayKey[] = [
   { id: "highlightsStop", label: "Stop highlights", key: "F10", path: "/api/v1/highlights/air/stop" },
 ];
 
+/** Swap teams: the active match's two teams change sides on the HUDs (Live Control). */
+export const TEAM_KEYS: ReplayKey[] = [{ id: "swapTeams", label: "Swap teams", key: "F11", path: "/api/v1/live/side-teams/swap" }];
+
 /** As the console shows a console shortcut. */
 export const shortcutLabel = (key: string) => `Ctrl+Shift+${key}`;
 
@@ -46,10 +50,10 @@ export function useReplayShortcuts(enabled = true): void {
     if (!enabled) return;
     const onKey = (e: KeyboardEvent) => {
       if (!e.ctrlKey || !e.shiftKey || e.altKey || e.metaKey || isTypingTarget(e.target)) return;
-      const k = REPLAY_KEYS.find((x) => x.key === e.key) ?? HIGHLIGHT_KEYS.find((x) => x.key === e.key);
+      const k = REPLAY_KEYS.find((x) => x.key === e.key) ?? HIGHLIGHT_KEYS.find((x) => x.key === e.key) ?? TEAM_KEYS.find((x) => x.key === e.key);
       if (!k) return;
       e.preventDefault();
-      const what = HIGHLIGHT_KEYS.includes(k) ? "Highlights" : "Replays";
+      const what = HIGHLIGHT_KEYS.includes(k) ? "Highlights" : TEAM_KEYS.includes(k) ? "Teams" : "Replays";
       api.post(k.path).then(
         () => toast.push("ok", `${what}: ${k.label}`),
         (err) => toast.push("warn", `${what}: ${k.label}`, describeError(err)),

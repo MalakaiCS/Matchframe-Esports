@@ -57,6 +57,24 @@ describe("the active match's teams on the game's sides", () => {
     expect(s.resolve(state({ round: 14, swapPlayers: true }), match)).toEqual({ CT: "nl", T: "lite", how: "assumed" });
   });
 
+  it("Swap teams also flips teams recognised from the game data, is kept per match and map, and survives a restart", () => {
+    const saved: (string | null)[] = [];
+    let stored: string | null = null;
+    const s = new SideTeams({ team: (id) => TEAMS[id] ?? null, startingCt: () => null, loadSwap: () => stored, saveSwap: (k) => (saved.push(k), (stored = k)) });
+    expect(s.swap()).toBe(false);
+    expect(s.resolve(state({ teamIds: { CT: "lite", T: "nl" } }), match)).toEqual({ CT: "lite", T: "nl", how: "roster" });
+    expect(s.swap()).toBe(true);
+    expect(saved).toEqual(["m1|de_mirage"]);
+    expect(s.resolve(state({ teamIds: { CT: "lite", T: "nl" } }), match)).toEqual({ CT: "nl", T: "lite", how: "swapped" });
+    // Another map: the swap was for de_mirage only.
+    expect(s.resolve({ ...state({ teamIds: { CT: "lite", T: "nl" } }), mapName: "de_nuke" } as MatchState, match).how).toBe("roster");
+    // A restart reads it back.
+    const again = new SideTeams({ team: (id) => TEAMS[id] ?? null, startingCt: () => null, loadSwap: () => stored });
+    expect(again.resolve(state({ teamIds: { CT: "lite", T: "nl" } }), match).how).toBe("swapped");
+    again.clearSwap();
+    expect(again.resolve(state({ teamIds: { CT: "lite", T: "nl" } }), match).how).toBe("roster");
+  });
+
   it("fills a state copy for the HUDs, and leaves the state alone without an active match or players", () => {
     const s = make();
     const st = state();

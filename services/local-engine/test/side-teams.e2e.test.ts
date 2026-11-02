@@ -82,5 +82,32 @@ describe("the active match's teams and logos in the HUD without rostered players
     const swapped = await call<{ ctName: string; how: string }>("POST", "/api/v1/live/side-teams/swap");
     expect(swapped.json).toMatchObject({ ctName: "Northern Lights", how: "swapped" });
     expect(placed(engine.hudState("hud:matchframe-default"))).toEqual({ CT: nl.id, T: lite.id });
+
+    // "A team has these players": save the in-game players to the teams on screen. Previewed first.
+    const preview = await call<{ applied: boolean; create: { team: string }[]; move: unknown[]; already: number }>("POST", "/api/v1/live/side-teams/save-players", { apply: false });
+    expect(preview.json.applied).toBe(false);
+    expect(preview.json.create.length).toBeGreaterThanOrEqual(8);
+    expect(new Set(preview.json.create.map((c) => c.team))).toEqual(new Set(["LITE Esports", "Northern Lights"]));
+    expect((await call<unknown[]>("GET", "/api/v1/players")).json).toHaveLength(0);
+    const saved = await call<{ applied: boolean; create: unknown[]; already: number }>("POST", "/api/v1/live/side-teams/save-players", { apply: true });
+    expect(saved.json.applied).toBe(true);
+    expect((await call<unknown[]>("GET", "/api/v1/players")).json).toHaveLength(saved.json.create.length);
+    // The game data now places the teams by their players (the swap is no longer needed and is cleared).
+    let how = "";
+    for (let i = 0; i < 50 && how !== "roster"; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      engine.hudState("hud:matchframe-default");
+      how = (await call<{ how: string }>("GET", "/api/v1/live/side-teams")).json.how;
+    }
+    expect(how).toBe("roster");
+    expect(placed(engine.hudState("hud:matchframe-default"))).toEqual({ CT: nl.id, T: lite.id });
+    // Saving again changes nothing.
+    const again = await call<{ create: unknown[]; move: unknown[]; already: number }>("POST", "/api/v1/live/side-teams/save-players", { apply: true });
+    expect(again.json.create.length + again.json.move.length).toBe(0);
+
+    // Swap teams from the Stream Deck / hotkey action works on recognised teams too.
+    const action = await call<{ ctName: string; how: string }>("POST", "/api/v1/devices/actions/teams_swap", {});
+    expect(action.status).toBe(200);
+    expect(placed(engine.hudState("hud:matchframe-default"))).toEqual({ CT: lite.id, T: nl.id });
   });
 });

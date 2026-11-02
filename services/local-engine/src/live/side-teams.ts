@@ -15,6 +15,9 @@ export interface SideTeamsLookup {
   team(id: string): { name: string; shortName: string } | null;
   /** The team that starts the map on CT, from the match's veto (null: not chosen). */
   startingCt(match: Match, mapName: string | null): string | null;
+  /** The operator's Swap teams, kept across restarts: the match and map it applies to (null: none). */
+  loadSwap?(): string | null;
+  saveSwap?(key: string | null): void;
 }
 
 const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -28,39 +31,72 @@ const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase().re
  * 3. **players**: fewer rostered players, as long as they point to one team without conflict;
  * 4. **veto**: the map's starting side from the match's veto (regulation only);
  * 5. **assumed**: Team 1 on the side its players were first seen on, CT first.
- * From 4 and 5 on, the teams follow their players across halftime (by SteamID64), and the
- * operator's Swap teams flips them.
+ * From 4 and 5 on, the teams follow their players across halftime (by SteamID64). The operator's
+ * Swap teams (button, hotkey or Stream Deck) flips whatever was decided, for that match and map,
+ * and the teams keep following their players after it.
  */
 export class SideTeams {
   /** Players of the team bound by veto/assumption (and the operator's swap), per match and map. */
   private binding: { key: string; teamId: string; players: Set<string>; how: "veto" | "assumed" } | null = null;
-  private swappedKey: string | null = null;
+  /** undefined: not loaded yet (the engine's settings may not exist while it is being built). */
+  private swappedKey: string | null | undefined = undefined;
+  /** The match and map of the last placement (what Swap teams applies to). */
+  private lastKey: string | null = null;
   private last: SideTeamsResult = { CT: null, T: null, how: null };
 
   constructor(private readonly lookup: SideTeamsLookup) {}
+
+  private swapped(): string | null {
+    if (this.swappedKey === undefined) this.swappedKey = this.lookup.loadSwap?.() ?? null;
+    return this.swappedKey;
+  }
 
   /** The last placement (for the console). */
   status(): SideTeamsResult {
     return this.last;
   }
 
-  /** The operator's Swap teams (only changes a placement by veto or assumption). */
-  swap(): void {
-    if (!this.binding) return;
-    this.swappedKey = this.swappedKey === this.binding.key ? null : this.binding.key;
+  /** Swap teams: flips the two teams on the current match and map (again: back). False with nothing to swap. */
+  swap(): boolean {
+    if (!this.lastKey || !this.last.CT || !this.last.T) return false;
+    this.setSwapped(this.swapped() === this.lastKey ? null : this.lastKey);
+    return true;
+  }
+
+  /** Forgets the swap (the players were saved to their teams: the game data now places them itself). */
+  clearSwap(): void {
+    this.setSwapped(null);
+  }
+
+  private setSwapped(key: string | null): void {
+    this.swappedKey = key;
+    this.lookup.saveSwap?.(key);
   }
 
   /** A copy of the state with both sides' team ids filled from the active match where the game data has none. */
   apply(state: MatchState, match: Match | null): MatchState {
     const r = this.resolve(state, match);
-    this.last = r;
     if (r.CT === state.teams.CT.teamId && r.T === state.teams.T.teamId) return state;
     return { ...state, teams: { CT: { ...state.teams.CT, teamId: r.CT }, T: { ...state.teams.T, teamId: r.T } } };
   }
 
   resolve(state: MatchState, match: Match | null): SideTeamsResult {
+    if (!match || state.players.length === 0) {
+      this.lastKey = null;
+      const ids = { CT: state.teams.CT.teamId, T: state.teams.T.teamId };
+      this.last = { ...ids, how: ids.CT || ids.T ? "roster" : null };
+      return this.last;
+    }
+    const key = `${match.id}|${state.mapName ?? ""}`;
+    this.lastKey = key;
+    const r = this.place(state, match, key);
+    // The operator's Swap teams for this match and map.
+    this.last = this.swapped() === key && r.CT && r.T ? { CT: r.T, T: r.CT, how: "swapped" } : r;
+    return this.last;
+  }
+
+  private place(state: MatchState, match: Match, key: string): SideTeamsResult {
     const ids = { CT: state.teams.CT.teamId, T: state.teams.T.teamId };
-    if (!match || state.players.length === 0) return { ...ids, how: ids.CT || ids.T ? "roster" : null };
     const pair = [match.teamAId, match.teamBId];
     const other = (id: string) => (id === match.teamAId ? match.teamBId : match.teamAId);
     const ours = (id: string | null): id is string => !!id && pair.includes(id);
@@ -97,7 +133,6 @@ export class SideTeams {
     // 4–5. Veto or assumption, then followed by the players across halftime.
     const ct = state.players.filter((p) => p.side === "CT" && !p.coach).map((p) => p.steamId);
     const t = state.players.filter((p) => p.side === "T" && !p.coach).map((p) => p.steamId);
-    const key = `${match.id}|${state.mapName ?? ""}`;
     if (!this.binding || this.binding.key !== key) {
       const half = Math.floor(match.format.regulationRounds / 2);
       const round = state.roundNumber ?? 1;
@@ -120,8 +155,6 @@ export class SideTeams {
     // Substitutions: the bound team is whoever now plays on its side.
     const now = bindingSide === "CT" ? ct : t;
     if (now.length > 0) b.players = new Set(now);
-    const swapped = this.swappedKey === key;
-    const teamOnBindingSide = swapped ? other(b.teamId) : b.teamId;
-    return fill(bindingSide, teamOnBindingSide, swapped ? "swapped" : b.how);
+    return fill(bindingSide, b.teamId, b.how);
   }
 }

@@ -258,6 +258,58 @@ export function registerRecordRoutes(r: Router, e: Engine): void {
     if (teamId) e.roster.join(teamId, playerId, role ?? "player");
   };
 
+  /**
+   * "These players are this team": the in-game players of each side are saved to the team the HUDs
+   * show there (Live Control). New SteamID64s become players (nickname from the game); saved
+   * players move to that team. From then on the game data places the teams by their players, so
+   * the operator's swap for this map is no longer needed and is cleared. Coaches and bots are left out.
+   */
+  r.post("/api/v1/live/side-teams/save-players", { permission: "metadata.write", body: z.object({ apply: z.boolean().default(false) }) }, (req) => {
+    const state = e.session.state();
+    const match = e.activeMatch();
+    if (!state || !match || state.players.length === 0) throw new HttpError(409, "Make a match active and wait for game data: there are no in-game players to save.", "no_players");
+    const placed = e.sideTeams.apply(state, match);
+    const teamName = (id: string | null) => (id ? (e.teams.get(id)?.data.name ?? id) : null);
+    const create: { name: string; steamId: string; team: string }[] = [];
+    const move: { name: string; steamId: string; from: string | null; team: string }[] = [];
+    let already = 0;
+    const plan: { steamId: string; name: string; playerId: string | null; teamId: string }[] = [];
+    for (const side of ["CT", "T"] as const) {
+      const teamId = placed.teams[side].teamId;
+      if (!teamId || (teamId !== match.teamAId && teamId !== match.teamBId)) continue;
+      for (const p of state.players) {
+        if (p.side !== side || p.coach || !/^7656119\d{10}$/.test(p.steamId)) continue;
+        const playerId = e.steamIndex.lookup(p.steamId) ?? null;
+        const current = playerId ? e.roster.teamOf(playerId) : null;
+        const name = (playerId ? e.players.get(playerId)?.data.displayName : null) ?? p.name ?? p.steamId;
+        if (playerId && current === teamId) {
+          already++;
+          continue;
+        }
+        if (playerId) move.push({ name, steamId: p.steamId, from: teamName(current), team: teamName(teamId)! });
+        else create.push({ name, steamId: p.steamId, team: teamName(teamId)! });
+        plan.push({ steamId: p.steamId, name, playerId, teamId });
+      }
+    }
+    if (req.body.apply && plan.length) {
+      e.db.transaction(() => {
+        for (const x of plan) {
+          let id = x.playerId;
+          if (!id) {
+            const created = e.players.create(normalizePlayerNames(cleanPlayer({ displayName: x.name.slice(0, 64), steamId: x.steamId })), "player");
+            e.steamIndex.set(x.steamId, created.id);
+            id = created.id;
+          }
+          applyTeam(id, x.teamId, null);
+        }
+      });
+      e.sideTeams.clearSwap();
+      e.refreshHuds();
+      e.audit.record(who(req), "live.side_teams.save_players", match.id, { created: create.length, moved: move.length });
+    }
+    return { applied: req.body.apply, create, move, already };
+  });
+
   r.post("/api/v1/players", { permission: "metadata.write" }, (req) => {
     const { avatarStagedId, teamId, role, ...raw } = req.body as Record<string, unknown> & { avatarStagedId?: string; teamId?: string | null; role?: Role | null };
     const body = normalizePlayerNames(cleanPlayer(raw));

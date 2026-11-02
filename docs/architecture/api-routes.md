@@ -48,6 +48,7 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | PATCH | `/api/v1/teams/:id` | metadata.write |
 | GET | `/api/v1/players` | metadata.read |
 | GET | `/api/v1/players/:id` | metadata.read |
+| POST | `/api/v1/live/side-teams/save-players` | metadata.write |
 | POST | `/api/v1/players` | metadata.write |
 | PATCH | `/api/v1/players/:id` | metadata.write |
 | GET | `/api/v1/matches` | metadata.read |

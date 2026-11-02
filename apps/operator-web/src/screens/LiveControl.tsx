@@ -11,6 +11,7 @@ import { phaseRemaining } from "../lib/clock.ts";
 import { MODE_INFO, OBSERVER_MODE_INFO, OBSERVER_MODES } from "../lib/director.ts";
 import { fmtClock, fmtMs, MISSING, shotLabel, shotTarget, titleCase } from "../lib/format.ts";
 import { isTypingTarget, useApi } from "../lib/hooks.ts";
+import { shortcutLabel, TEAM_KEYS } from "../lib/replay-keys.ts";
 import { CONTROL_HEALTH_TEXT } from "../lib/ownership.ts";
 import { makeNameOf, playersBySide, slotFromKey } from "../lib/players.ts";
 import { Link } from "../router.tsx";
@@ -18,6 +19,7 @@ import { liveStore, useEngineNow, useLive, useNow, useSnapshot } from "../state/
 import { usePermission } from "../state/session.tsx";
 import type { PovRole } from "./live/RosterCard.tsx";
 import { RosterCard } from "./live/RosterCard.tsx";
+import { Hotkeys } from "./replays/AutoReplays.tsx";
 import { TeamCommsCard } from "./live/TeamCommsCard.tsx";
 import { Timeline } from "./live/Timeline.tsx";
 
@@ -99,22 +101,57 @@ const SIDE_TEAMS_HOW: Record<NonNullable<SideTeamsView["how"]>, string> = {
   swapped: "swapped by you",
 };
 
-/** Which team the HUDs show on CT and T, how it was decided, and Swap teams when it was a guess. */
+interface SavePlayersResult {
+  applied: boolean;
+  create: { name: string; steamId: string; team: string }[];
+  move: { name: string; steamId: string; from: string | null; team: string }[];
+  already: number;
+}
+
+/**
+ * Which team the HUDs show on CT and T and how it was decided; Swap teams (also Ctrl+Shift+F11, a
+ * global hotkey and the Stream Deck's teams_swap); Save players to teams, so the game data places
+ * the teams by their players from then on.
+ */
 function SideTeamsLine() {
   const v = useApi<SideTeamsView>("/api/v1/live/side-teams", { refreshMs: 2000 });
   const reason = usePermission("program.control");
+  const writeReason = usePermission("metadata.write");
   const d = v.data;
   if (!d || !d.how || (!d.CT && !d.T)) return null;
+  const summary = (r: SavePlayersResult) =>
+    r.create.length + r.move.length === 0 ? `All ${r.already} players are already saved to these teams.` : `${r.create.length} new player${r.create.length === 1 ? "" : "s"} saved, ${r.move.length} moved${r.already ? `, ${r.already} already on their team` : ""}.`;
   return (
-    <div className="row small" role="status" aria-label="Teams on screen">
-      <span>
-        On screen: <span className="side-ct">CT</span> <strong>{d.ctName ?? "?"}</strong> · <span className="side-t">T</span> <strong>{d.tName ?? "?"}</strong> <span className="muted">({SIDE_TEAMS_HOW[d.how]})</span>
-      </span>
-      {d.canSwap ? (
-        <ActionButton size="sm" variant="ghost" action={async () => v.setData(await api.post<SideTeamsView>("/api/v1/live/side-teams/swap"))} success="Teams swapped on the HUDs" disabledReason={reason}>
-          Swap teams
-        </ActionButton>
-      ) : null}
+    <div className="stack-sm">
+      <div className="row small" role="status" aria-label="Teams on screen">
+        <span>
+          On screen: <span className="side-ct">CT</span> <strong>{d.ctName ?? "?"}</strong> · <span className="side-t">T</span> <strong>{d.tName ?? "?"}</strong> <span className="muted">({SIDE_TEAMS_HOW[d.how]})</span>
+        </span>
+        {d.canSwap ? (
+          <ActionButton size="sm" variant="ghost" action={async () => v.setData(await api.post<SideTeamsView>("/api/v1/live/side-teams/swap"))} success="Teams swapped on the HUDs" disabledReason={reason}>
+            Swap teams ({shortcutLabel("F11")})
+          </ActionButton>
+        ) : null}
+        {d.CT && d.T && d.how !== "roster" ? (
+          <ActionButton
+            size="sm"
+            variant="ghost"
+            action={async () => summary(await api.post<SavePlayersResult>("/api/v1/live/side-teams/save-players", { apply: true }))}
+            success={(m) => m}
+            disabledReason={writeReason}
+            confirm={{
+              title: "Save these players to their teams?",
+              body: `The players now on CT are saved to ${d.ctName ?? "the CT team"} and the players on T to ${d.tName ?? "the T team"}, by their SteamID64: new players are added with their in-game name, saved players move to that team. From then on MatchFrame recognises the teams by their players, on every map. Check the teams on screen are right first (Swap teams if not).`,
+              confirmLabel: "Save players",
+            }}
+          >
+            Save players to teams
+          </ActionButton>
+        ) : null}
+      </div>
+      <Details summary="Swap teams hotkey and Stream Deck">
+        <Hotkeys keys={TEAM_KEYS} label="Team hotkeys" devices="the device action teams_swap" />
+      </Details>
     </div>
   );
 }

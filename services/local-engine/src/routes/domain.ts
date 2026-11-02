@@ -37,6 +37,24 @@ export function normalizeName(n: string): string {
   return n.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+/** Which team the HUDs show on each side, and how it was decided (Live Control, Stream Deck). */
+export function sideTeamsView(e: Engine) {
+  const r = e.sideTeams.status();
+  const name = (id: string | null) => (id ? (e.teams.get(id)?.data.name ?? null) : null);
+  return { ...r, ctName: name(r.CT), tName: name(r.T), canSwap: !!r.CT && !!r.T };
+}
+
+/** Swap teams: the two teams on screen change sides for this match and map, and keep following their players. */
+export function swapSideTeams(e: Engine, who: string) {
+  const st = e.session.state();
+  if (st) e.sideTeams.apply(st, e.activeMatch());
+  if (!e.sideTeams.swap()) throw new HttpError(409, "Nothing to swap: make a match active and wait for game data.", "nothing_to_swap");
+  if (st) e.sideTeams.apply(st, e.activeMatch());
+  e.refreshHuds();
+  e.audit.record(who, "live.side_teams.swap", null, sideTeamsView(e));
+  return sideTeamsView(e);
+}
+
 export function registerDomainRoutes(r: Router, e: Engine): void {
   registerRecordRoutes(r, e);
   // ---- assets (logos, avatars, sponsor media) ---------------------------------------------
@@ -118,23 +136,10 @@ export function registerDomainRoutes(r: Router, e: Engine): void {
   });
 
   // ---- matches (list and editor routes in routes/records.ts) ---------------------------
-  /** Which team the HUDs show on each side, and how it was decided (Live Control). */
-  const sideTeamsView = () => {
-    const r = e.sideTeams.status();
-    const name = (id: string | null) => (id ? (e.teams.get(id)?.data.name ?? null) : null);
-    return { ...r, ctName: name(r.CT), tName: name(r.T), canSwap: r.how === "veto" || r.how === "assumed" || r.how === "swapped" };
-  };
-  r.get("/api/v1/live/side-teams", { permission: "state.read" }, () => sideTeamsView());
-  /** Swaps the two teams when they were placed by the veto or assumed (the game data couldn't tell them apart). */
-  r.post("/api/v1/live/side-teams/swap", { permission: "program.control" }, (req) => {
-    if (!sideTeamsView().canSwap) throw new HttpError(409, "The teams were recognised from the game data (players' SteamID64s or CS2's team names): there is nothing to swap.", "not_swappable");
-    e.sideTeams.swap();
-    e.refreshHuds();
-    e.audit.record(req.principal!.label, "live.side_teams.swap", null);
-    const st = e.session.state();
-    if (st) e.sideTeams.apply(st, e.activeMatch());
-    return sideTeamsView();
-  });
+  r.get("/api/v1/live/side-teams", { permission: "state.read" }, () => sideTeamsView(e));
+  /** Swap teams (button, hotkey, Stream Deck): flips the two teams on screen for this match and map. */
+  r.post("/api/v1/live/side-teams/swap", { permission: "program.control" }, (req) => swapSideTeams(e, req.principal!.label));
+
   r.post("/api/v1/live/deactivate-match", { permission: "program.control" }, (req) => {
     e.setActiveMatch(null);
     e.audit.record(req.principal!.label, "match.deactivate", null);
