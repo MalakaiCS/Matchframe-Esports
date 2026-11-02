@@ -86,7 +86,7 @@ export class ReplayTest {
     const why = this.auto.testBlocked();
     if (why) throw refuse(why);
     const dir = testClipsDir();
-    if (!dir) throw refuse("The sample clips aren't installed with the program (its replay-test folder): reinstall Matchframe.");
+    if (!dir) throw refuse("The sample clips aren't installed with the program (its replay-test folder): reinstall MatchFrame.");
     this.busy = true;
     try {
       const rendered = st.mixer === "obs" && st.playback === "rendered";
@@ -175,7 +175,7 @@ export class ReplayTest {
       const fix = /ffmpeg isn't installed/.test(why) ? "Download ffmpeg under Replay feed (or install it), or choose Fade (two scenes, OBS) under Between replays." : /longer than/.test(why) ? "This PC took too long to make the file: pick your graphics card's encoder under Replay feed → Encoder, or choose Fade (two scenes, OBS) under Between replays." : "Check the replay folder (Settings → Storage) has room and can be written, or choose Fade (two scenes, OBS) under Between replays.";
       this.step("fade", { state: "failed", detail: `Not rendered: ${why}. The clips played through the two scenes instead (${ev.transition ?? own} to “${ev.scene}”${ev.confirmed ? "" : ", not confirmed by OBS"}).`, fix });
     } else if (ev.type === "between") {
-      this.step("fade", ev.confirmed ? { state: "ok", detail: `${ev.transition ?? own} to ${obs ? `“${ev.scene}”` : `the second clip (${ev.scene})`}.` } : { state: "failed", detail: `OBS didn't confirm “${ev.scene}” on program.`, fix: "Leave the second replay scene to Matchframe, and keep a Fade among OBS's transitions." });
+      this.step("fade", ev.confirmed ? { state: "ok", detail: `${ev.transition ?? own} to ${obs ? `“${ev.scene}”` : `the second clip (${ev.scene})`}.` } : { state: "failed", detail: `OBS didn't confirm “${ev.scene}” on program.`, fix: "Leave the second replay scene to MatchFrame, and keep a Fade among OBS's transitions." });
     } else if (ev.type === "one-source") {
       this.step("fade", { state: "failed", detail: `No fade: the clips played one after the other in the replay scene's one media source (${ev.why})`, fix: "Press Set up OBS replay scene, or put your replay media source directly in your replay scene (not in a group)." });
     } else if (ev.type === "clip" && !ev.ok) {
@@ -186,7 +186,7 @@ export class ReplayTest {
     } else if (ev.type === "audio-down") {
       this.step("audio", { detail: ev.inputs.length ? `Turned down: ${ev.inputs.join(", ")}.` : "" });
     } else if (ev.type === "audio-back" && !ev.ok) {
-      this.step("audio", { state: "failed", detail: ev.detail, fix: "Set the volume back in the mixer by hand; Matchframe tries again as soon as the mixer answers." });
+      this.step("audio", { state: "failed", detail: ev.detail, fix: "Set the volume back in the mixer by hand; MatchFrame tries again as soon as the mixer answers." });
     }
   }
 

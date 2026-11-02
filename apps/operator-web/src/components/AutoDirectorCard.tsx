@@ -68,7 +68,7 @@ export function AutoDirectorCard({ compact = false }: { compact?: boolean }) {
           <Icon name="director" size={18} />
           <div>
             <strong>Auto Director</strong>
-            <span className="small muted">Matchframe moves the CS2 camera for you.</span>
+            <span className="small muted">MatchFrame moves the CS2 camera for you.</span>
           </div>
         </div>
         <span className={`autodir-pill tone-${phase.tone}`} role="status">
@@ -147,7 +147,7 @@ export function AutoDirectorCard({ compact = false }: { compact?: boolean }) {
               checked={set.hlaeCamera !== false}
               disabled={!!reason || busy}
               label="Camera shots through HLAE"
-              hint="With CS2 started in the Observer tools + HLAE mode, HLAE plays every camera shot and move: it sets the view every frame, so turns, glides and paths are smooth and don't depend on console timing (how Lexogrine HUD Manager runs its cinematics). The map's camera paths (200–300 a map, from pro demos) play in freeze time only while HLAE is connected. Without HLAE, Matchframe moves the camera over the console."
+              hint="With CS2 started in the Observer tools + HLAE mode, HLAE plays every camera shot and move: it sets the view every frame, so turns, glides and paths are smooth and don't depend on console timing. The map's camera paths (200–300 a map, from pro demos) play in freeze time only while HLAE is connected. Without HLAE, MatchFrame moves the camera over the console."
               onChange={(v) => void save({ hlaeCamera: v })}
             />
             <p className="small muted">
@@ -187,7 +187,7 @@ export function AutoDirectorCard({ compact = false }: { compact?: boolean }) {
           ))}
         </ul>
       ) : compact ? null : (
-        <p className="small muted autodir-help">Press Start with CS2 spectating a match or playing a demo. Matchframe checks the console, the game data and your hours, tests player switching and the cameras on this CS2 build, and then directs. Press Stop, or the emergency stop, to take over.</p>
+        <p className="small muted autodir-help">Press Start with CS2 spectating a match or playing a demo. MatchFrame checks the console, the game data and your hours, tests player switching and the cameras on this CS2 build, and then directs. Press Stop, or the emergency stop, to take over.</p>
       )}
     </section>
   );

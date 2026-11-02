@@ -35,7 +35,7 @@ function useOutline(url: string | null): Outline | null {
 const UTILITY_CLASS: Record<string, string> = { smoke: "u-smoke", molotov: "u-fire", incendiary: "u-fire", fire_unknown: "u-fire", he: "u-he", flashbang: "u-flash", decoy: "u-decoy" };
 
 /**
- * Matchframe minimap: the built-in radar image for the map (or an operator-calibrated one), or the
+ * MatchFrame minimap: the built-in radar image for the map (or an operator-calibrated one), or the
  * schematic outline generated from map-pack geometry. Markers use the same transform as the
  * background; without a trustworthy transform nothing is drawn.
  *
@@ -45,7 +45,7 @@ const UTILITY_CLASS: Record<string, string> = { smoke: "u-smoke", molotov: "u-fi
  * dropped or planted (pulsing), and defused/exploded.
  */
 export function Radar({ radar: given }: { radar: HudRadar }) {
-  // A map without a radar image: Matchframe's radar drawn in the radar images' style, else the outline.
+  // A map without a radar image: MatchFrame's radar drawn in the radar images' style, else the outline.
   const radar = given.mode === "schematic" && given.cleanUrl ? { ...given, mode: "image" as const, backgroundUrl: given.cleanUrl } : given;
   const outline = useOutline(radar.mode === "schematic" ? radar.backgroundUrl : null);
   if (!radar.available) return null;

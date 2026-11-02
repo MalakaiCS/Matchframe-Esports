@@ -21,7 +21,7 @@ export function CaptainPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    document.title = "Map veto · Matchframe";
+    document.title = "Map veto · MatchFrame";
     if (!token || matchId) return;
     client
       .get<Me>("/api/v1/me")

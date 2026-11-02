@@ -41,7 +41,7 @@ function Card({ clip, leaving }: { clip: HudReplayClip; leaving: boolean }) {
 }
 
 /**
- * The Broadcast HUD's replay graphic (its `replay` entry point, also used for LHM-format HUDs that
+ * The Broadcast HUD's replay graphic (its `replay` entry point, also used for imported HUDs that
  * have none): a "REPLAY" tag top left and a lower third in the HUD's panels, in each preset's
  * style (Classic, Minimal, Arena). Transparent everywhere else.
  */

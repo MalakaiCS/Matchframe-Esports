@@ -225,7 +225,7 @@ def _upload_dataset(a: argparse.Namespace, em: Emitter) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="matchframe-workers", description="Matchframe offline demo pipeline")
+    p = argparse.ArgumentParser(prog="matchframe-workers", description="MatchFrame offline demo pipeline")
     sub = p.add_subparsers(dest="command", required=True)
 
     def add(name: str, handler: Handler, help_text: str) -> argparse.ArgumentParser:

@@ -2,7 +2,7 @@ import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { discoverCs2, GSI_CONFIG_FILE, parseVdf, refreshGsiConfig, renderGsiConfig, writeGsiConfig } from "../src/index.ts";
+import { discoverCs2, GSI_CONFIG_FILE, GSI_CONFIG_NAME, LEGACY_GSI_CONFIG_NAME, parseVdf, refreshGsiConfig, renderGsiConfig, writeGsiConfig } from "../src/index.ts";
 
 describe("VDF", () => {
   it("parses nested KeyValues with comments and escapes", () => {
@@ -34,7 +34,7 @@ describe("GSI config", () => {
   it("renders a parseable config with the token and requested components", () => {
     const text = renderGsiConfig({ uri: "http://127.0.0.1:37210/gsi", token: "abcdef0123456789" });
     const v = parseVdf(text);
-    const root = v["Matchframe Esports"] as Record<string, Record<string, string>>;
+    const root = v["MatchFrame Esports"] as Record<string, Record<string, string>>;
     expect(root.auth!.token).toBe("abcdef0123456789");
     expect(root.data!.allgrenades).toBe("1");
     // Low latency: at most 20 ms between updates, no batching; a lost answer costs a second or two at most.
@@ -50,9 +50,20 @@ describe("GSI config", () => {
     expect(refreshGsiConfig(dir, "12345678")).toBe(null);
     const r = refreshGsiConfig(dir, "abcdef01")!;
     expect(r.written).toBe(true);
-    const root = parseVdf(readFileSync(join(dir, GSI_CONFIG_FILE), "utf8"))["Matchframe Esports"] as Record<string, string>;
+    const root = parseVdf(readFileSync(join(dir, GSI_CONFIG_FILE), "utf8"))["MatchFrame Esports"] as Record<string, string>;
     expect([root.uri, root.throttle, root.timeout, root.heartbeat]).toEqual(["http://192.168.1.20:37210/gsi", "0.02", "1", "1"]);
     expect(refreshGsiConfig(dir, "abcdef01")!.unchanged).toBe(true);
+  });
+
+  it("refreshes a file 0.11.0 wrote under the old name, which becomes the new one", () => {
+    const dir = mkdtempSync(join(tmpdir(), "mf-gsi-"));
+    const old = renderGsiConfig({ uri: "http://127.0.0.1:37210/gsi", token: "abcdef01", throttle: 0.1 }).replace(`"${GSI_CONFIG_NAME}"`, `"${LEGACY_GSI_CONFIG_NAME}"`);
+    expect(old.startsWith('"Matchframe Esports"')).toBe(true);
+    writeFileSync(join(dir, GSI_CONFIG_FILE), old);
+    expect(refreshGsiConfig(dir, "abcdef01")!.written).toBe(true);
+    const vdf = parseVdf(readFileSync(join(dir, GSI_CONFIG_FILE), "utf8"));
+    expect(Object.keys(vdf)).toEqual(["MatchFrame Esports"]);
+    expect((vdf["MatchFrame Esports"] as Record<string, string>).throttle).toBe("0.02");
   });
 
   it("writes its own file only, backs up a changed version, and leaves other configs untouched", () => {

@@ -242,7 +242,7 @@ describe("Auto Director: one button, checks and fixes by itself", () => {
     expect(z - floor).toBeGreaterThan(60);
     expect(z - floor).toBeLessThan(240);
     await new Promise((r) => setTimeout(r, 1200));
-    // Matchframe moves it (spec_goto poses), slowly; CS2's +left/+right (strafing) never.
+    // MatchFrame moves it (spec_goto poses), slowly; CS2's +left/+right (strafing) never.
     const frames = cs2.lines.slice(before).filter((l) => /^spec_goto /.test(l)).map((l) => l.split(" ").slice(1).map(Number) as [number, number, number, number, number]);
     expect(frames.length).toBeGreaterThan(30);
     const moved = Math.hypot(frames.at(-1)![0] - frames[0]![0], frames.at(-1)![1] - frames[0]![1]);

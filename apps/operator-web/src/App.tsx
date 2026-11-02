@@ -120,7 +120,7 @@ export function Shell({ me }: { me: Me }) {
   const Screen = route?.component ?? null;
   const crumbs = redirect ? [] : crumbsFor(path);
   useEffect(() => {
-    document.title = `${route ? route.title : "Matchframe"} · Matchframe Esports`;
+    document.title = `${route ? route.title : "MatchFrame"} · MatchFrame Esports`;
   }, [route]);
   return (
     <SessionContext.Provider value={{ me }}>
@@ -180,7 +180,7 @@ function TokenGate() {
         <div className="gate-brand gate-brand-badge">
           <BrandBadge />
         </div>
-        {gate.kind === "resolving" ? <p>{window.matchframe?.connectionMode === "remote" ? "Connecting to the production computer…" : "Connecting to the Matchframe engine…"}</p> : null}
+        {gate.kind === "resolving" ? <p>{window.matchframe?.connectionMode === "remote" ? "Connecting to the production computer…" : "Connecting to the MatchFrame engine…"}</p> : null}
         {gate.kind === "unreachable" ? (
           <>
             <Note tone="danger" title="Engine unreachable">
@@ -201,7 +201,7 @@ function TokenGate() {
                 {gate.message}
               </Note>
             ) : (
-              <p>This console runs inside the Matchframe program, which signs it in automatically. During development, paste the operator token from <code>operator-token.txt</code> in the Matchframe data folder.</p>
+              <p>This console runs inside the MatchFrame program, which signs it in automatically. During development, paste the operator token from <code>operator-token.txt</code> in the MatchFrame data folder.</p>
             )}
             <form
               onSubmit={(e) => {

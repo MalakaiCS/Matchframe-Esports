@@ -23,7 +23,7 @@ export interface HlaeCameraStatus {
 }
 
 /**
- * The engine end of the HLAE camera (observer-agent hlae-camera.ts): writes the Matchframe script
+ * The engine end of the HLAE camera (observer-agent hlae-camera.ts): writes the MatchFrame script
  * for `mirv_script_load`, accepts its WebSocket on the API port at `/hlae` (this computer only, with
  * a token in the script), and plays shots on it. One script at a time; a new one replaces the old.
  */

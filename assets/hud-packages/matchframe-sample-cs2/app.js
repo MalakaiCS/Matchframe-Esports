@@ -1,4 +1,4 @@
-// Matchframe Sample CS2 HUD.
+// MatchFrame Sample CS2 HUD.
 //
 // The HUD server opens this page with ?output=…&variant=…&t=… and serves the read-only SDK at
 // /sdk/hud-sdk.js. Every snapshot is the complete public HUD state, including this HUD's settings
@@ -69,7 +69,7 @@ function renderObserved(state) {
 // ---------------------------------------------------------------- minimap
 //
 // state.radar holds 0–1 coordinates on its background: the built-in radar image for the map (or an
-// operator-calibrated one) in mode "image", or Matchframe's outline generated from map geometry in
+// operator-calibrated one) in mode "image", or MatchFrame's outline generated from map geometry in
 // mode "schematic" (fetched as JSON). Mode "none": no trustworthy transform, nothing is drawn.
 const SVG = "http://www.w3.org/2000/svg";
 const S = 1000;
@@ -136,7 +136,7 @@ function renderMinimap(state) {
 
 // ---------------------------------------------------------------- killfeed
 //
-// Game data (GSI) reports no kill events: Matchframe pairs kills from counter changes (kind
+// Game data (GSI) reports no kill events: MatchFrame pairs kills from counter changes (kind
 // "probable"; the weapon is the killer's weapon in hand). A death without a pairing shows the victim
 // only. Each kill stays on screen for KILL_MS after it first arrives.
 const KILL_MS = 6000;

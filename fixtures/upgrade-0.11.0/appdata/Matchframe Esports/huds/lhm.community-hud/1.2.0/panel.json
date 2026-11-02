@@ -1,0 +1,1 @@
+[{ "label": "Teams", "name": "teams", "inputs": [ { "type": "team", "name": "left_team", "label": "Left team" }, { "type": "text", "name": "title", "label": "Title" }, { "type": "images", "name": "sponsors", "label": "Sponsors" } ] }]

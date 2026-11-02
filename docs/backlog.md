@@ -92,7 +92,7 @@ Numbered work items in dependency order. Status: **done**, **open**, **blocked (
 | R7 | Replay tool / MatchFrame APIs differ from the documented bridges | high | low–medium | Thin shims on the tool side; OBS replay buffer fallback; failures contained |
 | R8 | Live performance on the broadcast PC | low | high | p95 ingest ≈ 1.5 ms, eval ≈ 0.9 ms in simulation; workers at below-normal priority; demo processing pauses during live |
 | R9 | Unsigned builds blocked by SmartScreen/AV | medium | low | Document unsigned dev builds; sign in the release environment (B062) |
-| R10 | Licence contamination from reference products | low | high | No LHM code/assets/account; GPL projects used only as documentation (THIRD_PARTY_NOTICES.md) |
+| R10 | Licence contamination from reference products | low | high | No code, assets or accounts of reference products; GPL projects used only as documentation (THIRD_PARTY_NOTICES.md) |
 | R11 | Overconfident utility predictions from small measured samples | medium | medium | Measured SDs floored (100 ms / 250 ms); prediction never promoted to confirmation |
 | R12 | Storage growth beyond the 2 TB plan | low | medium | Measured estimate (p95 465 GB / 812 GB for 9k / 27k demos); quotas and admission control; raw retention as queue + curated sample |
 | R13 | Client-side licence gate bypassed by a modified desktop build | medium | low–medium | Licensing control, not DRM; pinned keys stop fake servers; server-side usage is the billing record; signed releases (B062) |

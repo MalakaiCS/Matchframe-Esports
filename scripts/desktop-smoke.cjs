@@ -1,5 +1,5 @@
-// Desktop smoke test: launches the Matchframe program (Electron, dev mode) with Playwright.
-//  0. A local Matchframe website (cloud API from source) with two verified accounts.
+// Desktop smoke test: launches the MatchFrame program (Electron, dev mode) with Playwright.
+//  0. A local MatchFrame website (cloud API from source) with two verified accounts.
 //  1. Local mode: the program opens straight into the HUD Library (no sign-in); bundled HUDs are
 //     installed; a desktop HUD window opens transparent, click-through and on top; signing in with
 //     the website account's email and password works under Settings → Account; supervised engine
@@ -109,7 +109,7 @@ async function run(cloud) {
   const health = await fetch("http://127.0.0.1:39411/api/v1/health").then((r) => r.json());
   const browserRoot = await fetch("http://127.0.0.1:39411/", { headers: { accept: "text/html" } });
   const browserText = await browserRoot.text();
-  assert(browserRoot.status === 404 && browserText.includes("runs inside the Matchframe program"), "engine serves no console to browsers");
+  assert(browserRoot.status === 404 && browserText.includes("runs inside the MatchFrame program"), "engine serves no console to browsers");
   const captain = await fetch("http://127.0.0.1:39411/captain", { headers: { accept: "text/html" } });
   assert(captain.status === 200 && (await captain.text()).includes("captain-assets"), "captain page is still served for captain links");
   // Match graphics: thumbnails drawn and stingers encoded (with alpha) in the program's window.

@@ -6,7 +6,7 @@ import { parseVdf } from "../vdf.ts";
 export const GSI_CONFIG_FILE = "gamestate_integration_matchframe.cfg";
 
 /**
- * GSI data components requested by Matchframe. A requested component is not proof that it
+ * GSI data components requested by MatchFrame. A requested component is not proof that it
  * arrives: the capability sampler reports what the tested build actually sends.
  */
 export const GSI_COMPONENTS = [
@@ -50,11 +50,16 @@ export const GSI_TIMING = { timeout: 1, buffer: 0, throttle: 0.02, heartbeat: 1 
 
 const num = (n: number) => String(Math.round(n * 1000) / 1000);
 
+/** The name of the config's root block (CS2 ignores it). */
+export const GSI_CONFIG_NAME = "MatchFrame Esports";
+/** The name 0.11.0 and earlier wrote: a config file of theirs is still read (and rewritten under the new name). */
+export const LEGACY_GSI_CONFIG_NAME = "Matchframe Esports";
+
 export function renderGsiConfig(o: GsiConfigOptions): string {
   if (!/^[0-9a-f]{8,64}$/i.test(o.token)) throw new Error("GSI token must be hex");
   if (!/^https?:\/\/[^\s"]+$/.test(o.uri)) throw new Error("invalid GSI uri");
   const comps = (o.components ?? GSI_COMPONENTS).map((c) => `    "${c}" "1"`).join("\n");
-  return `"Matchframe Esports"
+  return `"${GSI_CONFIG_NAME}"
 {
   "uri" "${o.uri}"
   "timeout" "${num(o.timeout ?? GSI_TIMING.timeout)}"
@@ -80,7 +85,7 @@ export interface WriteResult {
   unchanged: boolean;
 }
 
-/** Writes the Matchframe GSI config atomically; an existing different version is backed up. */
+/** Writes the MatchFrame GSI config atomically; an existing different version is backed up. */
 export function writeGsiConfig(cfgDir: string, content: string): WriteResult {
   parseVdf(content); // never write something the game cannot parse
   mkdirSync(cfgDir, { recursive: true });
@@ -99,14 +104,15 @@ export function writeGsiConfig(cfgDir: string, content: string): WriteResult {
 }
 
 /**
- * Brings Matchframe's existing config file up to date (e.g. new timing) with the address and token
+ * Brings MatchFrame's existing config file up to date (e.g. new timing) with the address and token
  * it already has. Only touches a file that is there and carries this computer's token; CS2 reads it
  * the next time it starts.
  */
 export function refreshGsiConfig(cfgDir: string, token: string): WriteResult | null {
   const path = join(cfgDir, GSI_CONFIG_FILE);
   if (!existsSync(path)) return null;
-  const root = parseVdf(readFileSync(path, "utf8"))["Matchframe Esports"] as Record<string, unknown> | undefined;
+  const vdf = parseVdf(readFileSync(path, "utf8"));
+  const root = (vdf[GSI_CONFIG_NAME] ?? vdf[LEGACY_GSI_CONFIG_NAME]) as Record<string, unknown> | undefined;
   const uri = typeof root?.uri === "string" ? root.uri : null;
   const fileToken = (root?.auth as Record<string, unknown> | undefined)?.token;
   if (!uri || fileToken !== token) return null;

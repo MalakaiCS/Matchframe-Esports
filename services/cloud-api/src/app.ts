@@ -165,7 +165,7 @@ export class CloudApp {
     return u;
   }
 
-  /** Matchframe staff. Support staff help customers; changes to staff roles, accounts, the catalogue and hours need the admin role. */
+  /** MatchFrame staff. Support staff help customers; changes to staff roles, accounts, the catalogue and hours need the admin role. */
   async requireStaff(ctx: Ctx, level: StaffRole = "support"): Promise<SessionUser> {
     const u = await this.requireUser(ctx);
     if (!u.staffRole) throw new HttpError(403, "forbidden", "staff only");

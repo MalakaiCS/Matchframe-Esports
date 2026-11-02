@@ -28,9 +28,41 @@ export const HudPermission = z.enum([
 ]);
 export type HudPermission = z.infer<typeof HudPermission>;
 
+/**
+ * Imported HUDs in the hud.json format (a folder with hud.json, index.html and optionally panel.json)
+ * get this id prefix and run in the HUD compatibility layer (manifest `runtime: "compat"`).
+ */
+export const IMPORTED_HUD_PREFIX = "imported.";
+/**
+ * Compatibility identifiers from 0.11.0 and earlier: the id prefix imported hud.json-format HUDs had,
+ * and the manifest runtime value they were written with. Data from older versions (installed
+ * manifests, OBS browser source addresses, account sync records from other computers, the desktop
+ * program's overlay placements) can still carry them; they are read and migrated, never written.
+ */
+export const LEGACY_IMPORTED_HUD_PREFIX = "lhm.";
+export const LEGACY_COMPAT_RUNTIME = "lhm";
+
+/** HUD ids are 3 to 64 characters: lowercase letters, digits, dots and dashes. */
+export const HUD_ID_RE = /^[a-z0-9][a-z0-9.-]{2,63}$/;
+
+/**
+ * The id a HUD has now: an imported hud.json-format HUD's legacy id becomes
+ * `imported.<rest>`; any other id is returned as it is. The same on every computer (account sync
+ * maps ids from other computers with it). A legacy id whose new form would be longer than a HUD id
+ * may be is kept as it is (a compatibility identifier).
+ */
+export function currentHudId(id: string): string {
+  if (!id.startsWith(LEGACY_IMPORTED_HUD_PREFIX)) return id;
+  const next = IMPORTED_HUD_PREFIX + id.slice(LEGACY_IMPORTED_HUD_PREFIX.length);
+  return HUD_ID_RE.test(next) ? next : id;
+}
+
+/** Whether `id` is a legacy imported-HUD id that currentHudId() changes. */
+export const isLegacyHudId = (id: string): boolean => currentHudId(id) !== id;
+
 export const HudManifest = z.object({
   manifestVersion: z.literal(1),
-  id: z.string().regex(/^[a-z0-9][a-z0-9.-]{2,63}$/),
+  id: z.string().regex(HUD_ID_RE),
   name: z.string().min(1).max(80),
   version: z.string().regex(/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/),
   author: z.string().min(1).max(120),
@@ -55,11 +87,12 @@ export const HudManifest = z.object({
   resolutions: z.array(z.enum(["1920x1080", "2560x1440", "3840x2160"])).default(["1920x1080"]),
   classification: z.enum(["builtin", "imported"]).default("imported"),
   /**
-   * "matchframe": the HUD reads HudState from the overlay socket. "lhm": an LHM-format HUD (Lexogrine
-   * template protocol), converted on import; it receives raw game data over socket.io and reads
-   * teams and players from /api (Matchframe's LHM compatibility layer).
+   * "matchframe": the HUD reads HudState from the overlay socket. "compat": an imported HUD in the
+   * hud.json format, converted on import; it receives raw game data over socket.io and reads teams
+   * and players from /api (MatchFrame's HUD compatibility layer). Manifests written by 0.11.0 and
+   * earlier call it by its legacy value (LEGACY_COMPAT_RUNTIME), read as "compat".
    */
-  runtime: z.enum(["matchframe", "lhm"]).default("matchframe"),
+  runtime: z.preprocess((v) => (v === LEGACY_COMPAT_RUNTIME ? "compat" : v), z.enum(["matchframe", "compat"])).default("matchframe"),
 });
 export type HudManifest = z.infer<typeof HudManifest>;
 
@@ -82,9 +115,9 @@ export const RESERVED_HUD_IDS = ["assets", "sdk", "thumbnail.webp", "index.html"
 
 /**
  * One field of a HUD's settings form (manifest `settingsSchema` values). Unknown shapes are edited as
- * JSON. "player" and "team" store a Steam ID or team id chosen from Matchframe's data; "action" is a
+ * JSON. "player" and "team" store a Steam ID or team id chosen from MatchFrame's data; "action" is a
  * row of buttons (`options`) that send a one-off action to the HUD and store nothing; "images" stores
- * a list of uploaded image asset ids (LHM-format HUDs' image inputs).
+ * a list of uploaded image asset ids (image inputs of imported hud.json-format HUDs).
  */
 export const HudSettingField = z.object({
   type: z.enum(["boolean", "number", "string", "color", "select", "player", "team", "action", "images"]),
@@ -128,8 +161,8 @@ export interface HudLibraryEntry {
   game: "cs2";
   /** builtin: part of the program; sample: bundled sample installed into the library; imported: added by the user. */
   kind: "builtin" | "sample" | "imported";
-  /** How the HUD gets its data: Matchframe's HUD state, or the LHM compatibility layer (LHM-format HUDs). */
-  runtime: "matchframe" | "lhm";
+  /** How the HUD gets its data: MatchFrame's HUD state, or the HUD compatibility layer (imported hud.json-format HUDs). */
+  runtime: "matchframe" | "compat";
   /** Absolute URL on the HUD server, or null. */
   thumbnailUrl: string | null;
   variants: HudVariant[];
@@ -151,8 +184,8 @@ export interface HudLibraryEntry {
   /** OBS browser source URL per implemented variant. */
   urls: Partial<Record<HudVariant, string>>;
   /**
-   * An LHM-format HUD's own pages (hud.json `variants`, such as kaiHUD's player-stats), each opened
-   * with `?view=<id>` on the live page. Empty for other HUDs.
+   * An imported hud.json-format HUD's own pages (hud.json `variants`, such as player-stats), each
+   * opened with `?view=<id>` on the live page. Empty for other HUDs.
    */
   views: { id: string; label: string; url: string }[];
   settings: Record<string, unknown>;

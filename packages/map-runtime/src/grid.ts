@@ -45,7 +45,7 @@ export class VisibilityGrid {
    * bitset (inflated by the caller's zlib, so this package needs no Node APIs).
    */
   static parse(file: Uint8Array, inflate: (compressed: Uint8Array) => Uint8Array): VisibilityGrid {
-    if (file.length < 8 || String.fromCharCode(file[0]!, file[1]!, file[2]!, file[3]!) !== "MFGR") throw new Error("not a Matchframe grid file");
+    if (file.length < 8 || String.fromCharCode(file[0]!, file[1]!, file[2]!, file[3]!) !== "MFGR") throw new Error("not a MatchFrame grid file");
     const len = new DataView(file.buffer, file.byteOffset + 4, 4).getUint32(0, true);
     const header = JSON.parse(new TextDecoder().decode(file.subarray(8, 8 + len))) as GridHeader;
     if (!(header.cell > 0) || header.origin?.length !== 3 || header.dims?.length !== 3) throw new Error("grid header is incomplete");

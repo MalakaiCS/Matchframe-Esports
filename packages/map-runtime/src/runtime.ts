@@ -140,7 +140,7 @@ export class MapRuntime {
 
   /**
    * Square world-XY bounds of the pack's sampled geometry (region cells and floor grid). Used for
-   * the Matchframe schematic radar, whose outline is drawn from the same cells, so markers are
+   * the MatchFrame schematic radar, whose outline is drawn from the same cells, so markers are
    * placed with the same transform as the outline. Null when the pack has no cell geometry.
    */
   schematicTransform(): { minX: number; maxY: number; size: number } | null {

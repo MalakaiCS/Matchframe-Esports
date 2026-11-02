@@ -27,34 +27,34 @@ run("ObsManager against a real OBS instance", () => {
     expect(m.supports("SetCurrentProgramScene")).toBe(true);
     const before = [...m.state.scenes];
 
-    let source = "Matchframe HUD";
+    let source = "MatchFrame HUD";
     if (m.state.inputKinds.includes("browser_source")) {
-      const p1 = await m.provisionBrowserSource({ sceneName: "Matchframe Live", sourceName: source, url: "http://127.0.0.1:37212/overlay/main/live", width: 1920, height: 1080 });
+      const p1 = await m.provisionBrowserSource({ sceneName: "MatchFrame Live", sourceName: source, url: "http://127.0.0.1:37212/overlay/main/live", width: 1920, height: 1080 });
       expect(p1.createdInput || p1.updatedUrl).toBe(true);
-      const p2 = await m.provisionBrowserSource({ sceneName: "Matchframe Live", sourceName: source, url: "http://127.0.0.1:37212/overlay/main/live?v=2", width: 1920, height: 1080 });
+      const p2 = await m.provisionBrowserSource({ sceneName: "MatchFrame Live", sourceName: source, url: "http://127.0.0.1:37212/overlay/main/live?v=2", width: 1920, height: 1080 });
       expect(p2.createdInput).toBe(false);
       expect(p2.updatedUrl).toBe(true);
     } else {
       // This OBS build lacks Browser Source: provisioning must fail clearly, not half-create.
-      await expect(m.provisionBrowserSource({ sceneName: "Matchframe Live", sourceName: source, url: "http://x", width: 10, height: 10 })).rejects.toThrow(/no Browser Source/);
-      source = "Matchframe Test Color";
+      await expect(m.provisionBrowserSource({ sceneName: "MatchFrame Live", sourceName: source, url: "http://x", width: 10, height: 10 })).rejects.toThrow(/no Browser Source/);
+      source = "MatchFrame Test Color";
       const kind = m.state.inputKinds.find((k) => k.startsWith("color_source")) ?? "color_source_v3";
-      await m.ensureInput({ sceneName: "Matchframe Live", inputName: source, inputKind: kind, settings: { color: 4278190335, width: 320, height: 180 } });
+      await m.ensureInput({ sceneName: "MatchFrame Live", inputName: source, inputKind: kind, settings: { color: 4278190335, width: 320, height: 180 } });
     }
     for (const s of before) expect(m.state.scenes).toContain(s);
 
-    const cut = await m.setProgram("Matchframe Live");
+    const cut = await m.setProgram("MatchFrame Live");
     expect(cut.confirmed).toBe(true);
-    expect(m.state.programScene).toBe("Matchframe Live");
+    expect(m.state.programScene).toBe("MatchFrame Live");
 
-    const hide = await m.setSourceVisible("Matchframe Live", source, false);
+    const hide = await m.setSourceVisible("MatchFrame Live", source, false);
     expect(hide.confirmed).toBe(true);
-    const show = await m.setSourceVisible("Matchframe Live", source, true);
+    const show = await m.setSourceVisible("MatchFrame Live", source, true);
     expect(show.confirmed).toBe(true);
 
     // Refuse to replace a non-browser input that happens to share the name.
     const other = m.state.inputs.find((i) => i.name === source)!;
-    await expect(m.ensureInput({ sceneName: "Matchframe Live", inputName: source, inputKind: other.kind === "text_ft2_source_v2" ? "color_source_v3" : "text_ft2_source_v2", settings: {} })).rejects.toThrow(/refusing to replace|does not support/);
+    await expect(m.ensureInput({ sceneName: "MatchFrame Live", inputName: source, inputKind: other.kind === "text_ft2_source_v2" ? "color_source_v3" : "text_ft2_source_v2", settings: {} })).rejects.toThrow(/refusing to replace|does not support/);
 
     if (before[0]) await m.setProgram(before[0]);
     await m.disconnect();
@@ -87,13 +87,13 @@ run("ObsManager against a real OBS instance", () => {
       await m.disconnect();
       ctx.skip("this OBS build has no media source (ffmpeg_source)");
     }
-    await m.ensureInput({ sceneName: "Matchframe Replay", inputName: "Matchframe Replay Media", inputKind: "ffmpeg_source", settings: { local_file: saved.savedPath, is_local_file: true, restart_on_activate: false } });
-    await m.setMediaFile("Matchframe Replay Media", saved.savedPath!);
-    await m.mediaAction("Matchframe Replay Media", "restart");
-    let status = await m.mediaStatus("Matchframe Replay Media");
+    await m.ensureInput({ sceneName: "MatchFrame Replay", inputName: "MatchFrame Replay Media", inputKind: "ffmpeg_source", settings: { local_file: saved.savedPath, is_local_file: true, restart_on_activate: false } });
+    await m.setMediaFile("MatchFrame Replay Media", saved.savedPath!);
+    await m.mediaAction("MatchFrame Replay Media", "restart");
+    let status = await m.mediaStatus("MatchFrame Replay Media");
     for (let i = 0; i < 30 && status.state !== "OBS_MEDIA_STATE_PLAYING" && status.state !== "OBS_MEDIA_STATE_ENDED"; i++) {
       await new Promise((r) => setTimeout(r, 100));
-      status = await m.mediaStatus("Matchframe Replay Media");
+      status = await m.mediaStatus("MatchFrame Replay Media");
     }
     expect(["OBS_MEDIA_STATE_PLAYING", "OBS_MEDIA_STATE_ENDED"]).toContain(status.state);
     expect(status.durationMs ?? 0).toBeGreaterThan(500);

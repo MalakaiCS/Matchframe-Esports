@@ -43,7 +43,7 @@ const REFRESH_MS = 15 * 60_000;
 const SYNC_MS = 2 * 60_000;
 
 /**
- * Connects this desktop install to a Matchframe cloud account: device-code linking, a signed
+ * Connects this desktop install to a MatchFrame cloud account: device-code linking, a signed
  * entitlement verified offline with pinned keys, background refresh, usage upload, and the
  * gate that decides whether automatic direction may be armed. Nothing here can stop a running
  * match: the gate is only consulted when automation is armed or re-armed.
@@ -71,7 +71,7 @@ export class CloudLink {
       pinnedKeys?: Record<string, string> | null;
       /** "off" disables enforcement (development builds only). */
       enforcement: "required" | "off";
-      /** "required": the program must be signed in to a Matchframe account to be used (release builds). */
+      /** "required": the program must be signed in to a MatchFrame account to be used (release builds). */
       signIn?: "required" | "off";
       /** Fixed website address from the build/environment; overrides the stored setting. */
       fixedUrl?: string | null;
@@ -139,7 +139,7 @@ export class CloudLink {
 
   private async call<T>(method: string, path: string, body?: unknown, auth = false): Promise<{ status: number; data: T }> {
     const url = this.url;
-    if (!url) throw Object.assign(new Error("set the Matchframe website address first"), { status: 409 });
+    if (!url) throw Object.assign(new Error("set the MatchFrame website address first"), { status: 409 });
     const headers: Record<string, string> = { "content-type": "application/json", "x-matchframe-version": this.deps.appVersion };
     if (auth) {
       const token = this.deps.secrets.getSecret("cloud.deviceToken");
@@ -202,7 +202,7 @@ export class CloudLink {
    */
   async login(input: { email: string; password: string; orgId?: string; deviceName?: string }): Promise<LoginResult> {
     const fail = (status: number, message: string, code: string, detail: unknown = null) => Object.assign(new Error(message), { status, code, detail });
-    if (!this.url) throw fail(409, "set the Matchframe website address first", "no_website");
+    if (!this.url) throw fail(409, "set the MatchFrame website address first", "no_website");
     this.cancelLink();
     if (this.link) {
       // Signing in again replaces this computer's credential on the website: upload what the current one recorded first.
@@ -215,13 +215,13 @@ export class CloudLink {
         email: input.email,
         password: input.password,
         orgId: input.orgId,
-        deviceName: (input.deviceName ?? hostname()).slice(0, 80) || "Matchframe PC",
+        deviceName: (input.deviceName ?? hostname()).slice(0, 80) || "MatchFrame PC",
         platform: platform(),
         appVersion: this.deps.appVersion,
         installId: this.installId,
       });
     } catch (e) {
-      throw fail(502, `cannot reach the Matchframe website (${this.url}): ${e instanceof Error ? e.message : String(e)}`, "unreachable");
+      throw fail(502, `cannot reach the MatchFrame website (${this.url}): ${e instanceof Error ? e.message : String(e)}`, "unreachable");
     }
     if (r.status === 409 && r.data?.error === "choose_org") return { status: "choose_org", orgs: r.data.detail?.orgs ?? [] };
     if (r.status !== 200 || !r.data?.deviceToken) {
@@ -238,7 +238,7 @@ export class CloudLink {
     await this.fetchKeys().catch(() => undefined);
     await this.refresh();
     this.startBackground();
-    this.deps.logger.info("signed in to Matchframe", { orgId: r.data.orgId, deviceId: r.data.deviceId, user: r.data.user.email });
+    this.deps.logger.info("signed in to MatchFrame", { orgId: r.data.orgId, deviceId: r.data.deviceId, user: r.data.user.email });
     return { status: "signed_in", user: r.data.user, orgName: r.data.orgName };
   }
 
@@ -264,7 +264,7 @@ export class CloudLink {
 
   async startLink(deviceName = hostname()): Promise<{ userCode: string; verificationUri: string; verificationUriComplete: string; expiresAt: string }> {
     this.cancelLink();
-    const r = await this.call<DeviceAuthorizeResponse & { message?: string }>("POST", "/v1/device/authorize", { deviceName: deviceName.slice(0, 80) || "Matchframe PC", platform: platform(), appVersion: this.deps.appVersion, installId: this.installId });
+    const r = await this.call<DeviceAuthorizeResponse & { message?: string }>("POST", "/v1/device/authorize", { deviceName: deviceName.slice(0, 80) || "MatchFrame PC", platform: platform(), appVersion: this.deps.appVersion, installId: this.installId });
     if (r.status !== 200) throw Object.assign(new Error(r.data?.message ?? `the website refused to start linking (HTTP ${r.status})`), { status: 502 });
     this.linking = { deviceCode: r.data.deviceCode, userCode: r.data.userCode, verificationUri: r.data.verificationUri, verificationUriComplete: r.data.verificationUriComplete, expiresAt: Date.now() + r.data.expiresIn * 1000, interval: r.data.interval };
     this.schedulePoll();
@@ -303,7 +303,7 @@ export class CloudLink {
         await this.fetchKeys();
         await this.refresh();
         this.startBackground();
-        this.deps.logger.info("computer linked to Matchframe account", { orgId: r.data.orgId, deviceId: r.data.deviceId });
+        this.deps.logger.info("computer linked to MatchFrame account", { orgId: r.data.orgId, deviceId: r.data.deviceId });
         return "linked";
       }
       if (r.data?.error === "slow_down") l.interval += 5;
@@ -444,7 +444,7 @@ export class CloudLink {
   canArm(simulated: boolean, observerMode: ObserverMode = "observer"): GateResult {
     if (simulated) return { ok: true, free: true };
     if (this.enforcement === "off") return { ok: true, free: true };
-    if (!this.link) return { ok: false, code: "not_linked", reason: this.revoked ? "This computer was signed out on the website. Sign in again (Account & Hours) to use automatic direction on live matches." : "Sign in to your Matchframe account (Account & Hours) to use automatic direction on live matches. Manual and advisory direction stay available." };
+    if (!this.link) return { ok: false, code: "not_linked", reason: this.revoked ? "This computer was signed out on the website. Sign in again (Account & Hours) to use automatic direction on live matches." : "Sign in to your MatchFrame account (Account & Hours) to use automatic direction on live matches. Manual and advisory direction stay available." };
     const check = this.entitlementCheck();
     if (!check) return { ok: false, code: "no_entitlement", reason: "No licence has been downloaded yet. Connect to the internet and press Refresh on the Account screen." };
     if (!check.ok) {

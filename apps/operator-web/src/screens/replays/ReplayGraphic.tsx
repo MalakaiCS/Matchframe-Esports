@@ -31,7 +31,7 @@ export function describeClip(c: HudReplayClip): string {
 }
 
 /**
- * The replay graphic: a "REPLAY" tag and a lower third with the play on Matchframe's HUDs while a
+ * The replay graphic: a "REPLAY" tag and a lower third with the play on MatchFrame's HUDs while a
  * replay is on air. It shows on a HUD's replay page (transparent but for the graphic), which goes
  * on top of the OBS replay scene; the live HUD never shows it.
  */
@@ -55,7 +55,7 @@ export function ReplayGraphicPanel() {
     <Panel title="Replay graphic" subtitle="A REPLAY tag and a lower third with the play, a moment after each replay starts." actions={st?.onAir ? <Badge tone="accent">On air</Badge> : st ? <Badge tone={st.settings.enabled ? "ok" : "neutral"}>{st.settings.enabled ? "On" : "Off"}</Badge> : null}>
       <div className="stack-sm">
         <Checkbox checked={st?.settings.enabled ?? true} disabled={off} label="Show the replay graphic" hint="Who made the play, the weapon, headshot, victims, 2K to ACE or a clutch, and the round. Off: the replay page stays empty." onChange={(v) => void save({ enabled: v })} />
-        <Field label="HUD" hint="Each Matchframe HUD has its own replay graphic. LHM-format HUDs (such as kaiHUD) have none: they get Matchframe's built-in one.">
+        <Field label="HUD" hint="Each MatchFrame HUD has its own replay graphic. Imported HUDs (hud.json format) have none: they get MatchFrame's built-in one.">
           <select value={st?.settings.hudId ?? "auto"} disabled={off} onChange={(e) => void save({ hudId: e.target.value })}>
             <option value="auto">Automatic: the HUD in OBS</option>
             {(lib.data?.huds ?? []).map((h) => (
@@ -90,7 +90,7 @@ export function ReplayGraphicPanel() {
           {st?.replayScene ? <span className="muted small">Replay scene: {st.replayScene}</span> : null}
         </div>
         {st?.onAir ? <p className="small">On air: {describeClip(st.onAir)}</p> : null}
-        <p className="muted small">A 1920×1080 browser source named “{st?.source ?? "Matchframe Replay Graphic"}” over the replay clip. Choosing another HUD here points it at that HUD's page; press again when another HUD is on air in OBS. With vMix, add the address as a Web Browser input over your replays.</p>
+        <p className="muted small">A 1920×1080 browser source named “{st?.source ?? "MatchFrame Replay Graphic"}” over the replay clip. Choosing another HUD here points it at that HUD's page; press again when another HUD is on air in OBS. With vMix, add the address as a Web Browser input over your replays.</p>
       </div>
     </Panel>
   );

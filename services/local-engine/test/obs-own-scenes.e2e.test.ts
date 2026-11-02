@@ -32,12 +32,12 @@ const waitFor = async (fn: () => boolean, ms = 15000) => {
 /**
  * The operator switches OBS's scenes themselves (a multiview plugin, by hand, Studio Mode's
  * Transition button): to an analysis scene between rounds, the casters during the replays, the
- * mapped break scene. The program follows OBS to their scene (MANUAL, theirs) and Matchframe
+ * mapped break scene. The program follows OBS to their scene (MANUAL, theirs) and MatchFrame
  * changes nothing until OBS shows the live scene again: no replays cut in, no break or studio scene,
  * no cut back at 1:50. Replays wait (a status, not an error), and a break with time left plays what
  * still fits once OBS is back on the live scene. Stand-in OBS at the obs-websocket level.
  */
-describe("Switching scenes yourself (multiview): the program follows OBS and Matchframe changes nothing", () => {
+describe("Switching scenes yourself (multiview): the program follows OBS and MatchFrame changes nothing", () => {
   let e: Engine;
   let o: StandInObs;
   let servers: Awaited<ReturnType<typeof startServers>>;
@@ -151,7 +151,7 @@ describe("Switching scenes yourself (multiview): the program follows OBS and Mat
     await waitFor(() => e.autoReplay.getStatus().detail.startsWith("Replays for this break are done"));
     expect(o.changes.map((c) => c.scene)).toEqual(["Game", "My Replay", "My Replay B", "Game"]);
     expect(states(round)).toEqual(["played", "played"]);
-    // Matchframe's own replay scenes during its break never made the program the operator's.
+    // MatchFrame's own replay scenes during its break never made the program the operator's.
     expect(e.program.history.slice(history).map((t) => [t.to, t.holder])).toEqual([
       ["LIVE", "OBS changed scene"],
       ["REPLAY_PREPARED", "auto-replay"],
@@ -161,7 +161,7 @@ describe("Switching scenes yourself (multiview): the program follows OBS and Mat
     e.autoReplay.setSettings({ startDelayMs: 0 });
   }, 30000);
 
-  it("switching to their own scene during the replays: Matchframe stops them, puts the live audio back, and changes nothing after (no cut back at 1:50, Stop, Test replays); the rest plays if they come back in time", async () => {
+  it("switching to their own scene during the replays: MatchFrame stops them, puts the live audio back, and changes nothing after (no cut back at 1:50, Stop, Test replays); the rest plays if they come back in time", async () => {
     await feed("live", 8);
     let round = e.session.state()!.roundNumber!;
     add(round, "three", 3, files[0]!);
@@ -211,7 +211,7 @@ describe("Switching scenes yourself (multiview): the program follows OBS and Mat
     expect(states(round)).toEqual(["played", "prepared"]);
   }, 40000);
 
-  it("the mapped break scene put on by hand is the operator's: not taken back when play resumes; one Matchframe chose is", async () => {
+  it("the mapped break scene put on by hand is the operator's: not taken back when play resumes; one MatchFrame chose is", async () => {
     await feed("freezetime", 11, 15);
     o.changes.length = 0;
     await theyShow("Break");
@@ -221,7 +221,7 @@ describe("Switching scenes yourself (multiview): the program follows OBS and Mat
     await sleep(800);
     expect(o.changes.map((c) => c.scene)).toEqual(["Break"]);
     await theyShow("Game");
-    // A timeout: Matchframe puts the break scene on, and takes it back.
+    // A timeout: MatchFrame puts the break scene on, and takes it back.
     await feed("freezetime", 12, 30, "timeout_ct");
     await waitFor(() => e.obs.state.programScene === "Break");
     expect(e.program.mode).toBe("BREAK");

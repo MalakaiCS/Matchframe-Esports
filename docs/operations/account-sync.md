@@ -1,6 +1,6 @@
 # Account sync: the same teams, players, matches and HUDs on every computer
 
-Every computer signed in to the same Matchframe organisation shares one set of teams, players, matches and imported HUDs. Add a player on the main PC and it shows up on the observer PC a few seconds later; change a HUD's colours on one computer and every other computer's copy of that HUD changes too. The card is in **Settings → Account**, under the sign-in: **Shared with <organisation>**.
+Every computer signed in to the same MatchFrame organisation shares one set of teams, players, matches and imported HUDs. Add a player on the main PC and it shows up on the observer PC a few seconds later; change a HUD's colours on one computer and every other computer's copy of that HUD changes too. The card is in **Settings → Account**, under the sign-in: **Shared with <organisation>**.
 
 The program still works fully offline. Changes made without a connection stay on the computer and are shared when the website can be reached again.
 
@@ -9,14 +9,14 @@ The program still works fully offline. Changes made without a connection stay on
 - Teams, players and rosters (who plays for which team, and since when).
 - Events and matches, with their maps, scores and veto.
 - The logos and photos these use.
-- HUDs you imported (normal and LHM-format HUDs): the HUD's files and its settings (colours, texts, pictures, preset).
+- HUDs you imported (MatchFrame HUD packages and imported hud.json-format HUDs; HUDs shared by a computer still on 0.11.0 or earlier under their old `lhm.` id are taken in under their id now): the HUD's files and its settings (colours, texts, pictures, preset).
 - Archiving: an archived team or player is archived on every computer.
 
 Each computer keeps its own HUD URLs (the address OBS uses), whether a HUD is stopped, and its desktop windows: sharing a HUD never changes another computer's OBS sources.
 
 ## What is not shared
 
-- The bundled sample HUDs and the built-in Matchframe Broadcast HUD (they come with the program on every computer).
+- The bundled sample HUDs and the built-in MatchFrame Broadcast HUD (they come with the program on every computer).
 - Sponsors, rundown cues, automation rules and stat corrections.
 - The program's own settings: connections, OBS, cameras, the Auto Director, game options, tokens and devices.
 - HUD images (HUD Library → HUD images): default player pictures, map logos and pictures and the dead-player icon are kept on each computer for now; add them on every computer that runs HUDs.

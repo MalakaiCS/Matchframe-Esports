@@ -7,7 +7,7 @@ import { ObsManager } from "../src/obs.ts";
  * straight after SetCurrentSceneTransition can still see the old transition).
  */
 function lateObs(lag = 3) {
-  const transitions: Record<string, Record<string, unknown>> = { Fade: { duration: 300 }, "Matchframe Stinger": {} };
+  const transitions: Record<string, Record<string, unknown>> = { Fade: { duration: 300 }, "MatchFrame Stinger": {} };
   let current = "Fade";
   let pending: { name: string; reads: number } | null = null;
   const client = {
@@ -37,9 +37,9 @@ function lateObs(lag = 3) {
 describe("OBS transitions", () => {
   it("waits for OBS to really switch before changing a transition's settings, then switches back", async () => {
     const o = lateObs();
-    const r = await o.obs.setTransitionSettings("Matchframe Stinger", { path: "C:/mf/stinger.mov", transition_point: 900 });
+    const r = await o.obs.setTransitionSettings("MatchFrame Stinger", { path: "C:/mf/stinger.mov", transition_point: 900 });
     expect(r.confirmed).toBe(true);
-    expect(o.transitions["Matchframe Stinger"]).toEqual({ path: "C:/mf/stinger.mov", transition_point: 900 });
+    expect(o.transitions["MatchFrame Stinger"]).toEqual({ path: "C:/mf/stinger.mov", transition_point: 900 });
     // The transition that was current is untouched, and current again.
     expect(o.transitions.Fade).toEqual({ duration: 300 });
     expect(o.current()).toBe("Fade");
@@ -47,15 +47,15 @@ describe("OBS transitions", () => {
 
   it("keeps the new transition current when asked", async () => {
     const o = lateObs();
-    await o.obs.setTransitionSettings("Matchframe Stinger", { path: "x.mov" }, { keepCurrent: true });
-    expect(o.current()).toBe("Matchframe Stinger");
+    await o.obs.setTransitionSettings("MatchFrame Stinger", { path: "x.mov" }, { keepCurrent: true });
+    expect(o.current()).toBe("MatchFrame Stinger");
   });
 
   it("confirms a switch only when OBS reports it, and changes nothing if it never does", async () => {
-    expect(await lateObs(2).obs.setTransition("Matchframe Stinger")).toBe(true);
+    expect(await lateObs(2).obs.setTransition("MatchFrame Stinger")).toBe(true);
     const never = lateObs(1_000_000);
-    expect(await never.obs.setTransition("Matchframe Stinger", 100)).toBe(false);
-    await expect(never.obs.setTransitionSettings("Matchframe Stinger", { path: "x.mov" })).rejects.toThrow(/didn't switch/);
+    expect(await never.obs.setTransition("MatchFrame Stinger", 100)).toBe(false);
+    await expect(never.obs.setTransitionSettings("MatchFrame Stinger", { path: "x.mov" })).rejects.toThrow(/didn't switch/);
     expect(never.transitions.Fade).toEqual({ duration: 300 });
   });
 });

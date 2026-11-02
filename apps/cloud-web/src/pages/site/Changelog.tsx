@@ -108,7 +108,7 @@ const RELEASES: Release[] = [
   {
     version: "0.10.6",
     title: "Replay graphic, controls and highlight reels",
-    summary: "A replay graphic in every Matchframe HUD, controls and sound for replays, a Test replays button, highlight reels and storage on another drive.",
+    summary: "A replay graphic in every MatchFrame HUD, controls and sound for replays, a Test replays button, highlight reels and storage on another drive.",
     sections: [
       {
         heading: "Replays",
@@ -117,7 +117,7 @@ const RELEASES: Release[] = [
           "Skip, Hold and Stop while replays play, Exclude and Pin first, from the program, hotkeys or a Stream Deck.",
           "Game sound from the replay feed, and the live game audio turned down during replays.",
           "Test replays plays two sample clips through your whole setup and reports each step.",
-          "Switching scenes yourself in OBS (a multiview, say) is followed: Matchframe waits until you're back on live.",
+          "Switching scenes yourself in OBS (a multiview, say) is followed: MatchFrame waits until you're back on live.",
         ],
       },
       {
@@ -181,7 +181,7 @@ const RELEASES: Release[] = [
       {
         heading: "Replays",
         items: [
-          "When OBS shows your live scene, Matchframe counts the program as live again, so automatic replays aren't held back.",
+          "When OBS shows your live scene, MatchFrame counts the program as live again, so automatic replays aren't held back.",
           "A replay you play by hand goes back to the live scene when it ends.",
           "The support file shows why replays play or not.",
         ],
@@ -191,14 +191,14 @@ const RELEASES: Release[] = [
   {
     version: "0.10.1",
     title: "Series boxes, HUD images and radars",
-    summary: "Series score boxes in Vector and Lineup, your own pictures in every Matchframe HUD, and the same radars in every HUD.",
+    summary: "Series score boxes in Vector and Lineup, your own pictures in every MatchFrame HUD, and the same radars in every HUD.",
     sections: [
       {
         heading: "HUDs",
         items: [
           "Vector and Lineup show the series score in boxes next to each team's score: 2 per side for a best of 3, 3 for a best of 5, 5 for a best of 7.",
-          "HUD images: add your own player pictures, map logos and pictures, and a dead-player icon once, and every Matchframe HUD uses them.",
-          "Every HUD uses the bundled radars; Anubis and Cache, which have none, get one Matchframe draws in the same style.",
+          "HUD images: add your own player pictures, map logos and pictures, and a dead-player icon once, and every MatchFrame HUD uses them.",
+          "Every HUD uses the bundled radars; Anubis and Cache, which have none, get one MatchFrame draws in the same style.",
         ],
       },
     ],
@@ -218,7 +218,7 @@ const RELEASES: Release[] = [
       },
       {
         heading: "Cinematics",
-        items: ["After a cinematic, CS2 goes back to a player's view instead of staying in the free camera under a player. Matchframe now checks where the camera really is before it trusts the first-person command."],
+        items: ["After a cinematic, CS2 goes back to a player's view instead of staying in the free camera under a player. MatchFrame now checks where the camera really is before it trusts the first-person command."],
       },
       {
         heading: "HUD Library",
@@ -271,27 +271,27 @@ const RELEASES: Release[] = [
   },
   {
     version: "0.9.2",
-    title: "LHM HUDs that keep up",
-    summary: "kaiHUD gets fewer game updates while its page can't keep up, and shows Anubis on its minimap.",
+    title: "Imported HUDs that keep up",
+    summary: "An imported hud.json-format HUD gets fewer game updates while its page can't keep up, and shows Anubis on its minimap.",
     sections: [
       {
         heading: "HUDs",
         items: [
-          "Each HUD output checks whether its page is keeping up; an LHM HUD that falls behind gets fewer game updates until it has room again.",
-          "LHM HUDs without an Anubis minimap (kaiHUD) get one from Matchframe.",
+          "Each HUD output checks whether its page is keeping up; an imported hud.json-format HUD that falls behind gets fewer game updates until it has room again.",
+          "Imported hud.json-format HUDs without an Anubis minimap get one from MatchFrame.",
         ],
       },
     ],
   },
   {
     version: "0.9.1",
-    title: "Smoother LHM HUDs",
-    summary: "kaiHUD and other LHM HUDs move smoothly: their minimaps no longer step ten times a second.",
+    title: "Smoother imported HUDs",
+    summary: "Imported hud.json-format HUDs move smoothly: their minimaps no longer step ten times a second.",
     sections: [
       {
         heading: "HUDs",
         items: [
-          "LHM HUDs get game data twice as often (20 times a second), so minimap dots glide instead of surging and stopping.",
+          "Imported hud.json-format HUDs get game data twice as often (20 times a second), so minimap dots glide instead of surging and stopping.",
           "The HUD Library warns when a HUD output draws fewer than 40 frames a second, and says what helps.",
         ],
       },
@@ -307,7 +307,7 @@ const RELEASES: Release[] = [
         items: [
           "The replay PC films every kill it has time for; the main PC ranks each round's clips, best to worst, and shows why.",
           "Each break replays the best clips that fit (up to 4), best first, and leaves the rest.",
-          "Replay feed (NDI), like LHM's: the main PC records the replay PC's screen and cuts each kill from it, so the replay PC needs no OBS.",
+          "Replay feed (NDI): the main PC records the replay PC's screen and cuts each kill from it, so the replay PC needs no OBS.",
           "Replays can play in vMix as well as OBS.",
         ],
       },
@@ -329,7 +329,7 @@ const RELEASES: Release[] = [
         heading: "Game and HUD",
         items: [
           "The names above the players (team overhead) show with Hide game HUD on, and go off with X-ray in clutches and retakes.",
-          "Matchframe answers CS2's game data before reading it, and CS2 recovers within a second or two if an answer is lost.",
+          "MatchFrame answers CS2's game data before reading it, and CS2 recovers within a second or two if an answer is lost.",
           "The support file shows gaps in CS2's game data and stalls of the program.",
         ],
       },
@@ -353,14 +353,14 @@ const RELEASES: Release[] = [
   {
     version: "0.8.0",
     title: "Player cams",
-    summary: "Players send their face cam from a link on the Matchframe website; the production shows it in the HUD and OBS, delayed to match the game.",
+    summary: "Players send their face cam from a link on the MatchFrame website; the production shows it in the HUD and OBS, delayed to match the game.",
     sections: [
       {
         heading: "Player cams",
         items: [
           "Players open the link, pick themselves and their camera, see a preview and send it. No account or app needed.",
           "The production sets a delay (up to 5 minutes) so faces match the game, and puts each cam on or off air.",
-          "Cams show in LHM-format HUDs such as kaiHUD, in Matchframe's HUD, and as OBS browser sources.",
+          "Cams show in imported hud.json-format HUDs, in MatchFrame's HUD, and as OBS browser sources.",
         ],
       },
     ],
@@ -383,7 +383,7 @@ const RELEASES: Release[] = [
   {
     version: "0.7.1",
     title: "Every camera shot through HLAE",
-    summary: "With CS2 started through HLAE, HLAE now plays every free-camera and moving shot, like Lexogrine HUD Manager's cinematics.",
+    summary: "With CS2 started through HLAE, HLAE now plays every free-camera and moving shot, for smooth cinematics.",
     sections: [
       {
         heading: "Cinematics",
@@ -423,7 +423,7 @@ const RELEASES: Release[] = [
   {
     version: "0.6.8",
     title: "Cameras that move on CS2",
-    summary: "Fixes cameras that never moved and automatic player switches that stopped working: Matchframe mixed CS2's and CS:GO's spectator mode numbers.",
+    summary: "Fixes cameras that never moved and automatic player switches that stopped working: MatchFrame mixed CS2's and CS:GO's spectator mode numbers.",
     sections: [
       {
         heading: "Auto Director",
@@ -495,7 +495,7 @@ const RELEASES: Release[] = [
       {
         heading: "HUDs",
         items: [
-          "Fixed: player numbers one too low on kaiHUD's minimap (the first player showed as 0).",
+          "Fixed: player numbers one too low on imported HUDs' minimaps (the first player showed as 0).",
           "Coaches are left off scoreboards and the minimap. They are found automatically, or picked in Live Control when a team shows more than five players.",
         ],
       },
@@ -527,7 +527,7 @@ const RELEASES: Release[] = [
       {
         heading: "Auto Director",
         items: [
-          "Fixed: freeze-time cinematics could slide sideways into walls or under the floor (on Mirage, into the ground). Matchframe now moves every camera itself.",
+          "Fixed: freeze-time cinematics could slide sideways into walls or under the floor (on Mirage, into the ground). MatchFrame now moves every camera itself.",
           "Team shots: in freeze time the camera frames each team from where its players stand, a little above their heads, everyone in the picture, and glides slowly round them. One team, then the other, until the round goes live.",
           "Pauses hold a still shot of the team that called them.",
         ],
@@ -548,13 +548,13 @@ const RELEASES: Release[] = [
         items: [
           "Freeze time filled with shots of both spawns, one after another, each turning slowly and smoothly, the last until the round goes live.",
           "Tactical and technical pauses: a still shot of the team that called it, held until the round starts; then first person.",
-          "Fixed: the camera could stay on a freeze-time shot well into the live round. Matchframe read CS2's game data too early, could save the wrong camera-mode numbering and then never leave a shot. It now waits for the game data, and repairs a wrong saved setting by itself.",
+          "Fixed: the camera could stay on a freeze-time shot well into the live round. MatchFrame read CS2's game data too early, could save the wrong camera-mode numbering and then never leave a shot. It now waits for the game data, and repairs a wrong saved setting by itself.",
           "A director log of every console command, decision and game data change, included in the support file.",
         ],
       },
       {
         heading: "CS2",
-        items: ["New game option, on by default: Run behind other windows. CS2 keeps every frame and its sound while you use Matchframe or OBS."],
+        items: ["New game option, on by default: Run behind other windows. CS2 keeps every frame and its sound while you use MatchFrame or OBS."],
       },
       {
         heading: "HUDs",
@@ -565,7 +565,7 @@ const RELEASES: Release[] = [
   {
     version: "0.6.0",
     title: "Cinematics that hold, and graphics for every match",
-    summary: "Pre-round shots of the spawns where the players are, played once and in full, then first person when the round goes live. Smooth LHM HUDs. Create matches with new teams, and get thumbnails and stinger transitions made from both teams' logos.",
+    summary: "Pre-round shots of the spawns where the players are, played once and in full, then first person when the round goes live. Smooth imported HUDs. Create matches with new teams, and get thumbnails and stinger transitions made from both teams' logos.",
     sections: [
       {
         heading: "Auto Director",
@@ -577,7 +577,7 @@ const RELEASES: Release[] = [
       },
       {
         heading: "HUDs",
-        items: ["LHM-format HUDs (like kaiHUD) get game data at most 10 times a second unless something on screen changes: no more laggy baseboard."],
+        items: ["Imported hud.json-format HUDs get game data at most 10 times a second unless something on screen changes: no more laggy baseboard."],
       },
       {
         heading: "Matches and graphics",
@@ -654,7 +654,7 @@ const RELEASES: Release[] = [
         heading: "Graphics and OBS",
         items: [
           "Economy and round MVP in freeze time, player cards on long holds, and OBS break and studio scenes for timeouts and map ends.",
-          "kaiHUD's Player Highlight, Match stats and other pages now open in OBS, with team logos and sponsor images.",
+          "An imported HUD's own pages (Player Highlight, Match stats and others) now open in OBS, with team logos and sponsor images.",
         ],
       },
     ],
@@ -711,7 +711,7 @@ const RELEASES: Release[] = [
   {
     version: "0.4.0",
     title: "A one-button Auto Director and cameras on every map",
-    summary: "Press Start Auto Director and Matchframe checks CS2, confirms that it can switch players and place cameras, and directs the match, with built-in cameras and camera paths on all nine active-duty maps.",
+    summary: "Press Start Auto Director and MatchFrame checks CS2, confirms that it can switch players and place cameras, and directs the match, with built-in cameras and camera paths on all nine active-duty maps.",
     sections: [
       {
         heading: "Auto Director",
@@ -732,8 +732,8 @@ const RELEASES: Release[] = [
   },
   {
     version: "0.3.0",
-    title: "Start CS2, minimaps everywhere and LHM HUDs",
-    summary: "Start CS2 from the program, a minimap and killfeed in every included HUD, HUDs made for Lexogrine HUD Manager running as they are, and updates that install themselves.",
+    title: "Start CS2, minimaps everywhere and imported HUDs",
+    summary: "Start CS2 from the program, a minimap and killfeed in every included HUD, imported hud.json-format HUDs running as they are, and updates that install themselves.",
     sections: [
       {
         heading: "HUDs",
@@ -741,7 +741,7 @@ const RELEASES: Release[] = [
           "Every included HUD now has a minimap and a killfeed in its own style. Built-in radars cover Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo, with upper and lower levels on Nuke and Vertigo.",
           "Minimaps show flashed players and the bomb carrier, smokes outlined in the thrower's team colour and a pulsing planted bomb.",
           "The killfeed shows the killer's weapon, headshots, assists and flashed killers. CS2's game data has no kill events, so kills are matched from the game's counters.",
-          "Import HUDs made for Lexogrine HUD Manager (hud.json, index.html, panel.json) as a ZIP or folder. They run as they are, without LHM. Their control panel becomes the HUD's settings, with player and team pickers and buttons that act on the running HUD.",
+          "Import HUDs in the hud.json format (hud.json, index.html, panel.json) as a ZIP or folder. They run as they are, with no other program needed. Their control panel becomes the HUD's settings, with player and team pickers and buttons that act on the running HUD.",
         ],
       },
       {
@@ -764,7 +764,7 @@ const RELEASES: Release[] = [
   {
     version: "0.2.0",
     title: "The HUD Library",
-    summary: "Matchframe now opens into a library of your HUDs. Run any of them as a transparent window over the game, as an OBS browser source or as a preview, with no account needed.",
+    summary: "MatchFrame now opens into a library of your HUDs. Run any of them as a transparent window over the game, as an OBS browser source or as a preview, with no account needed.",
     sections: [
       {
         heading: "HUD Library",
@@ -772,7 +772,7 @@ const RELEASES: Release[] = [
           "Search, filter, sort and switch between grid and list. Each card shows the HUD's thumbnail, version, status and active outputs.",
           "Import a HUD as a ZIP or a folder. It's copied to your computer and keeps working if the original file is moved. Update with rollback, duplicate, export and remove.",
           "Settings are saved per HUD and apply live to every output.",
-          "Two HUDs are included: the Sample CS2 HUD and the Pro CS2 HUD, adapted from Lexogrine's open-source CS2 React HUD.",
+          "Two HUDs are included: the Sample CS2 HUD and the Pro CS2 HUD, adapted from an open-source CS2 React HUD template.",
           "Run Test Data feeds every HUD with a labelled simulation, so you can set up without CS2.",
         ],
       },
@@ -780,7 +780,7 @@ const RELEASES: Release[] = [
         heading: "Transparent desktop HUD",
         items: [
           "Launch Transparent HUD opens a window that shows only the HUD over the game. It stays on top, mouse clicks pass through it and it never takes keyboard focus.",
-          "Choose the monitor, position and scale, drag it in edit mode, and lock it. Matchframe remembers where each HUD goes.",
+          "Choose the monitor, position and scale, drag it in edit mode, and lock it. MatchFrame remembers where each HUD goes.",
           "Ctrl+Shift+H shows or hides the desktop HUD. Ctrl+Shift+F9 hides every HUD graphic at once, OBS included.",
           "It keeps running while the manager is minimised or closed to the tray. Use the game's Fullscreen Windowed mode.",
         ],
@@ -797,7 +797,7 @@ const RELEASES: Release[] = [
   {
     version: "0.1.3",
     title: "A cleaner program",
-    summary: "Every screen in the program has been tidied up, with less on screen at once and nothing taken away, and the new Matchframe Esports logo.",
+    summary: "Every screen in the program has been tidied up, with less on screen at once and nothing taken away, and the new MatchFrame Esports logo.",
     sections: [
       {
         heading: "The program",
@@ -807,7 +807,7 @@ const RELEASES: Release[] = [
           "Calmer headings, labels and badges, fewer boxes, and disabled buttons explain why when you hover them.",
           "Live Control shows what's on air in one Camera panel and puts the Observer modes and controls together in one Observer panel.",
           "Rarely used settings and technical detail are folded under Details, Options and Advanced on every screen.",
-          "The new Matchframe Esports logo in the top bar, on the sign-in screen and as the program's icon.",
+          "The new MatchFrame Esports logo in the top bar, on the sign-in screen and as the program's icon.",
         ],
       },
       {
@@ -824,7 +824,7 @@ const RELEASES: Release[] = [
       {
         heading: "The program",
         items: [
-          "Off: Matchframe never moves the camera; shot suggestions stay visible in Live Control. Uses no hours.",
+          "Off: MatchFrame never moves the camera; shot suggestions stay visible in Live Control. Uses no hours.",
           "Observer switches between player POVs automatically.",
           "Observer & Cinematics adds cinematic shots from static cameras you capture in Maps & Cameras: an establishing shot during freeze time, bomb plant and defuse shots, and overviews of big fights.",
           "Full Action Observer adds nade cameras that catch smokes, flashes, molotovs and incendiaries, and HE grenades as they land. Top plan only.",
@@ -845,7 +845,7 @@ const RELEASES: Release[] = [
       {
         heading: "The program",
         items: [
-          "Sign in with your Matchframe email and password when the program opens, or with a code approved on this website. Accounts in several organisations choose which one the computer is for.",
+          "Sign in with your MatchFrame email and password when the program opens, or with a code approved on this website. Accounts in several organisations choose which one the computer is for.",
           "Works offline for up to 7 days after each check; a program that is already open is never locked when it is signed out on the website.",
           "Account & Hours shows who the program is signed in as, with Sign out.",
           "Builds are pinned to this website's address and licence keys, so there is nothing to configure.",
@@ -863,7 +863,7 @@ const RELEASES: Release[] = [
   {
     version: "0.1.0",
     title: "First release",
-    summary: "The first public version of the Matchframe program for Windows and of this website.",
+    summary: "The first public version of the MatchFrame program for Windows and of this website.",
     sections: [
       {
         heading: "The program",
@@ -894,10 +894,10 @@ const RELEASES: Release[] = [
 ];
 
 export function Changelog() {
-  useTitle("Changelog", "What's new in the Matchframe program and website, release by release.");
+  useTitle("Changelog", "What's new in the MatchFrame program and website, release by release.");
   return (
     <>
-      <PageHero eyebrow="Product updates" title="Changelog" lead="New features and improvements in the Matchframe program and this website." />
+      <PageHero eyebrow="Product updates" title="Changelog" lead="New features and improvements in the MatchFrame program and this website." />
       <div className="wrap section-top narrow-block">
         <ol className="releases">
           {RELEASES.map((r) => (

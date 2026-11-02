@@ -1,6 +1,6 @@
 # Capabilities and limitations
 
-What Matchframe can read, control and produce, at what evidence level, and what has actually been verified. The running engine reports the live picture at `GET /api/v1/capabilities` (per field and per grenade type, from what the feed really delivered, with the game build) and `GET /api/v1/setup/status` (control verification recorded by setup tests).
+What MatchFrame can read, control and produce, at what evidence level, and what has actually been verified. The running engine reports the live picture at `GET /api/v1/capabilities` (per field and per grenade type, from what the feed really delivered, with the game build) and `GET /api/v1/setup/status` (control verification recorded by setup tests).
 
 Status words: **verified** (exercised against the real system), **implemented** (code and fixture/simulation tests, real system not available), **unverified** (built against public documentation, waiting for a real test), **blocked** (needs an input that was not available), **planned**.
 
@@ -43,7 +43,7 @@ Control safety (tested): single writer with ownership generations, sticky manual
 
 ## 4. The program and the website
 
-The Matchframe program for Windows (`.exe`) contains everything app-related; its console is shown only inside the program (never served to browsers). Installer build, silent install and an installed-program smoke test pass on a Windows CI runner; extra operator positions connect to the production computer from the program.
+The MatchFrame program for Windows (`.exe`) contains everything app-related; its console is shown only inside the program (never served to browsers). Installer build, silent install and an installed-program smoke test pass on a Windows CI runner; extra operator positions connect to the production computer from the program.
 
 ### Accounts, billing and auto-director hours (website)
 
@@ -65,4 +65,4 @@ The licence check runs on the customer's computer: it is a licensing control, no
 - Inferring exact kills, headshots, damage or grenade impacts from GSI and presenting them as confirmed.
 - Any LLM call in the live cut loop.
 - Silently changing competitive server settings.
-- Dependence on any third-party HUD manager account, assets, private API or licence.
+- Dependence on any third-party HUD program's account, assets, private API or licence.

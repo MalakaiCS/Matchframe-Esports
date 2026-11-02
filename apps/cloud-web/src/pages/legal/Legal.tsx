@@ -16,11 +16,11 @@ export function formatLegalDate(ymd: string, locale?: string): string {
 }
 
 export function LegalHub() {
-  useTitle("Legal", "Matchframe's terms of service, privacy policy, cookie policy, refund and cancellation policy, acceptable use policy and end user licence agreement.");
+  useTitle("Legal", "MatchFrame's terms of service, privacy policy, cookie policy, refund and cancellation policy, acceptable use policy and end user licence agreement.");
   const { site } = useSite();
   return (
     <>
-      <PageHero eyebrow="Legal" title="Legal information" lead={site ? <>The terms and policies that apply when you use {site.websiteName}. Last updated {formatLegalDate(site.legalEffectiveDate)}.</> : "The terms and policies that apply when you use Matchframe."} />
+      <PageHero eyebrow="Legal" title="Legal information" lead={site ? <>The terms and policies that apply when you use {site.websiteName}. Last updated {formatLegalDate(site.legalEffectiveDate)}.</> : "The terms and policies that apply when you use MatchFrame."} />
       <div className="wrap section-top">
         <ul className="legal-grid">
           {LEGAL_DOCS.map((d) => (

@@ -170,7 +170,7 @@ export function formFields(schema: Record<string, unknown> | null | undefined): 
 
 /** Why desktop overlays cannot be used here, or null. */
 export function desktopReason(bridge: DesktopHudBridge | null): string | null {
-  if (!bridge) return "Desktop HUDs need the Matchframe program (this console is open in a browser)";
+  if (!bridge) return "Desktop HUDs need the MatchFrame program (this console is open in a browser)";
   if (!bridge.available) return bridge.unavailableReason ?? "Desktop HUDs are unavailable in remote mode: the HUD belongs over the game on the production computer";
   return null;
 }

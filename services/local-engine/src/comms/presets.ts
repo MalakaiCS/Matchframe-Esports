@@ -28,7 +28,7 @@ import { StripSettings } from "./strip.ts";
 const KEY = "comms.presets";
 const MAX_PRESETS = 100;
 
-/** One person as a preset keeps them (no first/last seen: those are Matchframe's own record). */
+/** One person as a preset keeps them (no first/last seen: those are MatchFrame's own record). */
 const PresetPerson = z.object({
   teamId: z.string().max(100),
   serverUid: z.string().max(300),
@@ -155,7 +155,7 @@ export class CommsPresets {
   /** Which parts of the setup differ from a preset now (people compared on the preset's own teams). */
   differs(p: Preset): PresetSection[] {
     const now = this.snapshot(p.content.teams.length ? p.content.teams : this.teamIds());
-    // Someone the preset doesn't know who is still as Matchframe meets anyone (excluded, unmapped) changes nothing.
+    // Someone the preset doesn't know who is still as MatchFrame meets anyone (excluded, unmapped) changes nothing.
     const isNew = (x: PresetPerson) => !x.includeBroadcast && !x.includeRecording && x.playerId === null && x.displayName === null && x.levelDb === 0;
     const known = new Set(p.content.people.map(personKey));
     const strip = (people: PresetPerson[]) => stable(people.map(({ nickname: _n, ...rest }) => rest).sort((a, b) => personKey(a).localeCompare(personKey(b))));
@@ -244,12 +244,12 @@ export class CommsPresets {
     const now = new Date().toISOString();
     const records = c.people.map((x) => ParticipantRecord.parse({ teamId: x.teamId, serverUid: x.serverUid, uid: x.uid, playerId: x.playerId, displayName: x.displayName, includeBroadcast: x.includeBroadcast, includeRecording: x.includeRecording, levelDb: x.levelDb, preview: false, lastNickname: x.nickname, firstSeen: now, lastSeen: now }));
     const unmapped = records.filter((r) => r.playerId && !this.d.comms.hasPlayer(r.playerId)).length;
-    if (unmapped) skipped.push(`${unmapped} roster mapping${unmapped > 1 ? "s" : ""} to players Matchframe doesn't have any more (left unmapped)`);
+    if (unmapped) skipped.push(`${unmapped} roster mapping${unmapped > 1 ? "s" : ""} to players MatchFrame doesn't have any more (left unmapped)`);
     this.d.comms.importRecords(records);
     await this.d.comms.updateSettings({ delaySec: c.delay.delaySec, fineMs: c.delay.fineMs });
     let recTeam = c.recording.teamId;
     if (recTeam && !this.d.teamName(recTeam)) {
-      skipped.push("the recording team (that team isn't in Matchframe any more)");
+      skipped.push("the recording team (that team isn't in MatchFrame any more)");
       recTeam = null;
     }
     await this.d.recording.setSettings({ teamId: recTeam, commsLevelDb: c.recording.commsLevelDb, gameLevelDb: c.recording.gameLevelDb });

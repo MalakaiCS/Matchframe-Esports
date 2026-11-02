@@ -103,9 +103,9 @@ const recorder = (patch: Partial<RecorderStatus> = {}): RecorderStatus => ({
   freeBytes: 500 * 1024 ** 3,
   warnings: [],
   errors: [],
-  settings: { teamId: "team-A", folder: "D:\\Comms", format: "mkv", encoder: "", bitrateKbps: 16000, audioBitrateKbps: 192, splitMinutes: 0, gameLevelDb: 0, commsLevelDb: 0, warnFreeGB: 20, obs: { scene: "Matchframe Comms Recording", gameSource: "Game Capture", hudSource: "Matchframe HUD", gameAudioSource: "Game audio" } },
+  settings: { teamId: "team-A", folder: "D:\\Comms", format: "mkv", encoder: "", bitrateKbps: 16000, audioBitrateKbps: 192, splitMinutes: 0, gameLevelDb: 0, commsLevelDb: 0, warnFreeGB: 20, obs: { scene: "MatchFrame Comms Recording Scene", gameSource: "Game Capture", hudSource: "MatchFrame HUD", gameAudioSource: "Game audio" } },
   teamspeakSignal: false,
-  obs: { connected: true, scene: "Matchframe Comms Recording", sceneExists: true, sourceRecord: { available: true, install: ["Close OBS.", "Download Source Record from the OBS forum."], kind: "source_record_filter" }, filter: { name: "MatchFrame Recorder", recordMode: 0 }, track1: { inUse: true, detail: "OBS is streaming: track 1 is mixed." }, lastSetup: null },
+  obs: { connected: true, scene: "MatchFrame Comms Recording Scene", sceneExists: true, sourceRecord: { available: true, install: ["Close OBS.", "Download Source Record from the OBS forum."], kind: "source_record_filter" }, filter: { name: "MatchFrame Recorder", recordMode: 0 }, track1: { inUse: true, detail: "OBS is streaming: track 1 is mixed." }, lastSetup: null },
   actions: { start: { disabledReason: null }, stop: { disabledReason: "Not recording" } },
   ...patch,
 });
@@ -133,7 +133,7 @@ const view = (patch: Partial<CommsView> = {}, li: Partial<ListenInView> = {}): C
   enabled: true,
   settings: { enabled: true, bridgePort: 37213, delaySec: 90, fineMs: 250 },
   delay: { configuredMs: 90250, effectiveMs: 90250, pendingMs: null, floorMs: 150 },
-  bridge: { state: "listening", port: 37213, error: null, sessions: 1, file: "C:\\Users\\op\\AppData\\Roaming\\Matchframe Esports\\team-comms\\bridge.json", plugins: [{ session: "s1", instance: "abcdef123456", plugin: { name: "Matchframe Team Comms", version: "1.0.0", apiVersion: 26 }, ts3: { clientLibVersion: "3.6.2" }, platform: "windows", connectedForMs: 1000 }] },
+  bridge: { state: "listening", port: 37213, error: null, sessions: 1, file: "C:\\Users\\op\\AppData\\Roaming\\MatchFrame Esports\\team-comms\\bridge.json", plugins: [{ session: "s1", instance: "abcdef123456", plugin: { name: "MatchFrame Team Comms", version: "1.0.0", apiVersion: 26 }, ts3: { clientLibVersion: "3.6.2" }, platform: "windows", connectedForMs: 1000 }] },
   slots: [slot("A", "Alpha Wolves"), slot("B", "Bravo Hawks")],
   participants: [person(1, "A", { includeBroadcast: true }), person(2, "A"), person(1, "B")],
   recording: { team: null, signal: false },
@@ -314,7 +314,7 @@ describe("Team Comms preview panel", () => {
 });
 
 describe("the dedicated comms recording", () => {
-  const sources = { liveScene: "Game", sources: [{ name: "Game Capture", kind: "game_capture" }, { name: "Matchframe HUD", kind: "browser_source" }, { name: "Game audio", kind: "wasapi_process_output_capture" }, { name: "Casters", kind: "wasapi_input_capture" }], suggested: { gameSource: "Game Capture", hudSource: "Matchframe HUD", gameAudioSource: "Game audio" }, sourceRecord: true, error: null };
+  const sources = { liveScene: "Game", sources: [{ name: "Game Capture", kind: "game_capture" }, { name: "MatchFrame HUD", kind: "browser_source" }, { name: "Game audio", kind: "wasapi_process_output_capture" }, { name: "Casters", kind: "wasapi_input_capture" }], suggested: { gameSource: "Game Capture", hudSource: "MatchFrame HUD", gameAudioSource: "Game audio" }, sourceRecord: true, error: null };
 
   it("its own Start/Stop and state in words with the elapsed time; the team by team id; game and comms levels; the folder", async () => {
     let current = view();
@@ -366,7 +366,7 @@ describe("the dedicated comms recording", () => {
       "GET /api/v1/comms/obs/inputs": { inputs: [], error: null },
       "GET /api/v1/comms/recording/obs/sources": { ...sources, sourceRecord: false },
       "PUT /api/v1/comms/recording": (b: unknown) => ({ ...recorder(), body: b }),
-      "POST /api/v1/comms/recording/obs": { scene: "Matchframe Comms Recording", ok: false, steps },
+      "POST /api/v1/comms/recording/obs": { scene: "MatchFrame Comms Recording Scene", ok: false, steps },
     });
     wrap(<TeamCommsScreen />);
     expect((await screen.findAllByText("Source Record isn't installed in OBS")).length).toBeGreaterThan(0);
@@ -465,7 +465,7 @@ describe("Team Comms phase 5: presets, the setup checklist, the timing test, whi
       { id: "obs-scenes", title: "OBS scenes", state: "unknown", label: "Not checked", detail: "Connect OBS to check.", items: [] },
       { id: "calibration", title: "Calibration against the gameplay", state: "todo", label: "To do", detail: "Measure the delay.", items: [] },
     ],
-    plugin: { platform: "win64", bundled: { built: true, version: "0.2.0", pluginApi: 26, binary: "C:\\Program Files\\Matchframe\\resources\\ts3-plugin\\matchframe_comms_win64.dll", package: "C:\\Program Files\\Matchframe\\resources\\ts3-plugin\\matchframe-team-comms.ts3_plugin", sha256: "x", note: null }, installed: { teamspeakFolder: "C:\\Users\\op\\AppData\\Roaming\\TS3Client", teamspeakFound: true, pluginsDir: "C:\\Users\\op\\AppData\\Roaming\\TS3Client\\plugins", path: null, same: false }, connected: [], lastInstall: null, ...patch },
+    plugin: { platform: "win64", bundled: { built: true, version: "0.2.0", pluginApi: 26, binary: "C:\\Program Files\\MatchFrame\\resources\\ts3-plugin\\matchframe_comms_win64.dll", package: "C:\\Program Files\\MatchFrame\\resources\\ts3-plugin\\matchframe-team-comms.ts3_plugin", sha256: "x", note: null }, installed: { teamspeakFolder: "C:\\Users\\op\\AppData\\Roaming\\TS3Client", teamspeakFound: true, pluginsDir: "C:\\Users\\op\\AppData\\Roaming\\TS3Client\\plugins", path: null, same: false }, connected: [], lastInstall: null, ...patch },
   });
 
   it("presets: the active one and what changed, save as, load (confirmed over changes), rename, delete", async () => {
@@ -563,7 +563,7 @@ describe("Team Comms phase 5: presets, the setup checklist, the timing test, whi
     const tabs = await screen.findByRole("table", { name: "TeamSpeak tabs" });
     expect(within(tabs).getByText("Team A: Alpha Wolves (captured)")).toBeTruthy();
     expect(within(tabs).getByText("Not a team tab (handed back to TeamSpeak)")).toBeTruthy();
-    expect(within(tabs).getAllByText(/Kept listen-only and silent by the plugin before Matchframe asked/)).toHaveLength(2);
+    expect(within(tabs).getAllByText(/Kept listen-only and silent by the plugin before MatchFrame asked/)).toHaveLength(2);
     expect(screen.getByText("ts3server://ts.example.org?port=9987&nickname=MF%20Listener%20A&channel=Team%20Alpha%20Wolves")).toBeTruthy();
     // One click hands it to TeamSpeak (the program opens TeamSpeak's own links).
     expect(screen.getByRole("link", { name: "Connect in TeamSpeak" }).getAttribute("href")).toBe("ts3server://ts.example.org?port=9987&nickname=MF%20Listener%20A&channel=Team%20Alpha%20Wolves");

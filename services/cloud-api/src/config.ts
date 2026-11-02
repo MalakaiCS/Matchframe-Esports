@@ -23,7 +23,7 @@ export interface CloudConfig {
   devLogEmails: boolean;
   /** Static website build to serve (apps/cloud-web/dist). */
   webDir: string | null;
-  /** Directory holding `MatchframeEsports-Setup-<version>.exe` installers served at /downloads/. */
+  /** Directory holding `MatchFrameEsports-Setup-<version>.exe` installers served at /downloads/. */
   downloadDir: string | null;
   /** Installer metadata shown on the downloads page. */
   downloads: { version: string; windowsUrl: string | null; sha256: string | null; notesUrl: string | null };
@@ -80,7 +80,7 @@ export function loadCloudConfig(env: NodeJS.ProcessEnv = process.env, overrides:
     stripeWebhookSecret: opt(env.STRIPE_WEBHOOK_SECRET),
     stripeApiBase: opt(env.MF_STRIPE_API_BASE),
     smtpUrl: opt(env.SMTP_URL),
-    mailFrom: opt(env.MF_MAIL_FROM) ?? "Matchframe <no-reply@localhost>",
+    mailFrom: opt(env.MF_MAIL_FROM) ?? "MatchFrame <no-reply@localhost>",
     devLogEmails: env.MF_DEV_LOG_EMAILS === "1",
     webDir: opt(env.MF_CLOUD_WEB_DIR),
     downloadDir: opt(env.MF_DOWNLOAD_DIR),
@@ -90,8 +90,8 @@ export function loadCloudConfig(env: NodeJS.ProcessEnv = process.env, overrides:
     staffEmails: list(env.MF_STAFF_EMAILS).map((e) => e.toLowerCase()),
     syncQuotaBytes: Number(opt(env.MF_SYNC_QUOTA_BYTES) ?? SYNC_ORG_QUOTA_BYTES),
     site: {
-      companyName: opt(env.MF_COMPANY_NAME) ?? "Matchframe Esports",
-      websiteName: opt(env.MF_WEBSITE_NAME) ?? "Matchframe",
+      companyName: opt(env.MF_COMPANY_NAME) ?? "MatchFrame Esports",
+      websiteName: opt(env.MF_WEBSITE_NAME) ?? "MatchFrame",
       supportEmail: opt(env.MF_SUPPORT_EMAIL),
       address: opt(env.MF_COMPANY_ADDRESS),
       jurisdiction: opt(env.MF_LEGAL_JURISDICTION) ?? "the country in which the company is registered",

@@ -14,7 +14,7 @@ import type { CommsTimingTest } from "./timing-test.ts";
 
 /**
  * Team Comms setup (ADR-069): the TeamSpeak 3 plugin offered from the program, and a guided checklist
- * whose every step reads its live state from the checks Matchframe already makes.
+ * whose every step reads its live state from the checks MatchFrame already makes.
  *
  * - **The plugin:** the program ships it in its resources (`ts3-plugin`: the .ts3_plugin package, the
  *   binary and plugin.json, which says `built: false` when the Windows build didn't make it).
@@ -23,7 +23,7 @@ import type { CommsTimingTest } from "./timing-test.ts";
  *   refused then says to close TeamSpeak first (or to double-click the .ts3_plugin package, which
  *   TeamSpeak's own installer opens).
  * - **The checklist:** TeamSpeak plugin (installed, the same build as the program's, connected, both
- *   team tabs captured), DistroAV (OBS's NDI source kind, and a receiver on each of Matchframe's NDI
+ *   team tabs captured), DistroAV (OBS's NDI source kind, and a receiver on each of MatchFrame's NDI
  *   outputs), Source Record (its filter kind in OBS), OBS scenes (the live scene's comms source and
  *   banner, the recording scene and its recorder, nothing of the recording on air) and calibration (a
  *   delay measured against the gameplay applied, and the recording's timing test).
@@ -168,7 +168,7 @@ export class CommsSetup {
       binary: binPath && existsSync(binPath) ? binPath : null,
       package: dir && pkg && existsSync(join(dir, pkg.file)) ? join(dir, pkg.file) : null,
       sha256: bin?.sha256 ?? null,
-      note: !m ? "The program's TeamSpeak plugin files aren't here (a development build without the plugin built)." : !m.built ? (m.note ?? "This build of Matchframe doesn't include the TeamSpeak plugin.") : !bin ? `This build has no plugin for this computer (${this.platform()}).` : null,
+      note: !m ? "The program's TeamSpeak plugin files aren't here (a development build without the plugin built)." : !m.built ? (m.note ?? "This build of MatchFrame doesn't include the TeamSpeak plugin.") : !bin ? `This build has no plugin for this computer (${this.platform()}).` : null,
     };
     const installed = {
       teamspeakFolder: ts3,
@@ -186,8 +186,8 @@ export class CommsSetup {
    */
   install(): ReturnType<CommsSetup["plugin"]> {
     const p = this.plugin();
-    if (!p.bundled.binary) throw new SetupError(409, "no_plugin", p.bundled.note ?? "This build of Matchframe doesn't include the TeamSpeak plugin.");
-    if (!p.installed.pluginsDir) throw new SetupError(409, "no_teamspeak", "Matchframe doesn't know TeamSpeak 3's folder on this computer.");
+    if (!p.bundled.binary) throw new SetupError(409, "no_plugin", p.bundled.note ?? "This build of MatchFrame doesn't include the TeamSpeak plugin.");
+    if (!p.installed.pluginsDir) throw new SetupError(409, "no_teamspeak", "MatchFrame doesn't know TeamSpeak 3's folder on this computer.");
     const target = join(p.installed.pluginsDir, p.bundled.binary.split(/[\\/]/).pop()!);
     const tmp = `${target}.mf-new`;
     try {
@@ -210,7 +210,7 @@ export class CommsSetup {
       throw new SetupError(409, busy ? "teamspeak_running" : "copy_failed", detail);
     }
     this.hashCache.delete(target);
-    this.lastInstall = { at: new Date().toISOString(), ok: true, detail: `Copied to ${target}. Start TeamSpeak 3 (or restart it): Tools → Options → Add-ons → Matchframe Team Comms enabled.` };
+    this.lastInstall = { at: new Date().toISOString(), ok: true, detail: `Copied to ${target}. Start TeamSpeak 3 (or restart it): Tools → Options → Add-ons → MatchFrame Team Comms enabled.` };
     this.d.logger.info("team comms: TeamSpeak plugin installed", { target, version: p.bundled.version });
     return this.plugin();
   }
@@ -236,9 +236,9 @@ export class CommsSetup {
         "teamspeak-plugin",
         "TeamSpeak plugin",
         [
-          { label: "In this program", ok: p.bundled.binary ? true : false, detail: p.bundled.binary ? `Matchframe Team Comms ${p.bundled.version ?? ""} (plugin API ${p.bundled.pluginApi ?? "?"})` : (p.bundled.note ?? "Not included.") },
+          { label: "In this program", ok: p.bundled.binary ? true : false, detail: p.bundled.binary ? `MatchFrame Team Comms ${p.bundled.version ?? ""} (plugin API ${p.bundled.pluginApi ?? "?"})` : (p.bundled.note ?? "Not included.") },
           { label: "Installed in TeamSpeak 3", ok: p.installed.path ? (p.bundled.sha256 ? p.installed.same : true) : p.connected.length ? null : false, detail: p.installed.path ? (p.installed.same || !p.bundled.sha256 ? p.installed.path : `${p.installed.path} is another build: Install TeamSpeak plugin replaces it (close TeamSpeak first).`) : p.connected.length ? "Connected (installed by hand, or TeamSpeak's add-on installer)." : !p.installed.teamspeakFound ? `TeamSpeak 3 not found (${p.installed.teamspeakFolder ?? "no folder"}): install TeamSpeak 3 and start it once.` : "Not in TeamSpeak's plugins folder yet: Install TeamSpeak plugin." },
-          { label: "Connected to Matchframe", ok: !c.enabled ? null : p.connected.length > 0, detail: !c.enabled ? "Team Comms is off." : p.connected.length ? p.connected.map((x) => `plugin ${x.version ?? "?"} in TeamSpeak ${x.ts3 ?? "?"} (${x.platform ?? "?"})`).join("; ") : "Not connected: start TeamSpeak 3 with the plugin enabled (Tools → Options → Add-ons)." },
+          { label: "Connected to MatchFrame", ok: !c.enabled ? null : p.connected.length > 0, detail: !c.enabled ? "Team Comms is off." : p.connected.length ? p.connected.map((x) => `plugin ${x.version ?? "?"} in TeamSpeak ${x.ts3 ?? "?"} (${x.platform ?? "?"})`).join("; ") : "Not connected: start TeamSpeak 3 with the plugin enabled (Tools → Options → Add-ons)." },
           ...tabs.map(({ s, ok }) => ({ label: `Team tab: ${s.team?.name ?? `Team ${s.id}`}`, ok: !c.enabled ? null : ok, detail: s.tab ? `${s.tab.channel?.name ?? "?"} on ${s.tab.server?.name ?? s.tab.server?.host ?? "?"} as ${s.tab.listener?.nickname ?? "?"} (${s.state})` : (s.issue ?? "No TeamSpeak tab in the team's channel yet.") })),
         ],
         { done: "The plugin is connected and captures both team tabs.", todo: "Install the plugin, start TeamSpeak 3 and connect a tab to each team's channel.", unknown: "Switch Team Comms on to check the plugin and the team tabs." },
@@ -255,11 +255,11 @@ export class CommsSetup {
         "DistroAV (NDI in OBS)",
         [
           { label: "DistroAV in OBS", ok: hasNdiKind, detail: !connected ? "OBS isn't connected (Settings → Devices)." : hasNdiKind ? "OBS has the NDI source (DistroAV)." : hasNdiKind === false ? "OBS has no NDI source: install DistroAV 6.x and the NDI 6 Runtime it asks for, then restart OBS." : "OBS didn't list its source kinds." },
-          { label: `Matchframe sends “${PUBLIC_NDI_NAME}”`, ok: !c.enabled || !ndi.enabled ? null : ndi.state === "running", detail: ndi.detail },
+          { label: `MatchFrame sends “${PUBLIC_NDI_NAME}”`, ok: !c.enabled || !ndi.enabled ? null : ndi.state === "running", detail: ndi.detail },
           { label: `OBS receives “${PUBLIC_NDI_NAME}”`, ok: ndi.state === "running" && ndi.stats ? ndi.stats.connections.public > 0 : null, detail: ndi.stats ? `${ndi.stats.connections.public} receiver(s)` : "Not sending yet." },
           { label: `OBS receives “${RECORDING_NDI_NAME}”`, ok: ndi.state === "running" && ndi.stats ? ndi.stats.connections.recording > 0 : null, detail: ndi.stats ? `${ndi.stats.connections.recording} receiver(s)` : "Not sending yet." },
         ],
-        { done: "OBS receives both of Matchframe's comms outputs over NDI.", todo: "Install DistroAV in OBS and add the NDI sources (the OBS scenes step makes the recording's).", unknown: "Connect OBS and switch Team Comms on to check." },
+        { done: "OBS receives both of MatchFrame's comms outputs over NDI.", todo: "Install DistroAV in OBS and add the NDI sources (the OBS scenes step makes the recording's).", unknown: "Connect OBS and switch Team Comms on to check." },
       ),
     );
 
@@ -307,7 +307,7 @@ export class CommsSetup {
         "Calibration against the gameplay",
         [
           { label: "Delay measured against the gameplay", ok: cal.applied ? true : false, detail: cal.applied ? `${(cal.applied.delayMs / 1000).toFixed(3)} s from ${cal.applied.marks} mark(s) (spread ${cal.applied.spreadMs} ms), ${cal.applied.at.slice(0, 16).replace("T", " ")}` : "Delay against the gameplay: arm, mark, Seen; then Use this delay." },
-          { label: "Timing test in a recording", ok: tt ? (tt.applied ? true : null) : null, detail: tt ? `${tt.applied ? "Applied" : `Found ${tt.pairs} beeps; not applied yet`}: strip offset ${tt.suggestion.stripOffsetMs} ms${tt.suggestion.fineMs !== null ? `, delay ${tt.suggestion.delaySec} s + ${tt.suggestion.fineMs} ms` : ""}.` : "Optional: beeps in a short recording, found by Matchframe in the file." },
+          { label: "Timing test in a recording", ok: tt ? (tt.applied ? true : null) : null, detail: tt ? `${tt.applied ? "Applied" : `Found ${tt.pairs} beeps; not applied yet`}: strip offset ${tt.suggestion.stripOffsetMs} ms${tt.suggestion.fineMs !== null ? `, delay ${tt.suggestion.delaySec} s + ${tt.suggestion.fineMs} ms` : ""}.` : "Optional: beeps in a short recording, found by MatchFrame in the file." },
         ],
         { done: "The delay was measured against the gameplay and checked in a recording.", todo: "Measure the delay against the gameplay (Delay against the gameplay).", unknown: "The delay is measured; the timing test in a recording is optional." },
       ),

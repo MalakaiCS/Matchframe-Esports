@@ -25,7 +25,7 @@ const isTopic = (t: string | null): t is ContactTopic => CONTACT_TOPICS.some((x)
 const MAX = 5000;
 
 export function Contact() {
-  useTitle("Contact", "Contact the Matchframe team about your account, billing, plans, legal or privacy questions, or anything else.");
+  useTitle("Contact", "Contact the MatchFrame team about your account, billing, plans, legal or privacy questions, or anything else.");
   const { me } = useSession();
   const { site } = useSite();
   const { query } = useLocation();

@@ -8,7 +8,7 @@ import { useSession } from "../../state/session.tsx";
 
 const FLOW: { icon: IconName; title: string; text: string }[] = [
   { icon: "download", title: "Install", text: "Download the Windows installer from your account and run the setup checklist in the program." },
-  { icon: "link", title: "Sign in", text: "Start the program and sign in with your Matchframe email and password." },
+  { icon: "link", title: "Sign in", text: "Start the program and sign in with your MatchFrame email and password." },
   { icon: "card", title: "Buy or receive hours", text: "Plans include auto-director hours each period, and hour packs add more at any time." },
   { icon: "director", title: "Arm automation", text: "Choose an Observer mode and resume automation in Live Control. Hours are used only while it drives the camera." },
 ];
@@ -103,11 +103,11 @@ const SETUP: { id: string; title: string; where: string; body: ReactNode }[] = [
 ];
 
 export function HowItWorks() {
-  useTitle("How it works", "How Matchframe works: the program on your production PC, the website for your account and hours, linking computers, metering only while automation drives the camera, and what works offline.");
+  useTitle("How it works", "How MatchFrame works: the program on your production PC, the website for your account and hours, linking computers, metering only while automation drives the camera, and what works offline.");
   const { me } = useSession();
   return (
     <>
-      <PageHero eyebrow="How it works" title="The program runs the show. The website runs the account." lead="Matchframe has two parts. The Windows program on your production computer does all the broadcast work. This website keeps the account, plan and auto-director hours behind it.">
+      <PageHero eyebrow="How it works" title="The program runs the show. The website runs the account." lead="MatchFrame has two parts. The Windows program on your production computer does all the broadcast work. This website keeps the account, plan and auto-director hours behind it.">
         {me ? (
           <Link to="/download" className="btn btn-primary btn-lg">
             Download the program

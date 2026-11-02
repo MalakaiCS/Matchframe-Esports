@@ -1,21 +1,21 @@
-# Matchframe Esports
+# MatchFrame Esports
 
-Matchframe is two products:
+MatchFrame is two products:
 
-- **The Matchframe program for Windows** — a downloadable program (`MatchframeEsports-Setup-<version>.exe`) that does everything app-related: CS2 Game State Integration ingest, browser-source HUDs for OBS, match/event/veto/sponsor administration, the auto director — the **Observer**, with Off, Observer, Observer & Cinematics and Full Action Observer modes (anticipation/readiness director with a single-writer control arbiter), observer camera control, universal grenade tracking for all six types, OBS control, replays, player cameras, and an offline demo pipeline that trains models. Its operator console exists only inside the program.
+- **The MatchFrame program for Windows** — a downloadable program (`MatchFrameEsports-Setup-<version>.exe`) that does everything app-related: CS2 Game State Integration ingest, browser-source HUDs for OBS, match/event/veto/sponsor administration, the auto director — the **Observer**, with Off, Observer, Observer & Cinematics and Full Action Observer modes (anticipation/readiness director with a single-writer control arbiter), observer camera control, universal grenade tracking for all six types, OBS control, replays, player cameras, and an offline demo pipeline that trains models. Its operator console exists only inside the program.
 - **The website** — only for payments, subscription management, auto-director hours usage, account and team management, and staff administration. It also hosts the program download for signed-in accounts. See [docs/architecture/cloud.md](docs/architecture/cloud.md).
 
-The program opens into the **HUD Library**: the HUDs installed on this computer, each ready to run as a **transparent desktop HUD** over a borderless-windowed game (click-through, always on top, never takes focus), as a **preview**, or as an **OBS browser source**. The library, the local HUD server and test data work offline and without an account ([docs/operations/hud-library.md](docs/operations/hud-library.md)). Signing in with the website account (Settings → Account) is needed only for the Auto Director on live matches, which uses auto-director hours from the organisation's Matchframe plan.
+The program opens into the **HUD Library**: the HUDs installed on this computer, each ready to run as a **transparent desktop HUD** over a borderless-windowed game (click-through, always on top, never takes focus), as a **preview**, or as an **OBS browser source**. The library, the local HUD server and test data work offline and without an account ([docs/operations/hud-library.md](docs/operations/hud-library.md)). Signing in with the website account (Settings → Account) is needed only for the Auto Director on live matches, which uses auto-director hours from the organisation's MatchFrame plan.
 
 **Read this first — what is verified.** Everything below runs and is tested in a Linux development environment with synthetic GSI, a labelled simulation, real OBS 30.0.2 and five real CS2 demos; the Windows program is built and smoke-tested on GitHub's Windows runners (see [BUILD_PROGRESS.md](BUILD_PROGRESS.md) for the latest run). **No CS2 client, replay tool or MatchFrame service was available**, so real GSI ingest and real observer control (POV cuts and static cameras) are **unverified**, and real Stripe payments, email delivery and hosting need the owner's accounts. Details: [CAPABILITIES.md](CAPABILITIES.md), [FEATURE_COVERAGE.md](FEATURE_COVERAGE.md), [docs/acceptance.md](docs/acceptance.md).
 
 ## Installing the program
 
-1. Sign in on the website and open **Download the program** (dashboard or account page), or take `MatchframeEsports-Setup-<version>.exe` from the **Windows program (.exe)** GitHub Actions run (artifact `matchframe-windows-<commit>`). Check the SHA-256 shown next to the download (`Get-FileHash .\MatchframeEsports-Setup-0.1.0.exe`).
+1. Sign in on the website and open **Download the program** (dashboard or account page), or take `MatchFrameEsports-Setup-<version>.exe` from the **Windows program (.exe)** GitHub Actions run (artifact `matchframe-windows-<commit>`). Check the SHA-256 shown next to the download (`Get-FileHash .\MatchframeEsports-Setup-0.1.0.exe`).
 2. Run the installer (per-user, choose a folder). Development builds are unsigned, so Windows SmartScreen asks for confirmation.
-3. Start **Matchframe Esports**. It opens on the **HUD Library** with the built-in Matchframe Broadcast HUD and two bundled packages (Sample CS2 HUD, Pro CS2 HUD). **Run Test Data** to see them with the labelled simulation, then **Launch Transparent HUD** or **Copy OBS Browser URL**. **Settings → Setup** connects CS2 and OBS; **Settings → Account** signs in for the Auto Director. Everything stays on this computer; the engine listens on loopback unless you choose otherwise.
+3. Start **MatchFrame Esports**. It opens on the **HUD Library** with the built-in MatchFrame Broadcast HUD and two bundled packages (Sample CS2 HUD, Pro CS2 HUD). **Run Test Data** to see them with the labelled simulation, then **Launch Transparent HUD** or **Copy OBS Browser URL**. **Settings → Setup** connects CS2 and OBS; **Settings → Account** signs in for the Auto Director. Everything stays on this computer; the engine listens on loopback unless you choose otherwise.
 
-Data folder: `%APPDATA%\Matchframe Esports` (override with `MATCHFRAME_DATA_DIR`). Ports: GSI 37210, engine API 37211, HUD outputs 37212 (`MATCHFRAME_GSI_PORT`, `MATCHFRAME_API_PORT`, `MATCHFRAME_OVERLAY_PORT`). Each library HUD has its own OBS browser source URL (`http://127.0.0.1:37212/hud/<hud-id>/<variant>?t=<token>`, **Copy OBS Browser URL**); the draft/publish broadcast outputs are under **HUD Library → Broadcast outputs** (`/overlay/<output>/<variant>?t=…`). Installed HUDs live in `%APPDATA%\Matchframe Esports\huds`. Simulated data is marked as test data everywhere.
+Data folder: `%APPDATA%\MatchFrame Esports` (override with `MATCHFRAME_DATA_DIR`). Ports: GSI 37210, engine API 37211, HUD outputs 37212 (`MATCHFRAME_GSI_PORT`, `MATCHFRAME_API_PORT`, `MATCHFRAME_OVERLAY_PORT`). Each library HUD has its own OBS browser source URL (`http://127.0.0.1:37212/hud/<hud-id>/<variant>?t=<token>`, **Copy OBS Browser URL**); the draft/publish broadcast outputs are under **HUD Library → Broadcast outputs** (`/overlay/<output>/<variant>?t=…`). Installed HUDs live in `%APPDATA%\MatchFrame Esports\huds`. Simulated data is marked as test data everywhere.
 
 **Settings → Account** (in the program) shows who the program is signed in as, the organisation's plan, hours left and usage uploads, and signs out. Payments, plans, hour packs and team members are managed on the website. Each signed-in production computer counts towards the plan's computer limit; extra operator positions in remote mode use the production computer's sign-in.
 
@@ -42,7 +42,7 @@ Guides: [one PC](docs/operations/one-pc.md), [multi-PC](docs/operations/multi-pc
 ## Production topology
 
 ```
-CS2 observer client ──GSI (HTTP POST, token)──▶ Matchframe program (engine) ◀── console inside the program (app://matchframe)
+CS2 observer client ──GSI (HTTP POST, token)──▶ MatchFrame program (engine) ◀── console inside the program (app://matchframe)
         ▲                                         │   │   │                 ◀── program on other PCs (role tokens) / Companion (HTTP API)
         └── observer control adapter (console/keyboard; single writer via control arbiter)
                                                   │   │   └──obs-websocket v5──▶ OBS (program, replay buffer, media)
@@ -58,7 +58,7 @@ Prerequisites: Node.js ≥ 22.12 (developed on 22.22.0) and pnpm 10 (`corepack e
 
 ```sh
 pnpm install
-pnpm dev --sim          # builds what is missing, starts the Matchframe program (engine from source) and the labelled simulation
+pnpm dev --sim          # builds what is missing, starts the MatchFrame program (engine from source) and the labelled simulation
 ```
 
 | Task | Command |
@@ -86,8 +86,8 @@ Engine API calls from scripts need `Authorization: Bearer <token>`: the owner to
 
 ## Repository layout
 
-`packages/` shared libraries (contracts, CS2 state + utility tracker, map runtime, director policy + control arbiter, automation, OBS adapter, game adapters, HUD SDK, MatchFrame bridge, cloud contracts) · `services/` local engine, observer adapters, replay providers, cloud API · `apps/` the Matchframe program (`desktop`), its operator console (`operator-web`), HUD renderer, website (`cloud-web`) · `workers/` Python demo pipeline · `assets/` demo-derived map packs and measured utility profiles · `docs/` architecture, operations, integrations, models, maps, security, storage.
+`packages/` shared libraries (contracts, CS2 state + utility tracker, map runtime, director policy + control arbiter, automation, OBS adapter, game adapters, HUD SDK, MatchFrame bridge, cloud contracts) · `services/` local engine, observer adapters, replay providers, cloud API · `apps/` the MatchFrame program (`desktop`), its operator console (`operator-web`), HUD renderer, website (`cloud-web`) · `workers/` Python demo pipeline · `assets/` demo-derived map packs and measured utility profiles · `docs/` architecture, operations, integrations, models, maps, security, storage.
 
 ## Licence and provenance
 
-Original Matchframe code and designs. Third-party components and reference material: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). No Lexogrine HUD Manager code, assets, account or licence is used or required.
+Original MatchFrame code and designs. Third-party components and reference material: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). No other HUD program's code, assets, account or licence is used or required.

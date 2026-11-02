@@ -1,7 +1,7 @@
 import type { HudTeam } from "@matchframe/hud-sdk";
 import { LogoCT, LogoT } from "../icons.tsx";
 
-/** Team logo from the Matchframe team record, else the side's default logo. */
+/** Team logo from the MatchFrame team record, else the side's default logo. */
 export default function TeamLogo({ team, size }: { team: Pick<HudTeam, "logoUrl" | "side" | "name"> | null; size?: number }) {
   if (!team) return null;
   return (

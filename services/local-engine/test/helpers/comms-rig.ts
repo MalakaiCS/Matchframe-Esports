@@ -81,7 +81,7 @@ export class Rig {
 
   private teams: Record<string, Team> = {};
   private staleMs: number | undefined;
-  /** Added to the computer's clock the bridge's liveness reads (a test moves it: Matchframe not running for a while). */
+  /** Added to the computer's clock the bridge's liveness reads (a test moves it: MatchFrame not running for a while). */
   realJump = 0;
 
   private makeComms(): void {
@@ -103,7 +103,7 @@ export class Rig {
     this.comms.onBlock((b) => this.activity.set(b.start, { recording: b.activity.recording, pubTeam: b.public.team }));
   }
 
-  /** Matchframe restarts (a new Team Comms on the same settings and secrets): a new bridge port in the bridge file. TeamSpeak keeps running. */
+  /** MatchFrame restarts (a new Team Comms on the same settings and secrets): a new bridge port in the bridge file. TeamSpeak keeps running. */
   async restartEngine(): Promise<void> {
     await this.comms.stop();
     this.makeComms();

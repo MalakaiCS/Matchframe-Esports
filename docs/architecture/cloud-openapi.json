@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Matchframe cloud API",
+    "title": "MatchFrame cloud API",
     "version": "0.1.0"
   },
   "paths": {
@@ -18,7 +18,7 @@
     },
     "/v1/downloads": {
       "get": {
-        "summary": "Matchframe program for Windows (.exe installer): URL, version, SHA-256",
+        "summary": "MatchFrame program for Windows (.exe installer): URL, version, SHA-256",
         "parameters": [],
         "responses": {
           "200": {

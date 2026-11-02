@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { HudArt } from "@matchframe/hud-sdk";
 
 /**
- * HUD images (HUD Library → HUD images): pictures the operator uploads for every Matchframe HUD —
+ * HUD images (HUD Library → HUD images): pictures the operator uploads for every MatchFrame HUD —
  * default player pictures by side, a logo and a picture per map, and a dead-player icon. Stored as
  * asset ids (POST /api/v1/assets) in the program setting `hud.art`, on this computer only.
  */

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Contracts between the Matchframe website/cloud API, its browser frontend and the desktop app.
+ * Contracts between the MatchFrame website/cloud API, its browser frontend and the desktop app.
  * Browser-safe: no Node imports here (token signing/verification lives in "./token").
  */
 
@@ -23,7 +23,7 @@ export const LoginRequest = z.object({ email: Email, password: z.string().min(1)
 export const OrgRole = z.enum(["owner", "admin", "billing", "member"]);
 export type OrgRole = z.infer<typeof OrgRole>;
 
-/** Matchframe staff: support (help customers, verify emails, view organisations) or admin (everything, incl. staff roles, catalogue, credits). */
+/** MatchFrame staff: support (help customers, verify emails, view organisations) or admin (everything, incl. staff roles, catalogue, credits). */
 export const StaffRole = z.enum(["support", "admin"]);
 export type StaffRole = z.infer<typeof StaffRole>;
 

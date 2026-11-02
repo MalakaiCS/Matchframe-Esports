@@ -1,10 +1,10 @@
 {
   "manifestVersion": 1,
   "id": "matchframe.sample-cs2",
-  "name": "Matchframe Sample CS2 HUD",
+  "name": "MatchFrame Sample CS2 HUD",
   "version": "1.1.0",
-  "author": "Matchframe Esports",
-  "licence": "MIT (code, weapon icons: Lexogrine MIT); fonts: SIL OFL 1.1",
+  "author": "MatchFrame Esports",
+  "licence": "MIT; weapon icons third-party MIT (third-party-licenses/); fonts: SIL OFL 1.1",
   "description": "A complete CS2 HUD package to learn from and build on: scorebug, round clock, bomb timer, minimap, killfeed, both teams' players and the observed player. Plain HTML, CSS and JavaScript.",
   "game": "cs2",
   "category": "Sample",

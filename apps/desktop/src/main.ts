@@ -4,6 +4,8 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "no
 import { delimiter, extname, isAbsolute, join, resolve, sep } from "node:path";
 import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, net, Notification, protocol, safeStorage, shell } from "electron";
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron";
+// Folders under either spelling of the product name (an upgraded computer keeps the ones it has).
+import { brandedFolder } from "../../../services/local-engine/src/brand.ts";
 import { HotkeyManager } from "./hud/hotkeys.ts";
 import { registerHudIpc } from "./hud/ipc.ts";
 import { OverlayManager } from "./hud/overlays.ts";
@@ -15,7 +17,7 @@ import { createTray, type ProgramTray } from "./tray.ts";
 import { createUpdater, type Updater } from "./updater.ts";
 
 /**
- * Matchframe Esports program (Windows desktop app). The operator console is bundled into the
+ * MatchFrame Esports program (Windows desktop app). The operator console is bundled into the
  * program and shown from its own `app://matchframe` origin; it is never served to browsers. API and
  * asset requests from the console are forwarded to the engine: the one this program supervises
  * (local mode) or the one on the production computer (remote mode, for multi-PC productions). The
@@ -36,8 +38,10 @@ const EMERGENCY_HOTKEY = process.env.MATCHFRAME_STOP_HOTKEY ?? "CommandOrControl
 const SAVE_VIEW_HOTKEY = process.env.MATCHFRAME_SAVE_VIEW_HOTKEY ?? "CommandOrControl+Shift+F11";
 
 /** Engine data folder; the program's own settings (credential key, connection, browser storage) live in its `program` subfolder. */
-const dataDir = () => process.env.MATCHFRAME_DATA_DIR ?? join(app.getPath("appData"), "Matchframe Esports");
-/** The user's Videos folder: the engine puts highlight reels in "Matchframe Highlights" there (null when the system has none). */
+// An upgraded computer keeps its "Matchframe Esports" folder as it is on disk: the paths stored in the
+// engine's database and settings stay exactly the same (brandedFolder).
+const dataDir = () => process.env.MATCHFRAME_DATA_DIR ?? brandedFolder(app.getPath("appData"), "MatchFrame Esports");
+/** The user's Videos folder: the engine puts highlight reels in "MatchFrame Highlights" there (null when the system has none). */
 const videosDir = (): string | null => {
   try {
     return process.env.MATCHFRAME_VIDEOS_DIR || app.getPath("videos");
@@ -133,7 +137,7 @@ function cloudReleaseConfig(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
     if (cfg.publicKeys && typeof cfg.publicKeys === "object" && !env.MATCHFRAME_CLOUD_PUBLIC_KEYS) out.MATCHFRAME_CLOUD_PUBLIC_KEYS = JSON.stringify(cfg.publicKeys);
     return out;
   } catch (e) {
-    dialog.showErrorBox("Matchframe", `cloud.json in the installation is unreadable: ${e instanceof Error ? e.message : String(e)}`);
+    dialog.showErrorBox("MatchFrame", `cloud.json in the installation is unreadable: ${e instanceof Error ? e.message : String(e)}`);
     return {};
   }
 }
@@ -212,7 +216,7 @@ function serveFrom(root: string, pathname: string, spa: boolean): Response {
     else if (existsSync(join(file, "index.html"))) file = join(file, "index.html");
     else return new Response("not found", { status: 404 });
   }
-  if (!existsSync(file)) return new Response(`Console files are missing (${root}). Reinstall Matchframe.`, { status: 500 });
+  if (!existsSync(file)) return new Response(`Console files are missing (${root}). Reinstall MatchFrame.`, { status: 500 });
   const html = file.endsWith(".html");
   return new Response(readFileSync(file), {
     headers: { "content-type": MIME[extname(file).toLowerCase()] ?? "application/octet-stream", "x-content-type-options": "nosniff", "cache-control": html ? "no-store" : "public, max-age=300", ...(html ? { "content-security-policy": consoleCsp() } : {}) },
@@ -241,7 +245,7 @@ async function forwardToEngine(req: Request, url: URL): Promise<Response> {
       ...(hasBody ? { duplex: "half" } : {}),
     } as RequestInit & { bypassCustomProtocolHandlers: boolean });
   } catch (e) {
-    const where = connection.mode === "remote" ? `the production computer at ${connection.url}` : "the Matchframe engine on this computer";
+    const where = connection.mode === "remote" ? `the production computer at ${connection.url}` : "the MatchFrame engine on this computer";
     return Response.json({ error: "engine_unreachable", message: `Cannot reach ${where}: ${e instanceof Error ? e.message : String(e)}` }, { status: 502 });
   }
 }
@@ -312,7 +316,7 @@ function startEngine(): void {
     console.error(`engine exited (code ${code}); restarting in ${delay} ms (automation stays disarmed)`);
     win?.webContents.send("mf:engine-status", { state: "restarting", code, delayMs: delay });
     if (restarts > 8) {
-      void dialog.showMessageBox({ type: "error", message: "The Matchframe engine keeps stopping.", detail: "Open Settings → Diagnostics after restart, or check the logs in the data folder." });
+      void dialog.showMessageBox({ type: "error", message: "The MatchFrame engine keeps stopping.", detail: "Open Settings → Diagnostics after restart, or check the logs in the data folder." });
     }
     setTimeout(() => engineWanted && startEngine(), delay);
   });
@@ -361,7 +365,7 @@ function createWindow(): BrowserWindow {
   });
   w.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https:\/\//.test(url) || (isDev && /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(url))) void shell.openExternal(url);
-    // Team Comms (ADR-069): a team's TeamSpeak link as Matchframe makes it (server, port, nickname, channel; no password): TeamSpeak opens it.
+    // Team Comms (ADR-069): a team's TeamSpeak link as MatchFrame makes it (server, port, nickname, channel; no password): TeamSpeak opens it.
     else if (/^ts3server:\/\/[A-Za-z0-9.\-[\]:]+\?port=\d{1,5}&nickname=[^&\s]*&channel=[^&\s]*$/.test(url)) void shell.openExternal(url);
     return { action: "deny" };
   });
@@ -392,7 +396,7 @@ function createWindow(): BrowserWindow {
 }
 
 function windowTitle(): string {
-  return connection.mode === "remote" ? `Matchframe Esports — connected to ${new URL(connection.url).host}` : "Matchframe Esports";
+  return connection.mode === "remote" ? `MatchFrame Esports — connected to ${new URL(connection.url).host}` : "MatchFrame Esports";
 }
 
 function showConsole(): void {
@@ -468,7 +472,7 @@ async function saveCs2View(): Promise<void> {
 /** Operator API call on the local engine from the main process (desktop HUD outputs only). */
 async function engineRequest<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
   if (connection.mode !== "local") throw new Error("Desktop HUDs run on the production computer.");
-  if (!operatorToken) throw new Error("The Matchframe engine is still starting. Try again in a moment.");
+  if (!operatorToken) throw new Error("The MatchFrame engine is still starting. Try again in a moment.");
   let res: Response;
   try {
     res = await net.fetch(LOCAL_ENGINE + path, {
@@ -478,7 +482,7 @@ async function engineRequest<T>(method: "GET" | "POST", path: string, body?: unk
       signal: AbortSignal.timeout(10_000),
     });
   } catch (e) {
-    throw new Error(`Cannot reach the Matchframe engine on this computer: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+    throw new Error(`Cannot reach the MatchFrame engine on this computer: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
   }
   const data = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
   if (!res.ok) throw new Error(data?.message ?? data?.error ?? `The engine answered HTTP ${res.status}.`);
@@ -628,12 +632,12 @@ ipcMain.on("mf:hud-availability", (event) => {
 });
 ipcMain.handle("mf:open-data-dir", () => shell.openPath(dataDir()));
 // The highlight reels' folder: the one the engine says (a folder chosen under Storage), else its default
-// rule (the Videos folder's "Matchframe Highlights", else the data folder's).
+// rule (the Videos folder's "MatchFrame Highlights", else the data folder's).
 ipcMain.handle("mf:open-highlights", (event, folder: unknown) => {
   if (!fromApp(event) || connection.mode !== "local") return null;
   if (typeof folder === "string" && isAbsolute(folder) && existsSync(folder) && statSync(folder).isDirectory()) return shell.openPath(folder);
   const videos = videosDir();
-  const dir = videos ? join(videos, "Matchframe Highlights") : join(dataDir(), "exports", "highlights");
+  const dir = videos ? brandedFolder(videos, "MatchFrame Highlights") : join(dataDir(), "exports", "highlights");
   mkdirSync(dir, { recursive: true });
   return shell.openPath(dir);
 });
@@ -692,7 +696,7 @@ ipcMain.handle("mf:connection-test", async (event, args: { url: string; token: s
     if (me.role === "captain") return { ok: false, message: "That is a captain veto token; use an operator role token." };
     return { ok: true, origin, role: me.role, label: me.label ?? null };
   } catch (e) {
-    return { ok: false, message: `Cannot reach ${origin}: ${e instanceof Error ? e.message : String(e)}. Check that Matchframe runs there with MATCHFRAME_HOST set to its network address, and the firewall allows port ${new URL(origin).port || PORTS.api}.` };
+    return { ok: false, message: `Cannot reach ${origin}: ${e instanceof Error ? e.message : String(e)}. Check that MatchFrame runs there with MATCHFRAME_HOST set to its network address, and the firewall allows port ${new URL(origin).port || PORTS.api}.` };
   }
 });
 ipcMain.handle("mf:connection-save", (event, args: { mode: "local" } | { mode: "remote"; url: string; token: string }) => {
@@ -734,7 +738,7 @@ if (!app.requestSingleInstanceLock()) {
         {
           label: "File",
           submenu: [
-            { label: "Connection settings… (this computer or another Matchframe computer)", click: () => showConnectionSettings() },
+            { label: "Connection settings… (this computer or another MatchFrame computer)", click: () => showConnectionSettings() },
             { label: "Open data folder", click: () => void shell.openPath(dataDir()) },
             { type: "separator" },
             { role: "quit" },

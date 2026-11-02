@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { z } from "zod";
 
 /**
- * Built-in radar images (assets/radars, from Lexogrine's MIT CS2 HUD template) with their
+ * Built-in radar images (assets/radars, third-party MIT; see THIRD_PARTY_NOTICES.md) with their
  * world-to-image calibration. Image pixel = origin + world * pxPerU. Maps with two levels (Nuke,
  * Vertigo) draw both on one image; a position uses the layer whose zMin <= z < zMax.
  */

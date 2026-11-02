@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSyn
 import { join } from "node:path";
 import { z } from "zod";
 import type { Engine } from "../app.ts";
+import { existingName, legacySpelling } from "../brand.ts";
 import { HttpError } from "../http/router.ts";
 
 /**
@@ -21,8 +22,8 @@ export const ART_KINDS = {
 export type ArtKind = keyof typeof ART_KINDS;
 export const ArtKind = z.enum(Object.keys(ART_KINDS) as [ArtKind, ...ArtKind[]]);
 
-/** The OBS Stinger transitions Matchframe fills in (OBS can't create transitions over obs-websocket). */
-export const OBS_STINGERS = { stinger: "Matchframe Stinger", "stinger-replay": "Matchframe Replay Stinger" } as const;
+/** The OBS Stinger transitions MatchFrame fills in (OBS can't create transitions over obs-websocket). */
+export const OBS_STINGERS = { stinger: "MatchFrame Stinger", "stinger-replay": "MatchFrame Replay Stinger" } as const;
 /**
  * When OBS cuts to the next scene, in ms of the transition: late in the 400–1000 ms the stinger covers
  * the screen, since OBS starts the video a little late (see apps/operator-web/src/lib/match-art/draw.ts).
@@ -151,7 +152,7 @@ export class MatchArt {
   }
 
   /**
-   * Points OBS's "Matchframe Stinger" and "Matchframe Replay Stinger" transitions at this match's
+   * Points OBS's "MatchFrame Stinger" and "MatchFrame Replay Stinger" transitions at this match's
    * stingers (cut at 800 ms). The replay one becomes the transition into replays and back out of them
    * where none is chosen; with `useStinger` the plain one becomes OBS's current transition.
    */
@@ -161,7 +162,10 @@ export class MatchArt {
     const set: { kind: ArtKind; transition: string; confirmed: boolean }[] = [];
     const missing: string[] = [];
     const noFile: ArtKind[] = [];
-    for (const [kind, name] of Object.entries(OBS_STINGERS) as [ArtKind, string][]) {
+    // Transitions the operator made for 0.11.0 or earlier have the old spelling ("Matchframe Stinger").
+    const named = (want: string) => existingName(want, (n) => list.transitions.some((x) => x.name === n));
+    for (const [kind, want] of Object.entries(OBS_STINGERS) as [ArtKind, string][]) {
+      const name = named(want);
       const t = list.transitions.find((x) => x.name === name);
       if (!t || t.kind !== "obs_stinger_transition") {
         missing.push(name);
@@ -179,7 +183,7 @@ export class MatchArt {
     // (Replay out "the same as Replay in" follows Replay in).
     const auto = this.e.obsAuto.settings();
     if (set.some((s) => s.kind === "stinger-replay" && s.confirmed)) {
-      const name = OBS_STINGERS["stinger-replay"];
+      const name = set.find((s) => s.kind === "stinger-replay")!.transition;
       this.e.obsAuto.setSettings({ ...(auto.replayIn ? {} : { replayIn: name }), ...(auto.replayOut === "" ? { replayOut: name } : {}) });
     }
     const after = await this.e.obs.transitions();
@@ -194,7 +198,7 @@ export class MatchArt {
     try {
       if (!this.list(matchId).some((i) => i.kind === "stinger" || i.kind === "stinger-replay")) return;
       const names = (await this.e.obs.transitionKinds()).transitions.map((t) => t.name);
-      if (!Object.values(OBS_STINGERS).some((n) => names.includes(n))) return;
+      if (!Object.values(OBS_STINGERS).some((n) => names.includes(n) || names.includes(legacySpelling(n)))) return;
       await this.obsSetup(matchId);
     } catch (err) {
       this.e.logger.warn("match graphics: could not point the OBS stingers at the active match", { error: String(err) });

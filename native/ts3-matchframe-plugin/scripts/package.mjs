@@ -23,12 +23,12 @@ const platformOf = (file) => {
 };
 const platforms = binaries.map(platformOf);
 const ini = [
-  "Name = Matchframe Team Comms",
+  "Name = MatchFrame Team Comms",
   "Type = Plugin",
-  "Author = Matchframe Esports",
+  "Author = MatchFrame Esports",
   `Version = ${version}`,
   `Platforms = ${platforms.join(", ")}`,
-  'Description = "Sends each team member\'s voice, separately, to Matchframe Esports on this computer for a delayed broadcast and recording. Only the tabs Matchframe manages are captured; their microphones stay off and their sound is not played here."',
+  'Description = "Sends each team member\'s voice, separately, to MatchFrame Esports on this computer for a delayed broadcast and recording. Only the tabs MatchFrame manages are captured; their microphones stay off and their sound is not played here."',
   "",
 ].join("\r\n");
 

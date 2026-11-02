@@ -39,7 +39,7 @@ export interface Feature {
 
 /** The Observer's four modes, from "never moves the camera" to nade cameras. */
 export const OBSERVER_MODES: { id: string; name: string; icon: IconName; text: string; note: string }[] = [
-  { id: "off", name: "Off", icon: "stop", text: "Matchframe never moves the camera. Shot suggestions stay visible in Live Control for your observer to use.", note: "Uses no hours" },
+  { id: "off", name: "Off", icon: "stop", text: "MatchFrame never moves the camera. Shot suggestions stay visible in Live Control for your observer to use.", note: "Uses no hours" },
   { id: "observer", name: "Observer", icon: "director", text: "Does the observing: switches between player POVs automatically, following the action it anticipates.", note: "Uses auto-director hours on live matches" },
   { id: "cinematics", name: "Observer & Cinematics", icon: "camera", text: "Observing plus cinematic shots from static cameras you capture in Maps & Cameras: an establishing shot during freeze time, bomb plant and defuse shots, and overviews of big fights.", note: "Same hourly rate as Observer" },
   { id: "full-action", name: "Full Action Observer", icon: "grenade", text: "Everything above plus nade cameras: static cameras that catch smokes, flashes, molotovs and incendiaries, and HE grenades as they land.", note: "Same hourly rate · top plan only" },
@@ -113,7 +113,7 @@ function ModeComparison() {
 
 export const EARLY_ACCESS = (
   <>
-    Matchframe is in early access. The program is built and tested with synthetic Game State Integration data, a labelled simulation, real OBS and real CS2 demos, and its Windows installer is smoke-tested. Real CS2 telemetry ingest and real observer camera control haven't yet been verified on a real CS2 client, so test your setup with the in-program checklist before a live match.
+    MatchFrame is in early access. The program is built and tested with synthetic Game State Integration data, a labelled simulation, real OBS and real CS2 demos, and its Windows installer is smoke-tested. Real CS2 telemetry ingest and real observer camera control haven't yet been verified on a real CS2 client, so test your setup with the in-program checklist before a live match.
   </>
 );
 
@@ -126,7 +126,7 @@ export const FEATURES: Feature[] = [
     tagline: "Broadcast graphics as OBS browser sources, published like software.",
     summary: "Every HUD output is an OBS browser source with its own URL and access token. Pick a built-in preset, adjust it in the Composer, publish when it's ready and roll back instantly.",
     highlights: ["Classic, Minimal and Arena presets with nine variants", "Draft, publish and roll back each output", "Import your own HUD packages"],
-    shot: { name: "huds-outputs", alt: "The HUDs & Composer screen: a list of outputs, the draft settings of the main program HUD and a preview of the published HUD.", caption: "HUDs & Composer: outputs, drafts and live preview. Simulated match data." },
+    shot: { name: "huds-outputs", alt: "The HUD Library's Broadcast outputs: a list of outputs, the draft settings of the main program HUD and a preview of the published HUD.", caption: "Broadcast outputs: outputs, drafts and live preview. Simulated match data." },
     what: (
       <>
         <p>The program serves your graphics as browser sources for OBS. Each output (for example the main programme HUD, a clean feed or a preview) has its own URL and token, a draft revision you edit and a published revision that's on air.</p>
@@ -155,7 +155,7 @@ export const FEATURES: Feature[] = [
     nav: "Observer",
     icon: "director",
     tagline: "Automatic observing that explains itself, with the operator always in charge.",
-    summary: "The Observer is Matchframe's auto director. It switches player POVs, adds cinematic shots from your static cameras and, on the top plan, catches the utility with nade cameras. Choose one of four modes, take the camera back at any moment and stop everything with one key.",
+    summary: "The Observer is MatchFrame's auto director. It switches player POVs, adds cinematic shots from your static cameras and, on the top plan, catches the utility with nade cameras. Choose one of four modes, take the camera back at any moment and stop everything with one key.",
     highlights: ["Off, Observer, Observer & Cinematics and Full Action Observer", "Sticky manual takeover and emergency stop", "Starts disarmed every time"],
     shot: { name: "live-control", alt: "Live Control: player cards for both teams, the Observer mode selector (Off, Observer, Observer & Cinematics, Full Action Observer), operator controls and the reasons for the current shot.", caption: "Live Control with the Observer armed in Observer & Cinematics: the mode selector, the reasons for the current shot and operator actions. Simulated match data." },
     what: (
@@ -224,10 +224,10 @@ export const FEATURES: Feature[] = [
     tagline: "One verified control channel to the CS2 observer client.",
     summary: "The program moves the observer camera through a direct console connection or keyboard input, behind a single-writer control arbiter. Automatic control stays blocked until the in-program setup tests pass on your client.",
     highlights: ["Single-writer control arbiter", "Setup tests before any automation", "Operator-validated cinematic and nade cameras"],
-    shot: { name: "maps-cameras", alt: "The Maps & Cameras screen: map packs, a schematic outline of Inferno with named regions and the list of cameras for the map.", caption: "Maps & Cameras: map regions and operator-validated cameras." },
+    shot: { name: "maps-cameras", alt: "The Maps & cameras screen: the camera walkthrough, the map packs with their cameras, and a map's schematic outline with named regions.", caption: "Maps & cameras: map regions and operator-validated cameras." },
     what: (
       <>
-        <p>Game State Integration carries telemetry only; it can't move the camera. Matchframe uses a separate control channel:</p>
+        <p>Game State Integration carries telemetry only; it can't move the camera. MatchFrame uses a separate control channel:</p>
         <ul>
           <li>
             <strong>Direct console:</strong> the program starts CS2 with the <code>-tools -netconport</code> launch options (Start CS2, Observer tools mode; needs the free CS2 Workshop Tools) and connects to its console on this computer.
@@ -285,7 +285,7 @@ export const FEATURES: Feature[] = [
     status: <>All six types are covered by real demo evidence. Per-type support in a live GSI feed hasn't been verified yet; GSI reports Molotov and incendiary under one name, so that pair is marked partial.</>,
     faqs: [
       { q: "Does tracking work on every map?", a: <p>Tracking works from the game data on any map. Map packs, which add named regions and floor levels for smarter direction, currently exist for Ancient, Anubis, Inferno and Overpass.</p> },
-      { q: "Can the HUD show grenade damage?", a: <p>No. The game's live feed doesn't include damage or impact events, and Matchframe never presents estimates as facts.</p> },
+      { q: "Can the HUD show grenade damage?", a: <p>No. The game's live feed doesn't include damage or impact events, and MatchFrame never presents estimates as facts.</p> },
     ],
   },
   {
@@ -326,7 +326,7 @@ export const FEATURES: Feature[] = [
     tagline: "Events, vetoes, sponsors, standings and brackets in one place.",
     summary: "Keep events, teams, players, series and the running order in the program. Captains veto from their own links, sponsors rotate in safe windows, and standings and brackets feed your studio graphics.",
     highlights: ["Veto with captain links and full history", "Sponsor rotation with delivery acknowledgements", "Standings and single-elimination brackets"],
-    shot: { name: "matches-veto", alt: "The Matches & Veto screen with a veto board of bans, picks and side choices, the result and an audited history.", caption: "Veto with captain links and an audited history. Simulated teams." },
+    shot: { name: "matches-veto", alt: "The match editor: both teams with their logos and series score, the format and date on the left, and the map veto of bans, picks, the decider and side choices on the right.", caption: "Match setup with the map veto, side choices and reversed sides. Simulated teams." },
     what: (
       <>
         <ul>
@@ -356,7 +356,7 @@ export const FEATURES: Feature[] = [
     highlights: ["Role-scoped tokens per position", "The console is never served to browsers", "Stream Deck and Companion control surface"],
     what: (
       <>
-        <p>A typical split is an observer PC running the CS2 observer client, a production PC running OBS and Matchframe, and optional extra positions.</p>
+        <p>A typical split is an observer PC running the CS2 observer client, a production PC running OBS and MatchFrame, and optional extra positions.</p>
         <ul>
           <li>Extra positions install the same program and connect to the production computer. They run no engine of their own and see the console with their token's permissions.</li>
           <li>Each position gets its own role-scoped token (for example observer or producer); tokens are stored encrypted with the Windows credential store.</li>

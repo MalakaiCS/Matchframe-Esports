@@ -1,6 +1,6 @@
 # Map × utility coverage
 
-What Matchframe can track, predict and show per map, grenade type and area, and the evidence behind each claim. Status words follow FEATURE_COVERAGE.md. "Live" means a real CS2 GSI feed; no real GSI feed or CS2 client was available while building this release, so **every live telemetry cell is `unverified`** until the setup checklist records a real capture.
+What MatchFrame can track, predict and show per map, grenade type and area, and the evidence behind each claim. Status words follow FEATURE_COVERAGE.md. "Live" means a real CS2 GSI feed; no real GSI feed or CS2 client was available while building this release, so **every live telemetry cell is `unverified`** until the setup checklist records a real capture.
 
 ## 1. Map packs and profiles (generated)
 

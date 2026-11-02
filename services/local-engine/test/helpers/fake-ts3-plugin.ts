@@ -5,7 +5,7 @@ import { encodeAudio, encodeFrame, encodeJson, FrameReader, MsgType } from "../.
  * A stand-in for the TeamSpeak plugin (native/ts3-matchframe-plugin) speaking the bridge's wire
  * format, for fixture tests: it is not evidence of TeamSpeak capture. Like the real plugin it says
  * HELLO with the token, reports connections (tabs) and who is in their channel, answers pings with
- * its own clock, and sends a tab's audio only once Matchframe told it to capture that tab.
+ * its own clock, and sends a tab's audio only once MatchFrame told it to capture that tab.
  *
  * Its clock is `pluginUs()`: the test's simulated time (ms) plus an offset, optionally drifting.
  */
@@ -66,7 +66,7 @@ export class FakeTs3Plugin {
         if (this.socket === s) this.socket = null;
       });
     });
-    this.send(encodeJson(MsgType.HELLO, { token, protocol: 1, instance: this.opts.instance ?? "fake-instance", plugin: { name: "Matchframe Team Comms (stand-in)", version: "test", apiVersion: 26 }, ts3: { clientLibVersion: "stand-in", clientLibVersionNumber: 0 }, platform: "test", clock: { nowUs: this.pluginUs() } }));
+    this.send(encodeJson(MsgType.HELLO, { token, protocol: 1, instance: this.opts.instance ?? "fake-instance", plugin: { name: "MatchFrame Team Comms (stand-in)", version: "test", apiVersion: 26 }, ts3: { clientLibVersion: "stand-in", clientLibVersionNumber: 0 }, platform: "test", clock: { nowUs: this.pluginUs() } }));
   }
 
   get connected(): boolean {
@@ -77,7 +77,7 @@ export class FakeTs3Plugin {
   kill(): void {
     this.socket?.destroy();
     this.socket = null;
-    // The real plugin stops capturing until Matchframe says so again.
+    // The real plugin stops capturing until MatchFrame says so again.
     for (const [k, m] of this.managed) this.managed.set(k, { ...m, capture: false });
   }
 
@@ -182,7 +182,7 @@ export class FakeTs3Plugin {
     if (c) this.send(encodeJson(MsgType.EVENT, { type: "client", schid, change: "leave", client: { ...c, channelId: 0 } }));
   }
 
-  /** Is this tab captured (Matchframe said so)? The real plugin sends nothing otherwise. */
+  /** Is this tab captured (MatchFrame said so)? The real plugin sends nothing otherwise. */
   capturing(schid: number): boolean {
     return !!this.managed.get(schid)?.capture && this.tabs.get(schid)?.status === 4;
   }

@@ -191,13 +191,13 @@ export function HighlightsOnAirPanel() {
         <p className="muted small">Between highlights: the fade (or cut) and the speed of automatic replays. With Fade (one scene, rendered), the default, they are joined into one file first (Preparing highlights… shows how far), the sound fading in and out, and play in the highlights scene alone. The live game audio picked under Automatic replays → Sound is turned down meanwhile and put back after.</p>
 
         <Hotkeys keys={HIGHLIGHT_KEYS} label="Highlights hotkeys" devices={`the device actions highlights_play, highlights_stop and highlights_halftime (Don't show highlights at halftime: on, off or toggle); Skip and Hold are replay_skip and replay_hold (${shortcutLabel("F5")}, ${shortcutLabel("F6")})`} />
-        <p className="muted small">Not while a round is live. If a round goes live while they play (halftime over), they play on until the replays' cut back on its clock, then the live scene. If you switch OBS to another scene meanwhile, they stop and Matchframe leaves it there.</p>
+        <p className="muted small">Not while a round is live. If a round goes live while they play (halftime over), they play on until the replays' cut back on its clock, then the live scene. If you switch OBS to another scene meanwhile, they stop and MatchFrame leaves it there.</p>
       </div>
     </Panel>
   );
 }
 
-/** The highlights scene: one click to make Matchframe's, or your own scene and its media source; what's ready. */
+/** The highlights scene: one click to make MatchFrame's, or your own scene and its media source; what's ready. */
 function HighlightsScene({ data, onDone, reload }: { data: HighlightsAirResponse | null; onDone: (r: HighlightsAirResponse) => void; reload: () => void }) {
   const setupReason = usePermission("settings.manage");
   const obs = useApi<{ state: ObsState }>("/api/v1/obs", { refreshMs: 5000 });
@@ -240,7 +240,7 @@ function HighlightsScene({ data, onDone, reload }: { data: HighlightsAirResponse
         >
           Set up OBS highlights scene
         </ActionButton>
-        <span className="muted small">Adds a “Matchframe Highlights” scene with a media source (set like the replay scene's), the replay graphic on top (the same source as in the replay scene), and a second one beside it for fading between highlights.</span>
+        <span className="muted small">Adds a “MatchFrame Highlights” scene with a media source (set like the replay scene's), the replay graphic on top (the same source as in the replay scene), and a second one beside it for fading between highlights.</span>
       </div>
       <Details summary="Or use your own scene">
         <div className="form-grid">
@@ -280,7 +280,7 @@ function HighlightsScene({ data, onDone, reload }: { data: HighlightsAirResponse
             <Badge tone={setup.sceneReady ? "ok" : "neutral"}>{setup.sceneReady ? "Scene ready" : "Scene not ready"}</Badge> {setup.scene ? `“${setup.scene}” with “${setup.input ?? "?"}”` : "None yet"}
           </li>
           <li>
-            <Badge tone={twin?.ready ? "ok" : "neutral"}>{twin?.ready ? "Twin ready" : "No twin yet"}</Badge> {twin ? (twin.ready ? `Fades through “${twin.scene}”${setup.sameAsReplay ? " (the replay scene's)" : ""}: leave it to Matchframe.` : twin.detail) : "Made with the scene."}
+            <Badge tone={twin?.ready ? "ok" : "neutral"}>{twin?.ready ? "Twin ready" : "No twin yet"}</Badge> {twin ? (twin.ready ? `Fades through “${twin.scene}”${setup.sameAsReplay ? " (the replay scene's)" : ""}: leave it to MatchFrame.` : twin.detail) : "Made with the scene."}
           </li>
           <li>
             <Badge tone={graphic?.onTop ? "ok" : "neutral"}>{graphic?.onTop ? "Graphic on top" : graphic?.inScene ? "Graphic not on top" : "No graphic"}</Badge> {graphic ? (graphic.inScene ? (graphic.onTop ? `“${graphic.source}” over the clips.` : "Move it to the top of the scene in OBS.") : "Press Add the replay graphic.") : ""}

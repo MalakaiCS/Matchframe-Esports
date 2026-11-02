@@ -117,7 +117,7 @@ function toShotCandidate(c: ScoredCandidate): ShotCandidate {
 }
 
 /**
- * Matchframe Director (baseline-1). Deterministic, explainable, bounded-latency. Prediction
+ * MatchFrame Director (baseline-1). Deterministic, explainable, bounded-latency. Prediction
  * (interaction features), editorial value (candidate scoring), temporal planning (planner) and
  * camera control (arbiter, outside this class) are separate stages.
  */

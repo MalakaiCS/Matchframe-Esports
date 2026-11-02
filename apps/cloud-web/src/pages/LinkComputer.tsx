@@ -25,7 +25,7 @@ function CodeEntry({ initial = "", autoFocus = false }: { initial?: string; auto
     e.preventDefault();
     const c = normalizeCode(code);
     if (!CODE_RE.test(c)) {
-      setError("Enter the 8-letter code shown in the Matchframe program, like BCDF-GHJK.");
+      setError("Enter the 8-letter code shown in the MatchFrame program, like BCDF-GHJK.");
       return;
     }
     setError(null);
@@ -34,7 +34,7 @@ function CodeEntry({ initial = "", autoFocus = false }: { initial?: string; auto
   return (
     <form onSubmit={submit} noValidate className="form code-form">
       <TextField
-        label="Code from the Matchframe program"
+        label="Code from the MatchFrame program"
         name="code"
         value={code}
         onValue={(v) => setCode(normalizeCode(v))}
@@ -147,7 +147,7 @@ function Pending({ code, preview, orgs, verified, onOutcome, onInvalid }: { code
           </dd>
         </div>
       </dl>
-      <p className="small muted">Only approve if this is your computer and the code matches the one shown in the Matchframe program.</p>
+      <p className="small muted">Only approve if this is your computer and the code matches the one shown in the MatchFrame program.</p>
 
       <fieldset className="org-pick">
         <legend id={groupId}>Link it to</legend>
@@ -240,7 +240,7 @@ export function LinkComputer() {
       {outcome?.kind === "approved" && (
         <Card>
           <Alert tone="ok" title={`${outcome.deviceName} is approved`}>
-            Return to the Matchframe program: it finishes linking within a few seconds and then uses the {outcome.orgName} plan.
+            Return to the MatchFrame program: it finishes linking within a few seconds and then uses the {outcome.orgName} plan.
           </Alert>
           <p className="button-row">
             <Link className="btn btn-primary" to={`/orgs/${encodeURIComponent(outcome.orgId)}/computers`}>
@@ -265,7 +265,7 @@ export function LinkComputer() {
       {!outcome && raw && !valid && (
         <>
           <Alert tone="danger" title="That doesn't look like a link code">
-            Codes have 8 letters, like BCDF-GHJK. Check the code in the Matchframe program.
+            Codes have 8 letters, like BCDF-GHJK. Check the code in the MatchFrame program.
           </Alert>
           <Card title="Enter the code">
             <CodeEntry initial={code} autoFocus />
@@ -276,7 +276,7 @@ export function LinkComputer() {
         <Card title="Enter the code">
           <ol className="plain-steps">
             <li>
-              In the Matchframe program open <strong>Settings → Account</strong> and choose <strong>Sign in with a code</strong>.
+              In the MatchFrame program open <strong>Settings → Account</strong> and choose <strong>Sign in with a code</strong>.
             </li>
             <li>Type the code it shows below (or click the link the program opens, which fills it in).</li>
           </ol>

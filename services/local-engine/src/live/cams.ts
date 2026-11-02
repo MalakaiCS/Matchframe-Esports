@@ -9,10 +9,10 @@ import type { Logger } from "../logger.ts";
 
 /**
  * Player cams (ADR-048), the program's side. While switched on and signed in, the program hosts a
- * room on the Matchframe website (`/v1/cams/host`); players open the room's link, pick themselves
+ * room on the MatchFrame website (`/v1/cams/host`); players open the room's link, pick themselves
  * and send their camera, and the website relays the encoded video here. Each player's video is
  * kept in a buffer and played out `delayMs` later (to match a CSTV delay), to:
- * - HUDs (LHM-format HUDs through their camera protocol, Matchframe HUDs) and the OBS cam pages, over
+ * - HUDs (imported hud.json-format HUDs through their camera protocol, MatchFrame HUDs) and the OBS cam pages, over
  *   `/cams-ws` on the HUD server: only cams that are on air (approved and not hidden), delayed;
  * - the operator's Player cams screen, over `/api/v1/cams/ws`: every cam, as it arrives.
  * Local consumers decode with WebCodecs (hud-runtime cams.js).
@@ -171,7 +171,7 @@ export class CamHub {
     this.deps.settings.set(SETTINGS_KEY, next);
   }
 
-  /** The token OBS cam pages and Matchframe's own pages use on `/cams-ws`. */
+  /** The token OBS cam pages and MatchFrame's own pages use on `/cams-ws`. */
   token(): string {
     let t = this.deps.settings.get<string | null>(TOKEN_KEY, null);
     if (!t) {

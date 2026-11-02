@@ -16,7 +16,7 @@ export const DIRECTOR_MODES = Object.keys(MODE_INFO) as DirectorMode[];
 
 /** The Observer (auto director) modes the operator chooses from, in order. */
 export const OBSERVER_MODE_INFO: Record<ObserverMode, { label: string; hint: string; topPlan?: true }> = {
-  off: { label: "Off", hint: "Matchframe never moves the camera. Shot suggestions stay visible here. Uses no hours." },
+  off: { label: "Off", hint: "MatchFrame never moves the camera. Shot suggestions stay visible here. Uses no hours." },
   observer: { label: "Observer", hint: "Switches between player POVs automatically." },
   observer_cinematics: { label: "Observer & Cinematics", hint: "POV observing plus cinematic static cameras: an establishing shot in freeze time, the bomb at plant and defuse, and overviews of big fights (cameras from Maps & Cameras)." },
   full_action: { label: "Full Action Observer", hint: "Everything in Observer & Cinematics plus nade cameras that catch smokes, flashes, molotovs and HE grenades as they land.", topPlan: true },

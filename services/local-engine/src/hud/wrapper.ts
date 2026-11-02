@@ -33,7 +33,7 @@ export function wrapperPage(o: WrapperPageOptions): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(o.name)} - Matchframe HUD</title>
+<title>${esc(o.name)} - MatchFrame HUD</title>
 <style>
 html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
 #mf-stage { position: absolute; left: 0; top: 0; z-index: 1; transform-origin: 0 0; }
@@ -68,7 +68,7 @@ ${o.testDataBadge ? '<div id="mf-test">TEST DATA</div>' : ""}
  *   only); window.__mfOverlay.status() reports the state for automated checks;
  * - times its own frames (the HUD frame shares its main thread) and reports every 5 s how smoothly
  *   it draws where it runs: frames a second, the longest pause, pauses over 100 ms, and how long its
- *   tasks wait (an LHM HUD that can't keep up gets fewer game-data updates).
+ *   tasks wait (an imported HUD that can't keep up gets fewer game-data updates).
  */
 export const WRAPPER_JS = String.raw`(function () {
   "use strict";

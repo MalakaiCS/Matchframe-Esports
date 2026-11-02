@@ -1,7 +1,7 @@
 /**
  * Match graphics drawn on a canvas: YouTube-style thumbnails (1280×720), an "Up next" screen
  * (1920×1080) and the frames of the two stinger transitions (1920×1080 with transparency). Original
- * Matchframe designs: team-colour panels, logo cards with name bars, a big two-tone headline.
+ * MatchFrame designs: team-colour panels, logo cards with name bars, a big two-tone headline.
  */
 
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;

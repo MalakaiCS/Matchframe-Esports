@@ -64,7 +64,7 @@ export function renderWithSession(ui: ReactNode, me: Me | null) {
 export const err = (status: number, error: string, message: string, detail: unknown = null): FakeReply => ({ status, body: { error, message, detail } });
 
 /** Public company details as GET /v1/site returns them. */
-export const SITE = { companyName: "Northlight Media Ltd", websiteName: "Matchframe", supportEmail: "help@example.com", address: "1 Example Street, Example City", jurisdiction: "England and Wales", legalEffectiveDate: "2026-10-01" };
+export const SITE = { companyName: "Northlight Media Ltd", websiteName: "MatchFrame", supportEmail: "help@example.com", address: "1 Example Street, Example City", jurisdiction: "England and Wales", legalEffectiveDate: "2026-10-01" };
 
 /** A staff member (support or admin). */
 export function makeStaff(role: "support" | "admin", over: Partial<Me["user"]> = {}): Me {

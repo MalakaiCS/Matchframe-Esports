@@ -60,7 +60,7 @@ describe("link page", () => {
     renderWithSession(<LinkComputer />, makeMe());
     fireEvent.click(await screen.findByRole("button", { name: "Approve and link" }));
     await screen.findByText("OBSERVER-01 is approved");
-    expect(screen.getByText(/Return to the Matchframe program/)).toBeTruthy();
+    expect(screen.getByText(/Return to the MatchFrame program/)).toBeTruthy();
     expect(f.calls.find((c) => c.method === "POST")!.body).toEqual({ userCode: "BCDF-GHJK", orgId: "org_1" });
     expect(screen.getByRole("link", { name: "See linked computers" }).getAttribute("href")).toBe("/orgs/org_1/computers");
   });
@@ -80,7 +80,7 @@ describe("link page", () => {
     routes({ "GET /v1/device-link/BCDF-GHJK": err(404, "invalid_code", "this code is invalid or expired; start linking again in the desktop app") });
     renderWithSession(<LinkComputer />, makeMe());
     await screen.findByText("This code can't be used");
-    const input = screen.getByLabelText("Code from the Matchframe program") as HTMLInputElement;
+    const input = screen.getByLabelText("Code from the MatchFrame program") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "zzzzqqqq" } });
     expect(input.value).toBe("ZZZZ-QQQQ");
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
@@ -137,7 +137,7 @@ describe("link page", () => {
     at("/link");
     const f = routes();
     renderWithSession(<LinkComputer />, makeMe());
-    expect(screen.getByLabelText("Code from the Matchframe program")).toBeTruthy();
+    expect(screen.getByLabelText("Code from the MatchFrame program")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByText(/Enter the 8-letter code/)).toBeTruthy();
     expect(f.calls).toHaveLength(0);

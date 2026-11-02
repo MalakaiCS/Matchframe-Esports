@@ -8,7 +8,7 @@ import { BLOCK } from "./mixer.ts";
 import type { StripSettings } from "./strip.ts";
 
 /**
- * The recording's timing test (ADR-069; phase 4 left it for phase 5): Matchframe puts a short beep
+ * The recording's timing test (ADR-069; phase 4 left it for phase 5): MatchFrame puts a short beep
  * into the recording comms and lights every card of the speaker strip on the same 10 ms block, five
  * times a second apart, while the dedicated recording records. In the finished file (ffmpeg, as the
  * replays use it) it finds each beep's start in the sound and each flash's first frame in the strip's

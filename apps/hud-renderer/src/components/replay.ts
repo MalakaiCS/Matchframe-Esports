@@ -5,7 +5,7 @@ import { REPLAY_GRAPHIC_OFF, ReplayGraphicSequencer } from "@matchframe/hud-sdk"
 /**
  * The replay graphic's tag and lower third for the clip on air (`state.replay.clip`), timed by the
  * HUD SDK's sequencer: in a moment after a clip starts, swapped per clip, out when the replays end.
- * Shared by Matchframe's HUDs (the Vector and Lineup HUDs import it).
+ * Shared by MatchFrame's HUDs (the Vector and Lineup HUDs import it).
  */
 export function useReplayGraphic(clip: HudReplayClip | null): ReplayGraphicView {
   const [view, setView] = useState<ReplayGraphicView>(REPLAY_GRAPHIC_OFF);

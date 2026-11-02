@@ -10,7 +10,7 @@ type Reload = () => void;
 
 /**
  * The comms delay against the observer's gameplay (ADR-068): a player calls "mark" at a visible
- * moment; Matchframe takes the call's start from their own TeamSpeak stream (exact); the operator
+ * moment; MatchFrame takes the call's start from their own TeamSpeak stream (exact); the operator
  * presses Seen when the moment shows in the gameplay in OBS. The median of a few marks, less the
  * reaction time and the comms' path to OBS, is the suggested delay. The recording file is the check.
  */
@@ -40,7 +40,7 @@ export function CalibrationPanel({ view, onChanged }: { view: CommsView; onChang
       <div className="stack-sm">
         <ol className="small comms-steps">
           <li className={step === 1 ? "is-current" : ""}>Choose the team, ask a player to say a short “mark!” (or clap) exactly as they do something you will see: a shot, a flash popping, a jump. Press Arm just before.</li>
-          <li className={step === 2 ? "is-current" : ""}>Matchframe takes the start of the call from that player's own TeamSpeak sound (to 7.5 ms).</li>
+          <li className={step === 2 ? "is-current" : ""}>MatchFrame takes the start of the call from that player's own TeamSpeak sound (to 7.5 ms).</li>
           <li className={step === 3 ? "is-current" : ""}>Watch the observer's gameplay in OBS (program, preview or the recording scene). Press Seen the moment it happens there.</li>
           <li>Three to five marks; use the suggested delay; then check one recording and fine-tune the milliseconds.</li>
         </ol>
@@ -104,7 +104,7 @@ export function CalibrationPanel({ view, onChanged }: { view: CommsView; onChang
 
 /**
  * The timing test in a recording (ADR-069): beeps in the recording comms with every strip card lit on
- * the same blocks; Matchframe finds both in the finished file and suggests the strip's timing offset
+ * the same blocks; MatchFrame finds both in the finished file and suggests the strip's timing offset
  * (and the fine ms, when the delay is the marks' suggestion).
  */
 function TimingTest({ view, test, onChanged }: { view: CommsView; test: TimingTestStatus; onChanged: Reload }) {
@@ -120,7 +120,7 @@ function TimingTest({ view, test, onChanged }: { view: CommsView; test: TimingTe
         <li>
           Press Run timing test: {test.beep.count} beeps ({test.beep.hz} Hz, {test.beep.ms} ms, one a second) in the recording comms only, every card lit on the same moments. Never on the public output.
         </li>
-        <li>Stop the recording, then Find it in the recording: Matchframe reads the file with ffmpeg.</li>
+        <li>Stop the recording, then Find it in the recording: MatchFrame reads the file with ffmpeg.</li>
       </ol>
       <div className="row">
         <ActionButton disabledReason={reason ?? (!recording ? "Start the dedicated recording first" : cards < 1 ? "The strip shows nobody: include someone in the recording" : test.running ? "Running" : null)} action={() => api.post<TimingTestStatus>("/api/v1/comms/timing-test/start")} onDone={onChanged} success="Beeps on their way to the recording">

@@ -72,14 +72,14 @@ export function BridgePanel({ view, onChanged }: { view: CommsView; onChanged: R
   };
   const b = view.bridge;
   return (
-    <Panel title="Bridge and TeamSpeak plugin" subtitle="The Matchframe Team Comms plugin in TeamSpeak 3 hands each person's voice to Matchframe on this computer." actions={<Badge tone={b.state === "listening" ? (b.sessions ? "ok" : "warn") : b.state === "error" ? "danger" : "neutral"}>{b.state === "listening" ? (b.sessions ? `${b.sessions} plugin${b.sessions > 1 ? "s" : ""} connected` : "Waiting for the plugin") : b.state === "error" ? "Bridge error" : "Off"}</Badge>}>
+    <Panel title="Bridge and TeamSpeak plugin" subtitle="The MatchFrame Team Comms plugin in TeamSpeak 3 hands each person's voice to MatchFrame on this computer." actions={<Badge tone={b.state === "listening" ? (b.sessions ? "ok" : "warn") : b.state === "error" ? "danger" : "neutral"}>{b.state === "listening" ? (b.sessions ? `${b.sessions} plugin${b.sessions > 1 ? "s" : ""} connected` : "Waiting for the plugin") : b.state === "error" ? "Bridge error" : "Off"}</Badge>}>
       <div className="stack-sm">
         <Checkbox checked={view.enabled} disabled={!!reason} label="Team Comms on" hint="Off: nothing listens for the plugin, and no comms output runs." onChange={(v) => void toggle(v)} />
         {b.error ? <Note tone="danger">{b.error}</Note> : null}
         <KV
           items={[
             ["Bridge", b.port ? `127.0.0.1:${b.port} (this computer only)` : "—"],
-            ["Token", "Kept in Matchframe's secure settings; the plugin reads it from the bridge file below. Never shown here."],
+            ["Token", "Kept in MatchFrame's secure settings; the plugin reads it from the bridge file below. Never shown here."],
             ["Bridge file", <Mono key="f">{b.file}</Mono>],
             ...b.plugins.map((p) => [`Plugin ${p.instance.slice(0, 8)}`, `${p.plugin?.name ?? "plugin"} ${p.plugin?.version ?? ""} (API ${p.plugin?.apiVersion ?? "?"}) · TeamSpeak ${p.ts3?.clientLibVersion ?? "?"} · ${p.platform ?? "?"}`] as [string, string]),
           ]}
@@ -107,7 +107,7 @@ export function BridgePanel({ view, onChanged }: { view: CommsView; onChanged: R
                     ) : (
                       <span className="muted">{t.released ? "Not a team tab (handed back to TeamSpeak)" : "Not a team tab"}</span>
                     )}
-                    {t.restoredByPlugin ? <div className="muted">Kept listen-only and silent by the plugin before Matchframe asked: it remembers the team tabs across a TeamSpeak restart.</div> : null}
+                    {t.restoredByPlugin ? <div className="muted">Kept listen-only and silent by the plugin before MatchFrame asked: it remembers the team tabs across a TeamSpeak restart.</div> : null}
                   </td>
                 </tr>
               ))}
@@ -122,9 +122,9 @@ export function BridgePanel({ view, onChanged }: { view: CommsView; onChanged: R
         <Details summary="Install the TeamSpeak plugin">
           <ol className="small comms-steps">
             <li>Close TeamSpeak 3. Double-click <Mono>matchframe-team-comms.ts3_plugin</Mono> (in the program's <Mono>resources\ts3-plugin</Mono> folder), or copy the DLL into <Mono>%APPDATA%\TS3Client\plugins\</Mono>.</li>
-            <li>Start TeamSpeak 3: Tools → Options → Add-ons → <em>Matchframe Team Comms</em> enabled.</li>
-            <li>Connect one tab to each team's channel: open each team's TeamSpeak link below in TeamSpeak (or a bookmark per team with Connect on startup). On a default server, give the second tab its own identity (Tools → Identities). The plugin remembers the team tabs: after a TeamSpeak restart they are listen-only and silent here before Matchframe even answers.</li>
-            <li>Set each team's server and channel below. Matchframe takes over those two tabs: microphone off, sound silent on this computer, each person captured.</li>
+            <li>Start TeamSpeak 3: Tools → Options → Add-ons → <em>MatchFrame Team Comms</em> enabled.</li>
+            <li>Connect one tab to each team's channel: open each team's TeamSpeak link below in TeamSpeak (or a bookmark per team with Connect on startup). On a default server, give the second tab its own identity (Tools → Identities). The plugin remembers the team tabs: after a TeamSpeak restart they are listen-only and silent here before MatchFrame even answers.</li>
+            <li>Set each team's server and channel below. MatchFrame takes over those two tabs: microphone off, sound silent on this computer, each person captured.</li>
           </ol>
         </Details>
         {view.slots.map((s) => (
@@ -209,7 +209,7 @@ export function OutputsPanel({ view, onChanged }: { view: CommsView; onChanged: 
   };
   const st = o.stats;
   return (
-    <Panel title="Public output to OBS (NDI)" subtitle="Audio only, sent by Matchframe. OBS takes it with DistroAV; its silence when no listen-in is open is Matchframe's, not an OBS mute." actions={<Badge tone={o.state === "running" ? "ok" : o.state === "error" ? "danger" : o.state === "starting" ? "info" : "neutral"}>{o.state === "running" ? "Sending" : o.state === "error" ? "Not sending" : o.state === "starting" ? "Starting" : "Off"}</Badge>}>
+    <Panel title="Public output to OBS (NDI)" subtitle="Audio only, sent by MatchFrame. OBS takes it with DistroAV; its silence when no listen-in is open is MatchFrame's, not an OBS mute." actions={<Badge tone={o.state === "running" ? "ok" : o.state === "error" ? "danger" : o.state === "starting" ? "info" : "neutral"}>{o.state === "running" ? "Sending" : o.state === "error" ? "Not sending" : o.state === "starting" ? "Starting" : "Off"}</Badge>}>
       <div className="stack-sm">
         <p className="small">{o.detail}</p>
         <KV

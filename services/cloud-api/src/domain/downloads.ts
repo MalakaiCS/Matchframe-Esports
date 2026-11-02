@@ -3,8 +3,12 @@ import { createReadStream, existsSync, readdirSync, statSync } from "node:fs";
 import type { ServerResponse } from "node:http";
 import { basename, join } from "node:path";
 
-/** Windows installers published from MF_DOWNLOAD_DIR: `MatchframeEsports-Setup-<version>.exe`. */
-const INSTALLER = /^MatchframeEsports-Setup-(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)\.exe$/;
+/**
+ * Windows installers published from MF_DOWNLOAD_DIR: `MatchFrameEsports-Setup-<version>.exe`, or
+ * `MatchframeEsports-Setup-<version>.exe` as 0.11.0 and earlier were named (a download folder can
+ * still hold those).
+ */
+const INSTALLER = /^Match[Ff]rameEsports-Setup-(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)\.exe$/;
 
 export interface LocalDownload {
   file: string;

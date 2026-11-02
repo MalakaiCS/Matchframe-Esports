@@ -1,6 +1,7 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-// The weapon silhouettes for the killfeed are the Pro CS2 HUD's icon set (Lexogrine, MIT), rendered
+// The weapon silhouettes for the killfeed are the Pro CS2 HUD's icon set (third-party MIT, see
+// public/third-party-licenses and THIRD_PARTY_NOTICES.md), rendered
 // inline with the same small SVG plugin.
 import { svgComponent } from "../hud-template/svg-plugin.ts";
 

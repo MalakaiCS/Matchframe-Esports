@@ -11,7 +11,7 @@ import type { Logger } from "../logger.ts";
  * Start CS2 from the program, and CS2's console while it runs.
  *
  * - standard: CS2 through Steam with the GSI config in place. Game data only.
- * - tools: adds `-tools -netconport <port>` (needs the free CS2 Workshop Tools). Matchframe connects
+ * - tools: adds `-tools -netconport <port>` (needs the free CS2 Workshop Tools). MatchFrame connects
  *   to the game's console on loopback for camera control and the console options below.
  * - hlae: the same through HLAE (advancedfx) with `-insecure`, which adds HLAE's console commands
  *   (no flash, killfeed colours, no end-of-match scene). Insecure clients cannot join VAC-secured
@@ -23,7 +23,7 @@ import type { Logger } from "../logger.ts";
 export const GameLaunchMode = z.enum(["standard", "tools", "hlae"]);
 export type GameLaunchMode = z.infer<typeof GameLaunchMode>;
 
-/** Launch options the operator may add; Matchframe manages the console and security flags itself. */
+/** Launch options the operator may add; MatchFrame manages the console and security flags itself. */
 const MANAGED_ARGS = new Set(["-tools", "-netconport", "-insecure", "-steam"]);
 const ARG = /^(?:[-+][A-Za-z0-9_.]+|[A-Za-z0-9_.:/-]+)$/;
 
@@ -70,12 +70,12 @@ export const ConsoleOptions = z.object({
   retakeXrayOff: z.boolean().default(true),
   /**
    * `engine_no_focus_sleep 0; snd_mute_losefocus 0`: CS2 keeps drawing every frame and playing its
-   * sound while Matchframe, OBS or another window has focus (by default it slows down and goes silent).
+   * sound while MatchFrame, OBS or another window has focus (by default it slows down and goes silent).
    */
   runInBackground: z.boolean().default(true),
   /**
    * `fps_max`: CS2 draws at most this many frames a second, leaving the graphics card room for the
-   * HUD, OBS and the encoder (uncapped on high settings, CS2 takes the whole card and an LHM HUD like
+   * HUD, OBS and the encoder (uncapped on high settings, CS2 takes the whole card and an imported HUD like
    * kaiHUD stutters). Null: CS2's own setting is left alone.
    */
   frameCap: z.number().int().min(30).max(1000).nullable().default(null),

@@ -1,6 +1,6 @@
 # Replay bridge contract (for the owner's existing replay tool)
 
-**Status: blocked.** The existing replay tool's source/API was not available. Matchframe therefore defines this small HTTP contract; a thin shim next to the replay tool implements it. Nothing here describes the tool's real endpoints.
+**Status: blocked.** The existing replay tool's source/API was not available. MatchFrame therefore defines this small HTTP contract; a thin shim next to the replay tool implements it. Nothing here describes the tool's real endpoints.
 
 Base URL configured in Settings (`PUT /api/v1/settings/replay.provider` → `{ "kind": "bridge", "bridgeUrl": "http://…" }`); optional bearer token stored as `replay.bridgeToken`.
 

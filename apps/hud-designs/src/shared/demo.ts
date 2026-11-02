@@ -164,7 +164,7 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     killfeed: { mode: "exact", entries: feed },
     radar: opts.radar ? demoRadar([...ct, ...t], bomb) : { available: false, reason: "demo", mapName: "de_mirage", mode: "none", calibrationVerified: false, backgroundUrl: null, cleanUrl: null, players: [], bomb: null, utility: [] },
     series,
-    event: { name: "Matchframe Invitational", logoUrl: null, primary: "#5ab8f4", secondary: "#f0c941" },
+    event: { name: "MatchFrame Invitational", logoUrl: null, primary: "#5ab8f4", secondary: "#f0c941" },
     sponsors: {},
     cues: [],
     replay: { active: false, label: null, clip: null },

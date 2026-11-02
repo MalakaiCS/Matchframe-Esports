@@ -29,7 +29,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     keywords: "sign up signup register new account organisation team free",
     body: (
       <>
-        <p>A Matchframe account is free. It gives you an organisation, which is where your plan, auto-director hours, linked computers and team live.</p>
+        <p>A MatchFrame account is free. It gives you an organisation, which is where your plan, auto-director hours, linked computers and team live.</p>
         <h2>Sign up</h2>
         <ol>
           <li>
@@ -85,18 +85,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     keywords: "download install installer exe windows smartscreen checksum sha256 sha-256 get-filehash unsigned setup",
     body: (
       <>
-        <p>The Matchframe program runs on 64-bit Windows 10 and 11. Install it on each computer that should run HUDs, direction or replays.</p>
+        <p>The MatchFrame program runs on 64-bit Windows 10 and 11. Install it on each computer that should run HUDs, direction or replays.</p>
         <h2>Download</h2>
         <ol>
           <li>Sign in and open <Link to="/download">Download the program</Link> (also linked from your dashboard and account page).</li>
           <li>
-            Choose <strong>Download for Windows</strong>. The file is called <code>MatchframeEsports-Setup-&lt;version&gt;.exe</code>.
+            Choose <strong>Download for Windows</strong>. The file is called <code>MatchFrameEsports-Setup-&lt;version&gt;.exe</code>.
           </li>
         </ol>
         <h2>Check the checksum</h2>
         <p>The download page shows the installer's SHA-256 checksum. To check the file you downloaded, open PowerShell in your Downloads folder and run:</p>
         <pre className="code-block">
-          <code>Get-FileHash .\MatchframeEsports-Setup-0.1.0.exe -Algorithm SHA256</code>
+          <code>Get-FileHash .\MatchFrameEsports-Setup-0.1.0.exe -Algorithm SHA256</code>
         </pre>
         <p>Replace the version with the one you downloaded. The hash must match the one on the download page exactly. If it doesn't, delete the file and download it again.</p>
         <h2>Windows SmartScreen</h2>
@@ -107,7 +107,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         <ol>
           <li>Run the installer and choose a folder. It installs for the current Windows user.</li>
           <li>
-            Start <strong>Matchframe Esports</strong> and <Link to="/help/linking-a-computer">sign in</Link> with your Matchframe email and password.
+            Start <strong>MatchFrame Esports</strong> and <Link to="/help/linking-a-computer">sign in</Link> with your MatchFrame email and password.
           </li>
           <li>
             The program opens on Overview with the <strong>Setup</strong> checklist: detect CS2, write the Game State Integration config, connect OBS and add your HUD.
@@ -120,7 +120,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "linking-a-computer",
     category: "start",
     title: "Signing in to the program",
-    summary: "Sign in to the program with your Matchframe email and password; it then uses your organisation's plan and hours.",
+    summary: "Sign in to the program with your MatchFrame email and password; it then uses your organisation's plan and hours.",
     keywords: "sign in login password program computer link device code approve organisation slot limit account & hours offline signed out",
     body: (
       <>
@@ -131,13 +131,13 @@ export const HELP_ARTICLES: HelpArticle[] = [
           <li>If you belong to more than one organisation, choose which one this computer is for.</li>
           <li><strong>Settings → Account</strong> then shows who it is signed in as, the plan and the hours left.</li>
         </ol>
-        <p>Your password is sent to Matchframe once and never stored on the computer. Confirm your email address before signing in.</p>
+        <p>Your password is sent to MatchFrame once and never stored on the computer. Confirm your email address before signing in.</p>
         <h2>Sign in with a code instead</h2>
         <p>
           Under <strong>Settings → Account</strong> choose <strong>Sign in with a code</strong>. The program shows a code like <code>BCDF-GHJK</code>. Open the <Link to="/link">link page</Link> on this website, check the code and the computer's name, choose the organisation and select <strong>Approve and link</strong>. Codes expire after 10 minutes.
         </p>
         <h2>Working offline</h2>
-        <p>After signing in, the program works without internet for up to 7 days after it last reached Matchframe. When that period ends it asks you to connect once.</p>
+        <p>After signing in, the program works without internet for up to 7 days after it last reached MatchFrame. When that period ends it asks you to connect once.</p>
         <h2>Signed out?</h2>
         <p>
           A computer is signed out when the account's password is changed or reset, the account is disabled, its person leaves the organisation, or someone <Link to="/help/unlinking-a-computer">unlinks the computer</Link>. A program that is already open keeps running and shows a notice; it asks you to sign in the next time it opens.
@@ -162,11 +162,11 @@ export const HELP_ARTICLES: HelpArticle[] = [
         <p>Every plan includes the whole program. Plans differ in the auto-director hours included each period, the Observer modes, the number of linked computers and the size of the team. Compare them on the <Link to="/pricing">pricing page</Link>.</p>
         <h2>Observer modes on each plan</h2>
         <p>
-          The <Link to="/features/auto-director">Observer</Link> is Matchframe's auto director. Its modes are:
+          The <Link to="/features/auto-director">Observer</Link> is MatchFrame's auto director. Its modes are:
         </p>
         <ul>
           <li>
-            <strong>Off</strong>, on every plan: Matchframe never moves the camera and shot suggestions stay visible in Live Control. Uses no hours.
+            <strong>Off</strong>, on every plan: MatchFrame never moves the camera and shot suggestions stay visible in Live Control. Uses no hours.
           </li>
           <li>
             <strong>Observer</strong> (automatic player POV switching) and <strong>Observer &amp; Cinematics</strong> (plus cinematic shots from your static cameras), on every plan with auto-director hours.
@@ -227,7 +227,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     keywords: "invoice receipt pdf billing portal stripe payment method card cancel change plan tax vat",
     body: (
       <>
-        <p>Matchframe uses Stripe for payments. Stripe's customer portal is where you manage payment details, invoices and the subscription.</p>
+        <p>MatchFrame uses Stripe for payments. Stripe's customer portal is where you manage payment details, invoices and the subscription.</p>
         <h2>Find your invoices</h2>
         <p>The billing page lists recent invoices with links to view them online or download a PDF. For older invoices and receipts, open the portal.</p>
         <h2>Open the billing portal</h2>

@@ -269,7 +269,7 @@ function ProgramPanel() {
   if (!mf?.updates && !mf?.openConnection) return null;
   const busy = st?.status === "checking" || st?.status === "downloading";
   return (
-    <Panel title="Program" subtitle={st ? `Matchframe Esports ${st.currentVersion}` : undefined}>
+    <Panel title="Program" subtitle={st ? `MatchFrame Esports ${st.currentVersion}` : undefined}>
       {st ? (
         <div className="stack" data-updates={st.status}>
           <p className={st.status === "error" ? "text-warn" : st.status === "ready" ? "text-ok" : "muted"}>{updateSummary(st)}</p>
@@ -297,7 +297,7 @@ function ProgramPanel() {
             <input type="checkbox" checked={st.autoDownload} disabled={st.status === "disabled"} onChange={(e) => void updates.setAutoDownload(e.target.checked)} />
             <span>Download updates automatically</span>
           </label>
-          <p className="small muted">Updates come from the Matchframe Esports releases on GitHub. A downloaded update installs when you quit the program; it never restarts on its own during a broadcast.</p>
+          <p className="small muted">Updates come from the MatchFrame Esports releases on GitHub. A downloaded update installs when you quit the program; it never restarts on its own during a broadcast.</p>
         </div>
       ) : null}
       <div className="row" style={{ marginTop: 10 }}>

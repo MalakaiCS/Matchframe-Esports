@@ -1,6 +1,6 @@
 # MatchFrame bridge contract
 
-**Status: blocked.** The existing MatchFrame service's API, authentication and data model were not available. Matchframe Esports speaks this documented contract through an optional adapter; the MatchFrame side needs a thin implementation. Bridge failures never affect local CS2 broadcasts.
+**Status: blocked.** The existing MatchFrame service's API, authentication and data model were not available. MatchFrame Esports speaks this documented contract through an optional adapter; the MatchFrame side needs a thin implementation. Bridge failures never affect local CS2 broadcasts.
 
 | Method | Path | Notes |
 |---|---|---|

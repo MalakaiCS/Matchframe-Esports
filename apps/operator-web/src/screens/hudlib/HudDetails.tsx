@@ -116,7 +116,7 @@ function Overview(p: Props) {
             ["Category", entry.category ?? "—"],
             ["Tags", entry.tags.length ? entry.tags.join(", ") : "—"],
             ["Source", KIND_LABEL[entry.kind]],
-            ["Format", entry.runtime === "lhm" ? "LHM-format HUD (runs in LHM compatibility mode: raw game data, Matchframe's teams and players, its panel as settings)" : "Matchframe HUD"],
+            ["Format", entry.runtime === "compat" ? "Imported HUD, hud.json format (runs in the HUD compatibility layer: raw game data, MatchFrame's teams and players, its panel as settings)" : "MatchFrame HUD"],
             ["Design size", resolutionLabel(entry)],
             ["Installed", fmtTime(entry.installedAt)],
             ["Last used", entry.lastUsedAt ? fmtAgo(entry.lastUsedAt) : "Never"],
@@ -179,7 +179,7 @@ function Overview(p: Props) {
 
 // ------------------------------------------------------------------ appearance (per-HUD settings)
 
-/** A player from Matchframe's players, or from the game in progress (by Steam ID). */
+/** A player from MatchFrame's players, or from the game in progress (by Steam ID). */
 function PlayerPicker({ label, hint, value, onChange, disabled }: { label: string; hint?: string; value: unknown; onChange: (v: unknown) => void; disabled: boolean }) {
   const players = useApi<PlayerRow[]>("/api/v1/players");
   const live = useLive((s) => s.snapshot?.state?.players ?? null);
@@ -219,7 +219,7 @@ function TeamPicker({ label, hint, value, onChange, disabled }: { label: string;
   );
 }
 
-/** Uploaded images (LHM image inputs, e.g. kaiHUD's baseboard sponsors), in order. */
+/** Uploaded images (image inputs of imported HUDs, e.g. baseboard sponsors), in order. */
 function ImagesInput({ label, hint, value, onChange, disabled }: { label: string; hint?: string; value: unknown; onChange: (v: unknown) => void; disabled: boolean }) {
   const ids = Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
   const [busy, setBusy] = useState(false);
@@ -268,7 +268,7 @@ function ImagesInput({ label, hint, value, onChange, disabled }: { label: string
   );
 }
 
-/** Panel buttons (LHM-format HUDs): each sends a one-off action to the running HUD. */
+/** Panel buttons (imported hud.json-format HUDs): each sends a one-off action to the running HUD. */
 function ActionButtons({ hudId, name, label, field, disabled }: { hudId: string; name: string; label: string; field: HudSettingField; disabled: boolean }) {
   const run = useRun();
   return (
@@ -461,7 +461,7 @@ function DesktopControls({ entry, overlay, bridge, desktopReason, actions, reaso
     if (overlay) setPos({ x: String(overlay.bounds.x), y: String(overlay.bounds.y) });
   }, [overlay?.bounds.x, overlay?.bounds.y]);
 
-  if (desktopReason || !bridge) return <Note tone="neutral">{desktopReason ?? "Desktop HUDs need the Matchframe program."}</Note>;
+  if (desktopReason || !bridge) return <Note tone="neutral">{desktopReason ?? "Desktop HUDs need the MatchFrame program."}</Note>;
   if (!overlay?.open)
     return (
       <div className="stack">

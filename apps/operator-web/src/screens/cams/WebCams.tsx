@@ -78,7 +78,7 @@ function PlayerCard({ p, preview, onChanged }: { p: CamPlayerView; preview: CamP
 
 /**
  * Player cams from the website (ADR-048): players open a link, pick themselves and a camera and
- * send it; Matchframe shows it in the HUDs and OBS, delayed to match the game.
+ * send it; MatchFrame shows it in the HUDs and OBS, delayed to match the game.
  */
 export function WebCams() {
   const reason = usePermission("settings.manage");
@@ -116,11 +116,11 @@ export function WebCams() {
                   disabled={!!reason}
                   onChange={(v) => void save({ enabled: v })}
                   label="Player cams"
-                  hint="Players open a link on the Matchframe website, pick themselves and their camera, and send it. Matchframe shows each player's cam in your HUD when the observer is on them, delayed to match the game."
+                  hint="Players open a link on the MatchFrame website, pick themselves and their camera, and send it. MatchFrame shows each player's cam in your HUD when the observer is on them, delayed to match the game."
                 />
                 {c.enabled && !c.signedIn ? (
                   <Note tone="warn">
-                    Player cams go through the Matchframe website: sign this program in under <Link to="/settings/account">Settings → Account</Link>.
+                    Player cams go through the MatchFrame website: sign this program in under <Link to="/settings/account">Settings → Account</Link>.
                   </Note>
                 ) : null}
                 {c.error && c.enabled ? <Note tone="warn">{c.error}</Note> : null}
@@ -149,7 +149,7 @@ export function WebCams() {
                       </ActionButton>
                     </div>
                   </Field>
-                  <Field label="Video players send" hint={`About ${BITRATE[c.quality]} Mbit/s from each player, through the Matchframe website.`}>
+                  <Field label="Video players send" hint={`About ${BITRATE[c.quality]} Mbit/s from each player, through the MatchFrame website.`}>
                     <select value={c.quality} disabled={!!reason} onChange={(e) => void save({ quality: e.target.value as CamStatusView["quality"] })}>
                       {(Object.keys(QUALITY) as CamStatusView["quality"][]).map((q) => (
                         <option key={q} value={q}>
@@ -180,7 +180,7 @@ export function WebCams() {
               <Panel title="Where the cams show">
                 <div className="stack-sm">
                   <p className="small">
-                    <strong>Your HUD:</strong> LHM-format HUDs (such as kaiHUD) and Matchframe's own HUD show the observed player's cam by themselves. Reload a HUD that was open before you switched player cams on.
+                    <strong>Your HUD:</strong> Imported HUDs (hud.json format) and MatchFrame's own HUD show the observed player's cam by themselves. Reload a HUD that was open before you switched player cams on.
                   </p>
                   <Field label="OBS browser source: the observed player's cam" hint="Fills the source; transparent when that player has no cam on air.">
                     <div className="cam-link-row">

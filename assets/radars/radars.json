@@ -1,5 +1,5 @@
 {
-  "_source": "Radar images and calibrations from lexogrine/cs2-react-hud (MIT, see LICENSE-lexogrine.txt), commit 4ec8eea6f0935193b44ec5a000f230fccdaa1c15, src/HUD/Radar/LexoRadar/maps.",
+  "_source": "Radar images and calibrations: third-party, MIT (see third-party-licenses/radar-images-MIT.txt; provenance in THIRD_PARTY_NOTICES.md).",
   "_transform": "Image pixel = origin + world * pxPerU (1024 x 1024 image). A map with two layers shows both levels on one image: a player uses the layer whose zMin <= z < zMax.",
   "maps": {
     "de_ancient": {

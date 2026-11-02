@@ -178,7 +178,7 @@ describe("Team Comms event presets through the engine", () => {
     expect(section).not.toMatch(/nlOne=|rhOne=|nlTwo=/);
   });
 
-  it("a preset of people Matchframe hasn't met here yet: their choices are waiting for them; a roster player that is gone is left unmapped", async () => {
+  it("a preset of people MatchFrame hasn't met here yet: their choices are waiting for them; a roster player that is gone is left unmapped", async () => {
     // The preset carries an identity this engine never saw, mapped to a player that no longer exists.
     const store = e.settings.get<{ presets: { id: string; content: { people: Record<string, unknown>[] } }[]; activeId: string | null }>("comms.presets", { presets: [], activeId: null });
     const p = store.presets[0]!;
@@ -186,7 +186,7 @@ describe("Team Comms event presets through the engine", () => {
     e.settings.set("comms.presets", store);
     const r = await post(`/api/v1/comms/presets/${p.id}/load`);
     expect(r.status).toBe(200);
-    expect(((await r.json()) as PresetsView).loaded!.skipped.join(" ")).toMatch(/1 roster mapping to players Matchframe doesn't have any more/);
+    expect(((await r.json()) as PresetsView).loaded!.skipped.join(" ")).toMatch(/1 roster mapping to players MatchFrame doesn't have any more/);
     plugin.join(1, { clientId: 14, uid: "nlLater=", nickname: "nl_later" });
     await until(() => e.teamComms.status().participants.some((x) => x.uid === "nlLater="), 3000, "nl_later arrives");
     expect(person("nlLater=")).toMatchObject({ includeBroadcast: true, includeRecording: true, playerId: null });

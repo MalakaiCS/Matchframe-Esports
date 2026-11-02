@@ -1,3 +1,10 @@
+Third-party licence: the radar images and their calibration
+Applies to: the de_*.png radar images in this folder and their calibration in radars.json
+Listed with the program's other third-party components in THIRD_PARTY_NOTICES.md.
+The licence text below is reproduced unchanged.
+
+--------------------------------------------------------------------------------
+
 MIT License
 
 Copyright (c) 2021 Lexogrine

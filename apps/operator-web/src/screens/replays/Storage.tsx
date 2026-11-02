@@ -47,7 +47,7 @@ export function StoragePanel() {
       <div key={which} className="stack-sm">
         <Field label={LABELS[which].label} hint={LABELS[which].hint}>
           <div className="row">
-            <input value={draft[which]} disabled={!!reason || !d} spellCheck={false} placeholder={which === "replays" ? "Matchframe's data folder" : "Videos → Matchframe Highlights"} onChange={(e) => setDraft({ ...draft, [which]: e.target.value })} />
+            <input value={draft[which]} disabled={!!reason || !d} spellCheck={false} placeholder={which === "replays" ? "MatchFrame's data folder" : "Videos → MatchFrame Highlights"} onChange={(e) => setDraft({ ...draft, [which]: e.target.value })} />
             {pick ? (
               <ActionButton
                 size="sm"

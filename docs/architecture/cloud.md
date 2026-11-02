@@ -1,8 +1,8 @@
 # Cloud: website, accounts, billing and auto-director hours
 
-Matchframe is two products that work together:
+MatchFrame is two products that work together:
 
-- **The Matchframe program for Windows** (`.exe` installer; Electron shell + local engine) runs on
+- **The MatchFrame program for Windows** (`.exe` installer; Electron shell + local engine) runs on
   the production computer and does everything app-related: HUDs, the auto director, observer
   camera control, OBS, replays, player cameras, match administration. Its operator console exists
   only inside the program. It opens without an account (ADR-021); signing in with the website
@@ -13,7 +13,7 @@ Matchframe is two products that work together:
   **auto-director hours usage** (allowance, daily and per-computer usage, CSV), **account
   management** (sign-up, verification, password, name and email changes, organisations,
   linked computers, signed-in browsers, data export) and **staff management** (team members,
-  invitations and roles for customers; the Matchframe staff admin with support and admin roles for
+  invitations and roles for customers; the MatchFrame staff admin with support and admin roles for
   user management — verify emails, staff roles, disable accounts — organisations, hour grants, the
   plan catalogue, the support inbox, the email log, Stripe events and the audit log). It also has
   the public pages (product, pricing, help, contact, legal). Signed-in accounts can download the
@@ -161,7 +161,7 @@ once their last upload is more than an hour old, which leaves time to upload fil
 that names them. This runs after a push, at most once a minute per organisation. Sync requests are
 rate-limited per computer (600 a minute).
 
-**Program download.** An installer placed in `MF_DOWNLOAD_DIR` (`MatchframeEsports-Setup-<version>.exe`)
+**Program download.** An installer placed in `MF_DOWNLOAD_DIR` (`MatchFrameEsports-Setup-<version>.exe`)
 is served by the website at `/downloads/…`; `/v1/downloads` reports the newest version with its
 SHA-256, shown in the signed-in area. Alternatively `MF_DOWNLOAD_WINDOWS_URL` points at an external
 file host. The installer is built by the **Windows program (.exe)** GitHub Actions workflow, which

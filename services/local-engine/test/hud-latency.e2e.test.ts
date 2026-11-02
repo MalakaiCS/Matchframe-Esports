@@ -20,8 +20,8 @@ async function freePort(): Promise<number> {
 }
 
 /**
- * How fast a POV switch in CS2 reaches the HUDs: the HUD socket of a Matchframe HUD (two outputs
- * open) and the raw game data that LHM-format HUDs get. Before 0.4.0 the HUD socket pushed at most
+ * How fast a POV switch in CS2 reaches the HUDs: the HUD socket of a MatchFrame HUD (two outputs
+ * open) and the raw game data that imported HUDs get. Before 0.4.0 the HUD socket pushed at most
  * every 100 ms, so a switch could wait that long.
  */
 describe("HUD latency", () => {

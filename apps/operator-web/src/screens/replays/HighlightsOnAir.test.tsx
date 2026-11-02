@@ -38,14 +38,14 @@ const clips = [
 const ready: HighlightsAirResponse = {
   settings: { what: "map", count: 5, unplayed: false, noHalftime: true, autoHalftime: false, autoMapEnd: false, vmixIn: null, vmixOut: null },
   status: { state: "ready", detail: "Play: 3 clips, 0:16.", running: false, held: false, position: null, playing: null, blocked: null, halftime: false, plan: { mapKey: "m2", mapName: "de_dust2", title: "Northern Lights vs Red Harbour", what: "map", rounds: null, clips, totalMs: 15500 }, last: null, auto: null },
-  setup: { mixer: "obs", obsConnected: true, scene: "Matchframe Highlights", input: "Matchframe Highlights Clip", sceneReady: true, sameAsReplay: false, twin: { scene: "Matchframe Highlights B", input: "Matchframe Highlights Clip B", ready: true, detail: "ok", checkedAt: null }, graphic: { source: "Matchframe Replay Graphic", inScene: true, onTop: true }, detail: "Ready, with the replay graphic on top." },
+  setup: { mixer: "obs", obsConnected: true, scene: "MatchFrame Highlights", input: "MatchFrame Highlights Clip", sceneReady: true, sameAsReplay: false, twin: { scene: "MatchFrame Highlights B", input: "MatchFrame Highlights Clip B", ready: true, detail: "ok", checkedAt: null }, graphic: { source: "MatchFrame Replay Graphic", inScene: true, onTop: true }, detail: "Ready, with the replay graphic on top." },
 };
 const obsAuto: ObsAutoResponse = {
   settings: { timeouts: true, mapEnd: true, replayIn: "Opener", replayOut: null, otherScenes: "", highlightsIn: null, highlightsOut: null },
-  scenes: { LIVE: "Game", REPLAY: "Matchframe Replay", STUDIO: null, BREAK: null, HIGHLIGHTS: "Matchframe Highlights" },
+  scenes: { LIVE: "Game", REPLAY: "MatchFrame Replay", STUDIO: null, BREAK: null, HIGHLIGHTS: "MatchFrame Highlights" },
   transitions: { current: "Fade", names: ["Fade", "Opener"], kinds: [{ name: "Fade", kind: "fade_transition" }, { name: "Opener", kind: "obs_stinger_transition" }] },
 };
-const obs = { state: { connected: true, scenes: ["Game", "Analysis", "Matchframe Replay", "Matchframe Highlights"], inputs: [] } };
+const obs = { state: { connected: true, scenes: ["Game", "Analysis", "MatchFrame Replay", "MatchFrame Highlights"], inputs: [] } };
 
 beforeEach(() => liveStore.reset());
 afterEach(() => {
@@ -119,7 +119,7 @@ describe("Highlights on air panel", () => {
       "GET /api/v1/highlights/air": none,
       "GET /api/v1/obs/auto": obsAuto,
       "GET /api/v1/obs": obs,
-      "POST /api/v1/highlights/air/obs-setup": { scene: "Matchframe Highlights", input: "Matchframe Highlights Clip", created: true, graphic: { created: false, onTop: true }, graphicError: null, setup: ready.setup },
+      "POST /api/v1/highlights/air/obs-setup": { scene: "MatchFrame Highlights", input: "MatchFrame Highlights Clip", created: true, graphic: { created: false, onTop: true }, graphicError: null, setup: ready.setup },
       "GET /api/v1/obs/scenes/Analysis/items": [
         { sourceName: "Backdrop", inputKind: "color_source_v3" },
         { sourceName: "Clips", inputKind: "ffmpeg_source" },
@@ -190,6 +190,6 @@ describe("OBS scenes panel: highlights", () => {
     expect([...out.options].map((o) => o.textContent)).toEqual(["Same as Replay out", "OBS's current transition", "Fade", "Opener (Stinger)"]);
     fireEvent.change(out, { target: { value: "Fade" } });
     await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ highlightsOut: "Fade" }));
-    expect(screen.getByText(/Highlights scene: Matchframe Highlights/)).toBeTruthy();
+    expect(screen.getByText(/Highlights scene: MatchFrame Highlights/)).toBeTruthy();
   });
 });

@@ -16,9 +16,9 @@ export const REQUIREMENT_GROUPS: RequirementGroup[] = [
     icon: "windows",
     rows: [
       ["Operating system", "Windows 10 or Windows 11, 64-bit (x64)."],
-      ["Installation", "Per-user installer (MatchframeEsports-Setup-<version>.exe). The installer isn't code-signed yet, so SmartScreen asks for confirmation."],
-      ["Data folder", <><code>%APPDATA%\Matchframe Esports</code></>],
-      ["Hardware", "Size the computer for CS2 and OBS encoding; the program itself is light. One CS2 client, OBS and Matchframe on one PC is the supported single-computer setup."],
+      ["Installation", "Per-user installer (MatchFrameEsports-Setup-<version>.exe). The installer isn't code-signed yet, so SmartScreen asks for confirmation."],
+      ["Data folder", <><code>%APPDATA%\MatchFrame Esports</code></>],
+      ["Hardware", "Size the computer for CS2 and OBS encoding; the program itself is light. One CS2 client, OBS and MatchFrame on one PC is the supported single-computer setup."],
     ],
   },
   {
@@ -51,7 +51,7 @@ export const REQUIREMENT_GROUPS: RequirementGroup[] = [
       ["Local ports", <>37210 (Game State Integration), 37211 (engine API), 37212 (HUD outputs). Bound to this computer (loopback) by default.</>],
       ["Multi-PC", "Set the production computer to listen on its LAN address and allow ports 37210–37212 from the production subnet only."],
       ["Internet", "For signing in to the program, refreshing its licence (every 15 minutes while online) and uploading auto-director usage. After that the program works offline for up to 7 days after each check."],
-      ["Account", "A free Matchframe account with a confirmed email address. The program asks you to sign in with it when it opens."],
+      ["Account", "A free MatchFrame account with a confirmed email address. The program asks you to sign in with it when it opens."],
     ],
   },
   {

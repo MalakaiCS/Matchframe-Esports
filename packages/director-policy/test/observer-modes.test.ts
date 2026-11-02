@@ -205,7 +205,7 @@ describe("Observer modes: what the auto director may do on its own", () => {
       return c;
     };
 
-    // Off by default: paths are streamed from Matchframe, less smooth than a camera turning in the game.
+    // Off by default: paths are streamed from MatchFrame, less smooth than a camera turning in the game.
     const def = setup("observer_cinematics");
     def.director.setMap(withPath());
     def.director.setCapabilities(caps("supported"));

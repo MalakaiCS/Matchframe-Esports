@@ -181,9 +181,9 @@ interface Tab {
   tsError: { atMs: number; code: number; message: string } | null;
   audio: number;
   ignored: { listener: number; notCapturing: number; noSlot: number; clock: number; notInChannel: number };
-  /** The plugin had it listen-only and silent before Matchframe asked (after a TeamSpeak restart it remembers the team tabs; while Matchframe is away it keeps them so). */
+  /** The plugin had it listen-only and silent before MatchFrame asked (after a TeamSpeak restart it remembers the team tabs; while MatchFrame is away it keeps them so). */
   restoredByPlugin: boolean;
-  /** Matchframe handed it back to TeamSpeak (a remembered tab that is no team's now). */
+  /** MatchFrame handed it back to TeamSpeak (a remembered tab that is no team's now). */
   released: boolean;
 }
 
@@ -601,7 +601,7 @@ export class TeamComms {
     const t = this.tabOf(s, ev.schid);
     switch (ev.type) {
       case "connection": {
-        // Listen-only before Matchframe asked anything: the plugin remembered this team tab.
+        // Listen-only before MatchFrame asked anything: the plugin remembered this team tab.
         if (ev.status === 4 && !t.asked && (ev.managed.listenOnly || ev.managed.suppressPlayback) && !ev.managed.capture) t.restoredByPlugin = true;
         t.conn = ev;
         if (ev.status === 4) t.clients = new Map(ev.clients.map((c) => [c.clientId, c]));
@@ -781,7 +781,7 @@ export class TeamComms {
 
   /**
    * An event preset's people: each record's mapping, choices and level set on that identity (made if
-   * Matchframe hasn't seen them yet). The operator's private Solo is never part of a preset; people
+   * MatchFrame hasn't seen them yet). The operator's private Solo is never part of a preset; people
    * the preset doesn't name keep what they have (new arrivals stay excluded).
    */
   importRecords(records: ParticipantRecord[]): number {
@@ -871,7 +871,7 @@ export class TeamComms {
     return this.recordingSignal;
   }
 
-  /** TeamSpeak's recording indicator on both listener tabs (while Matchframe records comms). */
+  /** TeamSpeak's recording indicator on both listener tabs (while MatchFrame records comms). */
   setRecordingSignal(on: boolean): void {
     this.recordingSignal = on;
     for (const s of this.bridge?.sessions() ?? []) s.recording(on);
@@ -916,7 +916,7 @@ export class TeamComms {
     return this.mixer.recordingGate.target;
   }
 
-  /** Whether Matchframe has this roster player. */
+  /** Whether MatchFrame has this roster player. */
   hasPlayer(id: string): boolean {
     return !!this.o.roster.player(id);
   }
@@ -1034,7 +1034,7 @@ export class TeamComms {
   /**
    * TeamSpeak's own link to connect a tab into the team's channel (`ts3server://`, as TeamSpeak's
    * command line and its link handler take it; the rig connects its listeners this way). No password
-   * in it: TeamSpeak asks for one, and Matchframe never shows the saved ones.
+   * in it: TeamSpeak asks for one, and MatchFrame never shows the saved ones.
    */
   private connectLink(id: SlotId, cfg: SlotConfig): string | null {
     if (!cfg.serverHost.trim() || !cfg.channel.trim()) return null;

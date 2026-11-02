@@ -1,31 +1,31 @@
 # HUD Library: setup and use
 
-Matchframe opens into the **HUD Library**: the HUDs installed on this computer, with controls to run each one as a transparent window over the game, as a preview, or as an OBS browser source. The library, the HUD server and test data work offline and without an account. An account is needed only for the Auto Director (the Observer's automatic camera work) and its hours.
+MatchFrame opens into the **HUD Library**: the HUDs installed on this computer, with controls to run each one as a transparent window over the game, as a preview, or as an OBS browser source. The library, the HUD server and test data work offline and without an account. An account is needed only for the Auto Director (the Observer's automatic camera work) and its hours.
 
 ## Install
 
-1. Run `MatchframeEsports-Setup-<version>.exe` (per-user install, no administrator rights; unsigned development builds show a SmartScreen prompt: More info → Run anyway). Nothing else is needed: no Node.js, npm or development server.
-2. Start **Matchframe Esports**. The program starts its local HUD server automatically (`127.0.0.1`, ports 37210 for game data, 37211 for the program, 37212 for HUD outputs) and opens the HUD Library. The bottom status bar shows the server, active HUD outputs and the last game-data update.
+1. Run `MatchFrameEsports-Setup-<version>.exe` (per-user install, no administrator rights; unsigned development builds show a SmartScreen prompt: More info → Run anyway). Nothing else is needed: no Node.js, npm or development server.
+2. Start **MatchFrame Esports**. The program starts its local HUD server automatically (`127.0.0.1`, ports 37210 for game data, 37211 for the program, 37212 for HUD outputs) and opens the HUD Library. The bottom status bar shows the server, active HUD outputs and the last game-data update.
 3. The library already contains:
-   - the **Matchframe Broadcast HUD** (built in);
-   - the **Matchframe Sample CS2 HUD**, a small package to copy and learn from;
-   - the **Pro CS2 HUD**, a full broadcast HUD adapted from Lexogrine's open-source CS2 React HUD (its source in `apps/hud-template` is a starter kit for your own);
-   - **Vector** and **Lineup**, Matchframe's own broadcast HUDs. Vector puts the teams in columns at the sides; Lineup puts all ten players in one row along the bottom. Their source is in `apps/hud-designs`.
+   - the **MatchFrame Broadcast HUD** (built in);
+   - the **MatchFrame Sample CS2 HUD**, a small package to copy and learn from;
+   - the **Pro CS2 HUD**, a full broadcast HUD adapted from an open-source CS2 React HUD template (its source in `apps/hud-template` is a starter kit for your own);
+   - **Vector** and **Lineup**, MatchFrame's own broadcast HUDs. Vector puts the teams in columns at the sides; Lineup puts all ten players in one row along the bottom. Their source is in `apps/hud-designs`.
 
      ![Vector HUD](../screenshots/hud/hud-vector.jpg)
      ![Lineup HUD](../screenshots/hud/hud-lineup.jpg)
 
 The bundled HUDs update with the program: when an update brings a newer version of one, or changed files, it replaces the installed copy and keeps its settings and outputs. A bundled HUD you replaced with your own import, or removed, is left alone.
 
-Installed HUDs and their settings are kept in `%APPDATA%\Matchframe Esports\huds\<hud-id>\` and the program database; they survive restarts and updates. **Add HUD → Open HUDs folder** shows the folder.
+Installed HUDs and their settings are kept in `%APPDATA%\MatchFrame Esports\huds\<hud-id>\` and the program database; they survive restarts and updates. **Add HUD → Open HUDs folder** shows the folder.
 
-Signed in to a Matchframe account, the HUDs you import (and their settings) are shared with every computer of your organisation, together with teams, players and matches; they show **Shared** in the library. See [account sync](account-sync.md).
+Signed in to a MatchFrame account, the HUDs you import (and their settings) are shared with every computer of your organisation, together with teams, players and matches; they show **Shared** in the library. See [account sync](account-sync.md).
 
 The window has no Windows title bar: the header with the page title is the title bar. Drag an empty part of it (or the logo) to move the window; minimise, maximise and close are at its right end. Connection settings and the data folder are in **Settings → General → Program**.
 
 ## Updates
 
-The program updates itself from the Matchframe Esports releases on GitHub, so you install it only once.
+The program updates itself from the MatchFrame Esports releases on GitHub, so you install it only once.
 
 - It checks shortly after it starts and then every few hours. A new version downloads in the background (turn off **Download updates automatically** in **Settings → General → Program** to choose when).
 - When the update is ready, the status bar shows **Update <version> ready · Restart now**. Restarting closes the program and every HUD output for a moment, so do it between matches. Otherwise the update installs the next time you quit the program.
@@ -41,32 +41,32 @@ The program updates itself from the Matchframe Esports releases on GitHub, so yo
 
 ## Minimap and killfeed
 
-Every bundled HUD shows a minimap (top left) and a killfeed (top right), each in its own style: the Matchframe Broadcast HUD (Classic, Minimal and Arena presets), the Pro CS2 HUD, Vector, Lineup and the Sample CS2 HUD. Turn either off in the HUD's details → **Appearance**.
+Every bundled HUD shows a minimap (top left) and a killfeed (top right), each in its own style: the MatchFrame Broadcast HUD (Classic, Minimal and Arena presets), the Pro CS2 HUD, Vector, Lineup and the Sample CS2 HUD. Turn either off in the HUD's details → **Appearance**.
 
-- **Minimap:** the map drawing for Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo (Nuke and Vertigo show both levels), and Matchframe's generated outline for Anubis. Players show their slot number in the team colour: bigger with a ring when observed, lighter while flashed, marked when carrying the bomb, a faded cross when dead. Smokes are outlined in the thrower's team colour; fires, flashes and HE grenades show briefly; the bomb shows when dropped or planted (pulsing) and when defused. **Utility on the radar** in the library turns the utility off. A radar image you calibrate in Maps & Cameras replaces the built-in one.
-- **Killfeed:** killer (+ assister), weapon, headshot and blind-killer marks, victim; each kill stays for a few seconds. CS2's game data does not report kills, so Matchframe pairs them from the score changes in the same update, like every game-data HUD: the weapon is the one the killer was holding (a grenade or fire kill can show their gun), and when two players get kills in the same instant the victims are shown without a killer. Wallbang, no-scope, through-smoke and flash-assist marks are not available from game data.
+- **Minimap:** the map drawing for Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo (Nuke and Vertigo show both levels), and MatchFrame's generated outline for Anubis. Players show their slot number in the team colour: bigger with a ring when observed, lighter while flashed, marked when carrying the bomb, a faded cross when dead. Smokes are outlined in the thrower's team colour; fires, flashes and HE grenades show briefly; the bomb shows when dropped or planted (pulsing) and when defused. **Utility on the radar** in the library turns the utility off. A radar image you calibrate in Maps & Cameras replaces the built-in one.
+- **Killfeed:** killer (+ assister), weapon, headshot and blind-killer marks, victim; each kill stays for a few seconds. CS2's game data does not report kills, so MatchFrame pairs them from the score changes in the same update, like every game-data HUD: the weapon is the one the killer was holding (a grenade or fire kill can show their gun), and when two players get kills in the same instant the victims are shown without a killer. Wallbang, no-scope, through-smoke and flash-assist marks are not available from game data.
 
 ## HUD images
 
-**HUD images** (in the library's toolbar) holds pictures for every Matchframe HUD at once. Every Matchframe HUD uses them when a player, map or mark has no picture of its own. Add only images you have the right to use.
+**HUD images** (in the library's toolbar) holds pictures for every MatchFrame HUD at once. Every MatchFrame HUD uses them when a player, map or mark has no picture of its own. Add only images you have the right to use.
 
 - **Player pictures:** up to five for the Counter-Terrorists and five for the Terrorists. A player without their own photo (Players → photo) shows the picture for the side they play: player 1 of a team in observer-slot order takes picture 1, player 2 picture 2, and so on; with fewer pictures they repeat.
 - **Dead player icon:** replaces the HUD's own mark for a dead player.
-- **Maps:** a logo and a picture for each map Matchframe knows, shown on series and veto tiles.
+- **Maps:** a logo and a picture for each map MatchFrame knows, shown on series and veto tiles.
 
 PNG, JPG, WebP, SVG or GIF, up to 20 MB each. **Upload** (or **Replace**) and **Remove** save at once, and running HUDs (desktop, previews, OBS) show the change straight away, without a reload. Who uses what:
 
 | HUD | Player pictures | Map logos and pictures | Dead player icon |
 |---|---|---|---|
 | Vector, Lineup | player cards and the observed player | series tiles | dead players' cards |
-| Matchframe Broadcast HUD (Classic, Minimal, Arena) | observed player | series strip, pre-match, break, post-series and veto screens | player panels, in place of the skull |
+| MatchFrame Broadcast HUD (Classic, Minimal, Arena) | observed player | series strip, pre-match, break, post-series and veto screens | player panels, in place of the skull |
 | Pro CS2 HUD | player rows and observed player | series maps in freeze time | player rows, where the health was |
 
-LHM-format HUDs such as kaiHUD keep their own pictures, and the Sample CS2 HUD does not use them. HUD images are saved on this computer (the setting `hud.art`); account sync does not share them yet, so add them on each computer that runs HUDs. HUD packages read them from `state.art` ([extensions](../extensions.md)).
+Imported hud.json-format HUDs keep their own pictures, and the Sample CS2 HUD does not use them. HUD images are saved on this computer (the setting `hud.art`); account sync does not share them yet, so add them on each computer that runs HUDs. HUD packages read them from `state.art` ([extensions](../extensions.md)).
 
 ## Radar for maps without a radar image
 
-Every bundled HUD shows the map's radar image (the bundled radars for Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo, or one you calibrated in Maps & Cameras). For a map without one (Anubis, Cache), Vector, Lineup, the Pro CS2 HUD and the Broadcast HUD show Matchframe's own drawing in the same style instead of the outline: a navy floor (a lighter navy for the lower level of Nuke and Vertigo), light wall outlines and the bombsites tinted red, with nothing around the map. It is drawn from Matchframe's map data (the map packs' walkable areas and bombsites, with the walls placed from the maps' collision grid) for every map with a map pack, including Anubis and Cache, and in exactly the frame of the radar the markers use: the built-in radar image's calibration (one per level on Nuke and Vertigo), a radar image you calibrated in Maps & Cameras, or the generated outline. So players, the bomb and utility land in the same places as on the drawing. To use your own radar for such a map, calibrate it in Maps & Cameras.
+Every bundled HUD shows the map's radar image (the bundled radars for Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo, or one you calibrated in Maps & Cameras). For a map without one (Anubis, Cache), Vector, Lineup, the Pro CS2 HUD and the Broadcast HUD show MatchFrame's own drawing in the same style instead of the outline: a navy floor (a lighter navy for the lower level of Nuke and Vertigo), light wall outlines and the bombsites tinted red, with nothing around the map. It is drawn from MatchFrame's map data (the map packs' walkable areas and bombsites, with the walls placed from the maps' collision grid) for every map with a map pack, including Anubis and Cache, and in exactly the frame of the radar the markers use: the built-in radar image's calibration (one per level on Nuke and Vertigo), a radar image you calibrated in Maps & Cameras, or the generated outline. So players, the bomb and utility land in the same places as on the drawing. To use your own radar for such a map, calibrate it in Maps & Cameras.
 
 ## Start CS2
 
@@ -75,7 +75,7 @@ Every bundled HUD shows the map's radar image (the bundled radars for Ancient, D
 | Mode | Starts CS2 with | What you get | Needs |
 |---|---|---|---|
 | **Standard** | Steam, your launch options | Game data for the HUDs. Works on any server. | CS2 |
-| **Observer tools** | Steam, `-tools -netconport 2121` | Matchframe connects to CS2's console on this computer: camera control for the Observer (the *Direct (console)* adapter is selected if none was) and the game options below. | The free **CS2 Workshop Tools** (Steam → Counter-Strike 2 → DLC) |
+| **Observer tools** | Steam, `-tools -netconport 2121` | MatchFrame connects to CS2's console on this computer: camera control for the Observer (the *Direct (console)* adapter is selected if none was) and the game options below. | The free **CS2 Workshop Tools** (Steam → Counter-Strike 2 → DLC) |
 | **Observer tools + HLAE** | HLAE, `-steam -insecure -tools -netconport 2121` | Also HLAE's options: no flash, team colours in the kill feed or no game kill feed, no end-of-match screen. | CS2 Workshop Tools, [HLAE](https://www.advancedfx.org/) (choose `HLAE.exe`), Steam running |
 
 Game options (console modes; sent every time the console connects, and straight away when changed):
@@ -84,8 +84,8 @@ Game options (console modes; sent every time the console connects, and straight 
 - **X-ray**: `spec_show_xray`, `hud_showtargetid` and `cl_drawhud_force_teamid_overhead`, players visible through walls on the observer's screen with their names above them (the team overhead, which also shows with Hide game HUD on).
 - **No X-ray in clutches** (on by default, with X-ray): when one player is left alive against two or more, X-ray and the names go off until the round is over, so viewers don't see the other team coming. They come back on for the next round.
 - **No X-ray in retakes** (on by default, with X-ray): after the plant, once a CT is within 1,600 units of the bomb with time left to defuse (5 s with a kit, 10 s without) and both teams have players alive, X-ray and the names go off until the round is over, so viewers don't see where the Ts wait. Not while the CTs save, or when no T is left.
-- **Run behind other windows** (on by default): `engine_no_focus_sleep 0` and `snd_mute_losefocus 0`. CS2 keeps drawing every frame and playing its sound while you use Matchframe or OBS. Off, CS2 slows down and goes silent whenever another window has focus (its own defaults). With CS2 in **Fullscreen** (not **Fullscreen Windowed**), clicking another window still stops the picture: use Fullscreen Windowed on the observer computer.
-- HLAE only: **No flash** (`mirv_noflash 1`), **Colours in kill feed** (`mirv_deathmsg colors`, in the CT and T colours below), **Hide end-of-match screen** (`mirv_endofmatch 0`), **Hide CS2 kill feed** (`mirv_deathmsg filter add block=1`: CS2's own kill notices are blocked so only your HUD's kill feed shows; with **Hide game HUD** on, the crosshair stays). Matchframe clears its kill feed rule (`mirv_deathmsg filter clear`) each time it applies the options, so rules never stack; that also clears kill feed filters you added in the console yourself.
+- **Run behind other windows** (on by default): `engine_no_focus_sleep 0` and `snd_mute_losefocus 0`. CS2 keeps drawing every frame and playing its sound while you use MatchFrame or OBS. Off, CS2 slows down and goes silent whenever another window has focus (its own defaults). With CS2 in **Fullscreen** (not **Fullscreen Windowed**), clicking another window still stops the picture: use Fullscreen Windowed on the observer computer.
+- HLAE only: **No flash** (`mirv_noflash 1`), **Colours in kill feed** (`mirv_deathmsg colors`, in the CT and T colours below), **Hide end-of-match screen** (`mirv_endofmatch 0`), **Hide CS2 kill feed** (`mirv_deathmsg filter add block=1`: CS2's own kill notices are blocked so only your HUD's kill feed shows; with **Hide game HUD** on, the crosshair stays). MatchFrame clears its kill feed rule (`mirv_deathmsg filter clear`) each time it applies the options, so rules never stack; that also clears kill feed filters you added in the console yourself.
 - HLAE only, colours (0.10.8): **X-ray colours** (`mirv_colors glow`, `teamid`, `trails`: the players' glow through walls, the names above them and grenade trails) and **Coloured smokes** (`mirv_colors smokes`), in the CT and T colours.
   - **Which colours:** **Your CT and T colours** (two colour pickers, CT blue and T red to start with, staying with the side) or **Each team's colour** (Teams → colour, swapped at half time; a team without one uses yours). The kill feed colours follow the same choice.
   - **Only in this computer's game:** the players and the server see nothing different.
@@ -93,13 +93,13 @@ Game options (console modes; sent every time the console connects, and straight 
 
 The card shows **Console connected** once CS2 is up. If it keeps showing *Console: waiting for CS2* after CS2 has started, the CS2 Workshop Tools are usually not installed, or CS2 was already running (close it and click Start CS2 again).
 
-**HLAE runs CS2 insecure.** Matchframe asks you to accept this before the HLAE mode is used:
+**HLAE runs CS2 insecure.** MatchFrame asks you to accept this before the HLAE mode is used:
 
 - Insecure CS2 cannot join VAC-secured servers. The match server must allow insecure observers (`tv_secure_bypass 1`), or use LAN or demos.
 - Never join matchmaking or a VAC-secured server while HLAE is loaded: HLAE's developers warn that this can get the account VAC banned.
 - CS2 updates often break HLAE until HLAE ships an update. Standard and Observer tools keep working; install the latest HLAE when HLAE fails to start CS2.
 
-HLAE is a separate download (MIT licence) and is not included with Matchframe. Matchframe never changes server settings and sends only the fixed console lines listed above.
+HLAE is a separate download (MIT licence) and is not included with MatchFrame. MatchFrame never changes server settings and sends only the fixed console lines listed above.
 
 ## Add a HUD
 
@@ -110,28 +110,28 @@ HLAE is a separate download (MIT licence) and is not included with Matchframe. M
 
 Other actions, under **⋯** on the HUD's row: **Reload**, **Stop**, **Duplicate** (a copy you can change), **Export ZIP**, **Open Folder**, **Remove…**. The built-in HUD can't be removed, exported or duplicated.
 
-## LHM-format HUDs
+## Imported HUDs in the hud.json format
 
-HUDs made for Lexogrine HUD Manager (LHM) can be imported as they are: a ZIP or folder with `hud.json` and `index.html`, usually also `panel.json`. Many custom HUDs are built this way. LHM doesn't need to be installed and no LHM account is needed.
+HUDs in the hud.json format, a widely used community HUD template format, can be imported as they are: a ZIP or folder with `hud.json` and `index.html`, usually also `panel.json`. Many custom HUDs are built this way. No other program or account is needed.
 
-1. **Add HUD → Import HUD ZIP…** (or **Import HUD folder…**) and pick the HUD. It appears in the **LHM** category with the id `lhm.<its name>`. Its details show **Format: LHM-format HUD**.
-2. If the HUD uses team names, logos, colours or player photos, enter the teams and players in **Teams** and **Players** and make the match active in **Matches**. The HUD reads them from Matchframe, the way it read them from LHM. Without an active match it shows the names CS2 sends.
-3. The HUD's control panel (`panel.json`) becomes its **Appearance** settings, grouped by panel section: text, checkboxes, colours and lists. Player and team choices are lists of Matchframe's players (and the players in the game) and teams. **Save settings** sends them to the running HUD.
+1. **Add HUD → Import HUD ZIP…** (or **Import HUD folder…**) and pick the HUD. It appears in the **Imported** category with the id `imported.<its name>`. Its details show **Format: Imported HUD, hud.json format**. (HUDs imported with 0.11.0 or earlier had the id `lhm.<its name>`: they are moved to `imported.<its name>` when the program updates, and their old OBS Browser Source URLs keep working.)
+2. If the HUD uses team names, logos, colours or player photos, enter the teams and players in **Teams** and **Players** and make the match active in **Matches**. The HUD reads them from MatchFrame through the format's own data endpoints. Without an active match it shows the names CS2 sends.
+3. The HUD's control panel (`panel.json`) becomes its **Appearance** settings, grouped by panel section: text, checkboxes, colours and lists. Player and team choices are lists of MatchFrame's players (and the players in the game) and teams. **Save settings** sends them to the running HUD.
 4. Panel buttons (for example *Toggle Header* or *Show veto*) appear as buttons in **Appearance** and act straight away. They work only while the HUD is running (desktop, preview or OBS); otherwise the program says the HUD isn't running.
 5. Show it like any other HUD: the **Desktop** switch, **Preview**, or **Copy OBS Browser URL**. The OBS size is 1920×1080.
-6. **The HUD's own pages** (its `hud.json` variants) are listed under **HUD pages** in its details, each with **Copy URL**. kaiHUD has *Player stats* (its Player Highlight panel), *Match stats*, *Match preview*, *Veto* and *Baseboard*. Add each one you use as another OBS Browser Source. In **Replays & Production → HUD graphics → LHM HUD pages**, Matchframe can show Player stats for the round MVP in freeze time and Match stats at half time and at the end of the map.
-7. **Image inputs** (for example kaiHUD's baseboard sponsors) are **Add images** fields in **Appearance**. The images are sent to the HUD the way LHM sends them.
+6. **The HUD's own pages** (its `hud.json` variants) are listed under **HUD pages** in its details, each with **Copy URL**, for example *Player stats* (a Player Highlight panel), *Match stats*, *Match preview*, *Veto* and *Baseboard*. Add each one you use as another OBS Browser Source. In **Replays & Production → HUD graphics → Imported HUD pages in OBS**, MatchFrame can show Player stats for the round MVP in freeze time and Match stats at half time and at the end of the map.
+7. **Image inputs** (for example a baseboard's sponsors) are **Add images** fields in **Appearance**. The images are sent to the HUD the way the format expects them.
 
-What works: everything the HUD draws from game data (scoreboard, players, bomb, utility, its own minimap and killfeed), its fonts, its settings, buttons and image inputs, its own pages, teams (names, logos, colours as `TeamColor`), players (real names, photos), the current match and veto, and Matchframe's built-in radars for HUDs that ask for them. A map whose radar the HUD doesn't bundle and Matchframe has no drawing of (Anubis, Cache) gets one drawn from its map pack's outline, in the flat style of LHM template radars, with bombsites in red: kaiHUD bundles nine radars and asks for the rest, so it shows Anubis this way (ADR-053). kaiHUD 1.0.2 was checked page by page in a browser against test data: Player Highlight, Match stats, match preview and baseboard showed the right players, stats, logos, colours and sponsor images. During **Test data**, a purple **TEST DATA** label appears at the top of the HUD.
+What works: everything the HUD draws from game data (scoreboard, players, bomb, utility, its own minimap and killfeed), its fonts, its settings, buttons and image inputs, its own pages, teams (names, logos, colours as `TeamColor`), players (real names, photos), the current match and veto, and MatchFrame's built-in radars for HUDs that ask for them. A map whose radar the HUD doesn't bundle and MatchFrame has no drawing of (Anubis, Cache) gets one drawn from its map pack's outline, in the flat style of the format's template radars, with bombsites in red: a HUD that bundles nine radars and asks for the rest shows Anubis this way (ADR-053). A widely used community HUD in this format was checked page by page in a browser against test data: Player Highlight, Match stats, match preview and baseboard showed the right players, stats, logos, colours and sponsor images. During **Test data**, a purple **TEST DATA** label appears at the top of the HUD.
 
 Limits:
 
-- **Killfeed**: CS2's game data has no kill events. The killfeed shows Matchframe's paired kills (killer, weapon in hand, headshot, assister, blind killer), so wallbang, no-scope, through-smoke and flash-assist icons never appear. Kills made before the HUD opened don't appear either.
-- No output delay: LHM-format HUDs always show live data.
-- **Update rate**: CS2 sends game data up to 50 times a second. Matchframe sends an LHM-format HUD the newest data at most 20 times a second, and at once when something on screen changes: the spectated player, the round or countdown phase, the bomb, who is alive, the score. At 10 a second (0.6.0 to 0.9.0) kaiHUD's minimap dots surged and stopped ten times a second, which looked like a HUD drawing at 20 fps. At 20 they glide; more is no smoother and costs frames on a slower PC (ADR-052).
-- **A HUD that can't keep up gets fewer updates**: kaiHUD's page does about 2.6 times the work of Matchframe's own HUD for the same game data. Each output page measures how long its tasks wait. When a HUD's page is backed up, Matchframe halves that HUD's updates (20, 10, then 5 a second) and raises them again after a minute with room. Each change is in the director log (`lhm hud busy` / `lhm hud has room`, ADR-053).
-- Not supported: the HUD's keyboard shortcuts (`keybinds.json`), player cameras, and anything that needs LHM's cloud. The rest of the HUD still works.
-- kaiHUD's Player Highlight shows the selected player *or* the spectated one, whichever comes first in the game data. So Matchframe shows it for the MVP only when the camera isn't on another player.
+- **Killfeed**: CS2's game data has no kill events. The killfeed shows MatchFrame's paired kills (killer, weapon in hand, headshot, assister, blind killer), so wallbang, no-scope, through-smoke and flash-assist icons never appear. Kills made before the HUD opened don't appear either.
+- No output delay: imported hud.json-format HUDs always show live data.
+- **Update rate**: CS2 sends game data up to 50 times a second. MatchFrame sends an imported hud.json-format HUD the newest data at most 20 times a second, and at once when something on screen changes: the spectated player, the round or countdown phase, the bomb, who is alive, the score. At 10 a second (0.6.0 to 0.9.0) the tested HUD's minimap dots surged and stopped ten times a second, which looked like a HUD drawing at 20 fps. At 20 they glide; more is no smoother and costs frames on a slower PC (ADR-052).
+- **A HUD that can't keep up gets fewer updates**: the tested HUD's page does about 2.6 times the work of MatchFrame's own HUD for the same game data. Each output page measures how long its tasks wait. When a HUD's page is backed up, MatchFrame halves that HUD's updates (20, 10, then 5 a second) and raises them again after a minute with room. Each change is in the director log (`imported hud busy` / `imported hud has room`, ADR-053).
+- Not supported: the HUD's keyboard shortcuts (`keybinds.json`), player cameras, and anything that needs an online service of the program the HUD was made for. The rest of the HUD still works.
+- A Player Highlight page in this format shows the selected player *or* the spectated one, whichever comes first in the game data. So MatchFrame shows it for the MVP only when the camera isn't on another player.
 - Fonts from Google Fonts load from the internet. Offline, the HUD falls back to other fonts.
 - Only CS2 (and CS:GO-format) HUDs are accepted.
 
@@ -163,13 +163,13 @@ All three show the same match information and the same settings, and run indepen
 2. Add a **Browser Source** above it: URL from **Copy OBS Browser URL**, width and height as shown (1920×1080 for the included HUDs), *Shutdown source when not visible* off, *Refresh browser when scene becomes active* off. No custom CSS is needed; the background is transparent.
 3. The desktop HUD window is a separate window and is **not** included in Game Capture. Use the browser source for the stream; use the desktop HUD to see the graphics while you play or observe.
 4. The URL contains a key for that HUD. **New access key** (details → Outputs) makes old URLs stop working.
-5. In OBS, **Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration** must be on (then restart OBS). Without it OBS draws the HUD on the CPU, and a heavy HUD (like kaiHUD) stops drawing for a moment whenever a big panel comes or goes.
+5. In OBS, **Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration** must be on (then restart OBS). Without it OBS draws the HUD on the CPU, and a heavy HUD (such as a full imported hud.json-format HUD) stops drawing for a moment whenever a big panel comes or goes.
 
 ### How smoothly an output draws
 
 Each output (the OBS browser source, the desktop HUD) times its own frames where it runs and reports every 5 s. When one stopped drawing for 250 ms or more in the last minute, or drew under 40 frames a second, its indicator turns amber (the tooltip gives its frames a second and longest pause), and the HUD's details → **Outputs** says where and what helps. Each such pause is also written to the director log (`logs/director.log`, `hud stall`), and the support file lists each running HUD's frame report (`hudOutputs`).
 
-A pause there is the computer drawing the HUD being too busy, not the game data: Matchframe passes game data to an LHM-format HUD at least every 100 ms, and at once for what the audience notices first. Checked with kaiHUD in Chromium: its clock ticks within 0.1 s of each second, and within 0.18 s with the CPU slowed six times.
+A pause there is the computer drawing the HUD being too busy, not the game data: MatchFrame passes game data to an imported hud.json-format HUD at least every 100 ms, and at once for what the audience notices first. Checked with such a HUD in Chromium: its clock ticks within 0.1 s of each second, and within 0.18 s with the CPU slowed six times.
 
 ## Settings
 
@@ -193,11 +193,11 @@ The header shows the game-data state. If CS2 stops sending data (game closed, ma
 | Symptom | Check |
 |---|---|
 | Desktop HUD not visible over the game | CS2 in Fullscreen Windowed, the right monitor selected, not hidden (Toggle desktop HUD / emergency hide), HUD not stopped |
-| OBS source shows nothing | URL copied from this computer's library, HUD not stopped or hidden, source size as shown, Matchframe running |
+| OBS source shows nothing | URL copied from this computer's library, HUD not stopped or hidden, source size as shown, MatchFrame running |
 | OBS source shows a black background | Custom CSS in the source settings; clear it |
 | HUD shows Error | The package's files changed on disk or its entry file is missing: re-import it |
-| LHM-format HUD stays empty | Opened through Matchframe's URL (Preview, Desktop or Copy OBS Browser URL), not by opening `index.html`; game data arriving or Test data on; after **New access key**, copy the URL again |
-| LHM-format HUD shows no team names or logos | Teams entered in **Teams** with logos, and the match active in **Matches** |
+| Imported hud.json-format HUD stays empty | Opened through MatchFrame's URL (Preview, Desktop or Copy OBS Browser URL), not by opening `index.html`; game data arriving or Test data on; after **New access key**, copy the URL again |
+| Imported hud.json-format HUD shows no team names or logos | Teams entered in **Teams** with logos, and the match active in **Matches** |
 | Hotkey not working | Registration failure in the HUD's details; choose another combination |
 | HUD laggy or choppy in OBS (an amber OBS indicator) | OBS **Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration** on, OBS restarted; the browser source's *Use custom frame rate* and *Shutdown source when not visible* off |
 | Console never connects | CS2 Workshop Tools installed; CS2 started with Start CS2 (not already running); the same console port in Setup and in CS2's launch options |
@@ -214,4 +214,4 @@ Automated (unit, end-to-end and the Windows workflow): package import, validatio
 - [ ] Two or more monitors, including one left of the main monitor and one with different scaling (e.g. 100 % and 150 %): placement, Fit display and remembered position.
 - [ ] OBS 30+: Browser Source over Game Capture shows the HUD with a transparent background at the stated size; settings changes appear in OBS.
 - [ ] Unplug or close CS2 mid-round: HUD shows paused data; start again: it recovers.
-- [ ] Quit from the tray: no `Matchframe Esports` processes remain in Task Manager.
+- [ ] Quit from the tray: no `MatchFrame Esports` processes remain in Task Manager.

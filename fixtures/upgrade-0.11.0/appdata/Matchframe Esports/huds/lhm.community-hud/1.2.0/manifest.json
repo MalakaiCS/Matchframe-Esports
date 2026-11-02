@@ -1,0 +1,55 @@
+{
+  "manifestVersion": 1,
+  "id": "lhm.community-hud",
+  "name": "Community HUD",
+  "version": "1.2.0",
+  "author": "A HUD author",
+  "licence": "As set by the HUD's author",
+  "description": "LHM-format HUD with its own minimap and killfeed, running in Matchframe's LHM compatibility mode.",
+  "game": "cs2",
+  "schemaVersions": [
+    1
+  ],
+  "entryPoints": {
+    "live": "index.html"
+  },
+  "thumbnail": null,
+  "category": "LHM",
+  "tags": [
+    "lhm",
+    "minimap",
+    "killfeed"
+  ],
+  "designResolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "permissions": [
+    "match.public",
+    "players.public",
+    "radar.public",
+    "utility.public",
+    "series",
+    "event"
+  ],
+  "settingsSchema": {
+    "teams.left_team": {
+      "type": "team",
+      "label": "Left team",
+      "group": "Teams"
+    },
+    "teams.title": {
+      "type": "string",
+      "label": "Title",
+      "group": "Teams",
+      "default": ""
+    },
+    "teams.sponsors": {
+      "type": "images",
+      "label": "Sponsors",
+      "group": "Teams",
+      "default": []
+    }
+  },
+  "runtime": "lhm"
+}

@@ -35,7 +35,7 @@ describe("match graphics: storing, serving and OBS stingers", () => {
   let port: number;
   let matchId: string;
   // The stand-in OBS: its transitions, the current one, and every settings change.
-  const obs = { current: "Fade", transitions: [{ name: "Fade", kind: "fade_transition" }, { name: "Matchframe Stinger", kind: "obs_stinger_transition" }], changes: [] as { name: string; settings: Record<string, unknown>; keepCurrent: boolean }[] };
+  const obs = { current: "Fade", transitions: [{ name: "Fade", kind: "fade_transition" }, { name: "MatchFrame Stinger", kind: "obs_stinger_transition" }], changes: [] as { name: string; settings: Record<string, unknown>; keepCurrent: boolean }[] };
   const api = async (path: string, init: { method?: string; body?: unknown; raw?: Buffer; auth?: boolean } = {}) => {
     const res = await fetch(`http://127.0.0.1:${port}${path}`, {
       method: init.method ?? (init.body !== undefined || init.raw ? "POST" : "GET"),
@@ -74,7 +74,7 @@ describe("match graphics: storing, serving and OBS stingers", () => {
 
   it("stores what the program made, checks it is what it says, and serves it", async () => {
     const empty = await api(`/api/v1/matches/${matchId}/art`);
-    expect(empty.json).toMatchObject({ items: [], obs: { transitions: { stinger: "Matchframe Stinger", "stinger-replay": "Matchframe Replay Stinger" }, cutMs: 900 } });
+    expect(empty.json).toMatchObject({ items: [], obs: { transitions: { stinger: "MatchFrame Stinger", "stinger-replay": "MatchFrame Replay Stinger" }, cutMs: 900 } });
     expect((await api(`/api/v1/matches/${matchId}/art/thumb-highlights`, { raw: PNG })).status).toBe(200);
     // A video where a picture belongs, or a picture where a stinger belongs, is refused.
     expect((await api(`/api/v1/matches/${matchId}/art/thumb-replay`, { raw: MOV })).status).toBe(400);
@@ -111,42 +111,61 @@ describe("match graphics: storing, serving and OBS stingers", () => {
     expect((await api(`/api/v1/matches/${matchId}/art`)).json!.settings).toEqual({ backgroundAssetId: "0123456789abcdef01234567.jpg" });
   });
 
-  it("puts the stingers in OBS's Matchframe transitions, says which are missing, and uses the replay one into and out of replays", async () => {
+  it("puts the stingers in OBS's MatchFrame transitions, says which are missing, and uses the replay one into and out of replays", async () => {
     expect((await api(`/api/v1/matches/${matchId}/art/obs`, { body: {} })).status).toBe(409);
     e.obs.state.connected = true;
     const first = await api(`/api/v1/matches/${matchId}/art/obs`, { body: { useStinger: true } });
     expect(first.status, JSON.stringify(first.json)).toBe(200);
-    expect(first.json).toMatchObject({ set: [{ kind: "stinger", transition: "Matchframe Stinger", confirmed: true }], missing: ["Matchframe Replay Stinger"], current: "Matchframe Stinger" });
-    expect(obs.changes[0]).toMatchObject({ name: "Matchframe Stinger", keepCurrent: true, settings: { transition_point: 900, tp_type: 0 } });
+    expect(first.json).toMatchObject({ set: [{ kind: "stinger", transition: "MatchFrame Stinger", confirmed: true }], missing: ["MatchFrame Replay Stinger"], current: "MatchFrame Stinger" });
+    expect(obs.changes[0]).toMatchObject({ name: "MatchFrame Stinger", keepCurrent: true, settings: { transition_point: 900, tp_type: 0 } });
     expect(String(obs.changes[0]!.settings.path)).toMatch(/stinger\.mov$/);
     expect(existsSync(String(obs.changes[0]!.settings.path))).toBe(true);
     // The replay transition is added in OBS and the replay stinger made: both go in.
-    obs.transitions.push({ name: "Matchframe Replay Stinger", kind: "obs_stinger_transition" });
+    obs.transitions.push({ name: "MatchFrame Replay Stinger", kind: "obs_stinger_transition" });
     expect((await api(`/api/v1/matches/${matchId}/art/stinger-replay`, { raw: MOV })).status).toBe(200);
     obs.changes.length = 0;
     const second = await api(`/api/v1/matches/${matchId}/art/obs`, { body: { useStinger: false } });
-    expect(second.json).toMatchObject({ missing: [], replayIn: "Matchframe Replay Stinger", replayOut: "Matchframe Replay Stinger" });
+    expect(second.json).toMatchObject({ missing: [], replayIn: "MatchFrame Replay Stinger", replayOut: "MatchFrame Replay Stinger" });
     // Replay out stays "the same as Replay in".
-    expect(e.obsAuto.settings()).toMatchObject({ replayIn: "Matchframe Replay Stinger", replayOut: null });
+    expect(e.obsAuto.settings()).toMatchObject({ replayIn: "MatchFrame Replay Stinger", replayOut: null });
     expect(obs.changes.map((c) => [c.name, c.keepCurrent])).toEqual([
-      ["Matchframe Stinger", false],
-      ["Matchframe Replay Stinger", false],
+      ["MatchFrame Stinger", false],
+      ["MatchFrame Replay Stinger", false],
     ]);
     expect(String(obs.changes[1]!.settings.path)).toMatch(/stinger-replay\.mov$/);
     // Transitions the operator chose are kept; OBS's own for the way out gets the stinger.
     e.obsAuto.setSettings({ replayIn: "Fade", replayOut: "" });
-    expect((await api(`/api/v1/matches/${matchId}/art/obs`, { body: {} })).json).toMatchObject({ replayIn: "Fade", replayOut: "Matchframe Replay Stinger" });
+    expect((await api(`/api/v1/matches/${matchId}/art/obs`, { body: {} })).json).toMatchObject({ replayIn: "Fade", replayOut: "MatchFrame Replay Stinger" });
     e.obsAuto.setSettings({ replayIn: "", replayOut: "Fade" });
-    expect((await api(`/api/v1/matches/${matchId}/art/obs`, { body: {} })).json).toMatchObject({ replayIn: "Matchframe Replay Stinger", replayOut: "Fade" });
-    e.obsAuto.setSettings({ replayIn: "Matchframe Replay Stinger", replayOut: null });
+    expect((await api(`/api/v1/matches/${matchId}/art/obs`, { body: {} })).json).toMatchObject({ replayIn: "MatchFrame Replay Stinger", replayOut: "Fade" });
+    e.obsAuto.setSettings({ replayIn: "MatchFrame Replay Stinger", replayOut: null });
   });
 
   it("points the stingers at a match when it becomes the active one", async () => {
     obs.changes.length = 0;
     expect((await api(`/api/v1/matches/${matchId}/activate`, { body: {} })).status).toBe(200);
     for (let i = 0; i < 50 && obs.changes.length < 2; i++) await new Promise((r) => setTimeout(r, 20));
-    expect(obs.changes.map((c) => c.name)).toEqual(["Matchframe Stinger", "Matchframe Replay Stinger"]);
+    expect(obs.changes.map((c) => c.name)).toEqual(["MatchFrame Stinger", "MatchFrame Replay Stinger"]);
     // Quietly: OBS's current transition stays what it was.
     expect(obs.changes.every((c) => !c.keepCurrent)).toBe(true);
+  });
+
+  it("uses the Stinger transitions an OBS has under the old spelling (made for 0.11.0): none reported missing", async () => {
+    const saved = obs.transitions.map((t) => ({ ...t }));
+    try {
+      obs.transitions = [{ name: "Fade", kind: "fade_transition" }, { name: "Matchframe Stinger", kind: "obs_stinger_transition" }, { name: "Matchframe Replay Stinger", kind: "obs_stinger_transition" }];
+      e.obsAuto.setSettings({ replayIn: "", replayOut: "" });
+      obs.changes.length = 0;
+      const r = await api(`/api/v1/matches/${matchId}/art/obs`, { body: {} });
+      expect(r.json).toMatchObject({ set: [{ kind: "stinger", transition: "Matchframe Stinger" }, { kind: "stinger-replay", transition: "Matchframe Replay Stinger" }], missing: [], replayIn: "Matchframe Replay Stinger", replayOut: "Matchframe Replay Stinger" });
+      expect(obs.changes.map((c) => c.name)).toEqual(["Matchframe Stinger", "Matchframe Replay Stinger"]);
+      // Activation finds them too (quietly).
+      obs.changes.length = 0;
+      expect((await api(`/api/v1/matches/${matchId}/activate`, { body: {} })).status).toBe(200);
+      for (let i = 0; i < 50 && obs.changes.length < 2; i++) await new Promise((r) => setTimeout(r, 20));
+      expect(obs.changes.map((c) => c.name)).toEqual(["Matchframe Stinger", "Matchframe Replay Stinger"]);
+    } finally {
+      obs.transitions = saved;
+    }
   });
 });

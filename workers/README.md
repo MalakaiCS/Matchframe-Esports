@@ -1,6 +1,6 @@
-# Matchframe workers (Python offline pipeline)
+# MatchFrame workers (Python offline pipeline)
 
-Offline data pipeline for Matchframe Esports: CS2 demo import → committed Parquet datasets →
+Offline data pipeline for MatchFrame Esports: CS2 demo import → committed Parquet datasets →
 validation → map packs, measured utility profiles, causal features/labels → frozen splits →
 LightGBM baseline, evaluation, export and a file-based model registry.
 

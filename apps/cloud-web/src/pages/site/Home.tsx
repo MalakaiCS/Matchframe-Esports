@@ -45,7 +45,7 @@ function PlanTeaser() {
 }
 
 export function Home() {
-  useTitle("", "Matchframe is the Windows program for Counter-Strike 2 broadcasts: HUDs for OBS, the Observer auto director with manual takeover, observer camera control, replays and match administration.");
+  useTitle("", "MatchFrame is the Windows program for Counter-Strike 2 broadcasts: HUDs for OBS, the Observer auto director with manual takeover, observer camera control, replays and match administration.");
   const { me } = useSession();
   return (
     <>
@@ -86,7 +86,7 @@ export function Home() {
             </ul>
           </div>
           <div className="hero-media">
-            <Screenshot name="live-control" eager alt="The Live Control screen of the Matchframe program: player cards for both teams, what is on air, the Observer mode and controls, the director's reasons, and Stop automation in the top bar." caption="Live Control in the Matchframe program. Real screenshot; the match data is simulated." />
+            <Screenshot name="live-control" eager alt="The Live Control screen of the MatchFrame program: player cards for both teams, what is on air, the Observer mode and controls, the director's reasons, and Stop automation in the top bar." caption="Live Control in the MatchFrame program. Real screenshot; the match data is simulated." />
           </div>
         </div>
       </section>
@@ -134,7 +134,7 @@ export function Home() {
               id="home-huds"
               eyebrow="HUDs for OBS"
               title="Broadcast graphics as browser sources"
-              shot={<Screenshot name="hud-broadcast" alt="A Matchframe HUD over the game view: scoreboard with team names and round timer, player cards on both sides, the observed player's panel and a minimap." caption="Built-in HUD, Classic preset. Simulated match data." />}
+              shot={<Screenshot name="hud-broadcast" alt="A MatchFrame HUD over the game view: scoreboard with team names and round timer, player cards on both sides, the observed player's panel and a minimap." caption="Built-in HUD, Classic preset. Simulated match data." />}
             >
               <p>Add one URL per output to OBS. Presets and variants cover pre-match, veto, live, post-map, standings and brackets, or import your own HUD package.</p>
               <CheckList items={["Draft and publish revisions; roll back instantly", "Per-output access tokens and broadcast delay", "Cues and annotations go on air immediately"]} />

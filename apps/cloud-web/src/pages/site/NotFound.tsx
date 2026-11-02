@@ -5,7 +5,7 @@ import { Link } from "../../router.tsx";
 import { useSession } from "../../state/session.tsx";
 
 export function NotFound() {
-  useTitle("Page not found", "This page doesn't exist on the Matchframe website.");
+  useTitle("Page not found", "This page doesn't exist on the MatchFrame website.");
   const { me } = useSession();
   return (
     <section className="wrap section not-found">

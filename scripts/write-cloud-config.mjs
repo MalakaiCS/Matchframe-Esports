@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Writes config/cloud.json for a release build of the Matchframe program: the website's address and
+// Writes config/cloud.json for a release build of the MatchFrame program: the website's address and
 // its licence public keys, read from the live website. The program then talks only to that website
 // and trusts only licences signed with those keys.
 //   node scripts/write-cloud-config.mjs https://matchframe.example

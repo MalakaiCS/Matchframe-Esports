@@ -28,7 +28,7 @@ interface Overview {
 /**
  * Storage (the owner: highlights "on a separate drive instead of going into the C drive"): replay
  * clips, the replay feed's recording, kept highlight clips and reels go to chosen folders; clips
- * already kept stay usable where they are; a folder Matchframe can't use is refused.
+ * already kept stay usable where they are; a folder MatchFrame can't use is refused.
  */
 describe("Storage folders for replays and highlights", () => {
   let e: Engine;

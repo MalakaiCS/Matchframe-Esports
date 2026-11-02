@@ -62,7 +62,7 @@ function AccountPanel({ st, onChange }: { st: CloudStatus; onChange: () => void 
   const user = st.signIn.user;
   return (
     <Panel
-      title="Matchframe account"
+      title="MatchFrame account"
       actions={st.linkState === "linked" ? <Badge tone="ok">Signed in</Badge> : st.linkState === "linking" ? <Badge tone="info">Waiting for approval</Badge> : st.linkState === "revoked" ? <Badge tone="danger">Signed out on website</Badge> : <Badge>Signed out</Badge>}
     >
       {st.device ? (
@@ -85,7 +85,7 @@ function AccountPanel({ st, onChange }: { st: CloudStatus; onChange: () => void 
               onDone={onChange}
               disabledReason={reason}
               confirm={{
-                title: "Sign out of Matchframe?",
+                title: "Sign out of MatchFrame?",
                 body: st.signIn.required
                   ? "Pending usage is uploaded first. The program keeps running until you close it; the next time it opens it asks you to sign in."
                   : "Pending usage is uploaded first. Automatic direction on live matches stops being available until you sign in again; HUDs and manual control keep working.",
@@ -330,7 +330,7 @@ export function AccountScreen() {
       <div className="page-head">
         <h1 className="page-title">Account & Hours</h1>
       </div>
-      <p className="page-intro">Your Matchframe sign-in and the auto-director hours this computer uses.</p>
+      <p className="page-intro">Your MatchFrame sign-in and the auto-director hours this computer uses.</p>
       <Async state={status}>
         {(st) => (
           <div className="stack">

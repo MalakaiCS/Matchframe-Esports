@@ -13,7 +13,7 @@ export const StorageFolders = z.object({
 });
 export type StorageFolders = z.infer<typeof StorageFolders>;
 
-/** A folder Matchframe can write to: made if missing, a test file written and removed. Throws with why not. */
+/** A folder MatchFrame can write to: made if missing, a test file written and removed. Throws with why not. */
 export function checkFolder(dir: string): void {
   if (!isAbsolute(dir)) throw Object.assign(new Error(`not a full folder path: ${dir}`), { status: 400 });
   const probe = join(dir, `.matchframe-write-test-${process.pid}`);
@@ -22,7 +22,7 @@ export function checkFolder(dir: string): void {
     writeFileSync(probe, "ok");
     rmSync(probe, { force: true });
   } catch (err) {
-    throw Object.assign(new Error(`Matchframe can't write to ${dir}: ${err instanceof Error ? err.message : String(err)}`), { status: 400 });
+    throw Object.assign(new Error(`MatchFrame can't write to ${dir}: ${err instanceof Error ? err.message : String(err)}`), { status: 400 });
   }
 }
 

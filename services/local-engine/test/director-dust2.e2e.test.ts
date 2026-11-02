@@ -30,7 +30,7 @@ const waitFor = async (fn: () => boolean | Promise<boolean>, ms = 15000) => {
  * the round's end, 20 s of freeze time with Ts in T spawn and CTs in CT spawn, then the round goes
  * live and the Ts run for B. CS2's game data lags its console by a quarter of a second, and only the
  * build's own spec_mode numbers (CS:GO's) take the camera out of the free camera: in 0.6.0 the lag
- * made Matchframe think the camera was out of a shot that wasn't, and save CS2's numbering instead,
+ * made MatchFrame think the camera was out of a shot that wasn't, and save CS2's numbering instead,
  * so the camera stayed on the freeze-time shot through the live round. The next round's freeze
  * time has a CT tactical timeout in the middle.
  */
@@ -125,7 +125,7 @@ describe("Dust2: out of the freeze-time shot and into first person when the roun
     const liveAt = samples.find((s) => s.round === freezeRound && s.phase === "live")!.at;
     const why = JSON.stringify(cs2.lines.filter((l) => l.at > 12000 && !/spec_goto/.test(l.line) || /^spec_mode/.test(l.line)).map((l) => `${(l.at / 1000).toFixed(1)} ${l.line}`));
     // Freeze time: a shot of each team, framed where they stand, one after the other (no player view
-    // between), each gliding (Matchframe sends the poses; CS2's +left/+right would strafe it).
+    // between), each gliding (MatchFrame sends the poses; CS2's +left/+right would strafe it).
     const inFreeze = commands.filter((c) => c.at > 13000 && c.at < LIVE_START);
     const cams = inFreeze.filter((c) => c.request.kind === "activate_static_camera");
     expect(cams.length, why).toBeGreaterThanOrEqual(2);
@@ -162,7 +162,7 @@ describe("Dust2: out of the freeze-time shot and into first person when the roun
     expect(hold!.request.movingMs, why).toBe(20000);
     // Nothing else until the round goes live (the timeout ends at 69 s, the round goes live at 75 s: one glide).
     expect(commands.filter((c) => c.at > hold!.at && c.at < LIVE2_START), why).toEqual([]);
-    // Moving all the while (Matchframe sends the poses over the console here), never with the movement keys.
+    // Moving all the while (MatchFrame sends the poses over the console here), never with the movement keys.
     expect(cs2.lines.filter((l) => l.at > LIVE2_START - 3000 && l.at < LIVE2_START && /^spec_goto /.test(l.line)).length, why).toBeGreaterThan(20);
     expect(cs2.lines.filter((l) => l.at > hold!.at && l.at < LIVE2_START && /\+(left|right)/.test(l.line)), why).toEqual([]);
     // Then first person.

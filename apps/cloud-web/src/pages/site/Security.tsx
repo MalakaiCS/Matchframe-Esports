@@ -14,7 +14,7 @@ const STORED: [string, string][] = [
 ];
 
 export function Security() {
-  useTitle("Security", "How Matchframe protects your account and data: what we store, password hashing, signed licences, HTTPS, Stripe payments and responsible disclosure.");
+  useTitle("Security", "How MatchFrame protects your account and data: what we store, password hashing, signed licences, HTTPS, Stripe payments and responsible disclosure.");
   const { site } = useSite();
   return (
     <>

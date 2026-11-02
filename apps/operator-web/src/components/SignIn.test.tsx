@@ -110,7 +110,7 @@ describe("sign-in notice in the console", () => {
     renderNotice();
     await waitFor(() => expect(calls.some((c) => c.path === "/api/v1/cloud/status")).toBe(true));
     expect(screen.getByTestId("console").textContent).toBe("CONSOLE");
-    expect(screen.queryByText("Signed out of Matchframe")).toBeNull();
+    expect(screen.queryByText("Signed out of MatchFrame")).toBeNull();
     expect(screen.queryByLabelText("Password")).toBeNull();
   });
 
@@ -123,7 +123,7 @@ describe("sign-in notice in the console", () => {
     await act(() => vi.advanceTimersByTimeAsync(10));
     current = status("revoked", { lastError: "this computer is signed out" });
     await act(() => vi.advanceTimersByTimeAsync(31_000));
-    await waitFor(() => expect(screen.getByText("Signed out of Matchframe")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Signed out of MatchFrame")).toBeTruthy());
     expect(screen.getByText(/HUD Library, HUDs and manual control keep working/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Settings → Account" })).toBeTruthy();
     expect(screen.getByTestId("console").textContent).toBe("CONSOLE");
@@ -137,6 +137,6 @@ describe("sign-in notice in the console", () => {
     await act(() => vi.advanceTimersByTimeAsync(10));
     current = status("offline_expired", { lastError: "licence refresh failed: fetch failed" });
     await act(() => vi.advanceTimersByTimeAsync(31_000));
-    expect(await screen.findByText("Matchframe needs to go online")).toBeTruthy();
+    expect(await screen.findByText("MatchFrame needs to go online")).toBeTruthy();
   });
 });

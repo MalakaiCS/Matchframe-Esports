@@ -1,6 +1,6 @@
 import type { IconName } from "../components/icons.tsx";
 
-/** /use-cases: who Matchframe is designed for. No invented customers, logos or numbers. */
+/** /use-cases: who MatchFrame is designed for. No invented customers, logos or numbers. */
 export interface UseCase {
   id: string;
   title: string;
@@ -24,7 +24,7 @@ export const USE_CASES: UseCase[] = [
       "The Observer can cover live matches while your human observer focuses on the key moments.",
       "On the top plan, Full Action Observer adds nade cameras that catch smokes, flashes, molotovs and HE grenades as they land.",
     ],
-    setup: "One production PC with OBS and Matchframe, the CS2 observer client on the same or a separate PC, and extra operator positions for replays or graphics.",
+    setup: "One production PC with OBS and MatchFrame, the CS2 observer client on the same or a separate PC, and extra operator positions for replays or graphics.",
     features: [
       { slug: "match-admin", label: "Match administration" },
       { slug: "auto-director", label: "Observer (auto director)" },
@@ -60,7 +60,7 @@ export const USE_CASES: UseCase[] = [
       "Sign in once with a free account; the program then works offline for up to seven days after each check.",
       "The Free plan includes a few auto-director hours each month to try automation.",
     ],
-    setup: "A single Windows PC running the CS2 observer client, OBS and Matchframe together.",
+    setup: "A single Windows PC running the CS2 observer client, OBS and MatchFrame together.",
     features: [
       { slug: "huds", label: "HUDs for OBS" },
       { slug: "auto-director", label: "Observer (auto director)" },

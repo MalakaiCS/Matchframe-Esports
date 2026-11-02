@@ -63,7 +63,7 @@ function ImageSlot({ label, hint, assetId, shape, onPick, onRemove, reason }: { 
 
 /**
  * HUD images (from the HUD Library): default player pictures for each side, the dead-player icon,
- * and a logo and picture per map. Every Matchframe HUD uses them where it has no picture of its own;
+ * and a logo and picture per map. Every MatchFrame HUD uses them where it has no picture of its own;
  * each change is saved at once and reaches running HUDs straight away.
  */
 export function HudImagesScreen() {
@@ -137,7 +137,7 @@ export function HudImagesScreen() {
           HUD Library
         </Link>
       </div>
-      <Note tone="info">Every Matchframe HUD uses these when a player, map or mark has no picture of its own. Add only images you have the right to use.</Note>
+      <Note tone="info">Every MatchFrame HUD uses these when a player, map or mark has no picture of its own. Add only images you have the right to use.</Note>
       {!res.data ? (
         res.error ? (
           <ErrorBox error={res.error} onRetry={() => void res.reload()} />
@@ -184,7 +184,7 @@ export function HudImagesScreen() {
               ))}
             </div>
           </Panel>
-          <p className="muted small">HUD images are saved on this computer (account sync does not share them yet). LHM-format HUDs such as kaiHUD keep their own pictures.</p>
+          <p className="muted small">HUD images are saved on this computer (account sync does not share them yet). Imported HUDs (hud.json format) keep their own pictures.</p>
         </>
       )}
     </div>

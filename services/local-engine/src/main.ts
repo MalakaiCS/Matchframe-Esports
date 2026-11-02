@@ -28,17 +28,17 @@ export async function main(): Promise<void> {
   const engine = new Engine(cfg);
   await engine.init();
   const servers = await startServers(engine);
-  // For scripts and headless use of the API. The console itself runs only inside the Matchframe program.
+  // For scripts and headless use of the API. The console itself runs only inside the MatchFrame program.
   const tokenFile = join(cfg.dataDir, "operator-token.txt");
   writeFileSync(tokenFile, engine.secrets.operatorToken + "\n", { mode: 0o600 });
   process.stdout.write(
     [
       "",
-      "Matchframe Esports engine running",
+      "MatchFrame Esports engine running",
       `  GSI receiver : http://${cfg.host}:${cfg.gsiPort}/gsi`,
       `  Operator API : http://${cfg.host}:${cfg.apiPort}/api/v1`,
       `  Overlays     : http://${cfg.host}:${cfg.overlayPort}/overlay/main/live?t=…`,
-      `  Console      : runs inside the Matchframe program (pnpm desktop in development)`,
+      `  Console      : runs inside the MatchFrame program (pnpm desktop in development)`,
       `  API token (for scripts) written to: ${tokenFile}`,
       "",
     ].join("\n") + "\n",
@@ -80,7 +80,7 @@ export async function main(): Promise<void> {
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain || process.env.MATCHFRAME_ENGINE_MAIN === "1") {
   main().catch((e) => {
-    process.stderr.write(`Matchframe engine failed to start: ${e instanceof Error ? e.message : String(e)}\n`);
+    process.stderr.write(`MatchFrame engine failed to start: ${e instanceof Error ? e.message : String(e)}\n`);
     process.exit(1);
   });
 }

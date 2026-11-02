@@ -1,23 +1,23 @@
 import type { MapRuntime } from "@matchframe/map-runtime";
 
-/** An LHM radar calibration: image pixel = origin + world × pxPerU (pxPerUY is negative, north up). */
-export interface LhmRadarConfig {
+/** A template radar calibration (as hud.json-format HUDs read it): image pixel = origin + world × pxPerU (pxPerUY is negative, north up). */
+export interface CompatRadarConfig {
   origin: { x: number; y: number };
   pxPerUX: number;
   pxPerUY: number;
 }
 
-/** LHM template radars are 1024 × 1024 images. */
+/** Template radars are 1024 × 1024 images. */
 const SIZE = 1024;
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 /**
  * A radar image for a map with no radar drawing (Anubis, Cache): the map pack's outline (the cells
- * where players were seen in pro demos, 64 units) as a 1024 × 1024 SVG in the flat style of LHM
+ * where players were seen in pro demos, 64 units) as a 1024 × 1024 SVG in the flat style of
  * template radars (dark walkable area, bombsites in red, site letters), with its calibration. It
- * uses the same transform as Matchframe's own schematic radar (MapRuntime.schematicTransform).
+ * uses the same transform as MatchFrame's own schematic radar (MapRuntime.schematicTransform).
  */
-export function outlineRadar(rt: MapRuntime): { svg: string; config: LhmRadarConfig } | null {
+export function outlineRadar(rt: MapRuntime): { svg: string; config: CompatRadarConfig } | null {
   const t = rt.schematicTransform();
   const outline = rt.schematicOutline();
   if (!t || !outline || (!outline.cells.length && !outline.polygons.length)) return null;

@@ -1,4 +1,4 @@
-# Matchframe Team Comms: TeamSpeak 3 client plugin (docs/operations/team-comms.md).
+# MatchFrame Team Comms: TeamSpeak 3 client plugin (docs/operations/team-comms.md).
 #   node scripts/fetch-sdk.mjs                       # the SDK headers, into .sdk/
 #   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release   # Linux (gcc), or -A x64 with MSVC on Windows
 #   cmake --build build --config Release

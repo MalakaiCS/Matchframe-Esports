@@ -219,8 +219,8 @@ export function AutoReplaysPanel() {
             <ActionButton action={() => api.post<{ scene: string; input: string }>("/api/v1/replays/obs-setup")} success={(r) => `OBS: scene “${r.scene}” with the media source “${r.input}” is ready`} onDone={() => void auto.reload()} disabledReason={setupReason}>
               Set up OBS replay scene
             </ActionButton>
-            <span className="muted small">Adds a “Matchframe Replay” scene to OBS and uses it, with a second one beside it for fading between replays. Pick a Stinger for replays under OBS scenes → Transitions.</span>
-            {status?.twin ? <span className={`small ${status.twin.ready ? "muted" : "text-warn"}`}>{status.twin.ready ? `Fades between replays through “${status.twin.scene}”, a copy of your replay scene that Matchframe keeps the same: leave it to Matchframe.` : `Between replays: ${status.twin.detail}`}</span> : null}
+            <span className="muted small">Adds a “MatchFrame Replay” scene to OBS and uses it, with a second one beside it for fading between replays. Pick a Stinger for replays under OBS scenes → Transitions.</span>
+            {status?.twin ? <span className={`small ${status.twin.ready ? "muted" : "text-warn"}`}>{status.twin.ready ? `Fades between replays through “${status.twin.scene}”, a copy of your replay scene that MatchFrame keeps the same: leave it to MatchFrame.` : `Between replays: ${status.twin.detail}`}</span> : null}
           </div>
         )}
         {ranked.length ? (
@@ -547,9 +547,9 @@ function MainSide() {
         <li>Turn on automatic replays above.</li>
       </ol>
       {bridge ? (
-        <Checkbox checked={access === true} disabled={!!reason || access === null} label="Let other computers on the network connect" hint="They still need a code from this computer. Windows may ask to allow Matchframe through the firewall: allow it on private networks." onChange={(v) => void toggle(v)} />
+        <Checkbox checked={access === true} disabled={!!reason || access === null} label="Let other computers on the network connect" hint="They still need a code from this computer. Windows may ask to allow MatchFrame through the firewall: allow it on private networks." onChange={(v) => void toggle(v)} />
       ) : (
-        <Note tone="neutral">Network access is set in the Matchframe program on the main PC.</Note>
+        <Note tone="neutral">Network access is set in the MatchFrame program on the main PC.</Note>
       )}
       {net.data?.reachable ? (
         addresses.length ? (
@@ -627,7 +627,7 @@ function ReplayFeedSection() {
   return (
     <div className="stack-sm">
       <h3 className="gb-section-title">Replay feed (NDI)</h3>
-      <p className="small muted">This computer records the replay PC's whole screen over NDI and cuts each kill from it, like LHM's Replay Feed. The replay PC then needs no OBS: only an NDI screen sender, such as vMix Desktop Capture.</p>
+      <p className="small muted">This computer records the replay PC's whole screen over NDI and cuts each kill from it. The replay PC then needs no OBS: only an NDI screen sender, such as vMix Desktop Capture.</p>
       <Checkbox checked={st?.enabled ?? false} disabled={!!reason || !st} label="Record the replay PC's screen" hint="It keeps the last few minutes and cuts clips from them; nothing is played from it by itself." onChange={(v) => void save({ enabled: v })} />
       {ff?.source === "missing" ? (
         ff.canDownload ? (

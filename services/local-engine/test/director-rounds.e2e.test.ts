@@ -127,7 +127,7 @@ describe("Director over a round: freeze time cinematics, then first person once 
     const why = JSON.stringify({ round, liveAt, cine, results: results.filter((r) => r.at >= w.freeze[0] - 2000 && r.at < liveAt) });
     expect(cine.length, JSON.stringify(inFreeze)).toBeGreaterThanOrEqual(2);
     expect(cine.length, why).toBeLessThanOrEqual(4);
-    // Moving shots (a team shot glides, a spawn camera turns), Matchframe sending the poses.
+    // Moving shots (a team shot glides, a spawn camera turns), MatchFrame sending the poses.
     expect(cine.every((c) => c.request.kind === "activate_static_camera" && Number(c.request.movingMs) > 0), why).toBe(true);
     expect(new Set(cine.map(idOf)).size, why).toBe(cine.length);
     // From the first shot to the end of freeze time: no player view between the shots.

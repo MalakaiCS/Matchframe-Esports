@@ -40,7 +40,7 @@ const sameOrInside = (root: string, target: string): boolean => {
 export function registerHudIpc(d: HudIpcDeps): void {
   const handle = <T>(channel: string, fn: (...args: unknown[]) => T | Promise<T>) => {
     ipcMain.handle(channel, async (event, ...args: unknown[]): Promise<HudReply<T>> => {
-      if (!d.allowed(event)) return { ok: false, error: "Desktop HUDs are only available in the Matchframe manager window." };
+      if (!d.allowed(event)) return { ok: false, error: "Desktop HUDs are only available in the MatchFrame manager window." };
       try {
         return { ok: true, value: await fn(...args) };
       } catch (e) {

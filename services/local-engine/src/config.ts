@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { delimiter, join } from "node:path";
+import { brandedFolder } from "./brand.ts";
 
 export const APP_VERSION = "0.11.0";
 
@@ -25,7 +26,7 @@ export interface EngineConfig {
   utilityProfilesFile: string | null;
   /** Built-in models shipped with the app (assets/models: `pov_2s-builtin/`). */
   builtinModelsDir: string | null;
-  /** The user's Videos folder (set by the desktop program): highlight reels go in "Matchframe Highlights" there; else in the data folder. */
+  /** The user's Videos folder (set by the desktop program): highlight reels go in "MatchFrame Highlights" there; else in the data folder. */
   videosDir?: string | null;
   /** Python interpreter for workers (demo parsing, training). */
   pythonPath: string | null;
@@ -33,7 +34,7 @@ export interface EngineConfig {
   /** Allowed browser origins for operator mutations (CSRF protection). */
   allowedOrigins: string[];
   logLevel: "debug" | "info" | "warn" | "error";
-  /** Fixed Matchframe website/API address (release builds); when null the operator sets it on the Account screen. */
+  /** Fixed MatchFrame website/API address (release builds); when null the operator sets it on the Account screen. */
   cloudUrl: string | null;
   /** Ed25519 public keys {kid: PEM} pinned into the build. When null, keys are fetched from the website on first link. */
   cloudPublicKeys: Record<string, string> | null;
@@ -45,8 +46,9 @@ export interface EngineConfig {
 
 export function defaultDataDir(): string {
   if (process.env.MATCHFRAME_DATA_DIR) return process.env.MATCHFRAME_DATA_DIR;
-  if (platform() === "win32") return join(process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"), "Matchframe Esports");
-  if (platform() === "darwin") return join(homedir(), "Library", "Application Support", "Matchframe Esports");
+  // An upgraded computer keeps its "Matchframe Esports" folder (brandedFolder): the paths the program stored stay valid.
+  if (platform() === "win32") return brandedFolder(process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"), "MatchFrame Esports");
+  if (platform() === "darwin") return brandedFolder(join(homedir(), "Library", "Application Support"), "MatchFrame Esports");
   return join(process.env.XDG_DATA_HOME ?? join(homedir(), ".local", "share"), "matchframe-esports");
 }
 

@@ -131,7 +131,7 @@ export function RecordingPanel({ view, onChanged }: { view: CommsView; onChanged
             </select>
           </Field>
           <LevelField label="Game level" value={rec.settings.gameLevelDb} disabledReason={control} hint="The recording's own game audio fader in OBS (not the program's)." onSave={(v) => save({ gameLevelDb: v }, `Game level ${dbText(v)}`)} />
-          <LevelField label="Comms level" value={rec.settings.commsLevelDb} disabledReason={control} hint="Matchframe's gain on the recording comms; −60 is off." onSave={(v) => save({ commsLevelDb: v }, `Comms level ${dbText(v)}`)} />
+          <LevelField label="Comms level" value={rec.settings.commsLevelDb} disabledReason={control} hint="MatchFrame's gain on the recording comms; −60 is off." onSave={(v) => save({ commsLevelDb: v }, `Comms level ${dbText(v)}`)} />
         </div>
         <KV
           items={[
@@ -176,7 +176,7 @@ function FolderField({ rec, disabledReason, onChanged }: { rec: RecorderStatus; 
   return (
     <Field label="Destination folder" hint="Where Source Record writes the files (OBS runs on this computer). A drive with room: about 7 GB an hour at 16 Mb/s.">
       <div className="row">
-        <input aria-label="Destination folder" value={draft} spellCheck={false} disabled={!!disabledReason} placeholder="Videos → Matchframe Comms Recordings" onChange={(e) => setDraft(e.target.value)} />
+        <input aria-label="Destination folder" value={draft} spellCheck={false} disabled={!!disabledReason} placeholder="Videos → MatchFrame Comms Recordings" onChange={(e) => setDraft(e.target.value)} />
         {pick ? (
           <ActionButton
             size="sm"
@@ -262,7 +262,7 @@ function StepList({ steps }: { steps: SetupStep[] }) {
   );
 }
 
-/** Source Record (installed or how to install it) and the recording scene built by Matchframe. */
+/** Source Record (installed or how to install it) and the recording scene built by MatchFrame. */
 function ObsSetup({ rec, disabledReason, onChanged }: { rec: RecorderStatus; disabledReason: string | null; onChanged: Reload }) {
   const src = useApi<LiveSources>("/api/v1/comms/recording/obs/sources");
   const [pick, setPick] = useState<{ gameSource: string; hudSource: string; gameAudioSource: string } | null>(null);

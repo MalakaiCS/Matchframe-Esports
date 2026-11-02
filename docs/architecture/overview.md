@@ -1,6 +1,6 @@
 # Architecture overview
 
-Matchframe Esports is two products. **The Matchframe program for Windows** (`.exe` installer) is everything that runs a broadcast: a modular monolith with one authoritative local engine per match session, the operator console shown only inside the program, browser-source HUD outputs for OBS, and separate Python workers for offline demo work. **The website** (`services/cloud-api` + `apps/cloud-web`) only handles payments, subscriptions, auto-director hours usage, account and team management, and staff administration ([cloud.md](cloud.md)).
+MatchFrame Esports is two products. **The MatchFrame program for Windows** (`.exe` installer) is everything that runs a broadcast: a modular monolith with one authoritative local engine per match session, the operator console shown only inside the program, browser-source HUD outputs for OBS, and separate Python workers for offline demo work. **The website** (`services/cloud-api` + `apps/cloud-web`) only handles payments, subscriptions, auto-director hours usage, account and team management, and staff administration ([cloud.md](cloud.md)).
 
 **Where the console runs.** The program shows the operator console from its own `app://matchframe` origin (files bundled in the installer) and forwards the console's API requests to the engine. The engine's HTTP address serves the API (for the program and control surfaces such as Companion), the captain veto page for scoped captain links, and — on the overlay port — the HUD outputs that OBS browser sources load. It never serves the console to a browser. Extra operator positions in a multi-PC production run the same program connected to the production computer (File → Connection settings).
 
@@ -40,7 +40,7 @@ flowchart TD
 | `services/replay-agent` | Replay providers and approval queue. |
 | `apps/hud-renderer` | Built-in broadcast HUD (React), three presets, nine variants. |
 | `apps/operator-web` | Operator console (React), bundled into the program; separate captain veto page build (`dist-captain`) served by the engine. |
-| `apps/desktop` | The Matchframe program: Electron shell with the `app://matchframe` console origin and API forwarding, engine supervisor, connection settings (this computer / production computer), packaging (NSIS `.exe`, portable zip). |
+| `apps/desktop` | The MatchFrame program: Electron shell with the `app://matchframe` console origin and API forwarding, engine supervisor, connection settings (this computer / production computer), packaging (NSIS `.exe`, portable zip). |
 | `services/cloud-api`, `apps/cloud-web` | The website: accounts, organisations, Stripe billing, auto-director hours, linking computers, staff admin, installer downloads. |
 | `workers/*` | Python demo parsing, features, training, evaluation (see `workers/README.md`). |
 

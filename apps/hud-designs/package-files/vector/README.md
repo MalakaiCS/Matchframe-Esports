@@ -1,6 +1,6 @@
 # Vector HUD
 
-A broadcast HUD for CS2 in the Matchframe HUD Library: solid team-colour panels on dark bases with rounded corners and heavy geometric type, with each team's players down its own side of the screen.
+A broadcast HUD for CS2 in the MatchFrame HUD Library: solid team-colour panels on dark bases with rounded corners and heavy geometric type, with each team's players down its own side of the screen.
 
 What it shows:
 
@@ -10,7 +10,7 @@ What it shows:
 - **Players alive** ("3 VS 2", top right) and the **killfeed** under it. Kills stay seven seconds.
 - **Bomb**: the clock turns into the bomb on a T-colour centre and a bar with the seconds left drops in under the score bar and drains; while the bomb is defused the centre turns CT colour and a second bar names the defending team. A defused bomb ends the round on a green centre.
 - **Round winner** card, in the winning team's colour, under the score bar until the next freeze time.
-- **Radar** (top left, no panel behind it): the map's radar image (the bundled radars, or one calibrated in Maps & Cameras); for a map without one (Anubis, Cache), Matchframe's radar drawn in the same style, with the same marker style as the Lineup HUD; hidden when no trustworthy calibration exists.
+- **Radar** (top left, no panel behind it): the map's radar image (the bundled radars, or one calibrated in Maps & Cameras); for a map without one (Anubis, Cache), MatchFrame's radar drawn in the same style, with the same marker style as the Lineup HUD; hidden when no trustworthy calibration exists.
 - The **SIMULATION** label while test data runs and **DATA PAUSED** when game data stops arriving.
 
 Motion follows the game: going live flips the clock, tucks the loss bonus into the bar, wipes the series away and slides the players-alive box in; a kill collapses the victim's card and then slides the kill in; a planted bomb swaps the clock for the bomb and drops the bar in; the winner's card fades in when the round ends. Everything animates with transform, opacity and clip-path only, and only the clocks update ten times a second.
@@ -19,7 +19,7 @@ Pictures come from the HUD Library's **HUD images** (default player pictures by 
 
 ## Build your own from it
 
-The source is in the Matchframe repository at `apps/hud-designs/src/vector` (React, TypeScript, plain CSS, Vite), with the parts shared by Matchframe's HUD designs in `apps/hud-designs/src/shared`:
+The source is in the MatchFrame repository at `apps/hud-designs/src/vector` (React, TypeScript, plain CSS, Vite), with the parts shared by MatchFrame's HUD designs in `apps/hud-designs/src/shared`:
 
 ```
 pnpm install
@@ -33,6 +33,6 @@ Rules every HUD package follows: transparent `html` and `body` backgrounds; the 
 
 ## Licences and credits
 
-- Code: MIT, Matchframe.
+- Code: MIT, MatchFrame.
 - Montserrat font: SIL Open Font License 1.1 (`OFL-Montserrat.txt`). Barlow Condensed and Inter: SIL Open Font License 1.1 (`OFL-fonts.txt`).
-- The weapon silhouettes come with Lexogrine's CS2 HUD template (MIT, `LICENSE-lexogrine.txt`) and originate from Counter-Strike 2 game files (© Valve Corporation). Lexogrine's MIT licence covers the code, not Valve's artwork. Broadcast HUDs for Counter-Strike commonly use these icons; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons. The grenade, bomb, kit, armour, killfeed and player-silhouette glyphs are original Matchframe shapes. Matchframe Esports is not affiliated with or endorsed by Valve.
+- The weapon silhouettes come with a third-party CS2 HUD template (MIT, `third-party-licenses/weapon-icons-MIT.txt`) and originate from Counter-Strike 2 game files (© Valve Corporation). That MIT licence covers the code, not Valve's artwork. Broadcast HUDs for Counter-Strike commonly use these icons; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons. The grenade, bomb, kit, armour, killfeed and player-silhouette glyphs are original MatchFrame shapes. MatchFrame Esports is not affiliated with or endorsed by Valve.

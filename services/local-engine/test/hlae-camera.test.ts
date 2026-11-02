@@ -13,7 +13,7 @@ import { HlaeCameraServer } from "../src/game/hlae-camera.ts";
 type View = { x: number; y: number; z: number; rX: number; rY: number; rZ: number; fov?: number } | undefined;
 
 /**
- * HLAE's script API as far as the Matchframe camera script uses it (mirv.events, connect_async with
+ * HLAE's script API as far as the MatchFrame camera script uses it (mirv.events, connect_async with
  * the in/out streams, run_jobs), over a real WebSocket. Stand-in; logic tests only.
  */
 function fakeMirv() {

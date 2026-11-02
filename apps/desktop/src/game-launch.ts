@@ -89,7 +89,7 @@ export async function startCs2(prepared: PreparedLaunch, opts: { hlaePath: strin
       message:
         plan.mode === "standard"
           ? "CS2 is already running. Restart it so it reads the new game data (GSI) config."
-          : "CS2 is already running without Matchframe's launch options. Close CS2, then click Start CS2 again.",
+          : "CS2 is already running without MatchFrame's launch options. Close CS2, then click Start CS2 again.",
     };
   }
 
@@ -114,7 +114,7 @@ export async function startCs2(prepared: PreparedLaunch, opts: { hlaePath: strin
       });
     });
     if (code !== 0 && code !== null) return { ok: false, message: `HLAE could not start CS2 (exit code ${code}). After a CS2 update HLAE often needs an update too: install the latest HLAE and try again.${GSI_NOTE(prepared)}` };
-    return { ok: true, message: `Starting CS2 with HLAE (insecure). Matchframe connects to its console on port ${plan.netconPort} when it is up.${GSI_NOTE(prepared)}` };
+    return { ok: true, message: `Starting CS2 with HLAE (insecure). MatchFrame connects to its console on port ${plan.netconPort} when it is up.${GSI_NOTE(prepared)}` };
   }
 
   if (plan.steamExe) {

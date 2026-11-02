@@ -79,7 +79,7 @@ describe("Automatic replays panel", () => {
   });
 
   it("goes back to live by 1:50 on the next round's clock by default, or another time, or before the round starts; fades between replays", async () => {
-    const calls = serve({ "GET /api/v1/replays/auto": { ...auto, status: { ...auto.status, twin: { scene: "Matchframe Replay B", input: "Matchframe Replay Clip B", ready: true, detail: "", checkedAt: null } } } });
+    const calls = serve({ "GET /api/v1/replays/auto": { ...auto, status: { ...auto.status, twin: { scene: "MatchFrame Replay B", input: "MatchFrame Replay Clip B", ready: true, detail: "", checkedAt: null } } } });
     wrap(<AutoReplaysPanel />);
     const back = (await screen.findByLabelText(/Back to live/)) as HTMLSelectElement;
     await waitFor(() => expect(back.disabled).toBe(false));
@@ -103,7 +103,7 @@ describe("Automatic replays panel", () => {
     await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ between: "cut" }));
     fireEvent.change(screen.getByLabelText(/Fade length/), { target: { value: "1000" } });
     await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ fadeMs: 1000 }));
-    expect(screen.getByText(/Fades between replays through “Matchframe Replay B”/)).toBeTruthy();
+    expect(screen.getByText(/Fades between replays through “MatchFrame Replay B”/)).toBeTruthy();
     expect(screen.queryByText(/Never while a round is live/)).toBeNull();
   });
 });
@@ -219,14 +219,14 @@ describe("Automatic replays: the operator's controls, sound, Test replays and ho
         inputs: [
           { id: "Game audio", name: "Game audio", kind: "wasapi_output_capture", volume: -1.9, muted: false, picked: false, replay: false },
           { id: "Caster mic", name: "Caster mic", kind: "wasapi_input_capture", volume: 0, muted: false, picked: false, replay: false },
-          { id: "Matchframe Replay Clip", name: "Matchframe Replay Clip", kind: "ffmpeg_source", volume: 0, muted: false, picked: false, replay: true },
+          { id: "MatchFrame Replay Clip", name: "MatchFrame Replay Clip", kind: "ffmpeg_source", volume: 0, muted: false, picked: false, replay: true },
         ],
       },
     });
     wrap(<AutoReplaysPanel />);
     const game = (await screen.findByLabelText("Game audio")) as HTMLInputElement;
     await waitFor(() => expect(game.disabled).toBe(false));
-    expect((screen.getByLabelText(/Matchframe Replay Clip \(a replay source/) as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByLabelText(/MatchFrame Replay Clip \(a replay source/) as HTMLInputElement).disabled).toBe(true);
     expect(screen.getByText("No live game audio picked: nothing is turned down during replays.")).toBeTruthy();
     fireEvent.click(game);
     await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ duckInputs: ["Game audio"] }));
@@ -249,8 +249,8 @@ describe("Automatic replays: the operator's controls, sound, Test replays and ho
           startedAt: "2026-10-31T10:00:00Z",
           finishedAt: "2026-10-31T10:00:10Z",
           steps: [
-            { id: "ready", label: "Replay scene and twin ready", state: "ok", detail: "“Matchframe Replay” with “Matchframe Replay Clip”.", fix: null },
-            { id: "in", label: "Transition in (Replay in)", state: "ok", detail: "Opener to “Matchframe Replay”.", fix: null },
+            { id: "ready", label: "Replay scene and twin ready", state: "ok", detail: "“MatchFrame Replay” with “MatchFrame Replay Clip”.", fix: null },
+            { id: "in", label: "Transition in (Replay in)", state: "ok", detail: "Opener to “MatchFrame Replay”.", fix: null },
             { id: "fade", label: "Fade (0.5 s) between the clips", state: "failed", detail: "The sample clip didn't play.", fix: "The replay media source must be a Media Source playing local files." },
             { id: "out", label: "Transition out (Replay out)", state: "ok", detail: "Fade back to “Game”.", fix: null },
             { id: "live", label: "Back live", state: "ok", detail: "OBS shows “Game”, the program is live.", fix: null },
@@ -268,8 +268,8 @@ describe("Automatic replays: the operator's controls, sound, Test replays and ho
     await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/replays/auto/test")).toBe(true));
     const steps = (await screen.findByLabelText("Test replays report")).querySelectorAll("li");
     expect([...steps].map((li) => li.textContent)).toEqual([
-      "OKReplay scene and twin ready“Matchframe Replay” with “Matchframe Replay Clip”.",
-      "OKTransition in (Replay in)Opener to “Matchframe Replay”.",
+      "OKReplay scene and twin ready“MatchFrame Replay” with “MatchFrame Replay Clip”.",
+      "OKTransition in (Replay in)Opener to “MatchFrame Replay”.",
       "FailedFade (0.5 s) between the clipsThe sample clip didn't play.Fix: The replay media source must be a Media Source playing local files.",
       "OKTransition out (Replay out)Fade back to “Game”.",
       "OKBack liveOBS shows “Game”, the program is live.",

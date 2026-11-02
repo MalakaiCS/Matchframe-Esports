@@ -30,7 +30,7 @@ export function createTray(opts: {
     opts.log(`tray icon unavailable: ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
-  tray.setToolTip("Matchframe Esports");
+  tray.setToolTip("MatchFrame Esports");
   // Windows: a click on the icon opens the manager; the menu is on right-click.
   tray.on("click", () => opts.showManager());
   tray.on("double-click", () => opts.showManager());
@@ -45,7 +45,7 @@ export function createTray(opts: {
         { label: s.visible ? "Hide HUD" : "Show HUD", enabled: s.open, click: () => opts.toggleHud() },
         { label: "Stop HUD", enabled: s.outputs, click: () => opts.stopHud() },
         { type: "separator" },
-        { label: "Quit Matchframe", click: () => opts.quit() },
+        { label: "Quit MatchFrame", click: () => opts.quit() },
       ]),
     );
   };

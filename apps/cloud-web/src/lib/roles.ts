@@ -6,7 +6,7 @@ import type { OrgRole, SubscriptionStatus } from "@matchframe/cloud-contracts";
  */
 export type OrgAction = "org.view" | "org.rename" | "members.manage" | "billing.manage" | "billing.view" | "devices.link" | "devices.revoke" | "usage.view";
 
-/** "staff" = a Matchframe staff member viewing an organisation they are not a member of (read-only). */
+/** "staff" = a MatchFrame staff member viewing an organisation they are not a member of (read-only). */
 export type ViewerRole = OrgRole | "staff";
 
 const MATRIX: Record<ViewerRole, readonly OrgAction[]> = {

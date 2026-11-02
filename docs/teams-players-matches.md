@@ -20,6 +20,7 @@ Editors keep the navigation visible and have a footer with Cancel and Save and E
 - **Match**: `veto` (ordered entries `{id, type: pick|ban|decider, teamId, mapName, sideChoice: CT|T|null, reversedSides}`), `seriesCorrectionA/B` (manual adjustment). Map instances follow the picks and the decider in order; a map that stays in place keeps its result, and a map with a result is never replaced or removed by a veto edit. The series score is the maps won (completed maps, each once) plus the correction.
 - **Images**: an editor upload is checked (PNG, JPEG or WebP by content, size read from the file, 2 MB at most) and staged under `<data folder>/staging`; Save and Exit moves it into the content-addressed asset store, Cancel deletes it, and staged files older than six hours are removed at start-up and every 30 minutes. Removing an image clears the reference only.
 - Migration 5 splits existing real names on the first space into first and last names.
+- **HUDs**: names and pictures come from these records, so edits reach every HUD. Imported HUDs (hud.json format) get each player's `firstName`/`lastName` (`domain/players.ts` `playerNames`) and the active match's veto in order, bans included, with the side choice, reversed sides and each played map's result (`domain/veto-entries.ts` `hudVetoList`: the match's own entries, else the captain veto, else its maps).
 
 ## Active match
 

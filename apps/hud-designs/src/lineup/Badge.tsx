@@ -17,7 +17,7 @@ export function TeamLogo({ team, className = "" }: { team: HudTeam; className?: 
   );
 }
 
-/** A neutral head-and-shoulders silhouette for players without a photo (Matchframe's own drawing). */
+/** A neutral head-and-shoulders silhouette for players without a photo (MatchFrame's own drawing). */
 function Silhouette() {
   return (
     <svg className="lu-silhouette" viewBox="0 0 100 112" preserveAspectRatio="xMinYMax meet" aria-hidden>

@@ -239,14 +239,14 @@ function Routes() {
   if (route.auth) {
     if (session.status !== "ready") return wrap(<Loading label="Checking your session…" />);
     if (!session.me) {
-      if (session.probeError) return <PublicLayout narrow><Alert tone="danger" title="Can't reach Matchframe">{session.probeError}</Alert></PublicLayout>;
+      if (session.probeError) return <PublicLayout narrow><Alert tone="danger" title="Can't reach MatchFrame">{session.probeError}</Alert></PublicLayout>;
       return <Redirect to={loginHref(loc.href) + (session.expired ? `${loginHref(loc.href).includes("?") ? "&" : "?"}expired=1` : "")} />;
     }
     if (route.staff && !session.me.user.staff)
       return wrap(
         <>
           <PageHeader title="Staff only" />
-          <Alert tone="warn">This page is for Matchframe staff.</Alert>
+          <Alert tone="warn">This page is for MatchFrame staff.</Alert>
         </>,
       );
   }

@@ -30,7 +30,7 @@ export function HlaeWarningDialog({ onConfirm, onCancel }: { onConfirm: () => vo
 export function consoleLine(st: GameConsoleStatus | undefined): { tone: "ok" | "neutral" | "warn"; text: string; title: string } | null {
   if (!st || st.console === "off") return null;
   if (st.console === "connected") return { tone: st.lastApplyError ? "warn" : "ok", text: "Console connected", title: st.lastApplyError ? `Some console options were not sent: ${st.lastApplyError}` : `CS2 console on port ${st.port}: camera control and game options are live.` };
-  return { tone: "neutral", text: "Console: waiting for CS2", title: `Matchframe connects to CS2's console on port ${st.port} once CS2 runs with -tools -netconport${st.lastError ? ` (last try: ${st.lastError})` : ""}. No connection after CS2 has started usually means the CS2 Workshop Tools are not installed.` };
+  return { tone: "neutral", text: "Console: waiting for CS2", title: `MatchFrame connects to CS2's console on port ${st.port} once CS2 runs with -tools -netconport${st.lastError ? ` (last try: ${st.lastError})` : ""}. No connection after CS2 has started usually means the CS2 Workshop Tools are not installed.` };
 }
 
 /** Settings → Setup → Start CS2: launch mode, console port, extra launch options and HLAE. */
@@ -60,7 +60,7 @@ export function LaunchSettings() {
 
   return (
     <div className="stack launch-settings">
-      <p className="muted">Start CS2 in the HUD Library starts the game this way. Matchframe writes the game data (GSI) config first.</p>
+      <p className="muted">Start CS2 in the HUD Library starts the game this way. MatchFrame writes the game data (GSI) config first.</p>
       <fieldset className="launch-modes" disabled={!!reason}>
         <legend className="sr-only">Launch mode</legend>
         {LAUNCH_MODES.map((m) => (
@@ -98,7 +98,7 @@ export function LaunchSettings() {
             </ul>
           </Note>
           <div className="row">
-            <span className={hlae.info?.ok ? "text-ok" : "muted"}>{hlae.info?.ok ? `HLAE: ${hlae.info.path}` : (hlae.info?.problem ?? "HLAE.exe can be chosen in the Matchframe program.")}</span>
+            <span className={hlae.info?.ok ? "text-ok" : "muted"}>{hlae.info?.ok ? `HLAE: ${hlae.info.path}` : (hlae.info?.problem ?? "HLAE.exe can be chosen in the MatchFrame program.")}</span>
             {hlae.choose ? (
               <Button onClick={() => void hlae.choose!()} disabledReason={reason}>
                 Choose HLAE.exe…

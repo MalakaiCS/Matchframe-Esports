@@ -2,7 +2,7 @@ import type { MapInstance, Match, Team } from "@matchframe/contracts";
 
 /**
  * Optional adapter to the separate MatchFrame service (spec §23.4). The real MatchFrame API was not
- * available to this project, so this client speaks a documented Matchframe bridge contract
+ * available to this project, so this client speaks a documented MatchFrame bridge contract
  * (docs/integrations/matchframe-bridge.md) behind capability discovery and a mapping layer. Any
  * failure is contained: the local CS2 broadcast never depends on it.
  */

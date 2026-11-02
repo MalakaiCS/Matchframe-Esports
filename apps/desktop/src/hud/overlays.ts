@@ -238,7 +238,7 @@ export class OverlayManager {
       maximizable: false,
       fullscreenable: false,
       show: false,
-      title: `${hud.name} — Matchframe HUD`,
+      title: `${hud.name} — MatchFrame HUD`,
       webPreferences: {
         sandbox: true,
         contextIsolation: true,

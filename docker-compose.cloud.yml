@@ -1,4 +1,4 @@
-# Self-hosting the Matchframe website + cloud API with Postgres.
+# Self-hosting the MatchFrame website + cloud API with Postgres.
 #   cp config/cloud.env.example config/cloud.env   # fill in the values
 #   docker compose -f docker-compose.cloud.yml --env-file config/cloud.env up -d --build
 # Put a TLS-terminating reverse proxy in front (MF_CLOUD_PUBLIC_URL must be the https address).
@@ -50,7 +50,7 @@ services:
       MF_DOWNLOAD_WINDOWS_SHA256: ${MF_DOWNLOAD_WINDOWS_SHA256:-}
       MF_DOWNLOAD_NOTES_URL: ${MF_DOWNLOAD_NOTES_URL:-}
     volumes:
-      # Put MatchframeEsports-Setup-<version>.exe here to offer it on the website.
+      # Put MatchFrameEsports-Setup-<version>.exe here to offer it on the website.
       - ./downloads:/downloads:ro
     ports:
       - "127.0.0.1:8080:8080"

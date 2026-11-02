@@ -77,7 +77,7 @@ describe("HUD images screen", () => {
   it("shows the note, five slots per side, the dead-player icon and each map's logo and picture", async () => {
     engine({ defaultPlayers: { ct: [ID(1)], t: [] }, maps: { de_mirage: { logo: ID(2), image: null } }, icons: { dead: null } });
     renderScreen();
-    expect(await screen.findByText("Every Matchframe HUD uses these when a player, map or mark has no picture of its own. Add only images you have the right to use.")).toBeTruthy();
+    expect(await screen.findByText("Every MatchFrame HUD uses these when a player, map or mark has no picture of its own. Add only images you have the right to use.")).toBeTruthy();
     const ct = screen.getByRole("region", { name: "CT player pictures" });
     expect(ct.querySelectorAll(".hudimg-slot")).toHaveLength(5);
     expect(screen.getByRole("region", { name: "T player pictures" }).querySelectorAll(".hudimg-slot")).toHaveLength(5);

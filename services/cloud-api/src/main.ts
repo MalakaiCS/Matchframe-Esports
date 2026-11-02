@@ -13,12 +13,12 @@ try {
   cfg = loadCloudConfig(process.env, { webDir: process.env.MF_CLOUD_WEB_DIR?.trim() || defaultWeb });
 } catch (e) {
   // Configuration mistakes get a one-line explanation, not a stack trace.
-  console.error(`Matchframe cloud API: cannot start: ${e instanceof Error ? e.message : String(e)}`);
+  console.error(`MatchFrame cloud API: cannot start: ${e instanceof Error ? e.message : String(e)}`);
   process.exit(1);
 }
 const problems = productionConfigProblems(cfg);
 if (problems.length > 0) {
-  console.error(["Matchframe cloud API: refusing to start in production:", ...problems.map((p) => `  - ${p}`), "See docs/operations/cloud-deployment.md."].join("\n"));
+  console.error(["MatchFrame cloud API: refusing to start in production:", ...problems.map((p) => `  - ${p}`), "See docs/operations/cloud-deployment.md."].join("\n"));
   process.exit(1);
 }
 const app = new CloudApp(cfg);
@@ -26,7 +26,7 @@ await app.init();
 const { close } = await startCloudServer(app);
 console.log(
   [
-    `Matchframe cloud API listening on http://${cfg.host}:${cfg.port} (public URL ${cfg.publicUrl})`,
+    `MatchFrame cloud API listening on http://${cfg.host}:${cfg.port} (public URL ${cfg.publicUrl})`,
     `  database: ${app.sql.kind}${app.sql.kind === "pglite" ? ` (${cfg.pgliteDir ?? "in memory — data is lost on exit; set DATABASE_URL or MF_CLOUD_PGLITE_DIR"})` : ""}`,
     `  billing: ${app.billing.configured ? "Stripe" : "not configured (set STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET)"}`,
     `  email: ${app.mailer.kind === "smtp" ? "SMTP" : "outbox table only (set SMTP_URL)"}`,

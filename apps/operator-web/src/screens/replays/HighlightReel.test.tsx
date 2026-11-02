@@ -109,8 +109,8 @@ describe("Highlight reel panel", () => {
     expect((screen.getByRole("button", { name: "Export highlight reel" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/highlights/reels/reel_1/cancel")).toBe(true));
-    jobs = [job({ state: "done", step: "Done", progress: 1, file: "/videos/Matchframe Highlights/Mirage - 2026-10-31 1002.mp4", bytes: 48e6 })];
-    expect(await screen.findByText("/videos/Matchframe Highlights/Mirage - 2026-10-31 1002.mp4", {}, { timeout: 4000 })).toBeTruthy();
+    jobs = [job({ state: "done", step: "Done", progress: 1, file: "/videos/MatchFrame Highlights/Mirage - 2026-10-31 1002.mp4", bytes: 48e6 })];
+    expect(await screen.findByText("/videos/MatchFrame Highlights/Mirage - 2026-10-31 1002.mp4", {}, { timeout: 4000 })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open folder" }));
     expect(open).toHaveBeenCalled();
   });

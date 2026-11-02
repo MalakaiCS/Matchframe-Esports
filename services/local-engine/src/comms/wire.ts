@@ -76,8 +76,8 @@ export class FrameReader {
     let off = 0;
     while (this.buf.length - off >= HEADER_BYTES) {
       const h = this.buf.subarray(off, off + HEADER_BYTES);
-      if (h[0] !== 0x4d || h[1] !== 0x46 || h[2] !== 0x54 || h[3] !== 0x43) throw new WireError("bad_magic", "not a Matchframe Team Comms message (no MFTC header)");
-      if (h[4] !== PROTOCOL) throw new WireError("bad_version", `protocol version ${h[4]}, this Matchframe speaks ${PROTOCOL}: update the TeamSpeak plugin`);
+      if (h[0] !== 0x4d || h[1] !== 0x46 || h[2] !== 0x54 || h[3] !== 0x43) throw new WireError("bad_magic", "not a MatchFrame Team Comms message (no MFTC header)");
+      if (h[4] !== PROTOCOL) throw new WireError("bad_version", `protocol version ${h[4]}, this MatchFrame speaks ${PROTOCOL}: update the TeamSpeak plugin`);
       const type = h[5]!;
       if (!KNOWN.has(type)) throw new WireError("bad_type", `unknown message type 0x${type.toString(16)}`);
       const len = h.readUInt32LE(8);

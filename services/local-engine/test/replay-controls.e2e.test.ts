@@ -426,7 +426,7 @@ describe("Replay controls, sound and Test replays (OBS)", () => {
     const samples = testClipsDir()!;
     expect(samples).toBeTruthy();
     for (const c of TEST_CLIPS) o.durations.set(join(samples, c.file), c.durationMs);
-    e.obsAuto.setSettings({ replayIn: "Matchframe Replay Stinger", replayOut: "" });
+    e.obsAuto.setSettings({ replayIn: "MatchFrame Replay Stinger", replayOut: "" });
     await feed("live", 20);
     expect((await api("/api/v1/replays/auto/test")).json).toMatchObject({ error: "test_refused", message: expect.stringMatching(/A round is live/) });
     await feed("freezetime", 20, 15);
@@ -456,13 +456,13 @@ describe("Replay controls, sound and Test replays (OBS)", () => {
       ["audio", "ok"],
     ]);
     expect(report.state).toBe("passed");
-    expect(report.steps.find((s) => s.id === "in")!.detail).toBe("Matchframe Replay Stinger to “My Replay”.");
+    expect(report.steps.find((s) => s.id === "in")!.detail).toBe("MatchFrame Replay Stinger to “My Replay”.");
     expect(report.steps.find((s) => s.id === "fade")!.detail).toBe("Fade to “My Replay B”.");
     expect(report.steps.find((s) => s.id === "out")!.detail).toBe("Fade back to “Game”.");
     expect(report.steps.find((s) => s.id === "audio")!.detail).toBe("Turned down: Game audio. Put back exactly as before (-20 dB during the replays).");
     // The same path as a break: Replay in, the fade through the twin, Replay out; the sample clips loaded.
     expect(o.changes.map((c) => [c.scene, c.transition])).toEqual([
-      ["My Replay", "Matchframe Replay Stinger"],
+      ["My Replay", "MatchFrame Replay Stinger"],
       ["My Replay B", "Fade"],
       ["Game", "Fade"],
     ]);

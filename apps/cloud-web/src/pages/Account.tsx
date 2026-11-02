@@ -174,7 +174,7 @@ export function Account() {
               <div>
                 <dt>Access</dt>
                 <dd>
-                  Matchframe staff ({STAFF_ROLE_LABEL[staffRoleOf(u) ?? "support"].toLowerCase()}) · <Link to="/admin">Admin console</Link>
+                  MatchFrame staff ({STAFF_ROLE_LABEL[staffRoleOf(u) ?? "support"].toLowerCase()}) · <Link to="/admin">Admin console</Link>
                 </dd>
               </div>
             )}

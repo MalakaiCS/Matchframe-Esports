@@ -2,7 +2,7 @@ import type { HudReplayClip } from "@matchframe/hud-sdk";
 
 /**
  * The lower third burned into a highlight reel's clips: drawn on a canvas (1920×1080, transparent
- * around it) and laid over its clip by ffmpeg with a fade in and out. An original Matchframe design
+ * around it) and laid over its clip by ffmpeg with a fade in and out. An original MatchFrame design
  * in the match graphics' type: the team-colour block with the logo, the player on a dark panel with
  * the weapon, headshot and victims under the name, and a team-colour badge for a 2K–ACE or a clutch.
  */

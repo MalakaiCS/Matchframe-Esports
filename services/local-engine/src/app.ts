@@ -33,6 +33,8 @@ import { HUD_ART_KEY, hudArtState, normalizeHudArt, type HudArtSetting } from ".
 import { CleanRadars } from "./hud/clean-radar.ts";
 import { HudLibraryService, libraryHudId, libraryOutputId } from "./hud/library.ts";
 import { HudPackageManager } from "./hud/packages.ts";
+import { migrateLegacyHuds, type LegacyHudMigration } from "./hud/compat-migration.ts";
+import { brandedFolder } from "./brand.ts";
 import { OutputService } from "./hud/outputs.ts";
 import { DelayBuffer } from "./live/delay.ts";
 import { KillfeedBuilder } from "./live/killfeed.ts";
@@ -158,7 +160,7 @@ export class Engine {
   readonly maps = new MapRegistry();
   /** Built-in radar images (minimaps) for the active-duty maps. */
   readonly radars: BuiltinRadars;
-  /** Matchframe's clean radars, drawn from the map packs in each radar background's frame. */
+  /** MatchFrame's clean radars, drawn from the map packs in each radar background's frame. */
   readonly cleanRadars: CleanRadars;
   readonly session: LiveSession;
   readonly obs: ObsManager;
@@ -193,7 +195,9 @@ export class Engine {
   readonly startedAt = new Date().toISOString();
   readonly now = () => performance.now();
   readonly migration: { from: number; to: number; backup: string | null };
-  /** Matchframe account link, signed licence and auto-director hour metering. */
+  /** Imported HUDs of 0.11.0 and earlier brought up to date at this start (their ids and manifests). */
+  readonly legacyHuds: LegacyHudMigration;
+  /** MatchFrame account link, signed licence and auto-director hour metering. */
   readonly cloud: CloudLink;
   /** Account sync: teams, players, matches and imported HUDs shared with every computer of the organisation. */
   readonly cloudSync: CloudSync;
@@ -208,7 +212,7 @@ export class Engine {
   readonly autoReplay: AutoReplay;
   /** The replay scene's twin in OBS, for fading from one replay of a break to the next. */
   readonly replayTwin: ReplayTwin;
-  /** The replay graphic on Matchframe HUDs while a replay clip is on air (ADR-061). */
+  /** The replay graphic on MatchFrame HUDs while a replay clip is on air (ADR-061). */
   readonly replayGraphic: ReplayGraphic;
   /** Clips and kills of the current and previous map kept for highlight reels (ADR-061). */
   readonly highlights: HighlightStore;
@@ -336,7 +340,7 @@ export class Engine {
     // and automatic replays waited for the live scene that was already on air.
     // And it follows OBS to the operator's own scenes (ADR-062): a scene put on in OBS itself (by
     // hand, a multiview plugin, Studio Mode's Transition button), not the live scene and not one
-    // Matchframe put on, is the operator's (MANUAL): nothing automatic touches the program until OBS
+    // MatchFrame put on, is the operator's (MANUAL): nothing automatic touches the program until OBS
     // shows the live scene again.
     let shown: string | null = null;
     const followObs = (why: string) => {
@@ -353,7 +357,7 @@ export class Engine {
       }
       if (!live) return;
       const who = this.obsAuto.whose(scene);
-      // Matchframe's own change, or (no change seen) the scene the program shows already.
+      // MatchFrame's own change, or (no change seen) the scene the program shows already.
       if (who === "matchframe" || (who === "unknown" && this.program.showsScene(scene))) return;
       const t = this.program.followMixerScene(scene);
       if (t) this.logger.info("program follows OBS to the operator's scene", { scene, from: t.from, why });
@@ -383,6 +387,7 @@ export class Engine {
     this.ruleEngine.setRules(this.rules.list().map((d) => d.data));
 
     this.hudPackages = new HudPackageManager(this.db, join(cfg.dataDir, "huds"));
+    this.legacyHuds = migrateLegacyHuds({ db: this.db, logger: this.logger });
     this.outputs = new OutputService(this.db, this.settings);
     this.registerBuiltinHud();
     this.hudLibrary = new HudLibraryService({ db: this.db, settings: this.settings, packages: this.hudPackages, outputs: this.outputs, logger: this.logger, hudsDir: join(cfg.dataDir, "huds"), hudRendererDir: cfg.hudRendererDir, overlayPort: cfg.overlayPort });
@@ -519,7 +524,7 @@ export class Engine {
       settings: this.settings,
       logger: this.logger,
       liveScene: () => this.program.sceneMap.LIVE,
-      defaultFolder: () => (this.cfg.videosDir ? join(this.cfg.videosDir, "Matchframe Comms Recordings") : join(this.cfg.dataDir, "exports", "comms-recordings")),
+      defaultFolder: () => (this.cfg.videosDir ? brandedFolder(this.cfg.videosDir, "MatchFrame Comms Recordings") : join(this.cfg.dataDir, "exports", "comms-recordings")),
       teamName: (id) => {
         const t = this.teams.get(id)?.data;
         return t ? { name: t.name, shortName: t.shortName } : null;
@@ -635,11 +640,11 @@ export class Engine {
     const manifest: HudManifest = {
       manifestVersion: 1,
       id: "matchframe-default",
-      name: "Matchframe Broadcast HUD",
+      name: "MatchFrame Broadcast HUD",
       version: "0.1.0",
-      author: "Matchframe Esports",
-      licence: "Proprietary (Matchframe Esports)",
-      description: "Original Matchframe HUD with Classic, Minimal and Arena presets.",
+      author: "MatchFrame Esports",
+      licence: "Proprietary (MatchFrame Esports)",
+      description: "Original MatchFrame HUD with Classic, Minimal and Arena presets.",
       game: "cs2",
       schemaVersions: [1],
       entryPoints: { live: "index.html", compact: "index.html", replay: "index.html", veto: "index.html", "pre-match": "index.html", break: "index.html", "post-map": "index.html", "post-series": "index.html", studio: "index.html" },
@@ -650,9 +655,9 @@ export class Engine {
       designResolution: { width: 1920, height: 1080 },
       permissions: ["match.public", "players.public", "radar.public", "utility.public", "sponsors", "series", "event", "veto.public", "annotations"],
       presets: [
-        { id: "classic", name: "Matchframe Classic" },
-        { id: "minimal", name: "Matchframe Minimal" },
-        { id: "arena", name: "Matchframe Arena" },
+        { id: "classic", name: "MatchFrame Classic" },
+        { id: "minimal", name: "MatchFrame Minimal" },
+        { id: "arena", name: "MatchFrame Arena" },
       ],
       settingsSchema: {
         "hide.scoreboard": { type: "boolean", label: "Hide scoreboard", default: false, group: "Elements" },
@@ -811,7 +816,7 @@ export class Engine {
     return this.hudArt!.state;
   }
 
-  /** Saves the HUD images; every Matchframe HUD shows them straight away. */
+  /** Saves the HUD images; every MatchFrame HUD shows them straight away. */
   setHudArt(value: HudArtSetting): HudArtSetting {
     const setting = normalizeHudArt(value);
     this.settings.set(HUD_ART_KEY, setting);
@@ -1158,7 +1163,7 @@ export class Engine {
 
   // ---------------------------------------------------------------------------- raw game data
 
-  /** Every accepted game-data packet as CS2 sent it (auth token removed), for LHM-format HUDs. */
+  /** Every accepted game-data packet as CS2 sent it (auth token removed), for imported HUDs. */
   onRawGsi(fn: (payload: Record<string, unknown>, simulated: boolean) => void): () => void {
     this.rawGsiListeners.add(fn);
     return () => this.rawGsiListeners.delete(fn);
@@ -1179,7 +1184,7 @@ export class Engine {
     return s.roundNumber;
   }
 
-  /** Each new killfeed entry (LHM-format HUDs get it as an HLAE-style player_death event). */
+  /** Each new killfeed entry (imported HUDs get it as an HLAE-style player_death event). */
   onKill(fn: (entry: HudKillfeedEntry) => void): () => void {
     this.killListeners.add(fn);
     return () => this.killListeners.delete(fn);
@@ -1339,7 +1344,7 @@ export class Engine {
     }
   }
 
-  /** Keeps Matchframe's game-data config in CS2's folder on the current timing (CS2 reads it when it starts). */
+  /** Keeps MatchFrame's game-data config in CS2's folder on the current timing (CS2 reads it when it starts). */
   private refreshGsiConfig(): void {
     const install = this.settings.get<{ cfgDir?: string } | null>("cs2.install", null);
     if (!install?.cfgDir) return;

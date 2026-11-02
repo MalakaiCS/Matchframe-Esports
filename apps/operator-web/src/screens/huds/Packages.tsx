@@ -21,7 +21,7 @@ export function PackagesTab() {
         <Async state={pk}>
           {(list) =>
             list.length === 0 ? (
-              <EmptyState title="No packages">The built-in Matchframe HUD registers on engine start.</EmptyState>
+              <EmptyState title="No packages">The built-in MatchFrame HUD registers on engine start.</EmptyState>
             ) : (
               <div className="table-wrap">
                 <table className="table">

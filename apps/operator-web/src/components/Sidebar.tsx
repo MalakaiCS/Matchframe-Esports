@@ -22,7 +22,7 @@ export function useModuleAvailability(): Partial<Record<NavId, ModuleAvailabilit
     out.director = {
       badge: gate.code === "not_linked" ? "Sign in" : gate.code === "hours_exhausted" ? "No hours" : "Locked",
       level: "unavailable",
-      reason: `${gate.reason} The Auto Director needs a Matchframe account with a plan (Settings → Account); HUDs, teams, matches and manual camera control work without one.`,
+      reason: `${gate.reason} The Auto Director needs a MatchFrame account with a plan (Settings → Account); HUDs, teams, matches and manual camera control work without one.`,
     };
   }
   const bridge = desktopHud();
@@ -68,10 +68,10 @@ export function Sidebar({ collapsed, onToggle, activeId }: { collapsed: boolean;
   const settings = NAV.find((n) => n.id === "settings")!;
   return (
     <aside className={`sidebar ${collapsed ? "is-collapsed" : ""}`}>
-      <Link to="/" className="sidebar-brand" aria-label="Matchframe Esports — HUD Library" title={collapsed ? "Matchframe Esports" : undefined}>
+      <Link to="/" className="sidebar-brand" aria-label="MatchFrame Esports — HUD Library" title={collapsed ? "MatchFrame Esports" : undefined}>
         <Logo size={30} />
         <span className="brand-text">
-          <span className="brand-name">Matchframe</span>
+          <span className="brand-name">MatchFrame</span>
           <span className="brand-sub">{version ? `Esports ${version}` : "Esports"}</span>
         </span>
       </Link>

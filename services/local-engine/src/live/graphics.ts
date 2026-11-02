@@ -10,11 +10,11 @@ import type { Engine } from "../app.ts";
  * - a player view held a while with nothing happening: that player's card (lower third), only on a
  *   player view, never over a camera, and gone as soon as the view changes;
  * - a clutch (1v2 or more): a "1v3" banner until it ends;
- * - an LHM HUD's own pages in OBS (kaiHUD's Player Highlight and Match stats): Player Highlight for
+ * - an imported HUD's own pages in OBS (kaiHUD's Player Highlight and Match stats): Player Highlight for
  *   the MVP in freeze time, Match stats at half time and at the end of the map, by showing their OBS
  *   browser sources for a few seconds.
  *
- * Matchframe HUDs draw the cues; LHM HUDs only get their pages.
+ * MatchFrame HUDs draw the cues; imported HUDs only get their pages.
  */
 
 export const GraphicsSettings = z.object({
@@ -23,7 +23,7 @@ export const GraphicsSettings = z.object({
   mvp: z.boolean().default(true),
   playerCards: z.boolean().default(true),
   clutch: z.boolean().default(true),
-  /** An LHM HUD's pages as OBS browser sources in one scene (empty = not used). */
+  /** An imported HUD's pages as OBS browser sources in one scene (empty = not used). */
   pages: z
     .object({
       hudId: z.string().max(80).default(""),
@@ -214,7 +214,7 @@ export class GraphicsDirector {
     this.card = null;
   }
 
-  /** Shows an LHM HUD's page (an OBS browser source) for a few seconds. */
+  /** Shows an imported HUD's page (an OBS browser source) for a few seconds. */
   private showPage(which: "player" | "match", s: MatchState, steamId?: string): void {
     const pg = this.settings().pages;
     const source = which === "player" ? pg.playerSource : pg.matchSource;

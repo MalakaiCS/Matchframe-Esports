@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { DEFAULT_HOTKEYS } from "./types.ts";
 import type { HotkeyConfig, OverlayPlacement } from "./types.ts";
-import { HUD_ID, isVariant } from "./validate.ts";
+import { currentHudId, HUD_ID, isVariant } from "./validate.ts";
 
 /**
  * Program settings for desktop HUDs: overlay placement per HUD and the hotkeys, in
@@ -32,14 +32,22 @@ function placementFrom(v: unknown): OverlayPlacement | null {
   };
 }
 
-/** Reads whatever is in the file, keeping only well-formed entries. */
+/**
+ * Reads whatever is in the file, keeping only well-formed entries. A placement saved by 0.11.0 or
+ * earlier under an imported HUD's old id (`lhm.<slug>`) is the HUD's under the id it has now
+ * (currentHudId), unless the file has one under that id already.
+ */
 export function parseStore(raw: unknown): StoreData {
   const out: StoreData = { version: 1, overlays: {}, hotkeys: { ...DEFAULT_HOTKEYS } };
   if (!isObject(raw)) return out;
   if (isObject(raw.overlays)) {
-    for (const [id, p] of Object.entries(raw.overlays)) {
+    const saved = raw.overlays;
+    for (const [id, p] of Object.entries(saved)) {
       const placement = HUD_ID.test(id) ? placementFrom(p) : null;
-      if (placement) out.overlays[id] = placement;
+      if (!placement) continue;
+      const now = currentHudId(id);
+      if (now !== id && Object.hasOwn(saved, now)) continue;
+      out.overlays[now] = placement;
     }
   }
   if (isObject(raw.hotkeys)) {
@@ -66,6 +74,9 @@ export class OverlayStore {
       // Missing or unreadable: defaults.
     }
     this.data = parseStore(raw);
+    // Placements moved to an imported HUD's new id are written back (the file then has only current ids).
+    const before = isObject(raw) && isObject(raw.overlays) ? Object.keys(raw.overlays) : [];
+    if (before.some((id) => currentHudId(id) !== id)) this.schedule();
   }
 
   placement(hudId: string): OverlayPlacement | null {

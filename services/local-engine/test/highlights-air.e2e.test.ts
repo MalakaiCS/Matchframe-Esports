@@ -176,7 +176,7 @@ describe("Highlights on air (OBS)", () => {
     e.program.setScenes(scenes);
     e.autoReplay.setSettings({ enabled: true, startDelayMs: 2000, perBreak: 3, order: "best", ownBigPlays: false, between: "fade", fadeMs: 400, duckInputs: ["Game audio"], duckTo: -20, duckRampMs: 150, playback: "scenes" });
     // Replay in: the stinger; Replay out: OBS's own (Cut). Highlights in and out the same until chosen.
-    e.obsAuto.setSettings({ replayIn: "Matchframe Replay Stinger", replayOut: "", otherScenes: "", mapEnd: false });
+    e.obsAuto.setSettings({ replayIn: "MatchFrame Replay Stinger", replayOut: "", otherScenes: "", mapEnd: false });
     await feed("freezetime", 2);
   });
 
@@ -187,25 +187,25 @@ describe("Highlights on air (OBS)", () => {
 
   it("sets up the highlights scene: its media source set like the replay scene's, the replay graphic's source on top (the replay scene's own), and its twin", async () => {
     expect((await api("/api/v1/replays/obs-setup")).status).toBe(200);
-    expect((await api("/api/v1/replay-graphic/obs")).json).toMatchObject({ scene: "Matchframe Replay", created: true, onTop: true });
+    expect((await api("/api/v1/replay-graphic/obs")).json).toMatchObject({ scene: "MatchFrame Replay", created: true, onTop: true });
     // Before it is set up: Play says what to do.
     const before = await api("/api/v1/highlights/air", undefined, "GET");
     expect((before.json.status as { blocked: string }).blocked).toBe("Set up the highlights scene: Set up OBS highlights scene, or pick your own scene and its media source.");
     const r = await api("/api/v1/highlights/air/obs-setup");
     expect(r.status, r.json.message).toBe(200);
-    expect(r.json).toMatchObject({ scene: "Matchframe Highlights", input: "Matchframe Highlights Clip", created: true, graphic: { created: false, onTop: true }, graphicError: null });
-    expect(o.scenes.get("Matchframe Highlights")!.map((i) => i.source)).toEqual(["Matchframe Highlights Clip", "Matchframe Replay Graphic"]);
+    expect(r.json).toMatchObject({ scene: "MatchFrame Highlights", input: "MatchFrame Highlights Clip", created: true, graphic: { created: false, onTop: true }, graphicError: null });
+    expect(o.scenes.get("MatchFrame Highlights")!.map((i) => i.source)).toEqual(["MatchFrame Highlights Clip", "MatchFrame Replay Graphic"]);
     // The twin: the same graphic source (shared), a media source of its own.
-    expect(o.scenes.get("Matchframe Highlights B")!.map((i) => i.source)).toEqual(["Matchframe Highlights Clip B", "Matchframe Replay Graphic"]);
-    expect([...o.inputs.keys()].filter((n) => n === "Matchframe Replay Graphic")).toHaveLength(1);
-    expect(o.scenes.get("Matchframe Replay")!.map((i) => i.source)).toContain("Matchframe Replay Graphic");
-    for (const n of ["Matchframe Highlights Clip", "Matchframe Highlights Clip B"]) expect(o.inputs.get(n)!.settings, n).toMatchObject({ is_local_file: true, restart_on_activate: false, close_when_inactive: false, clear_on_media_end: false });
-    expect(o.inputs.get("Matchframe Highlights Clip")!.kind).toBe("ffmpeg_source");
-    expect(e.program.sceneMap).toMatchObject({ LIVE: "Game", REPLAY: "Matchframe Replay", HIGHLIGHTS: "Matchframe Highlights" });
-    expect(e.settings.get("program.scenes", {})).toMatchObject({ HIGHLIGHTS: "Matchframe Highlights" });
-    expect(e.program.highlightsScenes).toEqual(["Matchframe Highlights", "Matchframe Highlights B"]);
+    expect(o.scenes.get("MatchFrame Highlights B")!.map((i) => i.source)).toEqual(["MatchFrame Highlights Clip B", "MatchFrame Replay Graphic"]);
+    expect([...o.inputs.keys()].filter((n) => n === "MatchFrame Replay Graphic")).toHaveLength(1);
+    expect(o.scenes.get("MatchFrame Replay")!.map((i) => i.source)).toContain("MatchFrame Replay Graphic");
+    for (const n of ["MatchFrame Highlights Clip", "MatchFrame Highlights Clip B"]) expect(o.inputs.get(n)!.settings, n).toMatchObject({ is_local_file: true, restart_on_activate: false, close_when_inactive: false, clear_on_media_end: false });
+    expect(o.inputs.get("MatchFrame Highlights Clip")!.kind).toBe("ffmpeg_source");
+    expect(e.program.sceneMap).toMatchObject({ LIVE: "Game", REPLAY: "MatchFrame Replay", HIGHLIGHTS: "MatchFrame Highlights" });
+    expect(e.settings.get("program.scenes", {})).toMatchObject({ HIGHLIGHTS: "MatchFrame Highlights" });
+    expect(e.program.highlightsScenes).toEqual(["MatchFrame Highlights", "MatchFrame Highlights B"]);
     const view = await api("/api/v1/highlights/air", undefined, "GET");
-    expect(view.json.setup).toMatchObject({ mixer: "obs", scene: "Matchframe Highlights", input: "Matchframe Highlights Clip", sceneReady: true, sameAsReplay: false, twin: { scene: "Matchframe Highlights B", ready: true }, graphic: { source: "Matchframe Replay Graphic", inScene: true, onTop: true } });
+    expect(view.json.setup).toMatchObject({ mixer: "obs", scene: "MatchFrame Highlights", input: "MatchFrame Highlights Clip", sceneReady: true, sameAsReplay: false, twin: { scene: "MatchFrame Highlights B", ready: true }, graphic: { source: "MatchFrame Replay Graphic", inScene: true, onTop: true } });
     expect(view.json.status).toMatchObject({ state: "ready", blocked: null, halftime: false });
     // The preview: this map's best five, in round order, with their length and the running time.
     const plan = (view.json.status as { plan: { clips: { id: string; roundNumber: number; playMs: number }[]; totalMs: number } }).plan;
@@ -218,7 +218,7 @@ describe("Highlights on air (OBS)", () => {
     ]);
     expect(plan.totalMs).toBe(5 * PLAY - 4 * 400);
     // The OBS scenes panel's transitions: Highlights in and out the same as Replay in and out until chosen.
-    expect((await api("/api/v1/obs/auto", undefined, "GET")).json).toMatchObject({ settings: { highlightsIn: null, highlightsOut: null }, highlightsScenes: ["Matchframe Highlights", "Matchframe Highlights B"] });
+    expect((await api("/api/v1/obs/auto", undefined, "GET")).json).toMatchObject({ settings: { highlightsIn: null, highlightsOut: null }, highlightsScenes: ["MatchFrame Highlights", "MatchFrame Highlights B"] });
   });
 
   it("plays from the live scene: Highlights in, a fade between the scene and its twin each clip at its part, the replay graphic of each kept clip, the live audio down and back, then back to the live scene", async () => {
@@ -231,15 +231,15 @@ describe("Highlights on air (OBS)", () => {
     expect(seen.lines).toEqual(["Highlight 1 of 5: 2K alpha", "Highlight 2 of 5: ACE bravo", "Highlight 3 of 5: 3K charlie", "Highlight 4 of 5: Knife delta", "Highlight 5 of 5: 3K golf"]);
     // Highlights in (as Replay in: the stinger), fades between the scene and its twin, Highlights out (as Replay out: OBS's own, Cut).
     expect(o.changes.map((c) => [c.scene, c.transition])).toEqual([
-      ["Matchframe Highlights", "Matchframe Replay Stinger"],
-      ["Matchframe Highlights B", "Fade"],
-      ["Matchframe Highlights", "Fade"],
-      ["Matchframe Highlights B", "Fade"],
-      ["Matchframe Highlights", "Fade"],
+      ["MatchFrame Highlights", "MatchFrame Replay Stinger"],
+      ["MatchFrame Highlights B", "Fade"],
+      ["MatchFrame Highlights", "Fade"],
+      ["MatchFrame Highlights B", "Fade"],
+      ["MatchFrame Highlights", "Fade"],
       ["Game", "Cut"],
     ]);
     for (const k of [1, 2, 3, 4]) {
-      const to = k % 2 ? "Matchframe Highlights Clip B" : "Matchframe Highlights Clip";
+      const to = k % 2 ? "MatchFrame Highlights Clip B" : "MatchFrame Highlights Clip";
       expect(o.changes[k]!.durationMs).toBe(400);
       // The next one waits at its part (the play and its lead-up: the last 1.5 s), and comes in from there.
       expect(o.changes[k]!.media[to]!.cursorMs, `clip ${k + 1} at the fade`).toBeGreaterThanOrEqual(DURATION - PLAY);
@@ -301,10 +301,10 @@ describe("Highlights on air (OBS)", () => {
       expect(asked[0]!.clips).toHaveLength(5);
       // The highlights scene alone (no fade through its twin), Highlights in and out.
       expect(o.changes.map((c) => [c.scene, c.transition])).toEqual([
-        ["Matchframe Highlights", "Matchframe Replay Stinger"],
+        ["MatchFrame Highlights", "MatchFrame Replay Stinger"],
         ["Game", "Cut"],
       ]);
-      expect(o.mediaLog.filter((l) => l.includes(" load "))).toEqual([`Matchframe Highlights Clip load ${asked[0]!.outFile.split(/[\\/]/).pop()}`]);
+      expect(o.mediaLog.filter((l) => l.includes(" load "))).toEqual([`MatchFrame Highlights Clip load ${asked[0]!.outFile.split(/[\\/]/).pop()}`]);
       expect(seen.lines).toEqual(["Highlight 1 of 5: 2K alpha", "Highlight 2 of 5: ACE bravo", "Highlight 3 of 5: 3K charlie", "Highlight 4 of 5: Knife delta", "Highlight 5 of 5: 3K golf"]);
       expect(seen.graphic.filter(Boolean)).toEqual(["hl-alpha", "hl-bravo", "hl-charlie", "hl-delta", "hl-golf"]);
       expect(e.highlightsAir.status().last).toMatchObject({ played: 5, failed: 0, stopped: "ended", backTo: "Game" });
@@ -320,7 +320,7 @@ describe("Highlights on air (OBS)", () => {
 
   it("plays from the operator's own scene (a multiview's analysis scene) with the chosen Highlights in and out, and goes back to it: theirs again", async () => {
     e.highlightsAir.setSettings({ count: 2 });
-    e.obsAuto.setSettings({ highlightsIn: "", highlightsOut: "Matchframe Replay Stinger" });
+    e.obsAuto.setSettings({ highlightsIn: "", highlightsOut: "MatchFrame Replay Stinger" });
     await theyShow("Analysis");
     expect([e.program.mode, e.program.operatorScene]).toEqual(["MANUAL", "Analysis"]);
     o.changes.length = 0;
@@ -329,9 +329,9 @@ describe("Highlights on air (OBS)", () => {
       expect(e.program.highlightsReturn).toEqual({ mode: "MANUAL", scene: "Analysis", owner: { kind: "operator", holder: "OBS: Analysis" } });
     });
     expect(o.changes.map((c) => [c.scene, c.transition])).toEqual([
-      ["Matchframe Highlights", "Cut"],
-      ["Matchframe Highlights B", "Fade"],
-      ["Analysis", "Matchframe Replay Stinger"],
+      ["MatchFrame Highlights", "Cut"],
+      ["MatchFrame Highlights B", "Fade"],
+      ["Analysis", "MatchFrame Replay Stinger"],
     ]);
     expect([e.program.mode, e.program.operatorScene, e.program.owner, o.program]).toEqual(["MANUAL", "Analysis", { kind: "operator", holder: "OBS: Analysis" }, "Analysis"]);
     // Still theirs: automatic replays wait, nothing changes OBS.
@@ -348,7 +348,7 @@ describe("Highlights on air (OBS)", () => {
     await e.program.request("STUDIO", "operator", "op");
     o.changes.length = 0;
     await playThrough();
-    expect(o.changes.map((c) => c.scene)).toEqual(["Matchframe Highlights", "Matchframe Highlights B", "Desk"]);
+    expect(o.changes.map((c) => c.scene)).toEqual(["MatchFrame Highlights", "MatchFrame Highlights B", "Desk"]);
     expect([e.program.mode, e.program.owner, o.program]).toEqual(["STUDIO", { kind: "operator", holder: "op" }, "Desk"]);
     // From the analysis scene, removed in OBS while the highlights play: the live scene.
     await theyShow("Analysis");
@@ -357,7 +357,7 @@ describe("Highlights on air (OBS)", () => {
       o.scenes.delete("Analysis");
       await e.obs.refresh();
     });
-    expect(o.changes.map((c) => c.scene)).toEqual(["Matchframe Highlights", "Matchframe Highlights B", "Game"]);
+    expect(o.changes.map((c) => c.scene)).toEqual(["MatchFrame Highlights", "MatchFrame Highlights B", "Game"]);
     expect([e.program.mode, o.program]).toEqual(["LIVE", "Game"]);
     o.addScene("Analysis");
     await e.obs.refresh();
@@ -379,9 +379,9 @@ describe("Highlights on air (OBS)", () => {
       expect(((await api("/api/v1/replays/auto/hold", { held: true })).json.status as { held: boolean }).held).toBe(true);
       expect(e.highlightsAir.status()).toMatchObject({ running: true, held: true, position: { n: 2, of: 3 } });
       await sleep(150);
-      const a = o.media("Matchframe Highlights Clip B");
+      const a = o.media("MatchFrame Highlights Clip B");
       await sleep(1500);
-      const b = o.media("Matchframe Highlights Clip B");
+      const b = o.media("MatchFrame Highlights Clip B");
       expect([a.state, b.state, b.cursorMs - a.cursorMs]).toEqual(["PAUSED", "PAUSED", 0]);
       expect(o.changes).toHaveLength(2);
       await api("/api/v1/replays/auto/hold", { held: false });
@@ -393,9 +393,9 @@ describe("Highlights on air (OBS)", () => {
       await waitFor(() => o.program === "Game", 2000);
     });
     expect(o.changes.map((c) => [c.scene, c.transition])).toEqual([
-      ["Matchframe Highlights", "Matchframe Replay Stinger"],
-      ["Matchframe Highlights B", "Fade"],
-      ["Matchframe Highlights", "Fade"],
+      ["MatchFrame Highlights", "MatchFrame Replay Stinger"],
+      ["MatchFrame Highlights B", "Fade"],
+      ["MatchFrame Highlights", "Fade"],
       ["Game", "Cut"],
     ]);
     expect(e.highlightsAir.status().last).toMatchObject({ played: 3, skipped: 1, stopped: "stopped", backTo: "Game" });
@@ -411,7 +411,7 @@ describe("Highlights on air (OBS)", () => {
       await theyShow("Casters");
     });
     await sleep(800);
-    expect(o.changes.map((c) => c.scene)).toEqual(["Matchframe Highlights", "Casters"]);
+    expect(o.changes.map((c) => c.scene)).toEqual(["MatchFrame Highlights", "Casters"]);
     expect([e.program.mode, e.program.operatorScene, o.program]).toEqual(["MANUAL", "Casters", "Casters"]);
     expect(e.highlightsAir.status().last).toMatchObject({ stopped: "taken" });
     expect(volume()).toBe(0.8);
@@ -433,7 +433,7 @@ describe("Highlights on air (OBS)", () => {
       expect(e.autoReplay.getStatus().detail).toMatch(/^Highlight/);
     });
     await sleep(2500);
-    expect(o.changes.map((c) => c.scene)).not.toContain("Matchframe Replay");
+    expect(o.changes.map((c) => c.scene)).not.toContain("MatchFrame Replay");
     expect(e.replays.get(q.id)!.state).toBe("prepared");
     expect(e.autoReplay.getStatus().detail).toBe("Replays for this break are done (highlights went on air instead).");
     // The next round's replays play as before; Play is refused meanwhile.
@@ -551,7 +551,7 @@ describe("Highlights on air (OBS)", () => {
     await e.obs.refresh();
     o.changes.length = 0;
     await playThrough();
-    expect(o.changes.map((c) => c.scene)).toEqual(["Matchframe Highlights", "Matchframe Highlights B", "Game"]);
+    expect(o.changes.map((c) => c.scene)).toEqual(["MatchFrame Highlights", "MatchFrame Highlights B", "Game"]);
     await waitFor(() => o.preview === "Desk", 2000);
     // The Transition button during the highlights (the twin in preview): theirs.
     o.changes.length = 0;
@@ -562,7 +562,7 @@ describe("Highlights on air (OBS)", () => {
       o.transitionButton();
     });
     await sleep(800);
-    expect(o.changes.map((c) => c.scene)).toEqual(["Matchframe Highlights", "Casters"]);
+    expect(o.changes.map((c) => c.scene)).toEqual(["MatchFrame Highlights", "Casters"]);
     expect([e.program.mode, e.program.operatorScene]).toEqual(["MANUAL", "Casters"]);
     await o.call("SetStudioModeEnabled", { studioModeEnabled: false });
     await e.obs.refresh();
@@ -632,7 +632,7 @@ describe("Highlights on air (OBS)", () => {
     await waitFor(() => running(), 3000);
     await waitFor(() => !running());
     await waitFor(() => e.program.mode === "STUDIO", 3000);
-    expect(o.changes.map((c) => c.scene)).toEqual(["Matchframe Highlights", "Matchframe Highlights B", "Game", "Desk"]);
+    expect(o.changes.map((c) => c.scene)).toEqual(["MatchFrame Highlights", "MatchFrame Highlights B", "Game", "Desk"]);
     expect(e.highlightsAir.status().auto).toMatchObject({ trigger: "map end", started: true });
     e.obsAuto.setSettings({ mapEnd: false });
   }, 30000);

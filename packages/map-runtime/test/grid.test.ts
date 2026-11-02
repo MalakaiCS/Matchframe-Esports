@@ -31,6 +31,6 @@ describe("built-in free-space grids", () => {
   });
 
   it("refuses files that aren't grids", () => {
-    expect(() => VisibilityGrid.parse(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9]), (b) => b)).toThrow(/not a Matchframe grid/);
+    expect(() => VisibilityGrid.parse(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9]), (b) => b)).toThrow(/not a MatchFrame grid/);
   });
 });

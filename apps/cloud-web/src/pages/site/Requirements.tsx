@@ -6,11 +6,11 @@ import { Link } from "../../router.tsx";
 import { useSession } from "../../state/session.tsx";
 
 export function Requirements() {
-  useTitle("System requirements", "Matchframe system requirements: Windows 10/11 64-bit, a CS2 observer client, OBS Studio 30+ with obs-websocket 5, local ports 37210–37212 and internet only for linking, licence refresh and usage upload.");
+  useTitle("System requirements", "MatchFrame system requirements: Windows 10/11 64-bit, a CS2 observer client, OBS Studio 30+ with obs-websocket 5, local ports 37210–37212 and internet only for linking, licence refresh and usage upload.");
   const { me } = useSession();
   return (
     <>
-      <PageHero eyebrow="Product" title="System requirements" lead="What you need to run the Matchframe program on your production computer." crumbs={[{ to: "/features", label: "Features" }]} />
+      <PageHero eyebrow="Product" title="System requirements" lead="What you need to run the MatchFrame program on your production computer." crumbs={[{ to: "/features", label: "Features" }]} />
       <div className="wrap section-top req-layout">
         <div className="req-groups">
           {REQUIREMENT_GROUPS.map((g) => (

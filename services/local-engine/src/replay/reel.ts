@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, statSync, write
 import { join } from "node:path";
 import { promisify } from "node:util";
 import type { Engine } from "../app.ts";
+import { brandedFolder } from "../brand.ts";
 import { HttpError } from "../http/router.ts";
 import { encoderArgs } from "./ffmpeg.ts";
 import type { ReelChoice } from "./highlights.ts";
@@ -185,7 +186,8 @@ export class HighlightReels {
   folder(): string {
     const chosen = this.e.storageFolders().highlights;
     if (chosen) return chosen;
-    return this.e.cfg.videosDir ? join(this.e.cfg.videosDir, "Matchframe Highlights") : join(this.e.cfg.dataDir, "exports", "highlights");
+    // An upgraded computer keeps its "Matchframe Highlights" folder (brandedFolder).
+    return this.e.cfg.videosDir ? brandedFolder(this.e.cfg.videosDir, "MatchFrame Highlights") : join(this.e.cfg.dataDir, "exports", "highlights");
   }
 
   list(): ReelJob[] {

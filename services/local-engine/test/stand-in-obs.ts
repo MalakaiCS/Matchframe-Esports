@@ -71,7 +71,7 @@ export class StandInObs extends EventEmitter {
   transitions: Transition[] = [
     { name: "Cut", kind: "cut_transition", fixed: true, settings: null, lengthMs: 0 },
     { name: "Fade", kind: "fade_transition", fixed: false, settings: null },
-    { name: "Matchframe Replay Stinger", kind: "obs_stinger_transition", fixed: true, settings: { path: "stinger.mov", transition_point: 300, tp_type: 0 }, lengthMs: 600 },
+    { name: "MatchFrame Replay Stinger", kind: "obs_stinger_transition", fixed: true, settings: { path: "stinger.mov", transition_point: 300, tp_type: 0 }, lengthMs: 600 },
   ];
   current = "Fade";
   durationMs = 300;

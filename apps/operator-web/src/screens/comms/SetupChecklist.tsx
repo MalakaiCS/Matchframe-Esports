@@ -17,7 +17,7 @@ const opener = () => (window.matchframe?.connectionMode !== "remote" ? (window.m
 
 /**
  * The guided setup (ADR-069): TeamSpeak plugin, DistroAV, Source Record, OBS scenes, calibration, each
- * step's state read live from Matchframe's own checks, with Install TeamSpeak plugin (the program's
+ * step's state read live from MatchFrame's own checks, with Install TeamSpeak plugin (the program's
  * build copied into TeamSpeak 3's plugins folder) and the folders to install it by hand.
  */
 export function SetupChecklist() {
@@ -30,7 +30,7 @@ export function SetupChecklist() {
   const open = opener();
   const installReason = manage ?? (p.bundled.binary ? null : (p.bundled.note ?? "This build has no TeamSpeak plugin"));
   return (
-    <Panel title="Setup checklist" subtitle="Each step reads its state from Matchframe's own checks, live." actions={<Badge tone={done === v.steps.length ? "ok" : "warn"}>{`${done} of ${v.steps.length} done`}</Badge>}>
+    <Panel title="Setup checklist" subtitle="Each step reads its state from MatchFrame's own checks, live." actions={<Badge tone={done === v.steps.length ? "ok" : "warn"}>{`${done} of ${v.steps.length} done`}</Badge>}>
       <div className="stack-sm">
         <ol className="comms-checklist" aria-label="Team Comms setup steps">
           {v.steps.map((s) => (
@@ -90,7 +90,7 @@ export function SetupChecklist() {
             <li>
               Double-click <Mono>{p.bundled.package ?? "matchframe-team-comms.ts3_plugin"}</Mono> (TeamSpeak's own add-on installer), or copy <Mono>{p.bundled.binary ?? "matchframe_comms_win64.dll"}</Mono> into <Mono>{p.installed.pluginsDir ?? "%APPDATA%\\TS3Client\\plugins"}</Mono>.
             </li>
-            <li>Start TeamSpeak 3: Tools → Options → Add-ons → Matchframe Team Comms enabled.</li>
+            <li>Start TeamSpeak 3: Tools → Options → Add-ons → MatchFrame Team Comms enabled.</li>
             <li>Connect a tab to each team's channel (each team's TeamSpeak link is under Bridge and TeamSpeak plugin). The plugin remembers the team tabs: after a TeamSpeak restart they are listen-only and silent here at once.</li>
           </ol>
         </Details>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, seg } from "../api/index.ts";
-import type { DeviceActionInfo, DeviceTally, GamesResponse, MatchframeBridgeStatus, MatchRow, ObserverAdapterResponse, ObsSceneItem, ObsState, TokenInfo } from "../api/types.ts";
+import type { DeviceActionInfo, DeviceTally, GamesResponse, MatchFrameBridgeStatus, MatchRow, ObserverAdapterResponse, ObsSceneItem, ObsState, TokenInfo } from "../api/types.ts";
 import { ActionButton, Async, Badge, Checkbox, CopyButton, Details, EmptyState, Field, KV, Note, Panel, parseJsonOr, SupportBadge, Tabs } from "../components/ui.tsx";
 import { capabilityMeta } from "../lib/capabilities.ts";
 import { MODE_INFO } from "../lib/director.ts";
@@ -213,7 +213,7 @@ function ObsTab() {
                 </table>
               )}
               <div className="form-actions">
-                <ActionButton size="sm" title="Adds the main HUD as a browser source in the scene “Matchframe Live”" action={() => api.post("/api/v1/obs/provision", {})} success="HUD browser source provisioned (scene “Matchframe Live”)" disabledReason={reason ?? (s.connected ? null : "Connect OBS first")}>
+                <ActionButton size="sm" title="Adds the main HUD as a browser source in the scene “MatchFrame Live”" action={() => api.post("/api/v1/obs/provision", {})} success="HUD browser source provisioned (scene “MatchFrame Live”)" disabledReason={reason ?? (s.connected ? null : "Connect OBS first")}>
                   Add HUD browser source
                 </ActionButton>
               </div>
@@ -544,7 +544,7 @@ function TokensTab() {
 function IntegrationsTab() {
   const adapter = useApi<ObserverAdapterResponse>("/api/v1/observer/adapter", { refreshMs: 5000 });
   const games = useApi<GamesResponse>("/api/v1/games");
-  const bridge = useApi<MatchframeBridgeStatus>("/api/v1/integrations/matchframe");
+  const bridge = useApi<MatchFrameBridgeStatus>("/api/v1/integrations/matchframe");
   const matches = useApi<MatchRow[]>("/api/v1/matches");
   const settingsReason = usePermission("settings.manage");
   const writeReason = usePermission("metadata.write");

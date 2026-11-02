@@ -593,7 +593,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
 
   /**
    * Moves the camera along `motion` (from the pose it was shown at), until the shot's planned end or
-   * the next command; it then stays where the move ended. Matchframe sends every pose: CS2's own
+   * the next command; it then stays where the move ended. MatchFrame sends every pose: CS2's own
    * turning commands can't be used (+left/+right strafe the camera sideways in CS2).
    */
   private playMotion(motion: CameraMotion, token: number): void {
@@ -655,7 +655,7 @@ export class NetconObserverAdapter implements ObserverControlAdapter {
     this.stopPath();
     // spec_player in the free camera only moves the free camera, and it keeps the chase view:
     // first person is set first when leaving either; the chase view is set after the player.
-    // Also when Matchframe sent the free camera and no first-person command since: on some builds the
+    // Also when MatchFrame sent the free camera and no first-person command since: on some builds the
     // game data still names the player in the free camera, and spec_player alone doesn't leave it.
     const leaveFree = this.freeCam || this.telemetryRoaming || this.sentFree || this.leavePending;
     const chase = view === "chase";

@@ -52,13 +52,13 @@ export function PlayerCamerasScreen() {
       <div className="page-head">
         <h1 className="page-title">Player Cameras</h1>
       </div>
-      <p className="page-intro">Players' face cams: sent from a link on the Matchframe website and shown in your HUD and OBS, delayed to match the game.</p>
+      <p className="page-intro">Players' face cams: sent from a link on the MatchFrame website and shown in your HUD and OBS, delayed to match the game.</p>
       <WebCams />
       <h2 className="gb-section-title">Cameras you add to OBS yourself</h2>
       <p className="small muted">Shows the observed player's camera source in OBS and hides the others, while program is live.</p>
       <Details summary="How this works" className="gb-intro-details">
         <p className="small muted">
-          When the observer is confirmed on a player, Matchframe makes that player's camera source visible in the chosen OBS scene and hides the others. Routing is keyed by stable player identity (SteamID), never by observer slot, and only covers players who consented. It acts only while program is live.
+          When the observer is confirmed on a player, MatchFrame makes that player's camera source visible in the chosen OBS scene and hides the others. Routing is keyed by stable player identity (SteamID), never by observer slot, and only covers players who consented. It acts only while program is live.
         </p>
         <p className="small muted">
           Consent is stored on the player record; the OBS source mapping is part of the routing settings. Routing only toggles OBS source visibility of cameras you add to the OBS scene yourself (capture cards, NDI). For cams players send from home, use player cams above.

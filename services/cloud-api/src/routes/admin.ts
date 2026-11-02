@@ -29,7 +29,7 @@ const UserFilter = z.enum(["all", "unverified", "staff", "disabled"]);
 const MessageStatus = z.enum(["open", "handled", "all"]);
 
 /**
- * Matchframe staff administration. Staff roles: support (customer help: view accounts and
+ * MatchFrame staff administration. Staff roles: support (customer help: view accounts and
  * organisations, verify emails, send reset links, sign users out, clear sign-in lockouts, sign an
  * organisation's computers out, support inbox) and admin (additionally staff roles, disabling
  * accounts, editing users, hour grants, usage resets, subscription overrides, the catalogue,
@@ -275,8 +275,8 @@ export function registerAdminRoutes(r: Router, app: CloudApp): void {
       await sendVerification(app, u.id, email);
       await app.mailer.send({
         to: u.email,
-        subject: "Your Matchframe email address was changed",
-        text: `Matchframe support changed the sign-in email of your account to ${email}. If you did not ask for this, reply to this email or contact support.`,
+        subject: "Your MatchFrame email address was changed",
+        text: `MatchFrame support changed the sign-in email of your account to ${email}. If you did not ask for this, reply to this email or contact support.`,
       });
     }
     await audit(app.sql, staff.id, null, "admin.user_edited", { targetUserId: u.id, ...(displayName !== undefined ? { displayName } : {}), ...(emailChanged ? { fromEmail: u.email, toEmail: email } : {}) });

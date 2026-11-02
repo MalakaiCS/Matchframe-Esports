@@ -14,7 +14,7 @@ const ORIGIN = "http://127.0.0.1:37212";
 function hud(over: Partial<HudLibraryEntry> & Pick<HudLibraryEntry, "id" | "name">): HudLibraryEntry {
   return {
     version: "1.0.0",
-    author: "Matchframe Esports",
+    author: "MatchFrame Esports",
     licence: "MIT",
     description: "A HUD",
     category: null,
@@ -74,9 +74,9 @@ function renderScreen(role = "owner") {
   );
 }
 
-const SAMPLE = hud({ id: "matchframe.sample-cs2", name: "Matchframe Sample CS2 HUD", kind: "sample", category: "Sample", tags: ["scorebug"], author: "Matchframe Esports" });
-const PRO = hud({ id: "matchframe.pro-cs2", name: "Pro CS2 HUD", kind: "sample", category: "Broadcast", author: "Lexogrine (adapted)", outputs: { obs: 1, desktop: 0, preview: 0 }, status: "running" });
-const BUILTIN = hud({ id: "matchframe-default", name: "Matchframe Broadcast HUD", kind: "builtin", folder: null, category: "Broadcast" });
+const SAMPLE = hud({ id: "matchframe.sample-cs2", name: "MatchFrame Sample CS2 HUD", kind: "sample", category: "Sample", tags: ["scorebug"], author: "MatchFrame Esports" });
+const PRO = hud({ id: "matchframe.pro-cs2", name: "Pro CS2 HUD", kind: "sample", category: "Broadcast", author: "MatchFrame Esports", tags: ["template"], outputs: { obs: 1, desktop: 0, preview: 0 }, status: "running" });
+const BUILTIN = hud({ id: "matchframe-default", name: "MatchFrame Broadcast HUD", kind: "builtin", folder: null, category: "Broadcast" });
 
 beforeEach(() => {
   liveStore.reset();
@@ -98,12 +98,12 @@ describe("HUD Library screen", () => {
     expect(card.querySelector('[data-output="desktop"]')?.className).not.toContain("is-on");
     // Grouped by category (A–Z), each group sorted by the chosen order (name).
     expect(screen.getAllByRole("button", { expanded: true, name: /^(Broadcast|Sample)/ }).map((b) => b.textContent)).toEqual(["Broadcast2", "Sample1"]);
-    expect(screen.getAllByRole("article").map((a) => a.getAttribute("aria-label"))).toEqual(["Matchframe Broadcast HUD", "Pro CS2 HUD", "Matchframe Sample CS2 HUD"]);
+    expect(screen.getAllByRole("article").map((a) => a.getAttribute("aria-label"))).toEqual(["MatchFrame Broadcast HUD", "Pro CS2 HUD", "MatchFrame Sample CS2 HUD"]);
     // In a browser (no program bridge) the desktop window cannot be launched; the reason is given.
     const launch = within(card).getByRole("switch", { name: /Launch Transparent HUD/ }) as HTMLButtonElement;
     expect(launch.getAttribute("aria-checked")).toBe("false");
     expect(launch.disabled).toBe(true);
-    expect(launch.title).toMatch(/need the Matchframe program/);
+    expect(launch.title).toMatch(/need the MatchFrame program/);
     expect(screen.getByText("3 HUDs on this computer")).toBeTruthy();
   });
 
@@ -111,10 +111,10 @@ describe("HUD Library screen", () => {
     serve((m, p) => (m === "GET" && p === "/api/v1/hud/library" ? { status: 200, json: library([SAMPLE, PRO, BUILTIN]) } : undefined));
     renderScreen();
     await screen.findByRole("article", { name: "Pro CS2 HUD" });
-    fireEvent.change(screen.getByPlaceholderText("Search by name, author or tag"), { target: { value: "lexogrine" } });
+    fireEvent.change(screen.getByPlaceholderText("Search by name, author or tag"), { target: { value: "template" } });
     expect(screen.getAllByRole("article").map((a) => a.getAttribute("aria-label"))).toEqual(["Pro CS2 HUD"]);
     fireEvent.change(screen.getByPlaceholderText("Search by name, author or tag"), { target: { value: "scorebug" } });
-    expect(screen.getAllByRole("article").map((a) => a.getAttribute("aria-label"))).toEqual(["Matchframe Sample CS2 HUD"]);
+    expect(screen.getAllByRole("article").map((a) => a.getAttribute("aria-label"))).toEqual(["MatchFrame Sample CS2 HUD"]);
     fireEvent.change(screen.getByPlaceholderText("Search by name, author or tag"), { target: { value: "" } });
     fireEvent.change(screen.getByLabelText("Category"), { target: { value: "Broadcast" } });
     expect(screen.getAllByRole("article")).toHaveLength(2);
@@ -252,15 +252,15 @@ describe("HUD Library screen", () => {
     expect(within(details).getByText("1920")).toBeTruthy();
   });
 
-  it("lists an LHM HUD's own pages with their OBS addresses, and edits its image inputs", async () => {
+  it("lists an imported HUD's own pages with their OBS addresses, and edits its image inputs", async () => {
     const KAI = hud({
-      id: "lhm.kaihud",
+      id: "imported.kaihud",
       name: "KaiHUD",
-      runtime: "lhm",
-      category: "LHM",
+      runtime: "compat",
+      category: "Imported",
       views: [
-        { id: "player-stats", label: "Player stats", url: `${ORIGIN}/hud/lhm.kaihud/live?t=tok&view=player-stats` },
-        { id: "match-stats", label: "Match stats", url: `${ORIGIN}/hud/lhm.kaihud/live?t=tok&view=match-stats` },
+        { id: "player-stats", label: "Player stats", url: `${ORIGIN}/hud/imported.kaihud/live?t=tok&view=player-stats` },
+        { id: "match-stats", label: "Match stats", url: `${ORIGIN}/hud/imported.kaihud/live?t=tok&view=match-stats` },
       ],
       settingsSchema: { "ads.images": { type: "images" as const, label: "Baseboard sponsors", group: "Baseboard", default: [] } },
       settings: { "ads.images": ["aaaaaaaaaaaaaaaaaaaaaaaa.png", "bbbbbbbbbbbbbbbbbbbbbbbb.png"] },

@@ -22,7 +22,7 @@ export interface NormalizedGameEvent {
 
 /**
  * Generic game adapter (spec §24). Game-specific data and controls stay out of the generic event
- * and HUD manager. A game is "supported" only when its adapter proves real telemetry.
+ * and the HUD system. A game is "supported" only when its adapter proves real telemetry.
  */
 export interface GameAdapter {
   gameId: string;

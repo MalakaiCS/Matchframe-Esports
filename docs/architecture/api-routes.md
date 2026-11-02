@@ -1,4 +1,4 @@
-# Matchframe local API — route reference
+# MatchFrame local API — route reference
 
 Generated from the engine's router (`Router.routeList()`); regenerate when routes change. All routes except `public` require a bearer token (`Authorization: Bearer <token>`, `x-matchframe-token`, `mf_token` cookie, or `?token=`) whose role grants the listed permission. Mutations are rejected for foreign browser origins. Request bodies are JSON validated with zod schemas defined next to each route in `services/local-engine/src/routes/*.ts`.
 
@@ -377,5 +377,5 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 - `GET /overlay/:outputId/:variant?t=<token>` — browser-source page for a published output (built-in HUD served directly; imported packages redirected to `/huds/<id>/<entry>`).
 - `GET /overlay-api/radar/:map` — schematic radar outline (cells/polygons in normalized u,v).
 - `GET /overlay-api/radar-image/:map` — the built-in radar image (`assets/radars`).
-- `GET /overlay-api/radar-clean/:map/:frame?v=<version>` — Matchframe's clean radar (SVG) drawn from the map pack in the frame of a radar background: `builtin` (built-in image calibration), `calibrated` (operator-calibrated image) or `schematic` (outline); `HudRadar.cleanUrl` gives the address.
+- `GET /overlay-api/radar-clean/:map/:frame?v=<version>` — MatchFrame's clean radar (SVG) drawn from the map pack in the frame of a radar background: `builtin` (built-in image calibration), `calibrated` (operator-calibrated image) or `schematic` (outline); `HudRadar.cleanUrl` gives the address.
 - `GET /assets/:assetId`, `/hud/*` (built-in renderer assets), `/sdk/*` (HUD SDK bundle for imported packages).

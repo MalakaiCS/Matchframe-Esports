@@ -41,7 +41,7 @@ export function registerIntegrationRoutes(r: Router, e: Engine): void {
       status: !cfg.enabled ? "disabled" : !b ? "not configured" : b.capabilities ? "connected" : "blocked",
       capabilities: b?.capabilities ?? null,
       lastError: b?.lastError ?? null,
-      note: "The existing MatchFrame service API was not available to this project; the bridge speaks the documented Matchframe bridge contract (docs/integrations/matchframe-bridge.md), which a thin adapter on the MatchFrame side must implement.",
+      note: "The existing MatchFrame service API was not available to this project; the bridge speaks the documented MatchFrame bridge contract (docs/integrations/matchframe-bridge.md), which a thin adapter on the MatchFrame side must implement.",
     };
   });
   r.put("/api/v1/integrations/matchframe", { permission: "settings.manage", body: BridgeConfig.extend({ token: z.string().optional() }) }, (req) => {

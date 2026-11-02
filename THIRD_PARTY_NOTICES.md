@@ -1,6 +1,6 @@
 # Third-party notices and provenance
 
-Matchframe Esports is original software. This file lists third-party components that are shipped or used, with their licences, and the provenance of reference material. Regenerate the JavaScript runtime list with `pnpm licenses list --prod` after dependency changes; Python worker dependencies are listed in `workers/pyproject.toml` (versions below are those installed in the test virtual environment).
+MatchFrame Esports is original software. This file lists third-party components that are shipped or used, with their licences, and the provenance of reference material. Regenerate the JavaScript runtime list with `pnpm licenses list --prod` after dependency changes; Python worker dependencies are listed in `workers/pyproject.toml` (versions below are those installed in the test virtual environment).
 
 ## Shipped JavaScript runtime dependencies (production tree)
 
@@ -16,7 +16,7 @@ Matchframe Esports is original software. This file lists third-party components 
 | ↳ eventemitter3 | 5.0.4 | MIT | obs-websocket-js |
 | ↳ isomorphic-ws | 5.0.0 | MIT | obs-websocket-js |
 | ↳ type-fest | 3.13.1 | MIT OR CC0-1.0 | obs-websocket-js (types) |
-| socket.io | 4.8.1 | MIT | LHM-format HUDs (the LHM compatibility layer's socket) |
+| socket.io | 4.8.1 | MIT | Imported hud.json-format HUDs (the HUD compatibility layer's socket) |
 | ↳ engine.io, engine.io-parser | 6.6.11, 5.2.3 | MIT | socket.io |
 | ↳ socket.io-adapter, socket.io-parser, @socket.io/component-emitter | 2.5.8, 4.2.7, 3.1.2 | MIT | socket.io |
 | ↳ accepts, mime-types, mime-db, negotiator | 1.3.8, 2.1.35, 1.52.0, 0.6.3 | MIT | socket.io |
@@ -40,7 +40,7 @@ Operator UI dependencies are listed in `apps/operator-web/package.json` and incl
 
 ## TeamSpeak 3 plugin (Team Comms)
 
-The program ships Matchframe's own TeamSpeak 3 client plugin (`native/ts3-matchframe-plugin`, original code), built in CI with the compiler's static runtime (MSVC; mingw-w64's libstdc++/libgcc/winpthreads when cross-compiled, under their runtime-library exceptions).
+The program ships MatchFrame's own TeamSpeak 3 client plugin (`native/ts3-matchframe-plugin`, original code), built in CI with the compiler's static runtime (MSVC; mingw-w64's libstdc++/libgcc/winpthreads when cross-compiled, under their runtime-library exceptions).
 
 - **TeamSpeak 3 Client Plugin SDK** headers (https://github.com/TeamSpeak-Systems/ts3client-pluginsdk, commit `4aa90a5`, plugin API 26): Copyright TeamSpeak Systems GmbH, all rights reserved. **Not in this repository and not shipped as source:** `scripts/fetch-sdk.mjs` downloads them at build time and checks their SHA-256. The plugin is compiled against them, which is what TeamSpeak publishes them for (building plugins for its client). "TeamSpeak" is a trademark of TeamSpeak Systems GmbH; the plugin is not made or endorsed by TeamSpeak.
 
@@ -48,15 +48,31 @@ The program ships Matchframe's own TeamSpeak 3 client plugin (`native/ts3-matchf
 
 | Package | Contents and origin | Licence |
 |---|---|---|
-| Matchframe Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2`) | Original code and artwork; weapon icons from Lexogrine's CS2 React HUD (`images/weapons`); Inter font files | Code MIT; weapon icons MIT (`images/weapons/LICENSE-lexogrine.txt`, see the note below); Inter SIL OFL 1.1 (`fonts/OFL.txt`) |
-| Matchframe Pro CS2 HUD (`apps/hud-template`) | Adapted from Lexogrine's CS2 React HUD (https://github.com/lexogrine/cs2-react-hud, © 2021 Lexogrine); Montserrat font files | Lexogrine code MIT (`LICENSE-lexogrine.txt`); Montserrat SIL OFL 1.1 (© 2011 The Montserrat Project Authors) |
-| Matchframe Vector and Lineup HUDs (`apps/hud-designs`) | Original Matchframe code; weapon icons from Lexogrine's CS2 React HUD (shared with the HUD renderer); Montserrat and Inter font files (Vector), Barlow Condensed font files (Lineup) | Code MIT; weapon icons MIT (`LICENSE-lexogrine.txt` in each package); fonts SIL OFL 1.1 (`OFL-fonts.txt` in each package; Vector also `OFL-Montserrat.txt`) |
+| MatchFrame Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2`) | Original code and artwork; weapon icons from the CS2 HUD template below (`images/weapons`); Inter font files | Code MIT; weapon icons MIT (`third-party-licenses/weapon-icons-MIT.txt`); Inter SIL OFL 1.1 (`fonts/OFL.txt`) |
+| MatchFrame Pro CS2 HUD (`apps/hud-template`) | Adapted from the CS2 HUD template below; Montserrat font files | Template code MIT (`third-party-licenses/hud-template-MIT.txt`); MatchFrame's changes MIT; Montserrat SIL OFL 1.1 (© 2011 The Montserrat Project Authors) |
+| MatchFrame Vector and Lineup HUDs (`apps/hud-designs`) | Original MatchFrame code; weapon icons from the CS2 HUD template below (shared with the HUD renderer); Montserrat and Inter font files (Vector), Barlow Condensed font files (Lineup) | Code MIT; weapon icons MIT (`third-party-licenses/weapon-icons-MIT.txt` in each package); fonts SIL OFL 1.1 (`OFL-fonts.txt` in each package; Vector also `OFL-Montserrat.txt`) |
 
-The weapon and equipment icons in the Pro CS2 HUD (also used by the Matchframe Broadcast HUD's killfeed and the Sample CS2 HUD) come with Lexogrine's template and originate from Counter-Strike 2 game files (© Valve Corporation). Lexogrine's MIT licence covers their code, not Valve's artwork. Counter-Strike broadcast HUDs commonly use these icons; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons.
+## CS2 React HUD template (MIT): HUD code, weapon icons and radar images
 
-## Built-in radar images (minimaps)
+**cs2-react-hud** by Lexogrine (https://github.com/lexogrine/cs2-react-hud), Copyright (c) 2021 Lexogrine, MIT licence. MatchFrame uses:
 
-`assets/radars`: flat radar drawings of eight CS2 maps (Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train, Vertigo) with their world-to-image calibration, from Lexogrine's CS2 React HUD (https://github.com/lexogrine/cs2-react-hud, commit `4ec8eea`, © 2021 Lexogrine), MIT licence (`assets/radars/LICENSE-lexogrine.txt`). They are Lexogrine's own drawings of the map layouts; the maps themselves are Valve's. Every HUD's minimap shows them.
+- **HUD code and styles:** the Pro CS2 HUD (`apps/hud-template`) is adapted from it.
+- **Weapon and equipment icons:** the template's icon set, in the Pro CS2 HUD, the Vector and Lineup HUDs, the Sample CS2 HUD (`images/weapons`) and the MatchFrame Broadcast HUD's killfeed (HUD renderer).
+- **Radar images:** `assets/radars`, flat radar drawings of eight CS2 maps (Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train, Vertigo) with their world-to-image calibration, from commit `4ec8eea6f0935193b44ec5a000f230fccdaa1c15`, `src/HUD/Radar/LexoRadar/maps/<map>/radar.png` and `index.ts`. They are the template author's own drawings of the map layouts; the maps themselves are Valve's. Every HUD's minimap shows them.
+
+The licence text, unchanged and with its copyright line, ships in a `third-party-licenses` folder next to the files it covers:
+
+| Shipped location (installed program) | Source in this repository | Covers |
+|---|---|---|
+| `sample-huds/matchframe-pro-cs2/third-party-licenses/hud-template-MIT.txt` | `apps/hud-template/package-files/third-party-licenses/` | The Pro CS2 HUD's code, styles and icons |
+| `sample-huds/matchframe-vector/third-party-licenses/weapon-icons-MIT.txt`, `sample-huds/matchframe-lineup/third-party-licenses/weapon-icons-MIT.txt` | `apps/hud-designs/package-files/third-party-licenses/` | The weapon icons in Vector and Lineup |
+| `sample-huds/matchframe-sample-cs2/third-party-licenses/weapon-icons-MIT.txt` | `assets/hud-packages/matchframe-sample-cs2/third-party-licenses/` | `images/weapons` |
+| `hud-renderer/third-party-licenses/weapon-icons-MIT.txt` | `apps/hud-renderer/public/third-party-licenses/` | The Broadcast HUD's killfeed icons |
+| `radars/third-party-licenses/radar-images-MIT.txt` | `assets/radars/third-party-licenses/` | The radar images and `radars.json` calibration |
+
+An installed HUD package keeps its `third-party-licenses` folder in the HUD Library (`huds/<id>/<version>/`) and in exported HUD ZIPs.
+
+The weapon and equipment icons originate from Counter-Strike 2 game files (© Valve Corporation). The template's MIT licence covers its code, not Valve's artwork. Counter-Strike broadcast HUDs commonly use these icons; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons.
 
 ## Built-in camera positions (map navigation and collision data)
 
@@ -95,13 +111,13 @@ Team Comms tests (ADR-065), used here only, never shipped or committed: TeamSpea
 
 ## Reference material (not used as code or assets)
 
-- Lexogrine HUD Manager: functional reference for workflow breadth only. Its manager repository is under a proprietary EULA; no LHM code, designs, assets, models or services are used, and no LHM account or licence is required. "LHM-format HUD" is used only to describe which HUD packages Matchframe can import.
-- LHM compatibility layer (`services/local-engine/src/hud/lhm.ts`, `lhm-runtime.ts`): written from the HUD side of the protocol as Lexogrine's MIT-licensed HUD templates use it (https://github.com/lexogrine/cs2-react-hud: `hud.json`, `panel.json`, the socket events and the `/api` paths they call). No code was copied from the manager. Imported LHM-format HUDs belong to their authors and keep their own licences; none are bundled.
+- The template author's commercial HUD program (proprietary EULA): a functional reference for workflow breadth only. None of its code, designs, assets, models or services are used, and none of its accounts or licences are needed.
+- HUD compatibility layer (`services/local-engine/src/hud/compat.ts`, `compat-runtime.ts`): written from the HUD side of the hud.json template protocol as the MIT-licensed template above uses it (`hud.json`, `panel.json`, the socket events and the `/api` paths they call). No code was copied from that program. Imported hud.json-format HUDs belong to their authors and keep their own licences; none are bundled.
 - CounterStrike2GSI (GPL-3.0): consulted as documentation of the public GSI field layout; no code or fixtures copied.
 - demoinfocs-golang (MIT): consulted for the location of its public test-demo corpus.
 - obs-websocket protocol documentation: request/event names.
 - Valve GSI/console behaviour: public documentation and launch options; command mappings are marked unverified until tested.
 
-## Original Matchframe assets
+## Original MatchFrame assets
 
 The HUD designs (Classic, Minimal, Arena), icons (simple geometric glyphs in `apps/hud-renderer/src/components/Icons.tsx`) and the operator console design are original to this project.

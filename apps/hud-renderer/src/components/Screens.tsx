@@ -25,7 +25,7 @@ function MapTile({ state, m, className = "", children }: { state: HudState; m: H
 export function PreMatch({ state }: { state: HudState }) {
   return (
     <div className="mf-screen mf-prematch">
-      <div className="mf-screen-eyebrow">{state.event.name ?? "Matchframe Esports"}</div>
+      <div className="mf-screen-eyebrow">{state.event.name ?? "MatchFrame Esports"}</div>
       <div className="mf-versus">
         <TeamCard team={state.left} big />
         <div className="mf-versus-vs">VS</div>
@@ -50,7 +50,7 @@ export function BreakScreen({ state }: { state: HudState }) {
   const nextLogo = next ? mapArt(state, next.mapName).logoUrl : null;
   return (
     <div className="mf-screen mf-break">
-      <div className="mf-screen-eyebrow">{state.event.name ?? "Matchframe Esports"}</div>
+      <div className="mf-screen-eyebrow">{state.event.name ?? "MatchFrame Esports"}</div>
       <div className="mf-screen-title">BREAK</div>
       <div className="mf-screen-series">
         <TeamCard team={state.left} />
@@ -118,7 +118,7 @@ export function PostSeries({ state }: { state: HudState }) {
   const winner = state.series.left > state.series.right ? state.left : state.series.right > state.series.left ? state.right : null;
   return (
     <div className="mf-screen mf-postseries">
-      <div className="mf-screen-eyebrow">{state.event.name ?? "Matchframe Esports"}</div>
+      <div className="mf-screen-eyebrow">{state.event.name ?? "MatchFrame Esports"}</div>
       <div className="mf-screen-title">{winner ? `${winner.name} WIN THE SERIES` : "SERIES RESULT"}</div>
       <div className="mf-screen-series">
         <TeamCard team={state.left} big />
@@ -197,7 +197,7 @@ export function StandingsBoard({ state }: { state: HudState }) {
   const s = state.standings!;
   return (
     <div className="mf-screen mf-standings">
-      <div className="mf-screen-eyebrow">{state.event.name ?? "Matchframe Esports"}</div>
+      <div className="mf-screen-eyebrow">{state.event.name ?? "MatchFrame Esports"}</div>
       <div className="mf-screen-title">{s.stageName}</div>
       <table className="mf-standings-table">
         <thead>
@@ -240,7 +240,7 @@ export function BracketBoard({ state }: { state: HudState }) {
   const rounds = [...new Set(b.nodes.map((n) => n.round))].sort((x, y) => x - y);
   return (
     <div className="mf-screen mf-bracket">
-      <div className="mf-screen-eyebrow">{state.event.name ?? "Matchframe Esports"}</div>
+      <div className="mf-screen-eyebrow">{state.event.name ?? "MatchFrame Esports"}</div>
       <div className="mf-screen-title">{b.stageName}</div>
       <div className="mf-bracket-rounds">
         {rounds.map((r) => (

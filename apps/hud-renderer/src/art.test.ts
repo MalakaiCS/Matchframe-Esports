@@ -12,7 +12,7 @@ function state(art?: HudState["art"]): HudState {
   return { left, right, art } as HudState;
 }
 
-describe("HUD images in the Matchframe Broadcast HUD", () => {
+describe("HUD images in the MatchFrame Broadcast HUD", () => {
   const art: HudState["art"] = { defaultPlayers: { ct: ["/assets/ct.png"], t: ["/assets/a.png", "/assets/b.png"] }, maps: { de_inferno: { logoUrl: "/assets/inf.svg", imageUrl: "/assets/inf.jpg" } }, icons: { dead: "/assets/x.png" } };
 
   it("gives players without a photo their side's pictures in slot order, cycling", () => {

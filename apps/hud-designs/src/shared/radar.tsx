@@ -4,7 +4,7 @@ import "./radar.css";
 
 /**
  * The minimap both HUDs share: the map's radar image (the bundled radars, or an operator-calibrated
- * one), and for a map without one (Anubis, Cache) Matchframe's radar drawn in the same style in place
+ * one), and for a map without one (Anubis, Cache) MatchFrame's radar drawn in the same style in place
  * of the outline; markers use the same u/v frame either way. No panel behind it; each HUD only
  * places and sizes `.mf-map-radar`.
  */

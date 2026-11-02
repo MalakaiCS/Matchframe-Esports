@@ -39,7 +39,7 @@ export const GAMES: { id: string; label: string; available: boolean }[] = [
 
 function GameSelect() {
   return (
-    <label className="toolbar-game" title="Game: Matchframe supports Counter-Strike 2. Other games are listed but not available yet.">
+    <label className="toolbar-game" title="Game: MatchFrame supports Counter-Strike 2. Other games are listed but not available yet.">
       <span className="sr-only">Game</span>
       <select value="cs2" onChange={() => undefined} aria-label="Game">
         {GAMES.map((g) => (
@@ -201,7 +201,7 @@ export function OfflineBanner() {
   if (status === "unauthorized")
     return (
       <div className="banner tone-danger" role="alert">
-        <strong>Token rejected.</strong> The engine rejected this console's token (rotated or revoked). Restart the Matchframe program, or update the token in File → Connection settings.
+        <strong>Token rejected.</strong> The engine rejected this console's token (rotated or revoked). Restart the MatchFrame program, or update the token in File → Connection settings.
       </div>
     );
   return (

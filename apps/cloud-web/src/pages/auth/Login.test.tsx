@@ -12,11 +12,11 @@ afterEach(() => {
 describe("sign in", () => {
   it("explains a disabled account", async () => {
     at("/login");
-    fakeFetch({ "POST /v1/auth/login": err(403, "account_disabled", "this account has been disabled; contact Matchframe support") });
+    fakeFetch({ "POST /v1/auth/login": err(403, "account_disabled", "this account has been disabled; contact MatchFrame support") });
     renderWithSession(<Login />, null);
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "sam@example.com" } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "correct horse battery" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
-    expect(await screen.findByText("This account has been disabled; contact Matchframe support.")).toBeTruthy();
+    expect(await screen.findByText("This account has been disabled; contact MatchFrame support.")).toBeTruthy();
   });
 });

@@ -225,7 +225,7 @@ export class FeedRecording {
   ) {}
 
   async run(): Promise<void> {
-    const rx = await this.ndi.receive({ source: this.o.source, colorFormat: this.ndi.COLOR_FORMAT_UYVY_BGRA, name: "Matchframe replay feed" });
+    const rx = await this.ndi.receive({ source: this.o.source, colorFormat: this.ndi.COLOR_FORMAT_UYVY_BGRA, name: "MatchFrame replay feed" });
     this.rx = rx;
     // Video and sound with one call (the binding's data()), else the picture only.
     const both = typeof rx.data === "function";

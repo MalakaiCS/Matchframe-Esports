@@ -13,7 +13,7 @@
  *   is dropped when it comes (late): never stale, repeated or reordered audio;
  * - this process behind by more than RESYNC_MS (it stalled) skips ahead to its time;
  * - the engine's silence when the public gate is closed is sent as it is (zeros), so OBS's
- *   "MatchFrame Comms" source is silent because Matchframe sends silence, not because OBS mutes it;
+ *   "MatchFrame Comms" source is silent because MatchFrame sends silence, not because OBS mutes it;
  * - each frame carries its own time as its NDI timecode (100 ns units of wall time), so a receiver
  *   that times by timecode is exact even if a send leaves a little late.
  *

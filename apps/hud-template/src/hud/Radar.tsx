@@ -34,14 +34,14 @@ const UTILITY: Record<string, string> = { smoke: "u-smoke", molotov: "u-fire", i
 const S = 1000;
 
 /**
- * Radar (top left) from Matchframe's radar data: the built-in radar image for the map (or an
+ * Radar (top left) from MatchFrame's radar data: the built-in radar image for the map (or an
  * operator-calibrated one), or the schematic outline generated from map geometry. Players with their
  * slot number (bigger when observed, lighter while flashed, orange when carrying the bomb, faded
  * when dead), the bomb when dropped or planted, and confirmed utility (smokes outlined in the
  * thrower's team colour). Nothing is drawn without a trustworthy transform (mode "none").
  */
 export default function Radar({ state, size }: { state: HudState; size: number }) {
-  // A map without a radar image: Matchframe's radar drawn in the radar images' style, else the outline.
+  // A map without a radar image: MatchFrame's radar drawn in the radar images' style, else the outline.
   const r = state.radar.mode === "schematic" && state.radar.cleanUrl ? { ...state.radar, mode: "image" as const, backgroundUrl: state.radar.cleanUrl } : state.radar;
   const outline = useOutline(r.mode === "schematic" ? r.backgroundUrl : null);
   if (!r.available || r.mode === "none") return null;

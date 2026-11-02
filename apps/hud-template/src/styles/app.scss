@@ -1,4 +1,4 @@
-/* Base styles adapted from Lexogrine's CS2 React HUD (MIT, see LICENSE-lexogrine.txt). */
+/* Base styles adapted from an open-source CS2 React HUD template (MIT, see package-files/third-party-licenses). */
 @font-face {
   font-family: "Montserrat";
   font-style: normal;
@@ -64,7 +64,7 @@ body {
   perspective: 500px;
 }
 
-/* ---- Matchframe additions ---- */
+/* ---- MatchFrame additions ---- */
 .mf-labels {
   position: fixed;
   left: 50%;

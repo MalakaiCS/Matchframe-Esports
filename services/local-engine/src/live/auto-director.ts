@@ -23,7 +23,7 @@ export const AutoDirectorSettings = z.object({
   bigMoments: z.boolean().default(true),
   /**
    * In the Observer tools + HLAE launch mode, every free-camera and moving shot is played by HLAE
-   * (it sets the view every frame, like Lexogrine HUD Manager's cinematics); off: console commands.
+   * (it sets the view every frame); off: console commands.
    */
   hlaeCamera: z.boolean().default(true),
 });
@@ -73,7 +73,7 @@ const usable = (support: string | undefined) => support === "supported" || suppo
 
 /**
  * One-button automatic direction. Start checks everything in order and fixes what it can by itself:
- * camera control over the CS2 console (chosen automatically when Matchframe started CS2), live game
+ * camera control over the CS2 console (chosen automatically when MatchFrame started CS2), live game
  * data, the account gate, a real player switch (confirmed when the game data shows the player) and a
  * real camera (confirmed when getpos answers with the camera's position). Then it arms the director in
  * the richest Observer mode that works, and keeps it running: it takes the camera back a few seconds
@@ -285,7 +285,7 @@ export class AutoDirector {
     if (this.phase !== "running" && this.phase !== "paused") this.phase = "waiting";
   }
 
-  /** Camera control: the console of the CS2 that Matchframe started, chosen automatically. */
+  /** Camera control: the console of the CS2 that MatchFrame started, chosen automatically. */
   private async checkConsole(sim: boolean): Promise<boolean> {
     const e = this.e;
     if (sim) {
@@ -302,7 +302,7 @@ export class AutoDirector {
     if (profile.mode === "standard") {
       // The console comes from the -tools -netconport launch options.
       gc.setProfile({ ...profile, mode: "tools" });
-      this.set("console", "wait", "CS2 needs its console for the Auto Director. Close CS2 and press Start CS2: Matchframe now starts it in Tools mode.");
+      this.set("console", "wait", "CS2 needs its console for the Auto Director. Close CS2 and press Start CS2: MatchFrame now starts it in Tools mode.");
       return false;
     }
     const conn = gc.connection;
@@ -317,7 +317,7 @@ export class AutoDirector {
     }
     if (!this.consolePrepared) {
       this.consolePrepared = true;
-      // The game's own auto director would fight Matchframe's cuts (and read as you taking over).
+      // The game's own auto director would fight MatchFrame's cuts (and read as you taking over).
       await conn.write("spec_autodirector 0").catch(() => undefined);
     }
     this.set("console", "ok", `Connected on port ${conn.port}.`);
@@ -444,7 +444,7 @@ export class AutoDirector {
       this.armedOnce = true;
       this.phase = "running";
       this.e.audit.record("auto-director", "director.auto_start", mode, { checks: [...this.checks.values()] });
-      this.set("director", "ok", `${label}: Matchframe moves the camera.`);
+      this.set("director", "ok", `${label}: MatchFrame moves the camera.`);
       return;
     }
     if (s.observerMode !== mode) {
@@ -458,7 +458,7 @@ export class AutoDirector {
       this.phase = "running";
       this.resumeAt = null;
       this.manualHold = false;
-      this.set("director", "ok", `${label}: Matchframe moves the camera.`);
+      this.set("director", "ok", `${label}: MatchFrame moves the camera.`);
       return;
     }
     if (s.arbiter.resumePendingInMs() !== null) return;
@@ -471,7 +471,7 @@ export class AutoDirector {
       s.arbiter.resumeAutomation(0);
       this.phase = "running";
       this.resumeAt = null;
-      this.set("director", "ok", `${label}: Matchframe moves the camera.`);
+      this.set("director", "ok", `${label}: MatchFrame moves the camera.`);
       return;
     }
     this.phase = "paused";

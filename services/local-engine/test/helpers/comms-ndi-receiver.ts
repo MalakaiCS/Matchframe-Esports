@@ -31,7 +31,7 @@ if (found.size < names.length) {
 const end = wall() + runMs;
 await Promise.all(
   names.map(async (n, idx) => {
-    const rx = await grandi.receive({ source: found.get(n)!, bandwidth: grandi.Bandwidth.AudioOnly, name: `Matchframe test receiver ${idx}` });
+    const rx = await grandi.receive({ source: found.get(n)!, bandwidth: grandi.Bandwidth.AudioOnly, name: `MatchFrame test receiver ${idx}` });
     let lastPerf = wall();
     try {
       while (wall() < end) {

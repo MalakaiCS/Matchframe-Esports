@@ -36,7 +36,7 @@ export interface HudContext {
   allowUnverifiedRadar: boolean;
   /** HUD images from the HUD Library (empty when none are set). */
   art: HudArt;
-  /** Address of Matchframe's clean radar for the map in the background's frame; null when there is no geometry. */
+  /** Address of MatchFrame's clean radar for the map in the background's frame; null when there is no geometry. */
   cleanRadarUrl?: (mapName: string, frame: CleanRadarFrame) => string | null;
 }
 
@@ -167,7 +167,7 @@ function radar(state: MatchState, ctx: HudContext, observed: string | null): Hud
     transform = (p) => builtinRadarUv(builtin, p);
     radiusScale = (z) => builtinRadarScale(builtin, z);
   } else if (map?.schematicTransform()) {
-    // 3. Matchframe's outline generated from map-pack geometry.
+    // 3. MatchFrame's outline generated from map-pack geometry.
     const t = map.schematicTransform()!;
     mode = "schematic";
     frame = "schematic";

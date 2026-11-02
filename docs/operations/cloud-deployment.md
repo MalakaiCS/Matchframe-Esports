@@ -1,4 +1,4 @@
-# Deploying the Matchframe website and cloud API
+# Deploying the MatchFrame website and cloud API
 
 The website (payments, subscriptions, auto-director hours usage, account and team management,
 staff admin, and the program download) and its API are one service: `services/cloud-api` serves the API under `/v1/*` and the built website
@@ -140,7 +140,7 @@ invitation links can be recovered by staff if delivery fails.
 
 1. Build it: on GitHub, **Releases → Draft a new release**, create the tag (e.g. `v0.1.0`) and
    **Publish**. The **Windows program (.exe)** workflow then builds that tag on Windows, installs
-   and smoke-tests it, and attaches `MatchframeEsports-Setup-<version>.exe`, the portable zip and
+   and smoke-tests it, and attaches `MatchFrameEsports-Setup-<version>.exe`, the portable zip and
    `SHA256SUMS.txt` to the release (a few minutes after publishing). Alternatively run the workflow manually (Actions → Windows program (.exe) → Run workflow) on
    `main` with a new tag such as `v0.1.3`: it builds `main`'s latest commit and creates the tag
    and the published release on it (notes from `docs/release-notes/<version>-dev.md`), then
@@ -155,7 +155,7 @@ invitation links can be recovered by staff if delivery fails.
    set the repository variable `MATCHFRAME_WEBSITE_URL` (Settings → Secrets and variables →
    Actions → Variables) when the website moves, e.g. to a custom domain, then build a new release.
    Builds pinned to an old address keep using it.
-3. Put `MatchframeEsports-Setup-<version>.exe` into the directory named by `MF_DOWNLOAD_DIR` (a
+3. Put `MatchFrameEsports-Setup-<version>.exe` into the directory named by `MF_DOWNLOAD_DIR` (a
    volume in Docker). The website serves the newest version at `/downloads/<file>` and shows its
    version and SHA-256 to signed-in accounts. Keep older installers there only as long as you want
    them downloadable by direct link. Alternatively set `MF_DOWNLOAD_WINDOWS_URL` (+
@@ -176,14 +176,14 @@ invitation links can be recovered by staff if delivery fails.
 | `STRIPE_PRICE_PRO`, `STRIPE_PRICE_STUDIO`, `STRIPE_PRICE_PACK_10`, `STRIPE_PRICE_PACK_50` | for billing | — | Stripe price ids for the default catalogue |
 | `SMTP_URL`, `MF_MAIL_FROM` | recommended | outbox only | Email delivery |
 | `MF_STAFF_EMAILS` | no | — | Comma-separated bootstrap admins: these accounts get the admin staff role when they sign up or log in and cannot be demoted, disabled or have their email changed from the website (section 8) |
-| `MF_COMPANY_NAME`, `MF_WEBSITE_NAME` | no | `Matchframe Esports`, `Matchframe` | Business and site name used on the legal, about and contact pages |
+| `MF_COMPANY_NAME`, `MF_WEBSITE_NAME` | no | `MatchFrame Esports`, `MatchFrame` | Business and site name used on the legal, about and contact pages |
 | `MF_SUPPORT_EMAIL` | recommended | — | Support address shown on the website; contact form messages are also emailed there |
 | `MF_COMPANY_ADDRESS` | no | — | Postal address shown in the legal pages and on the contact page |
 | `MF_LEGAL_JURISDICTION` | no | generic wording | Governing law named in the terms (e.g. `England and Wales`) |
 | `MF_LEGAL_EFFECTIVE_DATE` | no | `2026-10-27` | "Last updated" date of the terms and policies (`YYYY-MM-DD`) |
 | `MF_ENTITLEMENT_TTL_HOURS` | no | `24` | Licence validity before the desktop must refresh |
 | `MF_OFFLINE_GRACE_DAYS` | no | `7` | How long a computer keeps working offline after its last successful licence refresh |
-| `MF_DOWNLOAD_DIR` | recommended | — | Directory with `MatchframeEsports-Setup-<version>.exe` installers served at `/downloads/` (newest shown with its SHA-256) |
+| `MF_DOWNLOAD_DIR` | recommended | — | Directory with `MatchFrameEsports-Setup-<version>.exe` installers served at `/downloads/` (newest shown with its SHA-256) |
 | `MF_DOWNLOAD_VERSION`, `MF_DOWNLOAD_WINDOWS_URL`, `MF_DOWNLOAD_WINDOWS_SHA256`, `MF_DOWNLOAD_NOTES_URL` | no | — | External installer URL instead of `MF_DOWNLOAD_DIR`; release notes link |
 | `MF_SYNC_QUOTA_BYTES` | no | `2147483648` (2 GB) | Account sync: the most bytes of shared files (HUD packages, logos, photos) one organisation can keep in the database |
 | `MF_DEV_LOG_EMAILS` | no | off | `1` prints emails to the console (development only) |

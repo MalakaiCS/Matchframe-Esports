@@ -1,4 +1,4 @@
-"""Shared infrastructure for the Matchframe offline pipeline (CLI, JSON-lines protocol, IO helpers)."""
+"""Shared infrastructure for the MatchFrame offline pipeline (CLI, JSON-lines protocol, IO helpers)."""
 
 __version__ = "0.1.0"
 

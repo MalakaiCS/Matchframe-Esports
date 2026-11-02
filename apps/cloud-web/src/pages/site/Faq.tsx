@@ -7,7 +7,7 @@ import { useTitle } from "../../lib/hooks.ts";
 import { Link } from "../../router.tsx";
 
 export function Faq() {
-  useTitle("FAQ", "Answers to common questions about Matchframe: the program and installation, the Observer (auto director) and hours, HUDs and OBS, accounts, billing, privacy and troubleshooting.");
+  useTitle("FAQ", "Answers to common questions about MatchFrame: the program and installation, the Observer (auto director) and hours, HUDs and OBS, accounts, billing, privacy and troubleshooting.");
   const [q, setQ] = useState("");
   const inputId = useId();
   const matches = filterFaq(FAQ, q);

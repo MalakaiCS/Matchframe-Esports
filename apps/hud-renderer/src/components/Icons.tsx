@@ -1,4 +1,4 @@
-/** Original Matchframe glyphs: simple geometric shapes, no third-party icon artwork. */
+/** Original MatchFrame glyphs: simple geometric shapes, no third-party icon artwork. */
 interface P {
   size?: number;
   className?: string;

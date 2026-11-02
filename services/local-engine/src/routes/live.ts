@@ -3,8 +3,13 @@ import type { CameraRecord } from "@matchframe/contracts";
 import { CameraRecord as CameraRecordSchema, DirectorMode, ObserverMode, Side } from "@matchframe/contracts";
 import { applyMapRevision, checkCameraPath, draftCamera, isBuiltInPath, parseGetpos, phasesForUses } from "@matchframe/map-runtime";
 import type { Engine } from "../app.ts";
+import { existingName } from "../brand.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
+
+/** The scene and browser source Provision makes for the main HUD output. */
+export const PROVISION_SCENE = "MatchFrame Live";
+export const PROVISION_SOURCE = "MatchFrame HUD";
 
 const PinBody = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("player"), steamId: z.string() }),
@@ -298,11 +303,14 @@ export function registerLiveRoutes(r: Router, e: Engine): void {
     e.audit.record(req.principal!.label, "obs.output", req.body.kind, req.body);
     return { state: e.obs.state };
   });
-  r.post("/api/v1/obs/provision", { permission: "program.control", body: z.object({ outputId: z.string().default("main"), sceneName: z.string().default("Matchframe Live"), sourceName: z.string().default("Matchframe HUD"), width: z.number().int().default(1920), height: z.number().int().default(1080) }) }, async (req) => {
+  // Without names: "MatchFrame Live" and "MatchFrame HUD", or the scene and source 0.11.0 and earlier made under the old spelling.
+  r.post("/api/v1/obs/provision", { permission: "program.control", body: z.object({ outputId: z.string().default("main"), sceneName: z.string().optional(), sourceName: z.string().optional(), width: z.number().int().default(1920), height: z.number().int().default(1080) }) }, async (req) => {
     const url = e.outputs.url(`http://127.0.0.1:${e.cfg.overlayPort}`, req.body.outputId);
-    const res = await e.obs.provisionBrowserSource({ sceneName: req.body.sceneName, sourceName: req.body.sourceName, url, width: req.body.width, height: req.body.height });
-    e.audit.record(req.principal!.label, "obs.provision", req.body.sceneName, res);
-    return res;
+    const sceneName = req.body.sceneName ?? existingName(PROVISION_SCENE, (n) => e.obs.state.scenes.includes(n));
+    const sourceName = req.body.sourceName ?? existingName(PROVISION_SOURCE, (n) => e.obs.state.inputs.some((i) => i.name === n));
+    const res = await e.obs.provisionBrowserSource({ sceneName, sourceName, url, width: req.body.width, height: req.body.height });
+    e.audit.record(req.principal!.label, "obs.provision", sceneName, res);
+    return { ...res, sceneName, sourceName };
   });
   r.post("/api/v1/obs/screenshot", { permission: "state.read", body: z.object({ source: z.string(), width: z.number().int().min(64).max(1920).default(640) }) }, async (req) => ({ image: await e.obs.screenshot(req.body.source, req.body.width) }));
 

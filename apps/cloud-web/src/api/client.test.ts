@@ -60,7 +60,7 @@ describe("request", () => {
     });
     const e = await api.get("/v1/orgs/o/usage?from=x").catch((x: unknown) => x);
     expect(e).toBeInstanceOf(NetworkError);
-    expect(describeError(e)).toBe("Can't reach Matchframe (GET /v1/orgs/o/usage). Check your connection and try again.");
+    expect(describeError(e)).toBe("Can't reach MatchFrame (GET /v1/orgs/o/usage). Check your connection and try again.");
   });
 
   it("lets aborts through untouched", async () => {

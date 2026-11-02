@@ -4,7 +4,7 @@ import { Alert, Card, CopyButton, ErrorState, Loading, PageHeader } from "../com
 import { useResource, useTitle } from "../lib/hooks.ts";
 import { Link } from "../router.tsx";
 
-const fileName = (url: string) => decodeURIComponent(url.split("?")[0]!.split("/").pop() || "MatchframeEsports-Setup.exe");
+const fileName = (url: string) => decodeURIComponent(url.split("?")[0]!.split("/").pop() || "MatchFrameEsports-Setup.exe");
 
 /** Compact card for the dashboard and account page; the full details live on /download. */
 export function DownloadCard() {
@@ -17,7 +17,7 @@ export function DownloadCard() {
       {dl.data &&
         (win ? (
           <>
-            <p className="muted small">Matchframe for Windows, version {win.version}.</p>
+            <p className="muted small">MatchFrame for Windows, version {win.version}.</p>
             <a className="btn btn-secondary" href={win.url} rel="noopener">
               Download for Windows
             </a>
@@ -73,7 +73,7 @@ export function Download() {
   const win = dl.data?.windows ?? null;
   return (
     <>
-      <PageHeader title="Download the program" subtitle="The Matchframe program for Windows. Install it on each computer that should use your organisation's plan." />
+      <PageHeader title="Download the program" subtitle="The MatchFrame program for Windows. Install it on each computer that should use your organisation's plan." />
       {dl.loading && !dl.data && <Loading label="Looking up the latest build…" />}
       {dl.error && <ErrorState error={dl.error} onRetry={dl.reload} />}
       {dl.data && (
@@ -92,7 +92,7 @@ export function Download() {
               The installer isn't code-signed yet, so Windows SmartScreen shows "Windows protected your PC". After checking the SHA-256, choose <strong>More info</strong> then <strong>Run anyway</strong>.
             </Alert>
             <ol className="plain-steps">
-              <li>Install and start Matchframe.</li>
+              <li>Install and start MatchFrame.</li>
               <li>Sign in with the same email and password as this website.</li>
               <li>
                 Prefer a code? Choose <strong>Sign in with a code from the website</strong> in the program, then enter the code at <Link to="/link">/link</Link> and approve.

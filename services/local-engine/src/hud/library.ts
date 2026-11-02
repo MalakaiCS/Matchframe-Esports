@@ -2,14 +2,14 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { HudLibrary, HudLibraryEntry, HudManifest, HudOutputMode, HudOutputSmoothness, HudRuntimeControl, HudVariant } from "@matchframe/contracts";
-import { HUD_OUTPUT_MODES, HUD_VARIANTS, HudSettingField, RESERVED_HUD_IDS } from "@matchframe/contracts";
+import { currentHudId, HUD_ID_RE, HUD_OUTPUT_MODES, HUD_VARIANTS, HudSettingField, RESERVED_HUD_IDS } from "@matchframe/contracts";
 import type { Database } from "../db/database.ts";
 import type { SettingsRepo } from "../db/store.ts";
 import { HttpError } from "../http/router.ts";
 import type { Logger } from "../logger.ts";
 import type { OutputService } from "./outputs.ts";
 import type { HudPackageManager, InstalledPackage } from "./packages.ts";
-import { convertLhmPackage, lhmViews, panelSettings, parsePanel } from "./lhm.ts";
+import { compatViews, convertHudJsonPackage, migrateLegacyPackage, panelSettings, parsePanel } from "./compat.ts";
 import { PackageError, readDirectory, safeEntryPath, validateManifest, zipPackageDir } from "./packages.ts";
 
 export type LibraryKind = HudLibraryEntry["kind"];
@@ -32,7 +32,7 @@ export interface LibraryRuntime {
   outputs(hudId: string): Record<HudOutputMode, number>;
   /** How smoothly each mode's outputs draw (reported by the output pages). */
   smoothness?(hudId: string): Partial<Record<HudOutputMode, HudOutputSmoothness>>;
-  /** Sends a panel button press to an LHM-format HUD; false when it is not one of its buttons. */
+  /** Sends a panel button press to an imported hud.json-format HUD; false when it is not one of its buttons. */
   action?(hudId: string, key: string, value: string): boolean;
 }
 
@@ -74,7 +74,7 @@ interface DbRow {
 const MAX_SETTINGS_BYTES = 64 * 1024;
 const HIDDEN_ALL_KEY = "hud.library.hiddenAll";
 const SAMPLES_KEY = "hud.library.samples";
-const ID_RE = /^[a-z0-9][a-z0-9.-]{2,63}$/;
+const ID_RE = HUD_ID_RE;
 const COLOR_RE = /^(#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|(rgb|rgba|hsl|hsla)\([0-9.,%\s/+-]+\)|transparent)$/i;
 /** An uploaded image asset id (POST /api/v1/assets): content hash plus extension. */
 const IMAGE_ASSET_RE = /^[0-9a-f]{24}\.(png|jpe?g|webp|svg|gif)$/i;
@@ -142,7 +142,7 @@ function coerceSetting(key: string, f: HudSettingField, v: unknown): Coerced {
     case "team":
       if (v === "") return { ok: true, value: "" };
       if (typeof v === "string" && /^[A-Za-z0-9_.:-]{1,64}$/.test(v)) return { ok: true, value: v };
-      return { ok: false, message: `${name} must be a ${f.type === "player" ? "player" : "team"} from Matchframe` };
+      return { ok: false, message: `${name} must be a ${f.type === "player" ? "player" : "team"} from MatchFrame` };
     case "action":
       return { ok: false, message: `${name} is a button: it sends an action and stores nothing` };
     case "images":
@@ -152,11 +152,11 @@ function coerceSetting(key: string, f: HudSettingField, v: unknown): Coerced {
 }
 
 /**
- * A HUD's settings fields as written: the manifest's, or for an LHM-format HUD its panel.json read
+ * A HUD's settings fields as written: the manifest's, or for an imported hud.json-format HUD its panel.json read
  * again, so HUDs imported before an input type was supported get it without importing them again.
  */
 function rawSchemaOf(pkg: InstalledPackage): Record<string, unknown> | undefined {
-  if (pkg.manifest.runtime === "lhm" && pkg.classification !== "builtin") {
+  if (pkg.manifest.runtime === "compat" && pkg.classification !== "builtin") {
     const file = join(pkg.installDir, "panel.json");
     if (existsSync(file)) return panelSettings(parsePanel(readFileSync(file, "utf8"))).schema;
   }
@@ -168,9 +168,9 @@ function rawSchemaOf(pkg: InstalledPackage): Record<string, unknown> | undefined
  * bare default value (`"accent": "#ff3300"`) becomes a field of its type, select options may be
  * plain strings, and defaults that do not fit their field are dropped. Other shapes are left out
  * of the form; their values are still kept in the HUD's settings. Buttons ("action") are kept only
- * for LHM-format HUDs, the only HUDs they can be sent to.
+ * for imported hud.json-format HUDs, the only HUDs they can be sent to.
  */
-export function normalizeSettingsSchema(raw: Record<string, unknown> | undefined, runtime: "matchframe" | "lhm" = "matchframe"): Record<string, HudSettingField> {
+export function normalizeSettingsSchema(raw: Record<string, unknown> | undefined, runtime: HudManifest["runtime"] = "matchframe"): Record<string, HudSettingField> {
   const out: Record<string, HudSettingField> = {};
   for (const [key, value] of Object.entries(raw ?? {})) {
     if (key.length === 0 || key.length > 64) continue;
@@ -179,7 +179,7 @@ export function normalizeSettingsSchema(raw: Record<string, unknown> | undefined
       const v = value as Record<string, unknown>;
       const options = Array.isArray(v.options) ? v.options.map((o) => (typeof o === "string" ? { value: o, label: o } : o)) : v.options;
       const r = HudSettingField.safeParse({ ...v, options });
-      if (r.success && (r.data.type !== "action" || runtime === "lhm") && ((r.data.type !== "select" && r.data.type !== "action") || (r.data.options?.length ?? 0) > 0)) field = r.data;
+      if (r.success && (r.data.type !== "action" || runtime === "compat") && ((r.data.type !== "select" && r.data.type !== "action") || (r.data.options?.length ?? 0) > 0)) field = r.data;
     } else if (typeof value === "boolean") field = { type: "boolean", default: value };
     else if (typeof value === "number" && Number.isFinite(value)) field = { type: "number", default: value };
     else if (typeof value === "string") field = { type: COLOR_RE.test(value) && value.startsWith("#") ? "color" : "string", default: value };
@@ -327,6 +327,14 @@ export class HudLibraryService {
     return { pkg, row };
   }
 
+  /**
+   * The HUD an id names: the id itself when it is installed, else the id it has now (currentHudId):
+   * OBS browser sources, pages and records from 0.11.0 and earlier use imported HUDs' legacy ids.
+   */
+  resolveId(id: string): string {
+    return this.d.packages.get(id) ? id : currentHudId(id);
+  }
+
   /** True when the HUD is installed (creating its library row if a package route added it). */
   has(id: string): boolean {
     if (!this.d.packages.get(id)) return false;
@@ -364,7 +372,7 @@ export class HudLibraryService {
     const connected = HUD_OUTPUT_MODES.reduce((n, mode) => n + outputs[mode], 0);
     const urls: Partial<Record<HudVariant, string>> = {};
     for (const v of variants) urls[v] = `${this.overlayOrigin}/hud/${encodeURIComponent(pkg.id)}/${v}?t=${row.token}`;
-    const views = m.runtime === "lhm" && !builtin ? lhmViews(pkg.installDir).map((v) => ({ ...v, url: `${this.overlayOrigin}/hud/${encodeURIComponent(pkg.id)}/live?t=${row.token}&view=${encodeURIComponent(v.id)}` })) : [];
+    const views = m.runtime === "compat" && !builtin ? compatViews(pkg.installDir).map((v) => ({ ...v, url: `${this.overlayOrigin}/hud/${encodeURIComponent(pkg.id)}/live?t=${row.token}&view=${encodeURIComponent(v.id)}` })) : [];
     return {
       id: pkg.id,
       name: m.name,
@@ -511,10 +519,11 @@ export class HudLibraryService {
    * target; running outputs reload) or `copy` (install as `<id>-copy[-n]`, "<name> (copy)").
    */
   importFiles(input: Map<string, Uint8Array>, onConflict: OnConflict = "fail"): { entry: HudLibraryEntry; result: "installed" | "replaced" | "copied" } {
-    // LHM-format HUDs (hud.json) get a manifest.json and run in the LHM compatibility layer.
+    // hud.json-format HUDs get a manifest.json and run in the HUD compatibility layer; a package
+    // exported by 0.11.0 or earlier gets its manifest brought up to date (its id and runtime).
     let files: Map<string, Uint8Array>;
     try {
-      files = convertLhmPackage(input).files;
+      files = migrateLegacyPackage(convertHudJsonPackage(input).files);
     } catch (e) {
       throw new PackageError(e instanceof Error ? e.message : String(e));
     }
@@ -673,7 +682,7 @@ export class HudLibraryService {
 
   // ---------------------------------------------------------------------------- account sync
 
-  /** HUDs the user imported (normal and LHM-format), with their stored settings: what account sync shares. Never the built-in HUD or bundled samples. */
+  /** HUDs the user imported (MatchFrame and hud.json format), with their stored settings: what account sync shares. Never the built-in HUD or bundled samples. */
   importedHuds(): { id: string; manifest: HudManifest; checksums: Record<string, string>; installDir: string; settings: Record<string, unknown>; presetId: string | null }[] {
     const pkgs = new Map(this.d.packages.list().map((p) => [p.id, p]));
     return this.rows().flatMap((r) => {
@@ -683,7 +692,9 @@ export class HudLibraryService {
   }
 
   /** Installs (or installs over) a HUD shared by another computer of the organisation. This computer's token, outputs and stopped state are kept. */
-  installShared(files: Map<string, Uint8Array>): string {
+  installShared(shared: Map<string, Uint8Array>): string {
+    // Shared by a computer with 0.11.0 or earlier: its manifest brought up to date (id and runtime).
+    const files = migrateLegacyPackage(shared);
     const manifest = validateManifest(files);
     this.sync();
     const existing = this.d.packages.get(manifest.id);

@@ -30,6 +30,12 @@ describe("describeUserAgent", () => {
     expect(describeUserAgent("Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/142.0 Safari/537.36 Edg/142.0").label).toBe("Edge 142 on Windows");
     expect(describeUserAgent(null).label).toBe("Unknown device");
   });
+
+  it("names the program's window, as this version and 0.11.0 and earlier identify it", () => {
+    const program = (name: string) => `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ${name}/0.12.0 Chrome/142.0 Electron/44.9.3 Safari/537.36`;
+    expect(describeUserAgent(program("MatchFrameEsports")).label).toBe("MatchFrame program on Windows");
+    expect(describeUserAgent(program("MatchframeEsports")).label).toBe("MatchFrame program on Windows");
+  });
 });
 
 describe("active sessions", () => {

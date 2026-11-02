@@ -4,14 +4,15 @@ import type { HudReplayClip, HudSide, HudState } from "@matchframe/hud-sdk";
 import { multiKillTag } from "@matchframe/hud-sdk";
 import type { QueueItem, ReplayPlay } from "@matchframe/replay-agent";
 import type { Engine } from "../app.ts";
+import { existingName } from "../brand.ts";
 import { HttpError } from "../http/router.ts";
 import { displayWeaponName } from "../live/weapons.ts";
 
 /**
- * The replay graphic (ADR-061): while a replay clip is on air, Matchframe's HUDs show a "REPLAY" tag
+ * The replay graphic (ADR-061): while a replay clip is on air, MatchFrame's HUDs show a "REPLAY" tag
  * and a lower third with the play (who, weapon, headshot, victims, 2K–ACE, clutch, round) on their
  * `replay` entry point: a page that is transparent but for that, made for the replay scene. The
- * live HUD never shows it. An LHM-format HUD (kaiHUD…) has no such page: the built-in Broadcast
+ * live HUD never shows it. An imported hud.json-format HUD has no such page: the built-in Broadcast
  * HUD's is used. The clip on air is the program's replay (played by hand, or automatic replays in
  * OBS), else the automatic replays' clip when they play in vMix; highlights on air (ADR-063) the same,
  * their clips found among the clips kept for highlights when the replay list has dropped them.
@@ -26,7 +27,7 @@ export type ReplayGraphicSettings = z.infer<typeof ReplayGraphicSettings>;
 export const ReplayGraphicPatch = z.object({ enabled: z.boolean().optional(), hudId: z.string().min(1).max(64).optional() });
 
 /** The browser source put in the replay scene. */
-export const GRAPHIC_SOURCE = "Matchframe Replay Graphic";
+export const GRAPHIC_SOURCE = "MatchFrame Replay Graphic";
 const BUILTIN = "matchframe-default";
 const POLL_MS = 100;
 
@@ -188,7 +189,7 @@ export class ReplayGraphic {
   }
 
   /**
-   * A player's team without the HUD: their team in Matchframe (roster), left or right as the active
+   * A player's team without the HUD: their team in MatchFrame (roster), left or right as the active
    * match has it; else the team on the side they play now in the game data.
    */
   teamOf(steamId: string): ClipTeam | null {
@@ -236,20 +237,20 @@ export class ReplayGraphic {
     return inObs ?? huds.filter((h) => h.lastUsedAt && h.id !== BUILTIN).sort(recent)[0] ?? huds.find((h) => h.id === BUILTIN);
   }
 
-  /** The replay graphic's page: the HUD's own `replay` page, or the built-in HUD's for one without (LHM-format HUDs). */
+  /** The replay graphic's page: the HUD's own `replay` page, or the built-in HUD's for one without (imported HUDs). */
   output(): GraphicOutput | null {
     const huds = this.e.hudLibrary.list().huds;
     const target = this.chosenHud(huds);
     const builtin = huds.find((h) => h.id === BUILTIN);
     if (!target) return null;
-    const own = target.runtime !== "lhm" && !!target.urls.replay && target.status !== "error";
+    const own = target.runtime !== "compat" && !!target.urls.replay && target.status !== "error";
     const page = own ? target : builtin;
     if (!page?.urls.replay) return null;
     const why = own
       ? `${target.name} has its own replay graphic.`
-      : target.runtime === "lhm"
-        ? `${target.name} is an LHM-format HUD without a replay graphic: Matchframe's built-in style.`
-        : `${target.name} has no replay graphic: Matchframe's built-in style.`;
+      : target.runtime === "compat"
+        ? `${target.name} is an imported HUD without a replay graphic: MatchFrame's built-in style.`
+        : `${target.name} has no replay graphic: MatchFrame's built-in style.`;
     return { hudId: page.id, hudName: page.name, forHudId: target.id, forHudName: target.name, style: page.id === target.id ? "own" : "builtin", url: page.urls.replay, why };
   }
 
@@ -263,32 +264,43 @@ export class ReplayGraphic {
     if (!scene) throw new HttpError(409, "map the replay scene first: Replays → Set up OBS replay scene, or OBS scenes → Replay scene", "no_replay_scene");
     const out = this.output();
     if (!out) throw new HttpError(409, "no HUD has a replay graphic (the built-in HUD's files are missing)", "no_graphic");
-    const r = await this.e.obs.provisionBrowserSource({ sceneName: scene, sourceName: GRAPHIC_SOURCE, url: out.url, width: 1920, height: 1080 });
+    const source = this.source();
+    const r = await this.e.obs.provisionBrowserSource({ sceneName: scene, sourceName: source, url: out.url, width: 1920, height: 1080 });
     let items = await this.e.obs.sceneItems(scene);
-    if (!items.some((i) => i.sourceName === GRAPHIC_SOURCE) && this.e.obs.state.inputs.some((i) => i.name === GRAPHIC_SOURCE && i.kind === "browser_source")) {
+    if (!items.some((i) => i.sourceName === source) && this.e.obs.state.inputs.some((i) => i.name === source && i.kind === "browser_source")) {
       // Made for another scene (the replay scene, the highlights scene): the same source here too, on top.
-      await this.e.obs.createSceneItem(scene, GRAPHIC_SOURCE).catch((err) => this.e.logger.warn("replay graphic: OBS didn't add the source to the scene", { scene, error: String(err) }));
+      await this.e.obs.createSceneItem(scene, source).catch((err) => this.e.logger.warn("replay graphic: OBS didn't add the source to the scene", { scene, error: String(err) }));
       items = await this.e.obs.sceneItems(scene);
     }
-    const at = items.findIndex((i) => i.sourceName === GRAPHIC_SOURCE);
-    if (at < 0) throw new HttpError(409, `OBS has a source named “${GRAPHIC_SOURCE}” in another scene: add it to “${scene}” in OBS (Add → Existing), or remove it and press again`, "source_elsewhere");
+    const at = items.findIndex((i) => i.sourceName === source);
+    if (at < 0) throw new HttpError(409, `OBS has a source named “${source}” in another scene: add it to “${scene}” in OBS (Add → Existing), or remove it and press again`, "source_elsewhere");
     // OBS lists a scene's sources from the bottom up.
-    return { scene, source: GRAPHIC_SOURCE, url: out.url, created: r.createdInput, onTop: at === items.length - 1, output: out };
+    return { scene, source, url: out.url, created: r.createdInput, onTop: at === items.length - 1, output: out };
+  }
+
+  /**
+   * The graphic's browser source in OBS: GRAPHIC_SOURCE, or the one 0.11.0 and earlier made under the
+   * old spelling ("Matchframe Replay Graphic") when OBS has only that.
+   */
+  source(): string {
+    return existingName(GRAPHIC_SOURCE, (n) => this.e.obs.state.inputs.some((i) => i.name === n));
   }
 
   /** Whether the graphic's source is in a scene, and on top of it (OBS lists a scene's sources from the bottom up). */
   async inScene(scene: string): Promise<{ inScene: boolean; onTop: boolean }> {
     const items = await this.e.obs.sceneItems(scene);
-    const at = items.findIndex((i) => i.sourceName === GRAPHIC_SOURCE);
+    const source = this.source();
+    const at = items.findIndex((i) => i.sourceName === source);
     return { inScene: at >= 0, onTop: at >= 0 && at === items.length - 1 };
   }
 
-  /** After the HUD choice changed: the browser source Matchframe made, if OBS has it, shows the new page (in every scene it is in). */
+  /** After the HUD choice changed: the browser source MatchFrame made, if OBS has it, shows the new page (in every scene it is in). */
   async repointObs(): Promise<boolean> {
     const scene = [this.e.program.sceneMap.REPLAY, this.e.program.sceneMap.HIGHLIGHTS].find((s) => s && this.e.obs.state.scenes.includes(s));
     const out = this.output();
-    if (!scene || !out || !this.e.obs.state.connected || !this.e.obs.state.inputs.some((i) => i.name === GRAPHIC_SOURCE && i.kind === "browser_source")) return false;
-    await this.e.obs.ensureInput({ sceneName: scene, inputName: GRAPHIC_SOURCE, inputKind: "browser_source", settings: { url: out.url, width: 1920, height: 1080 } });
+    const source = this.source();
+    if (!scene || !out || !this.e.obs.state.connected || !this.e.obs.state.inputs.some((i) => i.name === source && i.kind === "browser_source")) return false;
+    await this.e.obs.ensureInput({ sceneName: scene, inputName: source, inputKind: "browser_source", settings: { url: out.url, width: 1920, height: 1080 } });
     return true;
   }
 }

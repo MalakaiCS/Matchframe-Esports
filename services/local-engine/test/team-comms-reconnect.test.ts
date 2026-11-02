@@ -170,7 +170,7 @@ describe("Team Comms reconnects: identities, exclusion and the public gate", () 
     expect(r.heard("recording", t1 + 400, t1 + 1200, [p]).get("Alpha 2")).toBeGreaterThan(PRESENT);
   });
 
-  it("Matchframe restarts while TeamSpeak runs: the plugin reconnects from the bridge file, the tabs are captured again, every choice kept, the public gate closed", async () => {
+  it("MatchFrame restarts while TeamSpeak runs: the plugin reconnects from the bridge file, the tabs are captured again, every choice kept, the public gate closed", async () => {
     const { r } = await setup({ delaySec: 1 });
     r.set(r.a[0]!, { includeBroadcast: true, includeRecording: true });
     r.set(r.b[2]!, { includeRecording: true, levelDb: -6 });
@@ -178,7 +178,7 @@ describe("Team Comms reconnects: identities, exclusion and the public gate", () 
     await r.run(1500, () => [r.a[0]!]);
     const oldPort = r.port;
     await r.restartEngine();
-    // The real plugin stops capturing when Matchframe goes away (tabs stay listen-only and silent), then
+    // The real plugin stops capturing when MatchFrame goes away (tabs stay listen-only and silent), then
     // re-reads the bridge file and connects to the port it names now.
     r.plugin.kill();
     const port = (JSON.parse(readFileSync(r.comms.bridgeFile(), "utf8")) as { port: number }).port;
@@ -207,7 +207,7 @@ describe("Team Comms reconnects: identities, exclusion and the public gate", () 
     await until(() => r.comms.status().slots.every((s) => s.state === "waiting"), 3000, "both waiting");
     const ts2 = new FakeTs3Plugin(r.port, r.token, () => r.sim, { instance: "teamspeak-restarted" });
     extra.push(ts2);
-    // What the plugin set by itself for the remembered tabs before Matchframe asked anything.
+    // What the plugin set by itself for the remembered tabs before MatchFrame asked anything.
     for (const schid of [1, 2]) ts2.managed.set(schid, { capture: false, listenOnly: true, suppressPlayback: true });
     await ts2.connect();
     await until(() => ts2.welcomed, 3000, "welcome");
@@ -315,15 +315,15 @@ describe("Team Comms reconnects: identities, exclusion and the public gate", () 
     await until(() => pub.controller.view().state === "fault", 4000, "fault");
     expect(pub.controller.view().fault?.reason).toMatch(/stopped answering/);
     expect(r.comms.status().bridge.staleClosed).toBe(1);
-    await until(() => r.plugin.closedByPeer, 3000, "closed by Matchframe");
+    await until(() => r.plugin.closedByPeer, 3000, "closed by MatchFrame");
     await r.run(1000);
     expect(peak(slice(air, frozen + 60, r.sim))).toBe(0);
   });
 
-  it("Matchframe itself not running for longer than the liveness limit (the computer froze): no plugin is closed for it; one that stays silent afterwards still is", async () => {
+  it("MatchFrame itself not running for longer than the liveness limit (the computer froze): no plugin is closed for it; one that stays silent afterwards still is", async () => {
     const { r, pub } = await setup({ staleMs: 400 });
     await r.run(500);
-    // The computer's clock moves 5 s between two ping rounds: Matchframe didn't run meanwhile (what
+    // The computer's clock moves 5 s between two ping rounds: MatchFrame didn't run meanwhile (what
     // the plugin sent then would still be unread when the next round's timer fires).
     r.realJump += 5000;
     await new Promise((res) => setTimeout(res, 700));

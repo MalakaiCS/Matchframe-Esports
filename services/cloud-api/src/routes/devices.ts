@@ -78,7 +78,7 @@ export function registerDeviceRoutes(r: Router, app: CloudApp): void {
     const u = rows[0];
     const ok = await verifyPassword(b.password, u?.password_hash ?? DUMMY_HASH);
     if (!u || !ok) throw new HttpError(401, "invalid_credentials", "email or password is incorrect");
-    if (u.disabled_at) throw new HttpError(403, "account_disabled", "this account has been disabled; contact Matchframe support");
+    if (u.disabled_at) throw new HttpError(403, "account_disabled", "this account has been disabled; contact MatchFrame support");
     if (!u.email_verified_at) throw new HttpError(403, "email_unverified", "confirm your email address first: open the link in the email we sent you (or resend it from the website), then sign in again");
     const m = await app.sql.query<{ org_id: string; name: string; role: OrgRole }>("SELECT m.org_id, o.name, m.role FROM memberships m JOIN orgs o ON o.id = m.org_id WHERE m.user_id = $1 ORDER BY m.created_at", [u.id]);
     if (m.rows.length === 0) throw new HttpError(409, "no_organisation", "your account is not in an organisation yet: create one on the website or accept an invitation, then sign in again");
@@ -161,7 +161,7 @@ export function registerDeviceRoutes(r: Router, app: CloudApp): void {
       [normalizeUserCode(ctx.params.userCode!)],
     );
     const a = rows[0];
-    if (!a || a.status !== "pending" || a.expires_at <= app.now()) throw new HttpError(404, "invalid_code", "this code is invalid or expired; start linking again in the Matchframe program (Account & Hours)");
+    if (!a || a.status !== "pending" || a.expires_at <= app.now()) throw new HttpError(404, "invalid_code", "this code is invalid or expired; start linking again in the MatchFrame program (Account & Hours)");
     return { deviceName: a.device_name, platform: a.platform, appVersion: a.app_version, requestedAt: a.created_at.toISOString(), expiresAt: a.expires_at.toISOString() };
   });
 
@@ -173,7 +173,7 @@ export function registerDeviceRoutes(r: Router, app: CloudApp): void {
     return app.sql.transaction(async (tx) => {
       const { rows } = await tx.query<{ install_id: string; device_name: string }>("SELECT install_id, device_name FROM device_auth WHERE user_code = $1 AND status = 'pending' AND expires_at > $2 FOR UPDATE", [code, app.now()]);
       const a = rows[0];
-      if (!a) throw new HttpError(404, "invalid_code", "this code is invalid or expired; start linking again in the Matchframe program (Account & Hours)");
+      if (!a) throw new HttpError(404, "invalid_code", "this code is invalid or expired; start linking again in the MatchFrame program (Account & Hours)");
       const active = await tx.query<{ n: string }>("SELECT count(*) AS n FROM devices WHERE org_id = $1 AND revoked_at IS NULL AND install_id <> $2", [ctx.body.orgId, a.install_id]);
       if (Number(active.rows[0]!.n) >= st.plan.features.maxDevices) throw new HttpError(409, "device_limit", `the ${st.plan.name} plan allows ${st.plan.features.maxDevices === 1 ? "1 linked computer" : `${st.plan.features.maxDevices} linked computers`}; unlink one or upgrade`);
       await tx.query("UPDATE device_auth SET status = 'approved', org_id = $2, approved_by = $3 WHERE user_code = $1", [code, ctx.body.orgId, user.id]);

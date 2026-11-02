@@ -72,7 +72,7 @@ describe("account sync wording", () => {
 describe("Shared with <organisation> (Settings → Account)", () => {
   it("shows the switch, last sync, counts, storage and the last problem; Sync now shares", async () => {
     const calls = serve((m, p) => {
-      if (m === "GET" && p === "/api/v1/cloud/sync") return { status: 200, json: status({ lastError: "Cannot reach the Matchframe website. Changes made here are kept and shared when it is back.", pending: 2 }) };
+      if (m === "GET" && p === "/api/v1/cloud/sync") return { status: 200, json: status({ lastError: "Cannot reach the MatchFrame website. Changes made here are kept and shared when it is back.", pending: 2 }) };
       if (m === "POST" && p === "/api/v1/cloud/sync/now") return { status: 200, json: status() };
       return undefined;
     });
@@ -83,11 +83,11 @@ describe("Shared with <organisation> (Settings → Account)", () => {
     expect(screen.getByText("12 players · 4 teams · 3 matches · 2 HUDs")).toBeTruthy();
     expect(screen.getByText("2 changes waiting to be shared")).toBeTruthy();
     expect(screen.getByText("140 MB of 2 GB")).toBeTruthy();
-    expect(screen.getByText(/Cannot reach the Matchframe website/)).toBeTruthy();
+    expect(screen.getByText(/Cannot reach the MatchFrame website/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Sync now" }));
     await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/cloud/sync/now")).toBe(true));
-    await waitFor(() => expect(screen.queryByText(/Cannot reach the Matchframe website/)).toBeNull());
+    await waitFor(() => expect(screen.queryByText(/Cannot reach the MatchFrame website/)).toBeNull());
   });
 
   it("shows what is moving while a HUD uploads", async () => {

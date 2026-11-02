@@ -2,11 +2,10 @@ import type { CameraPose } from "@matchframe/director-policy";
 
 /**
  * The HLAE camera: every free-camera and moving shot played by HLAE (AfxHookSource2) instead of
- * console commands. A Matchframe script loaded into CS2 with `mirv_script_load` connects to the
+ * console commands. A MatchFrame script loaded into CS2 with `mirv_script_load` connects to the
  * engine over a local WebSocket and sets the rendered view on every frame
  * (`mirv.events.cViewRenderSetupView`), from timed poses the engine sends. Moves are as smooth as
  * the game's frame rate, independent of console timing, and HLAE confirms when a shot is on screen.
- * The way Lexogrine HUD Manager runs its cinematics.
  */
 
 /** A pose `t` ms into a shot (Hammer units, degrees; yaw already unwrapped between keys). */
@@ -76,7 +75,7 @@ export function hlaeKeys(pose: (t: number) => CameraPose | null, durationMs: num
  * (the game's own camera is shown). Loading it again replaces the running copy.
  */
 export function hlaeCameraScript(url: string): string {
-  return `// Matchframe camera for HLAE. Written by the Matchframe program each time CS2 starts with HLAE; do not edit.
+  return `// MatchFrame camera for HLAE. Written by the MatchFrame program each time CS2 starts with HLAE; do not edit.
 {
   const ID = "matchframe-camera";
   const URL = ${JSON.stringify(url)};
@@ -207,7 +206,7 @@ export function hlaeCameraScript(url: string): string {
       drop();
     },
   };
-  mirv.message("Matchframe camera: connecting to the Matchframe program\\n");
+  mirv.message("MatchFrame camera: connecting to the MatchFrame program\\n");
 }
 `;
 }

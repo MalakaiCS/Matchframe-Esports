@@ -9,7 +9,7 @@ import { MAX_DELAY_SEC, TRANSPORT_FLOOR_MS, type IncomingAudio, type TeamComms }
  *
  * 1. **Live mark (exact):** the operator arms it for a team; a player says a short sharp word ("mark!")
  *    or claps on their microphone at the instant of a visible game event (a shot, a flash popping,
- *    a jump). Matchframe takes the start of that sound from the person's own TeamSpeak stream as it
+ *    a jump). MatchFrame takes the start of that sound from the person's own TeamSpeak stream as it
  *    arrives (the capture time on the engine's timeline, to the TeamSpeak block: 7.5 ms), the first
  *    sound after at least 300 ms of silence.
  * 2. **Gameplay mark (by eye):** when that event appears in the observer's gameplay as OBS shows it

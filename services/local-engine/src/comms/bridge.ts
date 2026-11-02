@@ -24,7 +24,7 @@ import {
  * The Team Comms bridge (ADR-065): a TCP server on 127.0.0.1 that the TeamSpeak plugin connects to.
  *
  * - **Security:** listens on the loopback address only and refuses any other peer; the first message
- *   must be HELLO with the token Matchframe generated (compared in constant time) within
+ *   must be HELLO with the token MatchFrame generated (compared in constant time) within
  *   AUTH_TIMEOUT_MS, else ERROR and the connection is closed. At most MAX_SESSIONS plugins at once.
  * - **Validation:** the stream must be MFTC version 1 frames of at most 1 MiB (else ERROR and close:
  *   the stream can't be trusted); a message whose content is wrong (an AUDIO block with another
@@ -38,9 +38,9 @@ import {
  * - **Liveness:** a plugin sends statistics every second and answers pings; one that has sent nothing
  *   for STALE_MS (TeamSpeak frozen, its sender thread stuck, a half-open connection) is closed as
  *   lost, so its tabs stop counting as captured and the public listen-in closes (silence, FAULT).
- *   Measured on the computer's own clock, not the engine's timeline. When Matchframe itself didn't
+ *   Measured on the computer's own clock, not the engine's timeline. When MatchFrame itself didn't
  *   run for a while (the computer frozen or asleep, a long stall), nothing could be read meanwhile:
- *   every plugin gets a fresh window from then instead of being closed for Matchframe's own silence.
+ *   every plugin gets a fresh window from then instead of being closed for MatchFrame's own silence.
  */
 
 const AUTH_TIMEOUT_MS = 3000;
@@ -161,7 +161,7 @@ export class PluginSession {
   private send(buf: Buffer, essential: boolean): boolean {
     if (this.closed) return false;
     if (this.socket.writableLength + buf.length > MAX_OUTBOUND) {
-      if (essential) this.close("the plugin is not reading what Matchframe sends");
+      if (essential) this.close("the plugin is not reading what MatchFrame sends");
       return false;
     }
     this.socket.write(buf);
@@ -197,7 +197,7 @@ export class PluginSession {
           this.noteError("bad_hello", (e as Error).message, now);
           return this.close(`bad HELLO: ${(e as Error).message}`, (e as Error).message);
         }
-        if (!this.bridge.checkToken(hello.token)) return this.close("wrong token", "unauthorized: the token in bridge.json does not match (Matchframe rotated it, or another Matchframe wrote it)");
+        if (!this.bridge.checkToken(hello.token)) return this.close("wrong token", "unauthorized: the token in bridge.json does not match (MatchFrame rotated it, or another MatchFrame wrote it)");
         this.hello = { ...hello, token: "[redacted]" };
         this.socket.write(encodeWelcome());
         this.bridge.authenticated(this);
@@ -268,7 +268,7 @@ export interface BridgeStatus {
   refused: { auth: number; foreign: number; full: number };
   /** Plugins closed because they stopped answering. */
   staleClosed: number;
-  /** Ping rounds that came late because Matchframe itself didn't run (liveness restarted, not closed). */
+  /** Ping rounds that came late because MatchFrame itself didn't run (liveness restarted, not closed). */
   stalls: number;
 }
 
@@ -320,13 +320,13 @@ export class CommsBridge {
         const now = this.opts.now();
         const real = this.realNow();
         const staleMs = this.opts.staleMs ?? STALE_MS;
-        // This round came late: Matchframe didn't run meanwhile, and what the plugins sent then is
+        // This round came late: MatchFrame didn't run meanwhile, and what the plugins sent then is
         // still unread (timers run before sockets are read). Their silence was ours.
         const late = real - lastRound - pingMs;
         lastRound = real;
         if (late > Math.min(1000, staleMs / 2)) {
           this.stalls++;
-          this.opts.logger.warn("team comms: Matchframe didn't run for a while: the plugins' liveness counts from now", { stalledMs: Math.round(late) });
+          this.opts.logger.warn("team comms: MatchFrame didn't run for a while: the plugins' liveness counts from now", { stalledMs: Math.round(late) });
           for (const s of this.list) s.lastHeardAt = Math.max(s.lastHeardAt, real);
         }
         for (const s of this.list) {
@@ -348,7 +348,7 @@ export class CommsBridge {
   async stop(): Promise<void> {
     if (this.pingTimer) clearInterval(this.pingTimer);
     this.pingTimer = null;
-    for (const s of this.list) s.close("Matchframe stopped the bridge");
+    for (const s of this.list) s.close("MatchFrame stopped the bridge");
     const server = this.server;
     this.server = null;
     this.port = null;

@@ -60,21 +60,21 @@ export const FAQ: FaqItem[] = [
   {
     id: "what-is-matchframe",
     category: "general",
-    q: "What is Matchframe?",
+    q: "What is MatchFrame?",
     a: (
       <p>
-        Matchframe is a Windows program for producing Counter-Strike 2 broadcasts. It runs the HUDs you add to OBS, the Observer (an auto director that can drive the observer camera), OBS and replay control, and the administration of matches, vetoes and sponsors. This website manages the account behind it: plans, auto-director hours, invoices, your team and linked computers.
+        MatchFrame is a Windows program for producing Counter-Strike 2 broadcasts. It runs the HUDs you add to OBS, the Observer (an auto director that can drive the observer camera), OBS and replay control, and the administration of matches, vetoes and sponsors. This website manages the account behind it: plans, auto-director hours, invoices, your team and linked computers.
       </p>
     ),
   },
   {
     id: "early-access",
     category: "general",
-    q: "Is Matchframe ready for my live broadcast?",
+    q: "Is MatchFrame ready for my live broadcast?",
     a: (
       <>
         <p>
-          Matchframe is in early access. The program is built and tested with synthetic game data, a labelled simulation, real OBS and real CS2 demos, and the Windows installer is smoke-tested. Real CS2 telemetry ingest and real observer camera control haven't yet been verified on a real CS2 client.
+          MatchFrame is in early access. The program is built and tested with synthetic game data, a labelled simulation, real OBS and real CS2 demos, and the Windows installer is smoke-tested. Real CS2 telemetry ingest and real observer camera control haven't yet been verified on a real CS2 client.
         </p>
         <p>Run the in-program setup checklist and a rehearsal before going live: automatic camera control stays blocked until its tests pass on your setup.</p>
       </>
@@ -105,8 +105,8 @@ export const FAQ: FaqItem[] = [
   {
     id: "valve",
     category: "general",
-    q: "Is Matchframe affiliated with Valve?",
-    a: <p>No. Counter-Strike 2 is a trademark of Valve Corporation. Matchframe is an independent product and isn't affiliated with or endorsed by Valve.</p>,
+    q: "Is MatchFrame affiliated with Valve?",
+    a: <p>No. Counter-Strike 2 is a trademark of Valve Corporation. MatchFrame is an independent product and isn't affiliated with or endorsed by Valve.</p>,
   },
 
   // ------------------------------------------------------------------ program
@@ -136,7 +136,7 @@ export const FAQ: FaqItem[] = [
     q: "How do I check that the installer is genuine?",
     a: (
       <p>
-        The download page shows the installer's SHA-256 checksum. In PowerShell run <code>Get-FileHash .\MatchframeEsports-Setup-&lt;version&gt;.exe -Algorithm SHA256</code> and compare the result with the value on the page. They must match exactly.
+        The download page shows the installer's SHA-256 checksum. In PowerShell run <code>Get-FileHash .\MatchFrameEsports-Setup-&lt;version&gt;.exe -Algorithm SHA256</code> and compare the result with the value on the page. They must match exactly.
       </p>
     ),
   },
@@ -196,10 +196,10 @@ export const FAQ: FaqItem[] = [
     q: "What are the Observer modes?",
     a: (
       <>
-        <p>The Observer is Matchframe's auto director, and it has four modes:</p>
+        <p>The Observer is MatchFrame's auto director, and it has four modes:</p>
         <ul>
           <li>
-            <strong>Off:</strong> Matchframe never moves the camera; shot suggestions stay visible in Live Control. Uses no hours.
+            <strong>Off:</strong> MatchFrame never moves the camera; shot suggestions stay visible in Live Control. Uses no hours.
           </li>
           <li>
             <strong>Observer:</strong> switches between player POVs automatically.

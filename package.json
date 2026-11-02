@@ -2,7 +2,7 @@
   "name": "matchframe-esports",
   "version": "0.11.0",
   "private": true,
-  "description": "Matchframe Esports — Windows-first CS2 broadcast production manager, HUD system and intelligent observer/director.",
+  "description": "MatchFrame Esports — Windows-first CS2 broadcast production manager, HUD system and intelligent observer/director.",
   "license": "UNLICENSED",
   "type": "module",
   "packageManager": "pnpm@10.28.0",

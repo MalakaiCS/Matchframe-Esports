@@ -27,7 +27,7 @@ const wrap = (ui: React.ReactNode) =>
       <SessionContext.Provider value={{ me: { role: "owner" } }}>{ui}</SessionContext.Provider>
     </ToastProvider>,
   );
-const obs = { state: { connected: true, scenes: ["Game", "Break", "Desk", "Matchframe Replay", "Pages"], inputs: [] } };
+const obs = { state: { connected: true, scenes: ["Game", "Break", "Desk", "MatchFrame Replay", "Pages"], inputs: [] } };
 
 beforeEach(() => liveStore.reset());
 afterEach(() => {
@@ -41,7 +41,7 @@ describe("OBS scenes panel", () => {
       "GET /api/v1/obs": obs,
       "GET /api/v1/obs/auto": {
         settings: { timeouts: true, mapEnd: true, replayIn: "", replayOut: null, otherScenes: "" },
-        scenes: { LIVE: "Game", REPLAY: "Matchframe Replay", STUDIO: null, BREAK: null },
+        scenes: { LIVE: "Game", REPLAY: "MatchFrame Replay", STUDIO: null, BREAK: null },
         transitions: { current: "Fade", names: ["Fade", "Opener", "Überblendung"], kinds: [{ name: "Fade", kind: "fade_transition" }, { name: "Opener", kind: "obs_stinger_transition" }, { name: "Überblendung", kind: "fade_transition" }] },
       },
     });
@@ -49,7 +49,7 @@ describe("OBS scenes panel", () => {
     await waitFor(() => expect((screen.getByLabelText(/Break scene/) as HTMLSelectElement).disabled).toBe(false));
     fireEvent.change(screen.getByLabelText(/Break scene/), { target: { value: "Break" } });
     fireEvent.click(screen.getByRole("button", { name: "Save scenes" }));
-    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/settings/program.scenes")?.body).toEqual({ value: { LIVE: "Game", REPLAY: "Matchframe Replay", STUDIO: null, BREAK: "Break" } }));
+    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/settings/program.scenes")?.body).toEqual({ value: { LIVE: "Game", REPLAY: "MatchFrame Replay", STUDIO: null, BREAK: "Break" } }));
     const into = screen.getByLabelText(/Replay in/) as HTMLSelectElement;
     expect([...into.options].map((o) => o.textContent)).toEqual(["OBS's current transition", "Fade", "Opener (Stinger)", "Überblendung (Fade)"]);
     fireEvent.change(into, { target: { value: "Opener" } });
@@ -71,7 +71,7 @@ describe("HUD graphics panel", () => {
     const calls = serve({
       "GET /api/v1/graphics/auto": g,
       "GET /api/v1/obs": obs,
-      "GET /api/v1/hud/library": { huds: [{ id: "lhm.kaihud", name: "KaiHUD", views: [{ id: "player-stats", label: "Player stats", url: "x" }] }], hudsDir: null, overlayOrigin: "", hiddenAll: false },
+      "GET /api/v1/hud/library": { huds: [{ id: "imported.kaihud", name: "KaiHUD", views: [{ id: "player-stats", label: "Player stats", url: "x" }] }], hudsDir: null, overlayOrigin: "", hiddenAll: false },
       "PUT /api/v1/graphics/auto": { ...g, playerCards: false },
     });
     wrap(<GraphicsPanel />);
@@ -80,7 +80,7 @@ describe("HUD graphics panel", () => {
     fireEvent.click(cards);
     await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ playerCards: false }));
     await waitFor(() => expect(screen.getByRole("option", { name: "KaiHUD" })).toBeTruthy());
-    fireEvent.change(screen.getByLabelText("HUD"), { target: { value: "lhm.kaihud" } });
-    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ pages: { hudId: "lhm.kaihud" } }));
+    fireEvent.change(screen.getByLabelText("HUD"), { target: { value: "imported.kaihud" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ pages: { hudId: "imported.kaihud" } }));
   });
 });

@@ -3,9 +3,10 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, renameSync, writ
 import { join } from "node:path";
 import { z } from "zod";
 import type { SyncItem, SyncKind } from "@matchframe/cloud-contracts";
-import { EventRecord, MapInstance, Match, Player, RosterMembership, Team, VetoDecision } from "@matchframe/contracts";
+import { currentHudId, EventRecord, LEGACY_COMPAT_RUNTIME, MapInstance, Match, Player, RosterMembership, Team, VetoDecision } from "@matchframe/contracts";
 import type { Database } from "../db/database.ts";
 import type { DocumentRepo, SettingsRepo, SteamIndexRepo } from "../db/store.ts";
+import { migrateLegacyPackage } from "../hud/compat.ts";
 import type { HudLibraryService } from "../hud/library.ts";
 import { packageFingerprint, readArchive, validateManifest } from "../hud/packages.ts";
 import { ASSET_EXT, normalizeName } from "../routes/domain.ts";
@@ -421,6 +422,19 @@ export class SyncLocal {
   // ---------------------------------------------------------------------------- the organisation's changes
 
   /**
+   * One of the organisation's items as this computer keeps it: an imported HUD shared by a computer
+   * with 0.11.0 or earlier carries its legacy id and runtime value, and is this computer's HUD under
+   * the id it has now (currentHudId; its package is brought up to date when it is installed).
+   */
+  normalize(item: SyncItem): SyncItem {
+    if (item.kind !== "hud") return item;
+    const id = this.d.huds ? this.d.huds.resolveId(item.id) : currentHudId(item.id);
+    const legacyRuntime = item.data?.runtime === LEGACY_COMPAT_RUNTIME;
+    if (id === item.id && !legacyRuntime) return item;
+    return { ...item, id, data: item.data && legacyRuntime ? { ...item.data, runtime: "compat" } : item.data };
+  }
+
+  /**
    * skip: this computer has it already. keep: this computer changed it later (its change is sent
    * next, over this one). apply: anything else (last edit wins; a record never shared from here
    * with no known edit time counts as older than the organisation's).
@@ -754,7 +768,8 @@ export class SyncLocal {
       const sha = item.blobs[0];
       const bytes = sha ? blobs.get(sha) : undefined;
       if (!bytes) throw new Error(`the package of HUD ${item.id} was not downloaded`);
-      const files = readArchive(bytes);
+      // A package shared by 0.11.0 or earlier: its manifest brought up to date (id and runtime).
+      const files = migrateLegacyPackage(readArchive(bytes));
       const manifest = validateManifest(files);
       if (manifest.id !== item.id) throw new Error(`the shared package is HUD ${manifest.id}, not ${item.id}`);
       huds.installShared(files);

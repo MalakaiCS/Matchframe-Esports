@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-interface MatchframeCams {
+interface MatchFrameCams {
   canvas(steamId: string): HTMLCanvasElement;
   onAir(steamId: string): boolean;
   on(ev: "change" | "observed", fn: () => void): void;
@@ -8,7 +8,7 @@ interface MatchframeCams {
 }
 declare global {
   interface Window {
-    MatchframeCams?: MatchframeCams;
+    MatchFrameCams?: MatchFrameCams;
   }
 }
 
@@ -20,7 +20,7 @@ export function PlayerCam({ steamId, className }: { steamId: string; className?:
   const holder = useRef<HTMLDivElement>(null);
   const [onAir, setOnAir] = useState(false);
   useEffect(() => {
-    const mc = window.MatchframeCams;
+    const mc = window.MatchFrameCams;
     if (!mc) return;
     const update = () => setOnAir(mc.onAir(steamId));
     mc.on("change", update);

@@ -18,7 +18,7 @@ const GAME_HUD_COMMAND = "cl_drawhud 1; cl_draw_only_deathnotices 1; cl_drawhud_
 
 const FRAME_CAPS = [60, 120, 144, 240];
 const FRAME_CAP_HINT =
-  "fps_max: CS2 draws at most this many frames a second, leaving the graphics card room for the HUD, OBS and the encoder. On high graphics settings an uncapped CS2 takes the whole card, and imported HUDs like kaiHUD stutter. For a 60 fps stream, 120 keeps the game smooth. Don't change: CS2's own setting.";
+  "fps_max: CS2 draws at most this many frames a second, leaving the graphics card room for the HUD, OBS and the encoder. On high graphics settings an uncapped CS2 takes the whole card, and imported HUDs stutter. For a 60 fps stream, 120 keeps the game smooth. Don't change: CS2's own setting.";
 
 /**
  * The CT and T colours for the X-ray, smokes and kill feed (HLAE): chosen here, or each team's own.
@@ -151,10 +151,10 @@ export function GameCard() {
   const [line, hint] = !st
     ? ["Checking…", ""]
     : receiving
-      ? [`Receiving game data${st.gameBuild ? ` · build ${st.gameBuild}` : ""}`, "CS2 is sending game data to Matchframe."]
+      ? [`Receiving game data${st.gameBuild ? ` · build ${st.gameBuild}` : ""}`, "CS2 is sending game data to MatchFrame."]
       : st.cs2Install
         ? ["Waiting for game data", "CS2 is installed. Start it and spectate a match or play a demo; data arrives through game state integration (GSI)."]
-        : ["CS2 not found yet", "Set up CS2 in Setup: Matchframe installs the game state integration (GSI) config into the CS2 folder."];
+        : ["CS2 not found yet", "Set up CS2 in Setup: MatchFrame installs the game state integration (GSI) config into the CS2 folder."];
   const cl = consoleLine(g);
   const launchReason = launchUnavailableReason() ?? settingsReason ?? (!g ? "Loading…" : mode === "hlae" && hlae.info && !hlae.info.ok ? hlae.info.problem : null);
   const saveMode = (m: GameLaunchMode, acknowledgeInsecure?: boolean) =>
@@ -248,7 +248,7 @@ export function GameCard() {
           <Toggle
             label="Run behind other windows"
             testId="run-in-background"
-            hint="engine_no_focus_sleep 0 and snd_mute_losefocus 0: CS2 keeps every frame and its sound while you use Matchframe or OBS. Off, CS2 slows down and goes silent whenever another window has focus. With CS2 in full screen (not Fullscreen Windowed), clicking another window still stops the picture."
+            hint="engine_no_focus_sleep 0 and snd_mute_losefocus 0: CS2 keeps every frame and its sound while you use MatchFrame or OBS. Off, CS2 slows down and goes silent whenever another window has focus. With CS2 in full screen (not Fullscreen Windowed), clicking another window still stops the picture."
             on={o ? o.runInBackground : null}
             reason={cameraReason}
             onChange={option("runInBackground")}

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "matchframe-workers"
 version = "0.1.0"
-description = "Matchframe Esports offline demo pipeline: CS2 demo extraction, map packs, utility profiles, features, training and evaluation."
+description = "MatchFrame Esports offline demo pipeline: CS2 demo extraction, map packs, utility profiles, features, training and evaluation."
 requires-python = ">=3.11"
 dependencies = [
   "demoparser2>=0.42",

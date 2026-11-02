@@ -1,4 +1,4 @@
-# Extending Matchframe
+# Extending MatchFrame
 
 Extension points that exist today: HUD packages, the read-only HUD SDK, the local REST/WebSocket API, automation rules, device actions and the game-adapter interface. All are local; nothing requires a cloud account.
 
@@ -21,15 +21,15 @@ A HUD package is a folder or zip with a `manifest.json` at its root (or inside o
 | `description`, `category`, `tags` | optional; shown, searched and filtered in the HUD Library |
 | `thumbnail` | optional package-relative image for the library card (falls back to `preview`) |
 | `designResolution` | optional `{ "width": 1920, "height": 1080 }`: the size the HUD is laid out for. Outputs scale it uniformly (letterboxed, never stretched). Defaults to the first of `resolutions` |
-| `settingsSchema` | optional settings form for the library: `{ "key": { "type": "boolean" \| "number" \| "string" \| "color" \| "select" \| "player" \| "team", "label", "default", "options": [{ "value", "label" }], "min", "max", "step", "group" } }`. `player` stores a SteamID and `team` a Matchframe team id, both picked from lists. Values arrive in `state.settings` and update live |
+| `settingsSchema` | optional settings form for the library: `{ "key": { "type": "boolean" \| "number" \| "string" \| "color" \| "select" \| "player" \| "team", "label", "default", "options": [{ "value", "label" }], "min", "max", "step", "group" } }`. `player` stores a SteamID and `team` a MatchFrame team id, both picked from lists. Values arrive in `state.settings` and update live |
 | `presets`, `resolutions`, `preview` | optional |
-| `runtime` | optional, `"matchframe"` (default). `"lhm"` is set by the importer for LHM-format HUDs (below); don't set it yourself |
+| `runtime` | optional, `"matchframe"` (default). `"compat"` is set by the importer for imported hud.json-format HUDs (below); don't set it yourself |
 
 Ids `assets` and `sdk` are reserved.
 
-### LHM-format HUDs
+### Imported hud.json-format HUDs
 
-HUDs built for Lexogrine HUD Manager on Lexogrine's MIT HUD template (`hud.json`, `index.html`, optionally `panel.json`) import without changes. The importer writes the manifest and turns `panel.json` into the settings form. At run time the HUD server provides what the template expects from LHM: socket.io with raw game data, panel settings and buttons, and `/api` with Matchframe's teams, players, current match and built-in radars. Operator steps and limits are in `docs/operations/hud-library.md` (LHM-format HUDs); the protocol details are in `docs/architecture/hud-library.md` (ADR-023). New HUDs should use the HUD SDK below: it gives the processed state (killfeed, utility, radar, series, delay) that LHM HUDs have to work out from raw data.
+HUDs built on the widely used MIT-licensed hud.json HUD template (`hud.json`, `index.html`, optionally `panel.json`) import without changes. The importer writes the manifest and turns `panel.json` into the settings form. At run time the HUD server's compatibility layer provides what the template expects from the program it runs in: socket.io with raw game data, panel settings and buttons, and `/api` with MatchFrame's teams, players, current match and built-in radars. Operator steps and limits are in `docs/operations/hud-library.md` (Imported HUDs in the hud.json format); the protocol details are in `docs/architecture/hud-library.md` (ADR-023). New HUDs should use the HUD SDK below: it gives the processed state (killfeed, utility, radar, series, delay) that hud.json-format HUDs have to work out from raw data.
 
 ### What the engine enforces on import
 
@@ -59,7 +59,7 @@ client.ackSponsor(sponsorId, zone); // proof of delivery for sponsor reporting
 
 Honour the flags in the state: show a SIMULATION marker when `state.simulated` is true, dim or freeze when `state.stale` is true, and render `null` values as unknown (not zero).
 
-**Minimap** (`state.radar`, permission `radar.public`): `players`, `bomb` and `utility` carry 0–1 coordinates on the background. In mode `"image"`, `backgroundUrl` is a radar image (the built-in one for the map, served at `/overlay-api/radar-image/<map>`, or an operator-calibrated image); in mode `"schematic"` it is a JSON outline (`cells`, `polygons`, `regions`) at `/overlay-api/radar/<map>`; in mode `"none"` draw nothing. Player markers have `side`, `alive`, `observed`, `flashed`, `hasBomb`, `label` (observer slot) and `yawDeg`; utility has `type`, `side` (thrower) and `radius`. `cleanUrl` is Matchframe's clean radar for the map (an SVG at `/overlay-api/radar-clean/<map>/<frame>?v=…`: navy floor, light walls, red bombsites, transparent around the map), drawn from Matchframe's map data in the same image frame as `backgroundUrl`, so the same 0–1 coordinates place markers on either; it is `null` when the map has no map-pack geometry.
+**Minimap** (`state.radar`, permission `radar.public`): `players`, `bomb` and `utility` carry 0–1 coordinates on the background. In mode `"image"`, `backgroundUrl` is a radar image (the built-in one for the map, served at `/overlay-api/radar-image/<map>`, or an operator-calibrated image); in mode `"schematic"` it is a JSON outline (`cells`, `polygons`, `regions`) at `/overlay-api/radar/<map>`; in mode `"none"` draw nothing. Player markers have `side`, `alive`, `observed`, `flashed`, `hasBomb`, `label` (observer slot) and `yawDeg`; utility has `type`, `side` (thrower) and `radius`. `cleanUrl` is MatchFrame's clean radar for the map (an SVG at `/overlay-api/radar-clean/<map>/<frame>?v=…`: navy floor, light walls, red bombsites, transparent around the map), drawn from MatchFrame's map data in the same image frame as `backgroundUrl`, so the same 0–1 coordinates place markers on either; it is `null` when the map has no map-pack geometry.
 
 **HUD images** (`state.art`, set by the operator in HUD Library → HUD images): `art.defaultPlayers.ct` / `.t` are picture URLs for players without their own `avatarUrl`, by the side they play (player n of a team in observer-slot order takes picture n, cycling); `art.maps[<mapName>]` has a `logoUrl` and an `imageUrl` for series and veto tiles; `art.icons.dead` replaces your own dead-player mark. Every value can be empty or `null`; keep your own look then. The URLs are on the overlay origin (`/assets/<id>`), so the HUD's CSP allows them.
 

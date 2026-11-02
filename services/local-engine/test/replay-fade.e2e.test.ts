@@ -139,7 +139,7 @@ describe("Replay break: fading from one clip to the next through the replay scen
   });
 
   it("plays a break's clips alternately in the two scenes, the next one loaded just in time and playing hidden toward its part, and fades over one fade length before the end", async () => {
-    e.obsAuto.setSettings({ replayIn: "Matchframe Replay Stinger", replayOut: "", otherScenes: "" });
+    e.obsAuto.setSettings({ replayIn: "MatchFrame Replay Stinger", replayOut: "", otherScenes: "" });
     await feed("live", 4);
     const round = e.session.state()!.roundNumber!;
     add(round, "triple", 3, files[0]!);
@@ -154,7 +154,7 @@ describe("Replay break: fading from one clip to the next through the replay scen
     expect(e.autoReplay.getStatus().detail).toBe("Replays for this break are done (3 played).");
     // Replay in (the stinger), a fade to the twin, a fade back, and OBS's own transition back to live.
     expect(o.changes.map((c) => [c.scene, c.transition, c.durationMs])).toEqual([
-      ["My Replay", "Matchframe Replay Stinger", 600],
+      ["My Replay", "MatchFrame Replay Stinger", 600],
       ["My Replay B", "Fade", 400],
       ["My Replay", "Fade", 400],
       ["Game", "Fade", 300],
@@ -357,7 +357,7 @@ describe("Replay break: fading from one clip to the next through the replay scen
   });
 
   it("goes to and from the break and studio scenes with the Other scenes transition, by the automation or the operator's buttons; a replay played by hand returns live with Replay out", async () => {
-    e.obsAuto.setSettings({ otherScenes: "Matchframe Replay Stinger", replayIn: "Fade", replayOut: "Cut" });
+    e.obsAuto.setSettings({ otherScenes: "MatchFrame Replay Stinger", replayIn: "Fade", replayOut: "Cut" });
     o.changes.length = 0;
     expect((await api("/api/v1/program/cues", { mode: "STUDIO" })).status).toBe(200);
     await settle();
@@ -381,10 +381,10 @@ describe("Replay break: fading from one clip to the next through the replay scen
     expect((await api("/api/v1/program/return-live")).status).toBe(200);
     await settle();
     expect(o.changes.map((c) => [c.scene, c.transition])).toEqual([
-      ["Desk", "Matchframe Replay Stinger"],
-      ["Game", "Matchframe Replay Stinger"],
-      ["Break", "Matchframe Replay Stinger"],
-      ["Game", "Matchframe Replay Stinger"],
+      ["Desk", "MatchFrame Replay Stinger"],
+      ["Game", "MatchFrame Replay Stinger"],
+      ["Break", "MatchFrame Replay Stinger"],
+      ["Game", "MatchFrame Replay Stinger"],
       ["My Replay", "Fade"],
       ["Game", "Cut"],
     ]);
@@ -430,7 +430,7 @@ describe("Replay break: fading from one clip to the next through the replay scen
       await o.call("SetCurrentPreviewScene", { sceneName: "My Replay B" });
       o.transitionButton();
       await new Promise((r) => setTimeout(r, 2500));
-      // A replay scene, but not Matchframe's change: nothing more from the break, no cut back; the program follows OBS to it.
+      // A replay scene, but not MatchFrame's change: nothing more from the break, no cut back; the program follows OBS to it.
       expect(o.changes.map((c) => c.scene)).toEqual(["My Replay", "My Replay B"]);
       expect(e.replays.list().filter((i) => i.roundNumber === round).map((i) => i.state)).toEqual(["played", "prepared"]);
       expect(e.autoReplay.getStatus().detail).toBe("OBS shows “My Replay B” (your scene): replays wait until you're back on the live scene.");

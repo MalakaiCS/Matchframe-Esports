@@ -50,8 +50,8 @@ export async function sendVerification(app: CloudApp, userId: string, email: str
   const token = await issueEmailToken(app.sql, userId, "verify", VERIFY_HOURS * 3_600_000, app.now());
   await app.mailer.send({
     to: email,
-    subject: "Confirm your Matchframe email address",
-    text: `Confirm your email address to finish setting up Matchframe:\n\n${app.cfg.publicUrl}/verify-email?token=${token}\n\nThe link expires in ${VERIFY_HOURS} hours. If you did not sign up, ignore this email.`,
+    subject: "Confirm your MatchFrame email address",
+    text: `Confirm your email address to finish setting up MatchFrame:\n\n${app.cfg.publicUrl}/verify-email?token=${token}\n\nThe link expires in ${VERIFY_HOURS} hours. If you did not sign up, ignore this email.`,
   });
 }
 
@@ -59,8 +59,8 @@ export async function sendPasswordReset(app: CloudApp, userId: string, email: st
   const token = await issueEmailToken(app.sql, userId, "reset", RESET_MINUTES * 60_000, app.now());
   await app.mailer.send({
     to: email,
-    subject: "Reset your Matchframe password",
-    text: `Someone asked to reset the password for this Matchframe account. To choose a new password open:\n\n${app.cfg.publicUrl}/reset-password?token=${token}\n\nThe link expires in ${RESET_MINUTES} minutes. If this was not you, ignore this email.`,
+    subject: "Reset your MatchFrame password",
+    text: `Someone asked to reset the password for this MatchFrame account. To choose a new password open:\n\n${app.cfg.publicUrl}/reset-password?token=${token}\n\nThe link expires in ${RESET_MINUTES} minutes. If this was not you, ignore this email.`,
   });
 }
 
@@ -111,7 +111,7 @@ export function registerAuthRoutes(r: Router, app: CloudApp): void {
     const ok = await verifyPassword(ctx.body.password, u?.password_hash ?? DUMMY_HASH);
     if (!u || !ok) throw new HttpError(401, "invalid_credentials", "email or password is incorrect");
     // Only after the password is checked, so this does not reveal which addresses have accounts.
-    if (u.disabled_at) throw new HttpError(403, "account_disabled", "this account has been disabled; contact Matchframe support");
+    if (u.disabled_at) throw new HttpError(403, "account_disabled", "this account has been disabled; contact MatchFrame support");
     if (u.staff_role !== "admin" && app.isBootstrapAdmin(ctx.body.email)) await app.sql.query("UPDATE users SET staff_role = 'admin' WHERE id = $1", [u.id]);
     await app.sql.query("UPDATE users SET last_login_at = $2 WHERE id = $1", [u.id, app.now()]);
     const c = await app.createSession(u.id, ctx);
@@ -149,13 +149,13 @@ export function registerAuthRoutes(r: Router, app: CloudApp): void {
     const token = await issueEmailToken(app.sql, u.id, "email_change", VERIFY_HOURS * 3_600_000, app.now(), ctx.body.newEmail);
     await app.mailer.send({
       to: ctx.body.newEmail,
-      subject: "Confirm your new Matchframe email address",
-      text: `Confirm this address for your Matchframe account:\n\n${app.cfg.publicUrl}/confirm-email?token=${token}\n\nThe link expires in ${VERIFY_HOURS} hours. If you did not ask for this, ignore this email.`,
+      subject: "Confirm your new MatchFrame email address",
+      text: `Confirm this address for your MatchFrame account:\n\n${app.cfg.publicUrl}/confirm-email?token=${token}\n\nThe link expires in ${VERIFY_HOURS} hours. If you did not ask for this, ignore this email.`,
     });
     await app.mailer.send({
       to: u.email,
-      subject: "Your Matchframe email address is being changed",
-      text: `A change of your Matchframe sign-in email to ${ctx.body.newEmail} was requested. It takes effect once confirmed from that address.\n\nIf this was not you, change your password now: ${app.cfg.publicUrl}/forgot-password`,
+      subject: "Your MatchFrame email address is being changed",
+      text: `A change of your MatchFrame sign-in email to ${ctx.body.newEmail} was requested. It takes effect once confirmed from that address.\n\nIf this was not you, change your password now: ${app.cfg.publicUrl}/forgot-password`,
     });
     await audit(app.sql, u.id, null, "account.email_change_requested", { newEmail: ctx.body.newEmail });
     return { sent: true };

@@ -78,7 +78,7 @@ export function Dashboard({ scope }: { scope: OrgScope }) {
                 </ul>
               ) : (
                 <p>
-                  No computers yet. <Link to="/download">Download the program</Link>, start it and sign in with your Matchframe email and password.
+                  No computers yet. <Link to="/download">Download the program</Link>, start it and sign in with your MatchFrame email and password.
                 </p>
               )}
               {can(role, "devices.link") && (

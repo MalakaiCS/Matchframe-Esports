@@ -33,7 +33,7 @@ function WebsiteAddress({ status, onSaved }: { status: CloudStatus; onSaved: () 
           .finally(() => setBusy(false));
       }}
     >
-      <p>Enter the address of the Matchframe website.</p>
+      <p>Enter the address of the MatchFrame website.</p>
       <Field label="Website address" hint="Development builds only; release builds have it built in.">
         <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://matchframe.example" spellCheck={false} autoFocus disabled={status.urlFixed} />
       </Field>
@@ -90,7 +90,7 @@ function CodeSignIn({ status, onChange }: { status: CloudStatus; onChange: () =>
 }
 
 /**
- * Email and password of the Matchframe website account. The password goes to the website once
+ * Email and password of the MatchFrame website account. The password goes to the website once
  * (through the engine) and is never stored; the computer keeps only its own sign-in credential.
  */
 export function SignInForm({ status, onSignedIn, onChange, autoFocus = false }: { status: CloudStatus; onSignedIn: () => void; onChange: () => void; autoFocus?: boolean }) {
@@ -269,7 +269,7 @@ export function SignInNotice({ role }: { role: string | null }) {
   if (!status || !st || !wasSignedIn || !LOST.has(st)) return null;
   const lastError = status.lastError ? `${status.lastError.charAt(0).toUpperCase()}${status.lastError.slice(1)}. ` : "";
   return (
-    <Note tone="warn" title={st === "offline_expired" ? "Matchframe needs to go online" : "Signed out of Matchframe"}>
+    <Note tone="warn" title={st === "offline_expired" ? "MatchFrame needs to go online" : "Signed out of MatchFrame"}>
       {st === "offline_expired" ? "Connect to the internet to keep using the Auto Director. " : lastError}
       The HUD Library, HUDs and manual control keep working. {st === "offline_expired" ? null : <>The Auto Director needs you to sign in again under <Link to="/settings/account">Settings → Account</Link>.</>}
     </Note>

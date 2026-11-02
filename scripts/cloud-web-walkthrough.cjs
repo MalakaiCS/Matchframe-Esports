@@ -1,4 +1,4 @@
-// Walks the Matchframe website (apps/cloud-web) against a running cloud API and saves screenshots.
+// Walks the MatchFrame website (apps/cloud-web) against a running cloud API and saves screenshots.
 //
 //   pnpm --filter @matchframe/cloud-web build
 //   MF_CLOUD_PORT=8080 MF_CLOUD_PUBLIC_URL=http://127.0.0.1:8080 MF_CLOUD_WEB_DIR=apps/cloud-web/dist \
@@ -428,7 +428,7 @@ async function main() {
   if (spam.status !== 200 && spam.status !== 201) problems.push(`[staff] signup spam@ via API: ${spam.status} ${JSON.stringify(spam.data)}`);
   const staff = await newPage(browser, "staff", DESKTOP);
   const sp = staff.page;
-  await signUp(sp, { name: "Matchframe Support", email: "admin@example.com", org: "Matchframe Staff" });
+  await signUp(sp, { name: "MatchFrame Support", email: "admin@example.com", org: "MatchFrame Staff" });
   await verify(sp, "admin@example.com");
   await go(sp, "/admin");
   await sp.getByText("Monthly recurring revenue").waitFor();

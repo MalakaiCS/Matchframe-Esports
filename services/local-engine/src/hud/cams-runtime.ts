@@ -1,12 +1,13 @@
 /**
  * Player cams in HUDs and OBS (ADR-048): browser scripts served by the HUD server.
  *
- * - CAMS_JS (`/hud-runtime/cams.js`): window.MatchframeCams. Connects to `/cams-ws` (with the page's
- *   `t` and `output`, or an LHM HUD's cookie), decodes each on-air cam with WebCodecs into a canvas,
+ * - CAMS_JS (`/hud-runtime/cams.js`): window.MatchFrameCams (also as window.MatchframeCams, its name in
+ *   0.11.0 and earlier, for HUD pages written against it). Connects to `/cams-ws` (with the page's
+ *   `t` and `output`, or an imported HUD's cookie), decodes each on-air cam with WebCodecs into a canvas,
  *   and gives HUDs that canvas or a MediaStream of it. The engine already delays the video.
- * - LHM_CAMS_JS (`/hud-runtime/lhm-cams.js`, put into LHM-format HUD pages before their own
- *   scripts): LHM HUDs receive player cams as WebRTC offers (`offerFromPlayer`) and play the stream
- *   simple-peer gives them. Matchframe's offers carry a marker; for those, the page's
+ * - COMPAT_CAMS_JS (`/hud-runtime/compat-cams.js`, put into imported HUD pages before their own
+ *   scripts): imported HUDs receive player cams as WebRTC offers (`offerFromPlayer`) and play the stream
+ *   simple-peer gives them. MatchFrame's offers carry a marker; for those, the page's
  *   RTCPeerConnection answers locally and hands over the cam's MediaStream, with no network
  *   connection (every other use of RTCPeerConnection is the browser's own).
  * - CAM_PAGE_JS and camPage(): the OBS browser sources `/cams/observed` and `/cams/player/<id>`.
@@ -16,7 +17,7 @@
 
 export const CAMS_JS = String.raw`(function () {
   "use strict";
-  if (window.MatchframeCams) return;
+  if (window.MatchFrameCams) return;
   var q = new URLSearchParams(location.search);
   var auth = "t=" + encodeURIComponent(q.get("t") || "") + "&output=" + encodeURIComponent(q.get("output") || "");
   var cams = {};
@@ -123,7 +124,7 @@ export const CAMS_JS = String.raw`(function () {
       retry = Math.min(10000, retry * 2);
     };
   }
-  window.MatchframeCams = {
+  window.MatchFrameCams = window.MatchframeCams = {
     /** The canvas a player's cam is drawn into (transparent while off air). */
     canvas: function (steamId) { return cam(steamId).canvas; },
     /** A MediaStream of that canvas, for a video element. */
@@ -145,11 +146,11 @@ export const CAMS_JS = String.raw`(function () {
 })();
 `;
 
-export const LHM_CAMS_JS = String.raw`(function () {
+export const COMPAT_CAMS_JS = String.raw`(function () {
   "use strict";
   var Real = window.RTCPeerConnection;
-  if (!Real || window.__mfLhmCams) return;
-  window.__mfLhmCams = true;
+  if (!Real || window.__mfCompatCams) return;
+  window.__mfCompatCams = true;
   var MARK = "a=x-matchframe-cam:";
   var open = {};
   var offAirSince = {};
@@ -236,8 +237,8 @@ export const LHM_CAMS_JS = String.raw`(function () {
       if (self._fake.closed) return;
       self._fire("icecandidate", { candidate: null });
       setTimeout(function () {
-        if (self._fake.closed || !window.MatchframeCams) return;
-        var stream = window.MatchframeCams.stream(self._fake.steamId);
+        if (self._fake.closed || !window.MatchFrameCams) return;
+        var stream = window.MatchFrameCams.stream(self._fake.steamId);
         var track = stream.getVideoTracks()[0];
         self._fire("track", { track: track, streams: [stream], receiver: { track: track }, transceiver: {} });
       }, 0);
@@ -275,7 +276,7 @@ export const LHM_CAMS_JS = String.raw`(function () {
   // A cam off air for more than a moment: its connections end (the HUD shows the avatar again and
   // takes the next offer when the cam is back).
   function check() {
-    var mc = window.MatchframeCams;
+    var mc = window.MatchFrameCams;
     if (!mc) return;
     var now = Date.now();
     for (var id in open) {
@@ -307,7 +308,7 @@ export const CAM_PAGE_JS = String.raw`(function () {
   var holder = document.getElementById("mf-cam");
   var current = null;
   function show() {
-    var mc = window.MatchframeCams;
+    var mc = window.MatchFrameCams;
     if (!mc) return;
     var id = fixed || mc.observed();
     var on = !!id && mc.onAir(id);
@@ -319,9 +320,9 @@ export const CAM_PAGE_JS = String.raw`(function () {
     holder.className = on ? "on" : "";
   }
   function start() {
-    if (!window.MatchframeCams) return setTimeout(start, 50);
-    window.MatchframeCams.on("change", show);
-    window.MatchframeCams.on("observed", show);
+    if (!window.MatchFrameCams) return setTimeout(start, 50);
+    window.MatchFrameCams.on("change", show);
+    window.MatchFrameCams.on("observed", show);
     show();
   }
   start();
@@ -335,7 +336,7 @@ export function camPage(opts: { title: string; player: string | null }): string 
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>${esc(opts.title)} - Matchframe player cam</title>
+<title>${esc(opts.title)} - MatchFrame player cam</title>
 <style>
 html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
 #mf-cam { position: absolute; inset: 0; opacity: 0; transition: opacity 0.25s ease; }
@@ -352,9 +353,9 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
 `;
 }
 
-/** An LHM-format HUD's HTML with the cam scripts first, so its own scripts see them. */
-export function injectLhmCams(html: string): string {
-  const tags = '<script src="/hud-runtime/cams.js"></script><script src="/hud-runtime/lhm-cams.js"></script>';
+/** An imported HUD's HTML with the cam scripts first, so its own scripts see them. */
+export function injectCompatCams(html: string): string {
+  const tags = '<script src="/hud-runtime/cams.js"></script><script src="/hud-runtime/compat-cams.js"></script>';
   // In <head>; without one, after <html> or the doctype (never before the doctype: quirks mode).
   const at = /<head(\s[^>]*)?>/i.exec(html) ?? /<html(\s[^>]*)?>/i.exec(html) ?? /<!doctype[^>]*>/i.exec(html);
   if (at) return html.slice(0, at.index + at[0].length) + tags + html.slice(at.index + at[0].length);

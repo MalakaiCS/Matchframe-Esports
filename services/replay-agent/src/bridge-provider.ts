@@ -1,9 +1,9 @@
 import type { CaptureRequest, ClipRecord, ReplayProvider, ReplayProviderCapabilities, ReplaySource } from "./provider.ts";
 
 /**
- * Client for the documented Matchframe Replay Bridge contract (docs/integrations/replay-bridge.md).
+ * Client for the documented MatchFrame Replay Bridge contract (docs/integrations/replay-bridge.md).
  * The owner's existing replay tool was NOT available to this project, so its real API is unknown:
- * this client speaks Matchframe's bridge contract, which a thin shim around that tool must
+ * this client speaks MatchFrame's bridge contract, which a thin shim around that tool must
  * implement. Until such a shim is configured the integration is reported as blocked.
  */
 export class ReplayBridgeProvider implements ReplayProvider {

@@ -1,4 +1,4 @@
-// Helpers for the program smoke tests: a local Matchframe website (cloud API from source, in-memory
+// Helpers for the program smoke tests: a local MatchFrame website (cloud API from source, in-memory
 // database) with verified accounts, and signing in under the program's Settings → Account.
 const { spawn } = require("node:child_process");
 const { join } = require("node:path");

@@ -1042,7 +1042,7 @@ export interface BroadcastReport {
   caveats: string[];
 }
 
-export interface MatchframeBridgeStatus {
+export interface MatchFrameBridgeStatus {
   config: { enabled: boolean; url: string | null; autoPushResults: boolean };
   status: "disabled" | "not configured" | "connected" | "blocked" | string;
   capabilities: Record<string, unknown> | null;

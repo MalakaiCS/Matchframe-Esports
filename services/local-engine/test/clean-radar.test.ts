@@ -58,7 +58,7 @@ function landing(rt: MapRuntime, frame: CleanRadarFrame, d: CleanRadarDrawing, r
   return { centre: inside(centre), share: pts.filter(inside).length / pts.length };
 }
 
-describe("clean radar (Matchframe's own drawing from map packs)", () => {
+describe("clean radar (MatchFrame's own drawing from map packs)", () => {
   const cases: [string, CleanRadarFrame][] = [
     ["de_mirage", "builtin"],
     ["de_dust2", "builtin"],

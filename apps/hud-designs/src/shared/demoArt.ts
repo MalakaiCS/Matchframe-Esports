@@ -3,7 +3,7 @@ import type { HudArt, HudRadar } from "@matchframe/hud-sdk";
 /**
  * Original sample pictures for the demo (`?art=1`, `?radar=1`): plain inline SVG drawings standing in
  * for the operator's HUD images (player figures tinted by side, map tiles, a dead mark) and for
- * Matchframe's clean radar (a made-up layout, not a real map).
+ * MatchFrame's clean radar (a made-up layout, not a real map).
  */
 
 const uri = (svg: string): string => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
@@ -90,7 +90,7 @@ export function demoArt(): HudArt {
 
 export const NO_ART: HudArt = { defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null } };
 
-/** A made-up clean radar in Matchframe's style: navy floor, light walls, red bomb sites (1024×1024 frame). */
+/** A made-up clean radar in MatchFrame's style: navy floor, light walls, red bomb sites (1024×1024 frame). */
 const CLEAN_RADAR = uri(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">` +
     `<g fill="#1b2a49" stroke="#dfe5ee" stroke-width="8" stroke-linejoin="round">` +

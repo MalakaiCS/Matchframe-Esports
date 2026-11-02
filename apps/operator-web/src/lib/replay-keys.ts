@@ -7,7 +7,7 @@ import { isTypingTarget } from "./hooks.ts";
  * The operator's controls of the replays playing, by key (ADR-062):
  * - in the console, while it has the focus: Ctrl+Shift+F5 Skip, Ctrl+Shift+F6 Hold / Resume,
  *   Ctrl+Shift+F7 Stop and go live (useReplayShortcuts, on every screen);
- * - from any program, in the Matchframe program on Windows: global hotkeys, off until set (the
+ * - from any program, in the MatchFrame program on Windows: global hotkeys, off until set (the
  *   desktop bridge, replayHotkeys()). The same three keys are suggested, so one set of keys works
  *   whichever program is in front.
  *
@@ -68,7 +68,7 @@ export interface ReplayHotkeyState {
   suggested: Record<ReplayKeyAction, string>;
 }
 
-/** The Matchframe program's global replay hotkeys (apps/desktop/src/replay-hotkeys.ts); null in a browser. */
+/** The MatchFrame program's global replay hotkeys (apps/desktop/src/replay-hotkeys.ts); null in a browser. */
 export interface ReplayHotkeysBridge {
   get(): Promise<ReplayHotkeyState>;
   set(patch: Partial<Record<ReplayKeyAction, string | null>>): Promise<ReplayHotkeyState>;

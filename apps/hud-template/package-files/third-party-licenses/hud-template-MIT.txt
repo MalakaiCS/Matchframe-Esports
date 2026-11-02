@@ -1,3 +1,10 @@
+Third-party licence: the CS2 HUD template this HUD is adapted from (code, styles, weapon and equipment icons)
+Applies to: this package's code and styles, and the weapon and equipment icons in it; MatchFrame's changes are under the same terms
+Listed with the program's other third-party components in THIRD_PARTY_NOTICES.md.
+The licence text below is reproduced unchanged.
+
+--------------------------------------------------------------------------------
+
 MIT License
 
 Copyright (c) 2021 Lexogrine

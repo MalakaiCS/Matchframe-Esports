@@ -131,7 +131,7 @@ export function registerReportRoutes(r: Router, e: Engine): void {
     };
     if (req.query.get("format") === "html") {
       const rows = (o: Record<string, unknown>) => Object.entries(o).map(([k, v]) => `<tr><th>${k}</th><td>${typeof v === "object" ? `<pre>${JSON.stringify(v, null, 1)}</pre>` : String(v)}</td></tr>`).join("");
-      const html = `<!doctype html><meta charset="utf-8"><title>Matchframe broadcast report</title><style>body{font:14px system-ui;background:#11141b;color:#e8ecf3;padding:24px}table{border-collapse:collapse;margin-bottom:18px}th,td{border:1px solid #2a3140;padding:6px 10px;text-align:left;vertical-align:top}th{color:#9aa4b5}pre{margin:0;white-space:pre-wrap}</style><h1>Broadcast report</h1><table>${rows(report as unknown as Record<string, unknown>)}</table>`;
+      const html = `<!doctype html><meta charset="utf-8"><title>MatchFrame broadcast report</title><style>body{font:14px system-ui;background:#11141b;color:#e8ecf3;padding:24px}table{border-collapse:collapse;margin-bottom:18px}th,td{border:1px solid #2a3140;padding:6px 10px;text-align:left;vertical-align:top}th{color:#9aa4b5}pre{margin:0;white-space:pre-wrap}</style><h1>Broadcast report</h1><table>${rows(report as unknown as Record<string, unknown>)}</table>`;
       return { body: html, contentType: "text/html; charset=utf-8" };
     }
     return report;

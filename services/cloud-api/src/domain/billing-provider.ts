@@ -94,7 +94,7 @@ export class StripeBilling implements BillingProvider {
     const base = apiBase ? new URL(apiBase) : null;
     this.stripe = new Stripe(secretKey, {
       maxNetworkRetries: 2,
-      appInfo: { name: "Matchframe Esports cloud", version: "0.1.0" },
+      appInfo: { name: "MatchFrame Esports cloud", version: "0.1.0" },
       ...(base ? { host: base.hostname, port: Number(base.port || (base.protocol === "https:" ? 443 : 80)), protocol: base.protocol.replace(":", "") as "http" | "https" } : {}),
     });
   }

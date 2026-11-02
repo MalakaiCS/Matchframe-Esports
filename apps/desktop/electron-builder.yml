@@ -1,6 +1,6 @@
 appId: com.matchframe.esports
-productName: Matchframe Esports
-copyright: Copyright © Matchframe Esports
+productName: MatchFrame Esports
+copyright: Copyright © MatchFrame Esports
 directories:
   output: release
   buildResources: build
@@ -72,6 +72,8 @@ extraResources:
 asar: true
 win:
   icon: build/icon.ico
+  # The portable zip (the installer's name is under nsis).
+  artifactName: MatchFrameEsports-${version}-win.${ext}
   target:
     - target: nsis
       arch: [x64]
@@ -84,7 +86,9 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   deleteAppDataOnUninstall: false
-  artifactName: MatchframeEsports-Setup-${version}.${ext}
+  # Installed 0.11.0 programs update from latest.yml, which names this file: the name may change. The
+  # uninstall entry and the upgrade path follow appId (kept), not the product or file name.
+  artifactName: MatchFrameEsports-Setup-${version}.${ext}
 linux:
   icon: build/icon.png
   target: [dir]

@@ -64,8 +64,8 @@ export function registerOrgRoutes(r: Router, app: CloudApp): void {
     const org = await app.sql.query<{ name: string }>("SELECT name FROM orgs WHERE id = $1", [ctx.params.orgId!]);
     await app.mailer.send({
       to: ctx.body.email,
-      subject: `${user.displayName} invited you to ${org.rows[0]!.name} on Matchframe`,
-      text: `${user.displayName} invited you to join ${org.rows[0]!.name} on Matchframe as ${ctx.body.role}.\n\nAccept the invitation:\n${app.cfg.publicUrl}/invite?token=${token}\n\nThe invitation expires in ${INVITE_DAYS} days.`,
+      subject: `${user.displayName} invited you to ${org.rows[0]!.name} on MatchFrame`,
+      text: `${user.displayName} invited you to join ${org.rows[0]!.name} on MatchFrame as ${ctx.body.role}.\n\nAccept the invitation:\n${app.cfg.publicUrl}/invite?token=${token}\n\nThe invitation expires in ${INVITE_DAYS} days.`,
     });
     await audit(app.sql, user.id, ctx.params.orgId!, "org.invite", { email: ctx.body.email, role: ctx.body.role });
     return { invited: true };

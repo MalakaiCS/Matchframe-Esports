@@ -12,7 +12,7 @@
 
 ## Failure handling
 
-| Situation | What Matchframe does | What you do |
+| Situation | What MatchFrame does | What you do |
 |---|---|---|
 | GSI stops (stale > 3 s) | HUD clocks freeze; automated command in flight is cancelled and control goes manual; alert raised | Check the observer client / network; resume when fresh |
 | Command not confirmed | Fails with `confirmation_timeout`; one bounded retry for transport errors only | Check the adapter test; operate manually |

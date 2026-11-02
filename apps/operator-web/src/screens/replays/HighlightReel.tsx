@@ -167,7 +167,7 @@ export function HighlightReelPanel() {
         ) : null}
         {ffmpegMissing ? (
           <Note tone="warn" title="ffmpeg is needed">
-            {data?.ffmpeg.canDownload ? "Matchframe can download it (about 90 MB)." : "Install it with this system's package manager (for example apt install ffmpeg)."}
+            {data?.ffmpeg.canDownload ? "MatchFrame can download it (about 90 MB)." : "Install it with this system's package manager (for example apt install ffmpeg)."}
             {data?.ffmpeg.canDownload ? (
               <div className="row" style={{ marginTop: 8 }}>
                 <ActionButton action={() => api.post("/api/v1/highlights/ffmpeg")} success="ffmpeg downloaded" onDone={() => void ov.reload()} disabledReason={settingsReason ?? (data.ffmpeg.downloading !== null ? `Downloading (${Math.round(data.ffmpeg.downloading * 100)} %)` : null)}>

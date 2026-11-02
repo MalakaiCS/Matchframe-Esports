@@ -3,7 +3,7 @@
   "version": "1.2.0",
   "private": true,
   "type": "module",
-  "description": "Pro CS2 HUD package (matchframe.pro-cs2), adapted from Lexogrine's CS2 React HUD (MIT). A starter kit for building your own HUD.",
+  "description": "Pro CS2 HUD package (matchframe.pro-cs2), adapted from an open-source CS2 React HUD template (MIT, see package-files/third-party-licenses). A starter kit for building your own HUD.",
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/finish-package.mjs",

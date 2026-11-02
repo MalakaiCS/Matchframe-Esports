@@ -16,7 +16,7 @@ import type { TeamComms } from "../../src/comms/service.ts";
  * What is sent: the public mix holds a 1 kHz burst (100 ms) every 500 ms and the recording mix a
  * 600 Hz burst every 500 ms (250 ms later). The public gate is closed for the first second, open
  * until half way, then closed again; while closed the public mix still holds its bursts, so any
- * burst received then would be a leak past Matchframe's guard.
+ * burst received then would be a leak past MatchFrame's guard.
  */
 
 const here = dirname(fileURLToPath(import.meta.url));

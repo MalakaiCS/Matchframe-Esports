@@ -41,7 +41,7 @@ class Browser {
 
 const roster = syntheticRoster().map((pl, i) => ({ ...pl, position: { x: i * 120, y: 40, z: 0 }, forward: { x: 1, y: 0, z: 0 } }));
 
-describe("desktop engine <-> Matchframe website (real servers on both sides)", () => {
+describe("desktop engine <-> MatchFrame website (real servers on both sides)", () => {
   let cloud: CloudApp;
   let closeCloud: () => Promise<void>;
   let cloudBase: string;
@@ -93,7 +93,7 @@ describe("desktop engine <-> Matchframe website (real servers on both sides)", (
       return { status: res.status, data: (await res.json()) as Record<string, unknown> };
     };
     ({ browser: owner, orgId } = await signup("producer@example.com", "Night League"));
-    ({ browser: staff } = await signup("staff@example.com", "Matchframe Staff"));
+    ({ browser: staff } = await signup("staff@example.com", "MatchFrame Staff"));
   });
 
   afterAll(async () => {

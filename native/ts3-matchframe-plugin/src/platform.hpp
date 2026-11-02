@@ -1,5 +1,5 @@
 // What differs between Windows and Linux: the monotonic clock, TCP sockets on 127.0.0.1 and where
-// Matchframe's data folder is.
+// MatchFrame's data folder is.
 #pragma once
 
 #include <cstdint>
@@ -25,6 +25,7 @@
 #include <netinet/tcp.h>
 #include <poll.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 #endif
@@ -113,8 +114,9 @@ inline bool writeSmallFile(const std::string& path, const std::string& content) 
 
 // The bridge file the engine writes (port and token): MATCHFRAME_COMMS_BRIDGE_FILE, else
 // <data folder>/team-comms/bridge.json with the engine's data folder (MATCHFRAME_DATA_DIR, else
-// %APPDATA%\Matchframe Esports, ~/Library/Application Support/Matchframe Esports or
-// $XDG_DATA_HOME|~/.local/share/matchframe-esports).
+// %APPDATA%\MatchFrame Esports, ~/Library/Application Support/MatchFrame Esports or
+// $XDG_DATA_HOME|~/.local/share/matchframe-esports). On macOS a case-sensitive volume can hold the
+// folder under the spelling 0.11.0 and earlier used ("Matchframe Esports"): the engine keeps using it.
 inline std::string bridgeFilePath() {
   std::string f = envStr("MATCHFRAME_COMMS_BRIDGE_FILE");
   if (!f.empty()) return f;
@@ -128,9 +130,12 @@ inline std::string bridgeFilePath() {
 #if defined(_WIN32)
     std::string appData = envStr("APPDATA");
     if (appData.empty()) return std::string();
-    dir = appData + "\\Matchframe Esports";
+    dir = appData + "\\MatchFrame Esports";
 #elif defined(__APPLE__)
-    dir = envStr("HOME") + "/Library/Application Support/Matchframe Esports";
+    dir = envStr("HOME") + "/Library/Application Support/MatchFrame Esports";
+    struct stat st;
+    const std::string legacy = envStr("HOME") + "/Library/Application Support/Matchframe Esports";
+    if (::stat(dir.c_str(), &st) != 0 && ::stat(legacy.c_str(), &st) == 0) dir = legacy;
 #else
     std::string xdg = envStr("XDG_DATA_HOME");
     dir = (xdg.empty() ? envStr("HOME") + "/.local/share" : xdg) + "/matchframe-esports";

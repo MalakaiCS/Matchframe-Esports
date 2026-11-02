@@ -82,7 +82,7 @@ export class ProgramArbiter {
    * the twin of: clips alternate between a scene and its twin, so the twin counts as that scene.
    */
   private twins: { REPLAY: { scene: string; of: string } | null; HIGHLIGHTS: { scene: string; of: string } | null } = { REPLAY: null, HIGHLIGHTS: null };
-  /** The operator's own scene the program follows (MANUAL): one OBS showed that Matchframe didn't put there. */
+  /** The operator's own scene the program follows (MANUAL): one OBS showed that MatchFrame didn't put there. */
   private followed: string | null = null;
   /** While highlights are on air: where the program goes back to after them. */
   private back: HighlightsReturn | null = null;
@@ -180,7 +180,7 @@ export class ProgramArbiter {
 
   /**
    * The mixer shows a scene the operator put there (with OBS itself, a multiview, a hotkey): not the
-   * live scene, and not one Matchframe put on. The program is theirs (MANUAL, the operator's, its
+   * live scene, and not one MatchFrame put on. The program is theirs (MANUAL, the operator's, its
    * holder naming the scene) until the mixer shows the live scene again (followMixerLive): nothing
    * automatic changes it meanwhile. Not while a change of the program's own is under way.
    */

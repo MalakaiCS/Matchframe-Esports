@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Matchframe Esports local API",
+    "title": "MatchFrame Esports local API",
     "version": "0.1.0",
-    "description": "Matchframe Esports local engine API (loopback by default). Not the API of the separate MatchFrame service or any replay tool."
+    "description": "MatchFrame Esports local engine API (loopback by default). Not the API of the separate MatchFrame service or any replay tool."
   },
   "servers": [
     {
@@ -7746,11 +7746,9 @@
                     "type": "string"
                   },
                   "sceneName": {
-                    "default": "Matchframe Live",
                     "type": "string"
                   },
                   "sourceName": {
-                    "default": "Matchframe HUD",
                     "type": "string"
                   },
                   "width": {

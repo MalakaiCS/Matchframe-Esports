@@ -106,7 +106,7 @@ describe.skipIf(!gxx || !existsSync(join(sdk, "ts3_functions.h")))("Team Comms p
       expect(r.calls).toContain(`startVoiceRecording ${schid}`);
     }
     expect(r.calls.some((c) => /outputMuted/.test(c))).toBe(false);
-    // Every voice block after Matchframe managed the tab was zeroed for local playback (only the first
+    // Every voice block after MatchFrame managed the tab was zeroed for local playback (only the first
     // moments before the MANAGE arrived played); the callbacks kept coming.
     expect(r.voiceCalls).toBeGreaterThan(2500);
     expect(r.zeroed / r.voiceCalls).toBeGreaterThan(0.9);
@@ -129,20 +129,20 @@ describe.skipIf(!gxx || !existsSync(join(sdk, "ts3_functions.h")))("Team Comms p
     expect(r.tabs["1"].earlyZeroed).toBe(0);
   }, 30_000);
 
-  it("a restarted TeamSpeak keeps the remembered team tabs listen-only and silent before Matchframe answers (Matchframe not running)", async () => {
-    // TeamSpeak restarted (a new process) while Matchframe isn't there: no bridge file.
+  it("a restarted TeamSpeak keeps the remembered team tabs listen-only and silent before MatchFrame answers (MatchFrame not running)", async () => {
+    // TeamSpeak restarted (a new process) while MatchFrame isn't there: no bridge file.
     const r = await host$(2, join(dir, "no-matchframe", "bridge.json"), ["still"]);
     for (const schid of [1, 2]) {
       expect(r.calls).toContain(`set ${schid} inputDeactivated=1`);
       expect(r.calls).toContain(`set ${schid} inputMuted=1`);
     }
-    // Every block of both tabs silent here from the first one, also while still connecting; never deafened; nothing captured (no Matchframe).
+    // Every block of both tabs silent here from the first one, also while still connecting; never deafened; nothing captured (no MatchFrame).
     expect(r.tabs["1"].untouched).toBe(0);
     expect(r.tabs["2"].untouched).toBe(0);
     expect([r.tabs["1"].earlyZeroed, r.tabs["2"].earlyZeroed]).toEqual([3, 3]);
     expect(r.tabs["1"].zeroed + r.tabs["2"].zeroed).toBeGreaterThan(1000);
     expect(r.calls.some((c) => /outputMuted|startVoiceRecording/.test(c))).toBe(false);
-    // A tab in a channel Matchframe never captured is TeamSpeak's own: on a team's server it stays silent
+    // A tab in a channel MatchFrame never captured is TeamSpeak's own: on a team's server it stays silent
     // for its first 3 s (a new connection is first placed in the server's default channel and moved on),
     // then plays from its next event; its microphone is never touched.
     writeFileSync(tabsFile, "MFTABS2\nhostServerUid=\tTeam Alpha\tts.example.org\t9987\n");
@@ -160,7 +160,7 @@ describe.skipIf(!gxx || !existsSync(join(sdk, "ts3_functions.h")))("Team Comms p
     expect(v1.calls.some((c) => c.startsWith("set 2 "))).toBe(false);
   }, 30_000);
 
-  it("Matchframe hands back a remembered tab that is no team's now; the plugin forgets it", async () => {
+  it("MatchFrame hands back a remembered tab that is no team's now; the plugin forgets it", async () => {
     writeFileSync(tabsFile, "MFTABS2\nhostServerUid=\tTeam Alpha\tts.example.org\t9987\nhostServerUid=\tTeam Bravo\tts.example.org\t9987\n");
     // Team B now plays from another channel: the remembered Team Bravo tab is no team's.
     const comms = await engine({ A: "Team Alpha", B: "Team Charlie" }, "moved");

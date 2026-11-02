@@ -49,8 +49,8 @@ async function freePort(): Promise<number> {
 
 /**
  * Player cams in a real browser: VP8 encoded in Chromium (WebCodecs) and sent to the website as
- * the cam page does, relayed to the program, delayed, and decoded on the OBS cam page; and an LHM
- * HUD's side (the calls simple-peer makes on RTCPeerConnection) answered by lhm-cams.js.
+ * the cam page does, relayed to the program, delayed, and decoded on the OBS cam page; and an imported
+ * HUD's side (the calls simple-peer makes on RTCPeerConnection) answered by compat-cams.js.
  */
 describe.skipIf(!pw)("player cams in Chromium", () => {
   let cloud: CloudApp;
@@ -100,7 +100,7 @@ describe.skipIf(!pw)("player cams in Chromium", () => {
     await cloud?.close();
   });
 
-  it("shows a cam encoded in the browser on the OBS cam page, and hands it to an LHM HUD's peer connection", async () => {
+  it("shows a cam encoded in the browser on the OBS cam page, and hands it to an imported HUD's peer connection", async () => {
     const st = engine.cams.status();
     expect(st.websiteConnected).toBe(true);
     const room = st.link!.split("/cam/")[1]!;
@@ -134,9 +134,9 @@ describe.skipIf(!pw)("player cams in Chromium", () => {
     // The OBS page: the observed player's cam, decoded.
     const obs = await ctx.newPage();
     await obs.goto(st.outputs!.observed);
-    await obs.waitForFunction(`window.MatchframeCams && window.MatchframeCams.lastFrameAt(${JSON.stringify(steamId)}) > 0 && document.getElementById("mf-cam").className === "on"`, null, { timeout: 15_000 });
+    await obs.waitForFunction(`window.MatchFrameCams && window.MatchframeCams === window.MatchFrameCams && window.MatchFrameCams.lastFrameAt(${JSON.stringify(steamId)}) > 0 && document.getElementById("mf-cam").className === "on"`, null, { timeout: 15_000 });
     const px = (await obs.evaluate(`(function () {
-      var c = window.MatchframeCams.canvas(${JSON.stringify(steamId)});
+      var c = window.MatchFrameCams.canvas(${JSON.stringify(steamId)});
       var d = c.getContext("2d").getImageData(160, 140, 1, 1).data;
       return { w: c.width, h: c.height, rgba: [d[0], d[1], d[2], d[3]], on: document.getElementById("mf-cam").className };
     })()`)) as { w: number; h: number; rgba: number[]; on: string };
@@ -145,9 +145,9 @@ describe.skipIf(!pw)("player cams in Chromium", () => {
     expect(px.rgba[1]).toBeLessThan(80);
     expect(px.rgba[3]).toBe(255);
 
-    // An LHM HUD: the calls simple-peer makes for an offer from Matchframe, answered in the page.
-    await obs.addScriptTag({ url: "/hud-runtime/lhm-cams.js" });
-    const lhm = (await obs.evaluate(`(async function () {
+    // An imported HUD: the calls simple-peer makes for an offer from MatchFrame, answered in the page.
+    await obs.addScriptTag({ url: "/hud-runtime/compat-cams.js" });
+    const compat = (await obs.evaluate(`(async function () {
       var pc = new RTCPeerConnection({ iceServers: [] });
       var got = { identity: typeof pc.peerIdentity, ice: false, stream: false, video: null };
       var shown = new Promise(function (resolve) {
@@ -166,7 +166,7 @@ describe.skipIf(!pw)("player cams in Chromium", () => {
       await Promise.race([shown, new Promise(function (r) { setTimeout(r, 5000); })]);
       return got;
     })()`)) as Record<string, unknown>;
-    expect(lhm).toEqual({ identity: "undefined", ice: true, stream: true, video: [320, 180], remote: "offer", answer: "answer" });
+    expect(compat).toEqual({ identity: "undefined", ice: true, stream: true, video: [320, 180], remote: "offer", answer: "answer" });
     await sender.close();
     await sending;
   }, 40_000);

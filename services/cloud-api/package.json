@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Matchframe website API: accounts, organisations, billing, device linking, entitlements and auto-director usage.",
+  "description": "MatchFrame website API: accounts, organisations, billing, device linking, entitlements and auto-director usage.",
   "exports": {
     ".": "./src/index.ts"
   },

@@ -102,7 +102,7 @@ describe("the dedicated comms recording through the engine", () => {
     obs = await StandInObs.attach(e, (o) => {
       o.addScene("Game");
       o.addInput("Game", "Game Capture", "game_capture", { capture_mode: "window" }, { positionX: 10, positionY: 20, scaleX: 0.5, scaleY: 0.5 });
-      o.addInput("Game", "Matchframe HUD", "browser_source", { url: `http://127.0.0.1:${ports.overlay}/overlay/main/live?t=x`, width: 1920, height: 1080 });
+      o.addInput("Game", "MatchFrame HUD", "browser_source", { url: `http://127.0.0.1:${ports.overlay}/overlay/main/live?t=x`, width: 1920, height: 1080 });
       o.addInput("Game", "Game audio", "wasapi_process_output_capture", { window: "Counter-Strike 2:SDL_app:cs2.exe", priority: 2 });
       o.addInput("Game", "Casters", "wasapi_input_capture", { device_id: "casters-mic" });
       o.addScene("Casters");
@@ -122,8 +122,8 @@ describe("the dedicated comms recording through the engine", () => {
   it("without Source Record in OBS: says so plainly with the install steps, and won't start", async () => {
     const src = (await (await get("/api/v1/comms/recording/obs/sources")).json()) as { sourceRecord: boolean; suggested: Record<string, string | null> };
     expect(src.sourceRecord).toBe(false);
-    // Found: the game capture, the Matchframe HUD page, the CS2 application audio.
-    expect(src.suggested).toEqual({ gameSource: "Game Capture", hudSource: "Matchframe HUD", gameAudioSource: "Game audio" });
+    // Found: the game capture, the MatchFrame HUD page, the CS2 application audio.
+    expect(src.suggested).toEqual({ gameSource: "Game Capture", hudSource: "MatchFrame HUD", gameAudioSource: "Game audio" });
     const r = await post("/api/v1/comms/recording/obs", {});
     expect(r.status).toBe(200);
     const res = (await r.json()) as { ok: boolean; steps: { id: string; ok: boolean | null; detail: string }[] };
@@ -143,14 +143,14 @@ describe("the dedicated comms recording through the engine", () => {
     expect((await put("/api/v1/comms/recording", { folder: "not/absolute" })).status).toBe(400);
     expect((await put("/api/v1/comms/recording", { folder })).status).toBe(200);
     for (let i = 0; i < 2; i++) {
-      const r = await post("/api/v1/comms/recording/obs", { gameSource: "Game Capture", hudSource: "Matchframe HUD", gameAudioSource: "Game audio" });
+      const r = await post("/api/v1/comms/recording/obs", { gameSource: "Game Capture", hudSource: "MatchFrame HUD", gameAudioSource: "Game audio" });
       expect(r.status).toBe(200);
       const res = (await r.json()) as { ok: boolean; steps: { id: string; ok: boolean | null }[] };
       expect(res.steps.filter((s) => s.ok === false)).toEqual([]);
       expect(res.ok).toBe(true);
     }
     // Twice: the same scene, nothing doubled. Bottom to top: audio, gameplay, HUD, strip. No casters.
-    expect(obs.scenes.get(RECORDING_SCENE)!.map((i) => i.source)).toEqual([GAME_AUDIO_COPY, RECORDING_NDI_NAME, "Game Capture", "Matchframe HUD", STRIP_SOURCE]);
+    expect(obs.scenes.get(RECORDING_SCENE)!.map((i) => i.source)).toEqual([GAME_AUDIO_COPY, RECORDING_NDI_NAME, "Game Capture", "MatchFrame HUD", STRIP_SOURCE]);
     const items = obs.scenes.get(RECORDING_SCENE)!;
     expect(items.find((i) => i.source === "Game Capture")!.transform).toMatchObject({ positionX: 10, positionY: 20, scaleX: 0.5, scaleY: 0.5 });
     // One gameplay source, shared with the live scene (not a second capture).
@@ -160,7 +160,7 @@ describe("the dedicated comms recording through the engine", () => {
     expect(obs.inputs.get(GAME_AUDIO_COPY)).toMatchObject({ kind: "wasapi_process_output_capture", settings: { window: "Counter-Strike 2:SDL_app:cs2.exe", priority: 2 } });
     for (const n of [RECORDING_NDI_NAME, GAME_AUDIO_COPY]) expect(obs.inputs.get(n)!.audio).toMatchObject({ tracks: { "1": true, "2": false, "3": false, "4": false, "5": false, "6": false }, monitorType: "OBS_MONITORING_TYPE_NONE", muted: false });
     // The live scene is untouched (nothing of the recording on air).
-    expect(obs.scenes.get("Game")!.map((i) => i.source)).toEqual(["Game Capture", "Matchframe HUD", "Game audio", "Casters"]);
+    expect(obs.scenes.get("Game")!.map((i) => i.source)).toEqual(["Game Capture", "MatchFrame HUD", "Game audio", "Casters"]);
     expect(filter()).toMatchObject({ kind: "source_record_filter", settings: { record_mode: 0, path: folder, different_audio: false, audio_track: 0, rec_format: "mkv" } });
     // The routing check: the strip kept off the live scene.
     const check = (await (await get("/api/v1/comms/obs/check")).json()) as { checks: { id: string; ok: boolean | null }[] };
@@ -211,7 +211,7 @@ describe("the dedicated comms recording through the engine", () => {
     deps().freeBytes = () => 1 * GB;
     expect((await view()).recorder.errors.join(" ")).toMatch(/Only 1\.0 GB free/);
     deps().freeBytes = () => 500 * GB;
-    // The levels: the game audio copy's fader in OBS; the comms as Matchframe's gain (off: silence and nobody lit).
+    // The levels: the game audio copy's fader in OBS; the comms as MatchFrame's gain (off: silence and nobody lit).
     expect((await put("/api/v1/comms/recording", { gameLevelDb: -6 })).status).toBe(200);
     expect(obs.inputs.get(GAME_AUDIO_COPY)!.audio.volumeMul).toBeCloseTo(10 ** (-6 / 20), 4);
     expect(obs.inputs.get("Game audio")!.audio.volumeMul).toBe(1);
@@ -341,12 +341,12 @@ describe("the dedicated comms recording through the engine", () => {
     appendFileSync(first, Buffer.alloc(1000));
     v = await settle("recording");
     expect(v.recorder.state).toBe("recording");
-    // OBS goes away: Matchframe can't confirm the recording: a fault.
+    // OBS goes away: MatchFrame can't confirm the recording: a fault.
     obs.drop();
     await until(() => !e.obs.state.connected, 3000, "OBS gone");
     v = await view();
     expect(v.recorder.state).toBe("fault");
-    expect(v.recorder.detail).toMatch(/OBS isn't connected: Matchframe can't confirm the recording/);
+    expect(v.recorder.detail).toMatch(/OBS isn't connected: MatchFrame can't confirm the recording/);
     // ...and back, Source Record still recording (or recording again by itself into a new file after an OBS restart): recording, its newest file.
     const second = join(folder, "MatchFrame Comms NL 2026-11-01 11-05-00.mkv");
     writeFileSync(second, Buffer.alloc(500));

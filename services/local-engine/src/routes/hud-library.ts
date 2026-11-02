@@ -15,7 +15,7 @@ import { assetDir } from "./domain.ts";
 
 const isLoopbackAddress = (a: string | undefined) => a === "127.0.0.1" || a === "::1" || a === "::ffff:127.0.0.1";
 
-/** The package folder: the folder itself, or its only subfolder when manifest.json (or an LHM HUD's hud.json) is one level down. */
+/** The package folder: the folder itself, or its only subfolder when manifest.json (or an imported HUD's hud.json) is one level down. */
 function packageFolder(dir: string): string {
   const isPackage = (d: string) => existsSync(join(d, "manifest.json")) || existsSync(join(d, "hud.json"));
   if (isPackage(dir)) return dir;
@@ -38,8 +38,8 @@ export function registerHudLibraryRoutes(r: Router, e: Engine): void {
   r.get("/api/v1/hud/library", { permission: "metadata.read" }, () => lib.list());
 
   /**
-   * HUD images for every Matchframe HUD (asset ids from POST /api/v1/assets), with the maps
-   * Matchframe knows (map packs, built-in radars, the requested map pool and maps already set).
+   * HUD images for every MatchFrame HUD (asset ids from POST /api/v1/assets), with the maps
+   * MatchFrame knows (map packs, built-in radars, the requested map pool and maps already set).
    */
   const hudArt = () => {
     const art = e.hudArtSetting();

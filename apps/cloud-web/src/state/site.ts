@@ -64,7 +64,7 @@ export function useSite(): SiteState {
 /** Wording used in legal text while (or if) the company details can't be loaded. */
 export const SITE_FALLBACK: SiteInfo = {
   companyName: "the operator of this website",
-  websiteName: "Matchframe",
+  websiteName: "MatchFrame",
   supportEmail: null,
   address: null,
   jurisdiction: "the country in which the operator is established",

@@ -334,7 +334,7 @@ describe("the strip's cards (stand-in Team Comms)", () => {
     none.close();
   });
 
-  it("pictures: the roster's own, else the HUD images' default for that player, else the operator's placeholder, else Matchframe's silhouette; crops per player", () => {
+  it("pictures: the roster's own, else the HUD images' default for that player, else the operator's placeholder, else MatchFrame's silhouette; crops per player", () => {
     const s = make(people(5), { cfg: { placeholderAssetId: "aaaaaaaaaaaaaaaaaaaaaaaa.png", crops: { "player:p0": { x: 40, y: 20, zoom: 1.4 } } } });
     const byName = new Map(s.cardsFor("t1").cards.map((c) => [c.name, c]));
     expect(byName.get("Player p0")).toMatchObject({ picture: "own", pictureUrl: "/assets/p0.png", crop: { x: 40, y: 20, zoom: 1.4 }, cropKey: "player:p0" });

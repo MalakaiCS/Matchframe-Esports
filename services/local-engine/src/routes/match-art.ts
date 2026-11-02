@@ -23,7 +23,7 @@ export function registerMatchArtRoutes(r: Router, e: Engine): void {
     return e.matchArt.setSettings(id, req.body);
   });
 
-  /** The match's stingers into OBS's "Matchframe Stinger" / "Matchframe Replay Stinger" transitions. */
+  /** The match's stingers into OBS's "MatchFrame Stinger" / "MatchFrame Replay Stinger" transitions. */
   r.post("/api/v1/matches/:id/art/obs", { permission: "program.control", body: z.object({ useStinger: z.boolean().default(false) }) }, (req) => e.matchArt.obsSetup(req.params.id!, { useStinger: req.body.useStinger }));
 
   /** A frame of the OBS program as a background picture (stored as an asset). */

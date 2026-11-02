@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -239,6 +240,30 @@ describe("account sync between computers of one organisation (in-process website
     expect(cloud.blobs.get(shared)).toEqual(Buffer.from(await exported.arrayBuffer()));
   });
 
+  it("a hud.json-format HUD shared by a computer still on 0.11.0 (its old id and runtime) installs here under the id it has now", async () => {
+    // As 0.11.0 shared it: id lhm.<slug>, runtime "lhm", the manifest its importer wrote.
+    const legacyZip = Buffer.from(
+      zipSync({
+        "manifest.json": strToU8(JSON.stringify({ manifestVersion: 1, id: "lhm.old-pc-hud", name: "Old PC HUD", version: "1.0.0", author: "Someone", licence: "As set by the HUD's author", description: "LHM-format HUD, running in Matchframe's LHM compatibility mode.", game: "cs2", schemaVersions: [1], entryPoints: { live: "index.html" }, category: "LHM", tags: ["lhm"], permissions: ["match.public"], settingsSchema: { "teams.title": { type: "string", label: "Title", group: "Teams", default: "" } }, runtime: "lhm" })),
+        "hud.json": strToU8(JSON.stringify({ name: "Old PC HUD", version: "1.0.0" })),
+        "panel.json": strToU8(JSON.stringify([{ name: "teams", label: "Teams", inputs: [{ type: "text", name: "title", label: "Title" }] }])),
+        "index.html": strToU8("<!doctype html><title>old pc hud</title>"),
+      }),
+    );
+    const sha = createHash("sha256").update(legacyZip).digest("hex");
+    cloud.blobs.set(sha, legacyZip);
+    cloud.put({ kind: "hud", id: "lhm.old-pc-hud", data: { name: "Old PC HUD", version: "1.0.0", author: "Someone", kind: "imported", runtime: "lhm", settings: { "teams.title": "From the old PC" }, presetId: null, package: "fingerprint-from-0.11.0" }, blobs: [sha], editedAt: new Date().toISOString() });
+    await until(() => B.engine.hudLibrary.has("imported.old-pc-hud"), "the old computer's HUD on B");
+    const onB = B.engine.hudLibrary.entry("imported.old-pc-hud");
+    expect(onB).toMatchObject({ runtime: "compat", category: "Imported", name: "Old PC HUD", settings: { "teams.title": "From the old PC" } });
+    expect(B.engine.hudPackages.get("lhm.old-pc-hud")).toBeUndefined();
+    expect(existsSync(join(B.dataDir, "huds", "lhm.old-pc-hud"))).toBe(false);
+    // A later settings change from that computer (still under its old id) reaches the same HUD.
+    cloud.put({ kind: "hud", id: "lhm.old-pc-hud", data: { name: "Old PC HUD", version: "1.0.0", author: "Someone", kind: "imported", runtime: "lhm", settings: { "teams.title": "Changed on the old PC" }, presetId: null, package: "fingerprint-from-0.11.0" }, blobs: [sha], editedAt: new Date(Date.now() + 1000).toISOString() });
+    await until(() => B.engine.hudLibrary.entry("imported.old-pc-hud").settings["teams.title"] === "Changed on the old PC", "the change on B");
+    expect(B.engine.hudLibrary.list().huds.filter((h) => h.name === "Old PC HUD")).toHaveLength(1);
+  });
+
   it("a HUD removed on B is removed on A", async () => {
     expect((await B.api(`/api/v1/hud/library/${HUD_ID}`, { method: "DELETE" })).status).toBe(200);
     await until(() => !A.engine.hudLibrary.has(HUD_ID), "HUD removed on A");
@@ -249,7 +274,7 @@ describe("account sync between computers of one organisation (in-process website
     cloud.online = false;
     expect((await A.api(`/api/v1/players/${id.nova}`, { method: "PATCH", body: { displayName: "nova2" } })).status).toBe(200);
     await until(() => A.sync().state === "offline" && A.sync().pending > 0, "A offline with a change waiting");
-    expect(A.sync().lastError).toMatch(/Cannot reach the Matchframe website/);
+    expect(A.sync().lastError).toMatch(/Cannot reach the MatchFrame website/);
     expect(B.engine.players.get(id.nova!)!.data.displayName).toBe("nova");
     cloud.online = true;
     await until(() => B.engine.players.get(id.nova!)?.data.displayName === "nova2", "offline edit on B");

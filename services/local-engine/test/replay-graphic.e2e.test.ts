@@ -38,7 +38,7 @@ const waitFor = async (fn: () => boolean, ms = 5000) => {
  * The replay graphic: while a replay clip is on air, HUD state carries who made the play and what it
  * was (the clip on program, the next one of a break's replays, the automatic replays' clip in vMix),
  * with the player's team and the side they had in that round; nothing once the replays end or with
- * the graphic turned off. Each Matchframe HUD's own `replay` page shows it; an LHM HUD gets the
+ * the graphic turned off. Each MatchFrame HUD's own `replay` page shows it; an imported HUD gets the
  * built-in one; one click puts it on top of OBS's replay scene.
  */
 describe("Replay graphic", () => {
@@ -74,7 +74,7 @@ describe("Replay graphic", () => {
   beforeAll(async () => {
     process.env.MATCHFRAME_LOG_STDOUT = "0";
     writeFileSync(file, Buffer.alloc(1024));
-    // The Vector HUD as the program bundles it (its manifest, a stand-in page), and an LHM-format HUD.
+    // The Vector HUD as the program bundles it (its manifest, a stand-in page), and an imported HUD.
     const vector = join(dir, "vector");
     mkdirSync(vector);
     copyFileSync(join(repo, "apps", "hud-designs", "package-files", "vector", "manifest.json"), join(vector, "manifest.json"));
@@ -99,12 +99,12 @@ describe("Replay graphic", () => {
         }),
       ),
     );
-    Object.assign(e.obs.state, { connected: true, scenes: ["Game", "Matchframe Replay"], inputs: [] });
+    Object.assign(e.obs.state, { connected: true, scenes: ["Game", "MatchFrame Replay"], inputs: [] });
     e.obs.setProgram = async (scene: string) => {
       scenes.push(scene);
       return { confirmed: true, programScene: scene };
     };
-    e.program.setScenes({ LIVE: "Game", REPLAY: "Matchframe Replay", STUDIO: null, BREAK: null });
+    e.program.setScenes({ LIVE: "Game", REPLAY: "MatchFrame Replay", STUDIO: null, BREAK: null });
     await feed(15);
   });
 
@@ -190,12 +190,12 @@ describe("Replay graphic", () => {
     await waitFor(() => onAir().clip === null);
   });
 
-  it("gives each HUD its replay page: the HUD's own, the built-in one for an LHM HUD", async () => {
+  it("gives each HUD its replay page: the HUD's own, the built-in one for an imported HUD", async () => {
     const get = async () => (await (await fetch(`${api}/api/v1/replay-graphic`, { headers: auth })).json()) as { output: { hudId: string; style: string; url: string; forHudId: string }; settings: { hudId: string } };
     const lib = e.hudLibrary.list().huds;
     const vector = lib.find((h) => h.id === "matchframe.vector")!;
     const builtin = lib.find((h) => h.id === "matchframe-default")!;
-    const kai = lib.find((h) => h.runtime === "lhm")!;
+    const kai = lib.find((h) => h.runtime === "compat")!;
     expect(vector.variants).toContain("replay");
     expect(vector.urls.replay).toMatch(/\/hud\/matchframe\.vector\/replay\?t=[0-9a-f]+$/);
     // Automatic: the HUD last started (in OBS, or the desktop) — Vector here.
@@ -220,19 +220,19 @@ describe("Replay graphic", () => {
       return { createdScene: false, createdInput: true, updatedUrl: false };
     };
     e.obs.sceneItems = async (sceneName: string) => [
-      { sceneName, sourceName: "Matchframe Replay Clip", sceneItemId: 1, enabled: true, inputKind: "ffmpeg_source" },
+      { sceneName, sourceName: "MatchFrame Replay Clip", sceneItemId: 1, enabled: true, inputKind: "ffmpeg_source" },
       { sceneName, sourceName: GRAPHIC_SOURCE, sceneItemId: 2, enabled: true, inputKind: "browser_source" },
     ];
     const res = await fetch(`${api}/api/v1/replay-graphic/obs`, { method: "POST", headers: auth, body: "{}" });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { scene: string; source: string; created: boolean; onTop: boolean; output: { url: string } };
-    expect(body).toMatchObject({ scene: "Matchframe Replay", source: GRAPHIC_SOURCE, created: true, onTop: true });
-    expect(calls).toEqual([{ sceneName: "Matchframe Replay", sourceName: GRAPHIC_SOURCE, url: body.output.url, width: 1920, height: 1080 }]);
+    expect(body).toMatchObject({ scene: "MatchFrame Replay", source: GRAPHIC_SOURCE, created: true, onTop: true });
+    expect(calls).toEqual([{ sceneName: "MatchFrame Replay", sourceName: GRAPHIC_SOURCE, url: body.output.url, width: 1920, height: 1080 }]);
     // Without a mapped replay scene it says what to do.
     e.program.setScenes({ LIVE: "Game", REPLAY: null, STUDIO: null, BREAK: null });
     const none = await fetch(`${api}/api/v1/replay-graphic/obs`, { method: "POST", headers: auth, body: "{}" });
     expect(none.status).toBe(409);
     expect(((await none.json()) as { code?: string; error?: string }).error).toBeDefined();
-    e.program.setScenes({ LIVE: "Game", REPLAY: "Matchframe Replay", STUDIO: null, BREAK: null });
+    e.program.setScenes({ LIVE: "Game", REPLAY: "MatchFrame Replay", STUDIO: null, BREAK: null });
   });
 });

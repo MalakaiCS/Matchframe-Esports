@@ -5,10 +5,10 @@ import { useTitle } from "../../lib/hooks.ts";
 import { Link } from "../../router.tsx";
 
 export function UseCases() {
-  useTitle("Use cases", "How Matchframe is designed to help tournament organisers, leagues, streamers and casters, LAN events, and school and collegiate programmes produce CS2 broadcasts.");
+  useTitle("Use cases", "How MatchFrame is designed to help tournament organisers, leagues, streamers and casters, LAN events, and school and collegiate programmes produce CS2 broadcasts.");
   return (
     <>
-      <PageHero eyebrow="Use cases" title="Built for every kind of CS2 production" lead="From a single caster at home to a multi-day LAN with a full crew, Matchframe is designed to scale with your production." />
+      <PageHero eyebrow="Use cases" title="Built for every kind of CS2 production" lead="From a single caster at home to a multi-day LAN with a full crew, MatchFrame is designed to scale with your production." />
       <nav className="jump" aria-label="Use cases on this page">
         <div className="wrap">
           <ul>
@@ -33,7 +33,7 @@ export function UseCases() {
               <p>{u.intro}</p>
             </div>
             <div className="use-case-body">
-              <h3 className="h3">How Matchframe helps</h3>
+              <h3 className="h3">How MatchFrame helps</h3>
               <CheckList items={u.helps} />
             </div>
             <div className="use-case-side">

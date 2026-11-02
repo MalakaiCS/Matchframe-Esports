@@ -42,7 +42,7 @@ export function buildRouter(app: CloudApp): Router {
     await app.sql.query("SELECT 1");
     return { ok: true, version: "0.1.0", database: app.sql.kind, billingConfigured: app.billing.configured, email: app.mailer.kind, signingKeyId: app.kid, signingKeySource: app.signingKeySource, ephemeralSigningKey: app.ephemeralKey };
   });
-  router.add("GET", "/v1/downloads", { summary: "Matchframe program for Windows (.exe installer): URL, version, SHA-256" }, async () => {
+  router.add("GET", "/v1/downloads", { summary: "MatchFrame program for Windows (.exe installer): URL, version, SHA-256" }, async () => {
     // An installer placed in MF_DOWNLOAD_DIR is served by this server; otherwise an external URL may be configured.
     const local = await latestInstaller(app.cfg.downloadDir);
     const windows = local
@@ -65,7 +65,7 @@ export function buildRouter(app: CloudApp): Router {
     if (!info) throw new HttpError(404, "not_found", "This camera link isn't open. Ask the production for a new one.");
     return info;
   });
-  router.add("GET", "/v1/openapi.json", { summary: "OpenAPI description of this API" }, () => router.openapi({ title: "Matchframe cloud API", version: "0.1.0" }));
+  router.add("GET", "/v1/openapi.json", { summary: "OpenAPI description of this API" }, () => router.openapi({ title: "MatchFrame cloud API", version: "0.1.0" }));
   return router;
 }
 

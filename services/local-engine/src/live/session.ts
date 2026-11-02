@@ -431,7 +431,7 @@ export class LiveSession extends EventEmitter<SessionEvents> {
       this.director.cinematicStarted(this.pendingCinematic.shot, this.opts.now(), this.pendingCinematic.plannedDurationMs, this.pendingCinematic.opportunityId, this.pendingCinematic.countsTowardBudget, this.pendingCinematic.shotClass);
       this.pendingCinematic = null;
     }
-    if (e.kind === "external_change") this.alertOnce("external_takeover", "warn", "Observer POV changed outside Matchframe: manual takeover engaged. Resume automation explicitly when ready.");
+    if (e.kind === "external_change") this.alertOnce("external_takeover", "warn", "Observer POV changed outside MatchFrame: manual takeover engaged. Resume automation explicitly when ready.");
     if (e.kind === "result" && (e.detail.status === "failed" || e.detail.status === "cancelled") && this.pendingCinematic && e.detail.commandId === this.pendingCinematic.commandId) {
       // Never confirmed on air (or replaced before it was): not tried again this round.
       this.director.cinematicFailed(this.pendingCinematic.shot);

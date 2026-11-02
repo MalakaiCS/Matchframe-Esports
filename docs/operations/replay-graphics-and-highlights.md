@@ -12,7 +12,7 @@ All three are under **Replays & Production**.
 
 ### What it looks like
 
-Each Matchframe HUD draws it in its own style:
+Each MatchFrame HUD draws it in its own style:
 
 | HUD | Tag | Lower third |
 |---|---|---|
@@ -21,7 +21,7 @@ Each Matchframe HUD draws it in its own style:
 | Pro CS2 | Top centre, where the match bar is | Bottom centre, where the observed player is: dark panels, the side colour, a stats row (weapon, headshot, killed, round) |
 | Broadcast (built in) | Top left | Bottom left, in the preset's style (Classic, Minimal, Arena) |
 
-LHM-format HUDs (kaiHUD and others) have no replay graphic of their own. With one of them on air, the built-in Broadcast HUD's replay graphic is used.
+Imported hud.json-format HUDs have no replay graphic of their own. With one of them on air, the built-in Broadcast HUD's replay graphic is used.
 
 **Timing:**
 
@@ -41,7 +41,7 @@ The HUD's browser source is normally only in the live scene, and the replay play
    - **A HUD by name.**
 
    The panel shows which page that gives, and its address.
-3. Press **Add replay graphic to the OBS replay scene**. This puts a 1920×1080 browser source named *Matchframe Replay Graphic* on top of the replay scene, pointing at that page.
+3. Press **Add replay graphic to the OBS replay scene**. This puts a 1920×1080 browser source named *MatchFrame Replay Graphic* on top of the replay scene, pointing at that page.
 4. Press it again after another HUD goes on air in OBS. Choosing another HUD in the panel re-points the source by itself.
 
 Checks the button makes:
@@ -61,7 +61,7 @@ Every HUD with a replay graphic also lists the address in the HUD Library (its *
   - Highlights on air (OBS or vMix): the highlight on air. It is a clip kept for reels, found there when the replay list has dropped it.
 - **What the lower third says:**
   - **Player:** the killer of the clip's play. A clip bookmarked by hand has none, so only the tag shows.
-  - **Team:** the player's team as the HUD shows it (left or right), with its name, logo and colour. Without teams set up in Matchframe, it is the in-game team name.
+  - **Team:** the player's team as the HUD shows it (left or right), with its name, logo and colour. Without teams set up in MatchFrame, it is the in-game team name.
   - **Side:** the side the player had in the clip's round. It is taken from the kills this computer saw in that round. When none was seen, the player's side now is moved to that round by halves of regulation (the same half: the same side; the other half: the other side), and by halves of three rounds in overtime. Across regulation and overtime the side isn't known, and the team colour is used. For a clip of the previous map, only what was kept with it counts (the sides now are another map's).
   - **Weapon, headshot, victims, kills:** from the clip's play.
   - **2K–ACE:** for two kills or more.
@@ -101,7 +101,7 @@ It runs in the background, with progress and **Cancel**. One reel is made at a t
 
 **Where it goes:**
 
-- With the Matchframe program: your **Videos** folder, in *Matchframe Highlights*.
+- With the MatchFrame program: your **Videos** folder, in *MatchFrame Highlights*.
 - Otherwise: the data folder's `exports/highlights`.
 
 The panel shows the path. **Open folder** opens it in the program on this computer.
@@ -132,12 +132,12 @@ A new map starts when the map changes, or when the active match changes.
 ### The highlights scene
 
 - **Set up OBS highlights scene** (one click) makes:
-  - the scene **Matchframe Highlights**, with a Media Source **Matchframe Highlights Clip**, set like the replay scene's (it plays while hidden, keeps its place when shown, and holds its last frame);
-  - the replay graphic's browser source on top: the same *Matchframe Replay Graphic* source as in the replay scene (OBS shares it, as with *Add Existing*), so choosing another HUD under **Replay graphic** changes both;
-  - **Matchframe Highlights B**, its twin for the fades. Leave it to Matchframe, as the replay scene's twin.
+  - the scene **MatchFrame Highlights**, with a Media Source **MatchFrame Highlights Clip**, set like the replay scene's (it plays while hidden, keeps its place when shown, and holds its last frame);
+  - the replay graphic's browser source on top: the same *MatchFrame Replay Graphic* source as in the replay scene (OBS shares it, as with *Add Existing*), so choosing another HUD under **Replay graphic** changes both;
+  - **MatchFrame Highlights B**, its twin for the fades. Leave it to MatchFrame, as the replay scene's twin.
 
   It is saved with the program's other scenes (the highlights scene of **OBS scenes**).
-- **Or use your own scene:** **Or use your own scene** → pick the scene and its Media Source (directly in the scene, not in a group), then **Use this scene**. **Add the replay graphic** puts the graphic on top of it. Matchframe turns off the same three settings of its Media Source as for the replay scene. Your replay scene works too: its twin then serves both.
+- **Or use your own scene:** **Or use your own scene** → pick the scene and its Media Source (directly in the scene, not in a group), then **Use this scene**. **Add the replay graphic** puts the graphic on top of it. MatchFrame turns off the same three settings of its Media Source as for the replay scene. Your replay scene works too: its twin then serves both.
 - The panel shows what is ready: **Scene ready**, **Twin ready**, **Graphic on top**.
 - **vMix** (Automatic replays → Play replays in → vMix): no scene needed. Each clip is added as an input, as for replays, and vMix goes back to the input that was on air before.
 
@@ -221,12 +221,12 @@ Not F8: the console's F8 is **Stop automation**. The tally (`GET /api/v1/devices
 
 ## Storage: another drive (0.10.6)
 
-**Replays → Storage** chooses where replays and highlights are written on the production computer. **Choose folder…** opens a folder picker in the program; a full path can also be typed. Matchframe checks it can write there, and shows the free space on that drive.
+**Replays → Storage** chooses where replays and highlights are written on the production computer. **Choose folder…** opens a folder picker in the program; a full path can also be typed. MatchFrame checks it can write there, and shows the free space on that drive.
 
 | Setting | What goes there | Default |
 |---|---|---|
-| Replay clips and recording | the replay PC's clips (`replays`) and the replay feed's recording of its picture (`replay-feed`) | Matchframe's data folder |
-| Highlights | the clips kept for reels (`Kept clips`) and the reels | the Videos folder's `Matchframe Highlights` |
+| Replay clips and recording | the replay PC's clips (`replays`) and the replay feed's recording of its picture (`replay-feed`) | MatchFrame's data folder |
+| Highlights | the clips kept for reels (`Kept clips`) and the reels | the Videos folder's `MatchFrame Highlights` |
 
 - **From then on:** new files go to the new folder. Clips already saved stay where they are, and still play and go into reels.
 - **Recording:** the replay feed's recording restarts in the new folder.

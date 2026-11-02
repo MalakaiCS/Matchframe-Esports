@@ -26,7 +26,7 @@ function CheckoutBanner({ kind, onDismiss }: { kind: string; onDismiss: () => vo
   if (kind === "success")
     return (
       <Alert tone="ok" title="Payment received" actions={<Button size="sm" variant="ghost" onClick={onDismiss}>Dismiss</Button>}>
-        Thanks! Stripe is confirming the payment with Matchframe; your plan or hours can take a few seconds to appear here. This page refreshes itself.
+        Thanks! Stripe is confirming the payment with MatchFrame; your plan or hours can take a few seconds to appear here. This page refreshes itself.
       </Alert>
     );
   if (kind === "cancelled")
@@ -220,7 +220,7 @@ function BillingBody({ orgId, role, emailVerified, b, catalog, catalogError, wan
 
       <Card title="Hour credits">
         {b.credits.length === 0 ? (
-          <Empty title="No hour credits yet">Bought hour packs and hours granted by Matchframe support appear here.</Empty>
+          <Empty title="No hour credits yet">Bought hour packs and hours granted by MatchFrame support appear here.</Empty>
         ) : (
           <table className="rtable">
             <thead>

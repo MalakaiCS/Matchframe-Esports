@@ -6,12 +6,13 @@ import { strToU8, zipSync } from "fflate";
 import { io, type Socket } from "socket.io-client";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { HudLibraryEntry } from "@matchframe/contracts";
+import { currentHudId, HUD_ID_RE, HudManifest } from "@matchframe/contracts";
 import { buildSyntheticGsiPayload, syntheticRoster } from "../../../packages/cs2-state/src/testing/gsi-builder.ts";
 import { Engine } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
 import { normalizeSettingsSchema } from "../src/hud/library.ts";
-import { convertLhmPackage, hudConfig, panelSettings, parsePanel } from "../src/hud/lhm.ts";
-import { mirvPlayerDeath } from "../src/hud/lhm-runtime.ts";
+import { convertHudJsonPackage, hudConfig, migrateLegacyManifest, panelSettings, parsePanel } from "../src/hud/compat.ts";
+import { mirvPlayerDeath } from "../src/hud/compat-runtime.ts";
 import { startServers } from "../src/servers.ts";
 
 async function freePort(): Promise<number> {
@@ -46,7 +47,7 @@ const PANEL = [
 
 const PNG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82]);
 
-const lhmZip = () =>
+const hudJsonZip = () =>
   zipSync({
     "KaiHUD/hud.json": strToU8(JSON.stringify({ name: "KaiHUD", version: "1.0.0", author: "misterrhh", legacy: false, radar: true, killfeed: true, game: "cs2", variants: ["player-stats", "match-stats", "match-preview", "veto", "baseboard"] })),
     "KaiHUD/panel.json": strToU8(JSON.stringify(PANEL)),
@@ -56,8 +57,8 @@ const lhmZip = () =>
     "KaiHUD/thumb.png": new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
   });
 
-describe("LHM package conversion", () => {
-  it("turns panel.json into settings fields and back into LHM's hud_config shape", () => {
+describe("hud.json package conversion", () => {
+  it("turns panel.json into settings fields and back into the format's hud_config shape", () => {
     const panel = parsePanel(JSON.stringify(PANEL));
     const { schema, skipped } = panelSettings(panel);
     expect(Object.keys(schema)).toEqual(["tournament.header_primary", "tournament.header_state", "player_stats.selected_player", "player_stats.selected_map", "ads.baseboard_image"]);
@@ -70,15 +71,15 @@ describe("LHM package conversion", () => {
     expect(cfg).toEqual({
       tournament: { header_primary: "Grand final" },
       player_stats: { selected_player: { type: "player", id: "76561198000000001", player: { steamid: "76561198000000001", username: "nova" } }, selected_map: "de_nuke" },
-      // Image inputs arrive as LHM sends them: base64 strings.
+      // Image inputs arrive as the format sends them: base64 strings.
       ads: { baseboard_image: ["b64:a.png", "b64:b.png"] },
     });
   });
 
-  it("keeps buttons only in LHM-format HUDs' settings (no other HUD can receive them)", () => {
+  it("keeps buttons only in imported hud.json-format HUDs' settings (no other HUD can receive them)", () => {
     const raw = { toggle: { type: "action", label: "Toggle", options: [{ value: "go", label: "Go" }] }, title: { type: "string", default: "x" } };
     expect(Object.keys(normalizeSettingsSchema(raw))).toEqual(["title"]);
-    expect(Object.keys(normalizeSettingsSchema(raw, "lhm"))).toEqual(["toggle", "title"]);
+    expect(Object.keys(normalizeSettingsSchema(raw, "compat"))).toEqual(["toggle", "title"]);
   });
 
   it("turns a paired kill into the HLAE player_death event the template's killfeed reads", () => {
@@ -91,18 +92,61 @@ describe("LHM package conversion", () => {
     expect(mirvPlayerDeath({ ...base, kind: "elimination", killer: null, assister: null })).toBeNull();
   });
 
-  it("refuses a hud.json for another game and leaves Matchframe packages alone", () => {
+  it("refuses a hud.json for another game and leaves MatchFrame packages alone", () => {
     const files = new Map([
       ["hud.json", strToU8(JSON.stringify({ name: "LoL HUD", game: "lol" }))],
       ["index.html", strToU8("<html></html>")],
     ]);
-    expect(() => convertLhmPackage(files)).toThrow(/for lol/);
+    expect(() => convertHudJsonPackage(files)).toThrow(/for lol/);
     const mf = new Map([["manifest.json", strToU8("{}")]]);
-    expect(convertLhmPackage(mf).converted).toBe(false);
+    expect(convertHudJsonPackage(mf).converted).toBe(false);
+  });
+
+  it("brings a manifest written by 0.11.0 and earlier up to date, and nothing else", () => {
+    const legacy = {
+      manifestVersion: 1,
+      id: "lhm.kaihud",
+      name: "KaiHUD",
+      category: "LHM",
+      tags: ["lhm", "minimap", "killfeed"],
+      description: "LHM-format HUD with its own minimap and killfeed, running in MatchFrame's LHM compatibility mode.",
+      runtime: "lhm",
+    };
+    expect(migrateLegacyManifest(legacy)).toEqual({
+      ...legacy,
+      id: "imported.kaihud",
+      category: "Imported",
+      tags: ["imported", "minimap", "killfeed"],
+      description: "Imported HUD (hud.json format) with its own minimap and killfeed, running in MatchFrame's HUD compatibility layer.",
+      runtime: "compat",
+    });
+    // The author's own words stay; the runtime alone changes for a HUD without the legacy prefix.
+    expect(migrateLegacyManifest({ id: "team.hud", category: "Scorebug", tags: ["lhm"], description: "Our HUD", runtime: "lhm" })).toEqual({ id: "team.hud", category: "Scorebug", tags: ["imported"], description: "Our HUD", runtime: "compat" });
+    expect(migrateLegacyManifest({ id: "imported.kaihud", runtime: "compat" })).toBeNull();
+    expect(migrateLegacyManifest({ id: "matchframe.vector" })).toBeNull();
+    // Legacy ids map the same way on every computer; one whose new form would be too long stays.
+    expect(currentHudId("lhm.kaihud")).toBe("imported.kaihud");
+    expect(currentHudId("lhm.kaihud-copy-2")).toBe("imported.kaihud-copy-2");
+    expect(currentHudId(`lhm.${"a".repeat(58)}`)).toBe(`lhm.${"a".repeat(58)}`);
+    expect(currentHudId("matchframe.vector")).toBe("matchframe.vector");
+    // The manifest schema reads the legacy runtime value as "compat".
+    expect(HudManifest.shape.runtime.parse("lhm")).toBe("compat");
+    expect(HudManifest.shape.runtime.safeParse("other").success).toBe(false);
+  });
+
+  it("gives a long HUD name an id that fits", () => {
+    const files = new Map([
+      ["hud.json", strToU8(JSON.stringify({ name: "A very long HUD name that goes on and on for a broadcast of the season", game: "cs2" }))],
+      ["index.html", strToU8("<html></html>")],
+    ]);
+    const m = JSON.parse(new TextDecoder().decode(convertHudJsonPackage(files).files.get("manifest.json"))) as { id: string };
+    expect(m.id).toMatch(/^imported\.a-very-long-hud-name/);
+    expect(m.id.length).toBeLessThanOrEqual(64);
+    expect(HUD_ID_RE.test(m.id)).toBe(true);
   });
 });
 
-describe("LHM-format HUD in the library (engine)", () => {
+describe("imported hud.json-format HUD in the library (engine)", () => {
   let engine: Engine;
   let servers: Awaited<ReturnType<typeof startServers>>;
   const ports = { gsi: 0, api: 0, overlay: 0 };
@@ -114,7 +158,7 @@ describe("LHM-format HUD in the library (engine)", () => {
   beforeAll(async () => {
     process.env.MATCHFRAME_LOG_STDOUT = "0";
     Object.assign(ports, { gsi: await freePort(), api: await freePort(), overlay: await freePort() });
-    const cfg = loadConfig({ dataDir: mkdtempSync(join(tmpdir(), "mf-lhm-")), gsiPort: ports.gsi, apiPort: ports.api, overlayPort: ports.overlay, host: "127.0.0.1", captainUiDir: null, hudRendererDir: null, mapPackDir: null, radarDir: join(import.meta.dirname, "..", "..", "..", "assets", "radars"), workersDir: null, pythonPath: null, sampleHudsDirs: [] });
+    const cfg = loadConfig({ dataDir: mkdtempSync(join(tmpdir(), "mf-compat-")), gsiPort: ports.gsi, apiPort: ports.api, overlayPort: ports.overlay, host: "127.0.0.1", captainUiDir: null, hudRendererDir: null, mapPackDir: null, radarDir: join(import.meta.dirname, "..", "..", "..", "assets", "radars"), workersDir: null, pythonPath: null, sampleHudsDirs: [] });
     engine = new Engine(cfg);
     await engine.init();
     // Anubis has a map pack but no radar drawing.
@@ -152,11 +196,12 @@ describe("LHM-format HUD in the library (engine)", () => {
     });
   });
 
-  it("imports an LHM ZIP as an LHM-runtime HUD with its panel as the settings form", async () => {
-    const r = await api("/api/v1/hud/library/import", { method: "POST", raw: lhmZip() });
+  it("imports a hud.json ZIP as a compatibility-layer HUD with its panel as the settings form", async () => {
+    const r = await api("/api/v1/hud/library/import", { method: "POST", raw: hudJsonZip() });
     expect(r.status).toBe(200);
     entry = r.json as unknown as HudLibraryEntry;
-    expect(entry).toMatchObject({ id: "lhm.kaihud", name: "KaiHUD", author: "misterrhh", version: "1.0.0", runtime: "lhm", category: "LHM" });
+    expect(entry).toMatchObject({ id: "imported.kaihud", name: "KaiHUD", author: "misterrhh", version: "1.0.0", runtime: "compat", category: "Imported", tags: ["imported", "minimap", "killfeed"] });
+    expect(entry.description).toBe("Imported HUD (hud.json format) with its own minimap and killfeed, running in MatchFrame's HUD compatibility layer.");
     expect(Object.keys(entry.settingsSchema)).toContain("tournament.header_state");
     token = new URL(entry.urls.live!).searchParams.get("t")!;
   });
@@ -182,7 +227,7 @@ describe("LHM-format HUD in the library (engine)", () => {
   it("sets the HUD's cookie on its page, loads it with isProd, and shows a test-data badge slot", async () => {
     const page = await overlay(`/hud/${entry.id}/live?t=${token}`);
     expect(page.status).toBe(200);
-    expect(page.headers.get("set-cookie")).toMatch(new RegExp(`^mf_lhm_lhm\\.kaihud=${token}; Path=/; HttpOnly; SameSite=Strict`));
+    expect(page.headers.get("set-cookie")).toMatch(new RegExp(`^mf_compat_imported\\.kaihud=${token}; Path=/; HttpOnly; SameSite=Strict`));
     const html = await page.text();
     expect(html).toContain("isProd=1");
     expect(html).toContain('id="mf-test"');
@@ -193,10 +238,10 @@ describe("LHM-format HUD in the library (engine)", () => {
     expect(csp).not.toMatch(/script-src [^;]*https:/);
   });
 
-  it("refuses the API and sockets without the cookie, and answers LHM's API with it", async () => {
-    const cookie = `mf_lhm_${entry.id}=${token}`;
+  it("refuses the API and sockets without the cookie, and answers the format's API with it", async () => {
+    const cookie = `mf_compat_${entry.id}=${token}`;
     expect((await overlay("/api/teams")).status).toBe(401);
-    expect((await overlay("/api/teams", `mf_lhm_${entry.id}=wrong`)).status).toBe(401);
+    expect((await overlay("/api/teams", `mf_compat_${entry.id}=wrong`)).status).toBe(401);
     const team = await api("/api/v1/teams", { method: "POST", body: { name: "Northern Lights", shortName: "NOR", primaryColor: "#1e90ff" } });
     expect(team.status).toBeLessThan(300);
     const teams = (await (await overlay("/api/teams", cookie)).json()) as { _id: string; name: string; logo: string | null; extra: { TeamColor: string } }[];
@@ -212,7 +257,7 @@ describe("LHM-format HUD in the library (engine)", () => {
     expect(await (await overlay("/api/match/current", cookie)).json()).toBeNull();
     expect(await (await overlay("/api/camera", cookie)).json()).toMatchObject({ availablePlayers: [] });
     expect((await overlay("/api/unknown", cookie)).status).toBe(404);
-    // Newer template HUDs load radars from /api/game-maps: Matchframe's built-in radars.
+    // Newer template HUDs load radars from /api/game-maps: MatchFrame's built-in radars.
     const maps = (await (await overlay("/api/game-maps/cs2", cookie)).json()) as { lhmId: string; radars: { lhmId: string; visibleUnderHeight: number | null; visibleOverHeight: number | null }[] }[];
     expect(maps.map((m) => m.lhmId)).toContain("de_dust2");
     expect(maps.find((m) => m.lhmId === "de_nuke")!.radars.map((r) => [r.lhmId, r.visibleUnderHeight, r.visibleOverHeight])).toEqual([
@@ -240,8 +285,37 @@ describe("LHM-format HUD in the library (engine)", () => {
     await expect(next(refused, "connect")).rejects.toThrow();
   });
 
+  it("gives the HUD each player's first and last name, and the active match's veto in order with sides", async () => {
+    const cookie = `mf_compat_${entry.id}=${token}`;
+    const a = (await api("/api/v1/teams", { method: "POST", body: { name: "LITE Esports", shortName: "LITE" } })).json as { id: string };
+    const b = (await api("/api/v1/teams", { method: "POST", body: { name: "Red Fox", shortName: "RFX" } })).json as { id: string };
+    const p = await api("/api/v1/players", { method: "POST", body: { displayName: "Malakai", firstName: "Kai", lastName: "Brown", countryCode: "AU", steamId: "76561198000000555", teamId: a.id } });
+    expect(p.status).toBeLessThan(300);
+    const players = (await (await overlay("/api/players", cookie)).json()) as { username: string; firstName: string; lastName: string; team: string; steamid: string }[];
+    expect(players.find((x) => x.username === "Malakai")).toMatchObject({ firstName: "Kai", lastName: "Brown", team: a.id, steamid: "76561198000000555" });
+    const veto = [
+      { id: "v1", type: "ban", teamId: a.id, mapName: "de_dust2" },
+      { id: "v2", type: "ban", teamId: b.id, mapName: "de_inferno" },
+      { id: "v3", type: "pick", teamId: a.id, mapName: "de_mirage", sideChoice: "CT" },
+      { id: "v4", type: "pick", teamId: b.id, mapName: "de_nuke", sideChoice: "T", reversedSides: true },
+    ];
+    const pool = ["de_ancient", "de_anubis", "de_dust2", "de_inferno", "de_mirage", "de_nuke", "de_train"];
+    const m = await api("/api/v1/matches", { method: "POST", body: { teamAId: a.id, teamBId: b.id, format: { bestOf: 3, regulationRounds: 24, overtimeEnabled: true, overtimeRounds: 6 }, mapPool: pool, veto } });
+    expect(m.status).toBeLessThan(300);
+    expect((await api(`/api/v1/matches/${(m.json as { id: string }).id}/activate`, { method: "POST" })).status).toBeLessThan(300);
+    const current = (await (await overlay("/api/match/current", cookie)).json()) as { matchType: string; vetos: { teamId: string; mapName: string; side: string; type: string; reverseSide: boolean; mapEnd: boolean }[] };
+    expect(current.matchType).toBe("bo3");
+    expect(current.vetos.map((v) => [v.type, v.teamId, v.mapName, v.side, v.reverseSide, v.mapEnd])).toEqual([
+      ["ban", a.id, "de_dust2", "NO", false, false],
+      ["ban", b.id, "de_inferno", "NO", false, false],
+      ["pick", a.id, "de_mirage", "CT", false, false],
+      ["pick", b.id, "de_nuke", "T", true, false],
+    ]);
+    await api("/api/v1/live/deactivate-match", { method: "POST" });
+  });
+
   it("registers the HUD, sends its settings, every game-data packet and panel buttons", async () => {
-    const cookie = `mf_lhm_${entry.id}=${token}`;
+    const cookie = `mf_compat_${entry.id}=${token}`;
     const s = connect(cookie);
     await next(s, "readyToRegister");
     const firstConfig = next<Record<string, unknown>>(s, "hud_config");
@@ -261,7 +335,7 @@ describe("LHM-format HUD in the library (engine)", () => {
     expect(got.allplayers).toBeTruthy();
     expect(got.auth).toBeUndefined();
 
-    // Image inputs (kaiHUD's baseboard sponsors): uploaded images, sent as base64 like LHM does.
+    // Image inputs (kaiHUD's baseboard sponsors): uploaded images, sent as base64 as the format does.
     const asset = await api(`/api/v1/assets?name=sponsor.png`, { method: "POST", raw: PNG });
     const assetId = (asset.json as { assetId: string }).assetId;
     const withImages = next<Record<string, Record<string, unknown>>>(s, "hud_config");
@@ -276,7 +350,7 @@ describe("LHM-format HUD in the library (engine)", () => {
   });
 
   it("gives a HUD whose page can't keep up fewer game-data updates (20 a second, then 10)", async () => {
-    const cookie = `mf_lhm_${entry.id}=${token}`;
+    const cookie = `mf_compat_${entry.id}=${token}`;
     const s = connect(cookie);
     await next(s, "readyToRegister");
     const registered = next(s, "hud_config");
@@ -286,7 +360,7 @@ describe("LHM-format HUD in the library (engine)", () => {
     s.on("update", () => got++);
     let ts = 1_700_100_000;
     const roster = syntheticRoster();
-    // CS2 at Matchframe's setting: a packet every 20 ms for about a second (positions change each time).
+    // CS2 at MatchFrame's setting: a packet every 20 ms for about a second (positions change each time).
     const second = async () => {
       got = 0;
       const end = Date.now() + 1000;
@@ -308,8 +382,8 @@ describe("LHM-format HUD in the library (engine)", () => {
       ctl.onerror = j;
     });
     ctl.send(JSON.stringify({ type: "perf", fps: 41, worstMs: 90, pauses: 3, lagMs: 30 }));
-    for (let i = 0; i < 40 && !engine.directorLog.recent.some((l) => l.msg === "lhm hud busy: fewer updates"); i++) await new Promise((r) => setTimeout(r, 25));
-    expect(engine.directorLog.recent.find((l) => l.msg === "lhm hud busy: fewer updates")?.data).toEqual({ hud: entry.id, updatesPerSec: 10, lagMs: 30 });
+    for (let i = 0; i < 40 && !engine.directorLog.recent.some((l) => l.msg === "imported hud busy: fewer updates"); i++) await new Promise((r) => setTimeout(r, 25));
+    expect(engine.directorLog.recent.find((l) => l.msg === "imported hud busy: fewer updates")?.data).toEqual({ hud: entry.id, updatesPerSec: 10, lagMs: 30 });
     const after = await second();
     expect(after).toBeGreaterThanOrEqual(8);
     expect(after).toBeLessThanOrEqual(12);
@@ -319,10 +393,10 @@ describe("LHM-format HUD in the library (engine)", () => {
 
   it("player cams: the cam scripts go in before the HUD's own, /api/camera lists the players, and on-air cams are offered", async () => {
     const html = await (await overlay(`/huds/${entry.id}/index.html`)).text();
-    const tags = '<script src="/hud-runtime/cams.js"></script><script src="/hud-runtime/lhm-cams.js"></script>';
+    const tags = '<script src="/hud-runtime/cams.js"></script><script src="/hud-runtime/compat-cams.js"></script>';
     // Before any script of the HUD's own (in <head> when there is one, else first in the page).
     expect(html.indexOf(tags)).toBe(html.indexOf("<script"));
-    const cookie = `mf_lhm_${entry.id}=${token}`;
+    const cookie = `mf_compat_${entry.id}=${token}`;
     // Off: no players offered.
     expect(await (await overlay("/api/camera", cookie)).json()).toEqual({ uuid: "matchframe-cams", availablePlayers: [] });
     engine.cams.setSettings({ enabled: true });
@@ -334,7 +408,7 @@ describe("LHM-format HUD in the library (engine)", () => {
     }
     expect(cams.availablePlayers).toHaveLength(10);
     expect(cams.availablePlayers).toContainEqual({ steamid: nova.steamId, label: nova.name });
-    // A cam on air: offered to every HUD that registers for cams (with Matchframe's marker).
+    // A cam on air: offered to every HUD that registers for cams (with MatchFrame's marker).
     const onAir = vi.spyOn(engine.cams, "onAir").mockReturnValue([nova.steamId]);
     try {
       const s = connect(cookie);

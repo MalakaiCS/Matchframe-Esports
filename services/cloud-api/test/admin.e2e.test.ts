@@ -64,7 +64,7 @@ describe("website: site info, contact form, account sessions and data export, st
 
   it("site info and the contact form (validation, support email, organisation only for members, rate limit)", async () => {
     const site = await new Client(base).req("GET", "/v1/site");
-    expect(site.data).toEqual({ companyName: "Example Esports Ltd", websiteName: "Matchframe", supportEmail: "help@example.com", address: null, jurisdiction: expect.any(String), legalEffectiveDate: "2026-10-27" });
+    expect(site.data).toEqual({ companyName: "Example Esports Ltd", websiteName: "MatchFrame", supportEmail: "help@example.com", address: null, jurisdiction: expect.any(String), legalEffectiveDate: "2026-10-27" });
 
     const anon = new Client(base);
     expect((await anon.req("POST", "/v1/contact", { name: "Sam", email: "sam@example.com", topic: "sales", message: "short" })).status).toBe(400);
@@ -72,7 +72,7 @@ describe("website: site info, contact form, account sessions and data export, st
     const sent = await anon.req("POST", "/v1/contact", { name: "Sam", email: "sam@example.com", topic: "sales", message: "We run a weekly league and want a quote.", orgId: "org_not_mine" });
     expect([sent.status, sent.data]).toEqual([201, { received: true }]);
     const notice = await lastEmail("help@example.com");
-    expect(notice?.subject).toBe("[Matchframe contact · sales] Sam");
+    expect(notice?.subject).toBe("[MatchFrame contact · sales] Sam");
     expect(notice?.body_text).toContain("sam@example.com");
 
     const member = await signup("member@example.com");
@@ -189,7 +189,7 @@ describe("website: site info, contact form, account sessions and data export, st
     expect((await admin.client.req("POST", `/v1/admin/users/${dana.userId}/resend-verification`)).data).toEqual({ sent: false, alreadyVerified: true });
 
     expect((await admin.client.req("POST", `/v1/admin/users/${dana.userId}/password-reset`)).data).toEqual({ sent: true });
-    expect((await lastEmail("dana@example.com"))?.subject).toBe("Reset your Matchframe password");
+    expect((await lastEmail("dana@example.com"))?.subject).toBe("Reset your MatchFrame password");
 
     // Disable: signs out, refuses sign-in (only after a correct password), and blocks reset emails.
     expect((await admin.client.req("POST", `/v1/admin/users/${dana.userId}/disable`, { reason: "x" })).status).toBe(400);
@@ -211,7 +211,7 @@ describe("website: site info, contact form, account sessions and data export, st
     expect((await admin.client.req<{ error: string }>("PATCH", `/v1/admin/users/${dana.userId}`, { email: "bob@example.com" })).data.error).toBe("email_taken");
     expect((await admin.client.req("PATCH", `/v1/admin/users/${dana.userId}`, { displayName: "Dana Lee", email: "dana.lee@example.com" })).data).toEqual({ ok: true });
     expect((await lastEmail("dana.lee@example.com"))?.subject).toMatch(/Confirm/);
-    expect((await lastEmail("dana@example.com"))?.subject).toBe("Your Matchframe email address was changed");
+    expect((await lastEmail("dana@example.com"))?.subject).toBe("Your MatchFrame email address was changed");
     const adminId = (await app.sql.query<{ id: string }>("SELECT id FROM users WHERE email = 'admin@example.com'")).rows[0]!.id;
     expect((await admin.client.req<{ error: string }>("PATCH", `/v1/admin/users/${adminId}`, { email: "elsewhere@example.com" })).data.error).toBe("self");
 

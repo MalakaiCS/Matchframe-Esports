@@ -1,6 +1,6 @@
-# Builds the Matchframe program for Windows (.exe installer + portable zip) on a real Windows
+# Builds the MatchFrame program for Windows (.exe installer + portable zip) on a real Windows
 # machine, installs it silently, smoke-tests the INSTALLED program (opens into the HUD Library with
-# the bundled HUDs, a real sign-in against a local Matchframe website under Settings → Account,
+# the bundled HUDs, a real sign-in against a local MatchFrame website under Settings → Account,
 # bundled engine, console from app://matchframe, HUD outputs, no console from the engine's HTTP
 # address), checks the transparent desktop HUD on the real desktop (screen pixels over another
 # window, click-through, focus, OBS output, recovery, clean quit; scripts/overlay-check.cjs),
@@ -127,7 +127,7 @@ jobs:
           pnpm --filter @matchframe/operator-web build
           pnpm --filter @matchframe/desktop build
 
-      - name: Pin the Matchframe website (address and licence keys)
+      - name: Pin the MatchFrame website (address and licence keys)
         id: pin
         # Required for releases; a test build of a branch still builds (asking for the address) if the website is down.
         continue-on-error: ${{ github.event_name == 'push' }}
@@ -143,7 +143,7 @@ jobs:
       - name: Check the update metadata (automatic updates)
         shell: pwsh
         run: |
-          $setup = (Get-ChildItem apps/desktop/release/MatchframeEsports-Setup-*.exe | Select-Object -First 1).Name
+          $setup = (Get-ChildItem apps/desktop/release/MatchFrameEsports-Setup-*.exe | Select-Object -First 1).Name
           $yml = Get-Content apps/desktop/release/latest.yml -Raw
           if ($yml -notmatch [regex]::Escape($setup)) { throw "latest.yml does not name $setup" }
           if (-not (Test-Path "apps/desktop/release/$setup.blockmap")) { throw "missing $setup.blockmap" }
@@ -154,9 +154,9 @@ jobs:
       - name: Install the program silently (per user)
         shell: pwsh
         run: |
-          $setup = Get-ChildItem apps/desktop/release/MatchframeEsports-Setup-*.exe | Select-Object -First 1
+          $setup = Get-ChildItem apps/desktop/release/MatchFrameEsports-Setup-*.exe | Select-Object -First 1
           Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
-          $installed = Join-Path $env:LOCALAPPDATA 'Programs\Matchframe Esports\Matchframe Esports.exe'
+          $installed = Join-Path $env:LOCALAPPDATA 'Programs\MatchFrame Esports\MatchFrame Esports.exe'
           if (-not (Test-Path $installed)) { throw "The installer did not create $installed" }
           "INSTALLED_EXE=$installed" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
@@ -182,8 +182,8 @@ jobs:
         shell: pwsh
         run: |
           # A program left running by a failed check would make the uninstaller wait for ever.
-          Get-Process -Name 'Matchframe Esports' -ErrorAction SilentlyContinue | Stop-Process -Force
-          $uninstaller = Join-Path $env:LOCALAPPDATA 'Programs\Matchframe Esports\Uninstall Matchframe Esports.exe'
+          Get-Process -Name 'MatchFrame Esports' -ErrorAction SilentlyContinue | Stop-Process -Force
+          $uninstaller = Join-Path $env:LOCALAPPDATA 'Programs\MatchFrame Esports\Uninstall MatchFrame Esports.exe'
           if (Test-Path $uninstaller) { Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait }
 
       - name: Checksums
@@ -199,8 +199,8 @@ jobs:
           name: matchframe-windows-${{ github.sha }}
           # latest.yml and the .blockmap are what installed programs read to update themselves.
           path: |
-            apps/desktop/release/MatchframeEsports-Setup-*.exe
-            apps/desktop/release/MatchframeEsports-Setup-*.exe.blockmap
+            apps/desktop/release/MatchFrameEsports-Setup-*.exe
+            apps/desktop/release/MatchFrameEsports-Setup-*.exe.blockmap
             apps/desktop/release/latest.yml
             apps/desktop/release/*.zip
             apps/desktop/release/SHA256SUMS.txt
@@ -237,9 +237,9 @@ jobs:
           version="${TAG#v}"
           notes="docs/release-notes/${version}-dev.md"
           if [ -f "$notes" ]; then
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Version ${version} Beta Matchframe Esports" --notes-file "$notes"
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Version ${version} Beta MatchFrame Esports" --notes-file "$notes"
           else
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Version ${version} Beta Matchframe Esports" --generate-notes
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Version ${version} Beta MatchFrame Esports" --generate-notes
           fi
       - uses: actions/download-artifact@v4
         with:

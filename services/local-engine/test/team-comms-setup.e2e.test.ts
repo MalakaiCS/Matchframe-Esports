@@ -31,7 +31,7 @@ interface Checklist {
 /**
  * Team Comms setup through the engine (ADR-069): Install TeamSpeak plugin (the program's build for
  * this computer copied into TeamSpeak 3's plugins folder) and the guided checklist (TeamSpeak plugin,
- * DistroAV, Source Record, OBS scenes, calibration), each step's state read live from Matchframe's own
+ * DistroAV, Source Record, OBS scenes, calibration), each step's state read live from MatchFrame's own
  * checks. A stand-in program folder, TeamSpeak folder, OBS, TeamSpeak plugin and NDI process.
  */
 describe("Team Comms setup: the TeamSpeak plugin from the program, the checklist", () => {
@@ -60,7 +60,7 @@ describe("Team Comms setup: the TeamSpeak plugin from the program, the checklist
     ts3Dir = join(dir, "AppData", "Roaming", "TS3Client");
     mkdirSync(programDir, { recursive: true });
     mkdirSync(ts3Dir, { recursive: true });
-    dll = Buffer.from("MZ stand-in Matchframe Team Comms plugin build");
+    dll = Buffer.from("MZ stand-in MatchFrame Team Comms plugin build");
     writeFileSync(join(programDir, "matchframe_comms_win64.dll"), dll);
     writeFileSync(join(programDir, "matchframe-team-comms.ts3_plugin"), "PK stand-in");
     writeFileSync(join(programDir, "plugin.json"), JSON.stringify({ built: true, version: "0.2.0", pluginApi: 26, files: [{ file: "matchframe-team-comms.ts3_plugin", sha256: "x" }, { file: "matchframe_comms_win64.dll", platform: "win64", sha256: createHash("sha256").update(dll).digest("hex") }] }));
@@ -102,7 +102,7 @@ describe("Team Comms setup: the TeamSpeak plugin from the program, the checklist
     expect(ts.items.map((i) => [i.label, i.ok])).toEqual([
       ["In this program", true],
       ["Installed in TeamSpeak 3", false],
-      ["Connected to Matchframe", null],
+      ["Connected to MatchFrame", null],
       ["Team tab: Northern Lights", null],
       ["Team tab: Red Harbour", null],
     ]);

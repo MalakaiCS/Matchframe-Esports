@@ -213,7 +213,7 @@ export class CloudSync {
 
   /** Shares now (fetches, then sends), and resolves when done. */
   async syncNow(): Promise<void> {
-    if (!this.active) throw Object.assign(new Error(this.enabled ? "sign in to a Matchframe account to share data" : "sharing is off"), { status: 409 });
+    if (!this.active) throw Object.assign(new Error(this.enabled ? "sign in to a MatchFrame account to share data" : "sharing is off"), { status: 409 });
     this.failures = 0;
     this.nextTryAt = 0;
     // A record that could not be used was reported; asking again starts with a clean slate.
@@ -271,7 +271,7 @@ export class CloudSync {
     const backoff = () => Math.min(this.timing.backoffMaxMs, this.timing.backoffMs * 2 ** Math.min(10, this.failures++));
     if (e instanceof Unreachable) {
       this.nextTryAt = Date.now() + backoff();
-      this.error = { message: "Cannot reach the Matchframe website. Changes made here are kept and shared when it is back.", offline: true };
+      this.error = { message: "Cannot reach the MatchFrame website. Changes made here are kept and shared when it is back.", offline: true };
       return;
     }
     if (e instanceof Refused && e.status === 401) {
@@ -280,7 +280,7 @@ export class CloudSync {
     }
     if (e instanceof Refused && e.status === 404) {
       this.nextTryAt = Date.now() + UNSUPPORTED_RETRY_MS;
-      this.error = { message: "The Matchframe website does not offer shared data yet.", offline: false };
+      this.error = { message: "The MatchFrame website does not offer shared data yet.", offline: false };
       return;
     }
     this.nextTryAt = Date.now() + backoff();
@@ -374,7 +374,8 @@ export class CloudSync {
   }
 
   /** Applies one of the organisation's items (`force`: the website said it is newer than this computer's change). */
-  private async applyRemote(item: SyncItem, force: boolean, signal: AbortSignal): Promise<"applied" | "kept" | "skipped" | "problem"> {
+  private async applyRemote(shared: SyncItem, force: boolean, signal: AbortSignal): Promise<"applied" | "kept" | "skipped" | "problem"> {
+    const item = this.d.local.normalize(shared);
     const decision = force ? ({ action: "apply" } as const) : this.d.local.decide(item);
     if (decision.action === "skip") return "skipped";
     if (decision.action === "keep") {

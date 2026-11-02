@@ -572,7 +572,7 @@ export class ReplayLink {
     const conn = this.e.gameConsole.connection;
     const now = this.e.now();
     if (!conn?.connected) {
-      this.status.rewind = { ...this.status.rewind, detail: "Can't go back: CS2's console isn't connected. Start CS2 from Matchframe in a console mode." };
+      this.status.rewind = { ...this.status.rewind, detail: "Can't go back: CS2's console isn't connected. Start CS2 from MatchFrame in a console mode." };
       this.stayNextAt = now + STAY_RETRY_MS;
       return;
     }

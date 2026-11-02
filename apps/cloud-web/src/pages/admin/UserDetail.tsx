@@ -415,7 +415,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
       {dialog === "signout" && (
         <ConfirmDialog
           title="Sign out everywhere?"
-          description={`Every browser and every Matchframe program signed in as ${u.email} is signed out. A program that is open keeps running until it is closed. They can sign in again straight away.`}
+          description={`Every browser and every MatchFrame program signed in as ${u.email} is signed out. A program that is open keeps running until it is closed. They can sign in again straight away.`}
           confirmLabel="Sign out everywhere"
           onConfirm={() => api.adminSignOutUser(u.id)}
           onClose={close}

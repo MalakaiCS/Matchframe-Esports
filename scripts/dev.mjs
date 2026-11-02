@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Development startup: builds the browser apps and the program's main/preload bundles when missing
-// (or with --build), then launches the Matchframe program (Electron), which runs the engine from
+// (or with --build), then launches the MatchFrame program (Electron), which runs the engine from
 // source. --sim starts the labelled simulation once the engine is ready. --engine-only runs the
 // engine without the program (API, HUD outputs and captain page only; no console). The program
 // reports sign-in as not required during development; --sign-in reports it as required, as release
@@ -56,8 +56,10 @@ if (args.has("--sim")) void startSimulationWhenReady();
 
 function dataDir() {
   if (env.MATCHFRAME_DATA_DIR) return env.MATCHFRAME_DATA_DIR;
-  if (process.platform === "win32") return join(env.APPDATA ?? join(homedir(), "AppData", "Roaming"), "Matchframe Esports");
-  if (process.platform === "darwin") return join(homedir(), "Library", "Application Support", "Matchframe Esports");
+  // The folder an earlier version made ("Matchframe Esports") is used when it is the one there.
+  const branded = (parent) => [join(parent, "MatchFrame Esports"), join(parent, "Matchframe Esports")].find((d) => existsSync(d)) ?? join(parent, "MatchFrame Esports");
+  if (process.platform === "win32") return branded(env.APPDATA ?? join(homedir(), "AppData", "Roaming"));
+  if (process.platform === "darwin") return branded(join(homedir(), "Library", "Application Support"));
   return join(env.XDG_DATA_HOME ?? join(homedir(), ".local", "share"), "matchframe-esports");
 }
 

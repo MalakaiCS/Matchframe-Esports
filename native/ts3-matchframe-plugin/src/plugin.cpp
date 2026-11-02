@@ -1,25 +1,25 @@
-// Matchframe Team Comms: a TeamSpeak 3 client plugin that hands each team member's decoded voice,
-// before TeamSpeak mixes it, to Matchframe over 127.0.0.1 (docs/operations/team-comms.md, ADR-065).
+// MatchFrame Team Comms: a TeamSpeak 3 client plugin that hands each team member's decoded voice,
+// before TeamSpeak mixes it, to MatchFrame over 127.0.0.1 (docs/operations/team-comms.md, ADR-065).
 //
 // Threads:
 // - TeamSpeak's playback thread calls ts3plugin_onEditPlaybackVoiceDataEvent once per client and
-//   block. On a connection Matchframe manages, the samples are copied into a bounded lock-free queue
+//   block. On a connection MatchFrame manages, the samples are copied into a bounded lock-free queue
 //   (a full queue drops the block and counts it; the callback never waits), then zeroed so the
 //   listener tab plays nothing on this computer.
 // - TeamSpeak's main thread calls the event callbacks (connections, clients moving, nicknames,
-//   talking). They update a small identity cache and queue an event for Matchframe.
-// - The sender thread (ours) connects to Matchframe, sends the audio with each speaker's unique
-//   identity and a monotonic timestamp, the events and statistics, and applies Matchframe's
+//   talking). They update a small identity cache and queue an event for MatchFrame.
+// - The sender thread (ours) connects to MatchFrame, sends the audio with each speaker's unique
+//   identity and a monotonic timestamp, the events and statistics, and applies MatchFrame's
 //   commands: which connections to capture, keeping their microphones off, recording status.
 //
-// Matchframe's address and token come from <Matchframe data folder>/team-comms/bridge.json, which
-// the engine writes. Nothing is captured until Matchframe says which connections are the teams'.
+// MatchFrame's address and token come from <MatchFrame data folder>/team-comms/bridge.json, which
+// the engine writes. Nothing is captured until MatchFrame says which connections are the teams'.
 //
 // The team tabs are remembered (server and channel, in <TeamSpeak config>/matchframe_comms_tabs.txt):
 // while any are, a connection the plugin hasn't settled yet is silent here from its first block (the
 // playback thread can start before TeamSpeak's main thread reports the connection); once its channel
-// is known it is a team tab (listen-only and silent, before Matchframe answers; capture still waits
-// for Matchframe) or TeamSpeak's own (released: it plays).
+// is known it is a team tab (listen-only and silent, before MatchFrame answers; capture still waits
+// for MatchFrame) or TeamSpeak's own (released: it plays).
 
 #include <algorithm>
 #include <atomic>
@@ -163,10 +163,10 @@ std::unique_ptr<mf::FrameQueue> g_queue;
 std::atomic<bool> g_running{false};
 std::thread g_sender;
 std::atomic<uint64_t> g_queueDropped{0};
-// Random per TeamSpeak process (set in init): Matchframe tells a reconnect of this plugin from a new TeamSpeak.
+// Random per TeamSpeak process (set in init): MatchFrame tells a reconnect of this plugin from a new TeamSpeak.
 std::string g_instance;
 
-// Connections Matchframe manages: read by the audio callback without a lock.
+// Connections MatchFrame manages: read by the audio callback without a lock.
 // kReleased: settled as not a team tab (it plays here). A connection with no flags while team tabs are
 // remembered is not settled yet: silent here.
 enum : uint32_t { kCapture = 1, kListenOnly = 2, kSuppress = 4, kReleased = 16 };
@@ -266,8 +266,8 @@ void noteDeparted(uint64_t key, const ClientInfo& c, uint64_t channelId) {  // u
 }
 
 // ------------------------------------------------------------------------------------------------ remembered team tabs
-// The tabs Matchframe captured (server unique id and channel name), most recent first, so a restarted
-// TeamSpeak keeps them listen-only and silent before Matchframe answers. Matchframe releasing a tab
+// The tabs MatchFrame captured (server unique id and channel name), most recent first, so a restarted
+// TeamSpeak keeps them listen-only and silent before MatchFrame answers. MatchFrame releasing a tab
 // (MANAGE with no flags) forgets it.
 struct RememberedTab {
   std::string serverUid, channel, host;
@@ -549,7 +549,7 @@ void applyRecording(uint64_t schid, bool on) {
 
 // Settles a connection the plugin hasn't settled yet, once its channel is known (TeamSpeak's main
 // thread: connected, a client moved, someone talked): in a remembered team channel it is listen-only and
-// silent here until Matchframe takes it over (not captured); elsewhere it is TeamSpeak's own (it plays).
+// silent here until MatchFrame takes it over (not captured); elsewhere it is TeamSpeak's own (it plays).
 void settle(uint64_t schid) {
   if (managedFlags(schid) || !g_anyRemembered.load()) return;
   int status = STATUS_DISCONNECTED;
@@ -566,12 +566,12 @@ void settle(uint64_t schid) {
     auto at = g_establishedUs.find(schid);
     if (isRememberedServer(serverUid) && (at == g_establishedUs.end() || mf::monoUs() - at->second < kSettleGraceUs)) return;
     setManaged(schid, kReleased);
-    logLine("not a Matchframe team tab (channel \"" + channelName + "\"): TeamSpeak's own, it plays here");
+    logLine("not a MatchFrame team tab (channel \"" + channelName + "\"): TeamSpeak's own, it plays here");
     return;
   }
   setManaged(schid, kListenOnly | kSuppress);
   applyListenOnly(schid);
-  logLine("a remembered Matchframe team tab connected: listen-only and silent until Matchframe takes it over");
+  logLine("a remembered MatchFrame team tab connected: listen-only and silent until MatchFrame takes it over");
 }
 
 // ------------------------------------------------------------------------------------------------ sender
@@ -609,7 +609,7 @@ const char* platformName() {
 }
 
 void logLine(const std::string& msg, LogLevel level) {
-  if (ts3.logMessage) ts3.logMessage(msg.c_str(), level, "MatchframeComms", 0);
+  if (ts3.logMessage) ts3.logMessage(msg.c_str(), level, "MatchFrameComms", 0);
 }
 
 class Sender {
@@ -627,7 +627,7 @@ class Sender {
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
         continue;
       }
-      if (!step()) disconnect("connection to Matchframe lost");
+      if (!step()) disconnect("connection to MatchFrame lost");
     }
     if (sock_ != mf::kNoSocket) disconnect("plugin unloading");
     mf::netDone();
@@ -667,7 +667,7 @@ class Sender {
     std::string hello = J().s("token", b.token)
                             .n("protocol", kProtocol)
                             .s("instance", g_instance)
-                            .raw("plugin", J().s("name", "Matchframe Team Comms").s("version", MF_PLUGIN_VERSION).n("apiVersion", PLUGIN_API_VERSION_USED).str())
+                            .raw("plugin", J().s("name", "MatchFrame Team Comms").s("version", MF_PLUGIN_VERSION).n("apiVersion", PLUGIN_API_VERSION_USED).str())
                             .raw("ts3", J().s("clientLibVersion", libVersion).u("clientLibVersionNumber", libNum).str())
                             .s("platform", platformName())
                             .raw("clock", J().u("nowUs", mf::monoUs()).str())
@@ -698,11 +698,11 @@ class Sender {
         sock_ = s;
         backoffUs_ = 500000;
         in_.assign(buf.begin() + kHeader + len, buf.end());
-        logLine("connected to Matchframe on 127.0.0.1:" + std::to_string(b.port));
+        logLine("connected to MatchFrame on 127.0.0.1:" + std::to_string(b.port));
         reportAll("hello");
         return true;
       }
-      if (buf[5] == kError) logLine("Matchframe refused the plugin: " + std::string(buf.begin() + kHeader, buf.begin() + kHeader + len), LogLevel_WARNING);
+      if (buf[5] == kError) logLine("MatchFrame refused the plugin: " + std::string(buf.begin() + kHeader, buf.begin() + kHeader + len), LogLevel_WARNING);
       break;
     }
     mf::closeSocket(s);
@@ -715,7 +715,7 @@ class Sender {
     sock_ = mf::kNoSocket;
     in_.clear();
     logLine(why, LogLevel_WARNING);
-    // Fail safe: nothing is captured until Matchframe says so again; microphones stay off and the
+    // Fail safe: nothing is captured until MatchFrame says so again; microphones stay off and the
     // tabs stay silent.
     for (auto& m : g_managed) m.flags.fetch_and(~static_cast<uint32_t>(kCapture));
   }
@@ -785,7 +785,7 @@ class Sender {
         unknownClient_++;
         return;
       }
-      // Ahead of this block (not queued behind it): Matchframe takes audio only from people it knows are in the channel.
+      // Ahead of this block (not queued behind it): MatchFrame takes audio only from people it knows are in the channel.
       message(out_, kEvent, J().s("type", "client").u("schid", f.schid).s("change", "discovered").raw("client", clientJson(f.clientId, c)).str());
     }
     // Only the team's own channel: a whisper from elsewhere is not the team's comms.
@@ -870,7 +870,7 @@ class Sender {
       if (type == kManage && len >= 12) {
         uint64_t schid = get64(p);
         uint32_t flags = (p[8] ? uint32_t(kCapture) : 0u) | (p[9] ? uint32_t(kListenOnly) : 0u) | (p[10] ? uint32_t(kSuppress) : 0u);
-        // Handed back by Matchframe: TeamSpeak's own, playing (not an unsettled connection).
+        // Handed back by MatchFrame: TeamSpeak's own, playing (not an unsettled connection).
         setManaged(schid, flags ? flags : uint32_t(kReleased));
         if (flags & kListenOnly) applyListenOnly(schid);
         if (flags) applyRecording(schid, g_recording.load());
@@ -906,7 +906,7 @@ class Sender {
         put64(pong, mf::monoUs());
         if (!mf::sendAll(sock_, pong.data(), pong.size())) return false;
       } else if (type == kError) {
-        logLine("Matchframe: " + std::string(p, p + len), LogLevel_WARNING);
+        logLine("MatchFrame: " + std::string(p, p + len), LogLevel_WARNING);
       }
       in_.erase(in_.begin(), in_.begin() + kHeader + len);
     }
@@ -917,13 +917,13 @@ class Sender {
 }  // namespace
 
 // ------------------------------------------------------------------------------------------------ required exports
-MF_EXPORT const char* ts3plugin_name() { return "Matchframe Team Comms"; }
+MF_EXPORT const char* ts3plugin_name() { return "MatchFrame Team Comms"; }
 MF_EXPORT const char* ts3plugin_version() { return MF_PLUGIN_VERSION; }
 MF_EXPORT int ts3plugin_apiVersion() { return PLUGIN_API_VERSION_USED; }
-MF_EXPORT const char* ts3plugin_author() { return "Matchframe Esports"; }
+MF_EXPORT const char* ts3plugin_author() { return "MatchFrame Esports"; }
 MF_EXPORT const char* ts3plugin_description() {
-  return "Sends each team member's voice, separately, to Matchframe Esports on this computer (127.0.0.1) for a delayed broadcast and recording. "
-         "Only the connections Matchframe manages are captured; their microphones are kept off and their sound is not played here.";
+  return "Sends each team member's voice, separately, to MatchFrame Esports on this computer (127.0.0.1) for a delayed broadcast and recording. "
+         "Only the connections MatchFrame manages are captured; their microphones are kept off and their sound is not played here.";
 }
 MF_EXPORT void ts3plugin_setFunctionPointers(const struct TS3Functions funcs) { ts3 = funcs; }
 
@@ -948,7 +948,7 @@ MF_EXPORT int ts3plugin_init() {
     loadRemembered();
     {
       std::lock_guard<std::mutex> l(g_rememberMu);
-      if (!g_remembered.empty()) logLine(std::to_string(g_remembered.size()) + " Matchframe team tab(s) remembered: connections are silent here until their channel is known");
+      if (!g_remembered.empty()) logLine(std::to_string(g_remembered.size()) + " MatchFrame team tab(s) remembered: connections are silent here until their channel is known");
     }
   }
   g_queue.reset(new mf::FrameQueue(1024));
@@ -1008,7 +1008,7 @@ MF_EXPORT void ts3plugin_onConnectStatusChangeEvent(uint64 schid, int newStatus,
     g_conns[schid].ownChannelId = 0;
     g_conns[schid].ownClientId = 0;
   }
-  // A reconnected tab is captured again only once Matchframe has checked it is still the team's.
+  // A reconnected tab is captured again only once MatchFrame has checked it is still the team's.
   if (newStatus == STATUS_DISCONNECTED || newStatus == STATUS_CONNECTING) clearManagedBits(schid, kCapture);
   reportConnection(schid, "status", errorNumber);
 }
@@ -1088,7 +1088,7 @@ MF_EXPORT void ts3plugin_onClientDisplayNameChanged(uint64 schid, anyID clientID
 }
 
 MF_EXPORT void ts3plugin_onTalkStatusChangeEvent(uint64 schid, int status, int isReceivedWhisper, anyID clientID) {
-  // Receive-time talking (TeamSpeak's own indicator): shown as incoming activity only. Matchframe's
+  // Receive-time talking (TeamSpeak's own indicator): shown as incoming activity only. MatchFrame's
   // delayed activity comes from the audio itself.
   if (!managedFlags(schid)) settle(schid);
   if (!(managedFlags(schid) & kOurs)) return;
@@ -1096,7 +1096,7 @@ MF_EXPORT void ts3plugin_onTalkStatusChangeEvent(uint64 schid, int status, int i
 }
 
 // TeamSpeak's refusals (identity already connected, flood prevention, wrong password, banned...): what
-// the operator must fix, shown by Matchframe next to the team. Returning 0 lets TeamSpeak show it too.
+// the operator must fix, shown by MatchFrame next to the team. Returning 0 lets TeamSpeak show it too.
 MF_EXPORT int ts3plugin_onServerErrorEvent(uint64 schid, const char* errorMessage, unsigned int error, const char*, const char* extraMessage) {
   if (error == ERROR_ok) return 0;
   queueEvent(J().s("type", "error").u("schid", schid).n("error", error).s("message", errorMessage ? errorMessage : "").s("extra", extraMessage ? extraMessage : "").u("tUs", mf::monoUs()).str());
@@ -1170,7 +1170,7 @@ MF_EXPORT void ts3plugin_onEditMixedPlaybackVoiceDataEvent(uint64 schid, short* 
 }
 
 MF_EXPORT void ts3plugin_onEditCapturedVoiceDataEvent(uint64 schid, short* samples, int sampleCount, int channels, int* edited) {
-  // A listener never transmits, even if its microphone were switched on before Matchframe sees it.
+  // A listener never transmits, even if its microphone were switched on before MatchFrame sees it.
   const uint32_t fl = managedFlags(schid);
   if (!(fl & kListenOnly) || !edited) return;
   if (samples && sampleCount > 0 && channels > 0 && channels <= 8) std::memset(samples, 0, static_cast<size_t>(sampleCount) * channels * sizeof(short));

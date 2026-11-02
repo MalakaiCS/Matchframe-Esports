@@ -600,9 +600,9 @@ export class ObsManager extends EventEmitter {
   }
 
   /**
-   * Creates a Matchframe scene and/or browser source if missing. Existing production scenes and
+   * Creates a MatchFrame scene and/or browser source if missing. Existing production scenes and
    * sources are never replaced; an existing source with the same name is only re-pointed when
-   * it is already a browser source created for Matchframe.
+   * it is already a browser source created for MatchFrame.
    */
   async provisionBrowserSource(opts: { sceneName: string; sourceName: string; url: string; width: number; height: number }): Promise<{ createdScene: boolean; createdInput: boolean; updatedUrl: boolean }> {
     this.requireConnected();

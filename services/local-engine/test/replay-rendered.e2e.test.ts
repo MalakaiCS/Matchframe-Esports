@@ -175,7 +175,7 @@ describe("Replay break: one rendered file in the replay scene", () => {
   });
 
   it("plays the break's clips as one file in the replay scene alone: Replay in as it opens, the status and the replay graphic's clip following its cursor, Replay out at its end", async () => {
-    e.obsAuto.setSettings({ replayIn: "Matchframe Replay Stinger", replayOut: "", otherScenes: "" });
+    e.obsAuto.setSettings({ replayIn: "MatchFrame Replay Stinger", replayOut: "", otherScenes: "" });
     await feed("live", 4);
     const round = e.session.state()!.roundNumber!;
     const ids = [add(round, "triple", 3, files[0]!).id, add(round, "double", 2, files[1]!).id, add(round, "single", 1, files[2]!).id];
@@ -194,7 +194,7 @@ describe("Replay break: one rendered file in the replay scene", () => {
     const layout = breakLayout([PLAY, PLAY, PLAY], FADE, 300);
     // The replay scene alone: Replay in, Replay out; no twin.
     expect(o.changes.map((c) => [c.scene, c.transition])).toEqual([
-      ["My Replay", "Matchframe Replay Stinger"],
+      ["My Replay", "MatchFrame Replay Stinger"],
       ["Game", "Fade"],
     ]);
     expect(o.scenes.has("My Replay B")).toBe(false);
@@ -364,7 +364,7 @@ describe("Replay break: one rendered file in the replay scene", () => {
   it("Test replays play their sample clips through the same rendered file, and the report says so", async () => {
     const samples = testClipsDir()!;
     for (const c of TEST_CLIPS) o.durations.set(join(samples, c.file), c.durationMs);
-    e.obsAuto.setSettings({ replayIn: "Matchframe Replay Stinger", replayOut: "" });
+    e.obsAuto.setSettings({ replayIn: "MatchFrame Replay Stinger", replayOut: "" });
     await feed("freezetime", 20, 15);
     o.changes.length = 0;
     expect((await api("/api/v1/replays/auto/test")).status).toBe(200);
@@ -381,7 +381,7 @@ describe("Replay break: one rendered file in the replay scene", () => {
     expect(report.steps.find((s) => s.id === "ready")!.detail).toBe("“My Replay” with “replay”: the clips play as one rendered file in it.");
     expect(report.steps.find((s) => s.id === "fade")!.detail).toMatch(/^2 clips rendered into one file in \d+\.\d s \(h264_nvenc, 1920×1072\), with a 0\.4 s fade between them\.$/);
     expect(o.changes.map((c) => [c.scene, c.transition])).toEqual([
-      ["My Replay", "Matchframe Replay Stinger"],
+      ["My Replay", "MatchFrame Replay Stinger"],
       ["Game", "Fade"],
     ]);
     e.obsAuto.setSettings({ replayIn: "", replayOut: null });

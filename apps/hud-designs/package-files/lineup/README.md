@@ -1,10 +1,10 @@
 # Lineup HUD
 
-A broadcast HUD for CS2 with all ten players in one row along the bottom, built for the Matchframe HUD Library on Matchframe's public HUD state.
+A broadcast HUD for CS2 with all ten players in one row along the bottom, built for the MatchFrame HUD Library on MatchFrame's public HUD state.
 
 What it shows:
 
-- **Top left:** a dark title bar (the title from the settings, else the event's name) with the series maps as tabs under it: the live map white (or, with the map's picture from the HUD Library behind it, a white base line), each with its logo when set, who picked it (or DECIDER) and the score of maps already played; up to five maps around the live one. The radar sits under the tabs with no panel behind it: Matchframe's clean radar for the map (navy floor, light walls, red bomb sites) when there is one, else the radar image or outline, with the same marker style as the Vector HUD.
+- **Top left:** a dark title bar (the title from the settings, else the event's name) with the series maps as tabs under it: the live map white (or, with the map's picture from the HUD Library behind it, a white base line), each with its logo when set, who picked it (or DECIDER) and the score of maps already played; up to five maps around the live one. The radar sits under the tabs with no panel behind it: MatchFrame's clean radar for the map (navy floor, light walls, red bomb sites) when there is one, else the radar image or outline, with the same marker style as the Vector HUD.
 - **Score bar (top centre):** a near-black bar with each team's colour fading in from its end, big scores, the **series boxes** between each score and logo (one per map needed to win the series: best of 1: one, 3: two, 5: three, 7: five; filled white for each map the team has won), team logos (the short name as a wordmark in the team colour when a team has none), and the round clock with ROUND n/24 under it.
 - **Bomb:** the clock cross-fades to the bomb glyph and a red bar slides down under the score bar and drains with the 40 s fuse. A panel under it names who is planting (the bomb carrier) or the team defusing, with a countdown.
 - **Round won:** the score ticks, a dark panel tinted in the winner's colour grows out of the centre over the whole bar, the winner's logo comes in, and it folds back into the centre when freeze time starts.
@@ -19,7 +19,7 @@ Motion runs on `transform`, `opacity` and `clip-path` only, with no blur or back
 
 ## Build or change it
 
-The source is in the Matchframe repository at `apps/hud-designs/src/lineup` (React, TypeScript, plain CSS, Vite):
+The source is in the MatchFrame repository at `apps/hud-designs/src/lineup` (React, TypeScript, plain CSS, Vite):
 
 ```
 pnpm install
@@ -34,7 +34,7 @@ Rules every HUD package follows: transparent `html` and `body` backgrounds; the 
 
 ## Licences and credits
 
-- Code: MIT, Matchframe.
+- Code: MIT, MatchFrame.
 - Barlow Condensed and Inter fonts: SIL Open Font License 1.1 (`OFL-fonts.txt`).
-- Bomb, kit, armour and status glyphs are original Matchframe shapes. The weapon and grenade silhouettes come with Lexogrine's CS2 HUD template (MIT, `LICENSE-lexogrine.txt`) and originate from Counter-Strike 2 game files (© Valve Corporation). Lexogrine's licence covers the code, not Valve's artwork; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons. Matchframe Esports is not affiliated with or endorsed by Valve.
-- The layout and motion follow common broadcast HUD practice; the artwork (glyphs, player silhouette, wordmarks) is Matchframe's own, with no third-party HUD artwork, logos or text.
+- Bomb, kit, armour and status glyphs are original MatchFrame shapes. The weapon and grenade silhouettes come with a third-party CS2 HUD template (MIT, `third-party-licenses/weapon-icons-MIT.txt`) and originate from Counter-Strike 2 game files (© Valve Corporation). That licence covers the code, not Valve's artwork; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons. MatchFrame Esports is not affiliated with or endorsed by Valve.
+- The layout and motion follow common broadcast HUD practice; the artwork (glyphs, player silhouette, wordmarks) is MatchFrame's own, with no third-party HUD artwork, logos or text.

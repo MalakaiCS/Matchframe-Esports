@@ -7,6 +7,19 @@ import type { HotkeyConfig, HudVariant, OverlayConfigPatch } from "./types.ts";
  */
 
 export const HUD_ID = /^[a-z0-9][a-z0-9.-]{2,63}$/;
+
+/**
+ * The id an imported hud.json-format HUD has since 0.12.0: `lhm.<slug>` (its id in 0.11.0 and
+ * earlier, a compatibility identifier) becomes `imported.<slug>`, unless that is longer than a HUD
+ * id may be. The engine's rule (currentHudId in packages/contracts/src/hud.ts), kept here so the
+ * desktop program's own settings follow the HUD's new id without bundling the contracts package.
+ */
+export function currentHudId(id: string): string {
+  const legacy = "lhm.";
+  if (!id.startsWith(legacy)) return id;
+  const next = `imported.${id.slice(legacy.length)}`;
+  return HUD_ID.test(next) ? next : id;
+}
 export const MAX_ZIP_BYTES = 60 * 1024 * 1024;
 export const MAX_SAVE_BYTES = 100 * 1024 * 1024;
 

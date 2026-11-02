@@ -1,3 +1,10 @@
+Third-party licence: the weapon and equipment icons (from the Pro CS2 HUD's icon set)
+Applies to: images/weapons/ in this package
+Listed with the program's other third-party components in THIRD_PARTY_NOTICES.md.
+The licence text below is reproduced unchanged.
+
+--------------------------------------------------------------------------------
+
 MIT License
 
 Copyright (c) 2021 Lexogrine

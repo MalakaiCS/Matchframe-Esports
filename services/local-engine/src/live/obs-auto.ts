@@ -106,7 +106,7 @@ export class ObsAutomation {
   private foreign = 0;
   /** When the last program change made in OBS itself started (wall ms). */
   private foreignAt = 0;
-  /** Matchframe's own program changes of the last moments: the scene, and when. */
+  /** MatchFrame's own program changes of the last moments: the scene, and when. */
   private ownSwitches: { scene: string; at: number }[] = [];
   /** The last program change: its scene, the transition it used (null: not known) and whether OBS confirmed the scene (the Test replays report). */
   lastSwitch: { scene: string; transition: string | null; confirmed: boolean; at: number } | null = null;
@@ -210,7 +210,7 @@ export class ObsAutomation {
   }
 
   /**
-   * Program changes OBS made that Matchframe didn't ask for: the operator's Transition button in
+   * Program changes OBS made that MatchFrame didn't ask for: the operator's Transition button in
    * Studio Mode, a scene clicked in OBS, a hotkey. Counts up; a break's replays compare it to stop.
    */
   get changesInObs(): number {
@@ -229,9 +229,9 @@ export class ObsAutomation {
   }
 
   /**
-   * Who put `scene` on OBS's program, as OBS says it shows it: Matchframe (one of its own program
+   * Who put `scene` on OBS's program, as OBS says it shows it: MatchFrame (one of its own program
    * changes of the last moments, with none made in OBS since), OBS itself (a program change made in
-   * OBS came after Matchframe's last: the operator, by hand, a multiview, the Transition button in
+   * OBS came after MatchFrame's last: the operator, by hand, a multiview, the Transition button in
    * Studio Mode), or not known (no change seen: OBS found so on connecting).
    */
   whose(scene: string): "matchframe" | "obs" | "unknown" {

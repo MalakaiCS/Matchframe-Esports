@@ -1,0 +1,1 @@
+{ "name": "Community HUD", "version": "1.2.0", "author": "A HUD author", "game": "cs2", "radar": true, "killfeed": true, "variants": ["default", "player-stats"] }

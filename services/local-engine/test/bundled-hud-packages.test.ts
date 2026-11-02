@@ -33,7 +33,7 @@ describe("bundled HUD packages", () => {
     const files = readDirectory(join(repo, "apps", "hud-template", "dist"));
     const m = validateManifest(files);
     expect(m.id).toBe("matchframe.pro-cs2");
-    for (const name of ["index.html", "thumbnail.webp", "LICENSE-lexogrine.txt", "OFL-Montserrat.txt", "README.md"]) expect(files.has(name)).toBe(true);
+    for (const name of ["index.html", "thumbnail.webp", "third-party-licenses/hud-template-MIT.txt", "OFL-Montserrat.txt", "README.md"]) expect(files.has(name)).toBe(true);
     const html = new TextDecoder().decode(files.get("index.html"));
     // Relative asset paths: installed packages are served under /huds/<id>/.
     expect(html).toMatch(/src="\.\/assets\//);
@@ -44,7 +44,7 @@ describe("bundled HUD packages", () => {
       const files = readDirectory(join(repo, "apps", "hud-designs", "dist", hud));
       const m = validateManifest(files);
       expect(m.id).toBe(`matchframe.${hud}`);
-      for (const name of ["index.html", "thumbnail.webp", "LICENSE-lexogrine.txt", "OFL-fonts.txt", "README.md"]) expect(files.has(name)).toBe(true);
+      for (const name of ["index.html", "thumbnail.webp", "third-party-licenses/weapon-icons-MIT.txt", "OFL-fonts.txt", "README.md"]) expect(files.has(name)).toBe(true);
       const html = new TextDecoder().decode(files.get("index.html"));
       expect(html).toMatch(/src="\.\/assets\//);
     });

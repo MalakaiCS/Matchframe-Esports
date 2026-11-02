@@ -76,7 +76,7 @@ describe.skipIf(!url || !password)("Replay PC → main PC automatic replay again
     await pcs[0]!.e.obs.refresh();
     const setup = await api(0, "/api/v1/replays/obs-setup", {});
     expect(setup.status, JSON.stringify(setup.json)).toBe(200);
-    expect(setup.json).toMatchObject({ scene: "Matchframe Replay", input: "Matchframe Replay Clip", scenes: { LIVE: "MF Live", REPLAY: "Matchframe Replay" } });
+    expect(setup.json).toMatchObject({ scene: "MatchFrame Replay", input: "MatchFrame Replay Clip", scenes: { LIVE: "MF Live", REPLAY: "MatchFrame Replay" } });
     expect((await api(0, "/api/v1/replays/auto", { enabled: true, startDelayMs: 0, ownBigPlays: false }, "PUT")).status).toBe(200);
 
     // Replay PC: linked with a replay code; it starts OBS's replay buffer itself.
@@ -98,8 +98,8 @@ describe.skipIf(!url || !password)("Replay PC → main PC automatic replay again
     // Round over: the main PC cuts to the replay scene, OBS plays the clip, then back to the live scene.
     await feed(0, T1!.steamId, after, "over");
     await waitFor(() => pcs[0]!.e.program.mode === "REPLAY_PLAYING");
-    expect((await pcs[0]!.e.obs.refresh()).programScene).toBe("Matchframe Replay");
-    const media = await pcs[0]!.e.obs.mediaStatus("Matchframe Replay Clip");
+    expect((await pcs[0]!.e.obs.refresh()).programScene).toBe("MatchFrame Replay");
+    const media = await pcs[0]!.e.obs.mediaStatus("MatchFrame Replay Clip");
     expect(["OBS_MEDIA_STATE_PLAYING", "OBS_MEDIA_STATE_ENDED"]).toContain(media.state);
     await waitFor(() => pcs[0]!.e.program.mode === "LIVE", 20000);
     expect((await pcs[0]!.e.obs.refresh()).programScene).toBe("MF Live");

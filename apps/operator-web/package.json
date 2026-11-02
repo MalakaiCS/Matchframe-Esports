@@ -2,7 +2,7 @@
   "name": "@matchframe/operator-web",
   "version": "0.1.0",
   "private": true,
-  "description": "Matchframe Esports operator console (bundled into the Matchframe program) and the captain veto page",
+  "description": "MatchFrame Esports operator console (bundled into the MatchFrame program) and the captain veto page",
   "type": "module",
   "scripts": {
     "dev": "vite",

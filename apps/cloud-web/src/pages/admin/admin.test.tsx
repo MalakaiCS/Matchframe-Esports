@@ -386,7 +386,7 @@ describe("support inbox", () => {
 
   it("replyHref quotes the message", () => {
     const href = replyHref(message({ topic: "sales" }));
-    expect(decodeURIComponent(href)).toContain("Re: your Matchframe sales enquiry");
+    expect(decodeURIComponent(href)).toContain("Re: your MatchFrame sales enquiry");
   });
 });
 

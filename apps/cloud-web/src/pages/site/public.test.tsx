@@ -62,7 +62,7 @@ describe("public pages, signed out", () => {
     renderApp();
     const h1 = await screen.findByRole("heading", { level: 1 });
     expect(h1.textContent).not.toBe("Page not found");
-    await waitFor(() => expect(document.title).toMatch(/Matchframe/));
+    await waitFor(() => expect(document.title).toMatch(/MatchFrame/));
     expect(document.querySelector('meta[name="description"]')?.getAttribute("content")?.length).toBeGreaterThan(40);
     // Let effects run (site details, plans, health), then check nothing else was asked for.
     await act(async () => {
@@ -96,7 +96,7 @@ describe("public pages, signed out", () => {
     at("/features");
     fakeFetch(publicApi);
     renderApp();
-    expect(await screen.findByText(/Matchframe is in early access/)).toBeTruthy();
+    expect(await screen.findByText(/MatchFrame is in early access/)).toBeTruthy();
     expect(screen.getByText(/haven't yet been verified on a real CS2 client/)).toBeTruthy();
   });
 

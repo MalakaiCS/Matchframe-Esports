@@ -14,7 +14,7 @@ import { ENCODERS } from "./ffmpeg.ts";
 const run = promisify(execFile);
 
 /**
- * The replay feed on the main PC (like LHM's Replay Feed): the replay PC's whole screen comes in
+ * The replay feed on the main PC: the replay PC's whole screen comes in
  * over NDI (vMix Desktop Capture, OBS's NDI output or NDI Screen Capture on the replay PC), and this
  * computer records it all the time into one-second segments, keeping the last few minutes. The
  * replay PC only tells this computer when it filmed a kill (POST /api/v1/replays/mark), and the clip

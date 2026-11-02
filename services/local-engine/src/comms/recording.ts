@@ -4,6 +4,7 @@ import { extname, join } from "node:path";
 import { z } from "zod";
 import type { ObsManager } from "@matchframe/obs-adapter";
 import type { SettingsRepo } from "../db/store.ts";
+import { existingName } from "../brand.ts";
 import type { Logger } from "../logger.ts";
 import { checkFolder, freeBytes } from "../storage.ts";
 import type { CommsOutputs } from "./outputs.ts";
@@ -13,9 +14,9 @@ import { STRIP_SOURCE, type SpeakerStrip } from "./strip.ts";
 
 /**
  * The dedicated comms recording (ADR-068; the owner's brief, sections 8 and 9): OBS's Source Record
- * filter on a recording-only scene, "Matchframe Comms Recording", that holds the gameplay (the live
+ * filter on a recording-only scene, "MatchFrame Comms Recording Scene", that holds the gameplay (the live
  * scene's own game capture, shared, so it stays active whatever the program shows), the live scene's
- * Matchframe HUD (shared), the recording-only speaker strip (comms/strip.ts) and the recording comms
+ * MatchFrame HUD (shared), the recording-only speaker strip (comms/strip.ts) and the recording comms
  * ("MatchFrame Comms Recording", the engine's NDI audio, received by DistroAV), plus a copy of the
  * live scene's game audio input whose fader is the recording's game level.
  *
@@ -26,7 +27,7 @@ import { STRIP_SOURCE, type SpeakerStrip } from "./strip.ts";
  *   mixes it for track 1, after its fader and mute. Measured: a source taken off track 1 is missing,
  *   a fader at −20 dB is −20 dB, and with no OBS output using track 1 (no stream, recording or replay
  *   buffer) the file is silent. So the recording's audio inputs are on track 1 (they are in no
- *   program scene, so never in the stream's mix), and Matchframe warns while OBS isn't streaming or
+ *   program scene, so never in the stream's mix), and MatchFrame warns while OBS isn't streaming or
  *   recording on track 1. Casters are left out by not being in the scene.
  * - **Controls:** Start/Stop (record mode Always/None over obs-websocket), its own and independent of
  *   the public listen-in (Mute All Comms never touches it); the recording team by team id (the comms
@@ -37,14 +38,20 @@ import { STRIP_SOURCE, type SpeakerStrip } from "./strip.ts";
  * - **Never started by itself:** after a restart it is adopted only if Source Record is still
  *   recording in OBS.
  * - **Faults are explicit** (RECORDING FAULT with the reason, never a quiet warning): Source Record
- *   stopped or gone in OBS, no file or a file that stopped growing, OBS disconnected (Matchframe can't
+ *   stopped or gone in OBS, no file or a file that stopped growing, OBS disconnected (MatchFrame can't
  *   confirm it), and the recording comms not reaching it (the NDI process down or restarting, Team
  *   Comms or its NDI output off): the file then has gameplay without comms. After OBS comes back and
  *   Source Record still records, the fault clears by itself; if OBS restarted (Source Record stopped),
  *   Start Recording starts a new file.
  */
 
-export const RECORDING_SCENE = "Matchframe Comms Recording";
+/** The recording's own scene (its NDI source in OBS is RECORDING_NDI_NAME, so the scene has a name of its own). */
+export const RECORDING_SCENE = "MatchFrame Comms Recording Scene";
+/**
+ * The scene 0.11.0 and earlier made: a compatibility identifier, used when OBS has it and no other
+ * scene was chosen (its old spelling told it apart from the NDI source "MatchFrame Comms Recording").
+ */
+export const LEGACY_RECORDING_SCENE = "Matchframe Comms Recording";
 export const RECORDER_FILTER = "MatchFrame Recorder";
 export const SOURCE_RECORD_KIND = "source_record_filter";
 export const GAME_AUDIO_COPY = "MatchFrame Recording Game Audio";
@@ -68,7 +75,7 @@ const RecordingObs = z.object({
   scene: z.string().min(1).max(200).default(RECORDING_SCENE),
   /** The live scene's gameplay source (shared). */
   gameSource: z.string().max(200).nullable().default(null),
-  /** The live scene's Matchframe HUD browser source (shared). */
+  /** The live scene's MatchFrame HUD browser source (shared). */
   hudSource: z.string().max(200).nullable().default(null),
   /** The live scene's game audio input, copied as the recording's own (null: the gameplay source carries the game's sound). */
   gameAudioSource: z.string().max(200).nullable().default(null),
@@ -77,7 +84,7 @@ const RecordingObs = z.object({
 export const RecordingSettings = z.object({
   /** The team whose comms the recording carries (a team id; never CT/T). */
   teamId: z.string().max(100).nullable().default(null),
-  /** Where Source Record writes (null: Videos → Matchframe Comms Recordings). */
+  /** Where Source Record writes (null: Videos → MatchFrame Comms Recordings). */
   folder: z.string().max(400).nullable().default(null),
   /** mkv survives a crash (OBS can remux it to mp4); hybrid MP4 needs OBS 30.2+. */
   format: z.enum(["mkv", "hybrid_mp4", "fragmented_mp4", "mp4", "mov"]).default("mkv"),
@@ -89,7 +96,7 @@ export const RecordingSettings = z.object({
   splitMinutes: z.number().int().min(0).max(720).default(0),
   /** The recording's game audio (its own copy's fader in OBS), dB. */
   gameLevelDb: z.number().min(-60).max(12).default(0),
-  /** The recording comms (Matchframe's gain before NDI), dB; −60 is off. */
+  /** The recording comms (MatchFrame's gain before NDI), dB; −60 is off. */
   commsLevelDb: z.number().min(-60).max(12).default(0),
   /** Free space under this (GB) is a warning. */
   warnFreeGB: z.number().min(1).max(10000).default(20),
@@ -142,11 +149,11 @@ export interface RecordingDeps {
   settings: SettingsRepo;
   logger: Pick<Logger, "info" | "warn">;
   liveScene: () => string | null;
-  /** The default folder (Videos → Matchframe Comms Recordings). */
+  /** The default folder (Videos → MatchFrame Comms Recordings). */
   defaultFolder: () => string;
   /** A team's name and short name. */
   teamName: (teamId: string) => { name: string; shortName: string | null } | null;
-  /** The overlay server's port (to recognise Matchframe HUD pages). */
+  /** The overlay server's port (to recognise MatchFrame HUD pages). */
   overlayPort: () => number;
   /** Test seams. */
   freeBytes?: (dir: string) => number | null;
@@ -204,8 +211,13 @@ export class CommsRecording {
   }
 
   settings(): RecordingSettings {
-    const r = RecordingSettings.safeParse(this.d.settings.get(SETTINGS_KEY, {}));
-    return r.success ? r.data : RecordingSettings.parse({});
+    const raw = this.d.settings.get<unknown>(SETTINGS_KEY, {});
+    const r = RecordingSettings.safeParse(raw);
+    const s = r.success ? r.data : RecordingSettings.parse({});
+    // No scene chosen: the one an earlier version made, when OBS has that one and not the new one.
+    const chosen = r.success ? (raw as { obs?: { scene?: unknown } }).obs?.scene : undefined;
+    if (chosen === undefined) s.obs.scene = existingName(RECORDING_SCENE, (n) => this.d.obs.state.scenes.includes(n), LEGACY_RECORDING_SCENE);
+    return s;
   }
 
   folder(): string {
@@ -309,7 +321,7 @@ export class CommsRecording {
 
   // ---------------------------------------------------------------------------------------- setup
 
-  /** The live scene's sources, and Matchframe's guess at the gameplay, the HUD and the game audio. */
+  /** The live scene's sources, and MatchFrame's guess at the gameplay, the HUD and the game audio. */
   async liveSources(): Promise<{ liveScene: string | null; sources: { name: string; kind: string | null }[]; suggested: { gameSource: string | null; hudSource: string | null; gameAudioSource: string | null }; sourceRecord: boolean | null; error: string | null }> {
     const obs = this.d.obs;
     const live = this.d.liveScene();
@@ -594,7 +606,7 @@ export class CommsRecording {
     const obs = this.d.obs;
     const scene = this.settings().obs.scene;
     if (this.state === "idle" && !this.run) return this.status();
-    if (!obs.state.connected) throw new RecordingError(409, "obs_not_connected", `OBS isn't connected: Matchframe can't stop Source Record. Stop it in OBS (scene “${scene}” → Filters → ${RECORDER_FILTER} → Record mode: None), or reconnect OBS and press Stop again.`);
+    if (!obs.state.connected) throw new RecordingError(409, "obs_not_connected", `OBS isn't connected: MatchFrame can't stop Source Record. Stop it in OBS (scene “${scene}” → Filters → ${RECORDER_FILTER} → Record mode: None), or reconnect OBS and press Stop again.`);
     const f = await obs.filter(scene, RECORDER_FILTER).catch(() => null);
     if (f) await obs.setFilterSettings(scene, RECORDER_FILTER, { record_mode: 0 });
     this.finish("stopped by the operator");
@@ -705,7 +717,7 @@ export class CommsRecording {
     }
   }
 
-  /** Still recording in OBS from before a restart: carried on with (never started by Matchframe on its own). */
+  /** Still recording in OBS from before a restart: carried on with (never started by MatchFrame on its own). */
   private adopt(folder: string): void {
     const cfg = this.settings();
     const team = cfg.teamId ? this.d.teamName(cfg.teamId) : null;
@@ -721,7 +733,7 @@ export class CommsRecording {
   /** While recording: why the file is missing something now (OBS away, the comms not sent), else null. */
   private liveFault(): string | null {
     if (this.state !== "recording") return null;
-    if (!this.d.obs.state.connected) return "OBS isn't connected: Matchframe can't confirm the recording (Source Record carries on in OBS by itself if OBS still runs; if OBS stopped, so did the file).";
+    if (!this.d.obs.state.connected) return "OBS isn't connected: MatchFrame can't confirm the recording (Source Record carries on in OBS by itself if OBS still runs; if OBS stopped, so did the file).";
     const ndi = this.d.outputs.status().ndi;
     if (!this.d.comms.enabled) return `Team Comms is off: the recording has gameplay without comms (NDI “${RECORDING_NDI_NAME}” isn't sent).`;
     if (!ndi.enabled) return `The NDI output is off (Team Comms → Public output): the recording has gameplay without comms.`;

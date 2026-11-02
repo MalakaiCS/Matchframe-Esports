@@ -50,11 +50,11 @@ function FeatureSection({ f, reverse }: { f: Feature; reverse: boolean }) {
 }
 
 export function Features() {
-  useTitle("Features", "Matchframe features: HUDs for OBS, the Observer auto director with four modes, manual takeover and emergency stop, observer camera control, grenade tracking, OBS control and replays, match administration, the demo pipeline and multi-PC operation.");
+  useTitle("Features", "MatchFrame features: HUDs for OBS, the Observer auto director with four modes, manual takeover and emergency stop, observer camera control, grenade tracking, OBS control and replays, match administration, the demo pipeline and multi-PC operation.");
   const { me } = useSession();
   return (
     <>
-      <PageHero eyebrow="Product" title="Everything the production desk needs, in one program" lead="Matchframe runs on your Windows production computer and brings the broadcast together: graphics, camera direction, replays and the running order. This website only manages the account, plan and hours behind it.">
+      <PageHero eyebrow="Product" title="Everything the production desk needs, in one program" lead="MatchFrame runs on your Windows production computer and brings the broadcast together: graphics, camera direction, replays and the running order. This website only manages the account, plan and hours behind it.">
         {me ? (
           <Link to="/download" className="btn btn-primary btn-lg">
             Download for Windows

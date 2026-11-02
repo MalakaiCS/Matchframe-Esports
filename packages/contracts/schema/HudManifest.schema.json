@@ -197,11 +197,10 @@
       ]
     },
     "runtime": {
-      "default": "matchframe",
       "type": "string",
       "enum": [
         "matchframe",
-        "lhm"
+        "compat"
       ]
     }
   },

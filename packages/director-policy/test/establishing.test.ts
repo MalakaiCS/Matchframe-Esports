@@ -259,7 +259,7 @@ describe("team shots (the map's free-space grid frames each team where it stands
     const inFreeze = shots.slice(first).filter((s) => s.at < freezeMs);
     expect(inFreeze.map((s) => s.id).sort(), JSON.stringify(inFreeze)).toEqual(["team-CT", "team-T"]);
     for (const s of inFreeze) {
-      // Gliding: the camera moves (Matchframe sends the poses), and doesn't also turn.
+      // Gliding: the camera moves (MatchFrame sends the poses), and doesn't also turn.
       expect(s.move).not.toBeNull();
       expect(Math.hypot(s.move!.to.x - s.move!.from.x, s.move!.to.y - s.move!.from.y)).toBeGreaterThan(10);
       expect(s.pan).toBe(0);

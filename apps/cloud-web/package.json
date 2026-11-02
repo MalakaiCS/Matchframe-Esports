@@ -2,7 +2,7 @@
   "name": "@matchframe/cloud-web",
   "version": "0.1.0",
   "private": true,
-  "description": "Matchframe website: account, team and staff management, subscriptions and payments, auto-director hours usage (served by services/cloud-api)",
+  "description": "MatchFrame website: account, team and staff management, subscriptions and payments, auto-director hours usage (served by services/cloud-api)",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -68,7 +68,7 @@ export const StripSettings = z.object({
   labels: z.boolean().default(false),
   /** HUD images' default player pictures for mapped players without a picture of their own. */
   useHudDefaults: z.boolean().default(true),
-  /** The operator's placeholder silhouette (an uploaded picture) for anyone without a portrait; null: Matchframe's own. */
+  /** The operator's placeholder silhouette (an uploaded picture) for anyone without a portrait; null: MatchFrame's own. */
   placeholderAssetId: z.string().max(100).nullable().default(null),
   /** Per portrait: `player:<player id>` for a mapped player, `person:<card id>` otherwise. */
   crops: z
@@ -85,7 +85,7 @@ export interface StripCard {
   id: string;
   name: string;
   pictureUrl: string;
-  /** No portrait of their own: the HUD images' default, the operator's placeholder or Matchframe's silhouette. */
+  /** No portrait of their own: the HUD images' default, the operator's placeholder or MatchFrame's silhouette. */
   picture: "own" | "hud-default" | "placeholder" | "silhouette";
   crop: PortraitCrop;
   /** The crop's key in the settings. */
@@ -150,7 +150,7 @@ export interface SpeakerStripDeps {
   realtime?: boolean;
 }
 
-/** Matchframe's placeholder silhouette: head and shoulders, grey on dark. */
+/** MatchFrame's placeholder silhouette: head and shoulders, grey on dark. */
 export const SILHOUETTE_URL = `data:image/svg+xml;utf8,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#1a1d22"/><circle cx="100" cy="78" r="38" fill="#5b616b"/><path d="M28 200c4-44 34-68 72-68s68 24 72 68z" fill="#5b616b"/></svg>',
 )}`;
@@ -246,7 +246,7 @@ export class SpeakerStrip {
    * A team's cards: its people included in the recording, in roster order (mapped players by the
    * team's roster, then the rest as first seen), at most seven, each with a picture: their roster
    * picture, else the HUD images' default player picture, else the operator's placeholder, else
-   * Matchframe's silhouette.
+   * MatchFrame's silhouette.
    */
   cardsFor(teamId: string | null): { cards: StripCard[]; overLimit: number } {
     if (!teamId) return { cards: [], overLimit: 0 };

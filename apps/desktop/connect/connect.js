@@ -1,4 +1,4 @@
-// Connection settings page of the Matchframe program (no framework; talks only to the preload bridge).
+// Connection settings page of the MatchFrame program (no framework; talks only to the preload bridge).
 (function () {
   "use strict";
   const bridge = window.matchframe && window.matchframe.connection;
@@ -16,7 +16,7 @@
   };
   form.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", sync));
   if (!bridge) {
-    setStatus("This page only works inside the Matchframe program.", "bad");
+    setStatus("This page only works inside the MatchFrame program.", "bad");
     $("save").disabled = true;
     return;
   }
@@ -27,7 +27,7 @@
       $("url").value = c.url || "";
       if (c.hasToken) $("token").placeholder = "Saved (leave empty to keep it)";
     }
-    $("version").textContent = "Matchframe " + c.version;
+    $("version").textContent = "MatchFrame " + c.version;
     sync();
   });
   $("test").addEventListener("click", async () => {

@@ -162,7 +162,7 @@ export class CommsPublic {
     return { ...st, overlay: { ...st.overlay, url: st.overlay.url.replace(/t=[^&]+/, "t=[redacted]") } };
   }
 
-  /** OBS's audio inputs, for picking the casters (Matchframe's own comms sources are never offered). */
+  /** OBS's audio inputs, for picking the casters (MatchFrame's own comms sources are never offered). */
   async obsInputs(): Promise<{ inputs: { name: string; kind: string; db: number; muted: boolean; picked: boolean }[]; error: string | null }> {
     if (!this.d.obs.state.connected) return { inputs: [], error: "OBS isn't connected (Settings → Devices)." };
     try {

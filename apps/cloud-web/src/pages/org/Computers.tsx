@@ -38,10 +38,10 @@ export function Computers({ scope }: { scope: OrgScope }) {
         <Card title="How to link a computer">
           <ol className="plain-steps">
             <li>
-              Install the Matchframe program from the <Link to="/download">download page</Link>.
+              Install the MatchFrame program from the <Link to="/download">download page</Link>.
             </li>
             <li>
-              Start the program and sign in with your Matchframe email and password. If you're in several organisations, choose this one.
+              Start the program and sign in with your MatchFrame email and password. If you're in several organisations, choose this one.
             </li>
             <li>
               Or choose <strong>Sign in with a code from the website</strong> in the program, enter the code at <Link to="/link">/link</Link>, choose this organisation and approve.
@@ -63,7 +63,7 @@ export function Computers({ scope }: { scope: OrgScope }) {
           {devices.loading && !devices.data && <Loading />}
           {devices.error && <ErrorState error={devices.error} onRetry={devices.reload} />}
           {devices.data && shown.length === 0 && (
-            <Empty title="No computers linked yet">Follow the steps above to link a computer that runs the Matchframe program.</Empty>
+            <Empty title="No computers linked yet">Follow the steps above to link a computer that runs the MatchFrame program.</Empty>
           )}
           {shown.length > 0 && (
             <table className="rtable">

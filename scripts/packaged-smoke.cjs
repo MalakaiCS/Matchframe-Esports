@@ -1,12 +1,12 @@
-// Smoke test for a PACKAGED Matchframe program (installed .exe on Windows, or an unpacked build):
-// starts a local Matchframe website from this repository, starts the program against it, checks
+// Smoke test for a PACKAGED MatchFrame program (installed .exe on Windows, or an unpacked build):
+// starts a local MatchFrame website from this repository, starts the program against it, checks
 // that it opens straight into the HUD Library with the bundled HUDs installed, signs in with a
 // website account's email and password under Settings → Account, checks the bundled engine and the
 // console shown from app://matchframe, API forwarding,
 // the live connection, that the engine's HTTP address serves no console, that the captain page and
 // HUD outputs are served, that the program makes a match's thumbnails and stingers (with alpha),
 // reports the website the build is pinned to (cloud.json), and saves screenshots.
-//   node scripts/packaged-smoke.cjs "<path to Matchframe Esports.exe>" [screenshot.png]
+//   node scripts/packaged-smoke.cjs "<path to MatchFrame Esports.exe>" [screenshot.png]
 // MATCHFRAME_EXPECT_WEBSITE=<url> additionally requires the build's cloud.json to point there.
 // Uses `playwright` or `playwright-core` (only the Electron driver is needed, no browsers).
 let pw;

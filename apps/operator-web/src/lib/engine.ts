@@ -1,5 +1,5 @@
 /**
- * Address of the Matchframe engine this console talks to. Inside the Matchframe program the
+ * Address of the MatchFrame engine this console talks to. Inside the MatchFrame program the
  * preload bridge provides it (this computer's engine, or the production computer in remote mode);
  * API requests go through the program's own `app://` origin. During development under the Vite
  * server it is the page's origin (Vite proxies the API).

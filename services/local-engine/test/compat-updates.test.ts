@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MatchState } from "@matchframe/contracts";
-import { BUSY_LAG_MS, lhmGamePayload, lhmUrgentKey, MAX_UPDATE_MS, UPDATE_MS, updateCoalescer, updatePacer } from "../src/hud/lhm-runtime.ts";
+import { BUSY_LAG_MS, compatGamePayload, compatUrgentKey, MAX_UPDATE_MS, UPDATE_MS, updateCoalescer, updatePacer } from "../src/hud/compat-runtime.ts";
 
 /** A game-data packet: `t` changes the clock and positions only; the rest is what viewers see switch. */
 const packet = (t: number, opts: { observed?: string; phase?: string; dead?: number } = {}) => ({
@@ -12,7 +12,7 @@ const packet = (t: number, opts: { observed?: string; phase?: string; dead?: num
   allplayers: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`p${i}`, { state: { health: i < (opts.dead ?? 0) ? 0 : 100 }, position: `${t}, 0, 0` }])),
 });
 
-describe("game data to LHM HUDs", () => {
+describe("game data to imported HUDs", () => {
   afterEach(() => vi.useRealTimers());
 
   it("sends 50 packets a second as about 20, always the latest", () => {
@@ -52,12 +52,12 @@ describe("game data to LHM HUDs", () => {
   });
 
   it("keys on what viewers see switch, not on the clock or positions", () => {
-    expect(lhmUrgentKey(packet(0))).toBe(lhmUrgentKey(packet(500)));
-    expect(lhmUrgentKey(packet(0))).not.toBe(lhmUrgentKey(packet(0, { observed: "765C" })));
+    expect(compatUrgentKey(packet(0))).toBe(compatUrgentKey(packet(500)));
+    expect(compatUrgentKey(packet(0))).not.toBe(compatUrgentKey(packet(0, { observed: "765C" })));
   });
 });
 
-describe("pacing an LHM HUD whose page can't keep up", () => {
+describe("pacing an imported HUD whose page can't keep up", () => {
   it("halves the updates while the page's tasks wait, down to five a second, and comes back once it has room", () => {
     let t = 0;
     const p = updatePacer(() => t);
@@ -131,18 +131,18 @@ describe("pacing an LHM HUD whose page can't keep up", () => {
   });
 });
 
-describe("player numbers and coaches in LHM game data", () => {
+describe("player numbers and coaches in the game data imported HUDs get", () => {
   it("gives each player their number key, and leaves coaches out", () => {
     const raw = {
       player: { steamid: "a", observer_slot: 0 },
       allplayers: { a: { name: "A", observer_slot: 0 }, b: { name: "B", observer_slot: 9 }, c: { name: "Coach", observer_slot: 5 }, x: { name: "Unknown", observer_slot: 3 } },
     };
     const state = { players: [{ steamId: "a", observerKey: 1, coach: false }, { steamId: "b", observerKey: 0, coach: false }, { steamId: "c", observerKey: null, coach: true }] } as unknown as MatchState;
-    const out = lhmGamePayload(raw, state) as typeof raw;
+    const out = compatGamePayload(raw, state) as typeof raw;
     expect(out.allplayers).toEqual({ a: { name: "A", observer_slot: 1 }, b: { name: "B", observer_slot: 0 }, x: { name: "Unknown", observer_slot: 3 } });
     expect(out.player).toEqual({ steamid: "a", observer_slot: 1 });
     // The raw packet is left as it was.
     expect(raw.allplayers.a.observer_slot).toBe(0);
-    expect(lhmGamePayload(raw, null)).toBe(raw);
+    expect(compatGamePayload(raw, null)).toBe(raw);
   });
 });

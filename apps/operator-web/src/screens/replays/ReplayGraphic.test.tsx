@@ -33,12 +33,12 @@ const url = "http://127.0.0.1:37212/hud/matchframe.vector/replay?t=abc";
 const view: ReplayGraphicView = {
   settings: { enabled: true, hudId: "auto" },
   output: { hudId: "matchframe.vector", hudName: "Vector HUD", forHudId: "matchframe.vector", forHudName: "Vector HUD", style: "own", url, why: "Vector HUD has its own replay graphic." },
-  source: "Matchframe Replay Graphic",
-  replayScene: "Matchframe Replay",
+  source: "MatchFrame Replay Graphic",
+  replayScene: "MatchFrame Replay",
   obsConnected: true,
   onAir: null,
 };
-const library = { huds: [{ id: "matchframe.vector", name: "Vector HUD" }, { id: "lhm.kaihud", name: "KaiHUD" }], hudsDir: null, overlayOrigin: "", hiddenAll: false };
+const library = { huds: [{ id: "matchframe.vector", name: "Vector HUD" }, { id: "imported.kaihud", name: "KaiHUD" }], hudsDir: null, overlayOrigin: "", hiddenAll: false };
 
 beforeEach(() => liveStore.reset());
 afterEach(() => {
@@ -48,12 +48,12 @@ afterEach(() => {
 
 describe("Replay graphic panel", () => {
   it("shows the HUD's replay page, turns the graphic off, picks a HUD and adds it to the OBS replay scene", async () => {
-    const kai = { ...view, settings: { enabled: true, hudId: "lhm.kaihud" }, output: { ...view.output!, hudId: "matchframe-default", hudName: "Matchframe Broadcast HUD", forHudId: "lhm.kaihud", forHudName: "KaiHUD", style: "builtin" as const, why: "KaiHUD is an LHM-format HUD without a replay graphic: Matchframe's built-in style." } };
+    const kai = { ...view, settings: { enabled: true, hudId: "imported.kaihud" }, output: { ...view.output!, hudId: "matchframe-default", hudName: "MatchFrame Broadcast HUD", forHudId: "imported.kaihud", forHudName: "KaiHUD", style: "builtin" as const, why: "KaiHUD is an imported HUD without a replay graphic: MatchFrame's built-in style." } };
     const calls = serve({
       "GET /api/v1/replay-graphic": view,
       "GET /api/v1/hud/library": library,
       "PUT /api/v1/replay-graphic": kai,
-      "POST /api/v1/replay-graphic/obs": { scene: "Matchframe Replay", source: "Matchframe Replay Graphic", created: true, onTop: true, output: view.output },
+      "POST /api/v1/replay-graphic/obs": { scene: "MatchFrame Replay", source: "MatchFrame Replay Graphic", created: true, onTop: true, output: view.output },
     });
     wrap(<ReplayGraphicPanel />);
     expect(await screen.findByText(url)).toBeTruthy();
@@ -63,11 +63,11 @@ describe("Replay graphic panel", () => {
     fireEvent.click(box);
     await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ enabled: false }));
     await waitFor(() => expect(screen.getByRole("option", { name: "KaiHUD" })).toBeTruthy());
-    fireEvent.change(screen.getByLabelText(/^HUD/), { target: { value: "lhm.kaihud" } });
-    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ hudId: "lhm.kaihud" }));
+    fireEvent.change(screen.getByLabelText(/^HUD/), { target: { value: "imported.kaihud" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ hudId: "imported.kaihud" }));
     expect(await screen.findByText(/built-in style/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Add replay graphic to the OBS replay scene" }));
-    expect(await screen.findByText(/added on top of “Matchframe Replay”/)).toBeTruthy();
+    expect(await screen.findByText(/added on top of “MatchFrame Replay”/)).toBeTruthy();
     expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/replay-graphic/obs")).toBe(true);
   });
 

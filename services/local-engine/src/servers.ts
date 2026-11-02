@@ -17,8 +17,8 @@ import { registerHudRoutes } from "./routes/hud.ts";
 import { registerHudLibraryRoutes } from "./routes/hud-library.ts";
 import { libraryHudId, libraryOutputId } from "./hud/library.ts";
 import { WRAPPER_JS, wrapperPage } from "./hud/wrapper.ts";
-import { LhmRuntime, lhmSetCookie } from "./hud/lhm-runtime.ts";
-import { lhmViews } from "./hud/lhm.ts";
+import { CompatRuntime, compatSetCookie } from "./hud/compat-runtime.ts";
+import { compatViews } from "./hud/compat.ts";
 import { registerLiveRoutes } from "./routes/live.ts";
 import { registerReplayRoutes } from "./routes/replay.ts";
 import { registerMatchArtRoutes } from "./routes/match-art.ts";
@@ -32,7 +32,7 @@ import { registerIntegrationRoutes } from "./routes/integrations.ts";
 import { registerCloudRoutes } from "./routes/cloud.ts";
 import { registerCamRoutes } from "./routes/cams.ts";
 import { registerCommsRoutes } from "./routes/comms.ts";
-import { CAM_PAGE_JS, CAMS_JS, LHM_CAMS_JS, camPage, injectLhmCams } from "./hud/cams-runtime.ts";
+import { CAM_PAGE_JS, CAMS_JS, COMPAT_CAMS_JS, camPage, injectCompatCams } from "./hud/cams-runtime.ts";
 import { COMMS_OVERLAY_JS, commsOverlayPage } from "./comms/overlay.ts";
 import { STRIP_JS, stripPage } from "./comms/strip.ts";
 import { bearer, json, readBody, Router } from "./http/router.ts";
@@ -120,13 +120,13 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerCloudRoutes(router, e);
   registerCamRoutes(router, e);
   registerCommsRoutes(router, e);
-  router.get("/api/v1/openapi.json", { permission: "public" }, () => router.openapi({ title: "Matchframe Esports local API", version: APP_VERSION }));
+  router.get("/api/v1/openapi.json", { permission: "public" }, () => router.openapi({ title: "MatchFrame Esports local API", version: APP_VERSION }));
 
   // ------------------------------------------------------------------ GSI ingest server
   let gsiRejectedAuth = 0;
   const gsi = createServer(async (req, res) => {
     if (req.method !== "POST" || !(req.url ?? "").startsWith("/gsi")) {
-      res.writeHead(req.method === "GET" ? 200 : 405, { "content-type": "text/plain" }).end(req.method === "GET" ? "Matchframe GSI receiver" : "method not allowed");
+      res.writeHead(req.method === "GET" ? 200 : 405, { "content-type": "text/plain" }).end(req.method === "GET" ? "MatchFrame GSI receiver" : "method not allowed");
       return;
     }
     const receivedAt = e.now();
@@ -162,7 +162,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     res.writeHead(200, { "content-type": "text/plain" }).end();
     const provider = (payload as { provider?: { steamid?: unknown } })?.provider?.steamid;
     const sourceId = `gsi:${typeof provider === "string" && /^\d+$/.test(provider) ? provider : "unknown"}`;
-    // LHM-format HUDs get the packet as CS2 sent it before Matchframe's own processing.
+    // Imported hud.json-format HUDs get the packet as CS2 sent it before MatchFrame's own processing.
     e.emitRawGsi(payload, false);
     e.session.ingestGsi(payload, sourceId, receivedAt, text);
     e.feed.notePacket(receivedAt);
@@ -260,17 +260,17 @@ export async function startServers(e: Engine): Promise<RunningServers> {
         const f = safeResolve(assetDir(e), url.pathname.slice("/assets/".length));
         if (f) return serveFile(res, f);
       }
-      // The operator console runs only inside the Matchframe program (apps/desktop). Browsers get
+      // The operator console runs only inside the MatchFrame program (apps/desktop). Browsers get
       // the captain veto page (scoped captain links) and nothing else from this server.
       const captainHeaders = { "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" };
       if ((url.pathname === "/captain" || url.pathname === "/captain/") && cfg.captainUiDir && serveStatic(res, cfg.captainUiDir, "/captain.html", { headers: captainHeaders })) return;
       if (url.pathname.startsWith("/captain-assets/") && serveStatic(res, cfg.captainUiDir, url.pathname, { headers: captainHeaders })) return;
       if (req.method === "GET" && !url.pathname.startsWith("/api/") && (req.headers.accept ?? "").includes("text/html")) {
         res.writeHead(404, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'" });
-        res.end(`<!doctype html><meta charset="utf-8"><title>Matchframe</title><body style="font:16px system-ui;background:#11141b;color:#e6e9ef;padding:48px"><h1 style="font-size:20px">Matchframe engine</h1><p>The Matchframe console runs inside the Matchframe program for Windows. Open the program on this computer, or connect to this computer from the program on another one (File &rarr; Connect to another Matchframe computer).</p><p>This address serves the engine API for the program and control surfaces; HUD outputs for OBS are on port ${cfg.overlayPort}.</p></body>`);
+        res.end(`<!doctype html><meta charset="utf-8"><title>MatchFrame</title><body style="font:16px system-ui;background:#11141b;color:#e6e9ef;padding:48px"><h1 style="font-size:20px">MatchFrame engine</h1><p>The MatchFrame console runs inside the MatchFrame program for Windows. Open the program on this computer, or connect to this computer from the program on another one (File &rarr; Connect to another MatchFrame computer).</p><p>This address serves the engine API for the program and control surfaces; HUD outputs for OBS are on port ${cfg.overlayPort}.</p></body>`);
         return;
       }
-      json(res, 404, { error: "not_found", message: "not found (the console runs inside the Matchframe program; the API is under /api/v1)" });
+      json(res, 404, { error: "not_found", message: "not found (the console runs inside the MatchFrame program; the API is under /api/v1)" });
     } catch (err) {
       e.logger.error("api server error", { error: String(err) });
       json(res, 500, { error: "internal" });
@@ -308,8 +308,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   const overlayOrigin = `http://127.0.0.1:${cfg.overlayPort}`;
   // 'self': the library output page frames its HUD; the console (and its preview panels) frames outputs.
   const csp = overlayCsp(overlayOrigin, ["'self'", `http://127.0.0.1:${cfg.apiPort}`, `http://localhost:${cfg.apiPort}`, "app://matchframe", "file:"]);
-  // LHM-format HUDs commonly load their fonts from Google Fonts; their files may (offline, the HUD falls back).
-  const lhmCsp = csp.replace("style-src 'self' 'unsafe-inline'", "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com").replace("font-src 'self' data:", "font-src 'self' data: https://fonts.gstatic.com");
+  // Imported hud.json-format HUDs commonly load their fonts from Google Fonts; their files may (offline, the HUD falls back).
+  const compatCsp = csp.replace("style-src 'self' 'unsafe-inline'", "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com").replace("font-src 'self' data:", "font-src 'self' data: https://fonts.gstatic.com");
   let rejectedOverlayMessages = 0;
   const overlayHub = new WsHub({
     onConnect: (c) => sendHud(c, true),
@@ -368,9 +368,9 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   };
   e.onHudUpdate((_outputId, urgent) => pushHud(urgent));
 
-  // LHM compatibility layer for LHM-format HUDs (socket.io at /socket.io, GET /api/...): attached
-  // to the HUD server below.
-  const lhm = new LhmRuntime(e);
+  // HUD compatibility layer for imported hud.json-format HUDs (socket.io at /socket.io, GET /api/...):
+  // attached to the HUD server below.
+  const compat = new CompatRuntime(e);
 
   // Library output pages (/hud/<id>/<variant>) keep a read-only control socket: the server sends
   // a HudRuntimeControl on connect and whenever stopped, hidden or reloadSeq change.
@@ -384,10 +384,10 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       const worstMs = num(m.worstMs, 60_000);
       const pauses = num(m.pauses, 10_000);
       if (fps === null || worstMs === null || pauses === null) return;
-      // An LHM HUD's game data is paced by how long its pages' tasks wait (output pages before 0.9.2 don't say).
+      // An imported HUD's game data is paced by how long its pages' tasks wait (output pages before 0.9.2 don't say).
       const lagMs = num(m.lagMs, 60_000);
       const hudId = String(c.meta.hudId);
-      if (lagMs !== null && e.hudLibrary.runtimeConfig(hudId)?.runtime === "lhm") lhm.noteLoad(hudId, c, lagMs);
+      if (lagMs !== null && e.hudLibrary.runtimeConfig(hudId)?.runtime === "compat") compat.noteLoad(hudId, c, lagMs);
       const now = Date.now();
       const kept = ((c.meta.perf as PerfReport[] | undefined) ?? []).filter((r) => now - r.at < PERF_KEEP_MS);
       kept.push({ at: now, fps, worstMs, pauses });
@@ -401,7 +401,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   };
   let lastTestData = e.simulationRunning;
   e.hudLibrary.attachRuntime({
-    action: (hudId, key, value) => lhm.action(hudId, key, value),
+    action: (hudId, key, value) => compat.action(hudId, key, value),
     outputs: (hudId) => {
       const counts: Record<HudOutputMode, number> = { obs: 0, desktop: 0, preview: 0 };
       // The manager's own embedded preview (details panel) is not an output.
@@ -436,7 +436,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   });
   const hudTimer = setInterval(() => {
     pushHud();
-    // Wrappers that label test data themselves (LHM HUDs) learn when the simulation starts or stops.
+    // Wrappers that label test data themselves (imported HUDs) learn when the simulation starts or stops.
     if (e.simulationRunning !== lastTestData) {
       lastTestData = e.simulationRunning;
       for (const c of runtimeHub.clients) sendControl(c);
@@ -469,21 +469,22 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     }
     if (p.startsWith("/huds/")) {
       const [, , id, ...rest] = p.split("/");
-      const pkg = id ? e.hudPackages.get(decodeURIComponent(id)) : undefined;
+      // A HUD's legacy id (a page opened before the update) serves the HUD it has now.
+      const pkg = id ? e.hudPackages.get(e.hudLibrary.resolveId(decodeURIComponent(id))) : undefined;
       if (pkg && pkg.classification === "imported") {
         const f = safeResolve(pkg.installDir, rest.join("/"));
-        if (f && pkg.manifest.runtime === "lhm" && /\.html?$/i.test(f)) {
+        if (f && pkg.manifest.runtime === "compat" && /\.html?$/i.test(f)) {
           // The player cams scripts go in before the HUD's own (its camera protocol, ADR-048).
-          const body = injectLhmCams(readFileSync(f, "utf8"));
-          res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers, "content-security-policy": lhmCsp });
+          const body = injectCompatCams(readFileSync(f, "utf8"));
+          res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers, "content-security-policy": compatCsp });
           res.end(body);
           return;
         }
-        if (f) return serveFile(res, f, pkg.manifest.runtime === "lhm" ? { ...headers, "content-security-policy": lhmCsp } : headers);
+        if (f) return serveFile(res, f, pkg.manifest.runtime === "compat" ? { ...headers, "content-security-policy": compatCsp } : headers);
       }
       return json(res, 404, { error: "not_found" });
     }
-    const camScript = p === "/hud-runtime/cams.js" ? CAMS_JS : p === "/hud-runtime/lhm-cams.js" ? LHM_CAMS_JS : p === "/hud-runtime/cam-page.js" ? CAM_PAGE_JS : null;
+    const camScript = p === "/hud-runtime/cams.js" ? CAMS_JS : p === "/hud-runtime/compat-cams.js" ? COMPAT_CAMS_JS : p === "/hud-runtime/cam-page.js" ? CAM_PAGE_JS : null;
     if (camScript) {
       res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache", "x-content-type-options": "nosniff", ...headers });
       res.end(camScript);
@@ -530,7 +531,9 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     // Library output page. Reserved ids (assets, sdk, ...) are the built-in renderer's own files below.
     const libPage = /^\/hud\/([^/]+)\/([^/]+)\/?$/.exec(p);
     if (libPage && !(RESERVED_HUD_IDS as readonly string[]).includes(libPage[1]!)) {
-      const [, hudId, variant] = libPage as unknown as [string, string, string];
+      const [, requestedId, variant] = libPage as unknown as [string, string, string];
+      // OBS browser sources made before the update use the HUD's legacy id, with the same token.
+      const hudId = e.hudLibrary.resolveId(requestedId);
       const rt = e.hudLibrary.runtimeConfig(hudId);
       if (!rt) return json(res, 404, { error: "not_found", message: "unknown HUD" });
       const token = url.searchParams.get("t");
@@ -539,20 +542,20 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       if (!entry) return json(res, 404, { error: "not_found", message: `this HUD has no ${variant} variant` });
       const m = url.searchParams.get("mode") ?? "obs";
       const mode: HudOutputMode = (HUD_OUTPUT_MODES as readonly string[]).includes(m) ? (m as HudOutputMode) : "obs";
-      const lhmHud = rt.runtime === "lhm";
-      // An LHM HUD's own page (hud.json variants, e.g. kaiHUD's player-stats): the HUD reads it from `variant`.
-      const view = lhmHud ? url.searchParams.get("view") : null;
-      if (view && !lhmViews(rt.installDir).some((v) => v.id === view)) return json(res, 404, { error: "not_found", message: `this HUD has no ${view} page` });
-      // LHM-format HUDs use relative addresses with isProd set, and reach /socket.io and /api with a cookie.
-      const q = `output=${libraryOutputId(hudId)}&variant=${encodeURIComponent(view ?? variant)}&t=${encodeURIComponent(token!)}${lhmHud ? "&isProd=1" : ""}`;
+      const compatHud = rt.runtime === "compat";
+      // An imported HUD's own page (hud.json variants, e.g. player-stats): the HUD reads it from `variant`.
+      const view = compatHud ? url.searchParams.get("view") : null;
+      if (view && !compatViews(rt.installDir).some((v) => v.id === view)) return json(res, 404, { error: "not_found", message: `this HUD has no ${view} page` });
+      // Imported hud.json-format HUDs use relative addresses with isProd set, and reach /socket.io and /api with a cookie.
+      const q = `output=${libraryOutputId(hudId)}&variant=${encodeURIComponent(view ?? variant)}&t=${encodeURIComponent(token!)}${compatHud ? "&isProd=1" : ""}`;
       const frameUrl = rt.builtin ? `/hud/index.html?${q}` : `/huds/${encodeURIComponent(hudId)}/${entry.split("/").map(encodeURIComponent).join("/")}?${q}`;
       const embed = mode === "preview" && url.searchParams.get("embed") === "1" ? "&embed=1" : "";
-      const html = wrapperPage({ hudId, name: rt.name, variant, mode, checker: url.searchParams.get("checker") === "1", testDataBadge: lhmHud, frameUrl, controlPath: `/hud-runtime-ws?hud=${encodeURIComponent(hudId)}&variant=${variant}&mode=${mode}${embed}&t=${encodeURIComponent(token!)}`, ...rt.designResolution });
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers, ...(lhmHud ? { "set-cookie": lhmSetCookie(hudId, token!) } : {}) });
+      const html = wrapperPage({ hudId, name: rt.name, variant, mode, checker: url.searchParams.get("checker") === "1", testDataBadge: compatHud, frameUrl, controlPath: `/hud-runtime-ws?hud=${encodeURIComponent(hudId)}&variant=${variant}&mode=${mode}${embed}&t=${encodeURIComponent(token!)}`, ...rt.designResolution });
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers, ...(compatHud ? { "set-cookie": compatSetCookie(hudId, token!) } : {}) });
       res.end(html);
       return;
     }
-    if (p.startsWith("/api/") && lhm.handleApi(req, res, p, url.searchParams)) return;
+    if (p.startsWith("/api/") && compat.handleApi(req, res, p, url.searchParams)) return;
     const radar = /^\/overlay-api\/radar\/([a-z0-9_]+)$/.exec(p);
     if (radar) {
       const rt = e.maps.get(radar[1]!);
@@ -566,7 +569,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       if (!r) return json(res, 404, { error: "not_found", message: "no built-in radar image for this map" });
       return serveFile(res, r.file, { ...headers, "cache-control": "public, max-age=3600" });
     }
-    // Matchframe's clean radar (SVG) in the frame of a radar background; the address carries its version.
+    // MatchFrame's clean radar (SVG) in the frame of a radar background; the address carries its version.
     const cleanRadar = /^\/overlay-api\/radar-clean\/([a-z0-9_]+)\/(builtin|calibrated|schematic)$/.exec(p);
     if (cleanRadar) {
       const svg = e.cleanRadars.svg(e.maps.get(cleanRadar[1]!), cleanRadar[2] as CleanRadarFrame);
@@ -594,7 +597,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       json(res, 500, { error: "internal" });
     }
   });
-  lhm.attach(overlay);
+  compat.attach(overlay);
   overlay.on("upgrade", (req, socket, head) => {
     const url = new URL(req.url ?? "/", "http://local");
     // socket.io handles its own upgrades (and checks the HUD cookie).
@@ -605,10 +608,11 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       socket.destroy();
     };
     if (url.pathname === "/cams-ws") {
-      // OBS cam pages (cams token), Matchframe HUDs (their output token), LHM HUDs (their cookie).
+      // OBS cam pages (cams token), MatchFrame HUDs (their output token), imported HUDs (their cookie).
       const out = url.searchParams.get("output") ?? "";
-      const hudId = libraryHudId(out);
-      const ok = e.cams.checkToken(token) || (hudId !== null && e.hudLibrary.checkToken(hudId, token)) || (!!out && hudId === null && e.outputs.checkToken(out, token)) || lhm.allowedHuds(req).length > 0;
+      const libId = libraryHudId(out);
+      const hudId = libId === null ? null : e.hudLibrary.resolveId(libId);
+      const ok = e.cams.checkToken(token) || (hudId !== null && e.hudLibrary.checkToken(hudId, token)) || (!!out && hudId === null && e.outputs.checkToken(out, token)) || compat.allowedHuds(req).length > 0;
       if (!ok) return unauthorized();
       return e.cams.upgrade(req, socket, head, { all: false });
     }
@@ -621,14 +625,17 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       return e.speakerStrip.upgrade(req, socket, head);
     }
     if (url.pathname === "/hud-runtime-ws") {
-      const hudId = url.searchParams.get("hud") ?? "";
+      // An output page opened before the update reconnects with the HUD's legacy id.
+      const hudId = e.hudLibrary.resolveId(url.searchParams.get("hud") ?? "");
       if (!e.hudLibrary.checkToken(hudId, token)) return unauthorized();
       const m = url.searchParams.get("mode") ?? "obs";
       const mode = (HUD_OUTPUT_MODES as readonly string[]).includes(m) ? m : "obs";
       return runtimeHub.upgrade(req, socket, head, { hudId, variant: url.searchParams.get("variant"), mode, embedded: mode === "preview" && url.searchParams.get("embed") === "1" });
     }
-    const outputId = url.searchParams.get("output") ?? "";
-    const hudId = libraryHudId(outputId);
+    const requested = url.searchParams.get("output") ?? "";
+    const libId = libraryHudId(requested);
+    const hudId = libId === null ? null : e.hudLibrary.resolveId(libId);
+    const outputId = hudId === null ? requested : libraryOutputId(hudId);
     if (url.pathname !== "/overlay-ws" || !(hudId !== null ? e.hudLibrary.checkToken(hudId, token) : e.outputs.checkToken(outputId, token))) return unauthorized();
     overlayHub.upgrade(req, socket, head, { outputId, variant: url.searchParams.get("variant") });
   });
@@ -654,7 +661,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       if (hudPending) clearTimeout(hudPending);
       if (operatorPending) clearTimeout(operatorPending);
       offLibrary();
-      await lhm.close();
+      await compat.close();
       e.hudLibrary.attachRuntime(null);
       operatorHub.closeAll();
       overlayHub.closeAll();

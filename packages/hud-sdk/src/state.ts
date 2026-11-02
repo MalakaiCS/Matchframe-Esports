@@ -119,7 +119,7 @@ export interface HudRadar {
   reason: string | null;
   mapName: string | null;
   /**
-   * "schematic": Matchframe outline generated from map-pack geometry sampled from real positions,
+   * "schematic": MatchFrame outline generated from map-pack geometry sampled from real positions,
    * using the same world transform as the markers. "image": a radar image with its calibration (the
    * built-in radar for the map, or an operator-calibrated image). "none": no trustworthy transform —
    * markers are not drawn.
@@ -129,7 +129,7 @@ export interface HudRadar {
   /** URL of the outline (schematic) or radar image, served by the overlay server. */
   backgroundUrl: string | null;
   /**
-   * Matchframe's clean radar for the map (navy floor, light walls, red bomb sites), drawn in the
+   * MatchFrame's clean radar for the map (navy floor, light walls, red bomb sites), drawn in the
    * same image frame as `backgroundUrl`, so the markers' u/v place on either. Null when none.
    */
   cleanUrl: string | null;
@@ -197,7 +197,7 @@ export interface HudState {
   standings: HudStandings | null;
   bracket: HudBracket | null;
   settings: Record<string, unknown>;
-  /** Pictures the operator added in the HUD Library (HUD images) for every Matchframe HUD. */
+  /** Pictures the operator added in the HUD Library (HUD images) for every MatchFrame HUD. */
   art: HudArt;
 }
 

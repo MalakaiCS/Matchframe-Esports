@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { ReplayPlay } from "@matchframe/replay-agent";
 import { probeMedia } from "@matchframe/replay-agent";
 import type { Engine } from "../app.ts";
+import { existingName } from "../brand.ts";
 import { APP_VERSION } from "../config.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
@@ -15,6 +16,10 @@ import { FeedPatch, ReplayFeed } from "../replay/feed.ts";
 import { ReplayPcSettings, replayLabel } from "../replay/link.ts";
 
 /** A clip from the replay PC: at most this big (the whole upload is held in memory; a 20 s 1080p60 clip is ~25 MB). */
+/** The replay scene and its media source that Set up OBS replay scene makes. */
+export const REPLAY_SCENE = "MatchFrame Replay";
+export const REPLAY_INPUT = "MatchFrame Replay Clip";
+
 const CLIP_MAX = 200 * 1024 * 1024;
 const CLIP_EXT = new Set(["mp4", "mkv", "mov", "flv", "ts", "m4v"]);
 /** Clips from the replay PC kept on disk (the oldest go first). */
@@ -206,12 +211,13 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
 
   /**
    * One click: the replay scene and its media source in OBS, mapped for replays, and its twin (for
-   * fading from one replay of a break to the next; replay/twin.ts).
+   * fading from one replay of a break to the next; replay/twin.ts). An OBS set up by 0.11.0 or
+   * earlier has them under the old spelling ("Matchframe Replay"): those are used, not made again.
    */
   r.post("/api/v1/replays/obs-setup", { permission: "settings.manage" }, async (req) => {
     if (!e.obs.state.connected) throw new HttpError(409, "connect OBS first (Settings → Devices)", "obs_not_connected");
-    const scene = "Matchframe Replay";
-    const input = "Matchframe Replay Clip";
+    const scene = existingName(REPLAY_SCENE, (n) => e.obs.state.scenes.includes(n));
+    const input = existingName(REPLAY_INPUT, (n) => e.obs.state.inputs.some((i) => i.name === n));
     const made = await e.obs.ensureInput({ sceneName: scene, inputName: input, inputKind: "ffmpeg_source", settings: { is_local_file: true, restart_on_activate: false, close_when_inactive: false, clear_on_media_end: false } });
     const scenes = { ...e.program.sceneMap, REPLAY: scene, LIVE: e.program.sceneMap.LIVE ?? (e.obs.state.programScene !== scene ? e.obs.state.programScene : null) };
     e.settings.set("program.scenes", scenes);

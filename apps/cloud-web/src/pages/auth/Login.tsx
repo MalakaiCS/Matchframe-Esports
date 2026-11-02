@@ -82,7 +82,7 @@ export function Login() {
         </Button>
       </form>
       <p className="auth-alt">
-        New to Matchframe? <Link to={signupLink}>Create an account</Link>
+        New to MatchFrame? <Link to={signupLink}>Create an account</Link>
       </p>
     </div>
   );

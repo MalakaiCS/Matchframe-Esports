@@ -291,18 +291,25 @@ describe("cloud API end to end (HTTP server, PGlite Postgres, Stripe SDK against
     expect((await new Client(base).req("POST", "/v1/auth/login", { email: "acct@example.com", password: "correct horse battery" })).status).toBe(401);
     expect((await new Client(base).req("POST", "/v1/auth/login", { email: "new-acct@example.com", password: "correct horse battery" })).status).toBe(200);
 
-    // Installers placed in MF_DOWNLOAD_DIR are served by the website (newest version, with SHA-256).
+    // Installers placed in MF_DOWNLOAD_DIR are served by the website (newest version, with SHA-256),
+    // under the current name or the name 0.11.0 and earlier had (MatchframeEsports-Setup-<version>.exe).
     const dir = mkdtempSync(join(tmpdir(), "mf-downloads-"));
     writeFileSync(join(dir, "MatchframeEsports-Setup-0.1.0.exe"), "old installer");
-    writeFileSync(join(dir, "MatchframeEsports-Setup-0.2.0.exe"), "new installer bytes");
+    writeFileSync(join(dir, "MatchFrameEsports-Setup-0.2.0.exe"), "new installer bytes");
     writeFileSync(join(dir, "notes.txt"), "not an installer");
     (app.cfg as { downloadDir: string | null }).downloadDir = dir;
     const dl = await new Client(base).req<{ windows: { url: string; sha256: string; version: string; size: number } }>("GET", "/v1/downloads");
-    expect(dl.data.windows).toEqual({ url: "/downloads/MatchframeEsports-Setup-0.2.0.exe", version: "0.2.0", size: 19, sha256: createHash("sha256").update("new installer bytes").digest("hex") });
+    expect(dl.data.windows).toEqual({ url: "/downloads/MatchFrameEsports-Setup-0.2.0.exe", version: "0.2.0", size: 19, sha256: createHash("sha256").update("new installer bytes").digest("hex") });
     const file = await fetch(`${base}${dl.data.windows.url}`);
-    expect(file.headers.get("content-disposition")).toBe('attachment; filename="MatchframeEsports-Setup-0.2.0.exe"');
+    expect(file.headers.get("content-disposition")).toBe('attachment; filename="MatchFrameEsports-Setup-0.2.0.exe"');
     expect(await file.text()).toBe("new installer bytes");
-    for (const bad of ["/downloads/notes.txt", "/downloads/..%2F..%2Fetc%2Fpasswd", "/downloads/MatchframeEsports-Setup-9.9.9.exe"]) expect((await fetch(base + bad)).headers.get("content-disposition")).toBeNull();
+    const legacy = await fetch(`${base}/downloads/MatchframeEsports-Setup-0.1.0.exe`);
+    expect(legacy.headers.get("content-disposition")).toBe('attachment; filename="MatchframeEsports-Setup-0.1.0.exe"');
+    expect(await legacy.text()).toBe("old installer");
+    // Only the old name in the folder (nothing published since): still found.
+    writeFileSync(join(dir, "MatchframeEsports-Setup-0.3.0.exe"), "old-named newest");
+    expect((await new Client(base).req<{ windows: { url: string } }>("GET", "/v1/downloads")).data.windows.url).toBe("/downloads/MatchframeEsports-Setup-0.3.0.exe");
+    for (const bad of ["/downloads/notes.txt", "/downloads/..%2F..%2Fetc%2Fpasswd", "/downloads/MatchFrameEsports-Setup-9.9.9.exe", "/downloads/matchframeesports-Setup-0.1.0.exe"]) expect((await fetch(base + bad)).headers.get("content-disposition")).toBeNull();
     (app.cfg as { downloadDir: string | null }).downloadDir = null;
 
     // A Stripe refusal (here: a price id that does not exist) is reported clearly, not as an internal error.

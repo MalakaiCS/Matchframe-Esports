@@ -1,5 +1,5 @@
 /**
- * Token handling. Inside the Matchframe program the preload bridge supplies the token. During
+ * Token handling. Inside the MatchFrame program the preload bridge supplies the token. During
  * development (Vite) a `?token=` in the URL is read once, kept in sessionStorage (cleared when the
  * window closes) and removed from the address bar, or the token can be pasted.
  */
@@ -24,7 +24,7 @@ declare global {
       getOperatorToken?: () => Promise<string | null>;
       openConnection?: () => Promise<void>;
       openDataDir?: () => Promise<string>;
-      /** Opens the folder highlight reels go in (the engine's folder when given, else the Videos folder's "Matchframe Highlights"). */
+      /** Opens the folder highlight reels go in (the engine's folder when given, else the Videos folder's "MatchFrame Highlights"). */
       openHighlights?: (folder?: string) => Promise<string>;
       /** Team Comms: opens TeamSpeak 3's plugins folder, or the program's TeamSpeak plugin files ("package"). */
       openTs3Folder?: (which: "plugins" | "package") => Promise<string | null>;

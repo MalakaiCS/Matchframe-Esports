@@ -1,6 +1,6 @@
 # Replay PC and automatic replays
 
-Two computers, each with the Matchframe program and CS2:
+Two computers, each with the MatchFrame program and CS2:
 
 - **PC 1, the main PC:** the on-air observer. Its OBS (or vMix) makes the broadcast.
 - **PC 2, the replay PC:** its own CS2 watches the same match a few seconds later. It knows each kill before it happens there, gets its camera on the killer and films it. Every kill it has time for, by default.
@@ -8,7 +8,7 @@ Two computers, each with the Matchframe program and CS2:
 
 PC 2's picture reaches PC 1 in one of two ways:
 
-- **Replay feed (NDI), like LHM's Replay Feed:**
+- **Replay feed (NDI):**
   - PC 2 sends its whole screen over NDI (vMix Desktop Capture, OBS's NDI output, or NDI Screen Capture).
   - PC 1 records it all the time, keeping the last 4 minutes.
   - PC 2 only tells PC 1 when it filmed a kill, and PC 1 cuts the clip from its recording.
@@ -25,7 +25,7 @@ The replay graphic over replays (a REPLAY tag and a lower third), highlight reel
 1. Install the NDI runtime: http://ndi.link/NDIRedistV6.
 2. Download vMix Desktop Capture NDI (https://cdn.vmix.com/download/vMixDesktopCaptureNDI.zip), extract it (for example to the desktop) and run `vMixDesktopCapture.exe`. It sends the whole screen as an NDI source named after the computer. OBS with an NDI output plugin, or NDI Screen Capture from NDI Tools, works too.
 3. Optionally, show a HUD on PC 2's screen (its desktop HUD from the HUD Library): it is part of the picture PC 1 records.
-4. Set up Matchframe as the replay PC (below), on a delayed CSTV.
+4. Set up MatchFrame as the replay PC (below), on a delayed CSTV.
 
 **On PC 1 (the main PC):** Replays & Production → Replay PC → **This is the main PC** → **Replay feed (NDI)**:
 1. **Download ffmpeg.** This is a 92 MB download of ffmpeg 7.1 (the gyan.dev essentials build). It is checked against its SHA-256 and kept in the program's data folder. ffmpeg is the encoder: it uses your graphics card's encoder (NVIDIA NVENC, Intel Quick Sync or AMD AMF) when there is one, otherwise the CPU (x264).
@@ -118,17 +118,17 @@ Three ways to get there:
 ## Set up PC 1 (main PC)
 
 1. **Replays & Production → Replay PC → This is the main PC.**
-2. Tick **Let other computers on the network connect**. The engine restarts listening on the network; access still needs a code. If Windows asks, allow Matchframe on private networks.
+2. Tick **Let other computers on the network connect**. The engine restarts listening on the network; access still needs a code. If Windows asks, allow MatchFrame on private networks.
 3. Note one of **this computer's addresses** (for example `192.168.1.20:37211`).
 4. Press **Make a replay PC code** and copy the code. It is shown once; remove it in Settings → Access to lock the replay PC out.
-5. Connect OBS (Settings → Devices) and press **Set up OBS replay scene** in Automatic replays. This adds a *Matchframe Replay* scene with a media source and uses it, and a second one beside it, *Matchframe Replay B*, for fading between replays (below). Map your live scene in **OBS scenes** if it isn't yet. Your own replay scene works too: map it as the replay scene in **OBS scenes**, with its media source.
+5. Connect OBS (Settings → Devices) and press **Set up OBS replay scene** in Automatic replays. This adds a *MatchFrame Replay* scene with a media source and uses it, and a second one beside it, *MatchFrame Replay B*, for fading between replays (below). Map your live scene in **OBS scenes** if it isn't yet. Your own replay scene works too: map it as the replay scene in **OBS scenes**, with its media source.
 6. Optionally, pick a Stinger for replays: **OBS scenes → Transitions → Replay in** (and **Replay out**). The Stinger has to be made once in OBS first (Scene Transitions → + → Stinger).
 7. Tick **Play replays by themselves** in Automatic replays.
 
 ## Set up PC 2 (replay PC)
 
 1. Start CS2 with **Start CS2** in a console mode (Observer tools) and watch the same match on CSTV (the same CSTV as PC 1 is fine: PC 2 goes back 7 s by itself).
-2. Connect OBS (Settings → Devices) with a Game Capture of CS2. Matchframe starts its replay buffer. Set the replay buffer length in OBS to 20 s or more.
+2. Connect OBS (Settings → Devices) with a Game Capture of CS2. MatchFrame starts its replay buffer. Set the replay buffer length in OBS to 20 s or more.
 3. **Replays & Production → Replay PC → This is the replay PC**: type PC 1's address and the code, then **Make this the replay PC**. The panel shows *Linked* and how far behind PC 1 this computer is. It also shows what it is filming, the clips sent, and kills it couldn't film, with the reason.
 4. Press **Start Auto Director** (Observer mode is enough).
 
@@ -199,7 +199,7 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
   - **Highlights in / Highlights out:** into highlights on air and back out of them (to the scene the program came from). The same as Replay in and Replay out unless chosen. See [replay-graphics-and-highlights.md → Highlights on air](replay-graphics-and-highlights.md#highlights-on-air).
   - **OBS's own transition** (and its duration) is put back once OBS says the transition has ended: a Stinger's whole video, not a fixed time.
   - **A Stinger** has to be made once in OBS first (Scene Transitions → + → Stinger, with its video); then it can be picked here. With a Stinger in, the first clip plays from the Stinger's cut point (its transition point), when the replay scene shows.
-  - **Match graphics:** putting a match's stingers in OBS makes *Matchframe Replay Stinger* Replay in and out where none is chosen.
+  - **Match graphics:** putting a match's stingers in OBS makes *MatchFrame Replay Stinger* Replay in and out where none is chosen.
 - **Between replays** (Automatic replays): **Fade (one scene, rendered)** (the default), **Fade (two scenes, OBS)**, or **Cut**; the fade's length is 0.5 s by default (0.3, 0.75 or 1 s). With vMix: a fade (vMix's own) or a cut.
 - **Fade (one scene, rendered)** (ADR-067): once the break's clips are chosen, ffmpeg joins them into one file and that file plays in your replay scene's one media source. One file, one scene, one play: nothing for OBS to hold paused off air, and no second scene.
   - **The file:** each clip cut to its part (its lead-up and the play), the clips crossfaded into each other (picture and sound, the fade's length; **Cut** joins them plainly). The sound fades in at the start and out at the end (**Sound fade**, 0.4 s by default; 0.3 or 0.5 s, or none), so a break never ends on a hard cut. It opens on the first clip's first frame held for 1.2 s and ends on the last clip's last frame held for 1 s, in silence, under Replay in and out. A keyframe starts each clip, so a skip to it is exact. It has the clips' own size and frame rate when they share them (PC 2's: 1920×1072 at 29.97 fps), else 1920×1080. It is written to the replay folder (*rendered*), and removed after the break.
@@ -211,15 +211,15 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
   - **Highlights on air** are rendered the same way first (*Preparing highlights… n%*; they wait for their file) and play on the highlights scene alone.
   - **Your twin scene** (below) isn't needed this way: it is left as it is (built when the clips play through the scenes).
 - **Fade (two scenes, OBS)**, and a break whose file isn't ready:
-  - **Two replay scenes:** OBS can't fade a media source into itself, so Matchframe keeps a copy of your replay scene, **"<your replay scene> B"**, with the same sources (shared, as OBS's *Add Existing*: one score bug shows in both), the same positions, sizes, crops, visibility, blend modes and order, and a media source of its own, **"<your media source> B"**, with the same settings, filters and audio. It is built, or brought up to date with your replay scene, off air at the start of each break and by **Set up OBS replay scene**. Leave it to Matchframe: changes go in your own replay scene.
+  - **Two replay scenes:** OBS can't fade a media source into itself, so MatchFrame keeps a copy of your replay scene, **"<your replay scene> B"**, with the same sources (shared, as OBS's *Add Existing*: one score bug shows in both), the same positions, sizes, crops, visibility, blend modes and order, and a media source of its own, **"<your media source> B"**, with the same settings, filters and audio. It is built, or brought up to date with your replay scene, off air at the start of each break and by **Set up OBS replay scene**. Leave it to MatchFrame: changes go in your own replay scene.
   - **The clips alternate between the two scenes.** The first is loaded in your replay scene before the transition and skipped so it is at its part as the replay scene shows. While a clip plays, the next one is chosen, and is loaded into the other scene **just in time**: about one load time before its fade (what OBS took to play the last one, half again, and 0.25 s; at least 0.5 s and at most 2.5 s), skipped so it reaches its part as the fade starts, and playing hidden into it. One fade length before the clip on air ends, the program fades over to its scene with OBS's Fade (found by its kind, whatever its name in your language), so the end of one blends into the start of the next. With **Cut**, the program cuts over as the clip on air ends: no black frame either, as the next is ready.
   - **Never held paused off air (0.10.12's "pausing and not playing then transitioning to the next clip"):** before, the next clip waited in the other scene paused at its part. A Windows OBS 30 let that pause go: the clip ran on hidden, often to its end; putting it back (restart, pause, skip) then left it stuck near its start, *play* didn't start it on air, and 1.5 s later the break faded to the next clip. Now nothing is paused off air and nothing restarted: a clip that ran on anyway (the one on air was held) is opened again and skipped to its part.
   - **On air, each clip must move:** if its cursor doesn't move within 0.3 s, play is sent again; if it still doesn't, its file is opened again and skipped to its part; only if that fails too is it skipped (and the log says why). A clip that stops moving later is played again, then opened again where it was, then given up 1.5 s after that.
-  - **The media sources:** both play while hidden, keep their place when shown and hold their last frame, so Matchframe turns off *Restart playback when source becomes active*, *Close file when inactive* and *Show nothing when playback ends* on your replay media source (OBS's defaults for a new Media Source are the other way round). If one is turned back on, the clip is still skipped to its part once shown, but the fade may start on the clip's first frames.
+  - **The media sources:** both play while hidden, keep their place when shown and hold their last frame, so MatchFrame turns off *Restart playback when source becomes active*, *Close file when inactive* and *Show nothing when playback ends* on your replay media source (OBS's defaults for a new Media Source are the other way round). If one is turned back on, the clip is still skipped to its part once shown, but the fade may start on the clip's first frames.
   - **Measured** (OBS 30.0.2 on Linux, recordings read frame by frame): your scene with a backdrop, the media source scaled and moved, and a score bug on top. Between two 720p30 clips, 14 frames (0.47 s) of the two blended, the mix moving from one to the other frame by frame; no black frame, no frame of a clip's start; the backdrop and the score bug through every fade, in both scenes; each clip from its part.
   - **No second scene** (your media source is in a group, or isn't a Media Source): the clips play in your replay scene's one source, as before 0.10.5: the next is loaded as the one before ends, which shows one black frame and about 0.1 s of the next clip's first frame. The panel says why.
   - **Keyframes:** OBS skips to the keyframe before a clip's part, not to the exact frame, so a clip can start up to one keyframe interval early (with OBS's default of 250 frames, about 4 s at 60 fps; 1 or 2 s keyframes are better; PC 2's clips cut from the replay feed have one a second). That is more lead-up, not a gap. A rendered break has a keyframe at each clip's start, so its clips start exactly at their part.
-- **Stops:** the break's replays stop, back to the live scene with Replay out, when the next round's clock reaches 1:50 (or, with **Before the round starts**, when the round goes live), the bomb is planted, or automatic replays are turned off. If you (or anything else) change the program meanwhile, it is left as you put it and no further clip plays: in Matchframe, or in OBS (a scene clicked, the Transition button in Studio Mode, even to one of the two replay scenes). A clip that doesn't play is skipped and the next one plays; if none plays, the program goes back to the live scene.
+- **Stops:** the break's replays stop, back to the live scene with Replay out, when the next round's clock reaches 1:50 (or, with **Before the round starts**, when the round goes live), the bomb is planted, or automatic replays are turned off. If you (or anything else) change the program meanwhile, it is left as you put it and no further clip plays: in MatchFrame, or in OBS (a scene clicked, the Transition button in Studio Mode, even to one of the two replay scenes). A clip that doesn't play is skipped and the next one plays; if none plays, the program goes back to the live scene.
 - **Only from the live scene:** automatic replays play while the program is live. The status under **Automatic replays** says when it isn't, and **Return live** (top of Replays & Production) puts it back. On a scene of yours in OBS, they wait for you (see *Switching scenes yourself*).
   - **Follows OBS (0.10.2):** when OBS shows your live scene, the program counts as live again. That covers a scene you switched to by hand, and OBS reconnecting on the live scene. Before, the program could stay in "replay playing" or "degraded" while OBS showed the live scene, and automatic replays waited.
   - **Clips played by hand:** after **Approve** and **Play**, the program goes back to the live scene when the clip ends, like an automatic replay.
@@ -227,19 +227,19 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
 
 ## Switching scenes yourself (multiview)
 
-You can switch OBS's scenes yourself at any time (a multiview plugin, OBS's own buttons, a hotkey, Studio Mode's Transition button): to an analysis scene between rounds, the casters during the replays, your break or studio scene. Matchframe follows OBS and never fights it:
-- **Your scene:** a scene OBS shows that Matchframe didn't put there, other than your live scene, is yours (even your mapped break, studio or replay scene). The program follows it (*manual*, yours, named after the scene) and Matchframe changes nothing until OBS shows your live scene again: no replays cut in, no break or studio scene, no cut back at 1:50. Matchframe's own changes (its replays, the second replay scene during them, the break scene for a timeout) don't count.
+You can switch OBS's scenes yourself at any time (a multiview plugin, OBS's own buttons, a hotkey, Studio Mode's Transition button): to an analysis scene between rounds, the casters during the replays, your break or studio scene. MatchFrame follows OBS and never fights it:
+- **Your scene:** a scene OBS shows that MatchFrame didn't put there, other than your live scene, is yours (even your mapped break, studio or replay scene). The program follows it (*manual*, yours, named after the scene) and MatchFrame changes nothing until OBS shows your live scene again: no replays cut in, no break or studio scene, no cut back at 1:50. MatchFrame's own changes (its replays, the second replay scene during them, the break scene for a timeout) don't count.
 - **The status says so, it isn't an error:** *OBS shows “Analysis” (your scene): replays wait until you're back on the live scene.* Test replays wait the same way.
 - **Back on the live scene** (in OBS, or **Return live**): live again, as before. During a break with time left (before the next round is live), its replays play then, the ones that still fit.
 - **During the replays:** switching OBS to one of your scenes stops them (the clip on air stays where it is in its scene); the live game audio goes back up; nothing more plays and nothing cuts away from your scene, not the 1:50 cut back, not Stop. Back on the live scene in time, the rest of the break plays; **Stop and go live** meanwhile cancels that.
-- **Break and studio scenes:** Matchframe only takes back the break or studio scene it put on itself (a timeout, the end of a map); one you put on stays until you change it.
+- **Break and studio scenes:** MatchFrame only takes back the break or studio scene it put on itself (a timeout, the end of a map); one you put on stays until you change it.
 - **Studio Mode** (a plugin may put a scene in preview and press Transition): followed the same way. **After a restart, or OBS reconnecting,** on one of your scenes: it's yours too.
 
 ## OBS Studio Mode
 
 Automatic replays work with Studio Mode on, and leave your preview alone:
 - **The program** changes with obs-websocket's *SetCurrentProgramScene*, which in Studio Mode transitions the program (with the chosen transition) without taking the preview.
-- **Swap Scenes** (on by default) then puts the scene the program left in preview, at the end of each transition. Matchframe puts your preview back a moment later (about 0.15 s; you may see it flicker), unless you changed it meanwhile.
+- **Swap Scenes** (on by default) then puts the scene the program left in preview, at the end of each transition. MatchFrame puts your preview back a moment later (about 0.15 s; you may see it flicker), unless you changed it meanwhile.
 - **Duplicate Scene** (on by default): the program shows a private copy of the replay scene under the same name. Its media source is the same source, so loading, holding and skipping clips works. **Duplicate Sources** doesn't change that: OBS never copies a Media Source (checked with OBS 30.0.2: the clips and fades were on program with it on).
 - **Your Transition button** during a break counts as taking the program, even with a replay scene in preview: no further clip plays and the program stays where you put it, followed as your scene (above). So does any program change made in OBS.
 - **The second replay scene** isn't changed while it, or your replay scene, is in preview: the break then uses it as it is (or, before it exists, your replay scene's one source).
@@ -270,7 +270,7 @@ While a break's replays play, **Automatic replays** shows three buttons above it
 In the round's list (*Round 7: its clips, best first*), each clip that hasn't played has two buttons:
 
 - **Exclude:** it doesn't play in its break (**Include** lets it play again).
-- **Pin first:** it plays first in its break, if it fits (even a clip with the same kills as a better one). Pinned while the break's replays play, it plays next: if another clip was already waiting in the second replay scene, Matchframe loads the pinned one there instead, and a clip that wasn't chosen joins the break. One clip at a time is pinned.
+- **Pin first:** it plays first in its break, if it fits (even a clip with the same kills as a better one). Pinned while the break's replays play, it plays next: if another clip was already waiting in the second replay scene, MatchFrame loads the pinned one there instead, and a clip that wasn't chosen joins the break. One clip at a time is pinned.
 
 These apply to the current break, or the next one of that round (during the round, before it ends). A clip whose break is over can't be pinned: play it by hand.
 
@@ -278,7 +278,7 @@ Every control is in the audit log (`replay.auto_skip`, `replay.auto_hold`, `repl
 
 ## Stream Deck and Bitfocus Companion
 
-The same controls are actions of Matchframe's control-surface API (see [Companion / Stream Deck](../integrations/companion-streamdeck.md)): `POST http://127.0.0.1:37211/api/v1/devices/actions/<action>` with the headers `Authorization: Bearer <token>` and `Content-Type: application/json`.
+The same controls are actions of MatchFrame's control-surface API (see [Companion / Stream Deck](../integrations/companion-streamdeck.md)): `POST http://127.0.0.1:37211/api/v1/devices/actions/<action>` with the headers `Authorization: Bearer <token>` and `Content-Type: application/json`.
 
 | Button | Action | Body |
 |---|---|---|
@@ -308,7 +308,7 @@ An answer of 409 means nothing to do now (no replay on air), 403 a token without
 ## Hotkeys
 
 - **In the console** (while its window has the focus, not while you type in a field): **Ctrl+Shift+F5** Skip, **Ctrl+Shift+F6** Hold / Resume, **Ctrl+Shift+F7** Stop and go live. On any screen. Highlights on air: **Ctrl+Shift+F9** Play highlights, **Ctrl+Shift+F10** Stop highlights (Skip and Hold are F5 and F6).
-- **Global hotkeys** (the Matchframe program; they work with CS2 or OBS in front): Automatic replays → **Hotkeys and Stream Deck**. Off until you set them, since a global hotkey takes its keys from every other program. **Use the suggested keys** sets the same three, which CS2 and OBS don't use by default; or type your own (for example `Ctrl+Alt+F9`), a modifier and a key, or a function key alone.
+- **Global hotkeys** (the MatchFrame program; they work with CS2 or OBS in front): Automatic replays → **Hotkeys and Stream Deck**. Off until you set them, since a global hotkey takes its keys from every other program. **Use the suggested keys** sets the same three, which CS2 and OBS don't use by default; or type your own (for example `Ctrl+Alt+F9`), a modifier and a key, or a function key alone.
   - A key another program (or Windows) holds isn't registered: the panel says so in red, *Ctrl+Shift+F5 is already taken by another program (or Windows): choose another key for Skip.* Choose another, or free it in the other program (for example a hotkey you set in OBS).
   - The program's own hotkeys (emergency stop Ctrl+Shift+F12, save the CS2 view Ctrl+Shift+F11, the desktop HUD hotkeys) are refused.
   - They are kept on this computer, with the program's settings.
@@ -443,14 +443,14 @@ Automatic replays → **Test replays** plays two sample clips (*Test clip 1* in 
   - **Test replays:** refused while a round is live and while the program isn't live; Replay in (a Stinger), the fade to the twin, Replay out, every step *OK*; the clip on air found by its id with its play, and gone afterwards (not listed, ranked or in a playlist); a sample clip OBS can't play reported with its fix; through vMix too.
   - **The feed's sound** (real ffmpeg, a stand-in NDI source with a tone on and off every 0.5 s by wall time): the cut clip has an AAC 48 kHz stereo track at the source's level, in time with the source to within 30 ms; a source without sound recorded with silence as long as the picture; the clock's handling of jitter, a busy moment, a real gap and a drifting sender (above, *The replay feed's timing*).
   - **Real NDI** (the NDI 6.3 runtime that comes with the binding, a local NDI sender on this computer, real ffmpeg): the cut clip's tone at the sender's level, in time to within 20 ms.
-- **Switching scenes yourself** (`obs-own-scenes.e2e.test.ts`, the stand-in OBS): an analysis scene put on in OBS between rounds followed as yours, no replays cut in, no break scene for a timeout, Test replays waiting, back to live and the break's replay played; back on the live scene before a break's replays started: they play; the casters put on during the replays: they stop, the live audio back up, the rest played on coming back in time; staying on it: no cut back at 1:50, Stop and Test replays refused; the mapped break scene put on by hand not taken back, Matchframe's own taken back; Studio Mode's preview and Transition; found on your scene when OBS connects.
+- **Switching scenes yourself** (`obs-own-scenes.e2e.test.ts`, the stand-in OBS): an analysis scene put on in OBS between rounds followed as yours, no replays cut in, no break scene for a timeout, Test replays waiting, back to live and the break's replay played; back on the live scene before a break's replays started: they play; the casters put on during the replays: they stop, the live audio back up, the rest played on coming back in time; staying on it: no cut back at 1:50, Stop and Test replays refused; the mapped break scene put on by hand not taken back, MatchFrame's own taken back; Studio Mode's preview and Transition; found on your scene when OBS connects.
 - **Not checked yet:**
   - the real NDI binding receiving a real NDI source (the Windows release build only checks that it loads), and vMix Desktop Capture;
   - the replay feed on Windows (ffmpeg's hardware encoders);
   - a real vMix;
   - two real CS2 clients on two computers over a real network;
   - a real second CSTV;
-  - `demo_gototick` sent by Matchframe to a real CS2 on CSTV (the owner uses `-448 relative` and `448 relative` by hand);
+  - `demo_gototick` sent by MatchFrame to a real CS2 on CSTV (the owner uses `-448 relative` and `448 relative` by hand);
   - Windows OBS (the support file now says which OBS: `replays.obs.obsVersion`, `websocketVersion`, `platform`); in particular, that a Windows OBS 30 plays the rendered file through as Linux's did, and how long NVENC takes to make a break's file on the owner's PC (here, without a graphics card, x264 took 9.4–10.3 s for four 6.2 s clips, so breaks played through the scenes; reading and joining them took 3.8 s of that);
   - a real CS2's round clock at the start of a live round (the round time is learned from it) and the break's end against it;
   - fades on a busy computer: here (software rendering) the blend moved every frame with 720p30 clips, every fourth frame with two 1080p60 clips.

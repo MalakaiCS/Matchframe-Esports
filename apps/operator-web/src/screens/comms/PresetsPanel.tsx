@@ -100,11 +100,11 @@ export function PresetsPanel({ onChanged }: { onChanged: () => void }) {
                     ) : (
                       <>
                         <strong>{p.name}</strong> {p.active ? <Badge tone="info">{active?.changed ? "Active (changed)" : "Active"}</Badge> : null}
-                        <div className="muted small">{p.teams.map((t) => t.name ?? "a team no longer in Matchframe").join(" vs ")}</div>
+                        <div className="muted small">{p.teams.map((t) => t.name ?? "a team no longer in MatchFrame").join(" vs ")}</div>
                       </>
                     )}
                   </td>
-                  <td className="small">{p.eventName ?? (p.eventId ? "an event no longer in Matchframe" : "Any event")}</td>
+                  <td className="small">{p.eventName ?? (p.eventId ? "an event no longer in MatchFrame" : "Any event")}</td>
                   <td className="small">{`${p.people} (${p.included.broadcast} broadcast, ${p.included.recording} recording)`}</td>
                   <td className="small">{fmtDelay(p.delayMs)}</td>
                   <td>
@@ -133,7 +133,7 @@ export function PresetsPanel({ onChanged }: { onChanged: () => void }) {
             </tbody>
           </table>
         )}
-        <p className="muted small">Loading a preset never puts comms on air (and never takes them off): passwords stay in Matchframe's secure settings, and your headphone Solo is your own.</p>
+        <p className="muted small">Loading a preset never puts comms on air (and never takes them off): passwords stay in MatchFrame's secure settings, and your headphone Solo is your own.</p>
       </div>
     </Panel>
   );

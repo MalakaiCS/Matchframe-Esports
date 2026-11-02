@@ -107,7 +107,7 @@ export function ObsAutomationPanel() {
         </div>
         {scenes?.HIGHLIGHTS !== undefined ? <p className="muted small">Highlights scene: {scenes.HIGHLIGHTS ?? "not set up"}. Set it up, or pick your own, under Highlights on air.</p> : null}
         <p className="muted small">A Stinger has to be made once in OBS first (Scene Transitions → + → Stinger, with its video); then it can be picked here. OBS's own transition is put back after each change. From one replay to the next: Between replays, under Automatic replays.</p>
-        <p className="muted small">Scenes only change from the live scene, and only back from a scene Matchframe chose. Your own program choices are never undone.</p>
+        <p className="muted small">Scenes only change from the live scene, and only back from a scene MatchFrame chose. Your own program choices are never undone.</p>
       </div>
     </Panel>
   );
@@ -123,7 +123,7 @@ export function HighlightTransitions({ settings, transitions, disabled, save }: 
   );
 }
 
-/** HUD graphics timed to the shots, and an LHM HUD's pages in OBS. */
+/** HUD graphics timed to the shots, and an imported HUD's pages in OBS. */
 export function GraphicsPanel() {
   const g = useApi<GraphicsSettings>("/api/v1/graphics/auto");
   const lib = useApi<HudLibrary>("/api/v1/hud/library");
@@ -140,7 +140,7 @@ export function GraphicsPanel() {
       toast.push("danger", "Setting not saved", describeError(e));
     }
   };
-  const lhm = (lib.data?.huds ?? []).filter((h) => h.views.length > 0);
+  const imported = (lib.data?.huds ?? []).filter((h) => h.views.length > 0);
   const sources = (items.data ?? []).map((i) => i.sourceName);
   const off = !!reason || !st;
   return (
@@ -153,14 +153,14 @@ export function GraphicsPanel() {
           <Checkbox checked={st?.playerCards ?? true} disabled={off || !st?.enabled} label="Player card on a long player view" hint="Only on a player view, never over a camera, and gone when the view changes." onChange={(v) => void save({ playerCards: v })} />
           <Checkbox checked={st?.clutch ?? true} disabled={off || !st?.enabled} label="Clutch banner (1v2 and more)" onChange={(v) => void save({ clutch: v })} />
         </div>
-        <p className="muted small">Matchframe HUDs draw these. LHM-format HUDs (such as kaiHUD) have their own pages instead, shown below.</p>
-        <h4 className="hud-section-title">LHM HUD pages in OBS</h4>
-        <p className="muted small">Add the HUD's Player stats and Match stats pages as Browser Sources in one OBS scene (copy their addresses in HUD Library → the HUD → HUD pages), hidden. Matchframe shows Player stats for the round MVP in freeze time, and Match stats at half time and at the end of the map.</p>
+        <p className="muted small">MatchFrame HUDs draw these. Imported HUDs (hud.json format) have their own pages instead, shown below.</p>
+        <h4 className="hud-section-title">Imported HUD pages in OBS</h4>
+        <p className="muted small">Add the HUD's Player stats and Match stats pages as Browser Sources in one OBS scene (copy their addresses in HUD Library → the HUD → HUD pages), hidden. MatchFrame shows Player stats for the round MVP in freeze time, and Match stats at half time and at the end of the map.</p>
         <div className="form-grid">
           <Field label="HUD">
             <select value={pages.hudId} disabled={off} onChange={(e) => void save({ pages: { hudId: e.target.value } })}>
               <option value="">None</option>
-              {lhm.map((h) => (
+              {imported.map((h) => (
                 <option key={h.id} value={h.id}>
                   {h.name}
                 </option>

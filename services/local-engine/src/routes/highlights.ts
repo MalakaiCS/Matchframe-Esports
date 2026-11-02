@@ -111,7 +111,7 @@ export function registerHighlightRoutes(r: Router, e: Engine): void {
     return air();
   });
 
-  /** One click: the "Matchframe Highlights" scene with its media source and twin, mapped, the replay graphic on top. */
+  /** One click: the "MatchFrame Highlights" scene with its media source and twin, mapped, the replay graphic on top. */
   r.post("/api/v1/highlights/air/obs-setup", { permission: "settings.manage" }, async (req) => {
     const res = await e.highlightsAir.setupObs();
     e.audit.record(req.principal!.label, "highlights.obs_setup", res.scene, { input: res.input, created: res.created, graphic: res.graphic, twin: res.setup.twin?.scene ?? null });

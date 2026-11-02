@@ -1,10 +1,11 @@
 import { z } from "zod";
 import type { MatchState } from "@matchframe/contracts";
 import type { Engine } from "../app.ts";
+import { existingName } from "../brand.ts";
 import { HttpError } from "../http/router.ts";
 import type { ProgramOwner } from "../production/program.ts";
 import type { SequenceResult, Stage } from "./auto.ts";
-import { GRAPHIC_SOURCE, halfRounds, isHalfStart } from "./graphic.ts";
+import { halfRounds, isHalfStart } from "./graphic.ts";
 import type { KeptMap } from "./highlights.ts";
 import { SceneTwin, HIGHLIGHTS_TWIN, REPLAY_MEDIA_SETTINGS, type TwinStatus } from "./twin.ts";
 import { VMIX_TRANSITIONS } from "./vmix.ts";
@@ -57,8 +58,8 @@ export const HighlightsAirPatch = z.object({
 });
 
 /** The scene and media source "Set up OBS highlights scene" makes. */
-export const HIGHLIGHTS_SCENE = "Matchframe Highlights";
-export const HIGHLIGHTS_INPUT = "Matchframe Highlights Clip";
+export const HIGHLIGHTS_SCENE = "MatchFrame Highlights";
+export const HIGHLIGHTS_INPUT = "MatchFrame Highlights Clip";
 const MEDIA_KEY = HIGHLIGHTS_TWIN.mediaKey;
 const SETTINGS_KEY = "highlights.air";
 /** The program's holder while highlights are on air. */
@@ -428,7 +429,7 @@ export class HighlightsOnAir {
       const media = items.find((i) => i.sourceName === input);
       const kind = media ? (await obs.inputSettings(input).catch(() => null))?.kind : null;
       const sceneReady = !!media && kind === "ffmpeg_source";
-      const graphic = { source: GRAPHIC_SOURCE, ...(await this.e.replayGraphic.inScene(scene)) };
+      const graphic = { source: this.e.replayGraphic.source(), ...(await this.e.replayGraphic.inScene(scene)) };
       const detail = !media ? `“${scene}” has no media source “${input}” of its own (not in a group).` : kind !== "ffmpeg_source" ? `“${input}” isn't a Media Source.` : !graphic.inScene ? "Ready. The replay graphic isn't in it: press Add the replay graphic." : !graphic.onTop ? "Ready. The replay graphic isn't on top: move it to the top in OBS." : "Ready, with the replay graphic on top.";
       return { ...base, sceneReady, graphic, detail };
     } catch (err) {
@@ -437,20 +438,24 @@ export class HighlightsOnAir {
   }
 
   /**
-   * One click: the "Matchframe Highlights" scene with its media source (the replay source's media
+   * One click: the "MatchFrame Highlights" scene with its media source (the replay source's media
    * settings), mapped, the replay graphic's browser source on top (the same source as in the replay
-   * scene), and its twin for fading.
+   * scene), and its twin for fading. An OBS set up by 0.11.0 or earlier has them under the old
+   * spelling ("Matchframe Highlights"): those are used, not made again.
    */
   async setupObs(): Promise<{ scene: string; input: string; created: boolean; graphic: { created: boolean; onTop: boolean } | null; graphicError: string | null; setup: AirSetup }> {
     if (!this.e.obs.state.connected) throw new HttpError(409, "connect OBS first (Settings → Devices)", "obs_not_connected");
-    const made = await this.e.obs.ensureInput({ sceneName: HIGHLIGHTS_SCENE, inputName: HIGHLIGHTS_INPUT, inputKind: "ffmpeg_source", settings: { is_local_file: true, ...REPLAY_MEDIA_SETTINGS } });
-    const scenes = { ...this.e.program.sceneMap, HIGHLIGHTS: HIGHLIGHTS_SCENE };
+    const obs = this.e.obs.state;
+    const scene = existingName(HIGHLIGHTS_SCENE, (n) => obs.scenes.includes(n));
+    const input = existingName(HIGHLIGHTS_INPUT, (n) => obs.inputs.some((i) => i.name === n));
+    const made = await this.e.obs.ensureInput({ sceneName: scene, inputName: input, inputKind: "ffmpeg_source", settings: { is_local_file: true, ...REPLAY_MEDIA_SETTINGS } });
+    const scenes = { ...this.e.program.sceneMap, HIGHLIGHTS: scene };
     this.e.settings.set("program.scenes", scenes);
     this.e.program.setScenes(scenes);
-    this.e.settings.set(MEDIA_KEY, HIGHLIGHTS_INPUT);
+    this.e.settings.set(MEDIA_KEY, input);
     const graphic = await this.addGraphic();
     await this.twinOf().sync();
-    return { scene: HIGHLIGHTS_SCENE, input: HIGHLIGHTS_INPUT, created: made.created, graphic: graphic.ok, graphicError: graphic.error, setup: await this.setup() };
+    return { scene, input, created: made.created, graphic: graphic.ok, graphicError: graphic.error, setup: await this.setup() };
   }
 
   /** The operator's own scene and its media source for highlights (null: none), saved with the program's scenes; its twin made. */

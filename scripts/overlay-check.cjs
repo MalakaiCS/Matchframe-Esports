@@ -1,6 +1,6 @@
-// Checks the transparent desktop HUD of the Matchframe program on the machine it runs on and writes
+// Checks the transparent desktop HUD of the MatchFrame program on the machine it runs on and writes
 // a JSON report. Run it against the installed program on Windows (CI does after installing):
-//   node scripts/overlay-check.cjs "<path to Matchframe Esports.exe>" report.json
+//   node scripts/overlay-check.cjs "<path to MatchFrame Esports.exe>" report.json
 // or against a development build (Linux needs xvfb-run; the screen-pixel and input checks are
 // Windows-only and are reported as skipped elsewhere):
 //   xvfb-run -a node scripts/overlay-check.cjs node_modules/.bin/electron report.json apps/desktop
@@ -158,8 +158,8 @@ const data = mkdtempSync(join(tmpdir(), "mf-overlay-"));
     const overlay = await fetch(`http://127.0.0.1:${PORTS.overlay}/health`).then(() => true, () => false);
     let leftover = [];
     if (isWin) {
-      const out = execFileSync("tasklist.exe", ["/FO", "CSV", "/NH", "/FI", "IMAGENAME eq Matchframe Esports.exe"], { encoding: "utf8" });
-      leftover = out.split(/\r?\n/).filter((l) => l.includes("Matchframe Esports.exe"));
+      const out = execFileSync("tasklist.exe", ["/FO", "CSV", "/NH", "/FI", "IMAGENAME eq MatchFrame Esports.exe"], { encoding: "utf8" });
+      leftover = out.split(/\r?\n/).filter((l) => l.includes("MatchFrame Esports.exe"));
     }
     check("quit closes every window and stops the engine and HUD server", !api && !overlay && leftover.length === 0, { exitCode: code, apiStillUp: api, hudServerStillUp: overlay, leftoverProcesses: leftover.length });
   });
@@ -236,7 +236,7 @@ async function run(app) {
     if (!w) return null;
     const t = w[Symbol.for(tag)];
     const p = w.webContents.getLastWebPreferences?.() ?? {};
-    const manager = BrowserWindow.getAllWindows().find((x) => !x[Symbol.for(tag)] && x.getTitle().startsWith("Matchframe Esports"));
+    const manager = BrowserWindow.getAllWindows().find((x) => !x[Symbol.for(tag)] && x.getTitle().startsWith("MatchFrame Esports"));
     return {
       alwaysOnTop: w.isAlwaysOnTop(),
       focusable: w.isFocusable(),
@@ -396,7 +396,7 @@ async function run(app) {
 
   // ---------------------------------------------------------------- independence from the manager
   await step("the desktop HUD keeps updating while the manager is minimised", async () => {
-    await app.evaluate(({ BrowserWindow }, tag) => BrowserWindow.getAllWindows().find((x) => !x[Symbol.for(tag)] && x.getTitle().startsWith("Matchframe Esports"))?.minimize(), TAG);
+    await app.evaluate(({ BrowserWindow }, tag) => BrowserWindow.getAllWindows().find((x) => !x[Symbol.for(tag)] && x.getTitle().startsWith("MatchFrame Esports"))?.minimize(), TAG);
     const clockText = () => frameEval(`document.querySelector(".clock-time").textContent`);
     const a = await clockText();
     await sleep(3500);
@@ -404,7 +404,7 @@ async function run(app) {
     const visible = await app.evaluate(({ BrowserWindow }, tag) => BrowserWindow.getAllWindows().find((x) => x[Symbol.for(tag)]?.kind === "overlay")?.isVisible(), TAG);
     check("the desktop HUD keeps updating while the manager is minimised", visible && a !== b, { before: a, after: b, visible });
     await app.evaluate(({ BrowserWindow }, tag) => {
-      const m = BrowserWindow.getAllWindows().find((x) => !x[Symbol.for(tag)] && x.getTitle().startsWith("Matchframe Esports"));
+      const m = BrowserWindow.getAllWindows().find((x) => !x[Symbol.for(tag)] && x.getTitle().startsWith("MatchFrame Esports"));
       m?.restore();
     }, TAG);
     await frontGame();
@@ -482,7 +482,7 @@ async function run(app) {
         info.restartDiagnostics = {
           restartAccepted: asked,
           ports: execFileSync("cmd.exe", ["/c", `netstat -ano | findstr ":${PORTS.api} :${PORTS.overlay} :${PORTS.gsi}"`], { encoding: "utf8" }).split(/\r?\n/).filter(Boolean).slice(0, 30),
-          processes: execFileSync("tasklist.exe", ["/FO", "CSV", "/NH", "/FI", "IMAGENAME eq Matchframe Esports.exe"], { encoding: "utf8" }).split(/\r?\n/).filter(Boolean),
+          processes: execFileSync("tasklist.exe", ["/FO", "CSV", "/NH", "/FI", "IMAGENAME eq MatchFrame Esports.exe"], { encoding: "utf8" }).split(/\r?\n/).filter(Boolean),
         };
         console.log("restart diagnostics: " + JSON.stringify(info.restartDiagnostics, null, 1));
       }

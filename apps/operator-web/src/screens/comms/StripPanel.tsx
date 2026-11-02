@@ -22,7 +22,7 @@ const PICTURE: Record<StripStatus["cards"][number]["picture"], string> = {
   own: "roster picture",
   "hud-default": "HUD images' default picture",
   placeholder: "your placeholder",
-  silhouette: "Matchframe's silhouette",
+  silhouette: "MatchFrame's silhouette",
 };
 
 /**

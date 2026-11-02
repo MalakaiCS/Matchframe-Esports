@@ -44,9 +44,9 @@ export function describeError(e: unknown): string {
     const msg = e.message || e.code;
     switch (e.status) {
       case 401:
-        return "Not authenticated: the access token is missing, expired or was rejected. Restart the Matchframe program, or check the token in File → Connection settings.";
+        return "Not authenticated: the access token is missing, expired or was rejected. Restart the MatchFrame program, or check the token in File → Connection settings.";
       case 403:
-        if (e.code === "bad_origin") return "Blocked: this page is not allowed to change engine state. Use the Matchframe program.";
+        if (e.code === "bad_origin") return "Blocked: this page is not allowed to change engine state. Use the MatchFrame program.";
         if (e.code === "scope") return `Not allowed for this link: ${msg}`;
         return `Permission denied: ${msg}`;
       case 404:
@@ -132,7 +132,7 @@ export function createApiClient(getToken: TokenSource, opts: ApiClientOptions = 
     try {
       res = await doFetch(base + path, { method, headers, body: body ?? null, credentials: "omit" });
     } catch (e) {
-      throw new NetworkError(`Engine unreachable (${method} ${path}): ${e instanceof Error ? e.message : String(e)}. Is the Matchframe engine running?`);
+      throw new NetworkError(`Engine unreachable (${method} ${path}): ${e instanceof Error ? e.message : String(e)}. Is the MatchFrame engine running?`);
     }
     if (!res.ok) throw await toApiError(res);
     return res;

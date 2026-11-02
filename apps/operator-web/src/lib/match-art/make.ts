@@ -24,7 +24,7 @@ export interface ArtJob {
   error: string | null;
 }
 
-export const FAMILY = "Matchframe Display";
+export const FAMILY = "MatchFrame Display";
 const DEFAULT_ACCENT = "#ffd23f";
 const DEFAULT_EVENT_BRAND = "#2f7cf6";
 

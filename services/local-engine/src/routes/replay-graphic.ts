@@ -1,7 +1,7 @@
 import type { Engine } from "../app.ts";
 import type { Router } from "../http/router.ts";
 import { libraryOutputId } from "../hud/library.ts";
-import { GRAPHIC_SOURCE, ReplayGraphicPatch } from "../replay/graphic.ts";
+import { ReplayGraphicPatch } from "../replay/graphic.ts";
 
 /** The replay graphic (ADR-061): its settings, the page that shows it, and that page in OBS's replay scene. */
 export function registerReplayGraphicRoutes(r: Router, e: Engine): void {
@@ -10,7 +10,7 @@ export function registerReplayGraphicRoutes(r: Router, e: Engine): void {
     return {
       settings: e.replayGraphic.settings(),
       output: out,
-      source: GRAPHIC_SOURCE,
+      source: e.replayGraphic.source(),
       replayScene: e.program.sceneMap.REPLAY,
       obsConnected: e.obs.state.connected,
       /** The clip on air as the HUDs get it (null when none). */
@@ -24,7 +24,7 @@ export function registerReplayGraphicRoutes(r: Router, e: Engine): void {
     const before = e.replayGraphic.output()?.url;
     e.replayGraphic.setSettings(req.body);
     e.audit.record(req.principal!.label, "replay.graphic_settings", null, req.body);
-    // The source Matchframe put in OBS follows a new choice of HUD.
+    // The source MatchFrame put in OBS follows a new choice of HUD.
     if (e.replayGraphic.output()?.url !== before) await e.replayGraphic.repointObs().catch((err) => e.logger.warn("replay graphic: OBS source not re-pointed", { error: String(err) }));
     return view();
   });

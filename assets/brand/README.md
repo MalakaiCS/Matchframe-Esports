@@ -1,4 +1,4 @@
-# Matchframe Esports logos
+# MatchFrame Esports logos
 
 Masters (transparent PNG, trimmed):
 

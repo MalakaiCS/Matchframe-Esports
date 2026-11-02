@@ -9,7 +9,7 @@ import { loadConfig } from "../src/config.ts";
 import { startServers } from "../src/servers.ts";
 
 /**
- * Real integration: a match's stingers put in a running OBS's "Matchframe Stinger" and "Matchframe
+ * Real integration: a match's stingers put in a running OBS's "MatchFrame Stinger" and "MatchFrame
  * Replay Stinger" transitions (obs-websocket v5). Opt-in: set MF_OBS_URL and MF_OBS_PASSWORD; the OBS
  * scene collection needs the two Stinger transitions (OBS can't create them over obs-websocket).
  */
@@ -63,7 +63,7 @@ describe.skipIf(!url || !password)("match stingers in a real OBS", () => {
     const before = kinds.current;
     const r = await api(`/api/v1/matches/${id}/art/obs`, { body: { useStinger: false } });
     expect(r.status, JSON.stringify(r.json)).toBe(200);
-    const want = ["Matchframe Stinger", "Matchframe Replay Stinger"];
+    const want = ["MatchFrame Stinger", "MatchFrame Replay Stinger"];
     expect(r.json.missing).toEqual(want.filter((n) => !names.includes(n)));
     expect(r.json.set).toEqual(want.filter((n) => names.includes(n)).map((n) => ({ kind: n === want[0] ? "stinger" : "stinger-replay", transition: n, confirmed: true })));
     expect(r.json.current).toBe(before);

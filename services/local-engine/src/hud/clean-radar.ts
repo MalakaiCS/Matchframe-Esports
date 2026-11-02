@@ -4,13 +4,13 @@ import { pointInPolygon } from "@matchframe/map-runtime";
 import { radarLayerFor, type BuiltinRadar } from "../live/builtin-radars.ts";
 
 /**
- * Matchframe's clean radar: the map drawn from its map pack (navigation-mesh cells and floor grid,
+ * MatchFrame's clean radar: the map drawn from its map pack (navigation-mesh cells and floor grid,
  * bombsite regions) in a flat style: navy floor (a lighter navy for the lower level of two-level
  * maps), light wall outlines, bombsites tinted red, transparent around the map. It is drawn in the
  * frame of the radar background the HUD state uses, so the markers' u/v land on it:
  * - "builtin": the built-in radar image's calibration (assets/radars, one transform per layer);
  * - "calibrated": an operator-calibrated radar image (map pack calibration, per level);
- * - "schematic": Matchframe's outline frame (MapRuntime.schematicTransform).
+ * - "schematic": MatchFrame's outline frame (MapRuntime.schematicTransform).
  */
 export const CLEAN_RADAR_FRAMES = ["builtin", "calibrated", "schematic"] as const;
 export type CleanRadarFrame = (typeof CLEAN_RADAR_FRAMES)[number];

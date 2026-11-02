@@ -122,7 +122,7 @@ export function SiteHeader() {
   return (
     <header ref={headerRef} className={`site-header${open ? " menu-open" : ""}`}>
       <div className="wrap site-header-row">
-        <Link to="/" className="brand-link" aria-label="Matchframe home">
+        <Link to="/" className="brand-link" aria-label="MatchFrame home">
           <Logo />
         </Link>
         <MenuToggle id={toggleId} open={open} controls={menuId} onToggle={() => setOpen(!open)} />
@@ -166,7 +166,7 @@ function Copyright() {
   const { site } = useSite();
   return (
     <>
-      © {new Date().getFullYear()} {site?.companyName ?? "Matchframe"}. All rights reserved.
+      © {new Date().getFullYear()} {site?.companyName ?? "MatchFrame"}. All rights reserved.
     </>
   );
 }
@@ -219,7 +219,7 @@ export function SiteFooter() {
         <span>
           <Copyright />
         </span>
-        <span>Counter-Strike 2 is a trademark of Valve Corporation. Matchframe is not affiliated with or endorsed by Valve.</span>
+        <span>Counter-Strike 2 is a trademark of Valve Corporation. MatchFrame is not affiliated with or endorsed by Valve.</span>
       </div>
     </footer>
   );
@@ -339,14 +339,14 @@ export function AppShell({ orgId, children }: { orgId?: string | null; children:
       <div className={`app${inAdmin ? " app-admin" : ""}`}>
         <SkipLink />
         <header className="app-topbar">
-          <Link to="/" className="brand-link" aria-label="Matchframe home">
+          <Link to="/" className="brand-link" aria-label="MatchFrame home">
             <Logo />
           </Link>
           {inAdmin && staffRole && <span className="console-badge">Staff · {STAFF_ROLE_LABEL[staffRole]}</span>}
           <MenuToggle id={toggleId} open={open} controls={navId} onToggle={() => setOpen(!open)} />
         </header>
         <aside id={navId} className={`app-side${open ? " is-open" : ""}`}>
-          <Link to="/" className="brand-link app-side-brand" aria-label="Matchframe home">
+          <Link to="/" className="brand-link app-side-brand" aria-label="MatchFrame home">
             <Logo />
           </Link>
           {inAdmin && staffRole ? (

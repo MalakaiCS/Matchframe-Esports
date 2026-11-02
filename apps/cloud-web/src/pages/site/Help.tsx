@@ -20,14 +20,14 @@ function SupportBox() {
 }
 
 export function HelpCentre() {
-  useTitle("Help centre", "Matchframe help centre: guides for creating an account, verifying email, linking computers, plans and hours, hour packs, invoices, team roles, installing the program and resetting your password.");
+  useTitle("Help centre", "MatchFrame help centre: guides for creating an account, verifying email, linking computers, plans and hours, hour packs, invoices, team roles, installing the program and resetting your password.");
   const [q, setQ] = useState("");
   const inputId = useId();
   const results = searchHelp(q);
   const searching = q.trim().length > 0;
   return (
     <>
-      <PageHero eyebrow="Support" title="Help centre" lead="Guides for your Matchframe account, plans and the program download.">
+      <PageHero eyebrow="Support" title="Help centre" lead="Guides for your MatchFrame account, plans and the program download.">
         <form className="help-search" role="search" onSubmit={(e) => e.preventDefault()}>
           <label htmlFor={inputId} className="visually-hidden">
             Search help articles
@@ -83,7 +83,7 @@ export function HelpCentre() {
         )}
         <div className="help-foot">
           <div className="tile">
-            <h2 className="feature-title">New to Matchframe?</h2>
+            <h2 className="feature-title">New to MatchFrame?</h2>
             <p className="small muted">Follow the getting-started guide from account to first live match.</p>
             <Link to="/how-it-works" className="link-arrow">
               Getting started <Icon name="arrow" size={18} />

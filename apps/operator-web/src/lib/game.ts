@@ -59,7 +59,7 @@ export const LAUNCH_MODES: { id: GameLaunchMode; label: string; short: string; d
     id: "tools",
     label: "Observer tools",
     short: "Observer tools",
-    detail: "Adds -tools -netconport: Matchframe controls the camera and the game options below through CS2's console. Needs the free CS2 Workshop Tools (Steam → Counter-Strike 2 → DLC).",
+    detail: "Adds -tools -netconport: MatchFrame controls the camera and the game options below through CS2's console. Needs the free CS2 Workshop Tools (Steam → Counter-Strike 2 → DLC).",
   },
   {
     id: "hlae",
@@ -105,7 +105,7 @@ export function useHlae(): { info: HlaeInfo | null; choose: (() => Promise<void>
 
 /** Why Start CS2 can't run here, or null. */
 export function launchUnavailableReason(): string | null {
-  if (!window.matchframe?.launchCs2) return "Starting CS2 needs the Matchframe program";
+  if (!window.matchframe?.launchCs2) return "Starting CS2 needs the MatchFrame program";
   if (window.matchframe.connectionMode === "remote") return "CS2 starts on the production computer: use Start CS2 there";
   return null;
 }

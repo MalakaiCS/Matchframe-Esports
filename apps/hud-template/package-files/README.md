@@ -1,6 +1,6 @@
 # Pro CS2 HUD
 
-A full broadcast HUD for the Matchframe HUD Library, adapted from [Lexogrine's CS2 React HUD](https://github.com/lexogrine/cs2-react-hud) (MIT) to Matchframe's public HUD state.
+A full broadcast HUD for the MatchFrame HUD Library, adapted from an open-source (MIT) CS2 React HUD template to MatchFrame's public HUD state.
 
 What it shows:
 
@@ -8,7 +8,7 @@ What it shows:
 - **Players:** both teams down the sides with health, armour, helmet, defuse kit, bomb, weapons, grenades, money and round kills; K/A/D for dead players.
 - **Observed player:** health, armour, K/A/D and K/D, grenades and ammunition.
 - **Killfeed** and **players alive**.
-- **Radar** from Matchframe's map data (hidden when no trustworthy calibration exists).
+- **Radar** from MatchFrame's map data (hidden when no trustworthy calibration exists).
 - **Freeze time:** utility level and team economy (loss bonus only when the game reports it) and the series maps.
 - **Pause** and **timeout** banners, the **SIMULATION** label when test data is running and **DATA PAUSED** when game data stops arriving.
 - **HUD images** (HUD Library → HUD images): players without their own photo show the default picture for their side, the series maps show the map's logo and picture, and dead players show the dead-player icon where their health was.
@@ -17,7 +17,7 @@ Change it in the HUD Library under **Appearance**: team names, CT and T colours,
 
 ## Build your own from it
 
-The source is in the Matchframe repository at `apps/hud-template` (React, TypeScript, SCSS, Vite):
+The source is in the MatchFrame repository at `apps/hud-template` (React, TypeScript, SCSS, Vite):
 
 ```
 pnpm install
@@ -31,6 +31,6 @@ Rules every HUD package follows: transparent `html` and `body` backgrounds; the 
 
 ## Licences and credits
 
-- Code: MIT. Lexogrine's original licence is in `LICENSE-lexogrine.txt`; Matchframe's changes are under the same terms.
+- Code: MIT. The original template's licence is in `third-party-licenses/hud-template-MIT.txt`; MatchFrame's changes are under the same terms. Provenance: `THIRD_PARTY_NOTICES.md` in the program's folder.
 - Montserrat font: SIL Open Font License 1.1 (`OFL-Montserrat.txt`).
-- The weapon and equipment icons come with Lexogrine's template and originate from Counter-Strike 2 game files (© Valve Corporation). Lexogrine's MIT licence covers the code, not Valve's artwork. Broadcast HUDs for Counter-Strike commonly use these icons; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons. Matchframe Esports is not affiliated with or endorsed by Valve.
+- The weapon and equipment icons come with that template and originate from Counter-Strike 2 game files (© Valve Corporation). The template's MIT licence covers the code, not Valve's artwork. Broadcast HUDs for Counter-Strike commonly use these icons; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons. MatchFrame Esports is not affiliated with or endorsed by Valve.

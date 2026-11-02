@@ -89,7 +89,7 @@ export interface CommsTab {
   team?: { slot: SlotId; id: string | null; name: string | null } | null;
   /** The plugin made it listen-only by itself (it remembered the team tab across a TeamSpeak restart). */
   restoredByPlugin?: boolean;
-  /** Matchframe handed it back to TeamSpeak (a remembered tab that is no team's now). */
+  /** MatchFrame handed it back to TeamSpeak (a remembered tab that is no team's now). */
   released?: boolean;
 }
 

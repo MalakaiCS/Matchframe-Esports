@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "overlays": {
+    "lhm.community-hud": {
+      "displayId": 1,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "scale": 1,
+      "locked": true,
+      "variant": "live"
+    }
+  },
+  "hotkeys": {
+    "toggle": "CommandOrControl+Shift+H",
+    "emergencyHide": "CommandOrControl+Shift+F12"
+  }
+}

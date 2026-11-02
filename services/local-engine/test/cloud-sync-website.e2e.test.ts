@@ -38,7 +38,7 @@ const hudZip = () =>
   });
 
 /** The desktop sync against the real website API (services/cloud-api on in-process Postgres). */
-describe("account sync with the Matchframe website API", () => {
+describe("account sync with the MatchFrame website API", () => {
   let cloud: CloudApp;
   let closeCloud: () => Promise<void>;
   let base: string;

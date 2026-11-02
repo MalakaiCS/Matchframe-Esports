@@ -3,7 +3,7 @@ import type { ControlCapabilities, ObserverControlAdapter } from "@matchframe/di
 import { failedResult } from "@matchframe/director-policy";
 import { noControl } from "./common.ts";
 
-/** Explicit "no control" adapter: Matchframe runs HUD/advisory without game control. */
+/** Explicit "no control" adapter: MatchFrame runs HUD/advisory without game control. */
 export class NoControlAdapter implements ObserverControlAdapter {
   readonly id = "none";
   readonly kind = "none" as const;

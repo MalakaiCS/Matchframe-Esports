@@ -1,10 +1,10 @@
 # Player cams
 
-Players' face cams in the broadcast, the way Lexogrine HUD Manager does it: each player opens a link on the Matchframe website, picks themselves and their camera, checks the preview and sends it. Matchframe shows the observed player's cam in your HUD and in OBS, delayed to match the game (ADR-048).
+Players' face cams in the broadcast: each player opens a link on the MatchFrame website, picks themselves and their camera, checks the preview and sends it. MatchFrame shows the observed player's cam in your HUD and in OBS, delayed to match the game (ADR-048).
 
 ## Setting up
 
-1. Sign the program in to your Matchframe account (**Settings → Account**). Player cams go through the Matchframe website.
+1. Sign the program in to your MatchFrame account (**Settings → Account**). Player cams go through the MatchFrame website.
 2. **Cameras → Player cameras → Player cams**: switch on. The panel shows **Open on the website** and the link for your players (`https://<website>/cam/<code>`).
 3. Set the **Delay** to your CSTV delay (`tv_delay`, often 90–120 s at events), so faces match what the game shows. Up to 300 s.
 4. Send the link to the players in the match. Anyone with the link can send a camera as one of the match's players, so share it only with them. **New link** stops the old one at once.
@@ -21,8 +21,8 @@ Players' face cams in the broadcast, the way Lexogrine HUD Manager does it: each
 
 ## Where the cams show
 
-- **LHM-format HUDs** (such as kaiHUD): through their own camera protocol, with no setup. The HUD shows the observed player's cam where its design puts it. Reload a HUD that was open before you switched player cams on (LHM HUDs read the player list when they start).
-- **Matchframe's own HUD:** above the observed player's panel.
+- **Imported hud.json-format HUDs**: through the format's own camera protocol, with no setup. The HUD shows the observed player's cam where its design puts it. Reload a HUD that was open before you switched player cams on (these HUDs read the player list when they start).
+- **MatchFrame's own HUD:** above the observed player's panel.
 - **OBS:** browser sources from the panel:
   - the observed player's cam (`/cams/observed?t=…`), which follows the observer and is transparent while that player has no cam on air;
   - one player's cam (`/cams/player/<SteamID64>?t=…`).
@@ -40,12 +40,12 @@ Players' face cams in the broadcast, the way Lexogrine HUD Manager does it: each
 - **Encoding:** the player's browser encodes the camera (VP8, a keyframe every 2 s) and sends it to the website. The website passes it straight to your program and stores nothing.
 - **Your download:** ten players at Standard is about 7 Mbit/s.
 - **The program's memory:** it keeps the delay's worth of video. 120 s at Standard is about 10 MB a player.
-- **Website traffic:** the video goes through the Matchframe website, so it counts as website traffic in both directions. That is about 3 GB an hour for ten players at Standard.
+- **Website traffic:** the video goes through the MatchFrame website, so it counts as website traffic in both directions. That is about 3 GB an hour for ten players at Standard.
 - **Behind the game:** in Chrome and Edge the camera keeps sending while the game covers the browser. Other browsers slow it down (the page says so).
 
 ## For HUD authors
 
-HUD pages served by Matchframe can load `/hud-runtime/cams.js` and use `window.MatchframeCams`:
+HUD pages served by MatchFrame can load `/hud-runtime/cams.js` and use `window.MatchFrameCams` (`window.MatchframeCams`, its name in 0.11.0 and earlier, still works):
 
 | Call | What it gives |
 |---|---|
@@ -60,6 +60,6 @@ Video arrives already delayed.
 ## Not verified yet
 
 - **A real match:** a real CS2 match with players at home. The whole path was tested in Chromium:
-  - the cam page with a fake camera, through the relay and the program, to the OBS page and to an LHM HUD's peer connection (simple-peer);
-  - not with kaiHUD itself, nor in OBS's own browser.
+  - the cam page with a fake camera, through the relay and the program, to the OBS page and to an imported HUD's peer connection (simple-peer);
+  - not with a full community HUD in this format, nor in OBS's own browser.
 - **Hosting:** the website must be redeployed with this version for the cam page and relay to exist there.

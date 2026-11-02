@@ -292,7 +292,7 @@ export function HudLibraryScreen() {
       stop: editReason ?? (e.stopped && !overlayOf.get(e.id) ? "Already stopped" : null),
       duplicate: editReason ?? (builtin ? BUILTIN_REASON.duplicate : null),
       exportZip: builtin ? BUILTIN_REASON.export : null,
-      openFolder: builtin ? BUILTIN_REASON.folder : !bridge ? "Opening folders needs the Matchframe program" : !local ? "The HUD folders are on the production computer" : null,
+      openFolder: builtin ? BUILTIN_REASON.folder : !bridge ? "Opening folders needs the MatchFrame program" : !local ? "The HUD folders are on the production computer" : null,
       remove: editReason ?? (builtin ? BUILTIN_REASON.remove : null),
     };
   };
@@ -318,8 +318,8 @@ export function HudLibraryScreen() {
 
   const addItems = [
     { label: "Import HUD ZIP…", onClick: () => void importZip(), reason: editReason ?? (busyImport ? "Importing…" : null) },
-    { label: "Import HUD folder…", onClick: () => void importFolder(), reason: editReason ?? (!bridge ? "Importing a folder needs the Matchframe program" : !local ? "Folders can be imported only on the production computer; import a ZIP instead" : busyImport ? "Importing…" : null) },
-    { label: "Open HUDs folder", onClick: () => bridge && void run("Open HUDs Folder", () => bridge.openHudsFolder()), reason: !bridge ? "Opening folders needs the Matchframe program" : !local ? "The HUD folder is on the production computer" : null },
+    { label: "Import HUD folder…", onClick: () => void importFolder(), reason: editReason ?? (!bridge ? "Importing a folder needs the MatchFrame program" : !local ? "Folders can be imported only on the production computer; import a ZIP instead" : busyImport ? "Importing…" : null) },
+    { label: "Open HUDs folder", onClick: () => bridge && void run("Open HUDs Folder", () => bridge.openHudsFolder()), reason: !bridge ? "Opening folders needs the MatchFrame program" : !local ? "The HUD folder is on the production computer" : null },
   ];
   const groups = groupByCategory(shown);
   const details = (e: HudLibraryEntry) => (
@@ -356,7 +356,7 @@ export function HudLibraryScreen() {
         count={lib.data ? `${huds.length} HUD${huds.length === 1 ? "" : "s"} ${local || !bridge ? "on this computer" : "on the production computer"}` : ""}
         add={
           <>
-            <Link to="/hud/images" className="btn btn-secondary btn-md" title="Default player pictures, map logos and pictures, and the dead-player icon for every Matchframe HUD">
+            <Link to="/hud/images" className="btn btn-secondary btn-md" title="Default player pictures, map logos and pictures, and the dead-player icon for every MatchFrame HUD">
               <Icon name="upload" size={14} /> HUD images
             </Link>
             <MenuButton label="Add HUD" buttonLabel="Add HUD" icon="plus" items={addItems} />

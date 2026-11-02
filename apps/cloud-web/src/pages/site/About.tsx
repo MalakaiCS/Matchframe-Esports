@@ -4,11 +4,11 @@ import { Link } from "../../router.tsx";
 import { useSite } from "../../state/site.ts";
 
 export function About() {
-  useTitle("About", "About Matchframe: who builds it, what we believe about live production, and how to reach us.");
+  useTitle("About", "About MatchFrame: who builds it, what we believe about live production, and how to reach us.");
   const { site } = useSite();
   return (
     <>
-      <PageHero eyebrow="About" title="Production tools that respect the people running the show" lead="Matchframe is built for tournament organisers, leagues and production crews who want broadcast-quality Counter-Strike 2 coverage without stitching together a dozen tools." />
+      <PageHero eyebrow="About" title="Production tools that respect the people running the show" lead="MatchFrame is built for tournament organisers, leagues and production crews who want broadcast-quality Counter-Strike 2 coverage without stitching together a dozen tools." />
 
       <section className="section" aria-labelledby="story-title">
         <div className="wrap two-col-lg">
@@ -17,7 +17,7 @@ export function About() {
           </div>
           <div className="prose prose-lead">
             <p>
-              <strong>The Matchframe program</strong> is a Windows application that runs on the production computer. It takes the game's live data, drives the HUDs in OBS, directs the observer camera when you let it, plays replays and keeps the running order, vetoes and sponsor slots in one place.
+              <strong>The MatchFrame program</strong> is a Windows application that runs on the production computer. It takes the game's live data, drives the HUDs in OBS, directs the observer camera when you let it, plays replays and keeps the running order, vetoes and sponsor slots in one place.
             </p>
             <p>
               <strong>This website</strong> handles everything around it: accounts, teams, linked computers, plans, auto-director hours and invoices. It deliberately contains no broadcast controls, so nothing that happens here can take your show off air.

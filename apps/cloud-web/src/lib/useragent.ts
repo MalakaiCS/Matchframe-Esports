@@ -9,7 +9,8 @@ export interface DeviceInfo {
 }
 
 const BROWSERS: [RegExp, string][] = [
-  [/MatchframeEsports\/([\d.]+)/, "Matchframe program"],
+  // The program's window (Electron puts the product name without spaces; 0.11.0 and earlier spelled it Matchframe).
+  [/Match[Ff]rameEsports\/([\d.]+)/, "MatchFrame program"],
   [/Edg(?:e|A|iOS)?\/(\d+)/, "Edge"],
   [/OPR\/(\d+)/, "Opera"],
   [/SamsungBrowser\/(\d+)/, "Samsung Internet"],
@@ -38,7 +39,7 @@ export function describeUserAgent(ua: string | null | undefined): DeviceInfo {
   for (const [re, name] of BROWSERS) {
     const m = re.exec(ua);
     if (m) {
-      browser = name === "Matchframe program" || name === "curl" ? name : `${name} ${m[1]}`;
+      browser = name === "MatchFrame program" || name === "curl" ? name : `${name} ${m[1]}`;
       break;
     }
   }

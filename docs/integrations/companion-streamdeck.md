@@ -1,6 +1,6 @@
 # Bitfocus Companion / Stream Deck / hotkeys
 
-Matchframe exposes a control-surface API on the local engine (`services/local-engine/src/routes/devices.ts`). Every action goes through the same control arbiter and program arbiter as the operator UI, is permission-checked per action, and is written to the audit log as `device.<action>`.
+MatchFrame exposes a control-surface API on the local engine (`services/local-engine/src/routes/devices.ts`). Every action goes through the same control arbiter and program arbiter as the operator UI, is permission-checked per action, and is written to the audit log as `device.<action>`.
 
 ## Tokens
 

@@ -50,7 +50,7 @@ describe("HUD images and the clean radar (real HTTP/WS servers)", () => {
 
   const upload = async (name: string, body: Buffer) => ((await (await api(`/api/v1/assets?name=${name}`, { method: "POST", body, headers: { "content-type": "application/octet-stream" } })).json()) as { assetId: string }).assetId;
 
-  it("lists the maps Matchframe knows and starts empty", async () => {
+  it("lists the maps MatchFrame knows and starts empty", async () => {
     const r = (await (await api("/api/v1/hud/art")).json()) as { art: unknown; maps: { mapName: string; displayName: string }[] };
     expect(r.art).toEqual({ defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null } });
     expect(r.maps.map((m) => m.mapName)).toEqual(expect.arrayContaining(["de_ancient", "de_anubis", "de_cache", "de_dust2", "de_inferno", "de_mirage", "de_nuke", "de_overpass", "de_train", "de_vertigo"]));
@@ -109,7 +109,7 @@ describe("HUD images and the clean radar (real HTTP/WS servers)", () => {
       await expect.poll(() => engine.session.state()?.mapName).toBe(mapName);
       const hud = (await (await api("/api/v1/hud/outputs/main/state")).json()) as HudState;
       expect(hud.radar.mapName).toBe(mapName);
-      // Mirage has a built-in radar image; Anubis uses Matchframe's outline.
+      // Mirage has a built-in radar image; Anubis uses MatchFrame's outline.
       const frame = mapName === "de_mirage" ? "builtin" : "schematic";
       expect(hud.radar.mode).toBe(mapName === "de_mirage" ? "image" : "schematic");
       expect(hud.radar.cleanUrl).toMatch(new RegExp(`^/overlay-api/radar-clean/${mapName}/${frame}\\?v=[0-9a-f]{12}$`));

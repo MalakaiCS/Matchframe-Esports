@@ -42,7 +42,7 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
 
 const TEMPLATE_HINTS: Record<string, string> = {
   selectPlayer: "Placeholders: {name} (in-game name), {slot} (number key), {steamId}, {accountId}. Leave empty for the default.",
-  modeRoaming: "The free camera. Matchframe checks the camera with getpos and switches to spec_mode 4 by itself if this build numbers the modes that way.",
+  modeRoaming: "The free camera. MatchFrame checks the camera with getpos and switches to spec_mode 4 by itself if this build numbers the modes that way.",
   staticCamera: "{roaming} is the free-camera command above; {x} {y} {z} {pitch} {yaw} is the camera pose.",
   pathFrame: "Sent 60 times a second while a camera path flies.",
 };
@@ -82,7 +82,7 @@ function SourceMode({ status, reload }: { status: SetupStatus; reload: () => voi
           <strong>Labelled simulation:</strong> a synthetic 5v5 on a synthetic map for rehearsals. It is always labelled and never certifies real telemetry or camera control.
         </p>
         <p>
-          <strong>One PC:</strong> CS2 observer, OBS and Matchframe on the same machine; everything stays on 127.0.0.1.
+          <strong>One PC:</strong> CS2 observer, OBS and MatchFrame on the same machine; everything stays on 127.0.0.1.
         </p>
         <p>
           <strong>Multi-PC:</strong> the observer client posts GSI to this machine. The engine binds to loopback by default, so start it with <code>MATCHFRAME_HOST</code> set to the LAN address, allow the GSI port in the firewall, and write the GSI config with this machine's LAN address as host (step 3). Remote consoles then need role-scoped tokens (Devices).
@@ -275,7 +275,7 @@ function AdapterConfig() {
               ))}
             </div>
             <p className="small muted">
-              {s.kind === "none" && "Matchframe will recommend shots but never move the observer camera."}
+              {s.kind === "none" && "MatchFrame will recommend shots but never move the observer camera."}
               {s.kind === "netcon" && "Sends console commands over CS2's console on this PC (CS2 started with -tools -netconport: Start CS2 in the Observer tools mode does this). Capabilities stay unverified until the tests below confirm them."}
               {s.kind === "keyboard" && "Sends spectator number keys to the CS2 window (Windows only). The observer window must stay focused; confirmation still comes from telemetry."}
             </p>
@@ -535,7 +535,7 @@ function ProgramScenes({ status, reload }: { status: SetupStatus; reload: () => 
         </datalist>
       </div>
       <div className="ga-actions">
-        <ActionButton variant="primary" title="Matchframe only reports a program mode (studio, break, replay) when OBS really puts the mapped scene on program." action={() => api.put("/api/v1/settings/program.scenes", { value: scenes })} success="Program scenes saved" onDone={reload} disabledReason={reason}>
+        <ActionButton variant="primary" title="MatchFrame only reports a program mode (studio, break, replay) when OBS really puts the mapped scene on program." action={() => api.put("/api/v1/settings/program.scenes", { value: scenes })} success="Program scenes saved" onDone={reload} disabledReason={reason}>
           Save scene mapping
         </ActionButton>
         {!obs.data?.state.connected ? <span className="small muted">OBS is not connected, so scene names cannot be listed. You can still type them.</span> : null}
@@ -560,7 +560,7 @@ function HudUrl({ status }: { status: SetupStatus }) {
         <CopyButton text={url ?? status.hudUrl} label="Copy URL" size="md" />
       </div>
       <div className="ga-actions">
-        <ActionButton action={() => api.post<{ sceneName?: string }>("/api/v1/obs/provision", {})} success="Browser source provisioned in OBS (scene “Matchframe Live”)" disabledReason={reason ?? (status.obs.connected ? null : "Connect OBS first (step 9)")}>
+        <ActionButton action={() => api.post<{ sceneName?: string }>("/api/v1/obs/provision", {})} success="Browser source provisioned in OBS (scene “MatchFrame Live”)" disabledReason={reason ?? (status.obs.connected ? null : "Connect OBS first (step 9)")}>
           Create the browser source in OBS
         </ActionButton>
         <span className="small muted">Or add the URL to OBS yourself as a 1920×1080 browser source.</span>

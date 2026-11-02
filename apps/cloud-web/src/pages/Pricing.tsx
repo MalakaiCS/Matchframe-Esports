@@ -30,7 +30,7 @@ export function PlanComparison({ plans }: { plans: PublicPlan[] }) {
     { label: "Auto-director hours each period", hint: "Time the Observer controls the camera on live matches. Every Observer mode uses hours at the same rate.", cell: (p) => (p.features.autoDirector ? formatHours(p.includedAutoDirectorHours * 3600) : <NotIncluded />) },
     { label: "Linked computers", cell: (p) => p.features.maxDevices },
     { label: "Team members", hint: "Pending invitations count too.", cell: (p) => p.features.maxMembers },
-    { label: "Off: shot suggestions only", hint: "Suggestions in Live Control; Matchframe never moves the camera. Uses no hours.", cell: () => <Included /> },
+    { label: "Off: shot suggestions only", hint: "Suggestions in Live Control; MatchFrame never moves the camera. Uses no hours.", cell: () => <Included /> },
     { label: "Observer", hint: "Switches between player POVs automatically on live matches.", cell: (p) => mark(hasObserver(p.features)) },
     { label: "Observer & Cinematics", hint: "Adds an establishing shot in freeze time, bomb plant and defuse shots and big-fight overviews from your static cameras.", cell: (p) => mark(hasObserver(p.features)) },
     { label: "Full Action Observer", hint: "Adds nade cameras: static cameras that catch smokes, flashes, molotovs and HE grenades as they land.", cell: (p) => mark(hasFullActionObserver(p.features)) },
@@ -74,7 +74,7 @@ export function PlanComparison({ plans }: { plans: PublicPlan[] }) {
 }
 
 export function Pricing() {
-  useTitle("Pricing", "Matchframe plans and hour packs: start free, pay monthly for more auto-director hours, computers, team members and the Full Action Observer. No overage charges; cancel any time.");
+  useTitle("Pricing", "MatchFrame plans and hour packs: start free, pay monthly for more auto-director hours, computers, team members and the Full Action Observer. No overage charges; cancel any time.");
   const { me } = useSession();
   const plans = useResource("plans", api.plans);
   const orgId = me ? pickOrg(me.orgs) : null;

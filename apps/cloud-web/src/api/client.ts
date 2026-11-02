@@ -1,5 +1,5 @@
 /**
- * Typed client for the Matchframe cloud API. The website is served from the same origin as the
+ * Typed client for the MatchFrame cloud API. The website is served from the same origin as the
  * API, so every call uses a relative /v1/... URL and the HttpOnly session cookie
  * (credentials: "same-origin"). Error responses ({error, message, detail}) become ApiError with a
  * readable explanation; a 401 on a signed-in call reports the session as gone.
@@ -94,7 +94,7 @@ export function createClient(opts: ClientOptions = {}): ApiClient {
       res = await getFetch()(path, { method, headers, body, credentials: "same-origin", signal: o.signal ?? null });
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") throw e;
-      throw new NetworkError(`Can't reach Matchframe (${method} ${path.split("?")[0]}). Check your connection and try again.`);
+      throw new NetworkError(`Can't reach MatchFrame (${method} ${path.split("?")[0]}). Check your connection and try again.`);
     }
     if (!res.ok) {
       const err = await toApiError(res);
@@ -206,7 +206,7 @@ export function describeError(e: unknown): string {
       case "email_unverified":
         return "Verify your email address first: open the link we emailed you, or send a new one from your account page.";
       case "bad_origin":
-        return "This request came from another site and was blocked. Open the Matchframe website directly and try again.";
+        return "This request came from another site and was blocked. Open the MatchFrame website directly and try again.";
       case "rate_limited":
         return "Too many attempts in a short time. Wait a minute and try again.";
       case "billing_unavailable":

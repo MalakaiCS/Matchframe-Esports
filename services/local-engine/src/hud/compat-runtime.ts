@@ -7,53 +7,61 @@ import type { HudKillfeedEntry } from "@matchframe/hud-sdk";
 import type { Engine } from "../app.ts";
 import { assetDir } from "../routes/domain.ts";
 import { safeResolve } from "../http/static.ts";
+import { playerNames } from "../domain/players.ts";
+import { hudVetoList } from "../domain/veto-entries.ts";
 import { libraryOutputId } from "./library.ts";
-import { hudConfig, isPanelAction, parsePanel, type LhmLookup, type LhmPanel } from "./lhm.ts";
-import { outlineRadar, type LhmRadarConfig } from "./outline-radar.ts";
+import { hudConfig, isPanelAction, parsePanel, type CompatLookup, type CompatPanel } from "./compat.ts";
+import { outlineRadar, type CompatRadarConfig } from "./outline-radar.ts";
 
 /**
- * LHM compatibility layer: what an LHM-format HUD (Lexogrine template protocol) expects from LHM,
- * served by Matchframe's HUD server.
+ * HUD compatibility layer: what an imported hud.json-format HUD (a community HUD template protocol)
+ * expects from the program it runs in, served by MatchFrame's HUD server.
  *
  * - socket.io at /socket.io: "readyToRegister" → the HUD's "register" → "hud_config" (its panel
  *   settings); "update" with the game data as CS2 sent it (auth token removed): at once when
- *   something a viewer sees switch changes (see lhmUrgentKey), else the latest packet at most twenty
+ *   something a viewer sees switch changes (see compatUrgentKey), else the latest packet at most twenty
  *   times a second (UPDATE_MS), fewer while the HUD's page can't keep up (updatePacer);
  *   "hud_action" for panel buttons; "match" when the current match changes.
  * - GET /api/... (match, teams and logos, players and avatars, tournament, camera, radar maps) from
- *   Matchframe's own data.
+ *   MatchFrame's own data.
  * - Player cams (ADR-048): `/api/camera` lists the match's players; a HUD's "registerAsHUD" gets
  *   "playersCameraStatus" and an "offerFromPlayer" for every cam on air (again every few seconds,
  *   which the HUD ignores while it has the cam). The offers carry a marker that the page's
- *   RTCPeerConnection (hud-runtime lhm-cams.js) answers locally with the delayed cam.
+ *   RTCPeerConnection (hud-runtime compat-cams.js) answers locally with the delayed cam.
  *
- * LHM HUDs cannot pass Matchframe's HUD token, so the wrapper page (opened with the token) sets an
+ * These HUDs cannot pass MatchFrame's HUD token, so the wrapper page (opened with the token) sets an
  * HttpOnly cookie per HUD; sockets and API requests without a valid cookie are refused. Everything
  * here is read-only, like the rest of the HUD server.
+ *
+ * What the template protocol fixes stays as the HUDs expect it: the /api/... paths, the socket.io
+ * event names, the JSON field names (such as `lhmId` in /api/game-maps) and the camera room id.
  */
 
-export const lhmCookieName = (hudId: string) => `mf_lhm_${hudId}`;
+const COOKIE_PREFIX = "mf_compat_";
+/** The cookie name 0.11.0 and earlier set (its HUD id is a legacy id too): pages opened before the update still send it. */
+const LEGACY_COOKIE_PREFIX = "mf_lhm_";
+export const compatCookieName = (hudId: string) => `${COOKIE_PREFIX}${hudId}`;
 
-/** The camera room id LHM HUDs read from /api/camera and pass back in "registerAsHUD". */
-export const LHM_CAM_UUID = "matchframe-cams";
-/** An offer for a player's cam that lhm-cams.js recognises (it never reaches a real connection). */
-export const lhmCamOffer = (steamId: string) => ({ offer: { type: "offer", sdp: `v=0\r\no=matchframe 0 0 IN IP4 127.0.0.1\r\ns=matchframe-cam\r\nt=0 0\r\na=x-matchframe-cam:${steamId}\r\n` } });
+/** The camera room id these HUDs read from /api/camera and pass back in "registerAsHUD". */
+export const COMPAT_CAM_UUID = "matchframe-cams";
+/** An offer for a player's cam that compat-cams.js recognises (it never reaches a real connection). */
+export const compatCamOffer = (steamId: string) => ({ offer: { type: "offer", sdp: `v=0\r\no=matchframe 0 0 IN IP4 127.0.0.1\r\ns=matchframe-cam\r\nt=0 0\r\na=x-matchframe-cam:${steamId}\r\n` } });
 
 /**
- * Game data reaches LHM HUDs at most this often (ms), apart from urgent changes. CS2 sends up to 50
- * packets a second at Matchframe's setting (for instant POV switches), and an LHM HUD redraws its
+ * Game data reaches imported HUDs at most this often (ms), apart from urgent changes. CS2 sends up to
+ * 50 packets a second at MatchFrame's setting (for instant POV switches), and such a HUD redraws its
  * whole page for each. Measured with kaiHUD in Chromium (a player running across its minimap):
- * - 10 a second: the minimap dot (LHM's 0.1 s eased transition) surged and stopped ten times a
+ * - 10 a second: the minimap dot (the template's 0.1 s eased transition) surged and stopped ten times a
  *   second, which looks like a HUD drawing at 20 fps although the page drew at 60;
  * - 20 a second: the dot moves evenly; main thread 21 % busy (16 % at 10), and 60 fps still with
  *   the CPU 4× slower;
  * - 30 or 50 a second: no smoother, and with the CPU 4× slower the main thread is full and frames drop.
- * kaiHUD's page does about 2.6 times the work of Matchframe's own HUD for the same game data (main
- * thread 31 % against 12 %), nearly all of it redrawing for each update. So an LHM HUD whose page
+ * kaiHUD's page does about 2.6 times the work of MatchFrame's own HUD for the same game data (main
+ * thread 31 % against 12 %), nearly all of it redrawing for each update. So an imported HUD whose page
  * can't keep up gets fewer (see updatePacer), down to MAX_UPDATE_MS.
  */
 export const UPDATE_MS = 50;
-/** The slowest an LHM HUD whose page can't keep up gets game data (ms): five times a second. */
+/** The slowest an imported HUD whose page can't keep up gets game data (ms): five times a second. */
 export const MAX_UPDATE_MS = 200;
 /**
  * How long the HUD page's tasks wait (90th percentile over 5 s, ms; the output page pings itself
@@ -65,7 +73,7 @@ export const BUSY_LAG_MS = 15;
 export const CALM_LAG_MS = 6;
 
 /**
- * What must reach an LHM HUD at once: the spectated player, round and countdown phase, bomb state,
+ * What must reach an imported HUD at once: the spectated player, round and countdown phase, bomb state,
  * who is alive, the score and the round number. Positions, the clock and money can wait for the next
  * tick.
  */
@@ -90,7 +98,7 @@ export function updateCoalescer(emit: (payload: Record<string, unknown>) => void
   return {
     push: (payload) => {
       pending = payload;
-      const key = lhmUrgentKey(payload);
+      const key = compatUrgentKey(payload);
       const urgent = key !== lastKey;
       lastKey = key;
       const wait = every() - (now() - lastSent);
@@ -104,7 +112,7 @@ export function updateCoalescer(emit: (payload: Record<string, unknown>) => void
   };
 }
 
-/** What changed an LHM HUD's update interval (for the director log). */
+/** What changed an imported HUD's update interval (for the director log). */
 export interface PaceChange {
   hudId: string;
   everyMs: number;
@@ -113,7 +121,7 @@ export interface PaceChange {
 }
 
 /**
- * Each LHM HUD's update interval, from how long its output pages' tasks wait. A busy page (any of
+ * Each imported HUD's update interval, from how long its output pages' tasks wait. A busy page (any of
  * the HUD's outputs) doubles it, up to MAX_UPDATE_MS; three calm reports in a row (15 s) halve it,
  * back to UPDATE_MS. After a HUD was slowed down, it waits a minute of calm before trying faster
  * again, so a page that can't keep up at 20 a second doesn't swing between the two. A HUD none of
@@ -161,12 +169,12 @@ export function updatePacer(now: () => number = Date.now) {
 }
 
 /**
- * The game data as an LHM HUD gets it: coaches listed with a team left out of `allplayers`, and each
+ * The game data as an imported HUD gets it: coaches listed with a team left out of `allplayers`, and each
  * player's `observer_slot` the spectator number key (1–9, 0; PlayerState.observerKey). CS2 counts
  * slots from 0, so a HUD showing observer_slot as the player's number (kaiHUD's minimap) showed the
  * first player as 0.
  */
-export function lhmGamePayload(raw: Record<string, unknown>, state: MatchState | null): Record<string, unknown> {
+export function compatGamePayload(raw: Record<string, unknown>, state: MatchState | null): Record<string, unknown> {
   if (!state || !raw.allplayers || typeof raw.allplayers !== "object") return raw;
   const byId = new Map(state.players.map((p) => [p.steamId, p]));
   const allplayers: Record<string, unknown> = {};
@@ -182,7 +190,7 @@ export function lhmGamePayload(raw: Record<string, unknown>, state: MatchState |
   return out;
 }
 
-export function lhmUrgentKey(p: Record<string, unknown>): string {
+export function compatUrgentKey(p: Record<string, unknown>): string {
   const o = (v: unknown) => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
   const all = Object.values(o(p.allplayers)).map((x) => {
     const st = o(o(x).state);
@@ -193,7 +201,7 @@ export function lhmUrgentKey(p: Record<string, unknown>): string {
 }
 
 /**
- * A killfeed entry as an HLAE player_death game event (what LHM relays as "update_mirv"). Only
+ * A killfeed entry as an HLAE player_death game event (what the template protocol relays as "update_mirv"). Only
  * kills with a killer are sent; details game data does not have (wallbang, no-scope, through smoke,
  * flash assist, in air) are false.
  */
@@ -218,8 +226,8 @@ export function mirvPlayerDeath(k: HudKillfeedEntry): Record<string, unknown> | 
   };
 }
 
-export function lhmSetCookie(hudId: string, token: string): string {
-  return `${lhmCookieName(hudId)}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000`;
+export function compatSetCookie(hudId: string, token: string): string {
+  return `${compatCookieName(hudId)}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000`;
 }
 
 function cookies(req: IncomingMessage): Map<string, string> {
@@ -241,31 +249,33 @@ const json = (res: ServerResponse, status: number, body: unknown) => {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }).end(JSON.stringify(body));
 };
 
-export class LhmRuntime {
+export class CompatRuntime {
   private io: IoServer | null = null;
-  private readonly panels = new Map<string, { dir: string; panel: LhmPanel }>();
+  private readonly panels = new Map<string, { dir: string; panel: CompatPanel }>();
   private readonly cleanup: (() => void)[] = [];
   private matchSignature = "";
   private readonly pacer = updatePacer();
   /** Radars drawn from map-pack outlines, per map (redrawn when its pack changes). */
-  private readonly outlines = new Map<string, { pack: object; radar: { svg: string; config: LhmRadarConfig } | null }>();
+  private readonly outlines = new Map<string, { pack: object; radar: { svg: string; config: CompatRadarConfig } | null }>();
   /** Each connected HUD page's game data, at its HUD's pace. */
   private readonly feeds = new Set<{ push: (payload: Record<string, unknown>) => void; dispose: () => void }>();
 
   constructor(private readonly e: Engine) {}
 
-  /** LHM HUDs whose cookie in this request carries their current token. */
+  /** Imported HUDs whose cookie in this request carries their current token (ids as they are now). */
   allowedHuds(req: IncomingMessage): string[] {
-    const out: string[] = [];
+    const out = new Set<string>();
     for (const [name, value] of cookies(req)) {
-      if (!name.startsWith("mf_lhm_")) continue;
-      const id = name.slice("mf_lhm_".length);
-      if (this.e.hudLibrary.runtimeConfig(id)?.runtime === "lhm" && this.e.hudLibrary.checkToken(id, value)) out.push(id);
+      const prefix = name.startsWith(COOKIE_PREFIX) ? COOKIE_PREFIX : name.startsWith(LEGACY_COOKIE_PREFIX) ? LEGACY_COOKIE_PREFIX : null;
+      if (!prefix) continue;
+      // A page opened before the update: its cookie names the HUD's legacy id (the token stayed the same).
+      const id = this.e.hudLibrary.resolveId(name.slice(prefix.length));
+      if (this.e.hudLibrary.runtimeConfig(id)?.runtime === "compat" && this.e.hudLibrary.checkToken(id, value)) out.add(id);
     }
-    return out;
+    return [...out];
   }
 
-  private panel(hudId: string): LhmPanel {
+  private panel(hudId: string): CompatPanel {
     const dir = this.e.hudLibrary.runtimeConfig(hudId)?.installDir ?? null;
     if (!dir) return [];
     const cached = this.panels.get(hudId);
@@ -276,7 +286,7 @@ export class LhmRuntime {
     return panel;
   }
 
-  private readonly lookup: LhmLookup = {
+  private readonly lookup: CompatLookup = {
     player: (steamId) => {
       const p = this.e.players.list().find((d) => d.data.steamId === steamId)?.data;
       return p ? this.player(p) : { steamid: steamId, username: steamId };
@@ -288,7 +298,7 @@ export class LhmRuntime {
     image: (assetId) => {
       if (!/\.(png|jpe?g|webp|svg|gif)$/i.test(assetId)) return null;
       const f = safeResolve(assetDir(this.e), assetId);
-      if (!f || !existsSync(f) || statSync(f).size > LhmRuntime.IMAGE_MAX) return null;
+      if (!f || !existsSync(f) || statSync(f).size > CompatRuntime.IMAGE_MAX) return null;
       return readFileSync(f).toString("base64");
     },
   };
@@ -320,7 +330,8 @@ export class LhmRuntime {
       socket.on("register", (name: unknown) => {
         let id: string;
         try {
-          id = typeof name === "string" ? decodeURIComponent(name) : "";
+          // A page opened before the update registers with the HUD's legacy id.
+          id = this.e.hudLibrary.resolveId(typeof name === "string" ? decodeURIComponent(name) : "");
         } catch {
           return;
         }
@@ -331,10 +342,10 @@ export class LhmRuntime {
       });
       // Player cams: the HUD asks for the cams on air.
       socket.on("registerAsHUD", (uuid: unknown) => {
-        if (uuid !== LHM_CAM_UUID) return;
+        if (uuid !== COMPAT_CAM_UUID) return;
         void socket.join("cams");
         socket.emit("playersCameraStatus", this.camStatus());
-        for (const id of this.e.cams.onAir()) socket.emit("offerFromPlayer", LHM_CAM_UUID, lhmCamOffer(id), id);
+        for (const id of this.e.cams.onAir()) socket.emit("offerFromPlayer", COMPAT_CAM_UUID, compatCamOffer(id), id);
       });
       // Everything else the HUD sends ("started", its answers to cam offers, ...) is ignored: read-only.
       socket.emit("readyToRegister");
@@ -346,7 +357,7 @@ export class LhmRuntime {
       const was = new Set(camsOnAir.split(",").filter(Boolean));
       if (sig !== camsOnAir) io.to("cams").emit("playersCameraStatus", this.camStatus());
       camsOnAir = sig;
-      for (const id of on) if (all || !was.has(id)) io.to("cams").emit("offerFromPlayer", LHM_CAM_UUID, lhmCamOffer(id), id);
+      for (const id of on) if (all || !was.has(id)) io.to("cams").emit("offerFromPlayer", COMPAT_CAM_UUID, compatCamOffer(id), id);
     };
     this.cleanup.push(this.e.cams.onChange(() => offerCams(false)));
     const camTimer = setInterval(() => offerCams(true), 3000);
@@ -355,7 +366,7 @@ export class LhmRuntime {
     this.cleanup.push(
       this.e.onRawGsi((raw) => {
         if (!this.feeds.size) return;
-        const payload = lhmGamePayload(raw, this.e.session.state());
+        const payload = compatGamePayload(raw, this.e.session.state());
         for (const f of this.feeds) f.push(payload);
       }),
     );
@@ -363,7 +374,7 @@ export class LhmRuntime {
       for (const f of this.feeds) f.dispose();
       this.feeds.clear();
     });
-    // The template's killfeed only listens to HLAE game events: Matchframe's paired kills, in that form.
+    // The template's killfeed only listens to HLAE game events: MatchFrame's paired kills, in that form.
     this.cleanup.push(
       this.e.onKill((k) => {
         const ev = mirvPlayerDeath(k);
@@ -388,15 +399,15 @@ export class LhmRuntime {
     this.cleanup.push(() => clearInterval(timer));
   }
 
-  /** An LHM HUD output page's report of how long its tasks wait: paces that HUD's game data. */
+  /** An imported HUD output page's report of how long its tasks wait: paces that HUD's game data. */
   noteLoad(hudId: string, output: object, lagMs: number): void {
     const ch = this.pacer.report(hudId, output, lagMs);
-    if (ch) this.e.directorLog.info(ch.everyMs > ch.was ? "lhm hud busy: fewer updates" : "lhm hud has room: more updates", { hud: hudId, updatesPerSec: Math.round(1000 / ch.everyMs), lagMs: ch.lagMs });
+    if (ch) this.e.directorLog.info(ch.everyMs > ch.was ? "imported hud busy: fewer updates" : "imported hud has room: more updates", { hud: hudId, updatesPerSec: Math.round(1000 / ch.everyMs), lagMs: ch.lagMs });
   }
 
   /** Maps with no radar image (Anubis, Cache): their map pack's outline as a radar. */
-  private outlineRadars(): Map<string, { svg: string; config: LhmRadarConfig }> {
-    const out = new Map<string, { svg: string; config: LhmRadarConfig }>();
+  private outlineRadars(): Map<string, { svg: string; config: CompatRadarConfig }> {
+    const out = new Map<string, { svg: string; config: CompatRadarConfig }>();
     for (const rt of this.e.maps.list()) {
       if (this.e.radars.get(rt.mapName) || !/^(de|cs|ar)_/.test(rt.mapName) || rt.mapName === "de_synthetic") continue;
       let cached = this.outlines.get(rt.mapName);
@@ -420,7 +431,7 @@ export class LhmRuntime {
     return true;
   }
 
-  /** Connected LHM sockets for a HUD (registered ones). */
+  /** Connected compatibility-layer sockets for a HUD (registered ones). */
   connected(hudId: string): number {
     return this.io?.sockets.adapter.rooms.get(`hud:${hudId}`)?.size ?? 0;
   }
@@ -435,7 +446,7 @@ export class LhmRuntime {
     }
   }
 
-  // ---------------------------------------------------------------- data in LHM's shapes
+  // ---------------------------------------------------------------- data in the template protocol's shapes
 
   private team(t: Team): Record<string, unknown> {
     return {
@@ -451,12 +462,10 @@ export class LhmRuntime {
   }
 
   private player(p: Player): Record<string, unknown> {
-    const [first, ...rest] = (p.realName ?? "").split(" ");
     const teamId = this.e.roster.history(p.id).find((m) => m.validTo === null)?.teamId ?? null;
     return {
       _id: p.id,
-      firstName: first ?? "",
-      lastName: rest.join(" "),
+      ...playerNames(p),
       username: p.displayName,
       avatar: p.photoVisible && p.avatarAssetId ? this.e.assetUrl(p.avatarAssetId) : "",
       country: p.countryCode ?? "",
@@ -480,24 +489,16 @@ export class LhmRuntime {
       matchType: `bo${m.format.bestOf}`,
       left: { id: leftId, wins: winsOf(leftId) },
       right: { id: rightId, wins: winsOf(rightId) },
-      vetos: maps.map((mi) => ({
-        teamId: mi.pickedByTeamId ?? "",
-        mapName: mi.mapName,
-        side: "NO",
-        type: mi.isDecider ? "decider" : "pick",
-        reverseSide: false,
-        mapEnd: mi.status === "completed",
-        winner: mi.winnerTeamId ?? undefined,
-        score: { [m.teamAId]: mi.scoreA, [m.teamBId]: mi.scoreB },
-      })),
+      // The match's veto in order (bans too), from its own entries, else the captain veto, else its maps.
+      vetos: hudVetoList(m, this.e.vetoRepo.active(m.id), maps),
     };
   }
 
-  /** GET /api/... for LHM HUDs; false when the path is not one of them. */
+  /** GET /api/... for imported HUDs; false when the path is not one of them. */
   handleApi(req: IncomingMessage, res: ServerResponse, path: string, query: URLSearchParams): boolean {
     if (!path.startsWith("/api/")) return false;
     if (this.allowedHuds(req).length === 0) {
-      json(res, 401, { error: "unauthorized", message: "open the HUD through its Matchframe URL" });
+      json(res, 401, { error: "unauthorized", message: "open the HUD through its MatchFrame URL" });
       return true;
     }
     const seg = path.slice("/api/".length).split("/").map((s) => decodeURIComponent(s));
@@ -527,14 +528,14 @@ export class LhmRuntime {
     } else if (seg[0] === "camera") {
       // Player cams: the match's players (each HUD makes a place for their cam).
       const players = this.e.cams.settings().enabled ? this.e.cams.rosterPlayers() : [];
-      json(res, 200, { uuid: LHM_CAM_UUID, availablePlayers: players.map((p) => ({ steamid: p.steamId, label: p.name })) });
+      json(res, 200, { uuid: COMPAT_CAM_UUID, availablePlayers: players.map((p) => ({ steamid: p.steamId, label: p.name })) });
     } else if (seg[0] === "radar" && seg[1] === "maps") {
       // Older template HUDs (kaiHUD) bundle their radars and only add maps they lack from here: the
       // maps with no radar drawing, from their map pack's outline.
       json(res, 200, Object.fromEntries([...this.outlineRadars()].map(([name, r]) => [name, { config: r.config, file: `/api/game-maps/cs2/image/${encodeURIComponent(name)}/radar` }])));
     } else if (seg[0] === "game-maps" && seg[1] === "cs2" && seg.length === 2) {
-      // Newer template HUDs load radars from LHM: Matchframe's built-in radars, then the maps with no
-      // radar drawing from their map pack's outline, in that shape.
+      // Newer template HUDs load radars from here: MatchFrame's built-in radars, then the maps with no
+      // radar drawing from their map pack's outline, in that shape (`lhmId` is the protocol's field name).
       const map = (name: string, radars: { lhmId: string; originX: number; originY: number; pxPerUX: number; pxPerUY: number; visibleUnderHeight: number | null; visibleOverHeight: number | null }[]) => ({
         _id: name,
         name,
@@ -558,7 +559,7 @@ export class LhmRuntime {
       else if (outline) res.writeHead(200, { "content-type": "image/svg+xml", "cache-control": "no-cache" }).end(outline.svg);
       else json(res, 404, { error: "not_found" });
     } else {
-      json(res, 404, { error: "not_found", message: "not part of Matchframe's LHM compatibility layer" });
+      json(res, 404, { error: "not_found", message: "not part of MatchFrame's HUD compatibility layer" });
     }
     return true;
   }

@@ -57,12 +57,12 @@ export function Icon({ name, size = 18 }: { name: string; size?: number }) {
   );
 }
 
-/** Matchframe Esports mark (assets/brand). Decorative: the name is always written next to it. */
+/** MatchFrame Esports mark (assets/brand). Decorative: the name is always written next to it. */
 export function Logo({ size = 28 }: { size?: number }) {
   return <img className="logo" src={markUrl} width={size} height={size} alt="" aria-hidden="true" draggable={false} />;
 }
 
-/** The Matchframe Esports badge (mark and name) for the sign-in and connection screens. */
+/** The MatchFrame Esports badge (mark and name) for the sign-in and connection screens. */
 export function BrandBadge({ size = 132 }: { size?: number }) {
-  return <img className="brand-badge" src={badgeUrl} width={size} height={size} alt="Matchframe Esports" draggable={false} />;
+  return <img className="brand-badge" src={badgeUrl} width={size} height={size} alt="MatchFrame Esports" draggable={false} />;
 }

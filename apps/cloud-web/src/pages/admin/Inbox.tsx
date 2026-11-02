@@ -16,7 +16,7 @@ const FILTERS: { value: MessageStatus; label: string }[] = [
 ];
 
 /** mailto: link that replies to a contact message with its text quoted. */
-export function replyHref(m: ContactMessage, websiteName = "Matchframe"): string {
+export function replyHref(m: ContactMessage, websiteName = "MatchFrame"): string {
   const subject = `Re: your ${websiteName} ${TOPIC_LABEL[m.topic]?.toLowerCase() ?? ""} enquiry`.replace(/\s+/g, " ");
   const quoted = m.message
     .split("\n")

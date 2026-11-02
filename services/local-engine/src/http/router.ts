@@ -146,7 +146,7 @@ export class Router {
     }
     return {
       openapi: "3.1.0",
-      info: { ...info, description: "Matchframe Esports local engine API (loopback by default). Not the API of the separate MatchFrame service or any replay tool." },
+      info: { ...info, description: "MatchFrame Esports local engine API (loopback by default). Not the API of the separate MatchFrame service or any replay tool." },
       servers: [{ url: "http://127.0.0.1:37211" }],
       components: { securitySchemes: { bearer: { type: "http", scheme: "bearer" } } },
       paths,

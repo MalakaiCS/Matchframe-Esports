@@ -1,6 +1,6 @@
 # Models: data, labels, training, evaluation
 
-Matchframe's learned components are **advisory and offline-trained**. The live director is the deterministic baseline (`baseline-1`, `packages/director-policy`); contact models (`contact_2s`) run in **shadow** only, next to the baseline, and never drive the camera. The demo-trained POV model (`pov_2s`, §8) is the one learned input the live director uses: half of its imminence, with the deterministic rules for everything else. Nothing here uses future demo information at live time, and parsed demos are not treated as expert observer decisions (they contain player behaviour, not camera choices).
+MatchFrame's learned components are **advisory and offline-trained**. The live director is the deterministic baseline (`baseline-1`, `packages/director-policy`); contact models (`contact_2s`) run in **shadow** only, next to the baseline, and never drive the camera. The demo-trained POV model (`pov_2s`, §8) is the one learned input the live director uses: half of its imminence, with the deterministic rules for everything else. Nothing here uses future demo information at live time, and parsed demos are not treated as expert observer decisions (they contain player behaviour, not camera choices).
 
 Documents:
 

@@ -36,7 +36,7 @@ function Row({ name, desc, state, detail }: { name: string; desc: string; state:
 }
 
 export function Status() {
-  useTitle("Status", "Live status of the Matchframe website, API and database.");
+  useTitle("Status", "Live status of the MatchFrame website, API and database.");
   const [c, setC] = useState<Check>({ state: "checking", health: null, error: null, at: null, ms: null });
   const live = useRef(true);
   const run = useCallback(async () => {
@@ -67,7 +67,7 @@ export function Status() {
 
   return (
     <>
-      <PageHero eyebrow="Status" title="Service status" lead="A live check of the website and its API from your browser. The Matchframe program keeps working for your broadcast even when the website is unavailable." />
+      <PageHero eyebrow="Status" title="Service status" lead="A live check of the website and its API from your browser. The MatchFrame program keeps working for your broadcast even when the website is unavailable." />
       <div className="wrap section-top narrow-block">
         <section className={`status-banner status-banner-${c.state}`} aria-live="polite" aria-labelledby="status-overall">
           <span className="status-dot status-dot-lg" aria-hidden="true" />
