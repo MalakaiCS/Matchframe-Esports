@@ -11,6 +11,24 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.12.3",
+    title: "Swap teams hotkey and saved players",
+    summary: "Swap the active match's teams with a hotkey or Stream Deck button, save the in-game players to their teams, and a Demo Library fix.",
+    sections: [
+      {
+        heading: "Matches",
+        items: [
+          "Swap teams from Live Control, Ctrl+Shift+F11, a global hotkey or the Stream Deck, whenever a match is active.",
+          "Save players to teams: the in-game players are saved to the team on their side, so MatchFrame recognises the teams by their players from then on.",
+        ],
+      },
+      {
+        heading: "Demo Library",
+        items: ["Fixed demos failing with \"QUEUED → HASHED is not allowed\"; affected demos are queued again by themselves."],
+      },
+    ],
+  },
+  {
     version: "0.12.2",
     title: "Team logos in game",
     summary: "The active match's team names and logos now always show in the HUDs during the game.",
