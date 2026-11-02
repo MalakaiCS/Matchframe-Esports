@@ -81,6 +81,44 @@ function useActiveMatch() {
   };
 }
 
+interface SideTeamsView {
+  CT: string | null;
+  T: string | null;
+  how: "roster" | "names" | "players" | "veto" | "assumed" | "swapped" | null;
+  ctName: string | null;
+  tName: string | null;
+  canSwap: boolean;
+}
+
+const SIDE_TEAMS_HOW: Record<NonNullable<SideTeamsView["how"]>, string> = {
+  roster: "recognised from the players' SteamID64s",
+  names: "recognised from CS2's team names",
+  players: "recognised from a few players' SteamID64s",
+  veto: "from the veto's starting side: swap if wrong",
+  assumed: "Team 1 assumed on the side shown: swap if wrong",
+  swapped: "swapped by you",
+};
+
+/** Which team the HUDs show on CT and T, how it was decided, and Swap teams when it was a guess. */
+function SideTeamsLine() {
+  const v = useApi<SideTeamsView>("/api/v1/live/side-teams", { refreshMs: 2000 });
+  const reason = usePermission("program.control");
+  const d = v.data;
+  if (!d || !d.how || (!d.CT && !d.T)) return null;
+  return (
+    <div className="row small" role="status" aria-label="Teams on screen">
+      <span>
+        On screen: <span className="side-ct">CT</span> <strong>{d.ctName ?? "?"}</strong> · <span className="side-t">T</span> <strong>{d.tName ?? "?"}</strong> <span className="muted">({SIDE_TEAMS_HOW[d.how]})</span>
+      </span>
+      {d.canSwap ? (
+        <ActionButton size="sm" variant="ghost" action={async () => v.setData(await api.post<SideTeamsView>("/api/v1/live/side-teams/swap"))} success="Teams swapped on the HUDs" disabledReason={reason}>
+          Swap teams
+        </ActionButton>
+      ) : null}
+    </div>
+  );
+}
+
 function MatchHeader({ snap }: { snap: OperatorSnapshot }) {
   const s = snap.state!;
   const engineNow = useEngineNow(250);
@@ -595,6 +633,7 @@ export function LiveControlScreen() {
     <div className="page page-live">
       <h1 className="sr-only">Live Control</h1>
       <MatchHeader snap={snap} />
+      <SideTeamsLine />
       {cardReason ? (
         <Note tone="warn" title="POV control unavailable">
           {cardReason}. Cards still show telemetry. <Link to="/settings/setup">Open Setup</Link>

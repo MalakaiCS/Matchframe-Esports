@@ -57,6 +57,7 @@ import { HighlightReels } from "./replay/reel.ts";
 import { OnAirLog } from "./replay/onair.ts";
 import { LiveSession } from "./live/session.ts";
 import { TeamSideTracker } from "./live/team-sides.ts";
+import { SideTeams } from "./live/side-teams.ts";
 import { Logger } from "./logger.ts";
 import { ProgramArbiter } from "./production/program.ts";
 import { TrainingService } from "./demos/training.ts";
@@ -254,6 +255,14 @@ export class Engine {
   /** The round the kill feed belongs to (see onState): kept while a round is over. */
   private killfeedKey: string | null = null;
   private sides = new TeamSideTracker();
+  /** The active match's teams on the game's sides, when the game data can't identify them itself. */
+  readonly sideTeams = new SideTeams({
+    team: (id) => {
+      const t = this.teams.get(id)?.data;
+      return t ? { name: t.name, shortName: t.shortName } : null;
+    },
+    startingCt: (m, mapName) => (mapName ? (this.mapInstances.forMatch(m.id).find((mi) => mi.mapName === mapName)?.startingCtTeamId ?? null) : null),
+  });
   private readonly delayBuffers = new Map<string, DelayBuffer<MatchState>>();
   private readonly cues = new Map<string, Cue>();
   private annotations: HudState["annotations"] = [];
@@ -884,6 +893,8 @@ export class Engine {
       }
       ctx = this.hudContext(outputId, variantOverride ?? d.variant, d.presetId, { profile: d.timelineProfile, delayMs: d.delayMs }, d.settings, d.profile);
     }
+    // The active match's teams on the sides the game data couldn't identify (names, logos, series).
+    if (state) state = this.sideTeams.apply(state, this.activeMatch());
     const hud = buildHudState(state, ctx, this.sides, now);
     // Round history winners recorded at round end with the side assignment at that time.
     for (const r of hud.roundHistory) if (r.winner === null) r.winner = this.roundWinnersLR.get(r.roundNumber) ?? null;
@@ -1021,7 +1032,7 @@ export class Engine {
     if (state) {
       for (const e of evs) {
         if (e.kind === "round_end" && typeof e.data.roundNumber === "number" && e.data.winnerSide) {
-          const { left } = this.sides.assign(state);
+          const { left } = this.sides.assign(this.sideTeams.apply(state, this.activeMatch()));
           this.roundWinnersLR.set(e.data.roundNumber, e.data.winnerSide === left ? "left" : "right");
         }
         if (e.kind === "epoch_changed") this.ruleEngine.resetWatermark();

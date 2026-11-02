@@ -78,6 +78,8 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/events` | metadata.write |
 | DELETE | `/api/v1/events/:id` | metadata.write |
 | PATCH | `/api/v1/events/:id` | metadata.write |
+| GET | `/api/v1/live/side-teams` | state.read |
+| POST | `/api/v1/live/side-teams/swap` | program.control |
 | POST | `/api/v1/live/deactivate-match` | program.control |
 | PUT | `/api/v1/matches/:id/maps` | metadata.write |
 | POST | `/api/v1/matches/:id/maps/:mapId/result` | metadata.write |
