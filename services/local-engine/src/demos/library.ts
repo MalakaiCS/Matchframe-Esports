@@ -192,6 +192,10 @@ const ARCHIVE_RE = /\.(zip|rar)$/i;
 export class DemoLibrary {
   private running = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
+  /** A tick is under way: the next one waits (hashing a large demo outlasts the 5 s timer). */
+  private ticking = false;
+  /** Demos being hashed now: never hashed twice at once. */
+  private hashing = new Set<string>();
   private seenSizes = new Map<string, number>();
   private paused = false;
   readonly progress = new Map<string, Record<string, unknown>>();
@@ -231,6 +235,13 @@ export class DemoLibrary {
         this.repo.transition(j.id, "QUEUED", {});
         n++;
       }
+    }
+    // 0.12.2 and earlier could hash a demo twice at once (two ticks overlapping on a large file):
+    // the second pass failed a demo the first had already queued. Those demos were fine: queue them again.
+    for (const j of this.repo.list("FAILED", 500)) {
+      if (!/hash failed: .*→ HASHED is not allowed/.test(j.failureReason ?? "")) continue;
+      this.repo.transition(j.id, "QUEUED", {}, { reason: "failed by an overlapping hashing pass (fixed in 0.12.3)" });
+      n++;
     }
     const root = this.config().datasetRoot;
     if (existsSync(root)) this.removeTempDirs(root, 0);
@@ -374,6 +385,8 @@ export class DemoLibrary {
   }
 
   async tick(): Promise<void> {
+    if (this.ticking) return;
+    this.ticking = true;
     try {
       this.scanIngest();
       await this.processQueue();
@@ -381,6 +394,8 @@ export class DemoLibrary {
       await this.applyRetention();
     } catch (e) {
       this.logger.error("demo library tick failed", { error: String(e) });
+    } finally {
+      this.ticking = false;
     }
   }
 
@@ -402,12 +417,16 @@ export class DemoLibrary {
   }
 
   private async hashJob(j: DemoJob): Promise<void> {
+    if (this.hashing.has(j.id)) return;
     if (!existsSync(j.sourcePath)) {
       this.repo.transition(j.id, "FAILED", { failureReason: "source file missing" });
       return;
     }
+    this.hashing.add(j.id);
     try {
       const { sha256, size } = await sha256File(j.sourcePath);
+      // Moved on meanwhile (another pass, an operator action): this hash is not needed any more.
+      if (this.repo.require(j.id).state !== "DISCOVERED") return;
       const dup = this.repo.findBySha(sha256);
       this.repo.transition(j.id, "HASHED", { sha256: dup ? null : sha256, sizeBytes: size });
       if (dup && dup.id !== j.id) {
@@ -416,7 +435,12 @@ export class DemoLibrary {
       }
       this.repo.transition(j.id, "QUEUED", {});
     } catch (e) {
-      this.repo.transition(j.id, "FAILED", { failureReason: `hash failed: ${String(e)}` });
+      // Only a demo still in this step fails here; never one that has moved on.
+      const state = this.repo.get(j.id)?.state;
+      if (state === "DISCOVERED" || state === "HASHED") this.repo.transition(j.id, "FAILED", { failureReason: `hash failed: ${String(e)}` });
+      else this.logger.warn("demo hashing: ignored an error for a demo that has moved on", { id: j.id, state, error: String(e) });
+    } finally {
+      this.hashing.delete(j.id);
     }
   }
 

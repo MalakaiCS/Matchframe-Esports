@@ -50,6 +50,38 @@ const settle = async (lib: DemoLibrary) => {
 };
 
 describe("DemoLibrary", () => {
+  it("hashes a demo once when two passes overlap (a large demo outlasts the 5 s timer), and fails nothing", async () => {
+    const { repo, lib, ingest } = setup(0);
+    const file = join(ingest, "big.dem");
+    writeFileSync(file, "demo-big".repeat(1000));
+    lib.importPaths([file]);
+    await Promise.all([lib.processQueue(), lib.processQueue(), lib.tick(), lib.tick()]);
+    await settle(lib);
+    const jobs = repo.list(undefined, 10);
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]!.state).not.toBe("FAILED");
+    expect(jobs[0]!.failureReason ?? "").not.toMatch(/HASHED is not allowed/);
+  });
+
+  it("queues again the demos 0.12.2 failed with an overlapping hashing pass, and no other failures", () => {
+    const { repo, lib, ingest } = setup(0);
+    const make = (name: string, reason: string) => {
+      const file = join(ingest, name);
+      writeFileSync(file, name);
+      const [j] = lib.importPaths([file]);
+      const id = (j as { id: string } | undefined)?.id ?? repo.list(undefined, 10).find((x) => x.sourcePath === file)!.id;
+      repo.transition(id, "HASHED", { sha256: name.padEnd(64, "0") });
+      repo.transition(id, "QUEUED", {});
+      repo.transition(id, "FAILED", { failureReason: reason });
+      return id;
+    };
+    const raced = make("raced.dem", "hash failed: Error: demo job demo_14c714d64a764746af43: QUEUED → HASHED is not allowed");
+    const broken = make("broken.dem", "extract failed: corrupt demo");
+    lib.recover();
+    expect(repo.require(raced).state).toBe("QUEUED");
+    expect(repo.require(broken).state).toBe("FAILED");
+  });
+
   it("A42: pauses safely when storage admission fails and deletes nothing", async () => {
     const { repo, lib, worker, ingest } = setup(Number.MAX_SAFE_INTEGER);
     const file = join(ingest, "a.dem");
