@@ -67,6 +67,24 @@ All notable changes to MatchFrame Esports. Versions follow semantic versioning o
   - **Spawn areas from pro demos** (`scripts/set-spawn-regions.py`): the seven pool maps' `t_spawn` / `ct_spawn` regions are where players stood at the end of freeze time (they were 100–500 units off; Ancient's and Anubis's CT spawns missed entirely). Spawn cameras and paths regenerated.
   - **Cache:** map pack from a pro demo's place names (46 areas), free-space grid and 87 cameras / 10 paths from CS2's meshes; in the default event pool with Ancient, Anubis, Dust II, Inferno, Mirage and Nuke.
   - **Team shots tuned on real positions:** finer spots (48 bearings, 6 distances, up to 300 units high), a size score, and a well-sized four over a distant five. Every round of the seven demos framed (272 shots).
+- **Teams, Players and Matches; MatchFrame Esports branding** (version 0.12.0, ADR-071, the owner's request: list → create/edit screen → Save and Exit; remove the old vendor branding throughout):
+  - **Records** (`routes/records.ts`, console `screens/Teams.tsx`, `teams/*`, `Matches.tsx`, `matches/MatchEditor.tsx`):
+    - Shared editor shell with a sticky Cancel / Save and Exit footer and an unsaved-changes guard (router, `beforeunload`, Electron `will-prevent-unload`).
+    - List state kept between visits.
+    - Staged image uploads, checked by content (PNG/JPEG/WebP, 2 MB) and promoted on save.
+    - Players: `firstName`/`lastName` (migration 5); SteamID64 unique and validated; team through the roster in one transaction.
+    - Matches: ordered veto entries with side choice and reversed sides, map instances derived from them with played results kept, series = maps won + correction, field-level edit conflicts (409), Make Active no longer changes status.
+    - Protected deletes with archive.
+    - `.xlsx` import and templates (fflate reader/writer).
+    - SVG flags (`country-flag-icons`, MIT).
+  - **Branding:**
+    - "MatchFrame Esports" in every visible string; installer `MatchFrameEsports-Setup-<v>.exe` with `appId` unchanged.
+    - The hud.json compatibility layer renamed (`hud/compat*.ts`), with `lhm.*` HUD ids and runtime migrated to `imported.*` / `compat`. Old URLs, cookies and synced records still work.
+    - OBS objects and folders under the old spelling reused (`brand.ts`).
+    - Third-party MIT notices consolidated in `third-party-licenses/` and `THIRD_PARTY_NOTICES.md`.
+    - Docs and website reworded.
+  - **Imported HUDs:** first and last names and the full veto (`playerNames`, `hudVetoList`).
+  - **Tests:** journeys 1–8 (`records.e2e`), records domain, console editors, upgrade from a real 0.11.0 data folder (`upgrade-0110.e2e`), OBS legacy names, folder continuity, legacy synced HUDs, imported-HUD veto and names. The packaged smoke test opens match graphics from the editor.
 - **Team Comms** (version 0.11.0, ADR-065 to ADR-069, the owner's brief `docs/specs/team-comms-brief.md`; off by default):
   - **TeamSpeak 3 plugin** (`native/ts3-matchframe-plugin`, plugin API 26, version 0.2.0): per-person decoded voice before the mix, listen-only team tabs, silent locally, remembered tabs across a TeamSpeak restart. Built with MSVC in `windows-program.yml`, shipped in `resources/ts3-plugin` and installed from the program.
   - **Engine** (`services/local-engine/src/comms/`): bridge on 127.0.0.1 with a token, identities by team id, delayed per-person buffers (1 s pages), public, recording and preview mixes, Listen In / End / Mute All (never reopened by itself), NDI audio-only outputs "MatchFrame Comms" and "MatchFrame Comms Recording" from their own process (restart with back-off), headphone preview, caster ducking, and the team-only TEAM COMMS overlay.

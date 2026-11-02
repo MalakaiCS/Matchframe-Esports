@@ -11,6 +11,31 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.12.0",
+    title: "Teams, Players and Matches",
+    summary: "Create and edit teams, players and matches on their own screens with Save and Exit, set up a match's map veto, and import from Excel. The program is now MatchFrame Esports.",
+    sections: [
+      {
+        heading: "Teams, Players and Matches",
+        items: [
+          "Each list opens a full-page form; Save and Exit brings you back to the updated list, and unsaved changes are never lost by accident.",
+          "Teams with logo and country, and their assigned players. Players with first and last name, country, SteamID64 and team.",
+          "Matches in Ended, Current and Future tabs, with Make Active as its own button.",
+          "Set up a match's map veto: picks, bans, the decider, side choices and reversed sides.",
+          "Import teams and players from Excel, with a preview of every row's problems.",
+          "Deleting names what is linked; something still in use is archived instead.",
+        ],
+      },
+      {
+        heading: "MatchFrame Esports",
+        items: [
+          "The program, installer and website are now called MatchFrame Esports.",
+          "Your teams, players, matches, HUDs, settings and OBS setup carry over as they are.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.11.0",
     title: "Team Comms",
     summary: "Put a team's TeamSpeak comms on the broadcast, delayed to match the gameplay, and record one team's comms with the gameplay and a speaker strip.",
