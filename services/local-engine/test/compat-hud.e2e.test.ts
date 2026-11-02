@@ -13,6 +13,7 @@ import { loadConfig } from "../src/config.ts";
 import { normalizeSettingsSchema } from "../src/hud/library.ts";
 import { convertHudJsonPackage, hudConfig, migrateLegacyManifest, panelSettings, parsePanel } from "../src/hud/compat.ts";
 import { mirvPlayerDeath } from "../src/hud/compat-runtime.ts";
+import { makePng } from "./helpers/images.ts";
 import { startServers } from "../src/servers.ts";
 
 async function freePort(): Promise<number> {
@@ -291,8 +292,16 @@ describe("imported hud.json-format HUD in the library (engine)", () => {
     const b = (await api("/api/v1/teams", { method: "POST", body: { name: "Red Fox", shortName: "RFX" } })).json as { id: string };
     const p = await api("/api/v1/players", { method: "POST", body: { displayName: "Malakai", firstName: "Kai", lastName: "Brown", countryCode: "AU", steamId: "76561198000000555", teamId: a.id } });
     expect(p.status).toBeLessThan(300);
-    const players = (await (await overlay("/api/players", cookie)).json()) as { username: string; firstName: string; lastName: string; team: string; steamid: string }[];
-    expect(players.find((x) => x.username === "Malakai")).toMatchObject({ firstName: "Kai", lastName: "Brown", team: a.id, steamid: "76561198000000555" });
+    const players = (await (await overlay("/api/players", cookie)).json()) as { username: string; firstName: string; lastName: string; team: string; steamid: string; avatar: string }[];
+    expect(players.find((x) => x.username === "Malakai")).toMatchObject({ firstName: "Kai", lastName: "Brown", team: a.id, steamid: "76561198000000555", avatar: "" });
+    // Settings' default player picture: given for a player without their own (and cleared again).
+    const up = await fetch(`http://127.0.0.1:${ports.api}/api/v1/uploads/images`, { method: "POST", headers: { authorization: `Bearer ${engine.secrets.operatorToken}`, "content-type": "image/png" }, body: makePng(200, 200) });
+    const staged = (await up.json()) as { stagedId: string };
+    const def = (await api("/api/v1/default-player-picture", { method: "PUT", body: { stagedId: staged.stagedId } })).json as { url: string };
+    const withDefault = (await (await overlay("/api/players", cookie)).json()) as { username: string; avatar: string }[];
+    expect(withDefault.find((x) => x.username === "Malakai")?.avatar).toBe(def.url);
+    expect(await (await overlay("/api/players/avatar/steamid/76561198000000555", cookie)).json()).toEqual({ custom: def.url, steam: "" });
+    await api("/api/v1/default-player-picture", { method: "PUT", body: { clear: true } });
     const veto = [
       { id: "v1", type: "ban", teamId: a.id, mapName: "de_dust2" },
       { id: "v2", type: "ban", teamId: b.id, mapName: "de_inferno" },

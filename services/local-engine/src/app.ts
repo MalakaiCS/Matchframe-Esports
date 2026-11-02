@@ -30,6 +30,8 @@ import { AuditRepo, DemoJobRepo, DocumentRepo, MapInstanceRepo, RosterRepo, Sett
 import { SponsorRotation, zoneAllowed } from "./domain/sponsors.ts";
 import { VetoService } from "./domain/veto.ts";
 import { HUD_ART_KEY, hudArtState, normalizeHudArt, type HudArtSetting } from "./hud/art.ts";
+/** Settings key of the default player picture (Settings → General). */
+export const DEFAULT_PLAYER_PICTURE_KEY = "players.defaultPicture";
 import { CleanRadars } from "./hud/clean-radar.ts";
 import { HudLibraryService, libraryHudId, libraryOutputId } from "./hud/library.ts";
 import { HudPackageManager } from "./hud/packages.ts";
@@ -509,6 +511,8 @@ export class Engine {
           const list = this.hudArtSetting().defaultPlayers[side];
           return list.length ? this.assetUrl(list[index % list.length]!) : null;
         },
+        // Settings' default player picture, when the strip has no placeholder of its own.
+        fallback: () => this.assetUrl(this.defaultPlayerPicture()),
         assetUrl: (id) => this.assetUrl(id),
       },
       overlayPort: () => this.cfg.overlayPort,
@@ -783,6 +787,7 @@ export class Engine {
         return eventId ? (this.events.get(eventId)?.data ?? null) : null;
       })(),
       assetUrl: (id) => this.assetUrl(id),
+      defaultPlayerPicture: (side) => this.fallbackPlayerPicture(side),
       map: state?.mapName ? this.maps.get(state.mapName) : undefined,
       builtinRadar: this.radars.get(state?.mapName ?? null),
       killfeed: { mode: this.killfeed.mode, entries: this.killfeed.list() },
@@ -828,6 +833,28 @@ export class Engine {
   assetUrl(assetId: string | null): string | null {
     if (!assetId) return null;
     return `/assets/${encodeURIComponent(assetId)}`;
+  }
+
+  /** The default player picture (Settings → General): the asset used for any player without a picture of their own. */
+  defaultPlayerPicture(): string | null {
+    const v = this.settings.get<{ assetId?: string | null } | null>(DEFAULT_PLAYER_PICTURE_KEY, null);
+    return typeof v?.assetId === "string" && v.assetId ? v.assetId : null;
+  }
+
+  /** Sets (or clears) the default player picture; every HUD gets it at once. */
+  setDefaultPlayerPicture(assetId: string | null): void {
+    this.settings.set(DEFAULT_PLAYER_PICTURE_KEY, { assetId });
+    for (const fn of this.hudListeners) fn("*");
+  }
+
+  /**
+   * The picture a MatchFrame HUD gets for a player without their own, on a side: none when the HUD
+   * images have pictures for that side (the HUD picks one of those itself), else the default player picture.
+   */
+  private fallbackPlayerPicture(side: "CT" | "T" | null): string | null {
+    const art = this.hudArtSetting();
+    const list = side === "T" ? art.defaultPlayers.t : side === "CT" ? art.defaultPlayers.ct : [];
+    return list.length > 0 ? null : this.assetUrl(this.defaultPlayerPicture());
   }
 
   /**

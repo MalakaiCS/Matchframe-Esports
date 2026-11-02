@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { api, seg } from "../api/index.ts";
+import { api, describeError, seg } from "../api/index.ts";
 import type { AuditEntry, BroadcastReport, EngineMetrics, LogEntry, StatsResponse } from "../api/types.ts";
+import { ImageField } from "../components/forms.tsx";
 import { ActionButton, Async, Badge, Button, Details, EmptyState, Field, JsonEditor, KV, Note, Panel, parseJsonOr } from "../components/ui.tsx";
+import { setDefaultPlayerPicture, useDefaultPlayerPicture, type DefaultPlayerPicture } from "../lib/defaultPicture.ts";
 import { fmtMs, fmtTime, MISSING, saveBlob } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
 import { reasonInfo } from "../lib/reasons.ts";
@@ -308,6 +310,44 @@ function ProgramPanel() {
   );
 }
 
+/** The default player picture: shown for any player without a picture of their own, everywhere. */
+function DefaultPlayerPicturePanel() {
+  const writeReason = usePermission("metadata.write");
+  const pic = useDefaultPlayerPicture();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const save = async (body: { stagedId: string } | { clear: true }) => {
+    setSaving(true);
+    setError(null);
+    try {
+      setDefaultPlayerPicture(await api.put<DefaultPlayerPicture>("/api/v1/default-player-picture", body));
+    } catch (e) {
+      setError(describeError(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <Panel title="Default player picture" subtitle="Shown for any player who has no picture of their own">
+      <ImageField
+        id="default-player-picture"
+        label="Default picture"
+        kind="avatar"
+        value={{ assetId: pic?.assetId ?? null, staged: null }}
+        disabledReason={writeReason ?? (saving ? "Saving the picture" : null)}
+        onChange={(v) => {
+          if (v.staged) void save({ stagedId: v.staged.stagedId });
+          else if (!v.assetId && pic?.assetId) void save({ clear: true });
+        }}
+      />
+      <p className="small muted">
+        Used at once in the Teams and Players lists, MatchFrame HUDs, imported HUDs and the Team Comms speaker strip. A player&apos;s own picture always comes first. In MatchFrame HUDs, the side pictures you set under <Link to="/hud/images">HUD images</Link> come before this one.
+      </p>
+      {error ? <Note tone="warn">{error}</Note> : null}
+    </Panel>
+  );
+}
+
 function GeneralTab() {
   const settingsReason = usePermission("settings.manage");
   const directorReason = usePermission("director.control");
@@ -318,6 +358,7 @@ function GeneralTab() {
   return (
     <div className="grid-2">
       <ProgramPanel />
+      <DefaultPlayerPicturePanel />
       <Panel title="Live session">
         <div className="row">
           {snap?.simulated ? (

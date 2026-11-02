@@ -18,6 +18,8 @@ export interface HudContext {
   playersBySteam: Map<string, Player>;
   event: EventRecord | null;
   assetUrl: (assetId: string | null) => string | null;
+  /** The picture for a player without their own on a side (Settings' default player picture), or null. */
+  defaultPlayerPicture?: (side: "CT" | "T" | null) => string | null;
   map: MapRuntime | undefined;
   /** The built-in radar image for this map (assets/radars), when there is one. */
   builtinRadar?: BuiltinRadar | undefined;
@@ -96,7 +98,7 @@ function toHudPlayer(p: PlayerState, observedSteamId: string | null, ctx: HudCon
     adr: null,
     roundDamage: p.roundDamage,
     observed: observedSteamId === p.steamId,
-    avatarUrl: reg && reg.photoVisible ? ctx.assetUrl(reg.avatarAssetId) : null,
+    avatarUrl: (reg && reg.photoVisible ? ctx.assetUrl(reg.avatarAssetId) : null) ?? ctx.defaultPlayerPicture?.(p.side ?? null) ?? null,
     countryCode: reg?.countryCode ?? null,
   };
 }

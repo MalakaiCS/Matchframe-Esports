@@ -8,7 +8,7 @@ import { ActionButton, Button, Checkbox, Details, ErrorBox, Loading, Note } from
 import { useDraft } from "../../lib/draft.ts";
 import { fmtTime } from "../../lib/format.ts";
 import { useApi } from "../../lib/hooks.ts";
-import { useLocation } from "../../router.tsx";
+import { Link, useLocation } from "../../router.tsx";
 import { usePermission } from "../../state/session.tsx";
 import { roleText } from "../Teams.tsx";
 import { editId } from "./TeamEditor.tsx";
@@ -203,7 +203,15 @@ function PlayerEditor({ player, back, presetTeam, reload }: { player: PlayerDeta
         <FormField label="Team" htmlFor="player-team" error={errors.teamId} hint="Assigning or changing the team updates both teams' rosters when you save; earlier memberships stay in the history.">
           <TeamSelect id="player-team" teams={teamList} value={d.draft.teamId} onChange={(teamId) => d.set({ teamId })} emptyLabel="Unassigned" invalid={!!errors.teamId} />
         </FormField>
-        <FormField label="Avatar" htmlFor="player-avatar">
+        <FormField
+          label="Avatar"
+          htmlFor="player-avatar"
+          hint={
+            <>
+              Without one, the <Link to="/settings">default player picture</Link> is shown (Settings → General).
+            </>
+          }
+        >
           <ImageField
             id="player-avatar"
             label="Avatar"

@@ -131,6 +131,8 @@ export interface StripPictures {
   rosterOrder(teamId: string): string[];
   /** The HUD images' default player picture n for the team's current side (cycling), or null. */
   defaultPicture(teamId: string, index: number): string | null;
+  /** Settings' default player picture (used when the strip has no placeholder of its own), or null. */
+  fallback?(): string | null;
   assetUrl(id: string | null): string | null;
 }
 
@@ -245,8 +247,8 @@ export class SpeakerStrip {
   /**
    * A team's cards: its people included in the recording, in roster order (mapped players by the
    * team's roster, then the rest as first seen), at most seven, each with a picture: their roster
-   * picture, else the HUD images' default player picture, else the operator's placeholder, else
-   * MatchFrame's silhouette.
+   * picture, else the HUD images' default player picture, else the operator's placeholder (the strip's
+   * own, else Settings' default player picture), else MatchFrame's silhouette.
    */
   cardsFor(teamId: string | null): { cards: StripCard[]; overLimit: number } {
     if (!teamId) return { cards: [], overLimit: 0 };
@@ -260,7 +262,7 @@ export class SpeakerStrip {
     };
     people.sort((a, b) => rank(a.playerId) - rank(b.playerId) || a.firstSeen.localeCompare(b.firstSeen) || a.key.localeCompare(b.key));
     const shown = people.slice(0, MAX_CARDS);
-    const placeholder = pics.assetUrl(s.placeholderAssetId);
+    const placeholder = pics.assetUrl(s.placeholderAssetId) ?? pics.fallback?.() ?? null;
     const cards = shown.map((p, i): StripCard => {
       const id = cardId(p.key);
       const player = p.playerId ? pics.player(p.playerId) : null;

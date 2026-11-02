@@ -39,6 +39,8 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/game/prepare-launch` | settings.manage |
 | POST | `/api/v1/uploads/images` | metadata.write |
 | DELETE | `/api/v1/uploads/images/:stagedId` | metadata.write |
+| GET | `/api/v1/default-player-picture` | metadata.read |
+| PUT | `/api/v1/default-player-picture` | metadata.write |
 | GET | `/api/v1/map-pool` | metadata.read |
 | GET | `/api/v1/teams` | metadata.read |
 | GET | `/api/v1/teams/:id` | metadata.read |

@@ -323,6 +323,28 @@ describe("Teams, Players and Matches through the engine API (journeys 1–8)", (
     expect(pAfter.json.records[0]!.blockers).toEqual(["Plays for a team in the active match (Northern Lights vs LITE Esports)"]);
   });
 
+  it("the default player picture (Settings): set from an upload, used for players without their own, cleared", async () => {
+    expect((await call("GET", "/api/v1/default-player-picture")).json).toEqual({ assetId: null, url: null });
+    expect((await call("PUT", "/api/v1/default-player-picture", {})).status).toBe(400);
+    const up = await call<{ stagedId: string }>("POST", "/api/v1/uploads/images", undefined, { data: makePng(240, 240), type: "image/png" });
+    const set = await call<{ assetId: string; url: string }>("PUT", "/api/v1/default-player-picture", { stagedId: up.json.stagedId });
+    expect(set.status).toBe(200);
+    expect(set.json.url).toBe(`/assets/${set.json.assetId}`);
+    expect(staging()).toEqual([]);
+    expect((await call("GET", set.json.url)).status).toBe(200);
+    // MatchFrame HUDs: the default for a side with no HUD images side pictures; those come first when set.
+    const fallback = (side: "CT" | "T") => (ctx.engine as unknown as { fallbackPlayerPicture(s: "CT" | "T"): string | null }).fallbackPlayerPicture(side);
+    expect(fallback("CT")).toBe(set.json.url);
+    const art = ctx.engine.hudArtSetting();
+    ctx.engine.setHudArt({ ...art, defaultPlayers: { ct: [set.json.assetId], t: [] } });
+    expect(fallback("CT")).toBeNull();
+    expect(fallback("T")).toBe(set.json.url);
+    ctx.engine.setHudArt(art);
+    const cleared = await call("PUT", "/api/v1/default-player-picture", { clear: true });
+    expect(cleared.json).toEqual({ assetId: null, url: null });
+    expect(fallback("CT")).toBeNull();
+  });
+
   it("7: after a restart on the same data folder, records and uploaded assets are still there", async () => {
     await ctx.servers.close();
     await ctx.engine.shutdown();

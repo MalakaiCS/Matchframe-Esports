@@ -100,6 +100,22 @@ export function registerRecordRoutes(r: Router, e: Engine): void {
   };
   const afterSave = (...ids: (string | undefined)[]) => ids.forEach((id) => id && e.staged.discard(id));
 
+  // The default player picture (Settings → General): shown for any player without their own, in
+  // MatchFrame HUDs (after the HUD images' side pictures), imported HUDs, the speaker strip and the console.
+  const defaultPicture = () => {
+    const assetId = e.defaultPlayerPicture();
+    return { assetId, url: e.assetUrl(assetId) };
+  };
+  r.get("/api/v1/default-player-picture", { permission: "metadata.read" }, () => defaultPicture());
+  r.put("/api/v1/default-player-picture", { permission: "metadata.write", body: z.object({ stagedId: z.string().max(80).optional(), clear: z.boolean().optional() }) }, (req) => {
+    if (!req.body.stagedId && !req.body.clear) throw new HttpError(400, "Upload a picture, or remove the current one.", "nothing_to_do");
+    const assetId = req.body.clear ? null : (promote(req.body.stagedId) ?? null);
+    e.setDefaultPlayerPicture(assetId);
+    afterSave(req.body.stagedId);
+    e.audit.record(who(req), assetId ? "players.default_picture.set" : "players.default_picture.clear", assetId);
+    return defaultPicture();
+  });
+
   r.get("/api/v1/map-pool", { permission: "metadata.read" }, () => {
     const known = new Set([...REQUESTED_MAP_TARGETS.map((t) => t.mapName), ...e.maps.list().map((m) => m.mapName)]);
     return { maps: appMapPool(), known: [...known].sort() };

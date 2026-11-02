@@ -467,7 +467,8 @@ export class CompatRuntime {
       _id: p.id,
       ...playerNames(p),
       username: p.displayName,
-      avatar: p.photoVisible && p.avatarAssetId ? this.e.assetUrl(p.avatarAssetId) : "",
+      // Their own picture, else Settings' default player picture.
+      avatar: (p.photoVisible && p.avatarAssetId ? this.e.assetUrl(p.avatarAssetId) : null) ?? this.e.assetUrl(this.e.defaultPlayerPicture()) ?? "",
       country: p.countryCode ?? "",
       steamid: p.steamId ?? "",
       team: teamId ?? "",
@@ -518,7 +519,7 @@ export class CompatRuntime {
       json(res, 200, teams().map((t) => this.team(t)));
     } else if (seg[0] === "players" && seg[1] === "avatar" && seg[2] === "steamid" && seg[3]) {
       const p = this.e.players.list().find((d) => d.data.steamId === seg[3])?.data;
-      json(res, 200, { custom: p && p.photoVisible && p.avatarAssetId ? this.e.assetUrl(p.avatarAssetId) : "", steam: "" });
+      json(res, 200, { custom: (p && p.photoVisible && p.avatarAssetId ? this.e.assetUrl(p.avatarAssetId) : null) ?? (p ? this.e.assetUrl(this.e.defaultPlayerPicture()) : null) ?? "", steam: "" });
     } else if (seg[0] === "players") {
       const ids = (query.get("steamids") ?? "").split(";").filter(Boolean);
       const list = this.e.players.list().map((d) => d.data).filter((p) => p.steamId && (ids.length === 0 || ids.includes(p.steamId)));

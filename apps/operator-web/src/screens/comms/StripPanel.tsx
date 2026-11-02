@@ -21,7 +21,7 @@ const ANCHORS: [StripAnchor, string][] = [
 const PICTURE: Record<StripStatus["cards"][number]["picture"], string> = {
   own: "roster picture",
   "hud-default": "HUD images' default picture",
-  placeholder: "your placeholder",
+  placeholder: "placeholder picture (Team Comms, else the default player picture)",
   silhouette: "MatchFrame's silhouette",
 };
 

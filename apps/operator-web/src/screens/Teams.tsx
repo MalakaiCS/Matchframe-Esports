@@ -6,6 +6,7 @@ import { Combobox, CountryText, Flag, TeamLogo } from "../components/forms.tsx";
 import { ListHeader, SearchBox, SelectAll, SortHeader, useSelection } from "../components/listing.tsx";
 import { DeleteDialog, ImportDialog } from "../components/RecordDialogs.tsx";
 import { ActionButton, Async, Badge, Button, Checkbox, EmptyState } from "../components/ui.tsx";
+import { useDefaultPlayerPicture } from "../lib/defaultPicture.ts";
 import { countryLabel } from "../lib/flags.ts";
 import { useApi } from "../lib/hooks.ts";
 import { sortRows, useListState, useRestoreScroll } from "../lib/listState.ts";
@@ -186,11 +187,14 @@ export function TeamsScreen() {
   );
 }
 
+/** A player's picture: their own, else the default player picture (Settings → General), else their initial. */
 export function PlayerAvatar({ assetId, name, size = 32 }: { assetId: string | null | undefined; name: string; size?: number }) {
-  const url = assetUrl(assetId);
+  const fallback = useDefaultPlayerPicture();
+  const own = assetUrl(assetId);
+  const url = own ?? fallback?.url ?? null;
   return (
-    <span className="avatar" style={{ width: size, height: size }}>
-      {url ? <img src={url} alt={`${name} avatar`} /> : <span aria-hidden>{name.slice(0, 1).toUpperCase()}</span>}
+    <span className={`avatar ${!own && url ? "is-default" : ""}`} style={{ width: size, height: size }} title={!own && url ? "Default player picture" : undefined}>
+      {url ? <img src={url} alt={own ? `${name} avatar` : `${name}: default player picture`} /> : <span aria-hidden>{name.slice(0, 1).toUpperCase()}</span>}
     </span>
   );
 }
