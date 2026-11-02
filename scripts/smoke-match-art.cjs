@@ -36,13 +36,15 @@ async function checkMatchArt({ app, win, base, waitFor, assert, shot }) {
   const m = await call("/api/v1/matches", { teamAId: a.id, teamBId: b.id, title: "Smoke final", format: { bestOf: 1, regulationRounds: 24, overtimeEnabled: true, overtimeRounds: 6, allowTie: false }, mapPool: ["de_mirage"] });
   assert(typeof m.id === "string", `match created (${JSON.stringify(m)})`);
   log(`match ${m.id} created`);
-  // The Matches page opens the newest match; its graphics tab makes them when there are none yet.
-  // (Deferred a tick: the page navigates away, which would otherwise race the evaluate call returning.)
-  await within(win.evaluate(() => void setTimeout(() => (location.href = "app://matchframe/matches"), 0)), 30000, "opening Matches");
-  const tab = await waitFor(() => within(win.evaluate(() => [...document.querySelectorAll('[role="tab"]')].some((t) => t.textContent.includes("Thumbnails"))), 10000, "the tabs"), 60000);
-  assert(tab, "the match's Thumbnails & stingers tab is shown");
-  await within(win.evaluate(() => [...document.querySelectorAll('[role="tab"]')].find((t) => t.textContent.includes("Thumbnails")).click()), 10000, "opening the tab");
-  log("Thumbnails & stingers tab open");
+  // The match's edit screen has a "Thumbnails and stingers" section; opened, it makes them when there
+  // are none yet. (Deferred a tick: the page navigates away, which would otherwise race the evaluate
+  // call returning.)
+  await within(win.evaluate((id) => void setTimeout(() => (location.href = `app://matchframe/matches/${encodeURIComponent(id)}/edit`), 0), m.id), 30000, "opening the match");
+  const hasSection = () => [...document.querySelectorAll("details > summary")].some((s) => s.textContent.includes("Thumbnails"));
+  const section = await waitFor(() => within(win.evaluate(hasSection), 10000, "the sections"), 60000);
+  assert(section, "the match's Thumbnails and stingers section is shown");
+  await within(win.evaluate(() => [...document.querySelectorAll("details > summary")].find((s) => s.textContent.includes("Thumbnails")).click()), 10000, "opening the section");
+  log("Thumbnails and stingers section open");
   const started = Date.now();
   let last = "";
   let lastAt = 0;
