@@ -67,6 +67,14 @@ All notable changes to MatchFrame Esports. Versions follow semantic versioning o
   - **Spawn areas from pro demos** (`scripts/set-spawn-regions.py`): the seven pool maps' `t_spawn` / `ct_spawn` regions are where players stood at the end of freeze time (they were 100–500 units off; Ancient's and Anubis's CT spawns missed entirely). Spawn cameras and paths regenerated.
   - **Cache:** map pack from a pro demo's place names (46 areas), free-space grid and 87 cameras / 10 paths from CS2's meshes; in the default event pool with Ancient, Anubis, Dust II, Inferno, Mirage and Nuke.
   - **Team shots tuned on real positions:** finer spots (48 bearings, 6 distances, up to 300 units high), a size score, and a well-sized four over a distant five. Every round of the seven demos framed (272 shots).
+- **Default player picture** (version 0.12.1, the owner: "a default picture if no one has a picture attached"):
+  - **Setting:** Settings → General; `players.defaultPicture`, set from a staged upload through `GET`/`PUT /api/v1/default-player-picture`.
+  - **Where it's used, for players without their own picture:**
+    - MatchFrame HUDs: `avatarUrl` through the HUD context, only for a side without HUD images side pictures, which keep their place;
+    - imported HUDs: `/api/players` `avatar` and `/api/players/avatar/steamid`;
+    - the Team Comms strip, after the strip's own placeholder;
+    - the console's player avatars.
+  - **Tests:** `records.e2e` (set, side-picture precedence, clear) and `compat-hud.e2e` (imported HUD avatars).
 - **Teams, Players and Matches; MatchFrame Esports branding** (version 0.12.0, ADR-071, the owner's request: list → create/edit screen → Save and Exit; remove the old vendor branding throughout):
   - **Records** (`routes/records.ts`, console `screens/Teams.tsx`, `teams/*`, `Matches.tsx`, `matches/MatchEditor.tsx`):
     - Shared editor shell with a sticky Cancel / Save and Exit footer and an unsaved-changes guard (router, `beforeunload`, Electron `will-prevent-unload`).

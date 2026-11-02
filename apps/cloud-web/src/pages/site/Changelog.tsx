@@ -11,6 +11,20 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.12.1",
+    title: "Default player picture",
+    summary: "One picture, set in Settings, shown for every player who has no picture of their own.",
+    sections: [
+      {
+        heading: "Players",
+        items: [
+          "Settings → General → Default player picture: shown in the lists, MatchFrame HUDs, imported HUDs and the Team Comms speaker strip for players without their own picture.",
+          "A player's own picture always comes first; HUD images' side pictures keep their place in MatchFrame HUDs.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.12.0",
     title: "Teams, Players and Matches",
     summary: "Create and edit teams, players and matches on their own screens with Save and Exit, set up a match's map veto, and import from Excel. The program is now MatchFrame Esports.",
