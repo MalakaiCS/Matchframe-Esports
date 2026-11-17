@@ -1907,3 +1907,79 @@ In both, the frames' stamps are 16.67 ms apart (ffmpeg's constant rate before, t
 
 **Revisit if.** Reports are too many or too large to read (group them by signature on the website), or staff need them longer than 90 days.
 
+## ADR-080 — Clutches that cut to the hunters and back, and freeze times that tell the buy story
+
+**Context.** From the roadmap to 1.0 the owner picked (34) "Smarter clutch direction, switching between the clutch player and the hunters" and (40) "Storytelling shots in freeze time for eco and force-buy rounds". Clutch mode (ADR-028) stayed on the clutcher for the whole 1vX: the viewer never saw a hunter walk in, plant or defuse. Freeze time showed the same two team shots whatever the money said, and ADR-044 dropped an eco team's shot altogether.
+
+**Decision (clutches).**
+- **Walking distance** (`WalkGraph`, map-runtime/src/walk.ts, built once per map from its free-space grid, about 0.3 s):
+  - a floor in each 24-unit column where a solid cell has 60 units of free space above it;
+  - neighbouring floors (eight directions) joined when a line at body height between them is clear and the step up is at most 64 units (a crouch jump), or the drop at most 260 (one way);
+  - one search from the clutcher along the edges backwards gives every hunter's walk;
+  - a position within 72 units above a floor (a jump), or falling onto one, is placed; one it can't place is measured in a straight line, 25 % longer.
+- **Clutch direction** (`ClutchDirector`, director-policy/src/clutch.ts), with clutch mode on in a live 1vX: the clutcher is the default. For each hunter it reads:
+  - the walk to the clutcher, how fast it shrinks (over about a second), and the time to contact range at that speed;
+  - the contact model's sightline (now or within 1.6 s) and its chance of a fight within a second;
+  - the bomb: planter, defuser, carrier, or walking onto the site the clutcher holds (the bombsite they stand in, or a T's planted bomb within 1,500 units);
+  - the time left (round clock, or the bomb once planted).
+- **Looks at a hunter:**
+  - a plant or defuse starting: after 2 s on the clutcher, whatever the time left; 3 s and 2.5 s, cut at once;
+  - a hunter walking into the clutcher's site: after 4 s on the clutcher; 2.5 s;
+  - a hunter closing in: after 4 s on the clutcher, within 1,800 units' walk, closing at 120 u/s or more, in contact range in 2.5–7 s. It lasts until 1.5 s before they are expected there (2–4 s). The bomb carrier comes first, then the soonest.
+  - Closing and site looks need the same hunter for 250 ms.
+- **Back to the clutcher:**
+  - before contact, at once: in sight, a sightline within 1.6 s, a 60 % chance of a fight within a second, within 450 units' walk or a second from it;
+  - at the end of the look, at once;
+  - when the clutcher plants or defuses, when the hunter dies, or when the look never came on air (1.5 s).
+- **Hysteresis:** no look before 4 s on the clutcher, 10 s before the same hunter's next (a plant or defuse once), never hunter to hunter, and with under 8 s left only a plant or defuse.
+- **Scoring:**
+  - The player the clutch shot is on gets the clutch bonus (+0.45) and everyone else −0.25, so the planner's hysteresis (minimum shot, advantage, persistence) applies as before.
+  - Mid-clutch, only the clutch direction marks a candidate urgent (a plant or defuse starting, going back).
+  - Cinematics stay off in a clutch. X-ray stays off for the round from the 1v2 (ADR-036), whoever is on air.
+- **Explained:**
+  - reason codes `CLUTCH_HUNTER_CLOSING`, `CLUTCH_HUNTER_ON_SITE`, `CLUTCH_HUNTER_PLANTING`, `CLUTCH_HUNTER_DEFUSING`, `CLUTCH_BACK_BEFORE_CONTACT` and `CLUTCH_LOOK_OVER` on the decisions;
+  - a `clutch` entry in the director log for every change of focus: a sentence (what, why, the numbers) and each hunter's walk, closing speed, time to contact range, sightline and bomb role.
+- **Config** `clutch` holds all the numbers above; `hunterLooks` off keeps the clutcher only. There is no new operator setting: it is part of clutch mode.
+
+**Decision (buy stories).**
+- **Classification** (`BuyTracker`, director-policy/src/features/buy.ts), per team, from the game data: money, equipment value, weapons (rifle; SMG or shotgun; pistols), CS2's loss count (the next loss pays $1,400 + $500 a loss, up to $3,400), the round number (1 and 13 are pistol rounds; overtime starts with a full buy) and the round before.
+  - **Before the team buys**, from money and kept equipment: $4,000 each (Ts) or $3,600 (CTs) is a full buy, under $2,000 an eco. In between, a force buy after a win or on the last round of a half; otherwise an eco when saving brings a full buy next round ($4,300 / $4,500 with the loss bonus), and a force buy when it wouldn't.
+  - **From what it bought**, once half the team has spent $500, after 6 s of freeze time, in its last 5 s and the first second live: rifles for all but one with $3,000 of equipment on average, all but two with $3,600 / $3,900, or $4,800 whatever the guns, is a full buy; under $900 an eco. In between, money kept for a full buy next round is a half buy (an eco with one main weapon or none), and spent beyond that a force buy.
+  - **Anti-eco:** a team with $2,000 or more of equipment against a team on an eco.
+  - **Final** one second into the live round. Every read goes to the director log (`buy`).
+- **Freeze-time shots** (`cinematic.buyStories`, on), after a pause, match point and the pistol round, within the freeze time's four shots and their chaining:
+  - **a force buy:** the other team first (at most 40 % of the freeze time), then the forcing team until live, in a new `weapons` look (eye height, the middle player about 300 units away) so their pistols or SMGs are in view (`FORCE_BUY`; both teams that way when both force);
+  - **an eco against a full buy or anti-eco:** both teams, the full buy last (`ECO_VS_FULL_BUY`). This replaces ADR-044's dropped eco shot there; an eco against anything else still gets none with variety on;
+  - **the time** is shared among the shots the plan still has (at least 4 s each), so a pistol round now shows the map's camera and then both spawns.
+- **HUD cue** `buy_type` (graphics director, setting **Buy type in freeze time**, on):
+  - one per team from freeze time until 8 s into the round;
+  - title the label (`PISTOL ROUND`, `ECO`, `FORCE BUY`, `HALF BUY`, `FULL BUY`, `ANTI-ECO`), subtitle the team's name; data `side`, `team`, `label`, `buyType`, `firm`, `roundNumber`;
+  - changed in place (same id, `Engine.updateCue`); documented in docs/extensions.md;
+  - no HUD's design changed: the built-in HUD, which draws unknown cue kinds as lower thirds, leaves this one out.
+
+**Consequences.**
+- Clutches show the hunters the way a broadcast does, the plant and the defuse as they start, and the clutcher at the moment of contact. Each switch can be read back in the director log.
+- The walking graph is a general tool (the contact model's `pathDistance` hook could use it later); for now only clutches use it.
+- Freeze time follows the money: forcing teams with their guns, ecos against full buys, both spawns on pistol rounds. HUDs can show the buy without working it out themselves.
+
+**Checked.**
+- **Walking distance:**
+  - synthetic floors: open ground about the straight line (at most 8 % longer); round a wall through its gap; a closed wall unreachable; a 48-unit block climbed, a 96-unit one not, and dropped from;
+  - T spawn to CT spawn walked on Ancient, Anubis, Cache, Dust II and Mirage, 1.1–1.3 times the straight line; two spots 260 units apart either side of Mirage's ladder-room wall are more than 2,000 units' walk apart, both ways;
+  - the seven pro demos' player routes (about 23,000 one-second steps, `scripts/demo-path-anchors.py`): every position placed (Nuke 99.8 %), 99.8–100 % of steps reached, the walk 1.10 times the sampled route at the median and 1.4 at the 99th percentile. A committed sample (`packages/map-runtime/test/fixtures/demo-routes.json`, 14 routes a map) is the test.
+- **Clutch direction** (unit tests, a stand-in camera 300 ms behind):
+  - a closing look of 2–4 s with its sentence, then back with `CLUTCH_LOOK_OVER`;
+  - back with `CLUTCH_BACK_BEFORE_CONTACT` the moment a sightline is about to open, on air before it does; never off the clutcher with a hunter in sight or close;
+  - two hunters walking in and out for a minute: every look 2–4 s, between clutcher shots of at least 4 s, 10 s between looks at one hunter, never hunter to hunter;
+  - the plant (about 3 s), the defuse (back when the clutcher comes into sight), a hunter walking onto the clutcher's site, low time;
+  - a hunter 260 units away but 2,500 on foot is no contact, while in a straight line it would be.
+- **On Mirage with its grid** (the whole director): a T walking a pro demo's route through apartments towards a CT on B site gets a look, and the camera is back on the clutcher before the grid's first sightline between them; a plant on B shown within 0.5 s for about 3 s, then back; a defuse on A; the ladder-room wall.
+- **Buy types:**
+  - constructed cases for each type, the loss bonus and the last round of a half;
+  - 136 rounds of the seven pro matches (`scripts/export-buy-rounds.py` → `packages/director-policy/test/fixtures/buy-rounds.json`): every pistol round; nine hand-checked rounds (Dust II round 2 a force against a full buy, round 3 an eco against an anti-eco, round 10 a CT half buy, round 12 a pistol force; Anubis 14 an SMG force; Ancient 5 an eco with armour; Mirage 4 an eco against an anti-eco; Nuke 19 five rifles, a full buy); the mix (59 % full buys; 28 pistol, 28 eco, 28 anti-eco, 25 force and 3 half-buy team-rounds); and the read before anyone buys matching the buy 83 % of the time (226 of 272);
+  - the tracker: predicted, read once bought, final a second into the live round; a team that never spends read as saving after 6 s.
+- **Freeze time on Mirage with its grid:** a force buy (the CTs first and shorter, the Ts last and closer than their usual shot), an eco against a full buy (the eco first), a pistol round (the map's camera, then both spawns), two full buys (no story); shot after shot with no player view between, at most four. The `weapons` look on the 15 real spawn line-ups: never further than the usual shot, 10 of them closer (about 50 units on average, up to 160), as many players in it, 67–110 units above the floor.
+- **HUD cue:** both teams' cues with labels and names, changed in place, final with `firm`, gone 8 s into the round, none with the setting off.
+
+**Not checked.** On air in a real CS2: how a 2–4 s look feels; whether CS2's game data names the defuser as the bomb's player (a CT within 120 units of the bomb counts too); whether the thresholds suit every team's economy (they are tuned on seven matches). The walking graph misses ladders (Nuke) and boosts.
+

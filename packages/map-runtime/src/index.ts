@@ -5,3 +5,4 @@ export * from "./registry.ts";
 export * from "./coverage.ts";
 export * from "./testing.ts";
 export * from "./grid.ts";
+export * from "./walk.ts";

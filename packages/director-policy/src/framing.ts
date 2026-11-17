@@ -70,6 +70,9 @@ const FOREGROUND_SHARE = 0.7;
 const LEFT_OUT = 0.8;
 /** Players look best this far from the camera (units): big enough to read, the group still in the picture. */
 const BEST_RANGE = 380;
+/** The `weapons` look (a force buy): closer, at eye height, so the guns in their hands read. */
+const WEAPONS_RANGE = 300;
+const bestRange = (look: TeamShotLook | undefined) => (look === "weapons" ? WEAPONS_RANGE : BEST_RANGE);
 /** At most this share of the picture's upper two thirds may be blocked before the team. */
 const MAX_BLOCKED = 0.45;
 
@@ -159,7 +162,7 @@ export function frameTeam(players: FramedPlayer[], space: FreeSpace, opts: Frame
     const value = shot ? shot.score - LEFT_OUT * (players.length - group.length) : -Infinity;
     if (shot && (!best || value > best.value)) best = { shot, value };
     // Close enough already: no need to leave anyone out.
-    if (best && best.shot.range <= BEST_RANGE + 200) break;
+    if (best && best.shot.range <= bestRange(opts.look) + 200) break;
     const cx = group.reduce((s, p) => s + p.position.x, 0) / group.length;
     const cy = group.reduce((s, p) => s + p.position.y, 0) / group.length;
     const far = group.reduce((a, p) => (Math.hypot(p.position.x - cx, p.position.y - cy) > Math.hypot(a.position.x - cx, a.position.y - cy) ? p : a));
@@ -168,8 +171,8 @@ export function frameTeam(players: FramedPlayer[], space: FreeSpace, opts: Frame
   return best?.shot ?? null;
 }
 
-/** How a team shot looks: a little above head height (eye), from high up, low, or from their side. */
-export type TeamShotLook = "eye" | "high" | "low" | "side";
+/** How a team shot looks: a little above head height (eye), from high up, low, from their side, or close at eye height to see their guns (weapons). */
+export type TeamShotLook = "eye" | "high" | "low" | "side" | "weapons";
 
 export interface FrameOptions {
   /** No glide (a pause shot). */
@@ -319,10 +322,10 @@ function frameGroup(group: FramedPlayer[], space: FreeSpace, opts: FrameOptions)
         const sPitch = 1 - Math.min(1, Math.abs(pitch - 12) / 18);
         const sDist = 1 - Math.min(1, Math.abs(d - 480) / 450);
         const sFace = opts.look === "side" ? Math.max(0, 1 - Math.abs(facing(at) - 0.45) * 1.6) : facing(at);
-        const like = opts.look === "high" ? (h >= 220 ? 1 : h >= 160 ? 0.7 : 0.4) : opts.look === "low" ? (h <= 75 ? 1 : h <= 110 ? 0.8 : 0.4) : hLike;
+        const like = opts.look === "high" ? (h >= 220 ? 1 : h >= 160 ? 0.7 : 0.4) : opts.look === "low" ? (h <= 75 ? 1 : h <= 110 ? 0.8 : 0.4) : opts.look === "weapons" ? (h <= 110 ? 1 : h <= 160 ? 0.6 : 0.3) : hLike;
         // How big they look: the middle player's distance from the camera.
         const range = median(group.map((p) => Math.hypot(p.position.x - at.x, p.position.y - at.y, p.position.z + CHEST - at.z)));
-        const sSize = 1 - Math.min(1, Math.abs(range - BEST_RANGE) / 350);
+        const sSize = 1 - Math.min(1, Math.abs(range - bestRange(opts.look)) / 350);
         // Cheap parts first: the openness rays only for a spot that could still win.
         const partial = 3 * sVis + 1.2 * sFill + 0.8 * sPitch + (opts.look && opts.look !== "eye" ? 1.4 : 0.6) * like + 0.8 * sFace + 0.5 * sDist + sSize;
         if (best && partial + 1 <= best.score) continue;

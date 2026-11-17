@@ -1304,6 +1304,8 @@ export interface GraphicsSettings {
   mvp: boolean;
   playerCards: boolean;
   clutch: boolean;
+  /** Each team's buy (ECO, FORCE BUY, …) as a `buy_type` cue (absent from older engines). */
+  buyType?: boolean;
   pages: { hudId: string; scene: string; playerSource: string; matchSource: string };
 }
 

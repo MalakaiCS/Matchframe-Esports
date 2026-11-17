@@ -101,8 +101,8 @@ describe("freeze times that differ from round to round", () => {
     expect(shots[0]!.durationMs!).toBeGreaterThan(18000 * 0.55);
   });
 
-  it("gives a team on an eco no team shot", () => {
-    const shots = play({ spec: { round: 4, scoreT: 2, scoreCT: 2 }, roundPhase: "freezetime", money: { CT: 400 } });
+  it("gives a team on an eco no team shot (buy stories off; with them, an eco against a full buy shows both: see buy.test.ts)", () => {
+    const shots = play({ spec: { round: 4, scoreT: 2, scoreCT: 2 }, roundPhase: "freezetime", money: { CT: 400 }, config: { buyStories: false } });
     expect(shots.map((s) => s.id), JSON.stringify(shots)).toContain("team-T");
     expect(shots.map((s) => s.id)).not.toContain("team-CT");
   });

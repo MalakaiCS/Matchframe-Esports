@@ -31,6 +31,8 @@ interface ActiveCinematic {
 
 /** Cinematic shots are remembered for this many rounds (see `roundsSinceShown`). */
 const RECENT_ROUNDS = 4;
+/** The reasons an urgent cut gives (what made it urgent). */
+const URGENT_REASONS = new Set<ReasonCode>(["CONTACT_IMMINENT", "BOMB_CRITICAL", "BOMB_DEFUSE_PRESSURE", "CLUTCH_HUNTER_PLANTING", "CLUTCH_HUNTER_DEFUSING", "CLUTCH_BACK_BEFORE_CONTACT", "CLUTCH_LOOK_OVER"]);
 
 /**
  * Temporal planning with hysteresis (spec §11.3). Holds the current shot unless an alternative is
@@ -185,7 +187,7 @@ export class ShotPlanner {
 
     const sinceCut = this.currentSince === null ? Infinity : now - this.currentSince;
     if (bestAlt && bestAlt.urgent && !current.urgent && bestAlt.utility > current.utility) {
-      return cut(bestAlt, bestAlt.reasonCodes.filter((r) => r === "CONTACT_IMMINENT" || r === "BOMB_CRITICAL" || r === "BOMB_DEFUSE_PRESSURE"), true);
+      return cut(bestAlt, bestAlt.reasonCodes.filter((r) => URGENT_REASONS.has(r)), true);
     }
     if (sinceCut < this.cfg.minShotMs) return hold(["MIN_SHOT_DURATION"]);
     if (now < this.postEventUntil && current.reasonCodes.some((r) => r === "CONTACT_LIKELY_SOON" || r === "TRADE_OPPORTUNITY" || r === "MULTI_FRAG_CHANCE")) {

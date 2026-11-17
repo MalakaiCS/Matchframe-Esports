@@ -20,6 +20,8 @@ export function Cues({ state }: { state: HudState }) {
   return (
     <>
       {state.cues.map((c) => {
+        // Data for HUDs that show the teams' buys (ADR-080); this HUD's design has no place for it.
+        if (c.kind === "buy_type") return null;
         if (c.kind === "timeout") {
           return (
             <div key={c.id} className="mf-cue mf-cue-timeout">

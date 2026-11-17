@@ -66,6 +66,11 @@ export interface DirectorConfig {
     winnerShots: "every_round" | "big_rounds" | "off";
     /** Shots for big moments: the pistol-round opener, the team on match point first, half time and the map's end. */
     bigMoments: boolean;
+    /**
+     * Freeze-time shots that tell the buy story (see BuyTracker): a team on a force buy last, close
+     * enough to see its pistols or SMGs; an eco against a full buy, both teams with the full buy last.
+     */
+    buyStories: boolean;
     /** Rounds in regulation (MR12: 24) and in each overtime (6), for match point and half time. */
     regulationRounds: number;
     overtimeRounds: number;
@@ -82,6 +87,32 @@ export interface DirectorConfig {
     minValue: number;
     leadMarginMs: number;
     maxUtilityAgeMs: number;
+  };
+  /**
+   * Clutch direction, with clutch mode on (see ClutchDirector): the clutcher's view is the default; a
+   * short look at a hunter who is about to matter, back to the clutcher before contact.
+   */
+  clutch: {
+    /** Off: the clutcher only, as before. */
+    hunterLooks: boolean;
+    /** Time on the clutcher before a look at a hunter walking in or onto their site, and before a plant or defuse. */
+    clutcherMinMs: number;
+    objectiveMinMs: number;
+    /** A look lasts this long at least and at most (contact, or the clutcher's own plant or defuse, end it sooner). */
+    lookMinMs: number;
+    lookMaxMs: number;
+    /** The same hunter is looked at again only after this long. */
+    hunterCooldownMs: number;
+    /** A hunter walking in: within this walking distance (units on the map's grid), closing at least this fast (units a second). */
+    closingRange: number;
+    closingSpeed: number;
+    /** ...and reaching contact range in this many seconds. */
+    etaMinSec: number;
+    etaMaxSec: number;
+    /** Contact range: a hunter this close (walking) is about to meet the clutcher. */
+    contactRange: number;
+    /** With less time than this left (round clock, or the bomb once planted), only a plant or defuse gets a look. */
+    lowTimeSec: number;
   };
   contact: {
     horizonsSec: number[];
@@ -119,6 +150,7 @@ export const DEFAULT_DIRECTOR_CONFIG: DirectorConfig = {
     variety: true,
     winnerShots: "every_round",
     bigMoments: true,
+    buyStories: true,
     regulationRounds: 24,
     overtimeRounds: 6,
     liveStartPovMs: 10000,
@@ -128,6 +160,20 @@ export const DEFAULT_DIRECTOR_CONFIG: DirectorConfig = {
     minValue: 0.35,
     leadMarginMs: 250,
     maxUtilityAgeMs: 400,
+  },
+  clutch: {
+    hunterLooks: true,
+    clutcherMinMs: 4000,
+    objectiveMinMs: 2000,
+    lookMinMs: 2000,
+    lookMaxMs: 4000,
+    hunterCooldownMs: 10000,
+    closingRange: 1800,
+    closingSpeed: 120,
+    etaMinSec: 2.5,
+    etaMaxSec: 7,
+    contactRange: 450,
+    lowTimeSec: 8,
   },
   contact: {
     horizonsSec: [0.5, 1, 2, 3],
@@ -146,6 +192,7 @@ export function mergeConfig(partial: Partial<DirectorConfig> = {}): DirectorConf
     ...partial,
     weights: { ...DEFAULT_DIRECTOR_CONFIG.weights, ...(partial.weights ?? {}) },
     cinematic: { ...DEFAULT_DIRECTOR_CONFIG.cinematic, ...(partial.cinematic ?? {}) },
+    clutch: { ...DEFAULT_DIRECTOR_CONFIG.clutch, ...(partial.clutch ?? {}) },
     contact: { ...DEFAULT_DIRECTOR_CONFIG.contact, ...(partial.contact ?? {}) },
     grouping: { ...DEFAULT_DIRECTOR_CONFIG.grouping, ...(partial.grouping ?? {}) },
   };

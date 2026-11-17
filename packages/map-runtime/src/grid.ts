@@ -66,6 +66,13 @@ export class VisibilityGrid {
     return (this.bits[i >> 3]! & (1 << (i & 7))) !== 0;
   }
 
+  /** Whether the cell at grid indices (x, y, z) is solid (outside the grid counts as free). */
+  solidCell(x: number, y: number, z: number): boolean {
+    if (x < 0 || y < 0 || z < 0 || x >= this.nx || y >= this.ny || z >= this.nz) return false;
+    const i = (z * this.ny + y) * this.nx + x;
+    return (this.bits[i >> 3]! & (1 << (i & 7))) !== 0;
+  }
+
   /** No solid cell along the segment, sampled a quarter cell apart; `skipEnds` units at each end are not checked. */
   segmentClear(a: Vec3, b: Vec3, skipEnds = this.cell): boolean {
     const dx = b.x - a.x;

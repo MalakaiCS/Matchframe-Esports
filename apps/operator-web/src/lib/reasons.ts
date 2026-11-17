@@ -71,6 +71,14 @@ export const REASON_INFO: Record<ReasonCode, ReasonInfo> = {
   MATCH_POINT: { label: "Match point", tone: "info", hint: "A team is one round from winning the map: its team shot comes first and runs longer." },
   HALF_TIME: { label: "Half time", tone: "info", hint: "Slow shots of the map and the teams during half time, the team ahead first." },
   MAP_END: { label: "Map end", tone: "info", hint: "The end of the map: the winners first, then slow shots of the map." },
+  CLUTCH_HUNTER_CLOSING: { label: "Hunter closing in", tone: "info", hint: "Clutch: a short look (2–4 s) at an opponent walking in on the clutcher, then back to the clutcher before they meet." },
+  CLUTCH_HUNTER_ON_SITE: { label: "Hunter on the clutcher's site", tone: "info", hint: "Clutch: a short look at an opponent walking into the bombsite the clutcher holds." },
+  CLUTCH_HUNTER_PLANTING: { label: "Hunter planting", tone: "info", hint: "Clutch: a short look at an opponent starting to plant the bomb." },
+  CLUTCH_HUNTER_DEFUSING: { label: "Hunter defusing", tone: "info", hint: "Clutch: a short look at an opponent starting to defuse the bomb." },
+  CLUTCH_BACK_BEFORE_CONTACT: { label: "Back to the clutcher", tone: "info", hint: "Clutch: an opponent is about to meet the clutcher (in sight, a sightline opening, or a few steps away), so the camera is back on the clutcher." },
+  CLUTCH_LOOK_OVER: { label: "Look over", tone: "neutral", hint: "Clutch: the short look at an opponent is over; back to the clutcher, the clutch's default view." },
+  FORCE_BUY: { label: "Force buy", tone: "info", hint: "Freeze time: a team spent what it had without a full buy. Its shot comes last and longer, close enough to see the pistols or SMGs." },
+  ECO_VS_FULL_BUY: { label: "Eco against a full buy", tone: "info", hint: "Freeze time: one team saves while the other has a full buy. Both teams are shown, the full buy last." },
 };
 
 export function reasonInfo(code: string): ReasonInfo {

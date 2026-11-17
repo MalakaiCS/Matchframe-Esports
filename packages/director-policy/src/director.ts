@@ -16,9 +16,12 @@ import type {
 import { actionClassOfShot, OBSERVER_MODE_ACTIONS } from "@matchframe/contracts";
 import type { ProfileSet } from "@matchframe/cs2-state";
 import type { MapRuntime, VisibilityGrid } from "@matchframe/map-runtime";
+import { walkGraphFor } from "@matchframe/map-runtime";
 import type { Pin, ScoredCandidate } from "./candidates.ts";
 import { generateCandidates } from "./candidates.ts";
 import { cinematicCandidates, PAUSE_HOLD_MS } from "./cinematics.ts";
+import type { ClutchState } from "./clutch.ts";
+import { ClutchDirector } from "./clutch.ts";
 import type { DirectorConfig } from "./config.ts";
 import { mergeConfig } from "./config.ts";
 import type { FreeSpace, TeamShot, TeamShotLook } from "./framing.ts";
@@ -28,6 +31,8 @@ import { computeInteractions } from "./features/interactions.ts";
 import type { RoundContext } from "./features/significance.ts";
 import { roundContext } from "./features/significance.ts";
 import { matchMoment } from "./features/moments.ts";
+import type { BuyStory } from "./features/buy.ts";
+import { BuyTracker } from "./features/buy.ts";
 import { StateHistory } from "./history.ts";
 import { ShotPlanner } from "./planner.ts";
 import type { ShotKey } from "./shots.ts";
@@ -73,6 +78,10 @@ export interface DirectorOutput {
   opportunities: UtilityOpportunity[];
   interactions: InteractionFeatures;
   candidates: ScoredCandidate[];
+  /** The clutch shot (clutch mode in a 1vX): who it is on, why, and the hunters; null otherwise. */
+  clutch: ClutchState | null;
+  /** Each team's buy this round (freeze time and the live round), null before it is known. */
+  buys: BuyStory | null;
 }
 
 export interface ControlStatus {
@@ -171,6 +180,10 @@ export class Director {
   private lastObserved: ShotKey | null = null;
   /** Line of sight for the cinematics, by both ends to the unit, for the map's grid. */
   private sightCache: { grid: VisibilityGrid | null; seen: Map<string, boolean> } = { grid: null, seen: new Map() };
+  /** Clutch direction: the clutcher, or a short look at a hunter (see ClutchDirector). */
+  private readonly clutchDirector = new ClutchDirector();
+  /** Each team's buy, firmed up at the end of freeze time (see BuyTracker). */
+  private readonly buyTracker = new BuyTracker();
   readonly controls: DirectorControls = {
     hold: null,
     pin: null,
@@ -475,6 +488,23 @@ export class Director {
     const spatial: SpatialContext | undefined = map ? { levelAt: (p) => map.levelAt(p), regionsAt: (p) => map.regionsAt(p), hasVisibilityGeometry: !!grid, ...(grid ? { lineOfSight: (a: Vec3, b: Vec3) => grid.lineOfSight(a, b) } : {}) } : undefined;
     const interactions = computeInteractions(state, now, this.cfg, spatial, this.history);
     const round = roundContext(state, now, map ? (p) => map.siteAt(p) : undefined);
+    const buys = this.buyTracker.update(state, now, this.cfg.cinematic);
+    // The map's walking graph is built once (about 0.3 s), while clutch mode is on, before the first clutch needs it.
+    const walk = grid && this.controls.clutchMode ? walkGraphFor(grid) : null;
+    const onAir = parseShot(this.planner.shot);
+    const clutch = this.controls.clutchMode
+      ? this.clutchDirector.update({
+          state,
+          now,
+          cfg: this.cfg.clutch,
+          round,
+          interactions,
+          onAir: onAir.kind === "pov" ? onAir.id : null,
+          walk: walk ? (goal, from, maxUnits) => walk.distancesTo(goal, from, maxUnits) : undefined,
+          siteAt: map ? (p) => map.siteAt(p) : undefined,
+        })
+      : null;
+    if (!this.controls.clutchMode) this.clutchDirector.reset();
     const opportunities = findUtilityOpportunities(state, now, {
       cfg: this.cfg,
       map,
@@ -503,11 +533,12 @@ export class Director {
       scope,
       avoid: this.controls.avoid && this.controls.avoid.until > now ? new Set(this.controls.avoid.steamIds) : null,
       clutchMode: this.controls.clutchMode,
+      clutchFocus: clutch ? { focus: clutch.focus, reasons: clutch.reasons, urgent: clutch.urgent } : null,
       recentKills: this.kills.at,
       learnedImminence: this.learned ? this.blendLearned(state, interactions, this.learned) : undefined,
     });
     if (scope?.has("cinematic")) {
-      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, roundsSinceShown: (k) => this.planner.roundsSinceShown(k), sight: grid ? (a, b) => this.sight(grid, a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince, pause: this.pause, teamShot: grid && (state.roundPhase === "freezetime" || state.roundPhase === "over" || state.gamePhase === "halftime" || state.gamePhase === "gameover") ? (side, still, look) => this.teamShot(state, grid, side, still, now, look) : undefined, overForMs: this.overSince === null ? null : now - this.overSince, moment: matchMoment(state, this.cfg.cinematic) }));
+      candidates.push(...cinematicCandidates({ state, now, cfg: this.cfg, currentShot: this.planner.shot, interactions, round, capabilities: this.capabilities, pin: this.controls.pin, oneSide: this.controls.oneSide, cinematicsAllowed, map, currentShotSinceMs: this.planner.shotSince, shownThisRound: this.planner.cinematicsShownThisRound, roundsSinceShown: (k) => this.planner.roundsSinceShown(k), sight: grid ? (a, b) => this.sight(grid, a, b) : undefined, liveForMs: this.liveSince === null ? null : now - this.liveSince, pause: this.pause, teamShot: grid && (state.roundPhase === "freezetime" || state.roundPhase === "over" || state.gamePhase === "halftime" || state.gamePhase === "gameover") ? (side, still, look) => this.teamShot(state, grid, side, still, now, look) : undefined, overForMs: this.overSince === null ? null : now - this.overSince, moment: matchMoment(state, this.cfg.cinematic), buys }));
       candidates.sort((a, b) => b.utility - a.utility);
     }
 
@@ -635,7 +666,7 @@ export class Director {
       if (shot.kind !== "pov") this.controls.cinematicRequested = false;
     }
 
-    const output: DirectorOutput = { decision, intent, opportunities, interactions, candidates };
+    const output: DirectorOutput = { decision, intent, opportunities, interactions, candidates, clutch, buys };
     this.lastOutput = output;
     return output;
   }

@@ -126,7 +126,15 @@
           "PISTOL_ROUND",
           "MATCH_POINT",
           "HALF_TIME",
-          "MAP_END"
+          "MAP_END",
+          "CLUTCH_HUNTER_CLOSING",
+          "CLUTCH_HUNTER_ON_SITE",
+          "CLUTCH_HUNTER_PLANTING",
+          "CLUTCH_HUNTER_DEFUSING",
+          "CLUTCH_BACK_BEFORE_CONTACT",
+          "CLUTCH_LOOK_OVER",
+          "FORCE_BUY",
+          "ECO_VS_FULL_BUY"
         ]
       }
     },
@@ -333,7 +341,15 @@
                 "PISTOL_ROUND",
                 "MATCH_POINT",
                 "HALF_TIME",
-                "MAP_END"
+                "MAP_END",
+                "CLUTCH_HUNTER_CLOSING",
+                "CLUTCH_HUNTER_ON_SITE",
+                "CLUTCH_HUNTER_PLANTING",
+                "CLUTCH_HUNTER_DEFUSING",
+                "CLUTCH_BACK_BEFORE_CONTACT",
+                "CLUTCH_LOOK_OVER",
+                "FORCE_BUY",
+                "ECO_VS_FULL_BUY"
               ]
             }
           },

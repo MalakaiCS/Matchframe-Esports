@@ -53,6 +53,9 @@ export interface SyntheticPayloadSpec {
   scoreT?: number;
   ctName?: string;
   tName?: string;
+  /** Each team's loss count (GSI consecutive_round_losses); 0 when not given. */
+  lossesCT?: number;
+  lossesT?: number;
   roundWins?: Record<string, string>;
   roundPhase?: "freezetime" | "live" | "over";
   roundBomb?: "planted" | "exploded" | "defused";
@@ -130,8 +133,8 @@ export function buildSyntheticGsiPayload(spec: SyntheticPayloadSpec): Record<str
       name: spec.mapName ?? "de_inferno",
       phase: spec.mapPhase ?? "live",
       round: spec.round ?? 0,
-      team_ct: { score: spec.scoreCT ?? 0, consecutive_round_losses: 0, timeouts_remaining: 4, matches_won_this_series: 0, ...(spec.ctName ? { name: spec.ctName } : {}) },
-      team_t: { score: spec.scoreT ?? 0, consecutive_round_losses: 0, timeouts_remaining: 4, matches_won_this_series: 0, ...(spec.tName ? { name: spec.tName } : {}) },
+      team_ct: { score: spec.scoreCT ?? 0, consecutive_round_losses: spec.lossesCT ?? 0, timeouts_remaining: 4, matches_won_this_series: 0, ...(spec.ctName ? { name: spec.ctName } : {}) },
+      team_t: { score: spec.scoreT ?? 0, consecutive_round_losses: spec.lossesT ?? 0, timeouts_remaining: 4, matches_won_this_series: 0, ...(spec.tName ? { name: spec.tName } : {}) },
       num_matches_to_win_series: 0,
       ...(spec.roundWins ? { round_wins: spec.roundWins } : {}),
     },
