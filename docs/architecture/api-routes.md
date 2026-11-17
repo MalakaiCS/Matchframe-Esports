@@ -272,6 +272,11 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/hud/library/:id/rollback` | hud.publish |
 | POST | `/api/v1/hud/library/:id/rotate-token` | hud.publish |
 | GET | `/api/v1/hud/library/:id/state` | state.read |
+| GET | `/api/v1/hud/icon-pack` | metadata.read |
+| POST | `/api/v1/hud/icon-pack/import` | hud.publish |
+| POST | `/api/v1/hud/icon-pack/import-folder` | hud.publish |
+| POST | `/api/v1/hud/icon-pack/download` | hud.publish |
+| DELETE | `/api/v1/hud/icon-pack` | hud.publish |
 | GET | `/api/v1/demos/config` | demos.manage |
 | GET | `/api/v1/demos/python` | demos.manage |
 | POST | `/api/v1/demos/python/check` | demos.manage |
@@ -370,6 +375,9 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/comms/calibration/clear` | program.control |
 | PUT | `/api/v1/comms/calibration` | program.control |
 | POST | `/api/v1/comms/calibration/apply` | program.control |
+| GET | `/api/v1/performance` | state.read |
+| PUT | `/api/v1/performance` | settings.manage |
+| POST | `/api/v1/performance/suggestion/dismiss` | settings.manage |
 | GET | `/api/v1/openapi.json` | public |
 
 ## WebSockets

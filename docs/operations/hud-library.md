@@ -186,6 +186,18 @@ Each output (the OBS browser source, the desktop HUD) times its own frames where
 
 A pause there is the computer drawing the HUD being too busy, not the game data: MatchFrame passes game data to an imported hud.json-format HUD at least every 100 ms, and at once for what the audience notices first. Checked with such a HUD in Chromium: its clock ticks within 0.1 s of each second, and within 0.18 s with the CPU slowed six times.
 
+When desktop or OBS outputs stutter (twice within a minute) while CS2 sends game data from this computer, the library suggests **Low-spec mode**, once: **Turn on low-spec mode**, or **Dismiss** (it is not shown again). With low-spec mode on, outputs draw at most 30 frames a second, so an output counts as choppy only under 24 (80 % of the cap); a pause of 250 ms or more still counts.
+
+### Low-spec mode (one PC)
+
+For productions where CS2, OBS and MatchFrame run on one computer: **Settings → General → Performance → Low-spec mode (one PC)**, off by default. While it is on:
+
+- **HUD outputs and the desktop HUD** draw at most 30 frames a second: the output page runs `requestAnimationFrame` (in itself and in the HUD) at most 30 times a second, and the desktop HUD windows get Electron's `setFrameRate(30)` as well. MatchFrame's HUDs (the Broadcast HUD, Vector, Lineup, Stage, the Pro CS2 HUD and the Sample CS2 HUD) drop large soft shadows, backdrop blur and looping animations (the planted bomb's pulse, the radar's bomb ping play once), and their timer and fuse bars (and the Pro CS2 HUD's radar dots) step with each update instead of gliding. **Imported HUDs get the frame cap only**: their own CSS animations keep running.
+- **OBS**: the browser sources MatchFrame made (*MatchFrame HUD*, *MatchFrame Replay Graphic*, *MatchFrame Team Comms*) get *Use custom frame rate* on and *FPS* 30 over OBS websocket, when the mode is turned on, when OBS connects and when such a source is made; turning the mode off puts back what they had (Team Comms' recording-only speaker strip keeps its frame rate). For a browser source you added yourself: its **Properties → Use custom frame rate** on, **FPS** 30.
+- **The console** shows no live previews or animated thumbnails: the HUD's details show its still picture with **Show live preview**, the on-air preview under HUD outputs and the player cams' previews start off.
+
+What it does in the engine (memory, background work, replays) is in [one-pc.md](one-pc.md#low-spec-mode).
+
 ## Settings
 
 Click a HUD's row (or its arrow, or the gear) to open its details under it. **Appearance** holds the HUD's settings form (from its manifest) and preset; **Save settings** applies them immediately to the desktop HUD, previews and OBS sources, without a reload. Settings are saved per HUD on this computer.
@@ -214,7 +226,7 @@ The header shows the game-data state. If CS2 stops sending data (game closed, ma
 | Imported hud.json-format HUD stays empty | Opened through MatchFrame's URL (Preview, Desktop or Copy OBS Browser URL), not by opening `index.html`; game data arriving or Test data on; after **New access key**, copy the URL again |
 | Imported hud.json-format HUD shows no team names or logos | Teams entered in **Teams** with logos, and the match active in **Matches** |
 | Hotkey not working | Registration failure in the HUD's details; choose another combination |
-| HUD laggy or choppy in OBS (an amber OBS indicator) | OBS **Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration** on, OBS restarted; the browser source's *Use custom frame rate* and *Shutdown source when not visible* off |
+| HUD laggy or choppy in OBS (an amber OBS indicator) | OBS **Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration** on, OBS restarted; the browser source's *Shutdown source when not visible* off, and *Use custom frame rate* off (or on at 30 with Low-spec mode). CS2, OBS and MatchFrame on one computer: **Settings → General → Performance → Low-spec mode** |
 | Console never connects | CS2 Workshop Tools installed; CS2 started with Start CS2 (not already running); the same console port in Setup and in CS2's launch options |
 | HLAE could not start CS2 | Latest HLAE installed (CS2 updates break older versions); Steam running; the HLAE folder still has `x64\AfxHookSource2.dll` |
 | Update stuck or failing | **Settings → General → Program** shows the error; **Check for updates** again, or download the installer from the website and install over the current version (HUDs and settings are kept) |
