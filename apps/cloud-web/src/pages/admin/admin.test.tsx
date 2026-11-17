@@ -50,7 +50,7 @@ describe("staff console navigation", () => {
     fakeFetch({ "GET /v1/admin/overview": { body: overview() }, "GET /v1/admin/messages": { body: { messages: [] } } });
     renderWithSession(<App />, makeStaff("support"));
     const nav = within(await screen.findByRole("navigation", { name: "Staff console" }));
-    expect(nav.getAllByRole("link").map((a) => a.textContent)).toEqual(["Overview", "Users", "Organisations", "Support inbox", "Email log", "Catalogue", "Audit log", "Stripe events"]);
+    expect(nav.getAllByRole("link").map((a) => a.textContent)).toEqual(["Overview", "Users", "Organisations", "Support inbox", "Email log", "Crash reports", "Catalogue", "Audit log", "Stripe events"]);
     expect(nav.getByRole("link", { name: "Overview" }).getAttribute("aria-current")).toBe("page");
   });
 

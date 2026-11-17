@@ -153,7 +153,10 @@ const privacy: LegalDoc = {
           <strong>Communications:</strong> messages you send through the contact form, and a log of the emails we send you (recipient, subject and delivery state).
         </li>
       </ul>
-      <p>We don't receive game telemetry, HUD content, recordings or replays: these stay on your computers. We don't use analytics, advertising or tracking cookies.</p>
+      <p>Apart from the crash reports described below, we don't receive game telemetry, HUD content, recordings or replays: these stay on your computers. We don't use analytics, advertising or tracking cookies.</p>
+      <p>
+        <strong>Crash reports (opt-in):</strong> the {s.websiteName} program sends a crash report only if you turn on Send crash reports in its settings, or choose Send or Always send when it asks after a crash. A report holds the program's support file (its settings with passwords, tokens and keys removed, health and performance figures, recent automation decisions and recent logs, which can name maps, HUDs and files) and what crashed: the program version, operating system, which part of the program, the error and its stack trace, how long it had been running and, when small, a minidump of the crashed process with the program's own credentials overwritten. A report from a signed-in program is linked to its organisation and computer; otherwise it's sent without an account. We use crash reports only to find and fix faults, only our staff can open them, and we delete them 90 days after they arrive.
+      </p>
 
       <h2>2. Why we use it</h2>
       <ul>

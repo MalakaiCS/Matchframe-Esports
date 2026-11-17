@@ -2,9 +2,9 @@
  * Response shapes of services/cloud-api (read from its route handlers). Request bodies and shared
  * entities come from @matchframe/cloud-contracts.
  */
-import type { AutoDirectorAllowance, HourPack, OrgRole, OrgView, Plan, StaffRole, SubscriptionStatus, SyncStatus, UserView } from "@matchframe/cloud-contracts";
+import type { AutoDirectorAllowance, CrashDetails, CrashProcess, HourPack, OrgRole, OrgView, Plan, StaffRole, SubscriptionStatus, SyncStatus, UserView } from "@matchframe/cloud-contracts";
 
-export type { AutoDirectorAllowance, HourPack, OrgRole, OrgView, Plan, SubscriptionStatus, SyncStatus, UserView };
+export type { AutoDirectorAllowance, CrashDetails, CrashProcess, HourPack, OrgRole, OrgView, Plan, SubscriptionStatus, SyncStatus, UserView };
 
 /** GET /v1/auth/me — `user.staffRole` is "support" or "admin" for staff (`staff` is true for either). */
 export interface Me {
@@ -338,4 +338,43 @@ export interface EmailLogRow {
   createdAt: string;
   sentAt: string | null;
   error: string | null;
+}
+
+/** One crash report sent by a program (ADR-077). `orgId` is null for a program that wasn't signed in. */
+export interface AdminCrashReport {
+  id: string;
+  receivedAt: string;
+  occurredAt: string;
+  /** Deleted then (90 days after it arrived). */
+  expiresAt: string;
+  appVersion: string;
+  os: string;
+  process: CrashProcess;
+  reason: string;
+  error: string | null;
+  orgId: string | null;
+  orgName: string | null;
+  deviceId: string | null;
+  deviceName: string | null;
+  sizeBytes: number;
+  storedBytes: number;
+  hasSupportFile: boolean;
+  hasMinidump: boolean;
+}
+
+/** GET /v1/admin/crash-reports — `storedBytes`: all crash reports together, as stored. */
+export interface AdminCrashReportsResponse {
+  reports: AdminCrashReport[];
+  total: number;
+  page: number;
+  pageSize: number;
+  storedBytes: number;
+}
+
+/** GET /v1/admin/crash-reports/:id */
+export interface AdminCrashReportDetail {
+  report: AdminCrashReport;
+  crash: CrashDetails;
+  supportFile: { included: boolean; generatedAt: string | null; sections: string[] };
+  minidump: { name: string; size: number } | null;
 }
