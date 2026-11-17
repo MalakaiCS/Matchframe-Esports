@@ -19,8 +19,6 @@ const SOURCES = import.meta.glob<string>(["../**/*.tsx", "!../**/*.test.tsx"], {
 
 /** Screens and components not extracted yet. The check expects English in them (remove a file once it is done). */
 const PENDING = new Set<string>([
-  "components/SignIn.tsx",
-  "screens/Account.tsx",
 ]);
 
 /** Files that stay English on purpose. */
