@@ -657,13 +657,15 @@ body,
   letter-spacing: 0.06em;
 }
 /* A pause: the timer and PAUSED, sized and styled like the timeout callout over the scoreboard. */
-/* A tech or match pause in the score bar's centre: the PC mark where "ROUND n" sits, over the timer. */
+/* A tech or match pause in the score bar's centre: only the PC mark, centred. */
+.st-sb-clockbox.is-paused {
+  justify-content: center;
+}
 .st-sb-pausemark {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 22px;
-  margin-top: -2px;
+  height: 40px;
 }
 .st-pips {
   display: flex;

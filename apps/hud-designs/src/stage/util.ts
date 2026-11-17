@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { HudPhase, HudSide, HudState, HudTeam } from "@matchframe/hud-sdk";
-import { secondsLeft, teamColor } from "../shared/format.ts";
+import { teamColor } from "../shared/format.ts";
 
 /** The manifest's settings defaults (settingsSchema in package-files/stage/manifest.json). */
 export const DEFAULTS = {
@@ -123,15 +123,6 @@ export const teamName = (team: HudTeam, settings: Settings): string => (settings
  * and warm-up keep the cards and the observed player.
  */
 export const scoreboardPhase = (phase: HudPhase, paused = false): boolean => paused || phase === "paused" || phase === "timeout_ct" || phase === "timeout_t";
-
-/**
- * The pause timer's seconds: CS2's own countdown when the paused phase has one that is running or has
- * been seen going down between updates; otherwise the seconds since the pause began (`startedAt`).
- */
-export function pauseSeconds(o: { phase: HudPhase; sec: number | null; running: boolean; falling: boolean; receivedAt: number; now: number; startedAt: number }): { kind: "countdown" | "elapsed"; sec: number } {
-  const countdown = o.phase === "paused" && o.sec !== null && o.sec > 0 && (o.running || o.falling) ? secondsLeft(o.sec, o.running, o.receivedAt, o.now) : null;
-  return countdown !== null ? { kind: "countdown", sec: Math.ceil(countdown) } : { kind: "elapsed", sec: Math.max(0, Math.floor((o.now - o.startedAt) / 1000)) };
-}
 
 /** The team that called the timeout under way, if any. */
 export function timeoutTeam(state: HudState): HudTeam | null {

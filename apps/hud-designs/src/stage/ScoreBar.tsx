@@ -1,11 +1,11 @@
 import { memo, useRef, useState } from "react";
 import type { RefObject } from "react";
-import type { HudPhase, HudState, HudTeam } from "@matchframe/hud-sdk";
+import type { HudState, HudTeam } from "@matchframe/hud-sdk";
 import { aliveCount, clockText, isLive, roundWinner, secondsLeft, seriesBoxCount, seriesWon } from "../shared/format.ts";
 import { BombState, DeadMark, Paused } from "./icons.tsx";
 import { useNow } from "../shared/useHud.ts";
 import { FitText, InkCentred, TeamLogo, TimeoutPips } from "./bits.tsx";
-import { colorOf, pauseSeconds, teamVars, timeoutTeam, trophyOf, type Settings } from "./util.ts";
+import { colorOf, teamVars, timeoutTeam, trophyOf, type Settings } from "./util.ts";
 
 /** CS2's bomb fuse (s). */
 const BOMB_SECONDS = 40;
@@ -55,26 +55,6 @@ const FuseText = memo(function FuseText({ sec, running, receivedAt }: { sec: num
   if (left === null) return <span className="st-fuse-text" />;
   // m:ss like the round clock; tenths in the last ten seconds.
   return <span className="st-fuse-text">{left < 10 ? left.toFixed(1) : `0:${String(Math.ceil(left)).padStart(2, "0")}`}</span>;
-});
-
-const mss = (sec: number): string => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
-
-/**
- * The pause's timer (m:ss): CS2's own countdown when it gives one (the paused phase's clock running,
- * or seen going down from one update to the next), else the time since the pause began (from when
- * the pause showed: it mounts with the pause).
- */
-const PauseTimer = memo(function PauseTimer({ phase, sec, running, receivedAt, className }: { phase: HudPhase; sec: number | null; running: boolean; receivedAt: number; className: string }) {
-  const now = useNow(250);
-  const start = useRef<number | null>(null);
-  start.current ??= now;
-  // CS2's paused clock going down from one update to the next is a real countdown.
-  const last = useRef<number | null>(null);
-  const falling = useRef(false);
-  if (sec !== null && last.current !== null && sec < last.current) falling.current = true;
-  last.current = sec;
-  const t = pauseSeconds({ phase, sec, running, falling: falling.current, receivedAt, now, startedAt: start.current });
-  return <span className={`${className} is-${t.kind}`}>{mss(t.sec)}</span>;
 });
 
 /** The fuse bar's fill, draining with the bomb (10 Hz); remembers where it stopped for the exit. */
@@ -215,7 +195,7 @@ function UnderBar({ state, settings, colors, boardOn }: { state: HudState; setti
       </div>
     );
   }
-  // A tech or match pause shows in the score bar's centre only (the PC mark over its timer): nothing under the bar.
+  // A tech or match pause shows in the score bar's centre only (the PC mark): nothing under the bar.
   if (state.match.paused || p === "paused") return null;
   // Players alive: once someone has gone down in the round (5 VS 5 adds nothing).
   const down = aliveCount(state.left) < state.left.players.length || aliveCount(state.right) < state.right.players.length;
@@ -256,13 +236,12 @@ export function ScoreBar({ state, receivedAt, settings, compact, boardOn }: { st
         <Half team={state.left} color={colors.left} align="left" pips={pips} won={seriesWon(state, "left")} />
         <Half team={state.right} color={colors.right} align="right" pips={pips} won={seriesWon(state, "right")} />
         <div className={`st-sb-centre is-${mode}`} style={mode === "defuse" || mode === "defused" ? teamVars(ct) : undefined}>
-          {/* A tech or match pause: the PC mark where "ROUND n" sits, over the pause's timer (the owner: "the Paused on the scorebug … the pc graphic"). */}
+          {/* A tech or match pause: only the PC mark in the centre, no time (the owner: "the Paused on the scorebug … the pc graphic", then "remove the time"). */}
           {pausedHold ? (
             <span className="st-sb-clockbox is-paused">
-              <span className="st-sb-round st-sb-pausemark" role="img" aria-label="Paused">
-                <Paused size={22} />
+              <span className="st-sb-pausemark" role="img" aria-label="Paused">
+                <Paused size={40} />
               </span>
-              <PauseTimer phase={m.phase} sec={m.phaseEndsInSec} running={m.clockRunning} receivedAt={receivedAt} className="st-clock st-pause-sec" />
             </span>
           ) : (
             <span className="st-sb-clockbox">
