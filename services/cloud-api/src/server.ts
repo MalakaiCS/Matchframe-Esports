@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import type { Server, ServerResponse } from "node:http";
-import { extname, join, normalize, resolve } from "node:path";
+import { extname, join, normalize, resolve, sep } from "node:path";
 import type { CloudApp } from "./app.ts";
 import { latestInstaller, serveDownload } from "./domain/downloads.ts";
 import { HttpError, Router, json } from "./http/router.ts";
@@ -32,12 +32,15 @@ const MIME: Record<string, string> = {
   ".txt": "text/plain; charset=utf-8",
 };
 
-/** The site's security headers; connect-src also names the site's own WebSocket address (player cams), which older Safari doesn't take 'self' for. */
-const securityHeaders = (publicUrl: string) => ({
+/**
+ * The site's security headers; connect-src also names the site's own WebSocket address (player cams), which older Safari doesn't take 'self' for.
+ * `frameable`: the HUD demos under /demo/ (apps/hud-designs builds copied in by the website build), which the site's own pages show in an iframe; every other page refuses to be framed.
+ */
+const securityHeaders = (publicUrl: string, frameable = false) => ({
   "x-content-type-options": "nosniff",
   "referrer-policy": "strict-origin-when-cross-origin",
-  "x-frame-options": "DENY",
-  "content-security-policy": `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ${new URL(publicUrl).origin.replace(/^http/, "ws")}; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com`,
+  "x-frame-options": frameable ? "SAMEORIGIN" : "DENY",
+  "content-security-policy": `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ${new URL(publicUrl).origin.replace(/^http/, "ws")}; frame-ancestors ${frameable ? "'self'" : "'none'"}; base-uri 'none'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com`,
 });
 
 export function buildRouter(app: CloudApp): Router {
@@ -86,8 +89,10 @@ function serveStatic(webDir: string, pathname: string, res: ServerResponse, publ
     if (!existsSync(file)) return false;
   }
   const ext = extname(file);
-  const immutable = file.includes(`${join(root, "assets")}`);
-  res.writeHead(200, { "content-type": MIME[ext] ?? "application/octet-stream", "cache-control": immutable ? "public, max-age=31536000, immutable" : "no-cache", ...securityHeaders(publicUrl) });
+  // Vite's hashed files: the site's assets/ and each HUD demo's (demo/<hud>/assets/).
+  const demo = file.startsWith(join(root, "demo") + sep);
+  const immutable = file.startsWith(join(root, "assets") + sep) || (demo && file.includes(`${sep}assets${sep}`));
+  res.writeHead(200, { "content-type": MIME[ext] ?? "application/octet-stream", "cache-control": immutable ? "public, max-age=31536000, immutable" : "no-cache", ...securityHeaders(publicUrl, demo) });
   // Social preview tags need absolute URLs: index.html carries a placeholder for the public address.
   res.end(ext === ".html" ? readFileSync(file, "utf8").replaceAll("__MF_PUBLIC_URL__", publicUrl.replace(/\/$/, "")) : readFileSync(file));
   return true;
