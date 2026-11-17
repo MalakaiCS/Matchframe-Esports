@@ -117,10 +117,10 @@ describe("The program arbiter with highlights on air: a mode, and where it goes 
     expect([p.mode, p.owner, m.shown.at(-1)]).toEqual(["MANUAL", { kind: "operator", holder: "op" }, "Desk"]);
   });
 
-  it("highlights never start over a replay; the twins count as their scenes; old scene maps get HIGHLIGHTS", async () => {
+  it("highlights never start over a replay; the twins count as their scenes; old scene maps get HIGHLIGHTS (and MAP_INTRO)", async () => {
     const m = port();
     const p = new ProgramArbiter(m.port, { LIVE: "Game", REPLAY: "Replay" });
-    expect(p.sceneMap).toEqual({ LIVE: "Game", REPLAY: "Replay", STUDIO: null, BREAK: null, HIGHLIGHTS: null });
+    expect(p.sceneMap).toEqual({ LIVE: "Game", REPLAY: "Replay", STUDIO: null, BREAK: null, HIGHLIGHTS: null, MAP_INTRO: null });
     await expect(p.request("HIGHLIGHTS", "operator", "highlights")).rejects.toThrow(/no mixer scene is mapped for HIGHLIGHTS/);
     p.setScenes(SCENES);
     await p.request("REPLAY_PREPARED", "automation", "auto-replay", { replayItemId: "r" });
@@ -133,7 +133,7 @@ describe("The program arbiter with highlights on air: a mode, and where it goes 
     // The highlights scene is the replay scene: the replay scene's twin serves both.
     p.setScenes({ ...SCENES, HIGHLIGHTS: "Replay" });
     expect(p.highlightsScenes).toEqual(["Replay", "Replay B"]);
-    expect(sceneMapOf({ LIVE: "Game", HIGHLIGHTS: "" })).toEqual({ LIVE: "Game", REPLAY: null, STUDIO: null, BREAK: null, HIGHLIGHTS: null });
+    expect(sceneMapOf({ LIVE: "Game", HIGHLIGHTS: "" })).toEqual({ LIVE: "Game", REPLAY: null, STUDIO: null, BREAK: null, HIGHLIGHTS: null, MAP_INTRO: null });
   });
 
   it("Highlights in and Highlights out are their own uses of a transition", () => {

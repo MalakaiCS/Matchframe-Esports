@@ -53,6 +53,7 @@ import { ReplayTwin } from "./replay/twin.ts";
 import { ReplayGraphic } from "./replay/graphic.ts";
 import { HighlightStore } from "./replay/highlights.ts";
 import { HighlightsOnAir } from "./replay/highlights-air.ts";
+import { MapIntros } from "./replay/map-intro.ts";
 import { HighlightReels } from "./replay/reel.ts";
 import { OnAirLog } from "./replay/onair.ts";
 import { LiveSession } from "./live/session.ts";
@@ -225,6 +226,8 @@ export class Engine {
   readonly highlights: HighlightStore;
   /** A map's best clips on air from the highlights scene, then back to where the program came from (ADR-063). */
   readonly highlightsAir: HighlightsOnAir;
+  /** One intro video per map, on air by itself at the moment the operator picks, or by Play (ADR-079). */
+  readonly mapIntros: MapIntros;
   readonly reels: HighlightReels;
   readonly graphics: GraphicsDirector;
   readonly obsAuto: ObsAutomation;
@@ -394,7 +397,7 @@ export class Engine {
         setProgram: async (scene, move) => this.obsAuto.switchProgram(scene, this.obsAuto.pickFor(move)),
         shown: () => this.obs.state.programScene,
       },
-      this.settings.get("program.scenes", { LIVE: null, REPLAY: null, STUDIO: null, BREAK: null, HIGHLIGHTS: null }),
+      this.settings.get("program.scenes", { LIVE: null, REPLAY: null, STUDIO: null, BREAK: null, HIGHLIGHTS: null, MAP_INTRO: null }),
     );
     this.replays = new ReplayQueue(null, (item) => {
       // Clips the replay PC sent live in this computer's data folder: delete them when they drop off the queue.
@@ -489,6 +492,7 @@ export class Engine {
     this.reels = new HighlightReels(this);
     this.graphics = new GraphicsDirector(this);
     this.obsAuto = new ObsAutomation(this);
+    this.mapIntros = new MapIntros(this);
     this.matchArt = new MatchArt(this);
     this.teamComms = new TeamComms({
       settings: this.settings,
@@ -1382,6 +1386,7 @@ export class Engine {
     this.replayGraphic.start();
     this.highlights.start();
     this.highlightsAir.start();
+    this.mapIntros.start();
     this.graphics.start();
     this.obsAuto.start();
     this.gameConsole.sync();
@@ -1432,6 +1437,8 @@ export class Engine {
 
   async shutdown(): Promise<void> {
     // Live audio turned down for replays goes back first, while OBS (or vMix) is still there; so do casters turned down for a listen-in.
+    // A map's intro on air ends first (back to where the program came from, its audio put back).
+    await this.mapIntros.beforeShutdown();
     await this.autoReplay.beforeShutdown();
     await this.commsPublic.beforeShutdown();
     this.autoDirector.dispose();
@@ -1443,6 +1450,7 @@ export class Engine {
     this.reels.dispose();
     this.highlights.dispose();
     this.highlightsAir.dispose();
+    this.mapIntros.dispose();
     this.graphics.dispose();
     this.obsAuto.dispose();
     await this.stopSimulation().catch(() => undefined);

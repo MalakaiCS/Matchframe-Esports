@@ -4,15 +4,17 @@ export type ProgramOwner = "emergency" | "operator" | "cue" | "automation" | "sc
 const PRIORITY: Record<ProgramOwner, number> = { emergency: 4, operator: 3, cue: 2, automation: 1, schedule: 0 };
 
 const ALLOWED: Record<ProgramMode, ProgramMode[]> = {
-  LIVE: ["REPLAY_PREPARED", "STUDIO", "BREAK", "MANUAL", "DEGRADED", "HIGHLIGHTS"],
+  LIVE: ["REPLAY_PREPARED", "STUDIO", "BREAK", "MANUAL", "DEGRADED", "HIGHLIGHTS", "MAP_INTRO"],
   REPLAY_PREPARED: ["REPLAY_PLAYING", "LIVE", "MANUAL", "DEGRADED"],
   REPLAY_PLAYING: ["LIVE", "MANUAL", "DEGRADED"],
-  STUDIO: ["LIVE", "BREAK", "MANUAL", "DEGRADED", "HIGHLIGHTS"],
-  BREAK: ["LIVE", "STUDIO", "MANUAL", "DEGRADED", "HIGHLIGHTS"],
-  MANUAL: ["LIVE", "STUDIO", "BREAK", "REPLAY_PREPARED", "DEGRADED", "HIGHLIGHTS"],
+  STUDIO: ["LIVE", "BREAK", "MANUAL", "DEGRADED", "HIGHLIGHTS", "MAP_INTRO"],
+  BREAK: ["LIVE", "STUDIO", "MANUAL", "DEGRADED", "HIGHLIGHTS", "MAP_INTRO"],
+  MANUAL: ["LIVE", "STUDIO", "BREAK", "REPLAY_PREPARED", "DEGRADED", "HIGHLIGHTS", "MAP_INTRO"],
   DEGRADED: ["MANUAL", "LIVE"],
   // Highlights on air (ADR-063): back to where the program came from, or to live.
   HIGHLIGHTS: ["LIVE", "STUDIO", "BREAK", "MANUAL", "DEGRADED"],
+  // A map's intro on air (ADR-079): the same way back.
+  MAP_INTRO: ["LIVE", "STUDIO", "BREAK", "MANUAL", "DEGRADED"],
 };
 
 export interface SceneMap {
@@ -22,18 +24,24 @@ export interface SceneMap {
   BREAK: string | null;
   /** Highlights on air (ADR-063): a map's best clips, back to back. */
   HIGHLIGHTS: string | null;
+  /** A map's intro (ADR-079): the "MatchFrame Map Intro" scene MatchFrame makes. */
+  MAP_INTRO: string | null;
 }
 
-/** A scene map as stored (saved before highlights on air, without HIGHLIGHTS, or partly given): every mode, unmapped ones null. */
+/** A scene map as stored (saved before highlights on air or map intros, without them, or partly given): every mode, unmapped ones null. */
 export function sceneMapOf(v: unknown): SceneMap {
   const o = v && typeof v === "object" ? (v as Record<string, unknown>) : {};
   const one = (k: keyof SceneMap) => (typeof o[k] === "string" && o[k] ? (o[k] as string) : null);
-  return { LIVE: one("LIVE"), REPLAY: one("REPLAY"), STUDIO: one("STUDIO"), BREAK: one("BREAK"), HIGHLIGHTS: one("HIGHLIGHTS") };
+  return { LIVE: one("LIVE"), REPLAY: one("REPLAY"), STUDIO: one("STUDIO"), BREAK: one("BREAK"), HIGHLIGHTS: one("HIGHLIGHTS"), MAP_INTRO: one("MAP_INTRO") };
 }
 
+/** The modes that go back to where the program came from when they end: highlights (ADR-063) and a map's intro (ADR-079). */
+export type ReturningMode = "HIGHLIGHTS" | "MAP_INTRO";
+const returning = (m: ProgramMode): m is ReturningMode => m === "HIGHLIGHTS" || m === "MAP_INTRO";
+
 /**
- * Where highlights go back to (ADR-063), saved as they go on air: the mode the program came from,
- * its scene (the operator's own scene for MANUAL), and who had it then.
+ * Where highlights (ADR-063) or a map's intro (ADR-079) go back to, saved as they go on air: the
+ * mode the program came from, its scene (the operator's own scene for MANUAL), and who had it then.
  */
 export interface HighlightsReturn {
   mode: ProgramMode;
@@ -139,12 +147,18 @@ export class ProgramArbiter {
     return this.mode === "HIGHLIGHTS" ? this.back : null;
   }
 
+  /** While a map's intro is on air (ADR-079): where the program goes back to after it. */
+  get introReturn(): HighlightsReturn | null {
+    return this.mode === "MAP_INTRO" ? this.back : null;
+  }
+
   private sceneFor(mode: ProgramMode): string | null {
     if (mode === "LIVE") return this.scenes.LIVE;
     if (mode === "REPLAY_PLAYING") return this.scenes.REPLAY;
     if (mode === "STUDIO") return this.scenes.STUDIO;
     if (mode === "BREAK") return this.scenes.BREAK;
     if (mode === "HIGHLIGHTS") return this.scenes.HIGHLIGHTS;
+    if (mode === "MAP_INTRO") return this.scenes.MAP_INTRO;
     return null;
   }
 
@@ -232,15 +246,15 @@ export class ProgramArbiter {
     if (PRIORITY[owner] < PRIORITY[this.owner.kind] && this.mode !== "LIVE") {
       throw Object.assign(new Error(`program owned by ${this.owner.kind}; ${owner} cannot change it`), { status: 409 });
     }
-    if ((to === "LIVE" || to === "STUDIO" || to === "BREAK" || to === "REPLAY_PLAYING" || to === "HIGHLIGHTS") && from === "DEGRADED" && owner !== "operator" && owner !== "emergency") {
+    if ((to === "LIVE" || to === "STUDIO" || to === "BREAK" || to === "REPLAY_PLAYING" || returning(to)) && from === "DEGRADED" && owner !== "operator" && owner !== "emergency") {
       throw Object.assign(new Error("recovery from DEGRADED requires the operator"), { status: 409 });
     }
     let confirmed = true;
     let detail: string | null = null;
-    // Highlights going on air: where the program goes back to afterwards (the operator's own scene, the scene the mixer shows for a MANUAL without one).
-    const back: HighlightsReturn | null = to === "HIGHLIGHTS" ? { mode: from, scene: from === "MANUAL" ? (this.followed ?? this.mixer?.shown?.() ?? null) : this.sceneFor(from), owner: { ...this.owner } } : null;
+    // Highlights or a map's intro going on air: where the program goes back to afterwards (the operator's own scene, the scene the mixer shows for a MANUAL without one).
+    const back: HighlightsReturn | null = returning(to) ? { mode: from, scene: from === "MANUAL" ? (this.followed ?? this.mixer?.shown?.() ?? null) : this.sceneFor(from), owner: { ...this.owner } } : null;
     const scene = to === "MANUAL" && opts.scene ? opts.scene : this.sceneFor(to);
-    if (!scene && (to === "STUDIO" || to === "BREAK" || to === "REPLAY_PLAYING" || to === "HIGHLIGHTS")) {
+    if (!scene && (to === "STUDIO" || to === "BREAK" || to === "REPLAY_PLAYING" || returning(to))) {
       // The program state must never claim a mode the mixer is not actually showing.
       throw Object.assign(new Error(`no mixer scene is mapped for ${to}; map it in Settings → Program scenes`), { status: 409 });
     }
@@ -279,7 +293,16 @@ export class ProgramArbiter {
    * of the highlights: if someone else took the program meanwhile, nothing changes (null).
    */
   async returnFromHighlights(owner: ProgramOwner, holder: string, opts: { live: boolean; exists: (scene: string) => boolean }): Promise<ProgramTransition | null> {
-    if (this.mode !== "HIGHLIGHTS" || this.owner.holder !== holder) return null;
+    return this.returnBack("HIGHLIGHTS", owner, holder, opts);
+  }
+
+  /** A map's intro is over (ADR-079): back the same way as highlights (returnFromHighlights). */
+  async returnFromIntro(owner: ProgramOwner, holder: string, opts: { live: boolean; exists: (scene: string) => boolean }): Promise<ProgramTransition | null> {
+    return this.returnBack("MAP_INTRO", owner, holder, opts);
+  }
+
+  private async returnBack(mode: ReturningMode, owner: ProgramOwner, holder: string, opts: { live: boolean; exists: (scene: string) => boolean }): Promise<ProgramTransition | null> {
+    if (this.mode !== mode || this.owner.holder !== holder) return null;
     const back = this.back;
     const scene = back ? (back.mode === "MANUAL" ? back.scene : this.sceneFor(back.mode)) : null;
     if (opts.live || !back || back.mode === "LIVE" || back.mode === "DEGRADED" || !scene || !opts.exists(scene)) return this.request("LIVE", owner, holder);

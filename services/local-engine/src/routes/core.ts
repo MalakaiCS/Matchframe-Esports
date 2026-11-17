@@ -286,9 +286,9 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
     if (req.params.key === HUD_ART_KEY) throw new HttpError(403, "set HUD images with PUT /api/v1/hud/art", "forbidden");
     let value = req.body.value;
     if (req.params.key === "program.scenes") {
-      // Every mode (a scene map from a console without highlights keeps the highlights scene mapped).
+      // Every mode (a scene map from a console without highlights or map intros keeps their scenes mapped).
       const given = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
-      value = sceneMapOf({ HIGHLIGHTS: e.program.sceneMap.HIGHLIGHTS, ...given });
+      value = sceneMapOf({ HIGHLIGHTS: e.program.sceneMap.HIGHLIGHTS, MAP_INTRO: e.program.sceneMap.MAP_INTRO, ...given });
       e.program.setScenes(value as SceneMap);
     }
     e.settings.set(req.params.key!, value);

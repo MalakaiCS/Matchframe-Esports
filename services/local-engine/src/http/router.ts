@@ -1,3 +1,4 @@
+import { createWriteStream, rmSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { z } from "zod";
 import type { Permission, Principal, SecretStore } from "../auth.ts";
@@ -38,6 +39,11 @@ interface RouteOpts<S extends z.ZodTypeAny | undefined> {
   body?: S;
   /** Per-route request body limit (raw uploads); defaults to the router limit. */
   maxBodyBytes?: number;
+  /**
+   * The body isn't read into memory: the handler streams `req.raw` itself (writeBodyToFile), for
+   * uploads too large to hold (a map intro's video). A declared length over maxBodyBytes is refused first.
+   */
+  streamBody?: boolean;
 }
 
 interface Route {
@@ -186,7 +192,12 @@ export class Router {
       if (method !== "GET" && method !== "HEAD" && !this.opts.originAllowed(req.headers.origin, req.headers.host)) {
         throw new HttpError(403, "origin not allowed", "bad_origin");
       }
-      const rawBody = method === "GET" || method === "HEAD" ? Buffer.alloc(0) : await readBody(req, route.opts.maxBodyBytes ?? this.maxBody);
+      if (route.opts.streamBody) {
+        const declared = Number(req.headers["content-length"]);
+        const max = route.opts.maxBodyBytes ?? this.maxBody;
+        if (Number.isFinite(declared) && declared > max) throw new HttpError(413, `body exceeds ${max} bytes`, "too_large");
+      }
+      const rawBody = method === "GET" || method === "HEAD" || route.opts.streamBody ? Buffer.alloc(0) : await readBody(req, route.opts.maxBodyBytes ?? this.maxBody);
       let body: unknown = undefined;
       if (rawBody.length > 0 && (req.headers["content-type"] ?? "").includes("application/json")) {
         try {
@@ -241,6 +252,44 @@ export function readBody(req: IncomingMessage, max: number): Promise<Buffer> {
       if (!over) resolve(Buffer.concat(chunks));
     });
     req.on("error", reject);
+  });
+}
+
+/**
+ * Streams a request's body to a file (a streamBody route), refusing (413) once it passes `max`
+ * bytes; the partial file is removed then, or on any error. Returns the bytes written.
+ */
+export function writeBodyToFile(req: IncomingMessage, file: string, max: number): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const out = createWriteStream(file, { flags: "wx" });
+    let size = 0;
+    let failed = false;
+    const fail = (err: unknown) => {
+      if (failed) return;
+      failed = true;
+      req.unpipe(out);
+      // Discard the rest, so the error response can still be delivered.
+      req.resume();
+      out.destroy();
+      out.once("close", () => {
+        rmSync(file, { force: true });
+        reject(err);
+      });
+    };
+    req.on("data", (c: Buffer) => {
+      size += c.length;
+      if (size > max) fail(new HttpError(413, `body exceeds ${max} bytes`, "too_large"));
+    });
+    req.on("error", fail);
+    req.on("close", () => {
+      // (An HTTP request closed before its whole body came; other streams have no such flag.)
+      if (req.complete === false) fail(new HttpError(400, "the upload was cut off", "aborted"));
+    });
+    out.on("error", fail);
+    out.on("finish", () => {
+      if (!failed) resolve(size);
+    });
+    req.pipe(out);
   });
 }
 

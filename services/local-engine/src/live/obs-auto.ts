@@ -1,6 +1,9 @@
 import { z } from "zod";
 import type { Engine } from "../app.ts";
 import type { ObsTransitionNow } from "@matchframe/obs-adapter";
+import type { ProgramMode } from "@matchframe/automation";
+import type { MatchState } from "@matchframe/contracts";
+import { legacySpelling } from "../brand.ts";
 import type { ProgramMove } from "../production/program.ts";
 
 /**
@@ -17,8 +20,9 @@ import type { ProgramMove } from "../production/program.ts";
  *
  * It also chooses the OBS transition of every program change (switchProgram, used by the program
  * state machine whoever asks for the change): one into a replay, one back out of it, one between two
- * replays of a break, one into highlights and one out of them (ADR-063), one to and from the break
- * and studio scenes. OBS's own transition is put back
+ * replays of a break, one into highlights and one out of them (ADR-063), one into a map's intro and
+ * one out of it (ADR-079; the MatchFrame Stinger by default, when OBS has it), one to and from the
+ * break and studio scenes. OBS's own transition is put back
  * once the transition has ended. In Studio Mode the program changes without the preview (OBS's
  * SetCurrentProgramScene), and the operator's preview is put back where OBS's Swap Scenes changed
  * it; a program change made in OBS itself (the Transition button) is counted (changesInObs).
@@ -37,6 +41,10 @@ export const ObsAutoSettings = z.object({
   highlightsIn: z.string().max(200).nullable().default(null),
   /** From highlights back to where the program came from; null = the same as Replay out (replayOut, else replayIn), empty = OBS's own. */
   highlightsOut: z.string().max(200).nullable().default(null),
+  /** To a map's intro (ADR-079); null = the MatchFrame Stinger when OBS has it, else OBS's own; empty = OBS's own. */
+  introIn: z.string().max(200).nullable().default(null),
+  /** From a map's intro back to where the program came from; null = the same as introIn; empty = OBS's own. */
+  introOut: z.string().max(200).nullable().default(null),
 });
 export type ObsAutoSettings = z.infer<typeof ObsAutoSettings>;
 export const ObsAutoPatch = z.object({
@@ -47,18 +55,26 @@ export const ObsAutoPatch = z.object({
   otherScenes: z.string().max(200).optional(),
   highlightsIn: z.string().max(200).nullable().optional(),
   highlightsOut: z.string().max(200).nullable().optional(),
+  introIn: z.string().max(200).nullable().optional(),
+  introOut: z.string().max(200).nullable().optional(),
 });
 
 const PAUSE_PHASES = new Set(["timeout_t", "timeout_ct", "paused"]);
 
-/**
- * The transition for one program change: an OBS transition by name, or OBS's Fade or Cut by kind
- * (their names can be translated), with a duration for a Fade. Null: OBS's own.
- */
-export type TransitionPick = { name: string } | { kind: "fade_transition" | "cut_transition"; durationMs?: number } | null;
+/** A map intro's transition when none is chosen: the match stingers' "MatchFrame Stinger" (domain/match-art.ts), under either spelling, when OBS has it. */
+export const INTRO_DEFAULT_TRANSITIONS = ["MatchFrame Stinger", legacySpelling("MatchFrame Stinger")];
 
-/** What a program change is, for its transition: into or out of a replay, into or out of highlights, to or from the break and studio scenes. */
-export function transitionUse(m: ProgramMove): "in" | "out" | "highlights-in" | "highlights-out" | "other" | "none" {
+/**
+ * The transition for one program change: an OBS transition by name, the first of several names OBS
+ * has (else OBS's own), or OBS's Fade or Cut by kind (their names can be translated), with a duration
+ * for a Fade. Null: OBS's own.
+ */
+export type TransitionPick = { name: string } | { anyOf: string[] } | { kind: "fade_transition" | "cut_transition"; durationMs?: number } | null;
+
+/** What a program change is, for its transition: into or out of a replay, into or out of highlights or a map's intro, to or from the break and studio scenes. */
+export function transitionUse(m: ProgramMove): "in" | "out" | "highlights-in" | "highlights-out" | "intro-in" | "intro-out" | "other" | "none" {
+  if (m.to === "MAP_INTRO" && m.from !== "MAP_INTRO") return "intro-in";
+  if (m.from === "MAP_INTRO" && m.to !== "MAP_INTRO") return "intro-out";
   if (m.to === "HIGHLIGHTS" && m.from !== "HIGHLIGHTS") return "highlights-in";
   if (m.from === "HIGHLIGHTS" && m.to !== "HIGHLIGHTS") return "highlights-out";
   if (m.to === "REPLAY_PLAYING" && m.from !== "REPLAY_PLAYING") return "in";
@@ -142,10 +158,15 @@ export class ObsAutomation {
     this.e.obs.off("transition", this.onTransition);
   }
 
-  /** The transition chosen for a program change (into or out of a replay or highlights, to or from the break and studio scenes). */
+  /** The transition chosen for a program change (into or out of a replay, highlights or a map's intro, to or from the break and studio scenes). */
   pickFor(move: ProgramMove): TransitionPick {
     const st = this.settings();
     const use = transitionUse(move);
+    if (use === "intro-in" || use === "intro-out") {
+      // A map's intro: the transition chosen (out: as in, unless chosen), else the MatchFrame Stinger when OBS has it, else OBS's own.
+      const chosen = use === "intro-out" ? (st.introOut ?? st.introIn) : st.introIn;
+      return chosen === null ? { anyOf: INTRO_DEFAULT_TRANSITIONS } : chosen ? { name: chosen } : null;
+    }
     const out = st.replayOut ?? st.replayIn;
     const name = use === "in" ? st.replayIn : use === "out" ? out : use === "highlights-in" ? (st.highlightsIn ?? st.replayIn) : use === "highlights-out" ? (st.highlightsOut ?? out) : use === "other" ? st.otherScenes : "";
     return name ? { name } : null;
@@ -269,9 +290,10 @@ export class ObsAutomation {
     const own = this.saved ? { name: this.saved.name, durationMs: this.saved.durationMs } : null;
     if (!pick) return own;
     const list = (await this.e.obs.transitionKinds()).transitions;
-    const t = "name" in pick ? list.find((x) => x.name === pick.name) : list.find((x) => x.kind === pick.kind);
+    const t = "name" in pick ? list.find((x) => x.name === pick.name) : "anyOf" in pick ? pick.anyOf.map((n) => list.find((x) => x.name === n)).find((x) => x !== undefined) : list.find((x) => x.kind === pick.kind);
     if (!t) {
-      this.e.logger.warn("OBS: the chosen transition isn't in OBS; using OBS's own", { pick });
+      // (A default that OBS doesn't have, a map intro's MatchFrame Stinger, is OBS's own without a warning.)
+      if (!("anyOf" in pick)) this.e.logger.warn("OBS: the chosen transition isn't in OBS; using OBS's own", { pick });
       return own;
     }
     // A Fade between two replays has its own length; a chosen transition runs for OBS's own duration.
@@ -319,6 +341,24 @@ export class ObsAutomation {
     return run;
   }
 
+  /**
+   * Whether this automation would take the program from `mode` back to the live scene now: its own
+   * break scene once play has resumed, its own studio scene once the next map has started. A map's
+   * intro played from that scene goes straight to the live scene then (ADR-079), not back to it first.
+   */
+  leavesNow(mode: ProgramMode): boolean {
+    const s = this.e.session.state();
+    return !!s && this.ours !== null && mode === this.ours && this.backToLive(s);
+  }
+
+  private backToLive(s: MatchState): boolean {
+    const paused = PAUSE_PHASES.has(s.gamePhase) || s.paused;
+    const ended = s.mapPhase === "gameover" || s.gamePhase === "gameover";
+    if (this.ours === "BREAK") return !paused;
+    if (this.ours === "STUDIO") return !ended && s.mapName !== null && (s.mapName !== this.mapAtEnd || s.roundPhase === "live");
+    return false;
+  }
+
   private async tick(): Promise<void> {
     if (this.busy || !this.e.obs.state.connected) return;
     const s = this.e.session.state();
@@ -328,19 +368,23 @@ export class ObsAutomation {
     const mode = this.e.program.mode;
     const paused = PAUSE_PHASES.has(s.gamePhase) || s.paused;
     const ended = s.mapPhase === "gameover" || s.gamePhase === "gameover";
+    // A map's intro on air, or due now (it plays from the scene the program shows, then goes back): it has the program (ADR-079).
+    const intro = this.e.mapIntros?.holdsProgram() === true;
     let want: "LIVE" | "BREAK" | "STUDIO" | null = null;
     // (Highlights going on air from the live scene have the program.)
-    if (mode === "LIVE" && this.e.highlightsAir?.onAir() !== true) {
+    if (mode === "LIVE" && this.e.highlightsAir?.onAir() !== true && !intro) {
+      // The scene this automation chose isn't on program any more (a map's intro went straight to live from it, Return live).
+      this.ours = null;
       if (st.timeouts && paused && scenes.BREAK) want = "BREAK";
       // (Highlights that start by themselves when a map ends go first: the studio scene after them.)
       else if (st.mapEnd && ended && scenes.STUDIO && this.e.highlightsAir?.holdsMapEnd() !== true) want = "STUDIO";
     } else if (mode === "LIVE") {
-      // Waiting for the highlights.
+      // Waiting for the highlights, or the map's intro.
     } else if (this.ours && mode === this.ours) {
-      if (this.ours === "BREAK" && !paused) want = "LIVE";
-      if (this.ours === "STUDIO" && !ended && s.mapName !== null && (s.mapName !== this.mapAtEnd || s.roundPhase === "live")) want = "LIVE";
-      // (Highlights from the scene this automation chose go back to it, and it stays its own.)
-    } else if (!(mode === "HIGHLIGHTS" && this.e.program.highlightsReturn?.mode === this.ours)) this.ours = null;
+      // (A map's intro due now plays from this scene first.)
+      if (!intro && this.backToLive(s)) want = "LIVE";
+      // (Highlights or a map's intro from the scene this automation chose go back to it, and it stays its own.)
+    } else if (!(mode === "HIGHLIGHTS" && this.e.program.highlightsReturn?.mode === this.ours) && !(mode === "MAP_INTRO" && this.e.program.introReturn?.mode === this.ours)) this.ours = null;
     if (!want) return;
     this.busy = true;
     try {

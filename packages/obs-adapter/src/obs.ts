@@ -155,6 +155,9 @@ export class ObsManager extends EventEmitter {
     // (a Stinger's at the end of its video, not at its cut point).
     this.obs.on("SceneTransitionStarted", (e) => this.emit("transition", { phase: "started", name: e.transitionName }));
     this.obs.on("SceneTransitionEnded", (e) => this.emit("transition", { phase: "ended", name: e.transitionName }));
+    // A media source started or reached the end of its file (obs-websocket's MediaInputs events, in its default subscription).
+    this.obs.on("MediaInputPlaybackStarted", (e) => this.emit("media", { phase: "started", input: e.inputName }));
+    this.obs.on("MediaInputPlaybackEnded", (e) => this.emit("media", { phase: "ended", input: e.inputName }));
   }
 
   private patch(p: Partial<ObsState>): void {
