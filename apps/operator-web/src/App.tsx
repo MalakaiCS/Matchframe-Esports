@@ -9,6 +9,7 @@ import { StatusBar } from "./components/StatusBar.tsx";
 import { emergencyStop, OfflineBanner, STOP_SHORTCUT_LABEL, TopBar } from "./components/TopBar.tsx";
 import { ToastProvider, useToast } from "./components/toasts.tsx";
 import { Button, Field, Loading, Note } from "./components/ui.tsx";
+import { onCrashReportSent } from "./lib/crashReports.ts";
 import { isTypingTarget, usePersistentState } from "./lib/hooks.ts";
 import { useReplayShortcuts } from "./lib/replay-keys.ts";
 import { Link, navigate, useLocation } from "./router.tsx";
@@ -78,12 +79,16 @@ function useStopShortcut(enabled: boolean) {
   }, [enabled, toast]);
 }
 
-/** Desktop shell (Electron) global hotkey emergency stops are reported here too. */
+/** Desktop shell (Electron) global hotkey emergency stops are reported here too, and crash reports sent (ADR-077). */
 function useDesktopEvents() {
   const toast = useToast();
   useEffect(() => {
     const off = window.matchframe?.onEmergencyStop?.(() => toast.push("ok", "Emergency stop engaged from the desktop global hotkey"));
-    return () => off?.();
+    const offCrash = onCrashReportSent((r) => toast.push("info", `Crash report sent (ID ${r.id})`, "Quote this ID to MatchFrame support. It's also under Settings → General → Program."));
+    return () => {
+      off?.();
+      offCrash();
+    };
   }, [toast]);
 }
 

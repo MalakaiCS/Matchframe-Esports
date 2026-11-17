@@ -41,6 +41,16 @@ contextBridge.exposeInMainWorld("matchframe", {
       return () => ipcRenderer.removeListener("mf:update", h);
     },
   },
+  /** Crash reports (apps/desktop/src/crash/reporter.ts): Send crash reports, and "Crash report sent (ID …)". */
+  crashReports: {
+    state: (): Promise<unknown> => ipcRenderer.invoke("mf:crash-reports"),
+    setEnabled: (on: boolean): Promise<unknown> => ipcRenderer.invoke("mf:crash-reports-set", on),
+    onSent: (fn: (r: unknown) => void) => {
+      const h = (_: unknown, r: unknown) => fn(r);
+      ipcRenderer.on("mf:crash-report-sent", h);
+      return () => ipcRenderer.removeListener("mf:crash-report-sent", h);
+    },
+  },
   /** Global hotkeys for the replays playing: Skip, Hold / Resume, Stop and go live (apps/desktop/src/replay-hotkeys.ts). */
   replayHotkeys: {
     get: () => hudCall("mf:replay-hotkeys"),

@@ -2,10 +2,12 @@ import { fork, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { delimiter, extname, isAbsolute, join, resolve, sep } from "node:path";
-import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, net, Notification, protocol, safeStorage, shell } from "electron";
+import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, net, Notification, powerMonitor, protocol, safeStorage, shell } from "electron";
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron";
 // Folders under either spelling of the product name (an upgraded computer keeps the ones it has).
 import { brandedFolder } from "../../../services/local-engine/src/brand.ts";
+import { OutputTail } from "./crash/report.ts";
+import { CrashReports, startNativeCrashReporter } from "./crash/reporter.ts";
 import { HotkeyManager } from "./hud/hotkeys.ts";
 import { registerHudIpc } from "./hud/ipc.ts";
 import { OverlayManager } from "./hud/overlays.ts";
@@ -50,6 +52,8 @@ const videosDir = (): string | null => {
   }
 };
 app.setPath("userData", join(dataDir(), "program"));
+// Native crashes (ADR-077): minidumps on this computer only; crash reports decide whether one is sent.
+startNativeCrashReporter(join(app.getPath("userData"), "Crashpad"));
 
 // HUD outputs must keep animating and receiving data while the manager is minimised or covered by
 // the game: no background throttling of timers, renderers or occluded windows.
@@ -76,6 +80,12 @@ let hotkeys: HotkeyManager | null = null;
 let tray: ProgramTray | null = null;
 let updater: Updater | null = null;
 let replayKeys: ReplayHotkeys | null = null;
+/** The credential key handed to the engine (kept so crash reports can be checked for it). */
+let masterKey: string | null = null;
+/** Engine processes asked to stop (restart, remote mode, quit): their exit is not a crash. */
+const stopRequested = new WeakSet<ChildProcess>();
+/** Windows is logging off or shutting down (Electron sends no before-quit then): what stops now is not a crash. */
+let sessionEnding = false;
 
 /** Small program preferences (not engine settings): `<userData>/program-settings.json`. */
 interface ProgramSettings {
@@ -86,14 +96,22 @@ interface ProgramSettings {
   networkAccess: boolean;
   /** Global hotkeys for the replays playing (replay-hotkeys.ts); off unless set. */
   replayHotkeys: Partial<ReplayKeys>;
+  /** Send crash reports (ADR-077); off unless the operator turns it on. */
+  crashReports: boolean;
 }
 const programSettingsFile = () => join(app.getPath("userData"), "program-settings.json");
 function readProgramSettings(): ProgramSettings {
   try {
     const raw = JSON.parse(readFileSync(programSettingsFile(), "utf8")) as Partial<ProgramSettings>;
-    return { autoDownloadUpdates: raw.autoDownloadUpdates !== false, hlaePath: typeof raw.hlaePath === "string" ? raw.hlaePath : null, networkAccess: raw.networkAccess === true, replayHotkeys: raw.replayHotkeys && typeof raw.replayHotkeys === "object" ? raw.replayHotkeys : {} };
+    return {
+      autoDownloadUpdates: raw.autoDownloadUpdates !== false,
+      hlaePath: typeof raw.hlaePath === "string" ? raw.hlaePath : null,
+      networkAccess: raw.networkAccess === true,
+      replayHotkeys: raw.replayHotkeys && typeof raw.replayHotkeys === "object" ? raw.replayHotkeys : {},
+      crashReports: raw.crashReports === true,
+    };
   } catch {
-    return { autoDownloadUpdates: true, hlaePath: null, networkAccess: false, replayHotkeys: {} };
+    return { autoDownloadUpdates: true, hlaePath: null, networkAccess: false, replayHotkeys: {}, crashReports: false };
   }
 }
 function writeProgramSettings(patch: Partial<ProgramSettings>): void {
@@ -141,6 +159,39 @@ function cloudReleaseConfig(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
     return {};
   }
 }
+
+/** The website this build is pinned to (crash reports sent without the engine, e.g. in remote mode). */
+function pinnedCloudUrl(): string | null {
+  const env = process.env.MATCHFRAME_CLOUD_URL?.trim();
+  if (env) return env;
+  try {
+    const cfg = JSON.parse(readFileSync(resourcesPath(isDev ? "config/cloud.json" : "cloud.json"), "utf8")) as { url?: unknown };
+    return typeof cfg.url === "string" && cfg.url ? cfg.url : null;
+  } catch {
+    return null;
+  }
+}
+
+// ------------------------------------------------------------------ crash reports (ADR-077)
+
+const crashReports = new CrashReports(
+  {
+    enabled: () => readProgramSettings().crashReports,
+    saveEnabled: (on) => writeProgramSettings({ crashReports: on }),
+    engineReady: () => connection.mode === "local" && !!engine && !!operatorToken,
+    supportFile: () => engineRequest<Record<string, unknown>>("GET", "/api/v1/diagnostics/bundle"),
+    credentials: () => askEngine<{ url: string | null; token: string | null; secrets: string[] }>("cloud-credentials"),
+    fixedUrl: pinnedCloudUrl,
+    ownSecrets: () => [operatorToken, connection.mode === "remote" ? connection.token : null, masterKey],
+    window: () => (win && !win.isDestroyed() ? win : null),
+    connectionMode: () => connection.mode,
+    quitting: () => quitting || sessionEnding,
+    log: (msg) => console.log(msg),
+    fetch: ((url: string, init?: RequestInit) => net.fetch(url, init)) as typeof fetch,
+  },
+  { queue: join(app.getPath("userData"), "crash-reports"), dumps: app.getPath("crashDumps") },
+);
+process.on("uncaughtException", (e) => crashReports.recordMainException(e));
 
 // ------------------------------------------------------------------ connection (local / remote)
 
@@ -294,21 +345,34 @@ function startEngine(): void {
   if (readProgramSettings().networkAccess && !process.env.MATCHFRAME_HOST) env.MATCHFRAME_HOST = "0.0.0.0";
   const key = secretKey();
   if (key) env.MATCHFRAME_SECRET_KEY = key;
+  masterKey = key ?? null;
   Object.assign(env, cloudReleaseConfig(env));
   const execArgv = isDev ? ["--import", "tsx"] : [];
   const child = fork(enginePath, [], { env, execPath: process.execPath, execArgv, stdio: ["ignore", "pipe", "pipe", "ipc"] });
   engine = child;
-  child.stdout?.on("data", (d: Buffer) => process.stdout.write(d));
-  child.stderr?.on("data", (d: Buffer) => process.stderr.write(d));
+  const startedAt = Date.now();
+  // Its last lines, for a crash report if it stops unexpectedly.
+  const tail = new OutputTail();
+  child.stdout?.on("data", (d: Buffer) => {
+    process.stdout.write(d);
+    tail.push(d);
+  });
+  child.stderr?.on("data", (d: Buffer) => {
+    process.stderr.write(d);
+    tail.push(d);
+  });
   child.on("message", (m: { type?: string; operatorToken?: string }) => {
     if (m?.type === "ready") {
       operatorToken = m.operatorToken ?? null;
       restarts = 0;
       if (connection.mode === "local") showConsole();
+      crashReports.engineStarted();
     }
   });
-  child.on("exit", (code) => {
+  child.on("exit", (code, signal) => {
     if (engine === child) engine = null;
+    // Unexpected: nobody asked it to stop, and it didn't stop itself cleanly (exit code 0 only follows a shutdown request or signal).
+    if (!quitting && !sessionEnding && !stopRequested.has(child) && (code !== 0 || signal !== null)) crashReports.recordEngineExit({ code, signal, uptimeMs: Date.now() - startedAt, output: tail.snapshot() });
     // The HUD server stopped with the engine: desktop HUD windows reconnect when it is back.
     if (quitting || !engineWanted) return;
     restarts++;
@@ -325,7 +389,35 @@ function startEngine(): void {
 function stopEngine(): void {
   engineWanted = false;
   operatorToken = null;
+  if (engine) stopRequested.add(engine);
   engine?.send({ type: "shutdown" });
+}
+
+let ipcSeq = 0;
+
+/** A question to the engine over the IPC channel (never HTTP); null when it is not running or doesn't answer in time. */
+function askEngine<T>(type: string, timeoutMs = 3000): Promise<T | null> {
+  const child = engine;
+  if (!child || !child.connected || connection.mode !== "local") return Promise.resolve(null);
+  const id = ++ipcSeq;
+  return new Promise((resolveAnswer) => {
+    const done = (v: T | null) => {
+      clearTimeout(timer);
+      child.off("message", onMessage);
+      resolveAnswer(v);
+    };
+    const onMessage = (m: unknown) => {
+      const msg = m as { type?: unknown; id?: unknown } | null;
+      if (msg?.type === type && msg.id === id) done(m as T);
+    };
+    const timer = setTimeout(() => done(null), timeoutMs);
+    child.on("message", onMessage);
+    try {
+      child.send({ type, id });
+    } catch {
+      done(null);
+    }
+  });
 }
 
 // ------------------------------------------------------------------ window
@@ -392,6 +484,8 @@ function createWindow(): BrowserWindow {
     w.hide();
   });
   w.on("closed", () => (win = null));
+  // Windows logging off or shutting down (the manager window gets this even when hidden to the tray).
+  w.on("session-end", () => (sessionEnding = true));
   return w;
 }
 
@@ -589,6 +683,9 @@ ipcMain.handle("mf:update-install", (event) => {
   if (fromApp(event)) updater?.installNow();
 });
 ipcMain.handle("mf:update-auto", (event, on: unknown) => (fromApp(event) && updater && typeof on === "boolean" ? updater.setAutoDownload(on) : null));
+// Crash reports (ADR-077): the setting, what waits, and the ids of reports sent lately.
+ipcMain.handle("mf:crash-reports", (event) => (fromApp(event) && !fromApp(event, "/connect") ? crashReports.state() : null));
+ipcMain.handle("mf:crash-reports-set", (event, on: unknown) => (fromApp(event) && !fromApp(event, "/connect") && typeof on === "boolean" ? crashReports.setEnabled(on) : null));
 // Start CS2: the engine prepares it (GSI config, launch options, console); this process starts
 // Steam, or HLAE (a program the operator chose on this computer). Nothing else can be started.
 ipcMain.handle("mf:launch-cs2", async (event) => {
@@ -654,6 +751,7 @@ ipcMain.handle("mf:open-ts3-folder", (event, which: unknown) => {
 function restartEngine(): boolean {
   if (connection.mode !== "local" || !engine) return false;
   const child = engine;
+  stopRequested.add(child);
   child.send({ type: "shutdown" });
   // The supervisor restarts it on exit; an engine that does not stop is ended.
   const kill = setTimeout(() => child.exitCode === null && child.kill(), 8000);
@@ -733,6 +831,7 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     registerAppProtocol();
     connection = loadConnection();
+    crashReports.start();
     Menu.setApplicationMenu(
       Menu.buildFromTemplate([
         {
@@ -773,6 +872,7 @@ if (!app.requestSingleInstanceLock()) {
       log: (msg) => console.error(msg),
     });
     replayKeys.register();
+    powerMonitor.on("shutdown", () => (sessionEnding = true));
     updater = createUpdater({
       autoDownload: readProgramSettings().autoDownloadUpdates,
       saveAutoDownload: (on) => writeProgramSettings({ autoDownloadUpdates: on }),
@@ -794,6 +894,7 @@ if (!app.requestSingleInstanceLock()) {
       quitting = true;
       overlays?.dispose();
       updater?.dispose();
+      crashReports.dispose();
       hotkeys?.unregister();
       tray?.destroy();
       tray = null;

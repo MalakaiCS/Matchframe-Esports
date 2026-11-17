@@ -12,6 +12,7 @@
     "package:dir": "electron-builder --dir --config electron-builder.yml --publish never"
   },
   "devDependencies": {
+    "@matchframe/cloud-contracts": "workspace:*",
     "electron": "44.9.3",
     "electron-builder": "26.18.0",
     "electron-updater": "6.8.10",

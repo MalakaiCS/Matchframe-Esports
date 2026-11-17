@@ -62,7 +62,14 @@ export async function main(): Promise<void> {
   process.on("SIGINT", () => void stop());
   process.on("SIGTERM", () => void stop());
   process.on("message", (m) => {
-    if ((m as { type?: string })?.type === "shutdown") void stop();
+    const msg = m as { type?: string; id?: unknown } | null;
+    if (msg?.type === "shutdown") void stop();
+    // Crash reports (ADR-077): the program sends them with this computer's website sign-in. Only over
+    // this IPC channel to the program that started the engine, never over HTTP.
+    else if (msg?.type === "cloud-credentials") {
+      const c = engine.cloud.credentials();
+      process.send?.({ type: "cloud-credentials", id: msg.id, url: engine.cloud.url, token: c?.token ?? null, secrets: engine.secrets.knownSecrets() });
+    }
   });
   if (process.send) {
     // Started by the program over IPC: when the program disappears (quit, crash, killed), the IPC

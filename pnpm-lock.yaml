@@ -69,6 +69,9 @@ importers:
 
   apps/desktop:
     devDependencies:
+      '@matchframe/cloud-contracts':
+        specifier: workspace:*
+        version: link:../../packages/cloud-contracts
       electron:
         specifier: 44.9.3
         version: 44.9.3
