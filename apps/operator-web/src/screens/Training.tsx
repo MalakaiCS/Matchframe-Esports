@@ -9,6 +9,8 @@ import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
 import { DemoModelPanel } from "./training/DemoModel.tsx";
 import { TestBench } from "./training/TestBench.tsx";
+import { perLocale, t } from "../i18n/index.ts";
+import { T } from "../i18n/T.tsx";
 import "../styles/group-c.css";
 
 const STATUS_TONE: Record<string, "ok" | "info" | "warn" | "danger" | "neutral" | "accent"> = {
@@ -43,8 +45,8 @@ export function summarizeStep(summary: Record<string, unknown>): string {
     if (typeof v === "number") return Number.isInteger(v) ? String(v) : v.toFixed(3);
     if (typeof v === "boolean") return v ? "yes" : "no";
     if (Array.isArray(v)) return v.length === 0 ? "none" : `${v.length} item(s)`;
-    const t = JSON.stringify(v);
-    return t.length > 80 ? `${t.slice(0, 77)}…` : t;
+    const tRow = JSON.stringify(v);
+    return tRow.length > 80 ? `${tRow.slice(0, 77)}…` : tRow;
   };
   return Object.entries(summary)
     .map(([k, v]) => `${k} ${short(v)}`)
@@ -52,10 +54,10 @@ export function summarizeStep(summary: Record<string, unknown>): string {
 }
 
 const human = (s: string) => s.replace(/_/g, " ");
-const TASKS = [
-  { id: "pov_2s", label: "POV shows a kill within 2 s", hint: "Per player: the model that helps the Auto Director pick whose POV to show" },
-  { id: "contact_2s", label: "Fight within 2 s (pairs)", hint: "Per T/CT pair: runs in shadow only, compared with the built-in estimate" },
-] as const;
+const TASKS = perLocale(() => ([
+  { id: "pov_2s", label: t("training.povShowsAKillWithin"), hint: t("training.perPlayerTheModelThat") },
+  { id: "contact_2s", label: t("training.fightWithin2SPairs"), hint: t("training.perTCtPairRuns") },
+] as const));
 const RUN_TONE: Record<string, string> = { completed: "text-ok", failed: "text-danger" };
 
 function StepList({ run }: { run: TrainingRun }) {
@@ -88,72 +90,65 @@ function Runs() {
   const [task, setTask] = useState<(typeof TASKS)[number]["id"]>("pov_2s");
   const datasets = (jobs.data?.jobs ?? []).filter((j) => j.datasetDir && ["COMMITTED", "RETENTION_ELIGIBLE", "QUARANTINED_RAW", "RAW_REMOVED"].includes(j.state));
   const liveRunning = !!snap?.state && !snap.state.simulated && !snap.state.sources[0]?.stale;
-  if (reason) return <Note tone="warn">{reason}. Training requires the owner or analyst role.</Note>;
+  if (reason) return <Note tone="warn">{t("training.reasonTrainingRequiresTheOwner", { reason })}</Note>;
   return (
     <div className="grid-1-2">
-      <Panel title="Start a training run" subtitle={TASKS.find((t) => t.id === task)?.hint}>
-        <label className="small">
-          Task{" "}
-          <select value={task} onChange={(e) => setTask(e.target.value as typeof task)}>
-            {TASKS.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
+      <Panel title={t("training.startATrainingRun")} subtitle={TASKS.find((tRow) => tRow.id === task)?.hint}>
+        <label className="small"><T k="training.taskSelect" values={{ select: <select value={task} onChange={(e) => setTask(e.target.value as typeof task)}>
+            {TASKS.map((tRow) => (
+              <option key={tRow.id} value={tRow.id}>
+                {tRow.label}
               </option>
             ))}
-          </select>
-        </label>
+          </select> }} /></label>
         {datasets.length ? (
           <fieldset>
-            <legend>Datasets</legend>
-            <span className="field-hint">{selected.length ? `${selected.length} selected` : "None selected: every committed, usable dataset is used"}</span>
+            <legend>{t("training.datasets")}</legend>
+            <span className="field-hint">{selected.length ? t("training.countSelected", { count: selected.length }) : t("training.noneSelectedEveryCommittedUsable")}</span>
             <div style={{ maxHeight: 180, overflowY: "auto" }}>
               {datasets.map((j) => (
                 <label key={j.id} className="check" style={{ display: "flex" }}>
                   <input type="checkbox" checked={selected.includes(j.datasetDir!)} onChange={(e) => setSelected(e.target.checked ? [...selected, j.datasetDir!] : selected.filter((d) => d !== j.datasetDir))} />
                   <span className="small">
-                    {j.sourcePath.split(/[\\/]/).pop()} <span className="muted">· {j.mapName ?? "?"} · {(j.validation as { verdict?: string } | null)?.verdict ?? "unvalidated"}</span>
+                    {j.sourcePath.split(/[\\/]/).pop()} <span className="muted">· {j.mapName ?? "?"} · {(j.validation as { verdict?: string } | null)?.verdict ?? t("training.unvalidated")}</span>
                   </span>
                 </label>
               ))}
             </div>
           </fieldset>
         ) : (
-          <p className="small muted">
-            No committed datasets yet{jobs.error ? ` (${jobs.error})` : ""}. Import and process demos in the <Link to="/director/demos">Demo Library</Link> first.
-          </p>
+          <p className="small muted"><T k="training.noCommittedDatasetsYetV" values={{ v: jobs.error ? ` (${jobs.error})` : "" }} tags={{ link: (c) => <Link to="/director/demos">{c}</Link> }} /></p>
         )}
-        <Checkbox checked={allowLive} onChange={setAllowLive} label="Allow while a live broadcast is running" />
-        {liveRunning && !allowLive ? <p className="small text-warn">A live broadcast is running: the engine will refuse with “live_protected” unless you allow it.</p> : null}
+        <Checkbox checked={allowLive} onChange={setAllowLive} label={t("training.allowWhileALiveBroadcast")} />
+        {liveRunning && !allowLive ? <p className="small text-warn">{t("training.aLiveBroadcastIsRunning")}</p> : null}
         <div className="form-actions">
           <ActionButton
             variant="primary"
             action={() => api.post<TrainingRun>("/api/v1/training/runs", { task, ...(selected.length ? { datasets: selected } : {}), allowDuringLive: allowLive })}
-            success={(r) => `Training run ${r.id} started on ${r.datasets.length} dataset(s)`}
+            success={(r) => t("training.trainingRunIdStartedOn", { id: r.id, count: r.datasets.length })}
             onDone={() => void runs.reload()}
-            confirm={liveRunning && allowLive ? { title: "Train during a live broadcast?", body: "Training competes for CPU with the live engine and OBS. Only continue on a machine with spare capacity.", danger: true, confirmLabel: "Start anyway" } : undefined}
-          >
-            Start training
-          </ActionButton>
+            confirm={liveRunning && allowLive ? { title: t("training.trainDuringALiveBroadcast"), body: t("training.trainingCompetesForCpuWith"), danger: true, confirmLabel: t("training.startAnyway") } : undefined}
+          >{t("training.startTraining")}</ActionButton>
         </div>
-        <Details summary="How training works">
-          <p className="small muted">Build features (per dataset) → freeze a match-level split → leakage audit → train → held-out evaluation → export. Workers run below normal priority, and runs are refused while a live broadcast is running unless you allow it. The engine also refuses when no usable dataset exists.</p>
+        <Details summary={t("training.howTrainingWorks")}>
+          <p className="small muted">{t("training.buildFeaturesPerDatasetFreeze")}</p>
         </Details>
       </Panel>
-      <Panel title="Runs">
+      <Panel title={t("training.runs")}>
         <Async state={runs}>
           {(list) =>
             list.length === 0 ? (
-              <EmptyState title="No training runs yet">Each run lists its steps, the model it produced and any failure.</EmptyState>
+              <EmptyState title={t("training.noTrainingRunsYet")}>{t("training.eachRunListsItsSteps")}</EmptyState>
             ) : (
               <div className="table-wrap">
                 <table className="table table-compact">
                   <thead>
                     <tr>
-                      <th>Started</th>
-                      <th>State</th>
-                      <th>Steps</th>
-                      <th>Model</th>
-                      <th>Progress</th>
+                      <th>{t("training.started")}</th>
+                      <th>{t("training.state")}</th>
+                      <th>{t("training.steps")}</th>
+                      <th>{t("training.model")}</th>
+                      <th>{t("training.progress")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -163,18 +158,16 @@ function Runs() {
                         <tr key={r.id}>
                           <td className="small" title={`${r.id} · ${r.task}`}>
                             <span className="gc-nowrap">{fmtTime(r.startedAt)}</span>
-                            <div className="muted">
-                              {r.datasets.length} dataset(s){r.finishedAt ? ` · finished ${fmtTime(r.finishedAt)}` : ""}
-                            </div>
+                            <div className="muted">{t("training.countDatasetSV", { count: r.datasets.length, v: r.finishedAt ? t("training.finishedFinishedat", { finishedAt: fmtTime(r.finishedAt) }) : "" })}</div>
                           </td>
                           <td>
                             <Badge tone={r.state === "completed" ? "ok" : r.state === "failed" ? "danger" : "info"}>{r.state}</Badge>
                           </td>
                           <td>
                             {r.steps.length === 0 ? (
-                              <span className="muted small">Starting…</span>
+                              <span className="muted small">{t("training.starting")}</span>
                             ) : (
-                              <Details summary={`${done} of ${r.steps.length} steps done`} className="gc-flush">
+                              <Details summary={t("training.doneOfCountStepsDone", { done, count: r.steps.length })} className="gc-flush">
                                 <p className="small muted mono">
                                   {r.id} · {r.task}
                                 </p>
@@ -209,30 +202,28 @@ function ModelRow({ m, shadowId, povId, reload }: { m: RegistryEntry; shadowId: 
       <td>
         <span className="mono small">{m.modelId}</span>
         <div className="small muted">
-          {m.task ?? "?"} · {fmtTime(m.createdAt)} · {m.exportAvailable ? "exported" : "no export"}
+          {m.task ?? "?"} · {fmtTime(m.createdAt)} · {m.exportAvailable ? t("training.exported") : t("training.noExport")}
         </div>
         {m.notes ? <div className="small muted">{m.notes}</div> : null}
       </td>
       <td>
-        <Badge tone={STATUS_TONE[m.status] ?? "neutral"}>{human(m.status)}</Badge> {isShadow ? <Badge tone="info" icon="◐">In shadow</Badge> : null}
-        {povId === m.modelId ? <Badge tone="ok">Helps the Auto Director</Badge> : null}
+        <Badge tone={STATUS_TONE[m.status] ?? "neutral"}>{human(m.status)}</Badge> {isShadow ? <Badge tone="info" icon="◐">{t("training.inShadow")}</Badge> : null}
+        {povId === m.modelId ? <Badge tone="ok">{t("training.helpsTheAutoDirector")}</Badge> : null}
       </td>
-      <td className="small" title={test ? `Evaluated ${fmtTime(test.at)}` : undefined}>
+      <td className="small" title={test ? t("training.evaluatedAt", { at: fmtTime(test.at) }) : undefined}>
         {test ? (
-          <>
-            {test.split}: AUC {test.auc?.toFixed(3) ?? MISSING} · Brier {test.brier?.toFixed(3) ?? MISSING}
-          </>
+          <>{t("training.splitAucVBrierV2", { split: test.split, v: test.auc?.toFixed(3) ?? MISSING, v2: test.brier?.toFixed(3) ?? MISSING })}</>
         ) : (
-          <span className="muted">Not evaluated</span>
+          <span className="muted">{t("training.notEvaluated")}</span>
         )}
       </td>
       <td>
         <div className="cell-actions">
-          <select aria-label={`Promote ${m.modelId} to`} value={to} onChange={(e) => setTo(e.target.value)} disabled={!!reason || targets.length === 0}>
-            <option value="">{targets.length ? "Promote to…" : "Final status"}</option>
-            {targets.map((t) => (
-              <option key={t} value={t}>
-                {human(t)}
+          <select aria-label={t("training.promoteModelidTo", { modelId: m.modelId })} value={to} onChange={(e) => setTo(e.target.value)} disabled={!!reason || targets.length === 0}>
+            <option value="">{targets.length ? t("training.promoteTo") : t("training.finalStatus")}</option>
+            {targets.map((tRow) => (
+              <option key={tRow} value={tRow}>
+                {human(tRow)}
               </option>
             ))}
           </select>
@@ -245,41 +236,33 @@ function ModelRow({ m, shadowId, povId, reload }: { m: RegistryEntry; shadowId: 
               setTo("");
               reload();
             }}
-            disabledReason={reason ?? (to ? null : "Choose a target status")}
+            disabledReason={reason ?? (to ? null : t("training.chooseATargetStatus"))}
             confirm={{
-              title: `Change ${m.modelId} to “${human(to)}”?`,
+              title: t("training.changeModelidToTo", { modelId: m.modelId, to: human(to) }),
               body:
                 to === "approved"
-                  ? "Approval is a deliberate operator decision recorded in the registry. In this build learned models still run in shadow only: the baseline director keeps driving the camera."
-                  : "The model registry records the transition with your reason and may refuse illegal transitions.",
-              reasonLabel: "Reason (recorded in the registry)",
-              confirmLabel: "Change status",
+                  ? t("training.approvalIsADeliberateOperator")
+                  : t("training.theModelRegistryRecordsThe"),
+              reasonLabel: t("training.reasonRecordedInTheRegistry"),
+              confirmLabel: t("training.changeStatus"),
               danger: to === "approved",
             }}
-          >
-            Apply
-          </ActionButton>
+          >{t("training.apply")}</ActionButton>
           {m.task === "pov_2s" ? (
             povId === m.modelId ? null : (
-              <ActionButton size="sm" variant="ghost" action={() => api.put<{ active: unknown; error: string | null }>("/api/v1/models/pov", { modelId: m.modelId, enabled: true })} success={(r) => (r.active ? `${m.modelId} now helps the Auto Director` : `Not loaded: ${r.error ?? "unknown reason"}`)} onDone={reload} disabledReason={reason ?? (!m.exportAvailable ? "No exported model" : null)}>
-                Use in the Auto Director
-              </ActionButton>
+              <ActionButton size="sm" variant="ghost" action={() => api.put<{ active: unknown; error: string | null }>("/api/v1/models/pov", { modelId: m.modelId, enabled: true })} success={(r) => (r.active ? t("training.modelidNowHelpsTheAuto", { modelId: m.modelId }) : t("training.notLoadedV", { v: r.error ?? t("training.unknownReason") }))} onDone={reload} disabledReason={reason ?? (!m.exportAvailable ? t("training.noExportedModel") : null)}>{t("training.useInTheAutoDirector")}</ActionButton>
             )
           ) : isShadow ? (
-            <ActionButton size="sm" variant="ghost" action={() => api.del("/api/v1/models/shadow")} success="Shadow model unloaded" onDone={reload} disabledReason={reason}>
-              Unload shadow
-            </ActionButton>
+            <ActionButton size="sm" variant="ghost" action={() => api.del("/api/v1/models/shadow")} success={t("training.shadowModelUnloaded")} onDone={reload} disabledReason={reason}>{t("training.unloadShadow")}</ActionButton>
           ) : (
             <ActionButton
               size="sm"
               variant="ghost"
               action={() => api.post<{ shadowModelId: string }>(`/api/v1/models/${seg(m.modelId)}/shadow`)}
-              success={(r) => `${r.shadowModelId} running in shadow (never drives the camera)`}
+              success={(r) => t("training.shadowmodelidRunningInShadowNever", { shadowModelId: r.shadowModelId })}
               onDone={reload}
-              disabledReason={reason ?? (!SHADOW_OK.has(m.status) ? `Status ${human(m.status)}: promote to shadow first` : !m.exportAvailable ? "No exported model" : null)}
-            >
-              Load in shadow
-            </ActionButton>
+              disabledReason={reason ?? (!SHADOW_OK.has(m.status) ? t("training.statusStatusPromoteToShadow", { status: human(m.status) }) : !m.exportAvailable ? t("training.noExportedModel") : null)}
+            >{t("training.loadInShadow")}</ActionButton>
           )}
         </div>
       </td>
@@ -295,15 +278,15 @@ function Shadow() {
     <Async state={sh}>
       {(s) =>
         !s.shadowModelId ? (
-          <EmptyState title="No model in shadow">Load an exported model in the registry to compare its contact estimates with the baseline on live data.</EmptyState>
+          <EmptyState title={t("training.noModelInShadow")}>{t("training.loadAnExportedModelIn")}</EmptyState>
         ) : (
           <>
             <KV
               items={[
-                ["Model", <span key="m" className="mono">{s.shadowModelId}</span>],
-                ["Samples", s.summary.samples],
-                ["Mean |model − baseline|", s.summary.meanAbsDiffVsBaseline?.toFixed(3) ?? MISSING],
-                ["Top-pair agreement", s.summary.topPairAgreementRate !== null ? `${(s.summary.topPairAgreementRate * 100).toFixed(1)}%` : MISSING],
+                [t("training.model"), <span key="m" className="mono">{s.shadowModelId}</span>],
+                [t("training.samples"), s.summary.samples],
+                [t("training.meanModelBaseline"), s.summary.meanAbsDiffVsBaseline?.toFixed(3) ?? MISSING],
+                [t("training.topPairAgreement"), s.summary.topPairAgreementRate !== null ? `${(s.summary.topPairAgreementRate * 100).toFixed(1)}%` : MISSING],
               ]}
             />
             <p className="gc-caption">{s.note}</p>
@@ -311,10 +294,10 @@ function Shadow() {
               <table className="table table-compact" style={{ marginTop: 10 }}>
                 <thead>
                   <tr>
-                    <th>Round</th>
-                    <th>Top pair (T vs CT)</th>
-                    <th>Model</th>
-                    <th>Baseline</th>
+                    <th>{t("training.round")}</th>
+                    <th>{t("training.topPairTVsCt")}</th>
+                    <th>{t("training.model")}</th>
+                    <th>{t("training.baseline")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -324,7 +307,7 @@ function Shadow() {
                     .map((r, i) => (
                       <tr key={i}>
                         <td>{r.round ?? MISSING}</td>
-                        <td>{r.top[0] ? `${name(r.top[0].t)} vs ${name(r.top[0].ct)}` : MISSING}</td>
+                        <td>{r.top[0] ? t("training.tVsCt", { t: name(r.top[0].t), ct: name(r.top[0].ct) }) : MISSING}</td>
                         <td>{r.top[0]?.probability.toFixed(2) ?? MISSING}</td>
                         <td>{r.top[0]?.baseline?.toFixed(2) ?? MISSING}</td>
                       </tr>
@@ -346,29 +329,29 @@ export function TrainingScreen() {
   return (
     <div className="page">
       <div className="page-head">
-        <h1 className="page-title">Training &amp; Evaluation</h1>
+        <h1 className="page-title">{t("training.trainingEvaluation")}</h1>
       </div>
-      <p className="page-intro">The demo-trained POV model helps the Auto Director pick whose POV to show; the test bench shows what it changes. Contact models run in shadow only.</p>
+      <p className="page-intro">{t("training.theDemoTrainedPovModel")}</p>
       <div className="grid-1-2">
         <DemoModelPanel />
         <TestBench />
       </div>
       <Runs />
       <div className="grid-2-1">
-        <Panel title="Model registry">
+        <Panel title={t("training.modelRegistry")}>
           <Async state={models}>
             {(d) =>
               d.models.length === 0 ? (
-                <EmptyState title="No models yet">Completed training runs register their model here as “experimental”.</EmptyState>
+                <EmptyState title={t("training.noModelsYet")}>{t("training.completedTrainingRunsRegisterTheir")}</EmptyState>
               ) : (
                 <div className="table-wrap">
                   <table className="table table-compact">
                     <thead>
                       <tr>
-                        <th>Model</th>
-                        <th>Status</th>
-                        <th>Evaluation</th>
-                        <th aria-label="Actions" />
+                        <th>{t("training.model")}</th>
+                        <th>{t("training.status")}</th>
+                        <th>{t("training.evaluation")}</th>
+                        <th aria-label={t("training.actions")} />
                       </tr>
                     </thead>
                     <tbody>
@@ -381,13 +364,11 @@ export function TrainingScreen() {
               )
             }
           </Async>
-          <Details summary="Promotion and live safety">
-            <p className="small muted">
-              Learned models never take over on their own. A POV model you train helps the Auto Director only when you choose it (Use in the Auto Director), and then only for half of its &quot;a fight is coming&quot; score. Contact models run in shadow only: compared against the baseline, never driving the camera. Promotion through shadow → candidate → approved is a deliberate operator decision with a recorded reason. If a model fails to load, the deterministic director continues unchanged.
-            </p>
+          <Details summary={t("training.promotionAndLiveSafety")}>
+            <p className="small muted">{t("training.learnedModelsNeverTakeOver")}</p>
           </Details>
         </Panel>
-        <Panel title="Shadow comparison">
+        <Panel title={t("training.shadowComparison")}>
           <Shadow />
         </Panel>
       </div>

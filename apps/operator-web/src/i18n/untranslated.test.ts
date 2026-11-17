@@ -21,11 +21,6 @@ const SOURCES = import.meta.glob<string>(["../**/*.tsx", "!../**/*.test.tsx"], {
 const PENDING = new Set<string>([
   "components/SignIn.tsx",
   "screens/Account.tsx",
-  "screens/Demos.tsx",
-  "screens/Training.tsx",
-  "screens/demos/PipelinePanels.tsx",
-  "screens/training/DemoModel.tsx",
-  "screens/training/TestBench.tsx",
 ]);
 
 /** Files that stay English on purpose. */
@@ -78,6 +73,8 @@ function flagged(text: string): boolean {
   if (ALLOWED.has(s)) return false;
   if (!/\p{Ll}/u.test(s) && s.length <= 12) return false;
   if (/^[\w./:-]+$/.test(s) && /[./-]/.test(text)) return false;
+  // Windows paths, one or several (D:\\demos\\final.dem).
+  if (text.trim().split(/\s+/).every((w) => /^[\w./:\\-]+$/.test(w) && /\\/.test(w))) return false;
   return true;
 }
 
