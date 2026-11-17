@@ -1,0 +1,1061 @@
+{
+  "autodir": {
+    "phase": {
+      "off": "Off",
+      "starting": "Starting",
+      "waiting": "Waiting",
+      "running": "On air",
+      "paused": "You have the camera",
+      "error": "Stopped"
+    },
+    "onlyStart": "Only when I press Start",
+    "toast": {
+      "stopped": "Auto Director stopped",
+      "notStarted": "Auto Director not started",
+      "notStopped": "Auto Director not stopped",
+      "notSaved": "Setting not saved"
+    },
+    "tagline": "MatchFrame moves the CS2 camera for you.",
+    "working": "Working…",
+    "stop": "Stop",
+    "start": "Start Auto Director",
+    "unreachable": "Can't reach the engine: {error}",
+    "films": "What the Auto Director films",
+    "pov": {
+      "label": "Player POVs",
+      "hint": "Always on: follows the action and switches players."
+    },
+    "cinematic": {
+      "label": "Cinematic cameras",
+      "hint": "Team shots and spawn cameras in freeze time, the bomb at plant and defuse, and overviews of big fights. Built-in cameras for every active-duty map."
+    },
+    "nade": {
+      "label": "Nade cams",
+      "labelTop": "Nade cams · Top plan",
+      "hint": "Cameras that catch smokes, flashes, molotovs and HE grenades as they land (Full Action Observer).",
+      "hintTop": "Nade cams come with the top plan. Upgrade on the website."
+    },
+    "chase": {
+      "label": "Chase cam",
+      "hint": "Shows the player from behind (third person) while they plant or defuse the bomb and when their team wins the round, then goes back to their eyes."
+    },
+    "clutch": {
+      "label": "Clutch mode",
+      "hint": "When one player is left alone against the other team, stay with them: no cuts to cameras, and the chase view while no opponent is near. A won clutch is replayed if automatic replays are on."
+    },
+    "variety": {
+      "label": "Different freeze times",
+      "hint": "Not the same shots every round: sometimes one longer shot of one team, from high up, low or from their side; no team shot of a team saving on an eco; cameras used in the last rounds give way to others."
+    },
+    "big": {
+      "label": "Big moments",
+      "hint": "A wide opener before each pistol round, the team on match point first and longer, and slow shots of the map at half time and at the end of the map (the winners first)."
+    },
+    "winners": {
+      "label": "After the round, show the winners",
+      "every": "every round",
+      "big": "big rounds only",
+      "never": "never"
+    },
+    "hlae": {
+      "label": "Camera shots through HLAE",
+      "hint": "With CS2 started in the Observer tools + HLAE mode, HLAE plays every camera shot and move: it sets the view every frame, so turns, glides and paths are smooth and don't depend on console timing. The map's camera paths (200–300 a map, from pro demos) play in freeze time only while HLAE is connected. Without HLAE, MatchFrame moves the camera over the console.",
+      "connected": {
+        "one": "HLAE camera connected: {count} shot played by HLAE so far.",
+        "other": "HLAE camera connected: {count} shots played by HLAE so far."
+      },
+      "waiting": "HLAE camera: waiting for HLAE's script in CS2 (it loads when the console connects).",
+      "start": "HLAE camera: start CS2 in the Observer tools + HLAE mode to use it.",
+      "off": "HLAE camera off: shots are moved over the console."
+    },
+    "returnAfter": "When I pick a player, take the camera back after",
+    "checks": "Checks",
+    "help": "Press Start with CS2 spectating a match or playing a demo. MatchFrame checks the console, the game data and your hours, tests player switching and the cameras on this CS2 build, and then directs. Press Stop, or the emergency stop, to take over."
+  },
+  "common": {
+    "unknown": "Unknown",
+    "actionFailed": "{action} failed",
+    "actionFailedGeneric": "Action failed",
+    "closeDialog": "Close dialog",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "reasonTooShort": "Enter a reason (at least 3 characters)",
+    "error": "Error",
+    "retry": "Retry",
+    "loading": "Loading…",
+    "refreshFailed": "Refresh failed: {error}",
+    "copy": "Copy",
+    "copied": "Copied ✓",
+    "simulation": "Simulation",
+    "details": "Details",
+    "invalidJson": "Invalid JSON: {error}",
+    "invalidJsonShort": "invalid JSON",
+    "dismissNotification": "Dismiss notification",
+    "toast": {
+      "ok": "Done",
+      "info": "Info",
+      "warn": "Warning",
+      "danger": "Failed"
+    },
+    "unit": {
+      "ms": "{n} ms",
+      "s": "{n} s",
+      "min": "{n} min",
+      "minSec": "{m} min {s} s",
+      "hMin": "{h} h {m} min"
+    },
+    "ago": {
+      "s": "{n}s ago",
+      "m": "{n}m ago",
+      "h": "{n}h ago",
+      "d": "{n}d ago"
+    },
+    "side": {
+      "t": "Terrorists",
+      "ct": "Counter-Terrorists"
+    },
+    "shot": {
+      "pov": "POV · {name}",
+      "team": "Team shot · {side}",
+      "teamStill": "Team shot · {side} (still)",
+      "camera": "Camera · {id}",
+      "path": "Camera path · {id}",
+      "hold": "Hold current shot",
+      "roaming": "Free camera (roaming)"
+    },
+    "grenade": {
+      "fireUnknown": "Fire (type unknown)"
+    }
+  },
+  "control": {
+    "own": {
+      "unknown": "Ownership unknown",
+      "unknownDetail": "Waiting for the engine",
+      "emergency": "Emergency stop",
+      "emergencyDetail": "Automation halted. The camera stays where it is until an operator acts. Clear the stop, then resume automation explicitly.",
+      "resuming": "Resuming in {s} s",
+      "resumingDetail": "Automation will take the camera when the countdown ends. Cancel to stay manual.",
+      "automatic": "Automatic",
+      "automaticDetail": "The Observer is directing the camera automatically.",
+      "device": "Device control",
+      "deviceDetail": "A control device ({holder}) owns the camera.",
+      "remote": "Remote control",
+      "remoteDetail": "A remote client ({holder}) owns the camera.",
+      "unknownHolder": "unknown",
+      "manual": "Manual",
+      "manualDetail": "{holder} owns the camera. Manual control is sticky: automation only returns after an explicit resume.",
+      "theOperator": "The operator"
+    },
+    "health": {
+      "armed": "Armed",
+      "armedHint": "Automation may execute cuts.",
+      "degraded": "Degraded",
+      "degradedHint": "Control works with reduced confidence (e.g. transport-only confirmation).",
+      "paused": "Paused",
+      "pausedHint": "Automation paused (hold active).",
+      "manual": "Manual",
+      "manualHint": "The operator owns the camera; decisions are recommendations.",
+      "disarmed": "Disarmed",
+      "disarmedHint": "Automation is not armed (advisory mode or manual ownership).",
+      "emergency": "Emergency stop",
+      "emergencyHint": "Emergency stop is active."
+    },
+    "mode": {
+      "off": {
+        "label": "Off",
+        "hint": "No decisions are made."
+      },
+      "advisory": {
+        "label": "Advisory",
+        "hint": "Recommends shots; never moves the camera."
+      },
+      "assisted": {
+        "label": "Assisted",
+        "hint": "Executes only the action classes enabled below; recommends everything else."
+      },
+      "automatic": {
+        "label": "Automatic",
+        "hint": "Executes cuts when it owns the camera (requires Resume automation)."
+      },
+      "shadow": {
+        "label": "Shadow",
+        "hint": "Decides silently for evaluation; never executes or recommends on air."
+      },
+      "demo_review": {
+        "label": "Demo review",
+        "hint": "Decision review against demo playback."
+      },
+      "delayed_lookahead": {
+        "label": "Delayed look-ahead",
+        "hint": "Uses a delayed program timeline to look ahead before cutting."
+      }
+    },
+    "observer": {
+      "off": {
+        "label": "Off",
+        "hint": "MatchFrame never moves the camera. Shot suggestions stay visible here. Uses no hours."
+      },
+      "observer": {
+        "label": "Observer",
+        "hint": "Switches between player POVs automatically."
+      },
+      "observer_cinematics": {
+        "label": "Observer & Cinematics",
+        "hint": "POV observing plus cinematic static cameras: an establishing shot in freeze time, the bomb at plant and defuse, and overviews of big fights (cameras from Maps & Cameras)."
+      },
+      "full_action": {
+        "label": "Full Action Observer",
+        "hint": "Everything in Observer & Cinematics plus nade cameras that catch smokes, flashes, molotovs and HE grenades as they land."
+      }
+    },
+    "assisted": {
+      "pov_cut": {
+        "label": "POV cuts",
+        "hint": "Switch the spectated player"
+      },
+      "cinematic": {
+        "label": "Cinematic cameras",
+        "hint": "Static utility/tactical cameras (needs static camera control)"
+      },
+      "replay_suggestion": {
+        "label": "Replay suggestions",
+        "hint": "Bookmark replay candidates (never auto-plays)"
+      },
+      "mixer_cue": {
+        "label": "Mixer cues",
+        "hint": "Program/mixer cue suggestions"
+      }
+    },
+    "block": {
+      "manual": "the operator owns the camera (manual is sticky until Resume automation)",
+      "emergency": "emergency stop is active",
+      "stale": "telemetry is stale",
+      "lowConfidence": "confidence is too low to act",
+      "advisory": "the Observer is Off (suggestions only)",
+      "assisted": "this action class is not enabled for assisted execution",
+      "shadow": "shadow mode never executes"
+    },
+    "explain": {
+      "none": "No decision yet",
+      "noneLine": "The director evaluates as soon as telemetry arrives.",
+      "advantage": "Best alternative scores {best} vs current {current} ({diff}).",
+      "advantageThreshold": "Best alternative scores {best} vs current {current} ({diff}; cut threshold {threshold}).",
+      "cut": "Cut to {shot}",
+      "holdBest": "The current shot remains the best available.",
+      "hold": "Holding {shot}",
+      "notExecuted": "Not executed because {reasons}.",
+      "recommendOnly": "Recommendation only.",
+      "recommend": "Recommends {shot}",
+      "noAction": "No action",
+      "nothing": "Nothing to do on the current state."
+    }
+  },
+  "game": {
+    "mode": {
+      "standard": {
+        "label": "Standard",
+        "short": "Standard",
+        "detail": "CS2 through Steam with the game data (GSI) config. Works on any server. No console: camera control uses the keyboard fallback, or none."
+      },
+      "tools": {
+        "label": "Observer tools",
+        "short": "Observer tools",
+        "detail": "Adds -tools -netconport: MatchFrame controls the camera and the game options below through CS2's console. Needs the free CS2 Workshop Tools (Steam → Counter-Strike 2 → DLC)."
+      },
+      "hlae": {
+        "label": "Observer tools + HLAE",
+        "short": "Tools + HLAE",
+        "detail": "Also loads HLAE (advancedfx) for no flash, team colours in the kill feed or no game kill feed at all, and no end-of-match scene. CS2 runs insecure: only LAN, demos, or servers with tv_secure_bypass 1."
+      }
+    },
+    "hlaeWarning": {
+      "w1": "HLAE (advancedfx) hooks into CS2, and CS2 then runs with -insecure.",
+      "w2": "Insecure CS2 cannot join VAC-secured servers: the match server must allow insecure observers (tv_secure_bypass 1), or use LAN or demos.",
+      "w3": "Never join matchmaking or a VAC-secured server while HLAE is loaded: HLAE's developers warn this can get the account VAC banned.",
+      "w4": "CS2 updates often break HLAE until HLAE is updated. Standard and Observer tools keep working."
+    },
+    "needsProgram": "Starting CS2 needs the MatchFrame program",
+    "remote": "CS2 starts on the production computer: use Start CS2 there",
+    "hlaeDialog": {
+      "title": "Start CS2 with HLAE?",
+      "confirm": "I understand, use HLAE"
+    },
+    "console": {
+      "connected": "Console connected",
+      "notSent": "Some console options were not sent: {error}",
+      "live": "CS2 console on port {port}: camera control and game options are live.",
+      "waiting": "Console: waiting for CS2",
+      "waitingTitle": "MatchFrame connects to CS2's console on port {port} once CS2 runs with -tools -netconport. No connection after CS2 has started usually means the CS2 Workshop Tools are not installed.",
+      "waitingTitleError": "MatchFrame connects to CS2's console on port {port} once CS2 runs with -tools -netconport (last try: {error}). No connection after CS2 has started usually means the CS2 Workshop Tools are not installed."
+    },
+    "launch": {
+      "portRange": "Use a port from 1024 to 65535",
+      "intro": "Start CS2 in the HUD Library starts the game this way. MatchFrame writes the game data (GSI) config first.",
+      "mode": "Launch mode",
+      "port": "Console port",
+      "portHint": "CS2 listens on this port on this computer only (-netconport).",
+      "extra": "Extra launch options",
+      "extraHint": "Optional, for example -novid -fullscreen. The launch mode sets -tools, -netconport, -insecure and -steam itself.",
+      "insecure": "HLAE runs CS2 insecure",
+      "hlaeInProgram": "HLAE.exe can be chosen in the MatchFrame program.",
+      "saved": "Launch settings saved",
+      "save": "Save launch settings",
+      "savedHlae": "Launch settings saved (HLAE)"
+    },
+    "chooseHlae": "Choose HLAE.exe…",
+    "start": "Start CS2",
+    "card": {
+      "checking": "Checking…",
+      "receiving": "Receiving game data",
+      "receivingBuild": "Receiving game data · build {build}",
+      "receivingHint": "CS2 is sending game data to MatchFrame.",
+      "waiting": "Waiting for game data",
+      "waitingHint": "CS2 is installed. Start it and spectate a match or play a demo; data arrives through game state integration (GSI).",
+      "notFound": "CS2 not found yet",
+      "notFoundHint": "Set up CS2 in Setup: MatchFrame installs the game state integration (GSI) config into the CS2 folder.",
+      "setupTitle": "Launch mode, console port, launch options, HLAE, and the game data (GSI) config",
+      "commandTitle": "Paste into the CS2 console while spectating: hides the game's own HUD apart from the kill notices and the names above the players, so only your HUD shows. The Observer tools launch mode does this for you."
+    },
+    "opt": {
+      "label": "Game options",
+      "option": "Game option",
+      "frameCapHint": "fps_max: CS2 draws at most this many frames a second, leaving the graphics card room for the HUD, OBS and the encoder. On high graphics settings an uncapped CS2 takes the whole card, and imported HUDs stutter. For a 60 fps stream, 120 keeps the game smooth. Don't change: CS2's own setting.",
+      "coloursHint": "The colours for the X-ray, smokes and the kill feed. Your CT and T colours stay with the side; each team's colour (Teams → colour) swaps with the teams at half time, and a team without one uses yours.",
+      "colours": "Colours",
+      "whichColours": "Which colours",
+      "sideColours": "Your CT and T colours",
+      "teamColours": "Each team's colour",
+      "ctSide": "CT side",
+      "ctColour": "CT colour",
+      "tSide": "T side",
+      "tColour": "T colour",
+      "hideHud": "Hide game HUD",
+      "hideHudHint": "cl_drawhud 1 and cl_draw_only_deathnotices 1: the game shows only its kill feed (and, with X-ray, the names above the players); your HUD shows the rest. Sent when the console connects.",
+      "xray": "X-ray",
+      "xrayHint": "spec_show_xray, hud_showtargetid and cl_drawhud_force_teamid_overhead: players visible through walls on the observer's screen, with their names above them (also with Hide game HUD on).",
+      "clutchXray": "No X-ray in clutches",
+      "clutchXrayHint": "When one player is left against two or more, X-ray goes off until the round ends, so the viewer doesn't see where the other team is. It comes back on for the next round.",
+      "xrayOff": "X-ray is off.",
+      "retakeXray": "No X-ray in retakes",
+      "retakeXrayHint": "After the plant, once a CT is close to the bomb with time left to defuse and both teams still have players alive, X-ray goes off until the round ends, so the viewer doesn't see where the Ts wait. Not while the CTs save.",
+      "background": "Run behind other windows",
+      "backgroundHint": "engine_no_focus_sleep 0 and snd_mute_losefocus 0: CS2 keeps every frame and its sound while you use MatchFrame or OBS. Off, CS2 slows down and goes silent whenever another window has focus. With CS2 in full screen (not Fullscreen Windowed), clicking another window still stops the picture.",
+      "frameCap": "Cap CS2's frame rate",
+      "dontChange": "Don't change",
+      "fps": "{n} fps",
+      "noFlash": "No flash",
+      "noFlashHint": "HLAE mirv_noflash 1: flashbangs don't white out the observer's screen.",
+      "xrayColours": "X-ray colours",
+      "xrayColoursHint": "HLAE mirv_colors: the players' glow through walls (X-ray), the names above them and grenade trails in the CT and T colours below. Only in your game: the players don't see it. The glow changes from the next switch of player; trails from the next grenade.",
+      "smokes": "Coloured smokes",
+      "smokesHint": "HLAE mirv_colors smokes: smokes in the CT and T colours below, from the next smoke thrown. Only in your game: the players don't see it.",
+      "killfeedColours": "Colours in kill feed",
+      "killfeedColoursHint": "HLAE mirv_deathmsg colors: CT and T names in CS2's kill feed in the CT and T colours below.",
+      "endOfMatch": "Hide end-of-match screen",
+      "endOfMatchHint": "HLAE mirv_endofmatch 0: no end-of-match scene over the game.",
+      "hideKillfeed": "Hide CS2 kill feed",
+      "hideKillfeedHint": "HLAE mirv_deathmsg filter add block=1: CS2's own kill feed is blocked, so only your HUD's kill feed shows. With Hide game HUD on, the crosshair stays."
+    }
+  },
+  "hudlib": {
+    "status": {
+      "ready": "Ready",
+      "readyHint": "Installed and verified. No output is connected.",
+      "starting": "Starting",
+      "startingHint": "The desktop HUD window is loading.",
+      "running": "Running",
+      "runningHint": "At least one output (desktop, OBS or preview) is connected.",
+      "stopped": "Stopped",
+      "stoppedHint": "Stopped: OBS browser sources stay connected but show nothing until you start the HUD again.",
+      "error": "Error",
+      "errorHint": "The package failed verification or its entry file is missing.",
+      "windowFailed": "The desktop HUD window failed to load."
+    },
+    "output": {
+      "desktop": "Desktop",
+      "preview": "Preview"
+    },
+    "kind": {
+      "builtin": "Built-in",
+      "sample": "Sample",
+      "imported": "Imported"
+    },
+    "variant": {
+      "live": "Live",
+      "compact": "Compact",
+      "replay": "Replay",
+      "veto": "Veto",
+      "preMatch": "Pre-match",
+      "break": "Break",
+      "postMap": "Post-map",
+      "postSeries": "Post-series",
+      "studio": "Studio"
+    },
+    "sort": {
+      "name": "Name",
+      "recent": "Recently used",
+      "added": "Recently added",
+      "author": "Author"
+    },
+    "desktop": {
+      "needsProgram": "Desktop HUDs need the MatchFrame program (this console is open in a browser)",
+      "remote": "Desktop HUDs are unavailable in remote mode: the HUD belongs over the game on the production computer",
+      "stillWorks": "{reason}. The library, OBS browser sources and previews still work."
+    },
+    "card": {
+      "activeOutputs": "Active outputs",
+      "timing": "{fps} fps, longest pause {pause} ms in the last minute",
+      "connected": {
+        "one": "{count} connected",
+        "other": "{count} connected"
+      },
+      "notConnected": "not connected",
+      "unknownAuthor": "Unknown author",
+      "sharedTitle": "Shared with your organisation's other computers (Settings → Account)",
+      "shared": "Shared",
+      "noDescription": "No description.",
+      "switchOn": "Desktop HUD on: click to close the window over the game",
+      "switchOff": "Launch Transparent HUD: a click-through window over the game",
+      "closeDesktopHud": "Close the desktop HUD",
+      "hideDetails": "Hide details",
+      "showDetails": "Show details"
+    },
+    "action": {
+      "duplicate": "Duplicate",
+      "exportZip": "Export ZIP",
+      "openFolder": "Open Folder",
+      "removeMenu": "Remove…",
+      "closeDesktop": "Close Desktop HUD",
+      "launch": "Launch Transparent HUD",
+      "preview": "Preview",
+      "copyUrl": "Copy OBS Browser URL",
+      "settings": "Settings",
+      "reload": "Reload",
+      "stop": "Stop",
+      "more": "More actions for {name}"
+    },
+    "builtin": {
+      "duplicate": "The built-in HUD is part of the program and cannot be duplicated",
+      "export": "The built-in HUD is part of the program and cannot be exported",
+      "folder": "The built-in HUD is part of the program and has no folder",
+      "remove": "The built-in HUD is part of the program and cannot be removed"
+    },
+    "stopWindowFailed": "Stopped on the engine, but a desktop window did not close: {error}",
+    "importing": "Importing…",
+    "conflict": {
+      "title": "This HUD is already installed",
+      "copy": "Import as a copy",
+      "builtin": "The built-in HUD cannot be replaced",
+      "update": "Update to {version}",
+      "bodySame": "{name} has the id {id}, which is installed with version {installed}. The package is the same version as the installed one ({incoming}).",
+      "bodyDifferent": "{name} has the id {id}, which is installed with version {installed}. The package is a different version from the installed one ({incoming}).",
+      "updateExplain": "<b>Update</b> installs it over the current version, keeps its settings and reloads its outputs. You can roll back to {version} from the details panel.",
+      "copyExplain": "<b>Import as a copy</b> installs it next to the current one with a new id."
+    },
+    "toolbar": {
+      "search": "Search HUDs",
+      "searchPlaceholder": "Search by name, author or tag",
+      "category": "Category",
+      "all": "All",
+      "noCategory": "No category",
+      "status": "Status",
+      "sort": "Sort",
+      "view": "View",
+      "grid": "Grid",
+      "list": "List"
+    },
+    "ungrouped": "Ungrouped",
+    "toast": {
+      "updated": "{name} updated to {version}",
+      "importedCopy": "{name} imported as a copy",
+      "imported": "{name} imported",
+      "updatedBody": "Its outputs reload with the new version.",
+      "importedBody": "Saved in your HUD library; it keeps working if the original file is moved or deleted.",
+      "importFailed": "Importing {name} failed",
+      "zipFailed": "Import HUD ZIP failed",
+      "folderFailed": "Import HUD Folder failed",
+      "urlCopied": "OBS Browser URL copied",
+      "urlCopiedBody": "Add a Browser Source with this URL at {resolution} (width × height), above your Game Capture.",
+      "reloaded": "{name} reloaded on every output",
+      "stopped": "{name} stopped. OBS sources stay connected but show nothing until you launch or start it again.",
+      "duplicated": "Duplicated as {name}",
+      "exported": "Exported {name}",
+      "removed": "{name} removed"
+    },
+    "reason": {
+      "failedVerification": "This HUD failed verification",
+      "noObsOutput": "This HUD has no OBS output",
+      "alreadyStopped": "Already stopped",
+      "foldersNeedProgram": "Opening folders needs the MatchFrame program",
+      "foldersOnProduction": "The HUD folders are on the production computer",
+      "folderImportNeedsProgram": "Importing a folder needs the MatchFrame program",
+      "folderImportProduction": "Folders can be imported only on the production computer; import a ZIP instead",
+      "folderOnProduction": "The HUD folder is on the production computer"
+    },
+    "add": {
+      "label": "Add HUD",
+      "zip": "Import HUD ZIP…",
+      "folder": "Import HUD folder…",
+      "openFolder": "Open HUDs folder"
+    },
+    "hidden": {
+      "title": "All HUD graphics are hidden",
+      "body": "Desktop HUDs, previews and OBS sources show nothing until you turn Show HUD graphics back on (or press the emergency hide hotkey again)."
+    },
+    "count": {
+      "here": {
+        "one": "{count} HUD on this computer",
+        "other": "{count} HUDs on this computer"
+      },
+      "production": {
+        "one": "{count} HUD on the production computer",
+        "other": "{count} HUDs on the production computer"
+      }
+    },
+    "imagesTitle": "Default player pictures, map logos and pictures, and the dead-player icon for every MatchFrame HUD",
+    "zipInput": "HUD package ZIP",
+    "loading": "Loading HUDs…",
+    "empty": {
+      "title": "No HUDs yet",
+      "import": "Import HUD ZIP",
+      "body": "Import a HUD package (a ZIP with a manifest.json) to get started."
+    },
+    "noMatch": {
+      "title": "No HUDs match",
+      "clear": "Clear filters",
+      "body": "Nothing matches the search and filters."
+    },
+    "groupList": "{group} HUDs",
+    "remove": {
+      "title": "Remove {name}?",
+      "body": "Removes the HUD and its settings from this computer, closes its desktop and preview windows and disconnects its OBS sources.",
+      "sample": "Sample HUDs are not installed again automatically.",
+      "exportFirst": "Export it first if you want to keep a copy.",
+      "confirm": "Remove"
+    },
+    "options": {
+      "label": "HUD options",
+      "testData": "Test data",
+      "testDataHint": "Feeds every HUD with the labelled simulation (a synthetic match), without CS2. Stop it before a real match.",
+      "runTestData": "Run Test Data",
+      "stopTestData": "Stop Test Data",
+      "testDataRunning": "Test data running",
+      "testDataStopped": "Test data stopped",
+      "showGraphics": "Show HUD graphics",
+      "showGraphicsHint": "Off hides every HUD graphic at once: desktop HUDs, previews and OBS sources (the emergency hide, Ctrl+Shift+F9).",
+      "hideAll": "Hide all HUD graphics",
+      "radar": "Utility on the radar",
+      "radarHint": "Smokes, fires and flashes confirmed by the game appear on HUD radars (never predictions)."
+    }
+  },
+  "nav": {
+    "account": "Account",
+    "accountHours": "Account & hours",
+    "addPlayer": "Add Player",
+    "addTeam": "Add Team",
+    "advanced": "Advanced",
+    "annotations": "Annotations",
+    "auditLog": "Audit log",
+    "autoDirector": "Auto Director",
+    "broadcastOutputs": "Broadcast outputs",
+    "cameras": "Cameras",
+    "composer": "Composer",
+    "createMatch": "Create Match",
+    "cues": "Cues",
+    "demoLibrary": "Demo library",
+    "devices": "Devices",
+    "devicesIntegrations": "Devices & integrations",
+    "diagnostics": "Diagnostics",
+    "director": "Director",
+    "editMatch": "Edit Match",
+    "editPlayer": "Edit Player",
+    "editTeam": "Edit Team",
+    "general": "General",
+    "hudLibrary": "HUD Library",
+    "hudImages": "HUD images",
+    "library": "Library",
+    "liveControl": "Live Control",
+    "logs": "Logs",
+    "mapsCameras": "Maps & cameras",
+    "matches": "Matches",
+    "playerCameras": "Player cameras",
+    "players": "Players",
+    "replays": "Replays",
+    "replaysHighlights": "Replays & highlights",
+    "settings": "Settings",
+    "setup": "Setup",
+    "sponsorsAutomation": "Sponsors & automation",
+    "statsReports": "Stats & reports",
+    "studioRundown": "Studio & rundown",
+    "teamComms": "Team Comms",
+    "teams": "Teams",
+    "tournaments": "Tournaments",
+    "training": "Training",
+    "trainingEvaluation": "Training & evaluation"
+  },
+  "settings": {
+    "save": "Save",
+    "reload": "Reload",
+    "busy": "Busy…",
+    "whatsNew": "What's new",
+    "titles": {
+      "general": "General settings",
+      "advanced": "Advanced settings"
+    },
+    "language": {
+      "title": "Language",
+      "subtitle": "The console, and the program's tray, dialogs and notifications",
+      "label": "Language",
+      "hint": "Applies at once, without a restart.",
+      "system": "System ({language})",
+      "machineTitle": "Machine-translated",
+      "machine": "The translations are machine-made. Translations may contain mistakes; report them to support.",
+      "scope": "HUDs keep their on-air text (ROUND, TIMEOUT and so on), and messages from the engine stay in English."
+    },
+    "keys": {
+      "program_scenes": "OBS scene per program mode (LIVE/REPLAY/STUDIO/BREAK)",
+      "replay_provider": "Replay provider: {kind: obs|bridge|none, bufferSeconds?, bridgeUrl?}",
+      "replay_mediaInput": "OBS media source used for replay playout",
+      "hud_radarUtility": "Show utility on the HUD radar (boolean)",
+      "hud_allowUnverifiedRadar": "Allow radar images with unverified calibration (boolean)",
+      "hud_annotationsDraft": "Saved telestrator drawings",
+      "demos_config": "Demo library configuration (prefer the Demo Library page)",
+      "ui_rundownPosition": "Rundown ON AIR / NEXT pointer",
+      "observer_adapter": "Observer adapter (read-only here — change it in Setup)",
+      "observer_verifiedControl": "Recorded control verification evidence (read-only)",
+      "live_activeMatchId": "Active match (read-only — change it in Matches)"
+    },
+    "advanced": {
+      "intro": "Raw engine settings as JSON. Most of them have their own page; edit here only when a value isn't exposed elsewhere.",
+      "keys": "Keys",
+      "readOnly": "Read-only",
+      "otherKey": "Other key",
+      "open": "Open",
+      "writable": "Changes take effect immediately and are audited",
+      "readOnlyHere": "Read-only from this page",
+      "value": "Value",
+      "saved": "{key} saved",
+      "notWritable": "This key is not writable through the settings API",
+      "invalidJson": "Invalid JSON"
+    },
+    "audit": {
+      "subtitle": "Every change made through the API, newest first",
+      "filter": "Filter audit log",
+      "filterPlaceholder": "Filter by actor, action or target",
+      "at": "At",
+      "actor": "Actor",
+      "action": "Action",
+      "target": "Target",
+      "detail": "Detail"
+    },
+    "logs": {
+      "title": "Recent engine logs",
+      "subtitle": "Secrets are redacted by the engine",
+      "level": "Log level",
+      "all": "All levels",
+      "errors": "Errors",
+      "warnings": "Warnings and errors",
+      "info": "Info and above",
+      "empty": "No log entries at this level."
+    },
+    "metric": {
+      "packets": "Packets ingested",
+      "rejected": "Packets rejected",
+      "invalid": "Invalid payloads",
+      "cuts": "Automated cuts",
+      "recommendations": "Recommendations",
+      "ingestP95Ms": "Ingest p95",
+      "evalP95Ms": "Director eval p95",
+      "maxIngestMs": "Max ingest",
+      "maxEvalMs": "Max director eval"
+    },
+    "diag": {
+      "troubleshooting": "Troubleshooting",
+      "downloaded": "Downloaded {file}",
+      "bundle": "support bundle",
+      "downloadBundle": "Download support bundle",
+      "bundleCaption": "Redacted JSON with config, health, capabilities, metrics, recent decisions, arbiter/program history and logs. Tokens, passwords and stream keys are never included.",
+      "openapiDownloaded": "OpenAPI document downloaded",
+      "downloadOpenapi": "Download OpenAPI",
+      "apiCaption": "The local HTTP API used by this console, Companion and scripts is described at {path}.",
+      "metrics": "Engine metrics",
+      "metricsSubtitle": "Updated every 2 s"
+    },
+    "goBack": {
+      "title": "Go back to a previous version",
+      "body": "Installs an earlier Stable version over this one, after checking its download and asking you. Your HUD files and program settings stay. When that version stores data in an older format, the copy of your data made when you updated is restored, so changes made since then are lost.",
+      "lookingUp": "Looking up earlier versions…",
+      "refresh": "Refresh the list",
+      "open": "Go back to a previous version…",
+      "lookingUpGithub": "Looking up earlier versions on GitHub…",
+      "none": "No earlier Stable version with an installer and checksums was found.",
+      "noCopy": "There's no copy of your data this version can read",
+      "to": "Go back to {version}"
+    },
+    "program": {
+      "title": "Program",
+      "restartTitle": "Closes the program and every HUD output for a moment, installs the update and starts the new version",
+      "restartUpdate": "Restart and update",
+      "cantGoBack": "This program can't go back to a version",
+      "installTitle": "Checks the download, says what happens to your data and asks before anything changes",
+      "install": "Install {version}…",
+      "download": "Download {version}",
+      "check": "Check for updates",
+      "autoDownload": "Download updates automatically",
+      "channel": "Update channel",
+      "channelHint": "Beta versions come out first and may have problems. Back on Stable, the latest Stable version is offered even when it's older than your beta, and installs only when you say so.",
+      "updatesNote": "Updates come from the MatchFrame Esports releases on GitHub. A downloaded update installs when you quit the program; it never restarts on its own during a broadcast.",
+      "connection": "Connection settings…",
+      "dataFolder": "Open data folder"
+    },
+    "updates": {
+      "needsProgram": "Going back to a previous version needs the MatchFrame program.",
+      "off": "Updates are off",
+      "checking": "Checking for updates…",
+      "availableStable": "Version {version} is the latest Stable version. It's older than this beta ({current}); install it to go back to Stable",
+      "available": "Version {version} is available",
+      "downloading": "Downloading version {version}…",
+      "downloadingPct": "Downloading version {version} ({percent} %)…",
+      "ready": "Version {version} is ready: it installs when you quit, or restart now",
+      "upToDate": "Up to date (version {version})",
+      "failed": "Update check failed: {error}",
+      "unknownError": "unknown error",
+      "version": "Version {version}"
+    },
+    "rollback": {
+      "checking": "Checking version {version}…",
+      "downloading": "Downloading version {version}…",
+      "downloadingPct": "Downloading version {version} ({percent} %)…",
+      "verifying": "Checking the download against the release's SHA-256…",
+      "confirming": "Waiting for your answer in the dialog…",
+      "installing": "Installing version {version}…"
+    },
+    "crash": {
+      "send": "Send crash reports",
+      "body": "If MatchFrame crashes, it sends the support file (settings without passwords or tokens, health and recent logs) and the error to MatchFrame support.",
+      "sent": "Crash reports sent: {list}. Quote the ID to MatchFrame support.",
+      "waiting": {
+        "one": "{count} crash report waits to be sent.",
+        "other": "{count} crash reports wait to be sent."
+      },
+      "waitingError": {
+        "one": "{count} crash report waits to be sent ({error}).",
+        "other": "{count} crash reports wait to be sent ({error})."
+      }
+    },
+    "picture": {
+      "title": "Default player picture",
+      "subtitle": "Shown for any player who has no picture of their own",
+      "label": "Default picture",
+      "saving": "Saving the picture",
+      "note": "Used at once in the Teams and Players lists, MatchFrame HUDs, imported HUDs and the Team Comms speaker strip. A player's own picture always comes first. In MatchFrame HUDs, the side pictures you set under <link>HUD images</link> come before this one."
+    },
+    "session": {
+      "title": "Live session",
+      "simStopped": "Simulation stopped",
+      "stopSim": "Stop simulation",
+      "simStarted": "Simulation started",
+      "startSim": "Start labelled simulation",
+      "newSession": "New live session {id}",
+      "restartTitle": "Restart the live session?",
+      "restartBody": "Clears in-memory match state, events and director history; the next GSI packet starts a fresh session. Camera control resumes manual.",
+      "restartConfirm": "Restart session",
+      "restart": "Restart live session"
+    },
+    "gsi": {
+      "title": "GSI token",
+      "body": "Rotating the token breaks every GSI config written so far: write the config again in Setup and restart CS2.",
+      "rotated": "GSI token rotated. {note}",
+      "rotateTitle": "Rotate the GSI token?",
+      "rotateBody": "Telemetry stops until the GSI config is rewritten and CS2 restarted.",
+      "rotateConfirm": "Rotate",
+      "rotate": "Rotate GSI token",
+      "rewrite": "Rewrite GSI config"
+    },
+    "backup": {
+      "title": "Event backup",
+      "downloaded": "Event package downloaded",
+      "export": "Export event package",
+      "caption": "Teams, players, rosters, events, matches, veto, sponsors, rundown, rules, outputs and used assets (checksummed). Secrets are never exported.",
+      "restoreTitle": "Restore an event package",
+      "file": "Event package file",
+      "notJson": "Not a JSON file",
+      "verified": "Package verified",
+      "chooseFile": "Choose a package file",
+      "preview": "Preview",
+      "restored": "Event package restored",
+      "previewFirst": "Preview first",
+      "collisions": {
+        "one": "{count} id collision — cannot restore",
+        "other": "{count} id collisions — cannot restore"
+      },
+      "restoreConfirmTitle": "Restore this event package?",
+      "restoreConfirmBody": "Adds its teams, players, events, matches and assets to this installation.",
+      "restore": "Restore",
+      "previewCaption": "Preview first: restoring refuses id collisions.",
+      "assetFiles": "Asset files",
+      "collisionList": "Collisions: {list}",
+      "noCollisions": "No id collisions."
+    },
+    "stats": {
+      "title": "Current match statistics",
+      "subtitle": "Metrics the source can't compute are shown as n/a, never estimated.",
+      "csvDownloaded": "CSV downloaded",
+      "downloadCsv": "Download CSV",
+      "noPlayers": "No players in telemetry",
+      "noPlayersBody": "Statistics appear once telemetry arrives.",
+      "player": "Player",
+      "side": "Side",
+      "score": "Score",
+      "needsDamage": "Requires exact damage events",
+      "needsKills": "Requires exact kill events",
+      "na": "n/a",
+      "notAvailable": "Not available from this source: {list}.",
+      "definitions": "Metric definitions",
+      "available": "available",
+      "unavailable": "unavailable"
+    },
+    "report": {
+      "title": "Broadcast report",
+      "subtitle": "Director decisions, continuity, control events, replays and sponsor deliveries for the current session",
+      "htmlDownloaded": "Report downloaded (HTML)",
+      "downloadHtml": "Download HTML",
+      "jsonDownloaded": "Report downloaded (JSON)",
+      "downloadJson": "Download JSON",
+      "window": "Window",
+      "windowValue": {
+        "one": "{count} decision · {minutes} min",
+        "other": "{count} decisions · {minutes} min"
+      },
+      "actions": "Actions",
+      "automated": "Automated commands",
+      "automatedValue": "{total} ({confirmed} confirmed, {failed} failed)",
+      "shotChanges": "Shot changes",
+      "cutsPerMinute": "Cuts / minute",
+      "medianShot": "Median shot",
+      "takeovers": "Takeovers / external / e-stops",
+      "topReasons": "Top reasons",
+      "details": "Report details",
+      "generated": "Generated",
+      "source": "Source",
+      "simulation": "simulation",
+      "live": "live",
+      "policy": "Policy",
+      "p10": "P10 shot",
+      "outlived": "Shots outliving their player"
+    },
+    "perf": {
+      "inUse": "{mb} MB in use",
+      "noCap": "{used} (no cap)",
+      "capped": "Capped at {mb} MB ({used})",
+      "capNextStart": "The cap applies from the engine's next start ({used})",
+      "capByProgram": "Set by the MatchFrame program when it starts the engine ({used})",
+      "unchanged": "Unchanged",
+      "obsError": "Could not set every source: {error}",
+      "obsNotConnected": "Not connected: set when OBS connects",
+      "obsSources": "30 fps on {sources}",
+      "obsNone": "No browser source made by MatchFrame: set your own to 30 fps",
+      "title": "Performance",
+      "subtitle": "For productions where CS2, OBS and MatchFrame all run on one PC",
+      "lowSpec": "Low-spec mode (one PC)",
+      "lowSpecHint": "Lighter HUDs, a 30 fps cap, capped memory and background work held during live rounds",
+      "what1": "HUD outputs and the desktop HUD draw at most 30 frames a second. MatchFrame's HUDs drop blur, large shadows and looping animations; imported HUDs get the frame cap only.",
+      "what2": "Browser sources MatchFrame made in OBS are set to 30 fps. For your own: the source's properties, Use custom frame rate, FPS 30.",
+      "what3": "The engine sends HUDs only what changed, starts with a memory cap, holds demo hashing and processing, training and highlight reels while a round is live, and encodes replays with lighter presets.",
+      "what4": "The console shows no live previews or animated thumbnails (a button still opens a preview).",
+      "engineMemory": "Engine memory",
+      "obsSourcesLabel": "OBS browser sources",
+      "background": "Background work",
+      "bgWaiting": "Waiting for the live round to end",
+      "bgBetween": "Runs between rounds",
+      "bgAsSet": "Runs as set in the Demo Library",
+      "restartFailed": "The program did not restart the engine.",
+      "restarting": "Engine restarting with the memory cap",
+      "restartTitle": "Restart the engine now?",
+      "restartBody": "HUD outputs reconnect by themselves within seconds. Camera automation stays off until you resume it.",
+      "restartEngine": "Restart engine",
+      "restartNow": "Restart engine now",
+      "suggested": "Suggested",
+      "onePc": "One PC?",
+      "suggestion": "<b>Low-spec mode</b> caps HUD outputs at 30 fps, lightens MatchFrame's HUDs and holds MatchFrame's background work during live rounds.",
+      "on": "Low-spec mode on",
+      "turnOn": "Turn on low-spec mode",
+      "whatItDoes": "What it does"
+    }
+  },
+  "shell": {
+    "notFound": {
+      "title": "Page not found",
+      "body": "There is no console page at {path}.",
+      "link": "Go to the HUD Library."
+    },
+    "sectionPages": "{module} pages",
+    "moduleUnavailable": "{module} unavailable",
+    "desktopHudsUnavailable": "Desktop HUDs unavailable",
+    "openAccount": "Open Settings → Account",
+    "stopEngagedKey": "Emergency stop engaged ({key}): automation stopped",
+    "stopFailed": "Stop automation failed",
+    "stopFromHotkey": "Emergency stop engaged from the desktop global hotkey",
+    "crashSent": "Crash report sent (ID {id})",
+    "crashSentBody": "Quote this ID to MatchFrame support. It's also under Settings → General → Program.",
+    "skip": "Skip to content",
+    "loadingPage": "Loading page…",
+    "gate": {
+      "rejected": "The engine did not accept this token. It may have been rotated, revoked or belong to another engine installation.",
+      "captain": "This is a captain veto token, not an operator token. Captains use their veto link in a browser.",
+      "connectingRemote": "Connecting to the production computer…",
+      "connecting": "Connecting to the MatchFrame engine…",
+      "unreachable": "Engine unreachable",
+      "tryAgain": "Try again",
+      "connection": "Connection settings",
+      "notAccepted": "Token not accepted",
+      "devHint": "This console runs inside the MatchFrame program, which signs it in automatically. During development, paste the operator token from <code>operator-token.txt</code> in the MatchFrame data folder.",
+      "token": "Operator token",
+      "tokenHint": "Kept only for this session; never shown in the address bar.",
+      "pasteFirst": "Paste a token first",
+      "continue": "Continue",
+      "foot": "Emergency stop shortcut once connected: {key} (or Pause)."
+    },
+    "sidebar": {
+      "signIn": "Sign in",
+      "noHours": "No hours",
+      "locked": "Locked",
+      "directorNeedsPlan": "The Auto Director needs a MatchFrame account with a plan (Settings → Account); HUDs, teams, matches and manual camera control work without one.",
+      "remote": "Remote",
+      "remoteReason": "Desktop HUDs are unavailable: {reason}. The library, OBS browser sources and previews still work.",
+      "remoteDefault": "this program is connected to another production computer",
+      "primary": "Primary",
+      "expand": "Expand sidebar",
+      "collapse": "Collapse sidebar",
+      "showLabels": "Show labels",
+      "iconsOnly": "Icons only"
+    },
+    "top": {
+      "gameTitle": "Game: MatchFrame supports Counter-Strike 2. Other games are listed but not available yet.",
+      "game": "Game",
+      "notYet": "{game} (not available yet)",
+      "signedInAs": "Signed in as {email}",
+      "signedInAsOrg": "Signed in as {email} ({org})",
+      "notSignedIn": "Not signed in. Signing in is optional; the Auto Director needs it on live matches.",
+      "hi": "Hi, {name}",
+      "signIn": "Sign in",
+      "connecting": "Connecting…",
+      "reconnectingIn": "Reconnecting in {s} s",
+      "reconnecting": "Reconnecting",
+      "tokenRejected": "Token rejected",
+      "offline": "Offline",
+      "feedStale": "Console feed stale",
+      "simFeed": "Simulation feed",
+      "waitingCs2": "Waiting for CS2",
+      "cs2Stale": "CS2 data stale",
+      "cs2Connected": "CS2 connected",
+      "consoleConnected": "Console connected to the engine.",
+      "consoleNotConnected": "Console not connected to the engine.",
+      "telemetryFresh": "Telemetry fresh: {packets} packets, build {build}, age {age}; {rejected} rejected, {gaps} gaps.",
+      "telemetryStale": "Telemetry stale: {packets} packets, build {build}, age {age}; {rejected} rejected, {gaps} gaps.",
+      "noGameState": "No CS2 game state received yet.",
+      "observer": "Observer",
+      "observerOff": "Observer off",
+      "currentPage": "Current page",
+      "retryNow": "Retry now",
+      "testDataTitle": "Test data: the labelled simulation is running (synthetic data on a synthetic map). It does not certify any real integration.",
+      "testData": "Test data",
+      "liveDataTitle": "Live data from CS2 game state integration.",
+      "liveData": "Live data",
+      "noDataTitle": "No game data is arriving. Connect CS2 in Settings → Setup, or run test data from the HUD Library.",
+      "noData": "No data",
+      "control": "Control: {state}. {hint}",
+      "resumeSuccess": "Automation resumes in 3 s (cancel to stay manual)",
+      "observerIsOff": "The Observer is Off: choose an Observer mode in Live Control first",
+      "resume": "Resume automation",
+      "cancelSuccess": "Resume cancelled — staying manual",
+      "clearSuccess": "Emergency stop cleared — still manual until you resume",
+      "clearStop": "Clear stop",
+      "takeoverSuccess": "Manual takeover: you own the camera",
+      "takeOver": "Take over",
+      "stopSuccess": "Emergency stop engaged: automation stopped",
+      "stopTitle": "Stop all automated camera control now ({key})",
+      "stop": "Stop automation"
+    },
+    "offline": {
+      "tokenRejected": "Token rejected.",
+      "tokenRejectedBody": "The engine rejected this console's token (rotated or revoked). Restart the MatchFrame program, or update the token in File → Connection settings.",
+      "disconnected": "Disconnected.",
+      "reconnecting": "Reconnecting…",
+      "paused": "Live data is paused. Values on screen may be out of date; the view resyncs from the next engine snapshot.",
+      "pausedError": "Live data is paused ({error}). Values on screen may be out of date; the view resyncs from the next engine snapshot.",
+      "reconnectNow": "Reconnect now"
+    },
+    "status": {
+      "allClear": "All clear",
+      "allClearBody": "Stale telemetry, camera takeovers and OBS problems show up here as they happen.",
+      "dismissAlert": "Dismiss alert {code}",
+      "dismiss": "Dismiss",
+      "engineAlerts": "Engine alerts",
+      "alerts": "Alerts",
+      "dismissAll": "Dismiss all",
+      "updateReadyTitle": "{summary}. Restarting closes the program and every HUD output for a moment.",
+      "updateReady": "Update {version} ready",
+      "restartNow": "Restart now",
+      "stableAvailable": "Stable {version} available",
+      "updateAvailable": "Update {version} available",
+      "downloading": "Downloading {version}",
+      "remoteEngine": "Remote engine connected",
+      "engine": "Engine connected",
+      "connecting": "Connecting to engine…",
+      "tokenRejected": "Engine token rejected",
+      "offline": "Engine offline",
+      "hudServer": "HUD server {host}",
+      "bar": "Status bar",
+      "ports": "Ports — API {api}, HUD server {overlay}, CS2 game state {gsi}",
+      "program": "Program {version}",
+      "libraryUnavailable": "HUD library unavailable: {error}",
+      "outputsTitle": "Active HUD outputs (desktop overlays, OBS browser sources, previews)",
+      "outputs": "HUD outputs",
+      "allHidden": "All hidden",
+      "lastDataTitle": {
+        "one": "Last game data {age} ago ({count} packet)",
+        "other": "Last game data {age} ago ({count} packets)"
+      },
+      "noDataYet": "No game data received yet",
+      "lastData": "Last data",
+      "noneYet": "none yet",
+      "ago": "{age} ago",
+      "metering": "The Auto Director is directing and using hours",
+      "directorState": "Auto Director: {state}",
+      "left": "left",
+      "leftInUse": "left · in use",
+      "hours": "Hours: {state}",
+      "obsConnected": "OBS connected · program scene {scene}",
+      "none": "none",
+      "obsFailed": "OBS connection failed: {error}.",
+      "obsOptional": "Optional: HUDs reach OBS as browser sources (Copy OBS Browser URL) without this. Connect OBS under Settings → Devices only for automatic scene switching and replays.",
+      "obsUnknown": "OBS status unknown",
+      "programMode": "Program mode {mode} (owner {kind}, {holder})",
+      "connected": "Connected",
+      "connectionFailed": "Connection failed",
+      "notConnected": "Not connected (optional)"
+    },
+    "programMode": {
+      "LIVE": "Live",
+      "REPLAY_PREPARED": "Replay prepared",
+      "REPLAY_PLAYING": "Replay playing",
+      "STUDIO": "Studio",
+      "BREAK": "Break",
+      "MANUAL": "Manual",
+      "DEGRADED": "Degraded",
+      "HIGHLIGHTS": "Highlights",
+      "MAP_INTRO": "Map intro"
+    },
+    "gateState": {
+      "notEnforced": "Not enforced",
+      "free": "Free in simulation",
+      "available": "Available",
+      "not_linked": "Signed out",
+      "no_entitlement": "No licence",
+      "entitlement_expired": "Licence expired",
+      "plan_excludes": "Not in plan",
+      "hours_exhausted": "No hours left"
+    }
+  }
+}

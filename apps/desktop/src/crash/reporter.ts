@@ -3,6 +3,7 @@ import type { Dirent } from "node:fs";
 import { homedir, release } from "node:os";
 import { join } from "node:path";
 import { app, BrowserWindow, crashReporter, dialog, Notification } from "electron";
+import { t } from "../i18n.ts";
 import type { Event, MessageBoxOptions, RenderProcessGoneDetails, WebContents } from "electron";
 import type { CrashDetails, CrashProcess } from "@matchframe/cloud-contracts";
 import { HUD_WINDOW_TAG } from "../hud/overlays.ts";
@@ -130,7 +131,7 @@ export class CrashReports {
     if (app.isReady() && !this.errorBoxOpen && !this.d.quitting()) {
       // Electron shows this message itself when nothing handles the exception; one at a time.
       this.errorBoxOpen = true;
-      void dialog.showMessageBox({ type: "error", title: "MatchFrame", message: "A JavaScript error occurred in the main process", detail: e.stack ?? e.message }).finally(() => (this.errorBoxOpen = false));
+      void dialog.showMessageBox({ type: "error", title: "MatchFrame", message: t("dialog.mainError"), detail: e.stack ?? e.message }).finally(() => (this.errorBoxOpen = false));
     }
   }
 
@@ -289,9 +290,9 @@ export class CrashReports {
     const opts: MessageBoxOptions = {
       type: "question",
       title: "MatchFrame",
-      message: "MatchFrame closed unexpectedly. Send a crash report?",
-      detail: `${localIds.length > 1 ? `${localIds.length} crashes were noted. ` : ""}A report holds the support file (settings without passwords or tokens, health and recent logs) and what crashed. You can change this any time in Settings → General → Program.`,
-      buttons: ["Send", "Don't send", "Always send"],
+      message: t("crash.prompt"),
+      detail: `${localIds.length > 1 ? `${t("crash.noted", { count: localIds.length })} ` : ""}${t("crash.detail")}`,
+      buttons: [t("crash.send"), t("crash.dontSend"), t("crash.alwaysSend")],
       defaultId: 0,
       cancelId: 1,
       noLink: true,
@@ -356,6 +357,6 @@ export class CrashReports {
   private announce(id: string, proc: CrashProcess): void {
     const w = this.d.window();
     if (w && !w.isDestroyed() && w.isVisible() && !w.webContents.isCrashed()) w.webContents.send("mf:crash-report-sent", { id, process: proc });
-    else if (Notification.isSupported()) new Notification({ title: "Crash report sent", body: `ID ${id}. Quote it to MatchFrame support.`, silent: true }).show();
+    else if (Notification.isSupported()) new Notification({ title: t("crash.sentTitle"), body: t("crash.sentBody", { id }), silent: true }).show();
   }
 }

@@ -1,6 +1,7 @@
 import { execFile, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { t } from "./i18n.ts";
 
 /**
  * Start CS2 from the program. The engine prepares the launch (GSI config, launch options, the
@@ -39,10 +40,10 @@ export interface HlaeInfo {
 
 /** HLAE.exe with its CS2 hook next to it (`x64\AfxHookSource2.dll`). */
 export function hlaeInfo(path: string | null, exists: (p: string) => boolean = existsSync): HlaeInfo {
-  if (!path) return { path: null, ok: false, problem: "HLAE.exe is not chosen yet (download HLAE from advancedfx.org)." };
-  if (basename(path).toLowerCase() !== "hlae.exe") return { path, ok: false, problem: "Choose the HLAE.exe file from the HLAE folder." };
-  if (!exists(path)) return { path, ok: false, problem: `HLAE.exe is no longer at ${path}. Choose it again.` };
-  if (!exists(join(dirname(path), "x64", "AfxHookSource2.dll"))) return { path, ok: false, problem: "This HLAE has no CS2 hook (x64\\AfxHookSource2.dll). Install the latest HLAE." };
+  if (!path) return { path: null, ok: false, problem: t("launch.hlaeNotChosen") };
+  if (basename(path).toLowerCase() !== "hlae.exe") return { path, ok: false, problem: t("launch.hlaeWrongFile") };
+  if (!exists(path)) return { path, ok: false, problem: t("launch.hlaeMoved", { path }) };
+  if (!exists(join(dirname(path), "x64", "AfxHookSource2.dll"))) return { path, ok: false, problem: t("launch.hlaeNoHook") };
   return { path, ok: true, problem: null };
 }
 
@@ -78,26 +79,26 @@ export function processRunning(image: string): Promise<boolean> {
   });
 }
 
-const GSI_NOTE = (p: PreparedLaunch) => (p.gsi.error ? ` The game data (GSI) config could not be written: ${p.gsi.error}` : "");
+const GSI_NOTE = (p: PreparedLaunch) => (p.gsi.error ? t("launch.gsiNote", { error: p.gsi.error }) : "");
 
 export async function startCs2(prepared: PreparedLaunch, opts: { hlaePath: string | null; openExternal: (url: string) => Promise<void> }): Promise<LaunchResult> {
   const { plan } = prepared;
   if (await processRunning("cs2.exe")) {
-    if (plan.mode === "standard" && prepared.gsi.unchanged) return { ok: true, message: "CS2 is already running." };
+    if (plan.mode === "standard" && prepared.gsi.unchanged) return { ok: true, message: t("launch.alreadyRunning") };
     return {
       ok: false,
       message:
         plan.mode === "standard"
-          ? "CS2 is already running. Restart it so it reads the new game data (GSI) config."
-          : "CS2 is already running without MatchFrame's launch options. Close CS2, then click Start CS2 again.",
+          ? t("launch.restartForGsi")
+          : t("launch.closeFirst"),
     };
   }
 
   if (plan.mode === "hlae") {
     const info = hlaeInfo(opts.hlaePath);
-    if (!info.ok || !info.path) return { ok: false, message: info.problem ?? "Choose HLAE.exe first." };
-    if (!existsSync(plan.cs2Exe)) return { ok: false, message: `cs2.exe was not found at ${plan.cs2Exe}. Check the CS2 folder in Settings → Setup.` };
-    if (!(await processRunning("steam.exe")) && process.platform === "win32") return { ok: false, message: "Start Steam first: HLAE starts cs2.exe directly and needs Steam running." };
+    if (!info.ok || !info.path) return { ok: false, message: info.problem ?? t("launch.chooseHlaeFirst") };
+    if (!existsSync(plan.cs2Exe)) return { ok: false, message: t("launch.cs2Missing", { path: plan.cs2Exe }) };
+    if (!(await processRunning("steam.exe")) && process.platform === "win32") return { ok: false, message: t("launch.startSteam") };
     const code = await new Promise<number | null>((resolve) => {
       const child = spawn(info.path!, hlaeArgs(info.path!, plan), { detached: true, stdio: "ignore", windowsHide: false });
       const timer = setTimeout(() => {
@@ -113,8 +114,8 @@ export async function startCs2(prepared: PreparedLaunch, opts: { hlaePath: strin
         resolve(c);
       });
     });
-    if (code !== 0 && code !== null) return { ok: false, message: `HLAE could not start CS2 (exit code ${code}). After a CS2 update HLAE often needs an update too: install the latest HLAE and try again.${GSI_NOTE(prepared)}` };
-    return { ok: true, message: `Starting CS2 with HLAE (insecure). MatchFrame connects to its console on port ${plan.netconPort} when it is up.${GSI_NOTE(prepared)}` };
+    if (code !== 0 && code !== null) return { ok: false, message: `${t("launch.hlaeFailed", { code })}${GSI_NOTE(prepared)}` };
+    return { ok: true, message: `${t("launch.hlaeStarting", { port: plan.netconPort })}${GSI_NOTE(prepared)}` };
   }
 
   if (plan.steamExe) {
@@ -124,6 +125,6 @@ export async function startCs2(prepared: PreparedLaunch, opts: { hlaePath: strin
   } else {
     await opts.openExternal(steamRunUrl(plan.args));
   }
-  const what = plan.mode === "tools" ? ` with the console on port ${plan.netconPort} (needs the CS2 Workshop Tools)` : "";
-  return { ok: true, message: `Starting CS2 through Steam${what}.${GSI_NOTE(prepared)}` };
+  const what = plan.mode === "tools" ? t("launch.steamStartingTools", { port: plan.netconPort }) : t("launch.steamStarting");
+  return { ok: true, message: `${what}${GSI_NOTE(prepared)}` };
 }

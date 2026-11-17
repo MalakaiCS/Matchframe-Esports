@@ -3,6 +3,7 @@ import { readFile, stat, writeFile } from "node:fs/promises";
 import { basename, extname, join, sep } from "node:path";
 import { app, dialog, ipcMain, shell } from "electron";
 import type { BrowserWindow, IpcMainInvokeEvent, OpenDialogOptions, SaveDialogOptions } from "electron";
+import { t } from "../i18n.ts";
 import type { HotkeyManager } from "./hotkeys.ts";
 import type { OverlayManager } from "./overlays.ts";
 import type { HudReply, Library } from "./types.ts";
@@ -40,7 +41,7 @@ const sameOrInside = (root: string, target: string): boolean => {
 export function registerHudIpc(d: HudIpcDeps): void {
   const handle = <T>(channel: string, fn: (...args: unknown[]) => T | Promise<T>) => {
     ipcMain.handle(channel, async (event, ...args: unknown[]): Promise<HudReply<T>> => {
-      if (!d.allowed(event)) return { ok: false, error: "Desktop HUDs are only available in the MatchFrame manager window." };
+      if (!d.allowed(event)) return { ok: false, error: t("hud.managerOnly") };
       try {
         return { ok: true, value: await fn(...args) };
       } catch (e) {
@@ -49,7 +50,7 @@ export function registerHudIpc(d: HudIpcDeps): void {
     });
   };
   const localOnly = (what: string) => {
-    if (d.unavailableReason()) throw new Error(`${what} is only possible on the production computer, where the HUDs are installed.`);
+    if (d.unavailableReason()) throw new Error(t("hud.productionOnly", { what: t(what) }));
   };
   const openDialog = (opts: OpenDialogOptions) => {
     const parent = d.window();
@@ -72,24 +73,24 @@ export function registerHudIpc(d: HudIpcDeps): void {
   handle("mf:hud-set-hotkeys", (patch) => d.hotkeys.set(hotkeyPatchArg(patch)));
 
   handle("mf:hud-pick-zip", async () => {
-    const r = await openDialog({ title: "Import a HUD package", buttonLabel: "Import", filters: [{ name: "HUD package (.zip)", extensions: ["zip"] }], properties: ["openFile"] });
+    const r = await openDialog({ title: t("hud.importPackage"), buttonLabel: t("hud.import"), filters: [{ name: t("hud.packageFilter"), extensions: ["zip"] }], properties: ["openFile"] });
     const file = r.canceled ? undefined : r.filePaths[0];
     if (!file) return null;
-    if (extname(file).toLowerCase() !== ".zip") throw new Error("Choose a HUD package .zip file.");
+    if (extname(file).toLowerCase() !== ".zip") throw new Error(t("hud.chooseZip"));
     const st = await stat(file);
-    if (!st.isFile()) throw new Error("Choose a HUD package .zip file.");
-    if (st.size > MAX_ZIP_BYTES) throw new Error(`The ZIP file is larger than ${MAX_ZIP_BYTES / 1024 / 1024} MB.`);
+    if (!st.isFile()) throw new Error(t("hud.chooseZip"));
+    if (st.size > MAX_ZIP_BYTES) throw new Error(t("hud.zipTooLarge", { mb: MAX_ZIP_BYTES / 1024 / 1024 }));
     return { name: basename(file), bytes: await readFile(file) };
   });
 
   handle("mf:hud-pick-folder", async () => {
-    localOnly("Importing a HUD folder");
-    const r = await openDialog({ title: "Import a HUD folder", buttonLabel: "Import folder", properties: ["openDirectory"] });
+    localOnly("hud.importFolderWhat");
+    const r = await openDialog({ title: t("hud.importFolder"), buttonLabel: t("hud.importFolderButton"), properties: ["openDirectory"] });
     return (r.canceled ? undefined : r.filePaths[0]) ?? null;
   });
 
   handle("mf:hud-open-huds-folder", async () => {
-    localOnly("Opening the HUD folder");
+    localOnly("hud.openFolderWhat");
     const dir = join(d.dataDir(), "huds");
     mkdirSync(dir, { recursive: true });
     const err = await shell.openPath(dir);
@@ -97,20 +98,20 @@ export function registerHudIpc(d: HudIpcDeps): void {
   });
 
   handle("mf:hud-open-hud-folder", async (id) => {
-    localOnly("Opening a HUD's folder");
+    localOnly("hud.openHudFolderWhat");
     const hudId = hudIdArg(id);
     const hud = (await d.library()).huds.find((h) => h.id === hudId);
-    if (!hud) throw new Error(`No HUD with the id ${hudId} is installed.`);
-    if (!hud.folder) throw new Error(`${hud.name} is part of the program and has no folder.`);
+    if (!hud) throw new Error(t("hud.notInstalled", { id: hudId }));
+    if (!hud.folder) throw new Error(t("hud.builtIn", { name: hud.name }));
     const root = join(d.dataDir(), "huds");
     mkdirSync(root, { recursive: true });
     let target: string;
     try {
       target = realpathSync.native(hud.folder);
     } catch {
-      throw new Error(`${hud.name}'s folder is missing. Reinstall the HUD.`);
+      throw new Error(t("hud.folderMissing", { name: hud.name }));
     }
-    if (!sameOrInside(realpathSync.native(root), target)) throw new Error(`${hud.name}'s folder is outside the HUD library folder and is not opened.`);
+    if (!sameOrInside(realpathSync.native(root), target)) throw new Error(t("hud.folderOutside", { name: hud.name }));
     const err = await shell.openPath(target);
     if (err) throw new Error(err);
   });
@@ -120,9 +121,9 @@ export function registerHudIpc(d: HudIpcDeps): void {
     const safe = sanitizeFileName(name);
     const ext = extname(safe).slice(1).toLowerCase();
     const opts: SaveDialogOptions = {
-      title: "Save",
+      title: t("hud.save"),
       defaultPath: join(app.getPath("downloads"), safe),
-      filters: ext ? [{ name: `${ext.toUpperCase()} file`, extensions: [ext] }, { name: "All files", extensions: ["*"] }] : [],
+      filters: ext ? [{ name: t("hud.fileFilter", { ext: ext.toUpperCase() }), extensions: [ext] }, { name: t("hud.allFiles"), extensions: ["*"] }] : [],
     };
     const parent = d.window();
     const r = parent ? await dialog.showSaveDialog(parent, opts) : await dialog.showSaveDialog(opts);

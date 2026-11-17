@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "../i18n/index.ts";
 
 export type UpdateChannel = "stable" | "beta";
 
@@ -71,12 +72,12 @@ export const rollback = {
   available: () => rollbackBridge() !== null,
   list: async (): Promise<RollbackOption[]> => {
     const b = rollbackBridge();
-    if (!b) throw new Error("Going back to a previous version needs the MatchFrame program.");
+    if (!b) throw new Error(t("settings.updates.needsProgram"));
     return (await b.list()) as RollbackOption[];
   },
   start: async (version: string, opts?: { toStable?: boolean }): Promise<RollbackResult> => {
     const b = rollbackBridge();
-    if (!b) throw new Error("Going back to a previous version needs the MatchFrame program.");
+    if (!b) throw new Error(t("settings.updates.needsProgram"));
     return (await b.start(version, opts)) as RollbackResult;
   },
 };
@@ -91,35 +92,35 @@ export function useRollbackProgress(): [RollbackProgress | null, (p: RollbackPro
 export function rollbackProgressText(p: RollbackProgress): string {
   switch (p.stage) {
     case "checking":
-      return `Checking version ${p.version}…`;
+      return t("settings.rollback.checking", { version: p.version });
     case "downloading":
-      return `Downloading version ${p.version}${p.percent !== null ? ` (${p.percent} %)` : ""}…`;
+      return p.percent !== null ? t("settings.rollback.downloadingPct", { version: p.version, percent: p.percent }) : t("settings.rollback.downloading", { version: p.version });
     case "verifying":
-      return "Checking the download against the release's SHA-256…";
+      return t("settings.rollback.verifying");
     case "confirming":
-      return "Waiting for your answer in the dialog…";
+      return t("settings.rollback.confirming");
     case "installing":
-      return `Installing version ${p.version}…`;
+      return t("settings.rollback.installing", { version: p.version });
   }
 }
 
 export function updateSummary(st: UpdateState): string {
   switch (st.status) {
     case "disabled":
-      return st.disabledReason ?? "Updates are off";
+      return st.disabledReason ?? t("settings.updates.off");
     case "checking":
-      return "Checking for updates…";
+      return t("settings.updates.checking");
     case "available":
-      return st.downgrade ? `Version ${st.version} is the latest Stable version. It's older than this beta (${st.currentVersion}); install it to go back to Stable` : `Version ${st.version} is available`;
+      return st.downgrade ? t("settings.updates.availableStable", { version: st.version, current: st.currentVersion }) : t("settings.updates.available", { version: st.version });
     case "downloading":
-      return `Downloading version ${st.version}${st.percent !== null ? ` (${st.percent} %)` : ""}…`;
+      return st.percent !== null ? t("settings.updates.downloadingPct", { version: st.version, percent: st.percent }) : t("settings.updates.downloading", { version: st.version });
     case "ready":
-      return `Version ${st.version} is ready: it installs when you quit, or restart now`;
+      return t("settings.updates.ready", { version: st.version });
     case "up-to-date":
-      return `Up to date (version ${st.currentVersion})`;
+      return t("settings.updates.upToDate", { version: st.currentVersion });
     case "error":
-      return `Update check failed: ${st.error ?? "unknown error"}`;
+      return t("settings.updates.failed", { error: st.error ?? t("settings.updates.unknownError") });
     default:
-      return `Version ${st.currentVersion}`;
+      return t("settings.updates.version", { version: st.currentVersion });
   }
 }

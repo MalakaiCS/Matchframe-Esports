@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { desktopHud, desktopInfo } from "../api/desktop.ts";
+import { t } from "../i18n/index.ts";
 import { Link } from "../router.tsx";
 import type { NavId, NavItem } from "../routes.tsx";
 import { NAV } from "../routes.tsx";
@@ -20,14 +21,14 @@ export function useModuleAvailability(): Partial<Record<NavId, ModuleAvailabilit
   const out: Partial<Record<NavId, ModuleAvailability>> = {};
   if (gate && !gate.ok) {
     out.director = {
-      badge: gate.code === "not_linked" ? "Sign in" : gate.code === "hours_exhausted" ? "No hours" : "Locked",
+      badge: gate.code === "not_linked" ? t("shell.sidebar.signIn") : gate.code === "hours_exhausted" ? t("shell.sidebar.noHours") : t("shell.sidebar.locked"),
       level: "unavailable",
-      reason: `${gate.reason} The Auto Director needs a MatchFrame account with a plan (Settings → Account); HUDs, teams, matches and manual camera control work without one.`,
+      reason: `${gate.reason} ${t("shell.sidebar.directorNeedsPlan")}`,
     };
   }
   const bridge = desktopHud();
   if (bridge && !bridge.available) {
-    out.huds = { badge: "Remote", level: "limited", reason: `Desktop HUDs are unavailable: ${bridge.unavailableReason ?? "this program is connected to another production computer"}. The library, OBS browser sources and previews still work.` };
+    out.huds = { badge: t("shell.sidebar.remote"), level: "limited", reason: t("shell.sidebar.remoteReason", { reason: bridge.unavailableReason ?? t("shell.sidebar.remoteDefault") }) };
   }
   return out;
 }
@@ -68,14 +69,14 @@ export function Sidebar({ collapsed, onToggle, activeId }: { collapsed: boolean;
   const settings = NAV.find((n) => n.id === "settings")!;
   return (
     <aside className={`sidebar ${collapsed ? "is-collapsed" : ""}`}>
-      <Link to="/" className="sidebar-brand" aria-label="MatchFrame Esports — HUD Library" title={collapsed ? "MatchFrame Esports" : undefined}>
+      <Link to="/" className="sidebar-brand" aria-label={`MatchFrame Esports — ${t("nav.hudLibrary")}`} title={collapsed ? "MatchFrame Esports" : undefined}>
         <Logo size={30} />
         <span className="brand-text">
           <span className="brand-name">MatchFrame</span>
           <span className="brand-sub">{version ? `Esports ${version}` : "Esports"}</span>
         </span>
       </Link>
-      <nav className="nav" aria-label="Primary">
+      <nav className="nav" aria-label={t("shell.sidebar.primary")}>
         <ul className="nav-main">
           {main.map((n) => (
             <NavLink key={n.id} item={n} active={activeId === n.id} collapsed={collapsed} availability={availability[n.id]} />
@@ -86,7 +87,7 @@ export function Sidebar({ collapsed, onToggle, activeId }: { collapsed: boolean;
         </ul>
       </nav>
       {/* Tab on the sidebar's edge: icons only, or icons with labels. */}
-      <button className="sidebar-toggle" onClick={onToggle} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} aria-expanded={!collapsed} title={collapsed ? "Show labels" : "Icons only"}>
+      <button className="sidebar-toggle" onClick={onToggle} aria-label={collapsed ? t("shell.sidebar.expand") : t("shell.sidebar.collapse")} aria-expanded={!collapsed} title={collapsed ? t("shell.sidebar.showLabels") : t("shell.sidebar.iconsOnly")}>
         <Icon name={collapsed ? "chevronRight" : "chevronLeft"} size={14} />
       </button>
     </aside>

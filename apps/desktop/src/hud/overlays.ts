@@ -1,5 +1,6 @@
 import { BrowserWindow, screen, session } from "electron";
 import type { Display, Event as ElectronEvent, WebContents } from "electron";
+import { t } from "../i18n.ts";
 import { applyFrameRate } from "../low-spec.ts";
 import { applyPlacementPatch, boundsPasses, placementAfterDisplayChange, resolvePlacement, toDisplayInfo } from "./placement.ts";
 import type { DisplayLike } from "./placement.ts";
@@ -88,9 +89,9 @@ const originOf = (url: string): string | null => {
 /** The output page URL for a variant and mode (`urls[variant]` + `&mode=…`). */
 export function outputUrl(hud: LibraryHud, variant: HudVariant, mode: "desktop" | "preview", checker = false): string {
   const raw = hud.urls[variant];
-  if (!raw) throw new Error(`${hud.name} has no ${variant} output.`);
+  if (!raw) throw new Error(t("hud.noOutput", { name: hud.name, variant }));
   const u = new URL(raw);
-  if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("The HUD server returned an unexpected address.");
+  if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error(t("hud.badAddress"));
   u.searchParams.set("mode", mode);
   if (checker) u.searchParams.set("checker", "1");
   return u.toString();
@@ -223,7 +224,7 @@ export class OverlayManager {
 
   private async doLaunch(hudId: string, requested: HudVariant | undefined): Promise<OverlayState> {
     const hud = await this.hud(hudId);
-    if (hud.status === "error") throw new Error(hud.error ? `${hud.name} cannot run: ${hud.error}` : `${hud.name} failed verification and cannot run.`);
+    if (hud.status === "error") throw new Error(hud.error ? t("hud.cannotRun", { name: hud.name, error: hud.error }) : t("hud.failedVerification", { name: hud.name }));
     const saved = this.d.store.placement(hudId);
     const variant = this.pickVariant(hud, requested, saved?.variant);
     const existing = this.overlays.get(hudId);
@@ -293,7 +294,7 @@ export class OverlayManager {
     win.on("page-title-updated", (e) => e.preventDefault());
     win.once("ready-to-show", () => this.showIfWanted(o));
     wc.on("did-navigate", (_e, _url, code, text) => {
-      o.httpError = code >= 400 ? `The HUD server answered HTTP ${code}${text ? ` ${text}` : ""}.` : null;
+      o.httpError = code >= 400 ? (text ? t("hud.httpErrorText", { code, text }) : t("hud.httpError", { code })) : null;
     });
     wc.on("did-finish-load", () => {
       if (o.httpError) return this.fail(o, o.httpError, true);
@@ -306,14 +307,14 @@ export class OverlayManager {
     });
     wc.on("did-fail-load", (_e, code, description, _url, isMainFrame) => {
       if (!isMainFrame || code === -3) return; // -3: superseded by another navigation
-      this.fail(o, `The HUD did not load (${description || `error ${code}`}). Retrying…`, true);
+      this.fail(o, t("hud.didNotLoad", { reason: description || t("hud.errorCode", { code }) }), true);
     });
     wc.on("render-process-gone", (_e, details) => {
       if (win.isDestroyed()) return;
       const now = Date.now();
       o.crashes = [...o.crashes.filter((t) => now - t < CRASH_WINDOW_MS), now];
       const again = o.crashes.length <= MAX_CRASH_RELOADS;
-      this.fail(o, again ? `The HUD stopped (${details.reason}); reloading.` : `The HUD keeps stopping (${details.reason}). Close it and launch it again.`, false);
+      this.fail(o, again ? t("hud.stoppedReloading", { reason: details.reason }) : t("hud.keepsStopping", { reason: details.reason }), false);
       if (again) this.scheduleRetry(o, 1000, false);
     });
     wc.on("unresponsive", () => this.d.log(`HUD overlay ${o.hudId} is not responding`));
@@ -357,7 +358,7 @@ export class OverlayManager {
         try {
           url = outputUrl(await this.hud(o.hudId), o.placement.variant, "desktop");
         } catch (e) {
-          return this.fail(o, `The HUD did not load (${e instanceof Error ? e.message : String(e)}). Retrying…`, true);
+          return this.fail(o, t("hud.didNotLoad", { reason: e instanceof Error ? e.message : String(e) }), true);
         }
       }
       if (o.win.isDestroyed()) return;
@@ -453,7 +454,7 @@ export class OverlayManager {
   async setEditing(hudId: string, editing: boolean): Promise<void> {
     this.assertEnabled();
     const o = this.require(hudId);
-    if (editing && o.placement.locked) throw new Error(`${o.name}'s position is locked. Unlock it to move it.`);
+    if (editing && o.placement.locked) throw new Error(t("hud.locked", { name: o.name }));
     if (o.editing === editing) return;
     o.editing = editing;
     if (editing && !o.visible) this.setShown(o, true);
@@ -482,7 +483,7 @@ export class OverlayManager {
     if (geometry) next = { ...next, ...applyPlacementPatch(cur, patch, design, this.displayList(), screen.getPrimaryDisplay().id) };
     const variantChanged = patch.variant !== undefined && patch.variant !== cur.variant;
     if (variantChanged && hud) {
-      if (!hud.variants.includes(patch.variant!) || !hud.urls[patch.variant!]) throw new Error(`${hud.name} has no ${patch.variant} variant.`);
+      if (!hud.variants.includes(patch.variant!) || !hud.urls[patch.variant!]) throw new Error(t("hud.noVariant", { name: hud.name, variant: patch.variant }));
       next.variant = patch.variant!;
     }
     if (o && !o.win.isDestroyed()) {
@@ -528,7 +529,7 @@ export class OverlayManager {
   async openPreview(hudId: string, opts: { variant: HudVariant; checker: boolean }): Promise<void> {
     this.assertEnabled();
     const hud = await this.hud(hudId);
-    if (!hud.variants.includes(opts.variant)) throw new Error(`${hud.name} has no ${opts.variant} variant.`);
+    if (!hud.variants.includes(opts.variant)) throw new Error(t("hud.noVariant", { name: hud.name, variant: opts.variant }));
     const url = outputUrl(hud, opts.variant, "preview", opts.checker);
     const allowed = originOf(url) ?? "";
     const area = screen.getPrimaryDisplay().workArea;
@@ -540,7 +541,7 @@ export class OverlayManager {
       useContentSize: true,
       minWidth: 320,
       minHeight: 180,
-      title: `Preview — ${hud.name}`,
+      title: t("window.previewTitle", { name: hud.name }),
       backgroundColor: background,
       autoHideMenuBar: true,
       ...(this.d.icon ? { icon: this.d.icon } : {}),
@@ -607,7 +608,7 @@ export class OverlayManager {
       visible: o?.visible ?? false,
       editing: o?.editing ?? false,
       status: o?.status ?? previewStatus,
-      error: o ? o.error : previewStatus === "error" ? "The preview did not load." : null,
+      error: o ? o.error : previewStatus === "error" ? t("hud.previewFailed") : null,
       previews: previews.length,
     };
   }
@@ -620,13 +621,13 @@ export class OverlayManager {
   private pickVariant(hud: LibraryHud, requested: HudVariant | undefined, saved: HudVariant | undefined): HudVariant {
     const usable = (v: HudVariant | undefined): v is HudVariant => !!v && hud.variants.includes(v) && !!hud.urls[v];
     if (requested !== undefined) {
-      if (!usable(requested)) throw new Error(`${hud.name} has no ${requested} variant.`);
+      if (!usable(requested)) throw new Error(t("hud.noVariant", { name: hud.name, variant: requested }));
       return requested;
     }
     if (usable(saved)) return saved;
     if (usable("live")) return "live";
     const first = hud.variants.find((v) => usable(v));
-    if (!first) throw new Error(`${hud.name} has no outputs to show.`);
+    if (!first) throw new Error(t("hud.noOutputs", { name: hud.name }));
     return first;
   }
 
@@ -636,17 +637,17 @@ export class OverlayManager {
     try {
       lib = await this.d.library();
     } catch (e) {
-      throw new Error(`The HUD library is not available: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+      throw new Error(t("hud.libraryUnavailable", { error: e instanceof Error ? e.message : String(e) }), { cause: e });
     }
     for (const h of lib.huds) this.huds.set(h.id, h);
     const hud = lib.huds.find((h) => h.id === hudId);
-    if (!hud) throw new Error(`No HUD with the id ${hudId} is installed.`);
+    if (!hud) throw new Error(t("hud.notInstalled", { id: hudId }));
     return hud;
   }
 
   private require(hudId: string): Overlay {
     const o = this.overlays.get(hudId);
-    if (!o || o.win.isDestroyed()) throw new Error("That HUD is not open on the desktop. Launch it first.");
+    if (!o || o.win.isDestroyed()) throw new Error(t("hud.notOpen"));
     return o;
   }
 

@@ -19,6 +19,8 @@ import { engineExecArgv, parsePerformanceMessage } from "./low-spec.ts";
 import { DEVICE_ACTION, HIGHLIGHT_KEY_ACTIONS, MAP_INTRO_KEY_ACTIONS, ReplayHotkeys, TEAM_KEY_ACTIONS, type ReplayKeyAction, type ReplayKeys } from "./replay-hotkeys.ts";
 import { createRollback, type Rollback } from "./rollback.ts";
 import { createTray, type ProgramTray } from "./tray.ts";
+import { desktopLocale, parseLanguagePref, section, setDesktopLanguage, t } from "./i18n.ts";
+import { isLanguagePref, type LanguagePref } from "../../operator-web/src/i18n/core.ts";
 import { createUpdater, type Updater } from "./updater.ts";
 import { parseChannel, type UpdateChannel } from "./versions.ts";
 
@@ -109,6 +111,8 @@ interface ProgramSettings {
   crashReports: boolean;
   /** The engine's low-spec mode as it last said (ADR-078): the engine starts with a memory cap when on. */
   lowSpec: boolean;
+  /** The console's Language setting (ADR-082): "system" or a language; the tray, dialogs and notifications follow it. */
+  language: LanguagePref;
 }
 const programSettingsFile = () => join(app.getPath("userData"), "program-settings.json");
 function readProgramSettings(): ProgramSettings {
@@ -122,9 +126,10 @@ function readProgramSettings(): ProgramSettings {
       replayHotkeys: raw.replayHotkeys && typeof raw.replayHotkeys === "object" ? raw.replayHotkeys : {},
       crashReports: raw.crashReports === true,
       lowSpec: raw.lowSpec === true,
+      language: parseLanguagePref(raw.language),
     };
   } catch {
-    return { autoDownloadUpdates: true, updateChannel: "stable", hlaePath: null, networkAccess: false, replayHotkeys: {}, crashReports: false, lowSpec: false };
+    return { autoDownloadUpdates: true, updateChannel: "stable", hlaePath: null, networkAccess: false, replayHotkeys: {}, crashReports: false, lowSpec: false, language: "system" };
   }
 }
 function writeProgramSettings(patch: Partial<ProgramSettings>): void {
@@ -168,7 +173,7 @@ function cloudReleaseConfig(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
     if (cfg.publicKeys && typeof cfg.publicKeys === "object" && !env.MATCHFRAME_CLOUD_PUBLIC_KEYS) out.MATCHFRAME_CLOUD_PUBLIC_KEYS = JSON.stringify(cfg.publicKeys);
     return out;
   } catch (e) {
-    dialog.showErrorBox("MatchFrame", `cloud.json in the installation is unreadable: ${e instanceof Error ? e.message : String(e)}`);
+    dialog.showErrorBox("MatchFrame", t("dialog.cloudConfig", { error: e instanceof Error ? e.message : String(e) }));
     return {};
   }
 }
@@ -410,7 +415,7 @@ function startEngine(): void {
     console.error(`engine exited (code ${code}); restarting in ${delay} ms (automation stays disarmed)`);
     win?.webContents.send("mf:engine-status", { state: "restarting", code, delayMs: delay });
     if (restarts > 8) {
-      void dialog.showMessageBox({ type: "error", message: "The MatchFrame engine keeps stopping.", detail: "Open Settings → Diagnostics after restart, or check the logs in the data folder." });
+      void dialog.showMessageBox({ type: "error", message: t("dialog.engineKeepsStopping"), detail: t("dialog.engineKeepsStoppingDetail") });
     }
     setTimeout(() => engineWanted && startEngine(), delay);
   });
@@ -477,10 +482,10 @@ const RELEASES_PAGE = "https://github.com/MalakaiCS/Matchframe-Esports/releases"
 async function showNewerDataRefusal(message: string): Promise<void> {
   const r = await dialog.showMessageBox({
     type: "error",
-    title: "MatchFrame can't open your data",
-    message: "Your data is from a newer version of MatchFrame",
+    title: t("dialog.newerDataTitle"),
+    message: t("dialog.newerDataMessage"),
     detail: message,
-    buttons: ["Open the releases page", "Quit"],
+    buttons: [t("dialog.openReleases"), t("dialog.quit")],
     defaultId: 0,
     cancelId: 1,
     noLink: true,
@@ -536,12 +541,12 @@ function createWindow(): BrowserWindow {
   w.webContents.on("will-prevent-unload", (e) => {
     const choice = dialog.showMessageBoxSync(w, {
       type: "question",
-      buttons: ["Keep editing", "Discard changes"],
+      buttons: [t("dialog.keepEditing"), t("dialog.discard")],
       defaultId: 0,
       cancelId: 0,
-      title: "Unsaved changes",
-      message: "You have unsaved changes in MatchFrame.",
-      detail: "Discard them and close the window?",
+      title: t("dialog.unsavedTitle"),
+      message: t("dialog.unsavedMessage"),
+      detail: t("dialog.unsavedDetail"),
     });
     // preventDefault here lets the window close despite the page's beforeunload.
     if (choice === 1) e.preventDefault();
@@ -559,7 +564,7 @@ function createWindow(): BrowserWindow {
 }
 
 function windowTitle(): string {
-  return connection.mode === "remote" ? `MatchFrame Esports — connected to ${new URL(connection.url).host}` : "MatchFrame Esports";
+  return connection.mode === "remote" ? t("window.remoteTitle", { host: new URL(connection.url).host }) : "MatchFrame Esports";
 }
 
 function showConsole(): void {
@@ -607,21 +612,21 @@ async function runReplayKey(action: ReplayKeyAction): Promise<void> {
   } catch (e) {
     message = e instanceof Error ? e.message : String(e);
   }
-  if (message && Notification.isSupported()) new Notification({ title: HIGHLIGHT_KEY_ACTIONS.includes(action) ? "Highlights" : TEAM_KEY_ACTIONS.includes(action) ? "Swap teams" : MAP_INTRO_KEY_ACTIONS.includes(action) ? "Map intro" : "Replays", body: message, silent: true }).show();
+  if (message && Notification.isSupported()) new Notification({ title: t(HIGHLIGHT_KEY_ACTIONS.includes(action) ? "notify.highlights" : TEAM_KEY_ACTIONS.includes(action) ? "notify.swapTeams" : MAP_INTRO_KEY_ACTIONS.includes(action) ? "notify.mapIntro" : "notify.replays"), body: message, silent: true }).show();
 }
 
 /** The save-view hotkey: the engine reads CS2's camera (getpos) and saves it; a notification says how it went. */
 async function saveCs2View(): Promise<void> {
   const token = accessToken();
   if (!token) return;
-  let title = "Camera not saved";
+  let title = t("notify.cameraNotSaved");
   let body: string;
   try {
     const res = await net.fetch(`${engineOrigin()}/api/v1/cameras/capture`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: "{}", signal: AbortSignal.timeout(5000) });
     const json = (await res.json().catch(() => ({}))) as { displayName?: string; error?: { message?: string } };
     if (res.ok) {
-      title = "Camera saved";
-      body = `${json.displayName ?? "Your camera"}: the Auto Director can use it in freeze time and for fights.`;
+      title = t("notify.cameraSaved");
+      body = t("notify.cameraSavedBody", { name: json.displayName ?? t("notify.yourCamera") });
     } else body = json.error?.message ?? `HTTP ${res.status}`;
     win?.webContents.send("mf:camera-saved", { ok: res.ok, title, body });
   } catch (e) {
@@ -634,8 +639,8 @@ async function saveCs2View(): Promise<void> {
 
 /** Operator API call on the local engine from the main process (desktop HUD outputs only). */
 async function engineRequest<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
-  if (connection.mode !== "local") throw new Error("Desktop HUDs run on the production computer.");
-  if (!operatorToken) throw new Error("The MatchFrame engine is still starting. Try again in a moment.");
+  if (connection.mode !== "local") throw new Error(t("engine.remoteHuds"));
+  if (!operatorToken) throw new Error(t("engine.starting"));
   let res: Response;
   try {
     res = await net.fetch(LOCAL_ENGINE + path, {
@@ -645,20 +650,20 @@ async function engineRequest<T>(method: "GET" | "POST", path: string, body?: unk
       signal: AbortSignal.timeout(10_000),
     });
   } catch (e) {
-    throw new Error(`Cannot reach the MatchFrame engine on this computer: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+    throw new Error(t("engine.unreachable", { error: e instanceof Error ? e.message : String(e) }), { cause: e });
   }
   const data = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
-  if (!res.ok) throw new Error(data?.message ?? data?.error ?? `The engine answered HTTP ${res.status}.`);
+  if (!res.ok) throw new Error(data?.message ?? data?.error ?? t("engine.http", { status: res.status }));
   return data as T;
 }
 
-const REMOTE_REASON = "Desktop HUDs are unavailable in remote mode: the HUD belongs over the game on the production computer";
+const remoteReason = () => t("engine.remoteReason");
 
 /** Desktop HUDs and their hotkeys work only when this computer runs the production. */
 function applyConnectionToHuds(): void {
   if (!overlays || !hotkeys) return;
   if (connection.mode === "remote") {
-    overlays.setDisabled(REMOTE_REASON);
+    overlays.setDisabled(remoteReason());
     hotkeys.unregister();
   } else {
     overlays.setDisabled(null);
@@ -717,7 +722,7 @@ function setUpDesktopHuds(): void {
     allowed: (e) => fromApp(e) && !fromApp(e, "/connect"),
     window: () => win,
     dataDir,
-    unavailableReason: () => (connection.mode === "remote" ? REMOTE_REASON : null),
+    unavailableReason: () => (connection.mode === "remote" ? remoteReason() : null),
     library: () => engineRequest<Library>("GET", "/api/v1/hud/library"),
     hideAll: () => void om.hideAll(),
     showAll: () => {
@@ -739,10 +744,63 @@ function setUpDesktopHuds(): void {
   applyConnectionToHuds();
 }
 
+// ------------------------------------------------------------------ language (ADR-082)
+
+/** The computer's preferred languages (Windows display language first). */
+function systemLanguages(): string[] {
+  try {
+    const list = app.getPreferredSystemLanguages();
+    return list.length ? list : [app.getLocale()];
+  } catch {
+    return [];
+  }
+}
+
+/** The application menu (hidden; its items keep their accelerators) in the current language. */
+function buildAppMenu(): void {
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate([
+      {
+        label: t("menu.file"),
+        submenu: [
+          { label: t("menu.connection"), click: () => showConnectionSettings() },
+          { label: t("menu.openData"), click: () => void shell.openPath(dataDir()) },
+          { type: "separator" },
+          { role: "quit" },
+        ],
+      },
+      { label: t("menu.view"), submenu: [{ role: "reload" }, { role: "togglefullscreen" }, ...(isDev ? [{ role: "toggleDevTools" as const }] : [])] },
+      {
+        label: t("menu.automation"),
+        submenu: [
+          { label: t("menu.emergencyStop", { hotkey: EMERGENCY_HOTKEY }), click: () => void emergencyStop() },
+          { label: t("menu.saveView", { hotkey: SAVE_VIEW_HOTKEY }), click: () => void saveCs2View() },
+        ],
+      },
+    ]),
+  );
+}
+
+/** Applies the saved Language setting to the shell: menu, tray and window title now; dialogs and notifications from now on. */
+function applyLanguage(): { language: LanguagePref; locale: string } {
+  const language = readProgramSettings().language;
+  const locale = setDesktopLanguage(language, systemLanguages());
+  buildAppMenu();
+  tray?.refresh();
+  if (win && !win.isDestroyed()) win.setTitle(windowTitle());
+  return { language, locale };
+}
+
 // ------------------------------------------------------------------ IPC
 
 ipcMain.on("mf:bootstrap", (event) => {
-  event.returnValue = fromApp(event) ? { engineOrigin: engineOrigin(), connectionMode: connection.mode } : null;
+  event.returnValue = fromApp(event) ? { engineOrigin: engineOrigin(), connectionMode: connection.mode, language: readProgramSettings().language, systemLanguages: systemLanguages() } : null;
+});
+// Settings → General → Language (ADR-082): kept here, so the tray, dialogs and notifications follow it.
+ipcMain.handle("mf:language-set", (event, pref: unknown) => {
+  if (!fromApp(event) || fromApp(event, "/connect") || !isLanguagePref(pref)) return null;
+  writeProgramSettings({ language: pref });
+  return applyLanguage();
 });
 ipcMain.handle("mf:token", (event) => (fromApp(event) && !fromApp(event, "/connect") ? accessToken() : null));
 ipcMain.handle("mf:info", () => ({ version: app.getVersion(), dataDir: dataDir(), emergencyHotkey: EMERGENCY_HOTKEY, saveViewHotkey: SAVE_VIEW_HOTKEY, ports: PORTS, packaged: app.isPackaged, connection: connection.mode === "remote" ? { mode: "remote", url: connection.url } : { mode: "local" } }));
@@ -775,7 +833,7 @@ ipcMain.handle("mf:crash-reports-set", (event, on: unknown) => (fromApp(event) &
 // Steam, or HLAE (a program the operator chose on this computer). Nothing else can be started.
 ipcMain.handle("mf:launch-cs2", async (event) => {
   if (!fromApp(event)) return { ok: false, message: "not allowed" };
-  if (connection.mode !== "local") return { ok: false, message: "CS2 starts on the production computer: use Start CS2 there." };
+  if (connection.mode !== "local") return { ok: false, message: t("engine.launchRemote") };
   try {
     const prepared = await engineRequest<PreparedLaunch>("POST", "/api/v1/game/prepare-launch");
     return await startCs2(prepared, { hlaePath: readProgramSettings().hlaePath, openExternal: (url) => shell.openExternal(url) });
@@ -797,12 +855,12 @@ ipcMain.handle("mf:replay-hotkeys-set", (event, patch: unknown) => {
 // A folder on this computer (Storage: replays and highlights on another drive).
 ipcMain.handle("mf:pick-directory", async (event, title: unknown) => {
   if (!fromApp(event) || fromApp(event, "/connect") || connection.mode !== "local" || !win) return null;
-  const r = await dialog.showOpenDialog(win, { title: typeof title === "string" ? title.slice(0, 120) : "Choose a folder", properties: ["openDirectory", "createDirectory"] });
+  const r = await dialog.showOpenDialog(win, { title: typeof title === "string" ? title.slice(0, 120) : t("dialog.chooseFolder"), properties: ["openDirectory", "createDirectory"] });
   return (r.canceled ? undefined : r.filePaths[0]) ?? null;
 });
 ipcMain.handle("mf:hlae-choose", async (event) => {
   if (!fromApp(event) || !win) return null;
-  const r = await dialog.showOpenDialog(win, { title: "Choose HLAE.exe", properties: ["openFile"], filters: [{ name: "HLAE", extensions: ["exe"] }] });
+  const r = await dialog.showOpenDialog(win, { title: t("dialog.chooseHlae"), properties: ["openFile"], filters: [{ name: "HLAE", extensions: ["exe"] }] });
   if (r.canceled || !r.filePaths[0]) return hlaeInfo(readProgramSettings().hlaePath);
   const info = hlaeInfo(r.filePaths[0]);
   if (info.ok) writeProgramSettings({ hlaePath: info.path });
@@ -810,7 +868,7 @@ ipcMain.handle("mf:hlae-choose", async (event) => {
 });
 // Read by the preload script when the console loads (remote mode disables desktop HUDs).
 ipcMain.on("mf:hud-availability", (event) => {
-  event.returnValue = fromApp(event) && !fromApp(event, "/connect") ? { available: connection.mode === "local", reason: connection.mode === "remote" ? REMOTE_REASON : null } : { available: false, reason: "not allowed" };
+  event.returnValue = fromApp(event) && !fromApp(event, "/connect") ? { available: connection.mode === "local", reason: connection.mode === "remote" ? remoteReason() : null } : { available: false, reason: "not allowed" };
 });
 ipcMain.handle("mf:open-data-dir", () => shell.openPath(dataDir()));
 // The highlight reels' folder: the one the engine says (a folder chosen under Storage), else its default
@@ -860,26 +918,26 @@ ipcMain.handle("mf:open-connection", (event) => {
 // Connection settings page (app://matchframe/connect) only.
 ipcMain.handle("mf:connection-get", (event) => {
   if (!fromApp(event, "/connect")) return null;
-  return { mode: connection.mode, url: connection.mode === "remote" ? connection.url : null, hasToken: connection.mode === "remote", apiPort: PORTS.api, version: app.getVersion() };
+  return { mode: connection.mode, url: connection.mode === "remote" ? connection.url : null, hasToken: connection.mode === "remote", apiPort: PORTS.api, version: app.getVersion(), lang: desktopLocale(), strings: section("connect") };
 });
 ipcMain.handle("mf:connection-test", async (event, args: { url: string; token: string }) => {
-  if (!fromApp(event, "/connect")) return { ok: false, message: "not allowed" };
+  if (!fromApp(event, "/connect")) return { ok: false, message: t("connect.notAllowed") };
   let origin: string;
   try {
     origin = normalizeUrl(args.url);
   } catch {
-    return { ok: false, message: "That is not a valid address (example: 192.168.1.20 or http://192.168.1.20:37211)." };
+    return { ok: false, message: t("connect.invalidAddress") };
   }
   const token = args.token?.trim() || (connection.mode === "remote" && connection.url === origin ? connection.token : "");
-  if (!token) return { ok: false, message: "Enter the access token issued on the production computer (Devices & Integrations → Tokens)." };
+  if (!token) return { ok: false, message: t("connect.needToken") };
   try {
     const res = await net.fetch(`${origin}/api/v1/me`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(6000) });
     const me = (await res.json().catch(() => ({}))) as { role?: string | null; label?: string };
-    if (!res.ok || !me.role) return { ok: false, message: "The production computer did not accept this token (expired, revoked or for another installation)." };
-    if (me.role === "captain") return { ok: false, message: "That is a captain veto token; use an operator role token." };
+    if (!res.ok || !me.role) return { ok: false, message: t("connect.tokenRefused") };
+    if (me.role === "captain") return { ok: false, message: t("connect.captainToken") };
     return { ok: true, origin, role: me.role, label: me.label ?? null };
   } catch (e) {
-    return { ok: false, message: `Cannot reach ${origin}: ${e instanceof Error ? e.message : String(e)}. Check that MatchFrame runs there with MATCHFRAME_HOST set to its network address, and the firewall allows port ${new URL(origin).port || PORTS.api}.` };
+    return { ok: false, message: t("connect.unreachable", { origin, error: e instanceof Error ? e.message : String(e), port: new URL(origin).port || PORTS.api }) };
   }
 });
 ipcMain.handle("mf:connection-save", (event, args: { mode: "local" } | { mode: "remote"; url: string; token: string }) => {
@@ -917,27 +975,7 @@ if (!app.requestSingleInstanceLock()) {
     registerAppProtocol();
     connection = loadConnection();
     crashReports.start();
-    Menu.setApplicationMenu(
-      Menu.buildFromTemplate([
-        {
-          label: "File",
-          submenu: [
-            { label: "Connection settings… (this computer or another MatchFrame computer)", click: () => showConnectionSettings() },
-            { label: "Open data folder", click: () => void shell.openPath(dataDir()) },
-            { type: "separator" },
-            { role: "quit" },
-          ],
-        },
-        { label: "View", submenu: [{ role: "reload" }, { role: "togglefullscreen" }, ...(isDev ? [{ role: "toggleDevTools" as const }] : [])] },
-        {
-          label: "Automation",
-          submenu: [
-            { label: `Emergency stop (${EMERGENCY_HOTKEY})`, click: () => void emergencyStop() },
-            { label: `Save the CS2 view as a camera (${SAVE_VIEW_HOTKEY})`, click: () => void saveCs2View() },
-          ],
-        },
-      ]),
-    );
+    applyLanguage();
     if (!globalShortcut.register(EMERGENCY_HOTKEY, () => void emergencyStop())) console.error(`could not register emergency-stop hotkey ${EMERGENCY_HOTKEY}`);
     if (!globalShortcut.register(SAVE_VIEW_HOTKEY, () => void saveCs2View())) console.error(`could not register save-view hotkey ${SAVE_VIEW_HOTKEY}`);
     setUpDesktopHuds();
@@ -946,9 +984,9 @@ if (!app.requestSingleInstanceLock()) {
       reserved: () => {
         const hud = hotkeys?.state();
         return [
-          { accelerator: EMERGENCY_HOTKEY, name: "emergency stop" },
-          { accelerator: SAVE_VIEW_HOTKEY, name: "save the CS2 view" },
-          ...(hud ? [{ accelerator: hud.toggle, name: "show or hide the desktop HUDs" }, { accelerator: hud.emergencyHide, name: "hide all HUD graphics" }] : []),
+          { accelerator: EMERGENCY_HOTKEY, name: t("hotkeys.emergencyStopName") },
+          { accelerator: SAVE_VIEW_HOTKEY, name: t("hotkeys.saveViewName") },
+          ...(hud ? [{ accelerator: hud.toggle, name: t("hotkeys.hudToggleName") }, { accelerator: hud.emergencyHide, name: t("hotkeys.hudHideName") }] : []),
         ];
       },
       load: () => readProgramSettings().replayHotkeys,
@@ -977,7 +1015,7 @@ if (!app.requestSingleInstanceLock()) {
       // Loaded only when needed: it reads the engine's SQLite database (node:sqlite).
       data: () => import("../../../services/local-engine/src/db/version-backups.ts"),
       confirm: async (c) => {
-        const options = { type: "warning" as const, title: c.title, message: c.message, detail: c.detail, buttons: ["Cancel", c.ok], defaultId: 0, cancelId: 0, noLink: true };
+        const options = { type: "warning" as const, title: c.title, message: c.message, detail: c.detail, buttons: [t("dialog.cancel"), c.ok], defaultId: 0, cancelId: 0, noLink: true };
         return (await (win && !win.isDestroyed() ? dialog.showMessageBox(win, options) : dialog.showMessageBox(options))).response === 1;
       },
       stopEngine: stopEngineAndWait,
@@ -998,7 +1036,7 @@ if (!app.requestSingleInstanceLock()) {
         // The data is already in the earlier version's format; this version would only migrate it again (keeping a copy).
         installer.once("error", (e) => {
           console.error(`[go back] the installer did not start: ${e.message}`);
-          dialog.showErrorBox("MatchFrame", `The installer didn't start (${e.message}). You can run it yourself: ${file}`);
+          dialog.showErrorBox("MatchFrame", t("dialog.installerFailed", { error: e.message, file }));
           if (connection.mode === "local") startEngine();
         });
       },

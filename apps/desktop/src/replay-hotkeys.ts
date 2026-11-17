@@ -1,4 +1,5 @@
 import { acceleratorArg, acceleratorKey } from "./hud/validate.ts";
+import { t } from "./i18n.ts";
 
 /**
  * Global hotkeys for the replays playing (ADR-062): Skip the clip on air, Hold or Resume it, Stop and
@@ -21,7 +22,8 @@ export type ReplayKeyAction = (typeof REPLAY_KEY_ACTIONS)[number];
 export type ReplayKeys = Record<ReplayKeyAction, string | null>;
 
 export const SUGGESTED_REPLAY_KEYS: Record<ReplayKeyAction, string> = { skip: "CommandOrControl+Shift+F5", hold: "CommandOrControl+Shift+F6", stop: "CommandOrControl+Shift+F7", highlights: "CommandOrControl+Shift+F9", highlightsStop: "CommandOrControl+Shift+F10", swapTeams: "CommandOrControl+Shift+F11", mapIntro: "CommandOrControl+Shift+F4" };
-const NAMES: Record<ReplayKeyAction, string> = { skip: "Skip", hold: "Hold / Resume", stop: "Stop and go live", highlights: "Play highlights", highlightsStop: "Stop highlights", swapTeams: "Swap teams", mapIntro: "Play map intro" };
+/** The action's name in the current language (hotkeys.<action>). */
+const name = (a: ReplayKeyAction): string => t(`hotkeys.${a}`);
 /** The engine's control-surface action each hotkey runs. */
 export const DEVICE_ACTION: Record<ReplayKeyAction, string> = { skip: "replay_skip", hold: "replay_hold", stop: "replay_stop", highlights: "highlights_play", highlightsStop: "highlights_stop", swapTeams: "teams_swap", mapIntro: "map_intro_play" };
 /** The highlights' hotkeys (their notifications say Highlights). */
@@ -58,7 +60,7 @@ export function replayKeysArg(v: unknown): Partial<ReplayKeys> {
   const extra = Object.keys(o).filter((k) => !(REPLAY_KEY_ACTIONS as readonly string[]).includes(k));
   if (extra.length) throw new Error(`Unexpected replay hotkey: ${extra.join(", ")}.`);
   const out: Partial<ReplayKeys> = {};
-  for (const a of REPLAY_KEY_ACTIONS) if (o[a] !== undefined) out[a] = o[a] === null || o[a] === "" ? null : acceleratorArg(o[a], NAMES[a]);
+  for (const a of REPLAY_KEY_ACTIONS) if (o[a] !== undefined) out[a] = o[a] === null || o[a] === "" ? null : acceleratorArg(o[a], name(a));
   return out;
 }
 
@@ -116,10 +118,10 @@ export class ReplayHotkeys {
       if (!k) continue;
       const key = keyOf(k);
       const twin = seen.get(key);
-      if (twin) throw new Error(`${NAMES[twin]} and ${NAMES[a]} can't have the same key (${k}).`);
+      if (twin) throw new Error(t("hotkeys.sameKey", { a: name(twin), b: name(a), key: k }));
       seen.set(key, a);
       const own = this.d.reserved().find((r) => keyOf(r.accelerator) === key);
-      if (own) throw new Error(`${k} is already the program's ${own.name} hotkey: choose another key for ${NAMES[a]}.`);
+      if (own) throw new Error(t("hotkeys.ownKey", { key: k, name: own.name, action: name(a) }));
     }
     const wasActive = this.active;
     if (wasActive) this.unregister();
@@ -138,9 +140,9 @@ export class ReplayHotkeys {
     try {
       ok = this.d.shortcuts.register(k, () => this.d.run(a));
     } catch (e) {
-      this.errors[a] = `${k} isn't a key Windows can use as a hotkey (${e instanceof Error ? e.message : String(e)}).`;
+      this.errors[a] = t("hotkeys.badKey", { key: k, error: e instanceof Error ? e.message : String(e) });
     }
-    if (!ok && !this.errors[a]) this.errors[a] = `${k} is already taken by another program (or Windows): choose another key for ${NAMES[a]}.`;
+    if (!ok && !this.errors[a]) this.errors[a] = t("hotkeys.taken", { key: k, action: name(a) });
     if (!ok) this.d.log(`replay hotkeys: ${this.errors[a]}`);
     this.registered[a] = ok;
   }

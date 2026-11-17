@@ -5,6 +5,7 @@ import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as WebReadableStream } from "node:stream/web";
 import type { DataBackup, DataState, RollbackDataPlan } from "../../../services/local-engine/src/db/version-backups.ts";
+import { formatDateTime, t } from "./i18n.ts";
 import { compareVersions, isPrerelease, parseVersion } from "./versions.ts";
 
 /**
@@ -93,7 +94,7 @@ interface GithubAsset {
 
 /** Earlier Stable releases that can be installed and checked, newest first. */
 export function selectRollbackReleases(raw: unknown, currentVersion: string, limit = LIST_LIMIT): RollbackRelease[] {
-  if (!Array.isArray(raw)) throw new Error("GitHub's list of releases is not in the expected form.");
+  if (!Array.isArray(raw)) throw new Error(t("rollback.listFormat"));
   const out: RollbackRelease[] = [];
   for (const r of raw as Record<string, unknown>[]) {
     if (!r || typeof r !== "object" || r.draft === true || r.prerelease === true || typeof r.tag_name !== "string") continue;
@@ -126,20 +127,16 @@ export function parseChecksums(text: string): Map<string, string> {
   return out;
 }
 
-const when = (iso: string): string => {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-};
 
 /** What going back does to the data, in the operator's words. */
 export function describeDataPlan(plan: RollbackDataPlan): string {
   switch (plan.kind) {
     case "fresh":
-      return "There's no MatchFrame data on this computer yet, so there's nothing to restore.";
+      return t("rollback.fresh");
     case "keep":
-      return "This version reads your data as it is: nothing is restored and nothing is lost.";
+      return t("rollback.keep");
     case "restore":
-      return `Restores the copy of your data made ${when(plan.backup.createdAt)}${plan.backup.fromVersion ? `, when version ${plan.backup.fromVersion} was updated` : ""}. Changes made since then (teams, players, matches, HUD and other settings) are lost; today's data is kept as a copy in the backups folder.`;
+      return plan.backup.fromVersion ? t("rollback.restoreFrom", { when: formatDateTime(plan.backup.createdAt), version: plan.backup.fromVersion }) : t("rollback.restore", { when: formatDateTime(plan.backup.createdAt) });
     case "refuse":
       return plan.reason;
   }
@@ -147,13 +144,13 @@ export function describeDataPlan(plan: RollbackDataPlan): string {
 
 export function confirmation(target: string, current: string, plan: RollbackDataPlan, toStable: boolean): Confirmation {
   const lines = [
-    toStable ? `${target} is the latest Stable version. It's older than the beta you have (${current}).` : `You have version ${current}.`,
-    `The installer for ${target} has been downloaded and matches the release's SHA256SUMS.txt.`,
+    toStable ? t("rollback.toStable", { target, current }) : t("rollback.youHave", { current }),
+    t("rollback.verified", { target }),
     describeDataPlan(plan),
-    "Your HUD files and program settings stay. Automatic update downloads are turned off, so MatchFrame doesn't update straight back; turn them on again in Settings → General → Program.",
-    `MatchFrame and every HUD output close now; version ${target} starts when it's installed.`,
+    t("rollback.stays"),
+    t("rollback.closes", { target }),
   ];
-  return { title: "Go back to a previous version", message: `Go back to MatchFrame ${target}?`, detail: lines.join("\n\n"), ok: `Go back to ${target}` };
+  return { title: t("rollback.title"), message: t("rollback.message", { target }), detail: lines.join("\n\n"), ok: t("rollback.ok", { target }) };
 }
 
 async function fetchReleases(deps: RollbackDeps): Promise<RollbackRelease[]> {
@@ -161,17 +158,17 @@ async function fetchReleases(deps: RollbackDeps): Promise<RollbackRelease[]> {
   try {
     res = await deps.fetch(RELEASES_API, { headers: { accept: "application/vnd.github+json", "user-agent": "MatchFrame-Esports" }, signal: AbortSignal.timeout(15_000) });
   } catch (e) {
-    throw new Error(`Can't reach GitHub for the list of versions: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+    throw new Error(t("rollback.noGithub", { error: e instanceof Error ? e.message : String(e) }), { cause: e });
   }
-  if (res.status === 403 || res.status === 429) throw new Error("GitHub is limiting requests from this network for now. Try again in an hour.");
-  if (!res.ok) throw new Error(`GitHub answered HTTP ${res.status} for the list of versions.`);
+  if (res.status === 403 || res.status === 429) throw new Error(t("rollback.rateLimited"));
+  if (!res.ok) throw new Error(t("rollback.githubHttp", { status: res.status }));
   return selectRollbackReleases(await res.json(), deps.currentVersion);
 }
 
 /** Downloads the installer, hashing it on the way, and keeps it only if it matches SHA256SUMS.txt. */
 export async function downloadVerified(release: RollbackRelease, deps: Pick<RollbackDeps, "fetch" | "downloadDir" | "progress">): Promise<string> {
   const sumsRes = await deps.fetch(release.checksumsUrl, { signal: AbortSignal.timeout(30_000) });
-  if (!sumsRes.ok) throw new Error(`Couldn't download ${CHECKSUMS} for version ${release.version} (HTTP ${sumsRes.status}).`);
+  if (!sumsRes.ok) throw new Error(t("rollback.checksumsFailed", { file: CHECKSUMS, version: release.version, status: sumsRes.status }));
   const expected = parseChecksums(await sumsRes.text()).get(release.installer.name.toLowerCase());
   if (!expected) throw new Error(`${CHECKSUMS} for version ${release.version} doesn't list ${release.installer.name}, so the download can't be checked.`);
 
@@ -180,7 +177,7 @@ export async function downloadVerified(release: RollbackRelease, deps: Pick<Roll
   const file = join(deps.downloadDir, release.installer.name);
   const part = `${file}.part`;
   const res = await deps.fetch(release.installer.url, { signal: AbortSignal.timeout(30 * 60_000) });
-  if (!res.ok || !res.body) throw new Error(`Couldn't download the installer for version ${release.version} (HTTP ${res.status}).`);
+  if (!res.ok || !res.body) throw new Error(t("rollback.downloadFailed", { version: release.version, status: res.status }));
   const total = Number(res.headers.get("content-length")) || release.installer.size || 0;
   const hash = createHash("sha256");
   let received = 0;
@@ -202,13 +199,13 @@ export async function downloadVerified(release: RollbackRelease, deps: Pick<Roll
     await pipeline(Readable.fromWeb(res.body as unknown as WebReadableStream), count, createWriteStream(part));
   } catch (e) {
     rmSync(part, { force: true });
-    throw new Error(`The download of version ${release.version} stopped: ${e instanceof Error ? e.message : String(e)}`, { cause: e });
+    throw new Error(t("rollback.downloadStopped", { version: release.version, error: e instanceof Error ? e.message : String(e) }), { cause: e });
   }
   deps.progress({ stage: "verifying", version: release.version });
   const actual = hash.digest("hex");
   if (actual !== expected) {
     rmSync(part, { force: true });
-    throw new Error(`The downloaded installer for version ${release.version} doesn't match its SHA-256 in ${CHECKSUMS} (expected ${expected}, got ${actual}). It was deleted; nothing was changed.`);
+    throw new Error(t("rollback.checksumMismatch", { version: release.version, file: CHECKSUMS, expected, actual }));
   }
   renameSync(part, file);
   return file;
@@ -232,13 +229,13 @@ export function createRollback(deps: RollbackDeps) {
 
     /** Goes back to `version` (toStable: the operator switched from Beta to Stable and this is the latest Stable version). */
     async start(version: string, opts: { toStable?: boolean } = {}): Promise<RollbackResult> {
-      if (busy) return { ok: false, message: "MatchFrame is already going back to a version." };
+      if (busy) return { ok: false, message: t("rollback.busy") };
       busy = true;
       let engineStopped = false;
       try {
         deps.progress({ stage: "checking", version });
         const release = (await fetchReleases(deps)).find((r) => r.version === version);
-        if (!release) return { ok: false, message: `Version ${version} can't be installed from here (it isn't an earlier Stable release with an installer and checksums).` };
+        if (!release) return { ok: false, message: t("rollback.notInstallable", { version }) };
         const data = await deps.data();
         const plan = data.planRollbackData(version, data.inspectData(deps.dataDir));
         if (plan.kind === "refuse") return { ok: false, message: plan.reason };
@@ -246,20 +243,20 @@ export function createRollback(deps: RollbackDeps) {
         deps.progress({ stage: "confirming", version });
         if (!(await deps.confirm(confirmation(version, deps.currentVersion, plan, opts.toStable === true)))) {
           rmSync(deps.downloadDir, { recursive: true, force: true });
-          return { ok: false, cancelled: true, message: "Cancelled: nothing was changed." };
+          return { ok: false, cancelled: true, message: t("rollback.cancelled") };
         }
         deps.progress({ stage: "installing", version });
         await deps.stopEngine();
         engineStopped = true;
         // With the engine stopped, the data on disk is final: it must still match what was confirmed.
         const final = data.planRollbackData(version, data.inspectData(deps.dataDir));
-        if (JSON.stringify(final) !== JSON.stringify(plan)) throw new Error("Your data changed while the installer was downloading. Nothing was changed; try again.");
+        if (JSON.stringify(final) !== JSON.stringify(plan)) throw new Error(t("rollback.dataChanged"));
         if (final.kind === "restore") {
           const { safetyCopy } = data.restoreBackup(deps.dataDir, final.backup);
           deps.log(`going back to ${version}: restored ${final.backup.name}${safetyCopy ? `; the data before going back is ${safetyCopy}` : ""}`);
         }
         deps.install(installer);
-        return { ok: true, message: `Installing version ${version}. MatchFrame closes and starts again when it's done.` };
+        return { ok: true, message: t("rollback.installing", { version }) };
       } catch (e) {
         if (engineStopped) deps.startEngine();
         deps.log(`going back to ${version} failed: ${message(e)}`);

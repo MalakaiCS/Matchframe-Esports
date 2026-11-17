@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import type { Support } from "@matchframe/contracts";
 import { describeError } from "../api/index.ts";
+import { t } from "../i18n/index.ts";
 import { SUPPORT_TEXT } from "../lib/capabilities.ts";
 import { evidenceText } from "../lib/evidence.ts";
 import { useToast } from "./toasts.tsx";
@@ -22,7 +23,7 @@ export function Badge({ tone = "neutral", icon, children, title, className = "" 
 }
 
 export function SupportBadge({ support, title }: { support: Support | "unknown"; title?: string }) {
-  if (support === "unknown") return <Badge title={title}>Unknown</Badge>;
+  if (support === "unknown") return <Badge title={title}>{t("common.unknown")}</Badge>;
   const s = SUPPORT_TEXT[support];
   return (
     <Badge tone={s.tone} icon={s.icon} title={title}>
@@ -111,7 +112,7 @@ export function ActionButton<T>({ action, success, onDone, confirm, inlineError 
     } catch (e) {
       const m = describeError(e);
       setError(m);
-      toast.push("danger", typeof children === "string" ? `${children} failed` : "Action failed", m);
+      toast.push("danger", typeof children === "string" ? t("common.actionFailed", { action: children }) : t("common.actionFailedGeneric"), m);
     } finally {
       setPending(false);
     }
@@ -165,7 +166,7 @@ export function Modal({ title, onClose, children, footer, wide }: { title: strin
       <div className={`modal ${wide ? "modal-wide" : ""}`} role="dialog" aria-modal="true" aria-labelledby={`${id}-t`} ref={ref} tabIndex={-1}>
         <header className="modal-head">
           <h2 id={`${id}-t`}>{title}</h2>
-          <button className="modal-close" aria-label="Close dialog" onClick={onClose}>
+          <button className="modal-close" aria-label={t("common.closeDialog")} onClick={onClose}>
             ×
           </button>
         </header>
@@ -185,9 +186,9 @@ export function ConfirmDialog({ spec, onConfirm, onCancel }: { spec: ConfirmSpec
       onClose={onCancel}
       footer={
         <>
-          <Button onClick={onCancel}>Cancel</Button>
-          <Button variant={spec.danger ? "danger" : "primary"} disabledReason={needReason && reason.trim().length < 3 ? "Enter a reason (at least 3 characters)" : null} reasonPlacement="tooltip" onClick={() => onConfirm(needReason ? reason.trim() : undefined)}>
-            {spec.confirmLabel ?? "Confirm"}
+          <Button onClick={onCancel}>{t("common.cancel")}</Button>
+          <Button variant={spec.danger ? "danger" : "primary"} disabledReason={needReason && reason.trim().length < 3 ? t("common.reasonTooShort") : null} reasonPlacement="tooltip" onClick={() => onConfirm(needReason ? reason.trim() : undefined)}>
+            {spec.confirmLabel ?? t("common.confirm")}
           </Button>
         </>
       }
@@ -231,22 +232,22 @@ export function ErrorBox({ error, onRetry }: { error: string; onRetry?: () => vo
   return (
     <div className="error-box" role="alert">
       <Badge tone="danger" icon="!">
-        Error
+        {t("common.error")}
       </Badge>
       <span className="error-text">{error}</span>
       {onRetry ? (
         <Button size="sm" onClick={onRetry}>
-          Retry
+          {t("common.retry")}
         </Button>
       ) : null}
     </div>
   );
 }
 
-export function Loading({ label = "Loading…" }: { label?: string }) {
+export function Loading({ label }: { label?: string }) {
   return (
     <div className="loading" role="status">
-      <span className="spinner" aria-hidden /> {label}
+      <span className="spinner" aria-hidden /> {label ?? t("common.loading")}
     </div>
   );
 }
@@ -259,7 +260,7 @@ export function Async<T>({ state, children, empty }: { state: { data: T | undefi
   }
   return (
     <>
-      {state.error ? <ErrorBox error={`Refresh failed: ${state.error}`} onRetry={() => void state.reload()} /> : null}
+      {state.error ? <ErrorBox error={t("common.refreshFailed", { error: state.error })} onRetry={() => void state.reload()} /> : null}
       {children(state.data)}
     </>
   );
@@ -287,27 +288,27 @@ export function Checkbox({ checked, onChange, label, disabled, hint }: { checked
 export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs: { id: T; label: ReactNode }[]; value: T; onChange: (v: T) => void; label: string }) {
   return (
     <div className="tabs" role="tablist" aria-label={label}>
-      {tabs.map((t) => (
+      {tabs.map((tab) => (
         <button
-          key={t.id}
+          key={tab.id}
           role="tab"
-          aria-selected={t.id === value}
-          className={`tab ${t.id === value ? "is-active" : ""}`}
-          onClick={() => onChange(t.id)}
+          aria-selected={tab.id === value}
+          className={`tab ${tab.id === value ? "is-active" : ""}`}
+          onClick={() => onChange(tab.id)}
           onKeyDown={(e) => {
             const i = tabs.findIndex((x) => x.id === value);
             if (e.key === "ArrowRight") onChange(tabs[(i + 1) % tabs.length]!.id);
             if (e.key === "ArrowLeft") onChange(tabs[(i - 1 + tabs.length) % tabs.length]!.id);
           }}
         >
-          {t.label}
+          {tab.label}
         </button>
       ))}
     </div>
   );
 }
 
-export function CopyButton({ text, label = "Copy", size = "sm" }: { text: string; label?: string; size?: "sm" | "md" }) {
+export function CopyButton({ text, label, size = "sm" }: { text: string; label?: string; size?: "sm" | "md" }) {
   const [done, setDone] = useState(false);
   const copy = async () => {
     try {
@@ -325,7 +326,7 @@ export function CopyButton({ text, label = "Copy", size = "sm" }: { text: string
   };
   return (
     <Button size={size} onClick={() => void copy()}>
-      {done ? "Copied ✓" : label}
+      {done ? t("common.copied") : (label ?? t("common.copy"))}
     </Button>
   );
 }
@@ -357,7 +358,7 @@ export function Mono({ children }: { children: ReactNode }) {
 }
 
 export function Note({ tone = "info", children, title }: { tone?: Tone; children: ReactNode; title?: string }) {
-  const tag = title ?? (tone === "sim" ? "Simulation" : null);
+  const tag = title ?? (tone === "sim" ? t("common.simulation") : null);
   return (
     <div className={`note tone-${tone}`}>
       {tag ? <span className="note-tag">{tag}</span> : null}
@@ -367,10 +368,10 @@ export function Note({ tone = "info", children, title }: { tone?: Tone; children
 }
 
 /** Collapsed-by-default disclosure for technical detail that most operators never need. */
-export function Details({ summary = "Details", children, open, className = "" }: { summary?: ReactNode; children: ReactNode; open?: boolean; className?: string }) {
+export function Details({ summary, children, open, className = "" }: { summary?: ReactNode; children: ReactNode; open?: boolean; className?: string }) {
   return (
     <details className={`details ${className}`} open={open}>
-      <summary>{summary}</summary>
+      <summary>{summary ?? t("common.details")}</summary>
       <div className="details-body">{children}</div>
     </details>
   );
@@ -382,10 +383,10 @@ export function JsonEditor({ value, onChange, rows = 8, label }: { value: string
   try {
     if (value.trim()) JSON.parse(value);
   } catch (e) {
-    err = e instanceof Error ? e.message : "invalid JSON";
+    err = e instanceof Error ? e.message : t("common.invalidJsonShort");
   }
   return (
-    <Field label={label} hint={err ? <span className="text-danger">Invalid JSON: {err}</span> : "JSON"}>
+    <Field label={label} hint={err ? <span className="text-danger">{t("common.invalidJson", { error: err })}</span> : "JSON"}>
       <textarea className="mono" rows={rows} value={value} spellCheck={false} onChange={(e) => onChange(e.target.value)} aria-invalid={!!err} />
     </Field>
   );
@@ -396,7 +397,7 @@ export function parseJsonOr<T>(text: string, fallback: T): { ok: true; value: T 
   try {
     return { ok: true, value: JSON.parse(text) as T };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "invalid JSON" };
+    return { ok: false, error: e instanceof Error ? e.message : t("common.invalidJsonShort") };
   }
 }
 

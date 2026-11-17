@@ -3,21 +3,22 @@ import type { HudLibraryEntry, HudOutputMode, HudSettingField, HudVariant } from
 import { HUD_LOW_FPS, HUD_STUTTER_MS, hudLowFps, hudOutputStutters } from "@matchframe/contracts/smoothness";
 import type { DesktopHudBridge, OverlayState } from "../api/desktop.ts";
 import type { Tone } from "../components/ui.tsx";
+import { perLocale, t } from "../i18n/index.ts";
 
 /** Library card status: the engine status combined with the desktop overlay window's state. */
 export type HudDisplayStatus = "ready" | "starting" | "running" | "stopped" | "error";
 
-export const STATUS_INFO: Record<HudDisplayStatus, { label: string; tone: Tone; hint: string }> = {
-  ready: { label: "Ready", tone: "neutral", hint: "Installed and verified. No output is connected." },
-  starting: { label: "Starting", tone: "info", hint: "The desktop HUD window is loading." },
-  running: { label: "Running", tone: "ok", hint: "At least one output (desktop, OBS or preview) is connected." },
-  stopped: { label: "Stopped", tone: "warn", hint: "Stopped: OBS browser sources stay connected but show nothing until you start the HUD again." },
-  error: { label: "Error", tone: "danger", hint: "The package failed verification or its entry file is missing." },
-};
+export const STATUS_INFO: Record<HudDisplayStatus, { label: string; tone: Tone; hint: string }> = perLocale(() => ({
+  ready: { label: t("hudlib.status.ready"), tone: "neutral" as Tone, hint: t("hudlib.status.readyHint") },
+  starting: { label: t("hudlib.status.starting"), tone: "info" as Tone, hint: t("hudlib.status.startingHint") },
+  running: { label: t("hudlib.status.running"), tone: "ok" as Tone, hint: t("hudlib.status.runningHint") },
+  stopped: { label: t("hudlib.status.stopped"), tone: "warn" as Tone, hint: t("hudlib.status.stoppedHint") },
+  error: { label: t("hudlib.status.error"), tone: "danger" as Tone, hint: t("hudlib.status.errorHint") },
+}));
 
 export const STATUS_ORDER: HudDisplayStatus[] = ["ready", "starting", "running", "stopped", "error"];
 
-export const OUTPUT_LABEL: Record<HudOutputMode, string> = { desktop: "Desktop", obs: "OBS", preview: "Preview" };
+export const OUTPUT_LABEL: Record<HudOutputMode, string> = perLocale(() => ({ desktop: t("hudlib.output.desktop"), obs: "OBS", preview: t("hudlib.output.preview") }));
 export const OUTPUT_MODES: HudOutputMode[] = ["desktop", "obs", "preview"];
 
 /** An output that stopped drawing this long (ms) in the last minute is shown as stuttering. */
@@ -28,23 +29,23 @@ export { hudLowFps };
 /** Whether an output stuttered (a pause) or drew too few frames for its frame cap in the last minute (the engine's Low-spec suggestion uses the same rule). */
 export const stutters = (s: { fps: number; worstPauseMs: number; frameCap?: number | null } | undefined): boolean => hudOutputStutters(s);
 
-export const KIND_LABEL: Record<HudLibraryEntry["kind"], string> = { builtin: "Built-in", sample: "Sample", imported: "Imported" };
+export const KIND_LABEL: Record<HudLibraryEntry["kind"], string> = perLocale(() => ({ builtin: t("hudlib.kind.builtin"), sample: t("hudlib.kind.sample"), imported: t("hudlib.kind.imported") }));
 
-export const VARIANT_LABEL: Record<HudVariant, string> = {
-  live: "Live",
-  compact: "Compact",
-  replay: "Replay",
-  veto: "Veto",
-  "pre-match": "Pre-match",
-  break: "Break",
-  "post-map": "Post-map",
-  "post-series": "Post-series",
-  studio: "Studio",
-};
+export const VARIANT_LABEL: Record<HudVariant, string> = perLocale(() => ({
+  live: t("hudlib.variant.live"),
+  compact: t("hudlib.variant.compact"),
+  replay: t("hudlib.variant.replay"),
+  veto: t("hudlib.variant.veto"),
+  "pre-match": t("hudlib.variant.preMatch"),
+  break: t("hudlib.variant.break"),
+  "post-map": t("hudlib.variant.postMap"),
+  "post-series": t("hudlib.variant.postSeries"),
+  studio: t("hudlib.variant.studio"),
+}));
 
 export function hudStatus(e: HudLibraryEntry, overlay: OverlayState | undefined): { status: HudDisplayStatus; detail: string | null } {
   if (e.status === "error") return { status: "error", detail: e.error ?? STATUS_INFO.error.hint };
-  if (overlay?.open && overlay.status === "error") return { status: "error", detail: overlay.error ?? "The desktop HUD window failed to load." };
+  if (overlay?.open && overlay.status === "error") return { status: "error", detail: overlay.error ?? t("hudlib.status.windowFailed") };
   if (e.stopped || e.status === "stopped") return { status: "stopped", detail: STATUS_INFO.stopped.hint };
   if (overlay?.open && overlay.status === "starting") return { status: "starting", detail: STATUS_INFO.starting.hint };
   if (e.status === "running" || (overlay?.open && overlay.status === "running")) return { status: "running", detail: STATUS_INFO.running.hint };
@@ -116,7 +117,7 @@ export function matchesSearch(e: HudLibraryEntry, q: string): boolean {
 
 export type HudSort = "name" | "recent" | "added" | "author";
 
-export const SORT_LABEL: Record<HudSort, string> = { name: "Name", recent: "Recently used", added: "Recently added", author: "Author" };
+export const SORT_LABEL: Record<HudSort, string> = perLocale(() => ({ name: t("hudlib.sort.name"), recent: t("hudlib.sort.recent"), added: t("hudlib.sort.added"), author: t("hudlib.sort.author") }));
 
 const byName = (a: HudLibraryEntry, b: HudLibraryEntry) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
 const time = (iso: string | null) => (iso ? Date.parse(iso) || 0 : 0);
@@ -172,8 +173,8 @@ export function formFields(schema: Record<string, unknown> | null | undefined): 
 
 /** Why desktop overlays cannot be used here, or null. */
 export function desktopReason(bridge: DesktopHudBridge | null): string | null {
-  if (!bridge) return "Desktop HUDs need the MatchFrame program (this console is open in a browser)";
-  if (!bridge.available) return bridge.unavailableReason ?? "Desktop HUDs are unavailable in remote mode: the HUD belongs over the game on the production computer";
+  if (!bridge) return t("hudlib.desktop.needsProgram");
+  if (!bridge.available) return bridge.unavailableReason ?? t("hudlib.desktop.remote");
   return null;
 }
 

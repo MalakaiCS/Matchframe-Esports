@@ -5,6 +5,7 @@ import type { DesktopHudBridge } from "../../api/desktop.ts";
 import { useToast } from "../../components/toasts.tsx";
 import { saveBlob } from "../../lib/format.ts";
 import { defaultVariant } from "../../lib/hudLibrary.ts";
+import { perLocale, t } from "../../i18n/index.ts";
 
 export const LIBRARY_PATH = "/api/v1/hud/library";
 export const hudPath = (id: string) => `${LIBRARY_PATH}/${seg(id)}`;
@@ -28,7 +29,7 @@ export async function stopHud(bridge: DesktopHudBridge | null, e: HudLibraryEntr
   const windows: PromiseSettledResult<void>[] = bridge?.available ? await Promise.allSettled([bridge.close(e.id), bridge.closePreviews(e.id)]) : [];
   await api.post(`${hudPath(e.id)}/stop`);
   const failed = windows.find((r): r is PromiseRejectedResult => r.status === "rejected");
-  if (failed) throw new Error(`Stopped on the engine, but a desktop window did not close: ${describeError(failed.reason)}`);
+  if (failed) throw new Error(t("hudlib.stopWindowFailed", { error: describeError(failed.reason) }));
 }
 
 export async function reloadHud(e: HudLibraryEntry): Promise<void> {
@@ -48,12 +49,12 @@ export async function exportHud(bridge: DesktopHudBridge | null, e: HudLibraryEn
 }
 
 /** Reasons the built-in HUD (part of the program) cannot do package things. */
-export const BUILTIN_REASON = {
-  duplicate: "The built-in HUD is part of the program and cannot be duplicated",
-  export: "The built-in HUD is part of the program and cannot be exported",
-  folder: "The built-in HUD is part of the program and has no folder",
-  remove: "The built-in HUD is part of the program and cannot be removed",
-} as const;
+export const BUILTIN_REASON: { duplicate: string; export: string; folder: string; remove: string } = perLocale(() => ({
+  duplicate: t("hudlib.builtin.duplicate"),
+  export: t("hudlib.builtin.export"),
+  folder: t("hudlib.builtin.folder"),
+  remove: t("hudlib.builtin.remove"),
+}));
 
 /** Runs an async action with a toast for success (optional) and failure. */
 export function useRun() {
@@ -66,7 +67,7 @@ export function useRun() {
         if (msg) toast.push("ok", msg);
         return r;
       } catch (err) {
-        toast.push("danger", `${label} failed`, describeError(err));
+        toast.push("danger", t("common.actionFailed", { action: label }), describeError(err));
         return undefined;
       }
     },

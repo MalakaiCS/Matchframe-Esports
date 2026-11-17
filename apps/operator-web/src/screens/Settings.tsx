@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { api, describeError, seg } from "../api/index.ts";
 import type { AuditEntry, BroadcastReport, EngineMetrics, LogEntry, StatsResponse } from "../api/types.ts";
 import { ImageField } from "../components/forms.tsx";
+import { formatDate, formatNumber, LANGUAGE_NAMES, LOCALES, perLocale, t, type LanguagePref } from "../i18n/index.ts";
+import { setLanguagePref, systemLocale, useLanguagePref } from "../i18n/language.ts";
+import { T } from "../i18n/T.tsx";
 import { PerformancePanel } from "../components/LowSpec.tsx";
 import { ActionButton, Async, Badge, Button, Details, EmptyState, Field, JsonEditor, KV, Note, Panel, parseJsonOr } from "../components/ui.tsx";
 import { setDefaultPlayerPicture, useDefaultPlayerPicture, type DefaultPlayerPicture } from "../lib/defaultPicture.ts";
@@ -16,19 +19,8 @@ import { usePermission } from "../state/session.tsx";
 import "../styles/group-c.css";
 
 /** Settings keys the console knows about. Writable prefixes mirror the engine (hud|program|replay|director|demos|ui). */
-export const KNOWN_SETTINGS: { key: string; description: string }[] = [
-  { key: "program.scenes", description: "OBS scene per program mode (LIVE/REPLAY/STUDIO/BREAK)" },
-  { key: "replay.provider", description: "Replay provider: {kind: obs|bridge|none, bufferSeconds?, bridgeUrl?}" },
-  { key: "replay.mediaInput", description: "OBS media source used for replay playout" },
-  { key: "hud.radarUtility", description: "Show utility on the HUD radar (boolean)" },
-  { key: "hud.allowUnverifiedRadar", description: "Allow radar images with unverified calibration (boolean)" },
-  { key: "hud.annotationsDraft", description: "Saved telestrator drawings" },
-  { key: "demos.config", description: "Demo library configuration (prefer the Demo Library page)" },
-  { key: "ui.rundownPosition", description: "Rundown ON AIR / NEXT pointer" },
-  { key: "observer.adapter", description: "Observer adapter (read-only here — change it in Setup)" },
-  { key: "observer.verifiedControl", description: "Recorded control verification evidence (read-only)" },
-  { key: "live.activeMatchId", description: "Active match (read-only — change it in Matches)" },
-];
+const SETTING_KEYS = ["program.scenes", "replay.provider", "replay.mediaInput", "hud.radarUtility", "hud.allowUnverifiedRadar", "hud.annotationsDraft", "demos.config", "ui.rundownPosition", "observer.adapter", "observer.verifiedControl", "live.activeMatchId"];
+export const KNOWN_SETTINGS: { key: string; description: string }[] = perLocale(() => SETTING_KEYS.map((key) => ({ key, description: t(`settings.keys.${key.replace(".", "_")}`) })));
 
 export function settingWritable(key: string): boolean {
   return /^(hud|program|replay|director|demos|ui)\./.test(key);
@@ -47,9 +39,9 @@ function SettingsTab() {
   if (reason) return <Note tone="warn">{reason}.</Note>;
   return (
     <>
-      <p className="page-intro">Raw engine settings as JSON. Most of them have their own page; edit here only when a value isn&apos;t exposed elsewhere.</p>
+      <p className="page-intro">{t("settings.advanced.intro")}</p>
       <div className="grid-1-2">
-        <Panel title="Keys">
+        <Panel title={t("settings.advanced.keys")}>
           <ul className="select-list">
             {KNOWN_SETTINGS.map((s) => (
               <li key={s.key}>
@@ -58,25 +50,25 @@ function SettingsTab() {
                     <span className="mono">{s.key}</span>
                     <div className="small muted">{s.description}</div>
                   </span>
-                  {settingWritable(s.key) ? null : <span className="small muted">Read-only</span>}
+                  {settingWritable(s.key) ? null : <span className="small muted">{t("settings.advanced.readOnly")}</span>}
                 </button>
               </li>
             ))}
           </ul>
           <div className="row-end" style={{ marginTop: 10 }}>
-            <Field label="Other key">
+            <Field label={t("settings.advanced.otherKey")}>
               <input className="mono" value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="hud.someSetting" />
             </Field>
             <Button onClick={() => custom.trim() && setKey(custom.trim())} disabled={!custom.trim()}>
-              Open
+              {t("settings.advanced.open")}
             </Button>
           </div>
         </Panel>
-        <Panel title={key} subtitle={settingWritable(key) ? "Changes take effect immediately and are audited" : "Read-only from this page"}>
+        <Panel title={key} subtitle={settingWritable(key) ? t("settings.advanced.writable") : t("settings.advanced.readOnlyHere")}>
           <Async state={value}>
             {() => (
               <>
-                <JsonEditor label="Value" value={text} onChange={setText} rows={14} />
+                <JsonEditor label={t("settings.advanced.value")} value={text} onChange={setText} rows={14} />
                 <div className="form-actions">
                   <ActionButton
                     variant="primary"
@@ -84,14 +76,14 @@ function SettingsTab() {
                       if (!parsed.ok) throw new Error(parsed.error);
                       return api.put(`/api/v1/settings/${seg(key)}`, { value: parsed.value });
                     }}
-                    success={`${key} saved`}
+                    success={t("settings.advanced.saved", { key })}
                     onDone={() => void value.reload()}
-                    disabledReason={!settingWritable(key) ? "This key is not writable through the settings API" : parsed.ok ? null : "Invalid JSON"}
+                    disabledReason={!settingWritable(key) ? t("settings.advanced.notWritable") : parsed.ok ? null : t("settings.advanced.invalidJson")}
                   >
-                    Save
+                    {t("settings.save")}
                   </ActionButton>
                   <Button variant="ghost" onClick={() => void value.reload()}>
-                    Reload
+                    {t("settings.reload")}
                   </Button>
                 </div>
               </>
@@ -109,7 +101,7 @@ function AuditTab() {
   const [q, setQ] = useState("");
   if (reason) return <Note tone="warn">{reason}.</Note>;
   return (
-    <Panel title="Audit log" subtitle="Every change made through the API, newest first" actions={<input aria-label="Filter audit log" placeholder="Filter by actor, action or target" value={q} onChange={(e) => setQ(e.target.value)} />}>
+    <Panel title={t("nav.auditLog")} subtitle={t("settings.audit.subtitle")} actions={<input aria-label={t("settings.audit.filter")} placeholder={t("settings.audit.filterPlaceholder")} value={q} onChange={(e) => setQ(e.target.value)} />}>
       <Async state={audit}>
         {(list) => {
           const f = list.filter((a) => !q || `${a.actor} ${a.action} ${a.target ?? ""}`.toLowerCase().includes(q.toLowerCase()));
@@ -119,11 +111,11 @@ function AuditTab() {
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>At</th>
-                    <th>Actor</th>
-                    <th>Action</th>
-                    <th>Target</th>
-                    <th>Detail</th>
+                    <th>{t("settings.audit.at")}</th>
+                    <th>{t("settings.audit.actor")}</th>
+                    <th>{t("settings.audit.action")}</th>
+                    <th>{t("settings.audit.target")}</th>
+                    <th>{t("settings.audit.detail")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -154,14 +146,14 @@ function LogsTab() {
   if (reason) return <Note tone="warn">{reason}.</Note>;
   return (
     <Panel
-      title="Recent engine logs"
-      subtitle="Secrets are redacted by the engine"
+      title={t("settings.logs.title")}
+      subtitle={t("settings.logs.subtitle")}
       actions={
-        <select aria-label="Log level" value={level} onChange={(e) => setLevel(e.target.value)}>
-          <option value="all">All levels</option>
-          <option value="error">Errors</option>
-          <option value="warn">Warnings and errors</option>
-          <option value="info">Info and above</option>
+        <select aria-label={t("settings.logs.level")} value={level} onChange={(e) => setLevel(e.target.value)}>
+          <option value="all">{t("settings.logs.all")}</option>
+          <option value="error">{t("settings.logs.errors")}</option>
+          <option value="warn">{t("settings.logs.warnings")}</option>
+          <option value="info">{t("settings.logs.info")}</option>
         </select>
       }
     >
@@ -171,7 +163,7 @@ function LogsTab() {
           const min = level === "all" ? 0 : (rank[level] ?? 0);
           const f = [...list].reverse().filter((l) => (rank[l.level] ?? 0) >= min);
           return f.length === 0 ? (
-            <p className="muted small">No log entries at this level.</p>
+            <p className="muted small">{t("settings.logs.empty")}</p>
           ) : (
             <div style={{ maxHeight: 640, overflowY: "auto" }}>
               <table className="table table-compact">
@@ -196,24 +188,15 @@ function LogsTab() {
   );
 }
 
-const METRIC_LABEL: Record<string, string> = {
-  packets: "Packets ingested",
-  rejected: "Packets rejected",
-  invalid: "Invalid payloads",
-  cuts: "Automated cuts",
-  recommendations: "Recommendations",
-  ingestP95Ms: "Ingest p95",
-  evalP95Ms: "Director eval p95",
-  maxIngestMs: "Max ingest",
-  maxEvalMs: "Max director eval",
-};
+const METRIC_KEYS = ["packets", "rejected", "invalid", "cuts", "recommendations", "ingestP95Ms", "evalP95Ms", "maxIngestMs", "maxEvalMs"];
+const METRIC_LABEL: Record<string, string> = perLocale(() => Object.fromEntries(METRIC_KEYS.map((k) => [k, t(`settings.metric.${k}`)])));
 
 function DiagnosticsTab() {
   const settingsReason = usePermission("settings.manage");
   const metrics = useApi<EngineMetrics>("/api/v1/live/metrics", { refreshMs: 2000 });
   return (
     <div className="grid-2">
-      <Panel title="Troubleshooting">
+      <Panel title={t("settings.diag.troubleshooting")}>
         <ActionButton
           variant="primary"
           action={async () => {
@@ -221,12 +204,12 @@ function DiagnosticsTab() {
             saveBlob(d.blob, d.filename ?? `matchframe-support-${Date.now()}.json`);
             return d;
           }}
-          success={(d) => `Downloaded ${d.filename ?? "support bundle"}`}
+          success={(d) => t("settings.diag.downloaded", { file: d.filename ?? t("settings.diag.bundle") })}
           disabledReason={settingsReason}
         >
-          Download support bundle
+          {t("settings.diag.downloadBundle")}
         </ActionButton>
-        <p className="gc-caption">Redacted JSON with config, health, capabilities, metrics, recent decisions, arbiter/program history and logs. Tokens, passwords and stream keys are never included.</p>
+        <p className="gc-caption">{t("settings.diag.bundleCaption")}</p>
         <div className="gc-section">
           <h3 className="gc-section-title">API</h3>
           <ActionButton
@@ -236,23 +219,23 @@ function DiagnosticsTab() {
               saveBlob(d.blob, "matchframe-openapi.json");
               return d;
             }}
-            success="OpenAPI document downloaded"
+            success={t("settings.diag.openapiDownloaded")}
           >
-            Download OpenAPI
+            {t("settings.diag.downloadOpenapi")}
           </ActionButton>
           <p className="gc-caption">
-            The local HTTP API used by this console, Companion and scripts is described at <code>/api/v1/openapi.json</code>.
+            <T k="settings.diag.apiCaption" values={{ path: <code>/api/v1/openapi.json</code> }} />
           </p>
         </div>
       </Panel>
-      <Panel title="Engine metrics" subtitle="Updated every 2 s">
+      <Panel title={t("settings.diag.metrics")} subtitle={t("settings.diag.metricsSubtitle")}>
         <Async state={metrics}>
           {(m) => (
             <dl className="gc-metrics">
               {Object.entries(m).map(([k, v]) => (
                 <div key={k}>
                   <dt title={k}>{METRIC_LABEL[k] ?? k}</dt>
-                  <dd>{v === null ? MISSING : /Ms$/.test(k) ? fmtMs(v) : v.toLocaleString()}</dd>
+                  <dd>{v === null ? MISSING : /Ms$/.test(k) ? fmtMs(v) : formatNumber(v)}</dd>
                 </div>
               ))}
             </dl>
@@ -301,30 +284,28 @@ function GoBackSection({ goBack }: { goBack: ReturnType<typeof useGoBack> }) {
   };
   return (
     <div className="gc-section" data-rollback>
-      <h3 className="gc-section-title">Go back to a previous version</h3>
-      <p className="small muted">
-        Installs an earlier Stable version over this one, after checking its download and asking you. Your HUD files and program settings stay. When that version stores data in an older format, the copy of your data made when you updated is restored, so changes made since then are lost.
-      </p>
+      <h3 className="gc-section-title">{t("settings.goBack.title")}</h3>
+      <p className="small muted">{t("settings.goBack.body")}</p>
       <div className="row">
-        <Button onClick={() => void load()} disabledReason={loading ? "Looking up earlier versions…" : goBack.running ? "Busy…" : null}>
-          {options ? "Refresh the list" : "Go back to a previous version…"}
+        <Button onClick={() => void load()} disabledReason={loading ? t("settings.goBack.lookingUp") : goBack.running ? t("settings.busy") : null}>
+          {options ? t("settings.goBack.refresh") : t("settings.goBack.open")}
         </Button>
       </div>
-      {loading ? <p className="small muted">Looking up earlier versions on GitHub…</p> : null}
+      {loading ? <p className="small muted">{t("settings.goBack.lookingUpGithub")}</p> : null}
       {error ? <Note tone="warn">{error}</Note> : null}
-      {options && options.length === 0 ? <p className="small muted">No earlier Stable version with an installer and checksums was found.</p> : null}
+      {options && options.length === 0 ? <p className="small muted">{t("settings.goBack.none")}</p> : null}
       {options?.length ? (
         <ul className="stack" style={{ listStyle: "none", margin: 0, padding: 0 }} data-rollback-list>
           {options.map((o) => (
             <li key={o.version} data-rollback-version={o.version}>
               <div className="row">
                 <strong>{o.version}</strong>
-                {o.publishedAt ? <span className="small muted">{new Date(o.publishedAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</span> : null}
+                {o.publishedAt ? <span className="small muted">{formatDate(o.publishedAt, { day: "numeric", month: "short", year: "numeric" })}</span> : null}
                 <a href={o.notesUrl} target="_blank" rel="noreferrer">
-                  What&apos;s new
+                  {t("settings.whatsNew")}
                 </a>
-                <Button size="sm" onClick={() => void goBack.start(o.version)} disabledReason={o.data.kind === "refuse" ? "There's no copy of your data this version can read" : goBack.running ? "Busy…" : null}>
-                  Go back to {o.version}
+                <Button size="sm" onClick={() => void goBack.start(o.version)} disabledReason={o.data.kind === "refuse" ? t("settings.goBack.noCopy") : goBack.running ? t("settings.busy") : null}>
+                  {t("settings.goBack.to", { version: o.version })}
                 </Button>
               </div>
               <p className={`small ${o.data.kind === "refuse" ? "text-warn" : "muted"}`}>{o.data.text}</p>
@@ -348,47 +329,47 @@ function ProgramPanel() {
   if (!mf?.updates && !mf?.openConnection) return null;
   const busy = st?.status === "checking" || st?.status === "downloading";
   return (
-    <Panel title="Program" subtitle={st ? `MatchFrame Esports ${st.currentVersion}` : undefined}>
+    <Panel title={t("settings.program.title")} subtitle={st ? `MatchFrame Esports ${st.currentVersion}` : undefined}>
       {st ? (
         <div className="stack" data-updates={st.status}>
           <p className={st.status === "error" ? "text-warn" : st.status === "ready" ? "text-ok" : "muted"}>{updateSummary(st)}</p>
           <div className="row">
             {st.status === "ready" ? (
-              <Button variant="primary" onClick={() => void updates.installNow()} title="Closes the program and every HUD output for a moment, installs the update and starts the new version">
-                Restart and update
+              <Button variant="primary" onClick={() => void updates.installNow()} title={t("settings.program.restartTitle")}>
+                {t("settings.program.restartUpdate")}
               </Button>
             ) : st.status === "available" && st.downgrade && st.version ? (
-              <Button variant="primary" onClick={() => void goBack.start(st.version!, true)} disabledReason={!rollback.available() ? "This program can't go back to a version" : goBack.running ? "Busy…" : null} title="Checks the download, says what happens to your data and asks before anything changes">
-                Install {st.version}…
+              <Button variant="primary" onClick={() => void goBack.start(st.version!, true)} disabledReason={!rollback.available() ? t("settings.program.cantGoBack") : goBack.running ? t("settings.busy") : null} title={t("settings.program.installTitle")}>
+                {t("settings.program.install", { version: st.version })}
               </Button>
             ) : st.status === "available" ? (
               <Button variant="primary" onClick={() => void updates.download()}>
-                Download {st.version}
+                {t("settings.program.download", { version: st.version })}
               </Button>
             ) : (
-              <Button onClick={() => void updates.check()} disabledReason={st.status === "disabled" ? st.disabledReason : busy ? "Busy…" : null}>
-                Check for updates
+              <Button onClick={() => void updates.check()} disabledReason={st.status === "disabled" ? st.disabledReason : busy ? t("settings.busy") : null}>
+                {t("settings.program.check")}
               </Button>
             )}
             {st.releaseNotesUrl ? (
               <a href={st.releaseNotesUrl} target="_blank" rel="noreferrer">
-                What's new
+                {t("settings.whatsNew")}
               </a>
             ) : null}
           </div>
           <label className="check">
             <input type="checkbox" checked={st.autoDownload} disabled={st.status === "disabled"} onChange={(e) => void updates.setAutoDownload(e.target.checked)} />
-            <span>Download updates automatically</span>
+            <span>{t("settings.program.autoDownload")}</span>
           </label>
           {mf.updates?.setChannel ? (
-            <Field label="Update channel" hint="Beta versions come out first and may have problems. Back on Stable, the latest Stable version is offered even when it's older than your beta, and installs only when you say so.">
+            <Field label={t("settings.program.channel")} hint={t("settings.program.channelHint")}>
               <select value={st.channel ?? "stable"} disabled={st.status === "disabled"} onChange={(e) => void updates.setChannel(e.target.value === "beta" ? "beta" : "stable")} data-update-channel>
                 <option value="stable">Stable</option>
                 <option value="beta">Beta</option>
               </select>
             </Field>
           ) : null}
-          <p className="small muted">Updates come from the MatchFrame Esports releases on GitHub. A downloaded update installs when you quit the program; it never restarts on its own during a broadcast.</p>
+          <p className="small muted">{t("settings.program.updatesNote")}</p>
         </div>
       ) : null}
       {goBack.progress ? <p className="small muted">{rollbackProgressText(goBack.progress)}</p> : null}
@@ -396,8 +377,8 @@ function ProgramPanel() {
       {rollback.available() ? <GoBackSection goBack={goBack} /> : null}
       <CrashReportsSetting />
       <div className="row" style={{ marginTop: 10 }}>
-        {mf.openConnection ? <Button onClick={() => void mf.openConnection!()}>Connection settings…</Button> : null}
-        {mf.openDataDir ? <Button onClick={() => void mf.openDataDir!()}>Open data folder</Button> : null}
+        {mf.openConnection ? <Button onClick={() => void mf.openConnection!()}>{t("settings.program.connection")}</Button> : null}
+        {mf.openDataDir ? <Button onClick={() => void mf.openDataDir!()}>{t("settings.program.dataFolder")}</Button> : null}
       </div>
     </Panel>
   );
@@ -411,23 +392,68 @@ function CrashReportsSetting() {
     <div className="stack" style={{ marginTop: 10 }} data-crash-reports={state.enabled ? "on" : "off"}>
       <label className="check">
         <input type="checkbox" checked={state.enabled} onChange={(e) => void setEnabled(e.target.checked)} />
-        <span>Send crash reports</span>
+        <span>{t("settings.crash.send")}</span>
       </label>
-      <p className="small muted">If MatchFrame crashes, it sends the support file (settings without passwords or tokens, health and recent logs) and the error to MatchFrame support.</p>
+      <p className="small muted">{t("settings.crash.body")}</p>
       {state.recent.length > 0 ? (
         <p className="small">
-          Crash reports sent:{" "}
-          {state.recent.slice(0, 3).map((r, i) => (
-            <span key={r.id}>
-              {i > 0 ? ", " : ""}
-              <code>{r.id}</code> ({fmtTime(r.sentAt)})
-            </span>
-          ))}
-          . Quote the ID to MatchFrame support.
+          <T
+            k="settings.crash.sent"
+            values={{
+              list: state.recent.slice(0, 3).map((r, i) => (
+                <span key={r.id}>
+                  {i > 0 ? ", " : ""}
+                  <code>{r.id}</code> ({fmtTime(r.sentAt)})
+                </span>
+              )),
+            }}
+          />
         </p>
       ) : null}
-      {state.queued > 0 ? <p className="small muted">{state.queued === 1 ? "1 crash report waits" : `${state.queued} crash reports wait`} to be sent{state.lastError ? ` (${state.lastError})` : ""}.</p> : null}
+      {state.queued > 0 ? <p className="small muted">{state.lastError ? t("settings.crash.waitingError", { count: state.queued, error: state.lastError }) : t("settings.crash.waiting", { count: state.queued })}</p> : null}
     </div>
+  );
+}
+
+/**
+ * Settings → General → Language (ADR-082): applies at once, here and in the program's tray, dialogs
+ * and notifications. Each language is listed in its own name, so it can be found in any language.
+ */
+export function LanguagePanel() {
+  const pref = useLanguagePref();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const choose = async (next: LanguagePref) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await setLanguagePref(next);
+    } catch (e) {
+      setError(describeError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Panel title={t("settings.language.title")} subtitle={t("settings.language.subtitle")}>
+      <div className="stack" data-language-panel>
+        <Field label={t("settings.language.label")} hint={t("settings.language.hint")}>
+          <select value={pref} disabled={busy} onChange={(e) => void choose(e.target.value as LanguagePref)} data-language={pref}>
+            <option value="system">{t("settings.language.system", { language: LANGUAGE_NAMES[systemLocale()] })}</option>
+            {LOCALES.map((l) => (
+              <option key={l} value={l} lang={l}>
+                {LANGUAGE_NAMES[l]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Note tone="info" title={t("settings.language.machineTitle")}>
+          {t("settings.language.machine")}
+        </Note>
+        <p className="small muted">{t("settings.language.scope")}</p>
+        {error ? <Note tone="warn">{error}</Note> : null}
+      </div>
+    </Panel>
   );
 }
 
@@ -449,20 +475,20 @@ function DefaultPlayerPicturePanel() {
     }
   };
   return (
-    <Panel title="Default player picture" subtitle="Shown for any player who has no picture of their own">
+    <Panel title={t("settings.picture.title")} subtitle={t("settings.picture.subtitle")}>
       <ImageField
         id="default-player-picture"
-        label="Default picture"
+        label={t("settings.picture.label")}
         kind="avatar"
         value={{ assetId: pic?.assetId ?? null, staged: null }}
-        disabledReason={writeReason ?? (saving ? "Saving the picture" : null)}
+        disabledReason={writeReason ?? (saving ? t("settings.picture.saving") : null)}
         onChange={(v) => {
           if (v.staged) void save({ stagedId: v.staged.stagedId });
           else if (!v.assetId && pic?.assetId) void save({ clear: true });
         }}
       />
       <p className="small muted">
-        Used at once in the Teams and Players lists, MatchFrame HUDs, imported HUDs and the Team Comms speaker strip. A player&apos;s own picture always comes first. In MatchFrame HUDs, the side pictures you set under <Link to="/hud/images">HUD images</Link> come before this one.
+        <T k="settings.picture.note" tags={{ link: (c) => <Link to="/hud/images">{c}</Link> }} />
       </p>
       {error ? <Note tone="warn">{error}</Note> : null}
     </Panel>
@@ -478,38 +504,39 @@ function GeneralTab() {
   const [fileError, setFileError] = useState<string | null>(null);
   return (
     <div className="grid-2">
+      <LanguagePanel />
       <ProgramPanel />
       <PerformancePanel />
       <DefaultPlayerPicturePanel />
-      <Panel title="Live session">
+      <Panel title={t("settings.session.title")}>
         <div className="row">
           {snap?.simulated ? (
-            <ActionButton action={() => api.post("/api/v1/simulation/stop")} success="Simulation stopped" disabledReason={settingsReason}>
-              Stop simulation
+            <ActionButton action={() => api.post("/api/v1/simulation/stop")} success={t("settings.session.simStopped")} disabledReason={settingsReason}>
+              {t("settings.session.stopSim")}
             </ActionButton>
           ) : (
-            <ActionButton action={() => api.post("/api/v1/simulation/start", { startOffsetSec: 25 })} success="Simulation started" disabledReason={settingsReason}>
-              Start labelled simulation
+            <ActionButton action={() => api.post("/api/v1/simulation/start", { startOffsetSec: 25 })} success={t("settings.session.simStarted")} disabledReason={settingsReason}>
+              {t("settings.session.startSim")}
             </ActionButton>
           )}
-          <ActionButton variant="ghost" action={() => api.post<{ sessionId: string }>("/api/v1/session/restart")} success={(r) => `New live session ${r.sessionId}`} disabledReason={directorReason} confirm={{ title: "Restart the live session?", body: "Clears in-memory match state, events and director history; the next GSI packet starts a fresh session. Camera control resumes manual.", danger: true, confirmLabel: "Restart session" }}>
-            Restart live session
+          <ActionButton variant="ghost" action={() => api.post<{ sessionId: string }>("/api/v1/session/restart")} success={(r) => t("settings.session.newSession", { id: r.sessionId })} disabledReason={directorReason} confirm={{ title: t("settings.session.restartTitle"), body: t("settings.session.restartBody"), danger: true, confirmLabel: t("settings.session.restartConfirm") }}>
+            {t("settings.session.restart")}
           </ActionButton>
         </div>
         <div className="gc-section">
-          <h3 className="gc-section-title">GSI token</h3>
-          <p className="small muted">Rotating the token breaks every GSI config written so far: write the config again in Setup and restart CS2.</p>
+          <h3 className="gc-section-title">{t("settings.gsi.title")}</h3>
+          <p className="small muted">{t("settings.gsi.body")}</p>
           <div className="row">
-            <ActionButton variant="ghost" action={() => api.post<{ note: string }>("/api/v1/setup/rotate-gsi-token")} success={(r) => `GSI token rotated. ${r.note}`} disabledReason={settingsReason} confirm={{ title: "Rotate the GSI token?", body: "Telemetry stops until the GSI config is rewritten and CS2 restarted.", danger: true, confirmLabel: "Rotate" }}>
-              Rotate GSI token
+            <ActionButton variant="ghost" action={() => api.post<{ note: string }>("/api/v1/setup/rotate-gsi-token")} success={(r) => t("settings.gsi.rotated", { note: r.note })} disabledReason={settingsReason} confirm={{ title: t("settings.gsi.rotateTitle"), body: t("settings.gsi.rotateBody"), danger: true, confirmLabel: t("settings.gsi.rotateConfirm") }}>
+              {t("settings.gsi.rotate")}
             </ActionButton>
             <Link to="/settings/setup#step-gsi" className="btn btn-ghost btn-md">
-              Rewrite GSI config
+              {t("settings.gsi.rewrite")}
             </Link>
           </div>
         </div>
       </Panel>
-      <Panel title="Event backup">
+      <Panel title={t("settings.backup.title")}>
         <ActionButton
           variant="primary"
           action={async () => {
@@ -517,17 +544,17 @@ function GeneralTab() {
             saveBlob(d.blob, d.filename ?? `matchframe-event-${Date.now()}.json`);
             return d;
           }}
-          success="Event package downloaded"
+          success={t("settings.backup.downloaded")}
         >
-          Export event package
+          {t("settings.backup.export")}
         </ActionButton>
-        <p className="gc-caption">Teams, players, rosters, events, matches, veto, sponsors, rundown, rules, outputs and used assets (checksummed). Secrets are never exported.</p>
+        <p className="gc-caption">{t("settings.backup.caption")}</p>
         <div className="gc-section">
-          <h3 className="gc-section-title">Restore an event package</h3>
+          <h3 className="gc-section-title">{t("settings.backup.restoreTitle")}</h3>
           <input
             type="file"
             accept=".json,application/json"
-            aria-label="Event package file"
+            aria-label={t("settings.backup.file")}
             onChange={async (e) => {
               setPreview(null);
               setFileError(null);
@@ -537,30 +564,30 @@ function GeneralTab() {
                 setPkg(JSON.parse(await f.text()) as Record<string, unknown>);
               } catch {
                 setPkg(null);
-                setFileError("Not a JSON file");
+                setFileError(t("settings.backup.notJson"));
               }
             }}
           />
           {fileError ? <p className="small text-danger">{fileError}</p> : null}
           <div className="form-actions">
-            <ActionButton size="sm" action={() => api.post<{ counts: Record<string, number>; collisions: { kind: string; id: string }[]; assets: number }>("/api/v1/import/event-package", { package: pkg, mode: "preview" })} onDone={setPreview} success="Package verified" disabledReason={settingsReason ?? (pkg ? null : "Choose a package file")}>
-              Preview
+            <ActionButton size="sm" action={() => api.post<{ counts: Record<string, number>; collisions: { kind: string; id: string }[]; assets: number }>("/api/v1/import/event-package", { package: pkg, mode: "preview" })} onDone={setPreview} success={t("settings.backup.verified")} disabledReason={settingsReason ?? (pkg ? null : t("settings.backup.chooseFile"))}>
+              {t("settings.backup.preview")}
             </ActionButton>
             <ActionButton
               size="sm"
               action={() => api.post("/api/v1/import/event-package", { package: pkg, mode: "commit" })}
-              success="Event package restored"
-              disabledReason={settingsReason ?? (!preview ? "Preview first" : preview.collisions.length ? `${preview.collisions.length} id collision(s) — cannot restore` : null)}
-              confirm={{ title: "Restore this event package?", body: "Adds its teams, players, events, matches and assets to this installation." }}
+              success={t("settings.backup.restored")}
+              disabledReason={settingsReason ?? (!preview ? t("settings.backup.previewFirst") : preview.collisions.length ? t("settings.backup.collisions", { count: preview.collisions.length }) : null)}
+              confirm={{ title: t("settings.backup.restoreConfirmTitle"), body: t("settings.backup.restoreConfirmBody") }}
             >
-              Restore
+              {t("settings.backup.restore")}
             </ActionButton>
           </div>
-          <p className="gc-caption">Preview first: restoring refuses id collisions.</p>
+          <p className="gc-caption">{t("settings.backup.previewCaption")}</p>
           {preview ? (
             <div style={{ marginTop: 10 }}>
-              <KV items={[...Object.entries(preview.counts).map(([k, v]) => [k, v] as [string, number]), ["Asset files", preview.assets]]} />
-              {preview.collisions.length ? <Note tone="warn">Collisions: {preview.collisions.map((c) => `${c.kind} ${c.id}`).join(", ")}</Note> : <p className="small text-ok">No id collisions.</p>}
+              <KV items={[...Object.entries(preview.counts).map(([k, v]) => [k, v] as [string, number]), [t("settings.backup.assetFiles"), preview.assets]]} />
+              {preview.collisions.length ? <Note tone="warn">{t("settings.backup.collisionList", { list: preview.collisions.map((c) => `${c.kind} ${c.id}`).join(", ") })}</Note> : <p className="small text-ok">{t("settings.backup.noCollisions")}</p>}
             </div>
           ) : null}
         </div>
@@ -575,8 +602,8 @@ function StatsTab() {
   return (
     <div className="stack">
       <Panel
-        title="Current match statistics"
-        subtitle="Metrics the source can't compute are shown as n/a, never estimated."
+        title={t("settings.stats.title")}
+        subtitle={t("settings.stats.subtitle")}
         actions={
           <ActionButton
             size="sm"
@@ -585,9 +612,9 @@ function StatsTab() {
               saveBlob(d.blob, d.filename ?? "matchframe-stats.csv");
               return d;
             }}
-            success="CSV downloaded"
+            success={t("settings.stats.csvDownloaded")}
           >
-            Download CSV
+            {t("settings.stats.downloadCsv")}
           </ActionButton>
         }
       >
@@ -597,18 +624,18 @@ function StatsTab() {
             return (
               <>
                 {s.players.length === 0 ? (
-                  <EmptyState title="No players in telemetry">Statistics appear once telemetry arrives.</EmptyState>
+                  <EmptyState title={t("settings.stats.noPlayers")}>{t("settings.stats.noPlayersBody")}</EmptyState>
                 ) : (
                   <table className="table table-compact">
                     <thead>
                       <tr>
-                        <th>Player</th>
-                        <th>Side</th>
+                        <th>{t("settings.stats.player")}</th>
+                        <th>{t("settings.stats.side")}</th>
                         <th>K</th>
                         <th>D</th>
                         <th>A</th>
                         <th>MVP</th>
-                        <th>Score</th>
+                        <th>{t("settings.stats.score")}</th>
                         <th>ADR</th>
                         <th>KAST</th>
                       </tr>
@@ -623,19 +650,19 @@ function StatsTab() {
                           <td>{p.assists ?? MISSING}</td>
                           <td>{p.mvps ?? MISSING}</td>
                           <td>{p.score ?? MISSING}</td>
-                          <td title="Requires exact damage events">{p.adr ?? "n/a"}</td>
-                          <td title="Requires exact kill events">{p.kast ?? "n/a"}</td>
+                          <td title={t("settings.stats.needsDamage")}>{p.adr ?? t("settings.stats.na")}</td>
+                          <td title={t("settings.stats.needsKills")}>{p.kast ?? t("settings.stats.na")}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 )}
-                {unavailable.length ? <p className="gc-caption">Not available from this source: {unavailable.map((m) => m.label).join(", ")}.</p> : null}
-                <Details summary="Metric definitions">
+                {unavailable.length ? <p className="gc-caption">{t("settings.stats.notAvailable", { list: unavailable.map((m) => m.label).join(", ") })}</p> : null}
+                <Details summary={t("settings.stats.definitions")}>
                   <ul className="list-plain small">
                     {s.metrics.map((m) => (
                       <li key={m.key}>
-                        <strong>{m.label}</strong> {m.available ? <span className="text-ok">available</span> : <span className="text-warn">unavailable</span>}
+                        <strong>{m.label}</strong> {m.available ? <span className="text-ok">{t("settings.stats.available")}</span> : <span className="text-warn">{t("settings.stats.unavailable")}</span>}
                         <div className="muted">
                           {m.definition} {m.reason ? `— ${m.reason}` : ""}
                         </div>
@@ -649,8 +676,8 @@ function StatsTab() {
         </Async>
       </Panel>
       <Panel
-        title="Broadcast report"
-        subtitle="Director decisions, continuity, control events, replays and sponsor deliveries for the current session"
+        title={t("settings.report.title")}
+        subtitle={t("settings.report.subtitle")}
         actions={
           <>
             <ActionButton
@@ -660,9 +687,9 @@ function StatsTab() {
                 saveBlob(d.blob, `matchframe-broadcast-report-${Date.now()}.html`);
                 return d;
               }}
-              success="Report downloaded (HTML)"
+              success={t("settings.report.htmlDownloaded")}
             >
-              Download HTML
+              {t("settings.report.downloadHtml")}
             </ActionButton>
             <ActionButton
               size="sm"
@@ -672,9 +699,9 @@ function StatsTab() {
                 saveBlob(d.blob, `matchframe-broadcast-report-${Date.now()}.json`);
                 return d;
               }}
-              success="Report downloaded (JSON)"
+              success={t("settings.report.jsonDownloaded")}
             >
-              Download JSON
+              {t("settings.report.downloadJson")}
             </ActionButton>
           </>
         }
@@ -685,17 +712,17 @@ function StatsTab() {
               <div className="grid-2">
                 <KV
                   items={[
-                    ["Window", `${r.window.decisions} decisions · ${r.window.minutes} min`],
-                    ["Actions", Object.entries(r.director.actions).map(([k, v]) => `${k} ${v}`).join(" · ") || MISSING],
-                    ["Automated commands", `${r.director.automatedCommands} (${r.director.automatedConfirmed} confirmed, ${r.director.automatedFailed} failed)`],
-                    ["Shot changes", r.continuity.shotChanges],
-                    ["Cuts / minute", r.continuity.cutsPerMinute ?? MISSING],
-                    ["Median shot", fmtMs(r.continuity.medianShotMs)],
-                    ["Takeovers / external / e-stops", `${r.control.manualTakeovers} / ${r.control.externalChanges} / ${r.control.emergencyStops}`],
+                    [t("settings.report.window"), t("settings.report.windowValue", { count: r.window.decisions, minutes: r.window.minutes })],
+                    [t("settings.report.actions"), Object.entries(r.director.actions).map(([k, v]) => `${k} ${v}`).join(" · ") || MISSING],
+                    [t("settings.report.automated"), t("settings.report.automatedValue", { total: r.director.automatedCommands, confirmed: r.director.automatedConfirmed, failed: r.director.automatedFailed })],
+                    [t("settings.report.shotChanges"), r.continuity.shotChanges],
+                    [t("settings.report.cutsPerMinute"), r.continuity.cutsPerMinute ?? MISSING],
+                    [t("settings.report.medianShot"), fmtMs(r.continuity.medianShotMs)],
+                    [t("settings.report.takeovers"), `${r.control.manualTakeovers} / ${r.control.externalChanges} / ${r.control.emergencyStops}`],
                   ]}
                 />
                 <div>
-                  <h3 className="gc-section-title">Top reasons</h3>
+                  <h3 className="gc-section-title">{t("settings.report.topReasons")}</h3>
                   <ul className="list-plain small">
                     {r.director.topReasons.slice(0, 8).map(([k, v]) => (
                       <li key={k} className="row" title={k}>
@@ -712,14 +739,14 @@ function StatsTab() {
                   {c}
                 </p>
               ))}
-              <Details summary="Report details">
+              <Details summary={t("settings.report.details")}>
                 <KV
                   items={[
-                    ["Generated", fmtTime(r.generatedAt)],
-                    ["Source", r.simulated ? "simulation" : "live"],
-                    ["Policy", r.policyVersion],
-                    ["P10 shot", fmtMs(r.continuity.p10ShotMs)],
-                    ["Shots outliving their player", r.continuity.shotsThatOutlivedTheirPlayer],
+                    [t("settings.report.generated"), fmtTime(r.generatedAt)],
+                    [t("settings.report.source"), r.simulated ? t("settings.report.simulation") : t("settings.report.live")],
+                    [t("settings.report.policy"), r.policyVersion],
+                    [t("settings.report.p10"), fmtMs(r.continuity.p10ShotMs)],
+                    [t("settings.report.outlived"), r.continuity.shotsThatOutlivedTheirPlayer],
                   ]}
                 />
               </Details>
@@ -732,14 +759,14 @@ function StatsTab() {
 }
 
 export type SettingsTabId = "general" | "stats" | "diagnostics" | "logs" | "audit" | "settings";
-const SETTINGS_TITLES: Record<SettingsTabId, { title: string }> = {
-  general: { title: "General settings" },
-  stats: { title: "Stats & reports" },
-  diagnostics: { title: "Diagnostics" },
-  logs: { title: "Logs" },
-  audit: { title: "Audit log" },
-  settings: { title: "Advanced settings" },
-};
+const SETTINGS_TITLES: Record<SettingsTabId, { title: string }> = perLocale(() => ({
+  general: { title: t("settings.titles.general") },
+  stats: { title: t("nav.statsReports") },
+  diagnostics: { title: t("nav.diagnostics") },
+  logs: { title: t("nav.logs") },
+  audit: { title: t("nav.auditLog") },
+  settings: { title: t("settings.titles.advanced") },
+}));
 
 /** One Settings section; the section bar above the page (Shell) switches between them by URL. */
 export function SettingsScreen({ tab = "general" }: { tab?: SettingsTabId }) {
