@@ -73,6 +73,16 @@ Honour the flags in the state: show a SIMULATION marker when `state.simulated` i
 
 **Killfeed** (`state.killfeed.entries`, the current round): `killer`, `victim`, `weapon` (e.g. `"weapon_ak47"`), `headshot`, `assister` and `attackerBlind`. Game state integration reports no kill events, so `kind: "probable"` entries are paired from counter changes (the weapon is the killer's weapon in hand) and `kind: "elimination"` has no killer; any field can be `null`. Keep each row on screen for a few seconds after it first arrives (the bundled HUDs use 5–7 s). The Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2/app.js`) shows both in plain JavaScript.
 
+**Cues** (`state.cues`): graphics put up by the operator (HUD → Cues), automation rules, the rundown or the program itself, each `{ id, kind, title, subtitle, data }`, listed while on air. A cue changed in place keeps its `id`. While the Auto Director has the camera the program sends `economy`, `mvp`, `player`, `clutch` and `buy_type` (HUD graphics, ADR-029). Operator and rule cues can have any `kind`: draw one you don't know as a lower third with its title and subtitle, or leave it out, but leave out `buy_type` unless you draw it as below.
+
+**Buy type** (`kind: "buy_type"`, ADR-080): one cue per team from freeze time until 8 s into the live round, so a HUD can show "ECO" or "FORCE BUY" by a team.
+
+- `title`: the label to show, one of `PISTOL ROUND`, `ECO`, `FORCE BUY`, `HALF BUY`, `FULL BUY`, `ANTI-ECO`; `subtitle`: the team's name, or `null`.
+- `data.side`: `"T"` or `"CT"`, the team's side this round (map it to your left or right as you do the teams); `data.team`: `id` and `name` (each can be `null`).
+- `data.label` (as `title`) and `data.buyType`: `pistol`, `eco`, `force`, `half`, `full` or `anti_eco` (a team buying against a team on an eco).
+- `data.firm`: `false` in freeze time, while the buy is read from what the team can spend and then from what it bought (the label can change once or twice as the team buys or saves); `true` from one second into the live round, when it is final. `data.roundNumber`: the round.
+- Many broadcasts show only `eco`, `force` and `anti_eco`, or a small label beside the team's money; `full` every round is noise. The operator can turn the cue off (HUD graphics → **Buy type in freeze time**). The bundled HUDs don't draw it yet.
+
 **Replay graphic** (`state.replay.clip`, ADR-061): while a replay clip is on air, `clip` says what it shows:
 
 - `player`, and `team` as the HUD shows it (`key` left/right, name, logo, colour).

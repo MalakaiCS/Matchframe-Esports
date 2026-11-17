@@ -4,7 +4,7 @@ import type { CameraPath, CameraRecord, DirectorDecision, DirectorMode, MatchSta
 import { emptySourceCapabilities } from "@matchframe/contracts";
 import type { DerivedEvent, GsiObservation, IngestResult, ProfileSet, UtilityTrackerEvent } from "@matchframe/cs2-state";
 import { CapabilitySampler, hash53, MatchStateStore, normalizeGsi, parseGsiPayload, stripAuth } from "@matchframe/cs2-state";
-import type { ArbiterEvent, ControlCapabilities, DirectorOutput, ObserverControlAdapter, Pin, PlayerView } from "@matchframe/director-policy";
+import type { ArbiterEvent, BuyStory, ClutchState, ControlCapabilities, DirectorOutput, ObserverControlAdapter, Pin, PlayerView } from "@matchframe/director-policy";
 import { cameraShot, chaseMoment, ControlArbiter, Director, glideMotion, panMotion, parseShot, pathShot, povShot, teamCamera, teamShotSide } from "@matchframe/director-policy";
 import type { MapRegistry } from "@matchframe/map-runtime";
 import type { Logger } from "../logger.ts";
@@ -17,6 +17,10 @@ export interface SessionEvents {
   events: [DerivedEvent[]];
   utility: [UtilityTrackerEvent[]];
   arbiter: [ArbiterEvent];
+  /** The clutch shot changed focus (the clutch began, a look at a hunter, back to the clutcher). */
+  clutch: [ClutchState];
+  /** A team's buy was read differently, or became final for the round. */
+  buys: [BuyStory];
   capabilities: [SourceCapabilities];
   alert: [{ level: "info" | "warn" | "error"; code: string; message: string }];
 }
@@ -89,6 +93,9 @@ export class LiveSession extends EventEmitter<SessionEvents> {
   private readonly utilityLog: UtilityTrackerEvent[] = [];
   readonly decisionLog: DirectorDecision[] = [];
   private lastEvaluatedSequence = -1;
+  /** The last clutch switch and buy read told to listeners (each is told once). */
+  private lastClutchSwitch: number | null = null;
+  private lastBuys = "";
   private tickTimer: ReturnType<typeof setInterval> | null = null;
   private pendingCinematic: ({ commandId: string } & CinematicNote) | null = null;
   /** The cinematic being submitted right now: bound to its command id when the arbiter accepts it. */
@@ -327,6 +334,17 @@ export class LiveSession extends EventEmitter<SessionEvents> {
       if (this.decisionLog.length > 1000) this.decisionLog.shift();
       if (output.decision.action === "recommend") this.stats.recommendations++;
       this.emit("decision", output.decision);
+    }
+    const sw = output.clutch?.lastSwitch;
+    if (output.clutch && sw && sw.id !== this.lastClutchSwitch) {
+      this.lastClutchSwitch = sw.id;
+      this.emit("clutch", output.clutch);
+    }
+    const b = output.buys;
+    const buysKey = b ? `${b.roundAttemptId}|${b.T?.type}|${b.CT?.type}|${b.firm}` : "";
+    if (b && buysKey !== this.lastBuys) {
+      this.lastBuys = buysKey;
+      this.emit("buys", b);
     }
     this.lastEvaluatedSequence = s.sequence;
     if (this.shadowModel && now - this.lastShadowAt >= 250) {

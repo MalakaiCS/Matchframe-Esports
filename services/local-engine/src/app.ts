@@ -1127,6 +1127,14 @@ export class Engine {
     for (const fn of this.hudListeners) fn("*");
   }
 
+  /** Changes a cue on air in place (same id: a HUD redraws it rather than bringing it in again). */
+  updateCue(id: string, patch: { title?: string; subtitle?: string | null; data?: Record<string, unknown> }): void {
+    const cue = this.cues.get(id);
+    if (!cue) return;
+    Object.assign(cue, Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)));
+    for (const fn of this.hudListeners) fn("*");
+  }
+
   listCues(): Cue[] {
     return [...this.cues.values()];
   }
@@ -1156,6 +1164,26 @@ export class Engine {
       if (key === lastDecision) return;
       lastDecision = key;
       log.info("decision", { action: d.action, current: d.currentShot, desired: d.desiredShot, reasons: d.reasonCodes, health: d.controlHealth, mode: d.mode });
+    });
+    // Clutch direction: every change of focus, why, and what the director knew of each hunter.
+    this.session.on("clutch", (c) => {
+      const name = (id: string) => this.session.state()?.players.find((p) => p.steamId === id)?.name ?? id;
+      log.info("clutch", {
+        note: c.lastSwitch?.note ?? null,
+        clutcher: c.clutcherName,
+        versus: c.versus,
+        on: name(c.focus),
+        why: c.why,
+        reasons: c.reasons,
+        site: c.site,
+        timeLeftSec: c.timeLeftSec === null ? null : Math.round(c.timeLeftSec),
+        hunters: c.hunters.map((h) => ({ name: h.name, walk: Number.isFinite(h.walk) ? Math.round(h.walk) : null, onFoot: h.walked, closing: h.closing === null ? null : Math.round(h.closing), etaSec: h.etaSec === null ? null : Math.round(h.etaSec * 10) / 10, inSight: h.sightNow, sightInSec: h.sightSoonSec, role: h.role })),
+      });
+    });
+    // Each team's buy as it is read in freeze time, and when it is final.
+    this.session.on("buys", (b) => {
+      const team = (t: typeof b.T) => (t ? { buy: t.label, from: t.basis, equipment: t.equipment, money: t.money, rifles: t.rifles, smgs: t.smgs, lossBonus: t.lossBonus } : null);
+      log.info("buy", { round: b.roundNumber, firm: b.firm, T: team(b.T), CT: team(b.CT) });
     });
     let lastGame = "";
     this.session.on("state", (s: MatchState) => {

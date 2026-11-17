@@ -152,6 +152,7 @@ export function GraphicsPanel() {
           <Checkbox checked={st?.mvp ?? true} disabled={off || !st?.enabled} label="Round MVP in freeze time" onChange={(v) => void save({ mvp: v })} />
           <Checkbox checked={st?.playerCards ?? true} disabled={off || !st?.enabled} label="Player card on a long player view" hint="Only on a player view, never over a camera, and gone when the view changes." onChange={(v) => void save({ playerCards: v })} />
           <Checkbox checked={st?.clutch ?? true} disabled={off || !st?.enabled} label="Clutch banner (1v2 and more)" onChange={(v) => void save({ clutch: v })} />
+          <Checkbox checked={st?.buyType ?? true} disabled={off || !st?.enabled} label="Buy type in freeze time (ECO, FORCE BUY…)" hint="Data for HUDs that show it (cue buy_type); the bundled HUDs don't draw it yet." onChange={(v) => void save({ buyType: v })} />
         </div>
         <p className="muted small">MatchFrame HUDs draw these. Imported HUDs (hud.json format) have their own pages instead, shown below.</p>
         <h4 className="hud-section-title">Imported HUD pages in OBS</h4>

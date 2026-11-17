@@ -116,6 +116,22 @@ export const REASON_CODES = [
   "MATCH_POINT",
   "HALF_TIME",
   "MAP_END",
+  /** Clutch direction (ADR-080): a short look at a hunter walking in on the clutcher. */
+  "CLUTCH_HUNTER_CLOSING",
+  /** A hunter walking into the bombsite the clutcher holds. */
+  "CLUTCH_HUNTER_ON_SITE",
+  /** A hunter starting to plant the bomb. */
+  "CLUTCH_HUNTER_PLANTING",
+  /** A hunter starting to defuse the bomb. */
+  "CLUTCH_HUNTER_DEFUSING",
+  /** Back to the clutcher before a hunter makes contact. */
+  "CLUTCH_BACK_BEFORE_CONTACT",
+  /** Back to the clutcher when a look at a hunter is over. */
+  "CLUTCH_LOOK_OVER",
+  /** Freeze time: a team on a force buy, shown last with its pistols or SMGs in view. */
+  "FORCE_BUY",
+  /** Freeze time: a team on an eco against a full buy; both teams, the full buy last. */
+  "ECO_VS_FULL_BUY",
 ] as const;
 export const ReasonCode = z.enum(REASON_CODES);
 export type ReasonCode = z.infer<typeof ReasonCode>;

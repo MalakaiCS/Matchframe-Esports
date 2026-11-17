@@ -3,6 +3,7 @@ import { projectCountdown } from "@matchframe/cs2-state";
 import type { Pin, ScoredCandidate } from "./candidates.ts";
 import { utilityOf } from "./candidates.ts";
 import type { DirectorConfig } from "./config.ts";
+import type { BuyStory } from "./features/buy.ts";
 import type { InteractionFeatures } from "./features/interactions.ts";
 import type { MatchMoment } from "./features/moments.ts";
 import type { RoundContext } from "./features/significance.ts";
@@ -50,6 +51,8 @@ export interface CinematicInput {
   overForMs?: number | null | undefined;
   /** Where the match stands: pistol round, match point, half time, map end, the last round's winner. */
   moment?: MatchMoment | null | undefined;
+  /** Each team's buy this round (see BuyTracker), for the freeze time's story. */
+  buys?: BuyStory | null | undefined;
 }
 
 /** Freeze time shorter than this is not worth an establishing shot. */
@@ -66,8 +69,10 @@ export const PAUSE_HOLD_MS = 180_000;
 export const PAUSE_GLIDE_MS = 20_000;
 /** The winners' shot starts this long after the round ends (the last kill stays on air first). */
 const WINNER_DELAY_MS = 2000;
-/** A team whose players have less than this on average (money and equipment) is on an eco. */
+/** Without a buy classification: a team whose players have less than this on average (money and equipment) is on an eco. */
 const ECO_VALUE = 2500;
+/** When the long shot (a force buy's) comes last, the shot before it takes at most this share of the freeze time. */
+const SHORT_SHARE = 0.4;
 /** Team-shot looks, in turn from round to round (with variety on). */
 const LOOKS: readonly TeamShotLook[] = ["eye", "high", "side", "eye", "low"];
 /** A camera or path that played 1, 2 or 3 rounds ago scores this much lower (variety across rounds). */
@@ -299,27 +304,31 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>, mode: 
     const at = [k[0]!, k[Math.floor(k.length / 2)]!, k[k.length - 1]!].map((f) => new Set(inView(f.position, f.yaw, f.pitch, path.targetRegionIds).map((p) => p.steamId)));
     return alive.filter((p) => at.every((ids) => ids.has(p.steamId)));
   };
-  // The next shot's length: the time left shared out, the last one running until the round goes live.
-  const shotsLeft = left === null ? 2 : Math.max(1, Math.ceil(left / ESTABLISHING_SHOT_MAX_SEC));
+  const plan = freezePlan(input, mode);
+  // The next shot's length: the time left shared out (among the shots the plan still has to show,
+  // each at least 4 s: a pistol round's opener and both spawns), the last one running until the round goes live.
+  const planned = (plan.opener && playedEstablishing === 0 ? 1 : 0) + plan.sides.filter((side) => !shown.has(cameraShot(teamCameraId(side, false, interval ? "break" : null)))).length;
+  const shotsLeft = left === null ? 2 : Math.max(1, Math.min(Math.floor(left / ESTABLISHING_SHOT_MIN_SEC), Math.max(Math.ceil(left / ESTABLISHING_SHOT_MAX_SEC), planned)));
   const nextMs = Math.min(
     cfg.cinematic.establishingMaxMs,
     left === null ? 8000 : shotsLeft === 1 ? left * 1000 + ESTABLISHING_OVERRUN_MS : Math.max(ESTABLISHING_SHOT_MIN_SEC * 1000, (left * 1000) / shotsLeft),
   );
   const options: EstablishingOption[] = [];
-  const plan = freezePlan(input, mode);
   const firstSide = plan.sides[0] ?? ((state.roundNumber ?? 0) % 2 === 0 ? "T" : "CT");
-  // One longer shot of one team: most of the freeze time.
+  // One longer shot of one team: most of the freeze time. When it comes last (a force buy), the one before it is shorter.
   const longMs = left === null ? 10_000 : Math.min(cfg.cinematic.establishingMaxMs, Math.max(nextMs, left * 1000 * 0.7));
+  const longLast = plan.longSide !== null && plan.sides.length > 1 && plan.sides[plan.sides.length - 1] === plan.longSide;
+  const shortMs = left === null ? nextMs : Math.max(ESTABLISHING_SHOT_MIN_SEC * 1000, Math.min(nextMs, left * 1000 * SHORT_SHARE));
   // Team shots first (still ones in a pause).
   plan.sides.forEach((side, i) => {
-    const look = input.pause || interval || !cfg.cinematic.variety ? "eye" : LOOKS[((state.roundNumber ?? 0) + 2 * i) % LOOKS.length]!;
+    const look = plan.looks?.[side] ?? (input.pause || interval || !cfg.cinematic.variety ? "eye" : LOOKS[((state.roundNumber ?? 0) + 2 * i) % LOOKS.length]!);
     // A pause's shot glides too (one way, then back: see pauseCandidates).
     const shot = input.teamShot?.(side, false, look);
     if (!shot) return;
     const ids = new Set(shot.steamIds);
     const players = alive.filter((p) => ids.has(p.steamId));
     const key = cameraShot(teamCameraId(side, !!input.pause, interval ? "break" : null));
-    options.push({ key, shotClass: "establishing", camera: null, path: null, team: { side, shot }, regionIds: [], durationMs: plan.longSide === side ? longMs : nextMs, players });
+    options.push({ key, shotClass: "establishing", camera: null, path: null, team: { side, shot }, regionIds: [], durationMs: plan.longSide === side ? longMs : longLast ? shortMs : nextMs, players });
     if (input.pause) options.push({ key: cameraShot(teamCameraId(side, true, "back")), shotClass: "establishing", camera: null, path: null, team: { side, shot, back: true }, regionIds: [], durationMs: PAUSE_GLIDE_MS, players });
   });
   for (const m of map.camerasWith?.({ actionClass: "establishing", phase: "freezetime" }) ?? []) {
@@ -410,13 +419,24 @@ function establishingCandidates(input: CinematicInput, seen: Set<string>, mode: 
   return out;
 }
 
+interface FreezePlan {
+  sides: ("T" | "CT")[];
+  longSide: "T" | "CT" | null;
+  opener: boolean;
+  reasons: ReasonCode[];
+  /** A team shot's look other than the round's (a force buy: close, to see the guns). */
+  looks?: Partial<Record<"T" | "CT", TeamShotLook>>;
+}
+
 /**
  * Which team shots a freeze time (or half time, the map's end) has, in order: a pistol round opens
- * with the map's camera; the team on match point comes first and longer; with variety on, a team on
- * an eco gets no team shot and every third round has one longer shot of one team. Half time: the
- * team ahead first; the map's end: the winners first.
+ * with the map's camera, then both spawns; the team on match point comes first and longer. Then the
+ * buy story (`buyStories`, see BuyTracker): a team on a force buy comes last and longer, framed close
+ * to see its pistols or SMGs; an eco against a full buy shows both teams, the full buy last. With
+ * variety on, a team on an eco otherwise gets no team shot, and every third round has one longer shot
+ * of one team. Half time: the team ahead first; the map's end: the winners first.
  */
-function freezePlan(input: CinematicInput, mode: "freeze" | "half_time" | "map_end"): { sides: ("T" | "CT")[]; longSide: "T" | "CT" | null; opener: boolean; reasons: ReasonCode[] } {
+function freezePlan(input: CinematicInput, mode: "freeze" | "half_time" | "map_end"): FreezePlan {
   const { state, cfg } = input;
   const m = cfg.cinematic.bigMoments ? input.moment : null;
   const other = (s: "T" | "CT"): "T" | "CT" => (s === "T" ? "CT" : "T");
@@ -432,6 +452,17 @@ function freezePlan(input: CinematicInput, mode: "freeze" | "half_time" | "map_e
   if (m?.matchPoint.length === 1) return { sides: both(m.matchPoint[0]!), longSide: m.matchPoint[0]!, opener: false, reasons: ["MATCH_POINT"] };
   if (m?.matchPoint.length === 2) return { sides: both(turn), longSide: null, opener: false, reasons: ["MATCH_POINT"] };
   if (m?.pistol) return { sides: both(turn), longSide: null, opener: true, reasons: ["PISTOL_ROUND"] };
+  const buys = cfg.cinematic.buyStories && input.buys?.T && input.buys.CT ? { T: input.buys.T.type, CT: input.buys.CT.type } : null;
+  if (buys) {
+    const forcing = (["T", "CT"] as const).filter((s) => buys[s] === "force");
+    if (forcing.length === 1) {
+      const f = forcing[0]!;
+      return { sides: [other(f), f], longSide: f, opener: false, reasons: ["FORCE_BUY"], looks: { [f]: "weapons" } };
+    }
+    if (forcing.length === 2) return { sides: both(turn), longSide: null, opener: false, reasons: ["FORCE_BUY"], looks: { T: "weapons", CT: "weapons" } };
+    const saving = (["T", "CT"] as const).find((s) => buys[s] === "eco");
+    if (saving && (buys[other(saving)] === "full" || buys[other(saving)] === "anti_eco")) return { sides: [saving, other(saving)], longSide: null, opener: false, reasons: ["ECO_VS_FULL_BUY"] };
+  }
   if (!cfg.cinematic.variety) return { sides: both(turn), longSide: null, opener: false, reasons: [] };
   const value = (side: "T" | "CT") => {
     const team = state.players.filter((p) => p.side === side && !p.coach);
@@ -439,6 +470,7 @@ function freezePlan(input: CinematicInput, mode: "freeze" | "half_time" | "map_e
     return known.length ? known.reduce((s, p) => s + (p.money ?? 0) + (p.equipValue ?? 0), 0) / known.length : null;
   };
   const eco = (["T", "CT"] as const).filter((s) => {
+    if (buys) return buys[s] === "eco";
     const v = value(s);
     return v !== null && v < ECO_VALUE;
   });

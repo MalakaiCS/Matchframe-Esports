@@ -37,6 +37,11 @@ export interface CandidateInput {
   avoid?: ReadonlySet<string> | null | undefined;
   /** Clutch mode: the last player alive on their side is the shot until the clutch ends. */
   clutchMode?: boolean | undefined;
+  /**
+   * Clutch direction (see ClutchDirector): who the clutch shot is on now (the clutcher, or a hunter
+   * for a short look), the reasons, and whether to cut at once. Absent: the clutcher.
+   */
+  clutchFocus?: { focus: string; reasons: readonly ReasonCode[]; urgent: boolean } | null | undefined;
   /** When each player last got a kill this round (monotonic ms), for multi-frag awareness. */
   recentKills?: ReadonlyMap<string, number> | undefined;
 }
@@ -47,7 +52,7 @@ function opponentsNear(state: MatchState, p: MatchState["players"][number], rang
   return state.players.filter((o) => o.side && o.side !== p.side && !o.coach && o.lifeState === "alive" && o.position && Math.hypot(o.position.x - p.position!.x, o.position.y - p.position!.y) <= range).length;
 }
 
-/** Clutch mode: the clutching player's lead over everyone else, and what an opponent gives up. */
+/** Clutch mode: the lead of the player the clutch shot is on (the clutcher, or a hunter for a look) over everyone else, and what the others give up. */
 const CLUTCH_BONUS = 0.45;
 const CLUTCH_OPPONENT_PENALTY = 0.25;
 
@@ -245,8 +250,11 @@ export function generateCandidates(input: CandidateInput): ScoredCandidate[] {
     const avoided = input.avoid?.has(p.steamId) === true;
     if (avoided) reasons.push("MAIN_OBSERVER_ON_IT");
     const clutch = input.clutchMode ? input.round.clutch : null;
-    const clutchShift = !clutch ? 0 : clutch.steamId === p.steamId ? CLUTCH_BONUS : -CLUTCH_OPPONENT_PENALTY;
-    const urgent = sig.reasons.includes("BOMB_CRITICAL") || sig.reasons.includes("BOMB_DEFUSE_PRESSURE") || (f?.contact["0.5"] ?? 0) >= 0.7;
+    const focus = clutch ? (input.clutchFocus?.focus ?? clutch.steamId) : null;
+    const clutchShift = !clutch ? 0 : focus === p.steamId ? CLUTCH_BONUS : -CLUTCH_OPPONENT_PENALTY;
+    if (clutch && focus === p.steamId && input.clutchFocus?.reasons.length) reasons.splice(isCurrent ? 1 : 0, 0, ...input.clutchFocus.reasons);
+    // Mid-clutch, only the clutch direction cuts at once (a plant or defuse starting, back before contact).
+    const urgent = clutch ? focus === p.steamId && input.clutchFocus?.urgent === true : sig.reasons.includes("BOMB_CRITICAL") || sig.reasons.includes("BOMB_DEFUSE_PRESSURE") || (f?.contact["0.5"] ?? 0) >= 0.7;
     out.push({
       candidateId: `cand:${key}`,
       shotClass: "pov",

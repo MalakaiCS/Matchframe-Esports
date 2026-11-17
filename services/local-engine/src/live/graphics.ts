@@ -10,6 +10,8 @@ import type { Engine } from "../app.ts";
  * - a player view held a while with nothing happening: that player's card (lower third), only on a
  *   player view, never over a camera, and gone as soon as the view changes;
  * - a clutch (1v2 or more): a "1v3" banner until it ends;
+ * - each team's buy (ECO, FORCE BUY, …): a `buy_type` cue per team from freeze time to 8 s into the
+ *   live round, changed in place as the buy is read and when it is final (ADR-080);
  * - an imported HUD's own pages in OBS (kaiHUD's Player Highlight and Match stats): Player Highlight for
  *   the MVP in freeze time, Match stats at half time and at the end of the map, by showing their OBS
  *   browser sources for a few seconds.
@@ -23,6 +25,8 @@ export const GraphicsSettings = z.object({
   mvp: z.boolean().default(true),
   playerCards: z.boolean().default(true),
   clutch: z.boolean().default(true),
+  /** Each team's buy (ECO, FORCE BUY, …) as a `buy_type` cue for the HUD. */
+  buyType: z.boolean().default(true),
   /** An imported HUD's pages as OBS browser sources in one scene (empty = not used). */
   pages: z
     .object({
@@ -40,6 +44,7 @@ export const GraphicsPatch = z.object({
   mvp: z.boolean().optional(),
   playerCards: z.boolean().optional(),
   clutch: z.boolean().optional(),
+  buyType: z.boolean().optional(),
   pages: z.object({ hudId: z.string().max(80), scene: z.string().max(200), playerSource: z.string().max(200), matchSource: z.string().max(200) }).partial().optional(),
 });
 
@@ -55,6 +60,8 @@ const CARD_PLAYER_COOLDOWN_MS = 90000;
 const CARD_COOLDOWN_MS = 25000;
 const PAGE_MS = 6000;
 const MATCH_PAGE_MS = 10000;
+/** The buy cues stay this long into the live round. */
+const BUY_CUE_LIVE_MS = 8000;
 
 export class GraphicsDirector {
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -71,6 +78,8 @@ export class GraphicsDirector {
   private lastCardAt = -Infinity;
   private pageTimers: ReturnType<typeof setTimeout>[] = [];
   private gameOverShown = false;
+  private buyCues = new Map<"T" | "CT", { id: string; round: string | null; label: string; firm: boolean }>();
+  private buyLiveAt: number | null = null;
 
   constructor(private readonly e: Engine) {}
 
@@ -107,6 +116,7 @@ export class GraphicsDirector {
     if (!s || !st.enabled || !this.active()) {
       this.endClutch();
       this.endCard();
+      this.endBuys();
       if (s) this.phase = s.roundPhase;
       return;
     }
@@ -149,6 +159,47 @@ export class GraphicsDirector {
     else this.endClutch();
     if (st.playerCards) this.trackCard(s, now);
     else this.endCard();
+    if (st.buyType) this.trackBuys(s, now);
+    else this.endBuys();
+  }
+
+  /**
+   * One `buy_type` cue per team (title: the label, subtitle: the team's name; data: side, team, label,
+   * buy type, whether final) from freeze time until 8 s into the live round. A changed read (a team
+   * that bought after all) or the final read changes the cue in place.
+   */
+  private trackBuys(s: MatchState, now: number): void {
+    const story = this.e.session.output()?.buys ?? null;
+    if (s.roundPhase === "live") this.buyLiveAt ??= now;
+    else this.buyLiveAt = null;
+    const inRound = s.roundPhase === "freezetime" || (s.roundPhase === "live" && now - this.buyLiveAt! < BUY_CUE_LIVE_MS);
+    if (!story || !inRound || story.roundAttemptId !== s.roundAttemptId) return this.endBuys();
+    for (const side of ["T", "CT"] as const) {
+      const t = story[side];
+      const cur = this.buyCues.get(side);
+      if (!t) {
+        if (cur) this.e.clearCue(cur.id);
+        this.buyCues.delete(side);
+        continue;
+      }
+      const team = s.teams[side];
+      const data = { side, team: { id: team.teamId, name: team.name }, label: t.label, buyType: t.type, firm: story.firm, roundNumber: story.roundNumber, auto: true };
+      if (cur && cur.round === story.roundAttemptId) {
+        if (cur.label !== t.label || cur.firm !== story.firm) {
+          this.e.updateCue(cur.id, { title: t.label, data });
+          this.buyCues.set(side, { ...cur, label: t.label, firm: story.firm });
+        }
+        continue;
+      }
+      if (cur) this.e.clearCue(cur.id);
+      const cue = this.e.showCue({ kind: "buy_type", title: t.label, subtitle: team.name, data, durationMs: null, outputs: null });
+      this.buyCues.set(side, { id: cue.id, round: story.roundAttemptId, label: t.label, firm: story.firm });
+    }
+  }
+
+  private endBuys(): void {
+    for (const c of this.buyCues.values()) this.e.clearCue(c.id);
+    this.buyCues.clear();
   }
 
   /** CS2's round MVP: the player whose MVP count went up this round. */

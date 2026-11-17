@@ -180,4 +180,23 @@ describe("team shots in CS2's own geometry (the maps' free-space grids)", () => 
       }
     });
   }
+
+  it("frames a team on a force buy closer, at eye height, so the guns in their hands read (the weapons look)", () => {
+    const pool = Object.entries(SPAWNS).filter(([k]) => ["de_ancient", "de_anubis", "de_cache", "de_dust2", "de_inferno", "de_mirage", "de_nuke"].includes(k.split(":")[0]!));
+    let closer = 0;
+    for (const [key, pts] of pool) {
+      const g = grid(key.split(":")[0]!);
+      const eye = frameTeam(team(pts), g, { look: "eye" })!;
+      const weapons = frameTeam(team(pts), g, { look: "weapons" })!;
+      expect(weapons, key).not.toBeNull();
+      // Never further than the usual shot, and as many players in it.
+      expect(weapons.range, key).toBeLessThanOrEqual(eye.range);
+      expect(weapons.steamIds.length, key).toBeGreaterThanOrEqual(eye.steamIds.length);
+      const floor = [...pts.map((p) => p[2])].sort((a, b) => a - b)[2]!;
+      expect(weapons.from.z - floor, key).toBeLessThanOrEqual(115);
+      if (weapons.range < eye.range) closer++;
+    }
+    // On the real line-ups: 10 of the 15 closer (about 50 units on average); the rest were as close as the spawn allows already.
+    expect(closer).toBeGreaterThanOrEqual(8);
+  });
 });

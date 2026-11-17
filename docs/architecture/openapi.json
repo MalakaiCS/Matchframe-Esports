@@ -10420,6 +10420,9 @@
                   "clutch": {
                     "type": "boolean"
                   },
+                  "buyType": {
+                    "type": "boolean"
+                  },
                   "pages": {
                     "type": "object",
                     "properties": {
