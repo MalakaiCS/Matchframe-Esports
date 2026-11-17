@@ -19,9 +19,6 @@ const SOURCES = import.meta.glob<string>(["../**/*.tsx", "!../**/*.test.tsx"], {
 
 /** Screens and components not extracted yet. The check expects English in them (remove a file once it is done). */
 const PENDING = new Set<string>([
-  "components/AssetUpload.tsx",
-  "components/EditorShell.tsx",
-  "components/RecordDialogs.tsx",
   "components/SignIn.tsx",
   "screens/Account.tsx",
   "screens/Demos.tsx",
@@ -30,7 +27,6 @@ const PENDING = new Set<string>([
   "screens/IconPack.tsx",
   "screens/Maps.tsx",
   "screens/Sponsors.tsx",
-  "screens/Teams.tsx",
   "screens/Training.tsx",
   "screens/demos/PipelinePanels.tsx",
   "screens/hudlib/HudDetails.tsx",
@@ -40,8 +36,6 @@ const PENDING = new Set<string>([
   "screens/huds/Outputs.tsx",
   "screens/huds/Packages.tsx",
   "screens/maps/CameraWalkthrough.tsx",
-  "screens/teams/PlayerEditor.tsx",
-  "screens/teams/TeamEditor.tsx",
   "screens/training/DemoModel.tsx",
   "screens/training/TestBench.tsx",
 ]);

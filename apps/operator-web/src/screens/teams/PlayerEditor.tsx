@@ -12,6 +12,8 @@ import { Link, useLocation } from "../../router.tsx";
 import { usePermission } from "../../state/session.tsx";
 import { roleText } from "../Teams.tsx";
 import { editId } from "./TeamEditor.tsx";
+import { perLocale, t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 import "../../styles/records.css";
 
 type PlayerDraft = {
@@ -29,7 +31,7 @@ type PlayerDraft = {
   cameraSourceId: string | null;
 };
 const EMPTY: PlayerDraft = { displayName: "", firstName: "", lastName: "", countryCode: null, steamId: "", teamId: null, role: "player", avatarAssetId: null, aliases: [], photoVisible: true, cameraConsent: false, cameraSourceId: null };
-const LABEL: Record<string, string> = { displayName: "Nickname", firstName: "First name", lastName: "Last name", countryCode: "Country", steamId: "SteamID64", teamId: "Team", role: "Role", avatarAssetId: "Avatar" };
+const LABEL: Record<string, string> = perLocale(() => ({ displayName: t("teams.nickname"), firstName: t("teams.firstName"), lastName: t("teams.lastName"), countryCode: t("teams.country"), steamId: "SteamID64", teamId: t("teams.team"), role: t("teams.role"), avatarAssetId: t("teams.avatar") }));
 
 /** Where the editor returns: the list, or the team editor it was opened from. */
 function returnPath(query: URLSearchParams): string {
@@ -46,14 +48,14 @@ export function PlayerEditorScreen() {
 
 function PlayerEditorLoader({ id, back }: { id: string; back: string }) {
   const p = useApi<PlayerDetail>(`/api/v1/players/${seg(id)}`);
-  if (p.data === undefined) return <div className="page">{p.error ? <ErrorBox error={p.error} onRetry={() => void p.reload()} /> : <Loading label="Loading player…" />}</div>;
+  if (p.data === undefined) return <div className="page">{p.error ? <ErrorBox error={p.error} onRetry={() => void p.reload()} /> : <Loading label={t("teams.loadingPlayer")} />}</div>;
   return <PlayerEditor player={p.data} back={back} presetTeam={null} reload={() => void p.reload()} />;
 }
 
 function AliasesField({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
   const [text, setText] = useState(value.join(", "));
   return (
-    <FormField label="Aliases" htmlFor="player-aliases" hint="Other names this player has used (comma separated); they help merge duplicates.">
+    <FormField label={t("teams.aliases")} htmlFor="player-aliases" hint={t("teams.otherNamesThisPlayerHas")}>
       <input
         id="player-aliases"
         value={text}
@@ -108,7 +110,7 @@ function PlayerEditor({ player, back, presetTeam, reload }: { player: PlayerDeta
     setErrors({});
     setConflict([]);
     const local: Record<string, string> = {};
-    if (!d.draft.displayName.trim()) local.displayName = "Enter a nickname";
+    if (!d.draft.displayName.trim()) local.displayName = t("teams.enterANickname");
     if (d.draft.steamId.trim() && steamId64Problem(d.draft.steamId)) local.steamId = steamId64Problem(d.draft.steamId)!;
     if (Object.keys(local).length) {
       setErrors(local);
@@ -147,24 +149,22 @@ function PlayerEditor({ player, back, presetTeam, reload }: { player: PlayerDeta
     savedMessage: () => (player ? `${savedName.current} saved` : `${savedName.current} created`),
   });
   const teamList = teams.data ?? [];
-  const teamName = (id: string) => teamList.find((t) => t.id === id)?.name ?? "a deleted team";
-  const backLabel = back === "/players" ? "Players" : `${teamList.find((t) => `/teams/${t.id}/edit` === back)?.name ?? "Team"}`;
+  const teamName = (id: string) => teamList.find((tRow) => tRow.id === id)?.name ?? t("teams.aDeletedTeam");
+  const backLabel = back === "/players" ? t("teams.players") : (teamList.find((tRow) => `/teams/${tRow.id}/edit` === back)?.name ?? t("teams.team"));
   const others = useApi<PlayerRow[]>(player ? "/api/v1/players" : null);
 
   return (
     <EditorShell
-      title={player ? `Edit ${player.displayName}` : "Add Player"}
+      title={player ? t("teams.editDisplayname", { displayName: player.displayName }) : t("teams.addPlayer")}
       backTo={back}
       backLabel={backLabel}
-      crumbs={[player ? player.displayName : "Add Player"]}
+      crumbs={[player ? player.displayName : t("teams.addPlayer")]}
       editor={editor}
       saveDisabledReason={reason}
-      footerNote={!d.draft.steamId.trim() ? <span className="small text-warn">Without a SteamID64 this player won't match live CS2 data.</span> : null}
+      footerNote={!d.draft.steamId.trim() ? <span className="small text-warn">{t("teams.withoutASteamid64ThisPlayer2")}</span> : null}
     >
       {conflict.length ? (
-        <Note tone="warn" title="Changed elsewhere">
-          {conflict.map((c) => LABEL[c] ?? c).join(", ")} changed on another screen or computer while you were editing.{" "}
-          <Button
+        <Note tone="warn" title={t("teams.changedElsewhere")}><T k="teams.joinChangedOnAnotherScreen" values={{ join: conflict.map((c) => LABEL[c] ?? c).join(", "), button: <Button
             size="sm"
             onClick={() => {
               d.reload(conflict as (keyof PlayerDraft)[]);
@@ -172,49 +172,44 @@ function PlayerEditor({ player, back, presetTeam, reload }: { player: PlayerDeta
               setErrors({});
               reload?.();
             }}
-          >
-            Use the current values
-          </Button>
-        </Note>
+          >{t("teams.useTheCurrentValues")}</Button> }} /></Note>
       ) : null}
       <section className="form-stack">
-        <FormField label="Nickname" htmlFor="player-nick" required error={errors.displayName} hint="The broadcast name shown on the HUD, for example Malakai. Changing it keeps the SteamID64 link.">
+        <FormField label={t("teams.nickname")} htmlFor="player-nick" required error={errors.displayName} hint={t("teams.theBroadcastNameShownOn")}>
           <input id="player-nick" value={d.draft.displayName} maxLength={64} aria-invalid={!!errors.displayName || undefined} onChange={(e) => d.set({ displayName: e.target.value })} autoFocus={!player} />
         </FormField>
         <div className="form-pair">
-          <FormField label="First name" htmlFor="player-first" error={errors.firstName}>
+          <FormField label={t("teams.firstName")} htmlFor="player-first" error={errors.firstName}>
             <input id="player-first" value={d.draft.firstName} maxLength={60} onChange={(e) => d.set({ firstName: e.target.value })} />
           </FormField>
-          <FormField label="Last name" htmlFor="player-last" error={errors.lastName}>
+          <FormField label={t("teams.lastName")} htmlFor="player-last" error={errors.lastName}>
             <input id="player-last" value={d.draft.lastName} maxLength={60} onChange={(e) => d.set({ lastName: e.target.value })} />
           </FormField>
         </div>
-        <FormField label="Country" htmlFor="player-country" error={errors.countryCode}>
+        <FormField label={t("teams.country")} htmlFor="player-country" error={errors.countryCode}>
           <CountrySelect id="player-country" value={d.draft.countryCode} onChange={(countryCode) => d.set({ countryCode })} invalid={!!errors.countryCode} />
         </FormField>
         <FormField
-          label="Player identification (SteamID64 for CS2)"
+          label={t("teams.playerIdentificationSteamid64ForCs2")}
           htmlFor="player-steam"
           error={errors.steamId ?? steamProblem}
-          hint={d.draft.steamId.trim() ? "Links this player to the live in-game player. 17 digits, starting 7656119." : <span className="text-warn">No SteamID64: this player won't match live CS2 data until one is added. 17 digits, starting 7656119.</span>}
+          hint={d.draft.steamId.trim() ? t("teams.linksThisPlayerToThe") : <span className="text-warn">{t("teams.noSteamid64ThisPlayerWon")}</span>}
         >
           <input id="player-steam" className="mono" inputMode="numeric" placeholder="7656119…" value={d.draft.steamId} maxLength={20} aria-invalid={!!(errors.steamId ?? steamProblem) || undefined} onChange={(e) => d.set({ steamId: e.target.value.replace(/\s+/g, "") })} />
         </FormField>
-        <FormField label="Team" htmlFor="player-team" error={errors.teamId} hint="Assigning or changing the team updates both teams' rosters when you save; earlier memberships stay in the history.">
-          <TeamSelect id="player-team" teams={teamList} value={d.draft.teamId} onChange={(teamId) => d.set({ teamId })} emptyLabel="Unassigned" invalid={!!errors.teamId} />
+        <FormField label={t("teams.team")} htmlFor="player-team" error={errors.teamId} hint={t("teams.assigningOrChangingTheTeam")}>
+          <TeamSelect id="player-team" teams={teamList} value={d.draft.teamId} onChange={(teamId) => d.set({ teamId })} emptyLabel={t("teams.unassigned")} invalid={!!errors.teamId} />
         </FormField>
         <FormField
-          label="Avatar"
+          label={t("teams.avatar")}
           htmlFor="player-avatar"
           hint={
-            <>
-              Without one, the <Link to="/settings">default player picture</Link> is shown (Settings → General).
-            </>
+            <><T k="teams.withoutOneTheDefaultPlayer" tags={{ link: (c) => <Link to="/settings">{c}</Link> }} /></>
           }
         >
           <ImageField
             id="player-avatar"
-            label="Avatar"
+            label={t("teams.avatar")}
             kind="avatar"
             value={{ assetId: d.draft.avatarAssetId, staged }}
             disabledReason={reason}
@@ -225,38 +220,38 @@ function PlayerEditor({ player, back, presetTeam, reload }: { player: PlayerDeta
           />
         </FormField>
       </section>
-      <Details summary="Additional details: role, aliases, on-air consent, roster history" className="additional">
+      <Details summary={t("teams.additionalDetailsRoleAliasesOn")} className="additional">
         <div className="form-grid">
-          <FormField label="Role in the team" htmlFor="player-role" hint={d.draft.teamId ? undefined : "Applies when the player is on a team"}>
+          <FormField label={t("teams.roleInTheTeam")} htmlFor="player-role" hint={d.draft.teamId ? undefined : t("teams.appliesWhenThePlayerIs")}>
             <select id="player-role" value={d.draft.role} disabled={!d.draft.teamId} onChange={(e) => d.set({ role: e.target.value as PlayerDraft["role"] })}>
-              <option value="player">Player</option>
-              <option value="substitute">Substitute</option>
+              <option value="player">{t("teams.player")}</option>
+              <option value="substitute">{t("teams.substitute")}</option>
               <option value="stand_in">Stand-in</option>
-              <option value="coach">Coach</option>
+              <option value="coach">{t("teams.coach")}</option>
             </select>
           </FormField>
-          <FormField label="Camera source id" htmlFor="player-cam">
-            <input id="player-cam" value={d.draft.cameraSourceId ?? ""} placeholder="e.g. pcam-desk-3" onChange={(e) => d.set({ cameraSourceId: e.target.value || null })} />
+          <FormField label={t("teams.cameraSourceId")} htmlFor="player-cam">
+            <input id="player-cam" value={d.draft.cameraSourceId ?? ""} placeholder={t("teams.eGPcamDesk3")} onChange={(e) => d.set({ cameraSourceId: e.target.value || null })} />
           </FormField>
         </div>
         <AliasesField value={d.draft.aliases} onChange={(aliases) => d.set({ aliases })} />
         <div className="row" style={{ gap: 16, marginTop: 8 }}>
-          <Checkbox checked={d.draft.photoVisible} onChange={(photoVisible) => d.set({ photoVisible })} label="Photo may be shown on air" />
-          <Checkbox checked={d.draft.cameraConsent} onChange={(cameraConsent) => d.set({ cameraConsent })} label="Player-camera consent" />
+          <Checkbox checked={d.draft.photoVisible} onChange={(photoVisible) => d.set({ photoVisible })} label={t("teams.photoMayBeShownOn")} />
+          <Checkbox checked={d.draft.cameraConsent} onChange={(cameraConsent) => d.set({ cameraConsent })} label={t("teams.playerCameraConsent")} />
         </div>
         {player ? (
           <>
-            <h3 className="section-title">Roster history</h3>
+            <h3 className="section-title">{t("teams.rosterHistory")}</h3>
             {player.history.length === 0 ? (
-              <p className="muted small">Never on a team.</p>
+              <p className="muted small">{t("teams.neverOnATeam")}</p>
             ) : (
               <table className="table table-compact">
                 <thead>
                   <tr>
-                    <th>Team</th>
-                    <th>Role</th>
-                    <th>From</th>
-                    <th>To</th>
+                    <th>{t("teams.team")}</th>
+                    <th>{t("teams.role")}</th>
+                    <th>{t("teams.from")}</th>
+                    <th>{t("teams.to")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -265,31 +260,29 @@ function PlayerEditor({ player, back, presetTeam, reload }: { player: PlayerDeta
                       <td>{teamName(h.teamId)}</td>
                       <td>{roleText(h.role)}</td>
                       <td className="small">{fmtTime(h.validFrom)}</td>
-                      <td className="small">{h.validTo ? fmtTime(h.validTo) : "Current"}</td>
+                      <td className="small">{h.validTo ? fmtTime(h.validTo) : t("teams.current")}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
-            <h3 className="section-title">Merge a duplicate into this player</h3>
-            <p className="small muted">The duplicate's roster history and SteamID64 move here; its nickname becomes an alias and the duplicate is archived. Applied at once.</p>
+            <h3 className="section-title">{t("teams.mergeADuplicateIntoThis")}</h3>
+            <p className="small muted">{t("teams.theDuplicateSRosterHistory")}</p>
             <div className="row-end">
-              <FormField label="Duplicate" htmlFor="player-dup">
-                <Combobox id="player-dup" options={(others.data ?? []).filter((x) => x.id !== player.id).map((x) => ({ key: x.id, label: x.displayName, hint: x.steamId ?? "no SteamID64" }))} value={dup} onChange={setDup} placeholder="Search players" />
+              <FormField label={t("teams.duplicate")} htmlFor="player-dup">
+                <Combobox id="player-dup" options={(others.data ?? []).filter((x) => x.id !== player.id).map((x) => ({ key: x.id, label: x.displayName, hint: x.steamId ?? t("teams.noSteamid64") }))} value={dup} onChange={setDup} placeholder={t("teams.searchPlayers")} />
               </FormField>
               <ActionButton
                 variant="warn"
                 action={() => api.post(`/api/v1/players/${seg(player.id)}/merge`, { duplicateId: dup })}
-                success="Players merged"
+                success={t("teams.playersMerged")}
                 onDone={() => {
                   setDup(null);
                   reload?.();
                 }}
-                disabledReason={reason ?? (dup ? null : "Choose the duplicate player")}
-                confirm={{ title: "Merge players?", body: `Merge ${others.data?.find((x) => x.id === dup)?.displayName ?? "the duplicate"} into ${player.displayName}. This cannot be undone from the console.`, confirmLabel: "Merge", danger: true }}
-              >
-                Merge
-              </ActionButton>
+                disabledReason={reason ?? (dup ? null : t("teams.chooseTheDuplicatePlayer"))}
+                confirm={{ title: t("teams.mergePlayers"), body: t("teams.mergeVIntoDisplaynameThis", { v: others.data?.find((x) => x.id === dup)?.displayName ?? t("teams.theDuplicate"), displayName: player.displayName }), confirmLabel: t("teams.merge"), danger: true }}
+              >{t("teams.merge")}</ActionButton>
             </div>
           </>
         ) : null}
