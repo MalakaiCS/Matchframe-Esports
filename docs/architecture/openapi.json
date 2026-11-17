@@ -10558,6 +10558,28 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "introIn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "introOut": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 }
               }
@@ -11372,6 +11394,377 @@
           }
         ],
         "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/map-intros": {
+      "get": {
+        "operationId": "get_api_v1_map_intros",
+        "summary": "GET /api/v1/map-intros",
+        "description": "Requires permission `state.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/map-intros/settings": {
+      "put": {
+        "operationId": "put_api_v1_map_intros_settings",
+        "summary": "PUT /api/v1/map-intros/settings",
+        "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "trigger": {
+                    "type": "string",
+                    "enum": [
+                      "manual",
+                      "map_load",
+                      "knife",
+                      "pistol",
+                      "pistols",
+                      "match_live"
+                    ]
+                  },
+                  "onLive": {
+                    "type": "string",
+                    "enum": [
+                      "cut",
+                      "finish"
+                    ]
+                  },
+                  "vmixIn": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "CutDirect",
+                          "Fade",
+                          "Stinger1",
+                          "Stinger2"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "vmixOut": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "CutDirect",
+                          "Fade",
+                          "Stinger1",
+                          "Stinger2"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/map-intros/play": {
+      "post": {
+        "operationId": "post_api_v1_map_intros_play",
+        "summary": "POST /api/v1/map-intros/play",
+        "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "map": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/map-intros/play-next": {
+      "post": {
+        "operationId": "post_api_v1_map_intros_play_next",
+        "summary": "POST /api/v1/map-intros/play-next",
+        "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/map-intros/stop": {
+      "post": {
+        "operationId": "post_api_v1_map_intros_stop",
+        "summary": "POST /api/v1/map-intros/stop",
+        "description": "Requires permission `replay.control`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/map-intros/obs-setup": {
+      "post": {
+        "operationId": "post_api_v1_map_intros_obs_setup",
+        "summary": "POST /api/v1/map-intros/obs-setup",
+        "description": "Requires permission `settings.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/map-intros/{slot}": {
+      "post": {
+        "operationId": "post_api_v1_map_intros_slot",
+        "summary": "POST /api/v1/map-intros/:slot",
+        "description": "Requires permission `settings.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete_api_v1_map_intros_slot",
+        "summary": "DELETE /api/v1/map-intros/:slot",
+        "description": "Requires permission `settings.manage`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/map-intros/{slot}/preview.jpg": {
+      "get": {
+        "operationId": "get_api_v1_map_intros_slot_preview_jpg",
+        "summary": "GET /api/v1/map-intros/:slot/preview.jpg",
+        "description": "Public.",
+        "parameters": [
+          {
+            "name": "slot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -12244,11 +12637,24 @@
                   },
                   "icons": {
                     "default": {
-                      "dead": null
+                      "dead": null,
+                      "trophy": null
                     },
                     "type": "object",
                     "properties": {
                       "dead": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{24}\\.(png|jpe?g|webp|svg|gif)$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "trophy": {
                         "default": null,
                         "anyOf": [
                           {
@@ -12877,6 +13283,175 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/icon-pack": {
+      "get": {
+        "operationId": "get_api_v1_hud_icon_pack",
+        "summary": "GET /api/v1/hud/icon-pack",
+        "description": "Requires permission `metadata.read`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete_api_v1_hud_icon_pack",
+        "summary": "DELETE /api/v1/hud/icon-pack",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/icon-pack/import": {
+      "post": {
+        "operationId": "post_api_v1_hud_icon_pack_import",
+        "summary": "POST /api/v1/hud/icon-pack/import",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        }
+      }
+    },
+    "/api/v1/hud/icon-pack/import-folder": {
+      "post": {
+        "operationId": "post_api_v1_hud_icon_pack_import_folder",
+        "summary": "POST /api/v1/hud/icon-pack/import-folder",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict / not allowed in current state"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hud/icon-pack/download": {
+      "post": {
+        "operationId": "post_api_v1_hud_icon_pack_download",
+        "summary": "POST /api/v1/hud/icon-pack/download",
+        "description": "Requires permission `hud.publish`.",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "OK"
