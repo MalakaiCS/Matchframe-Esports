@@ -2,7 +2,7 @@ import { memo, useRef } from "react";
 import type { RefObject } from "react";
 import type { HudState, HudTeam } from "@matchframe/hud-sdk";
 import { aliveCount, clockText, isLive, roundWinner, secondsLeft, seriesBoxCount, seriesWon } from "../shared/format.ts";
-import { BombIcon, KitIcon, SkullIcon } from "../shared/parts.ts";
+import { BombState, DeadMark, Paused } from "./icons.tsx";
 import { useNow } from "../shared/useHud.ts";
 import { TeamLogo, TimeoutPips } from "./bits.tsx";
 import { colorOf, teamVars, timeoutTeam, type Settings } from "./util.ts";
@@ -153,7 +153,7 @@ function UnderBar({ state, settings, colors, boardOn }: { state: HudState; setti
           <b>{team.shortName || team.name}</b> WIN THE ROUND
         </span>
         <span className="st-win-why">
-          {why === "BOMB DEFUSED" ? <KitIcon size={15} /> : why === "BOMB EXPLODED" ? <BombIcon size={16} /> : why === "ELIMINATION" ? <SkullIcon size={15} /> : null}
+          {why === "BOMB DEFUSED" ? <BombState state="defused" size={17} /> : why === "BOMB EXPLODED" ? <BombState state="exploded" size={17} /> : why === "ELIMINATION" ? <DeadMark size={15} /> : null}
           {why}
         </span>
       </div>
@@ -180,6 +180,7 @@ function UnderBar({ state, settings, colors, boardOn }: { state: HudState; setti
   if (state.match.paused || p === "paused") {
     return (
       <div key="paused" className="st-under st-paused">
+        <Paused size={20} />
         <span className="st-paused-text">MATCH PAUSED</span>
       </div>
     );
@@ -226,7 +227,7 @@ export function ScoreBar({ state, receivedAt, settings, compact, boardOn }: { st
             <Clock sec={m.phaseEndsInSec} running={m.clockRunning && !m.paused} receivedAt={receivedAt} warn={m.phase === "live"} />
           </span>
           <span className="st-sb-bomb">
-            {mode === "defuse" || mode === "defused" ? <KitIcon size={26} /> : <BombIcon size={30} />}
+            {mode !== "clock" ? <BombState state={mode === "bomb" ? "planted" : mode === "defuse" ? "defusing" : mode} size={28} /> : null}
             {mode === "bomb" || mode === "defuse" ? b ? <FuseText sec={b.remainingSec} running={b.clockRunning} receivedAt={receivedAt} /> : null : <span className="st-sb-bomb-label">{mode === "planting" ? "PLANTING" : mode === "defused" ? "DEFUSED" : mode === "exploded" ? "EXPLODED" : ""}</span>}
           </span>
         </div>

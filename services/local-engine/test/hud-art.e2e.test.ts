@@ -63,7 +63,8 @@ describe("HUD images and the clean radar (real HTTP/WS servers)", () => {
     const states: HudState[] = [];
     ws.on("message", (d) => states.push((JSON.parse(String(d)) as { payload: HudState }).payload));
     await new Promise((r) => ws.once("message", r));
-    expect(states[0]!.art).toEqual({ defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null } });
+    // No icon pack loaded on this computer: the HUDs keep their own icons.
+    expect(states[0]!.art).toEqual({ defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null }, iconPack: null });
 
     const put = (art: unknown) => api("/api/v1/hud/art", { method: "PUT", body: JSON.stringify(art) });
     expect((await put({ icons: { dead: "../../secrets.json" } })).status).toBe(400);

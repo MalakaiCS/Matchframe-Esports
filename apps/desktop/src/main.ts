@@ -254,7 +254,7 @@ function registerAppProtocol(): void {
   protocol.handle("app", (req) => {
     const url = new URL(req.url);
     if (url.host !== "matchframe") return new Response("not found", { status: 404 });
-    if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/assets/")) return forwardToEngine(req, url);
+    if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/assets/") || url.pathname.startsWith("/icon-pack/")) return forwardToEngine(req, url);
     if (url.pathname === "/connect" || url.pathname.startsWith("/connect/")) return serveFrom(connectDir(), url.pathname === "/connect" || url.pathname === "/connect/" ? "/connect.html" : url.pathname.slice("/connect".length), false);
     return serveFrom(consoleDir(), url.pathname, true);
   });

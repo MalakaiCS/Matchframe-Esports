@@ -15,6 +15,7 @@ import { registerCoreRoutes } from "./routes/core.ts";
 import { registerGameRoutes } from "./routes/game.ts";
 import { registerHudRoutes } from "./routes/hud.ts";
 import { registerHudLibraryRoutes } from "./routes/hud-library.ts";
+import { registerIconPackRoutes } from "./routes/icon-pack.ts";
 import { libraryHudId, libraryOutputId } from "./hud/library.ts";
 import { WRAPPER_JS, wrapperPage } from "./hud/wrapper.ts";
 import { CompatRuntime, compatSetCookie } from "./hud/compat-runtime.ts";
@@ -96,6 +97,14 @@ async function listen(server: Server, port: number, host: string, log: (msg: str
 
 export async function startServers(e: Engine): Promise<RunningServers> {
   const cfg = e.cfg;
+  /** `/icon-pack/<name>.svg`: an icon of the operator's icon pack, as an image only (no script, no document). */
+  const serveIcon = (res: ServerResponse, path: string): void => {
+    const name = /^\/icon-pack\/([a-z0-9_]{1,64})\.svg$/.exec(path)?.[1];
+    const f = name ? e.iconPack.file(name) : null;
+    if (!f) return json(res, 404, { error: "not_found", message: "no such icon in the icon pack" });
+    res.writeHead(200, { "content-type": "image/svg+xml; charset=utf-8", "x-content-type-options": "nosniff", "cache-control": "no-cache", "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox" });
+    res.end(readFileSync(f));
+  };
   const apiOrigins = new Set([`http://127.0.0.1:${cfg.apiPort}`, `http://localhost:${cfg.apiPort}`, ...cfg.allowedOrigins]);
   const router = new Router({
     secrets: e.secrets,
@@ -113,6 +122,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerStorageRoutes(router, e);
   registerHudRoutes(router, e);
   registerHudLibraryRoutes(router, e);
+  registerIconPackRoutes(router, e);
   registerDemoRoutes(router, e);
   registerReportRoutes(router, e);
   registerDeviceRoutes(router, e);
@@ -260,6 +270,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
         const f = safeResolve(assetDir(e), url.pathname.slice("/assets/".length));
         if (f) return serveFile(res, f);
       }
+      // The icon pack's previews in the console (HUD images).
+      if (url.pathname.startsWith("/icon-pack/")) return serveIcon(res, url.pathname);
       // The operator console runs only inside the MatchFrame program (apps/desktop). Browsers get
       // the captain veto page (scoped captain links) and nothing else from this server.
       const captainHeaders = { "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" };
@@ -583,6 +595,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       if (f) return serveFile(res, f, headers);
       return json(res, 404, { error: "not_found" });
     }
+    // CS2's icons the operator loaded (state.art.iconPack): sanitised SVGs, never run as documents.
+    if (p.startsWith("/icon-pack/")) return serveIcon(res, p);
     if (p.startsWith("/hud/") && serveStatic(res, cfg.hudRendererDir, p.slice("/hud".length), { headers })) return;
     if (p.startsWith("/sdk/") && cfg.hudRendererDir && serveStatic(res, join(cfg.hudRendererDir, "sdk"), p.slice("/sdk".length), { headers })) return;
     if (p === "/" || p === "/health") return json(res, 200, { ok: true, service: "matchframe-overlay" });

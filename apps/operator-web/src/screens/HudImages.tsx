@@ -7,6 +7,7 @@ import { Button, ErrorBox, Loading, Note, Panel } from "../components/ui.tsx";
 import { useApi } from "../lib/hooks.ts";
 import { Link } from "../router.tsx";
 import { usePermission } from "../state/session.tsx";
+import { IconPackPanel } from "./IconPack.tsx";
 import "../styles/hud-library.css";
 
 export const HUD_ART_PATH = "/api/v1/hud/art";
@@ -170,6 +171,7 @@ export function HudImagesScreen() {
               />
             </div>
           </Panel>
+          <IconPackPanel />
           <Panel title="Maps" subtitle="Shown on series and veto tiles: a logo and a picture for each map.">
             <div className="hudimg-maps">
               {res.data.maps.map((m) => (

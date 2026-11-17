@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { HudPlayer, HudState } from "@matchframe/hud-sdk";
 import { PlayerCam } from "../../../hud-renderer/src/components/PlayerCam.tsx";
 import { playerPicture } from "../shared/art.ts";
-import { WeaponIcon } from "../shared/parts.ts";
+import { Ammo as AmmoMark, Assists, Deaths, Health, Kills, Weapon } from "./icons.tsx";
 import { Photo } from "./bits.tsx";
 import { grenadeList, Nades } from "./Cards.tsx";
 import { DEMO, slotKey, teamVars } from "./util.ts";
@@ -44,10 +44,10 @@ function Ammo({ p }: { p: HudPlayer }) {
   if (!gun || gun.ammoClip === null) return null;
   return (
     <span className="st-obs-stats">
+      <AmmoMark size={16} />
       <b>{gun.ammoClip}</b>
-      <i className="st-obs-ammo-bar" />
-      <span>{gun.ammoReserve ?? 0}</span>
-      <WeaponIcon weapon={gun.name} className="st-obs-gun" />
+      <span>/ {gun.ammoReserve ?? 0}</span>
+      <Weapon weapon={gun.name} className="st-obs-gun" />
     </span>
   );
 }
@@ -56,11 +56,11 @@ function Ammo({ p }: { p: HudPlayer }) {
 function Kad({ p }: { p: HudPlayer }) {
   return (
     <span className="st-obs-kad">
-      <i>K</i>
+      <Kills size={14} />
       <b>{p.kills ?? "–"}</b>
-      <i>A</i>
+      <Assists size={14} />
       <b>{p.assists ?? "–"}</b>
-      <i>D</i>
+      <Deaths size={14} />
       <b>{p.deaths ?? "–"}</b>
     </span>
   );
@@ -95,7 +95,10 @@ export function Observed({ state, color, shown }: { state: HudState; color: stri
             <span className="st-obs-slot">{slotKey(p.slot)}</span>
             <span className={`st-obs-name ${p.name.length > 10 ? "is-long" : ""}`}>{p.name}</span>
             <Kad p={p} />
-            <span className={`st-obs-hp ${(p.health ?? 100) <= 20 ? "is-low" : ""}`}>{p.alive === false ? 0 : (p.health ?? "–")}</span>
+            <span className={`st-obs-hp ${(p.health ?? 100) <= 20 ? "is-low" : ""}`}>
+              <Health size={16} />
+              {p.alive === false ? 0 : (p.health ?? "–")}
+            </span>
           </div>
         </div>
       ) : null}

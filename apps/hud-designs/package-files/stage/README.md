@@ -15,6 +15,14 @@ What it shows:
 
 Players' and coaches' voice or mute state is never shown: MatchFrame's Team Comms rules keep individual comms off air.
 
+**Icons**, in this order, each tinted with a CSS mask so it takes the panel's colour:
+
+1. **The owner's icon set**, bundled with the package (64 white PNG silhouettes): 34 weapons, the grenades, knife, Zeus, C4, defuse kit, vest and helmet, and the marks for kills, deaths, assists, headshot, health, money, ammunition, the bomb carrier, planting, planted, defusing and defused, a disconnected player, a blinded killer, fire and grenade kills, the timeout (labelled, in the timeout callout) and the match pause.
+2. **The icon pack** loaded on the computer, if any (HUD Library → HUD images → Icon pack: Counter-Strike 2's own icons from the operator's copy): whatever the owner's set lacks, such as knife variants and the round-kill star.
+3. **MatchFrame's own glyphs and the bundled MIT weapon silhouettes** for anything else.
+
+The package contains no CS2 icon files.
+
 Pictures come from the HUD Library's **HUD images** (default player pictures by side, map logos, the dead icon) where a player, map or mark has none of its own. Change the HUD in the HUD Library under **Appearance**: CT and T colours (teams with their own colour keep it), full names or tags over the cards, the two halves of the event line, and whether the series strip, minimap, killfeed (and how many rows), sponsor slots, players alive, observed player, freeze-time scoreboard, round MVP card and player money show. Variants: **live** (everything), **compact** (score bar, killfeed and observed player) and **replay** (the replay graphic: a REPLAY tag where the score bar sits and a lower third with who made the play, 2K to ACE or the clutch, the weapon and who went down).
 
 Motion runs on `transform`, `opacity` and `clip-path` only, with no blur or backdrop filters, so it stays smooth in an OBS browser source: cards slide in from the screen edges one after another, the scoreboard header opens from the centre and its rows rise in, the players-alive badge drops in under the bar, kills slide in from the right. Only the round clock, the bomb's fuse and the killfeed's timer update several times a second; player cards re-render only when what they show changes.
@@ -38,5 +46,6 @@ Rules every HUD package follows: transparent `html` and `body` backgrounds; the 
 
 - Code: MIT, MatchFrame.
 - Barlow Condensed font: SIL Open Font License 1.1 (`OFL-fonts.txt`).
+- Icons in `assets/` named after weapons and marks (`ak47-….png`, `kills-….png`, …): the owner's own icon set (generated recreations, not Valve's files), prepared for the HUD (faint background removed, cropped, 64 px tall).
 - Bomb, kit, armour, grenade, kill, round-kill and arrow marks, the player figure and the panel shapes are original MatchFrame drawings. The weapon silhouettes come with a third-party CS2 HUD template (MIT, `third-party-licenses/weapon-icons-MIT.txt`) and originate from Counter-Strike 2 game files (© Valve Corporation). That licence covers the code, not Valve's artwork; a commercial distribution should confirm it is covered by Valve's terms for broadcasting Counter-Strike, or replace them with original icons. MatchFrame Esports is not affiliated with or endorsed by Valve.
 - The layout follows common tournament broadcast practice; the look, artwork and motion are MatchFrame's own, with no third-party HUD artwork, logos, names or text.

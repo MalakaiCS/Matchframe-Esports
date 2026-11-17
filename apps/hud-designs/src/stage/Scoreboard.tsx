@@ -3,12 +3,23 @@ import type { ReactNode } from "react";
 import type { HudPlayer, HudState, HudTeam } from "@matchframe/hud-sdk";
 import { playerPicture } from "../shared/art.ts";
 import { equipmentValue, lossBonus, secondsLeft, seriesBoxCount, seriesWon } from "../shared/format.ts";
-import { ArmorIcon, BombIcon, KitIcon, WeaponIcon } from "../shared/parts.ts";
+import { Armor, Bomb, Dollar, Kit, TimeoutMark, Weapon } from "./icons.tsx";
 import { Photo, TeamLogo, TimeoutPips } from "./bits.tsx";
 import { grenadeList, Nades } from "./Cards.tsx";
 import { useNow } from "../shared/useHud.ts";
 import { SponsorSpot } from "./TopRight.tsx";
-import { cash, colorOf, slotOrder, teamVars, timeoutTeam, type Settings } from "./util.ts";
+import { colorOf, slotOrder, teamVars, timeoutTeam, type Settings } from "./util.ts";
+
+/** Money with the dollar mark (the icon pack's when loaded). */
+const Cash = ({ value }: { value: number | null }) =>
+  value === null ? (
+    <>–</>
+  ) : (
+    <>
+      <Dollar />
+      {value.toLocaleString("en-US")}
+    </>
+  );
 
 function Stat({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -26,8 +37,12 @@ function HeaderSide({ state, team, align, color }: { state: HudState; team: HudT
   const won = seriesWon(state, align);
   return (
     <div className={`st-board-head st-board-head-${align}`} style={teamVars(color)}>
-      <Stat label="EQUIPMENT VALUE">{cash(equipmentValue(team))}</Stat>
-      <Stat label="LOSS BONUS">{bonus === null ? "–" : cash(bonus)}</Stat>
+      <Stat label="EQUIPMENT VALUE">
+        <Cash value={equipmentValue(team)} />
+      </Stat>
+      <Stat label="LOSS BONUS">
+        <Cash value={bonus} />
+      </Stat>
       <Stat label="TIMEOUTS LEFT">
         <TimeoutPips left={team.timeoutsRemaining} />
       </Stat>
@@ -58,14 +73,16 @@ function Row({ state, p, index }: { state: HudState; p: HudPlayer; index: number
         <Photo url={playerPicture(state, p)} />
       </span>
       <span className="st-row-name">{p.name}</span>
-      <span className="st-row-cell st-row-armor">{alive && (p.armor ?? 0) > 0 ? <ArmorIcon helmet={!!p.helmet} size={19} /> : null}</span>
-      <span className="st-row-cell st-row-kit">{alive && p.hasBomb ? <BombIcon size={21} className="st-c4" /> : alive && p.defuseKit ? <KitIcon size={19} /> : null}</span>
+      <span className="st-row-cell st-row-armor">{alive && (p.armor ?? 0) > 0 ? <Armor helmet={!!p.helmet} size={20} /> : null}</span>
+      <span className="st-row-cell st-row-kit">{alive && p.hasBomb ? <Bomb size={21} className="st-c4" /> : alive && p.defuseKit ? <Kit size={20} /> : null}</span>
       <span className="st-row-cell st-row-nades">
         <Nades list={alive ? grenadeList(p) : ""} size={18} />
       </span>
-      <span className="st-row-cell st-row-pistol">{pistol ? <WeaponIcon weapon={pistol} className="st-row-gun" /> : null}</span>
-      <span className="st-row-cell st-row-main">{main ? <WeaponIcon weapon={main} className="st-row-gun" /> : null}</span>
-      <span className="st-row-money">{cash(p.money)}</span>
+      <span className="st-row-cell st-row-pistol">{pistol ? <Weapon weapon={pistol} className="st-row-gun" /> : null}</span>
+      <span className="st-row-cell st-row-main">{main ? <Weapon weapon={main} className="st-row-gun" /> : null}</span>
+      <span className="st-row-money">
+        <Cash value={p.money} />
+      </span>
     </div>
   );
 }
@@ -114,12 +131,12 @@ function TimeoutCallout({ state, receivedAt, settings }: { state: HudState; rece
   return (
     <div key={team.key} className={`st-tocall ${team === state.left ? "is-left" : "is-right"}`} style={teamVars(colorOf(team, settings))}>
       <TimeoutSeconds sec={m.phaseEndsInSec} running={m.clockRunning && !m.paused} receivedAt={receivedAt} />
+      <span className="st-tocall-mark">
+        <TimeoutMark size={60} />
+      </span>
       <span className="st-tocall-text">
-        <b>TIMEOUT</b>
-        <span className="st-tocall-sub">
-          {team.shortName || team.name}
-          <TimeoutPips left={team.timeoutsRemaining} />
-        </span>
+        <span className="st-tocall-team">{team.shortName || team.name}</span>
+        <TimeoutPips left={team.timeoutsRemaining} />
       </span>
       <span className="st-tocall-logo">
         <TeamLogo team={team} />

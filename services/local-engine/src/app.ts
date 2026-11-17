@@ -57,6 +57,7 @@ import { HighlightReels } from "./replay/reel.ts";
 import { OnAirLog } from "./replay/onair.ts";
 import { LiveSession } from "./live/session.ts";
 import { RoundMvpTracker } from "./live/round-mvp.ts";
+import { IconPack } from "./hud/icon-pack.ts";
 import { TeamSideTracker } from "./live/team-sides.ts";
 import { SideTeams } from "./live/side-teams.ts";
 import { Logger } from "./logger.ts";
@@ -175,6 +176,8 @@ export class Engine {
   readonly outputs: OutputService;
   /** HUD Library (ADR-020): installed HUDs, per-HUD settings and runtime control. */
   readonly hudLibrary: HudLibraryService;
+  /** CS2's icons loaded by the operator on this computer (HUD Library → HUD images → Icon pack). */
+  readonly iconPack: IconPack;
   readonly demos: DemoLibrary;
   readonly workers: PythonWorkerRunner;
   readonly pythonSetup: PythonSetup;
@@ -406,6 +409,11 @@ export class Engine {
     this.legacyHuds = migrateLegacyHuds({ db: this.db, logger: this.logger });
     this.outputs = new OutputService(this.db, this.settings);
     this.registerBuiltinHud();
+    // A new or removed icon pack reaches every HUD at once (state.art.iconPack).
+    this.iconPack = new IconPack(cfg.dataDir, () => {
+      this.hudArt = null;
+      for (const fn of this.hudListeners) fn("*");
+    });
     this.hudLibrary = new HudLibraryService({ db: this.db, settings: this.settings, packages: this.hudPackages, outputs: this.outputs, logger: this.logger, hudsDir: join(cfg.dataDir, "huds"), hudRendererDir: cfg.hudRendererDir, overlayPort: cfg.overlayPort });
     // Settings (and installed version) changes push a new snapshot to every output of that HUD.
     this.hudLibrary.onChange((ev) => {
@@ -843,7 +851,7 @@ export class Engine {
   hudArtSetting(): HudArtSetting {
     if (!this.hudArt) {
       const setting = normalizeHudArt(this.settings.get<unknown>(HUD_ART_KEY, null));
-      this.hudArt = { setting, state: hudArtState(setting, (id) => this.assetUrl(id)) };
+      this.hudArt = { setting, state: { ...hudArtState(setting, (id) => this.assetUrl(id)), iconPack: this.iconPack.hudState() } };
     }
     return this.hudArt.setting;
   }

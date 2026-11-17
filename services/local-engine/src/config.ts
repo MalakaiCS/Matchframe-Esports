@@ -42,6 +42,8 @@ export interface EngineConfig {
   cloudEnforcement: "required" | "off";
   /** "required": sign-in state is reported (signed in or not; the Auto Director's arming gate needs it). "off" (MATCHFRAME_SIGN_IN=off, development) reports "not_required". The program never blocks on it (ADR-021). */
   cloudSignIn: "required" | "off";
+  /** Where Get CS2 icons downloads from (MATCHFRAME_ICON_PACK_BASE / _LIST; tests use a stand-in server). Default: the public collection. */
+  iconPackSource?: { rawBase: string; listUrl: string };
 }
 
 export function defaultDataDir(): string {
@@ -83,6 +85,7 @@ export function loadConfig(overrides: Partial<EngineConfig> = {}): EngineConfig 
     cloudPublicKeys: loadPinnedKeys(),
     cloudEnforcement: process.env.MATCHFRAME_CLOUD_ENFORCEMENT === "off" ? "off" : "required",
     cloudSignIn: process.env.MATCHFRAME_SIGN_IN === "off" ? "off" : "required",
+    ...(process.env.MATCHFRAME_ICON_PACK_BASE && process.env.MATCHFRAME_ICON_PACK_LIST ? { iconPackSource: { rawBase: process.env.MATCHFRAME_ICON_PACK_BASE, listUrl: process.env.MATCHFRAME_ICON_PACK_LIST } } : {}),
     ...overrides,
   };
   const ports = [cfg.gsiPort, cfg.apiPort, cfg.overlayPort];

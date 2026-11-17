@@ -18,6 +18,8 @@ export interface DemoOptions {
   art?: boolean;
   radar?: boolean;
   logo?: boolean;
+  /** Icon names of an icon pack served at /icon-pack/ (`?iconpack=ak47,awp,…`; scripts/shots.mjs --icons). */
+  iconPack?: string[];
 }
 
 const map = (mapName: string, displayName: string, status: HudSeriesMap["status"], pickedBy: HudSeriesMap["pickedBy"], winner: HudSeriesMap["winner"] = null, score: [number, number] = [0, 0]): HudSeriesMap => ({ mapName, displayName, status, scoreLeft: score[0], scoreRight: score[1], pickedBy, winner });
@@ -159,9 +161,11 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
   const observed = scene === "bomb" ? ct[4]! : scene === "mvp" ? ct[2]! : scene === "nocam" ? t[0]! : ct[0]!;
   ct = ct.map((p) => ({ ...p, observed: p.steamId === observed.steamId }));
   t.forEach((p, i) => (t[i] = { ...p, observed: p.steamId === observed.steamId }));
+  // A player who has dropped out of the game data (disconnected): life unknown.
+  if (scene === "nocam") t[3] = { ...t[3]!, alive: null, health: null };
   const series = demoSeries([1, 3, 5, 7].includes(opts.bestOf ?? 3) ? (opts.bestOf ?? 3) : 3, [scoreLeft, 7]);
   if (opts.bestOf && ![1, 3, 5, 7].includes(opts.bestOf)) series.bestOf = opts.bestOf;
-  const art = opts.art ? demoArt() : NO_ART;
+  const art = { ...(opts.art ? demoArt() : NO_ART), iconPack: opts.iconPack?.length ? { names: opts.iconPack, base: "/icon-pack/" } : null };
   // Made-up coaches (with the sample pictures under ?art=1).
   const coach = (name: string, side: "ct" | "t") => ({ name, avatarUrl: art.defaultPlayers[side][4] ?? null });
   const left = { ...team("left", L, "Northern Lights", "NRL", scoreLeft, 0, ct, coach("meridian", L === "CT" ? "ct" : "t")), seriesWins: series.left, logoUrl: opts.logo ? demoLogo("left") : null };

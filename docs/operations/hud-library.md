@@ -16,6 +16,7 @@ MatchFrame opens into the **HUD Library**: the HUDs installed on this computer, 
      ![Lineup HUD](../screenshots/hud/hud-lineup.jpg)
      ![Stage HUD](../screenshots/hud/hud-stage.jpg)
      ![Stage HUD in a timeout](../screenshots/hud/hud-stage-timeout.jpg)
+     ![Stage HUD with the round MVP card](../screenshots/hud/hud-stage-mvp.jpg)
 
 The bundled HUDs update with the program: when an update brings a newer version of one, or changed files, it replaces the installed copy and keeps its settings and outputs. A bundled HUD you replaced with your own import, or removed, is left alone.
 
@@ -66,6 +67,16 @@ PNG, JPG, WebP, SVG or GIF, up to 20 MB each. **Upload** (or **Replace**) and **
 | Pro CS2 HUD | player rows and observed player | series maps in freeze time | player rows, where the health was |
 
 Imported hud.json-format HUDs keep their own pictures, and the Sample CS2 HUD does not use them. HUD images are saved on this computer (the setting `hud.art`); account sync does not share them yet, so add them on each computer that runs HUDs. HUD packages read them from `state.art` ([extensions](../extensions.md)).
+
+### Icon pack
+
+MatchFrame doesn't include Counter-Strike 2's own icons (they are Valve's artwork). **HUD images → Icon pack** loads them on this computer for the HUDs that use them. The Stage HUD draws its own bundled icon set first (weapons, grenades, equipment and status marks) and takes from the pack whatever that set lacks (knife variants, the round-kill star, …); without a pack, or for an icon neither has, it keeps MatchFrame's own icons.
+
+- **Import ZIP…** a ZIP of CS2's icons, e.g. a download of an icon repository. MatchFrame looks for `panorama/images/icons/equipment/` and `…/ui/` anywhere in it.
+- **Import folder…** the same from a folder on this computer (in the program), or a folder holding the icon SVGs themselves.
+- **Get CS2 icons** downloads only the icons the HUDs use from a public GitHub collection of CS2's icons to this computer, for your own broadcast, with its progress ("Downloading 96 of 130…"). If GitHub can't be reached it says so: use Import ZIP… instead.
+
+Only the HUDs' icons are kept: every weapon, grenade, armour, kit, bomb and knife icon, and the kill, headshot, elimination, health, armour, helmet, defuse kit, bomb, money, star, timer and pause marks. Each SVG is checked and anything active is refused (scripts, embedded objects, event attributes, links outside the icon); an SVG over 512 KB is skipped, a ZIP may be up to 200 MB and the kept icons up to 20 MB. The pack is stored in the data folder (`icon-pack`), served to HUDs at `/icon-pack/<name>.svg`, and HUDs switch at once. It stays on this computer: account sync does not share it. **Remove** goes back to MatchFrame's icons.
 
 ## Radar for maps without a radar image
 

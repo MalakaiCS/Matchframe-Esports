@@ -815,3 +815,31 @@
   align-items: baseline;
   gap: 8px;
 }
+
+/* HUD images → Icon pack: actions, status and a preview of a few icons (white silhouettes on a dark tile). */
+.iconpack-actions {
+  flex-wrap: wrap;
+  margin: 8px 0 4px;
+}
+.iconpack-status {
+  margin: 10px 0 8px;
+}
+.iconpack-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.iconpack-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 92px;
+  height: 44px;
+  border-radius: 6px;
+  background: #1b2130;
+}
+.iconpack-cell img {
+  max-width: 80px;
+  max-height: 30px;
+}
+

@@ -52,6 +52,10 @@ The program ships MatchFrame's own TeamSpeak 3 client plugin (`native/ts3-matchf
 | MatchFrame Pro CS2 HUD (`apps/hud-template`) | Adapted from the CS2 HUD template below; Montserrat font files | Template code MIT (`third-party-licenses/hud-template-MIT.txt`); MatchFrame's changes MIT; Montserrat SIL OFL 1.1 (© 2011 The Montserrat Project Authors) |
 | MatchFrame Vector, Lineup and Stage HUDs (`apps/hud-designs`) | Original MatchFrame code; weapon icons from the CS2 HUD template below (shared with the HUD renderer); Montserrat and Inter font files (Vector), Barlow Condensed font files (Lineup, Stage) | Code MIT; weapon icons MIT (`third-party-licenses/weapon-icons-MIT.txt` in each package); fonts SIL OFL 1.1 (`OFL-fonts.txt` in each package; Vector also `OFL-Montserrat.txt`) |
 
+## Counter-Strike 2 icons (not shipped)
+
+MatchFrame ships none of Counter-Strike 2's own HUD icons: they are Valve's artwork. The **icon pack** (HUD Library → HUD images) loads them on the operator's computer from the operator's own copy (a ZIP or a folder), or downloads them at the operator's request from a public GitHub collection of CS2's icons (whose licence states the icons are Valve's property and not licensed for commercial use without Valve's permission) to that computer, for the operator's own broadcast. They are kept in the data folder and are never bundled, synced or uploaded by MatchFrame.
+
 ## CS2 React HUD template (MIT): HUD code, weapon icons and radar images
 
 **cs2-react-hud** by Lexogrine (https://github.com/lexogrine/cs2-react-hud), Copyright (c) 2021 Lexogrine, MIT licence. MatchFrame uses:

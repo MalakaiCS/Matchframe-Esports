@@ -6,6 +6,8 @@
 // taken every <ms> from the switch (e.g. --frames freeze,live 50 12 for going live; replay:none,replay:3k
 // for the replay graphic coming in).
 // --replay takes the replay layer (?demo=replay) with each sample play, with and without team logos.
+// --icons <dir> serves an icon pack folder (an engine's <dataDir>/icon-pack: <name>.svg and pack.json)
+// at /icon-pack/ and tells the demo which icons there are (?iconpack=…), as a loaded icon pack would.
 import { createServer } from "node:http";
 import { mkdirSync, readFileSync, existsSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -14,15 +16,24 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const [hud = "vector", out = join(here, "..", "shots", hud), ...args] = process.argv.slice(2);
-const qi = args.indexOf("--query");
-const extra = qi >= 0 ? `&${args[qi + 1] ?? ""}` : "";
-const rest = qi >= 0 ? [...args.slice(0, qi), ...args.slice(qi + 2)] : args;
+const ii = args.indexOf("--icons");
+const icons = ii >= 0 ? args[ii + 1] : null;
+const argsLeft = ii >= 0 ? [...args.slice(0, ii), ...args.slice(ii + 2)] : args;
+const qi = argsLeft.indexOf("--query");
+const iconNames = icons ? JSON.parse(readFileSync(join(icons, "pack.json"), "utf8")).names : [];
+const extra = (qi >= 0 ? `&${argsLeft[qi + 1] ?? ""}` : "") + (iconNames.length ? `&iconpack=${iconNames.join(",")}` : "");
+const rest = qi >= 0 ? [...argsLeft.slice(0, qi), ...argsLeft.slice(qi + 2)] : argsLeft;
 const dist = join(here, "..", "dist", hud);
 if (!existsSync(join(dist, "index.html"))) throw new Error(`build dist/${hud} first (pnpm run build)`);
 mkdirSync(out, { recursive: true });
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".woff": "font/woff", ".png": "image/png", ".webp": "image/webp" };
 const server = createServer((req, res) => {
   const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
+  const icon = icons && /^\/icon-pack\/([a-z0-9_]+)\.svg$/.exec(path);
+  if (icon) {
+    const f = join(icons, `${icon[1]}.svg`);
+    return existsSync(f) ? res.writeHead(200, { "content-type": "image/svg+xml" }).end(readFileSync(f)) : res.writeHead(404).end();
+  }
   const file = join(dist, path === "/" ? "index.html" : path);
   if (!file.startsWith(dist) || !existsSync(file)) return res.writeHead(404).end();
   res.writeHead(200, { "content-type": types[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));

@@ -50,6 +50,14 @@ describe("bundled HUD packages", () => {
       expect(html).toMatch(/src="\.\/assets\//);
     });
 
+  it.skipIf(!existsSync(join(repo, "apps", "hud-designs", "dist", "stage", "manifest.json")))("the built Stage HUD carries the owner's icon set, and no CS2 icon files", () => {
+    const files = [...readDirectory(join(repo, "apps", "hud-designs", "dist", "stage")).keys()];
+    const pngs = files.filter((f) => /^assets\/[a-z0-9_]+-[\w-]+\.png$/.test(f));
+    expect(pngs.length).toBeGreaterThanOrEqual(60);
+    for (const name of ["ak47", "m4a1_silencer", "kills", "deaths", "bomb_planted", "timeout"]) expect(pngs.some((f) => f.startsWith(`assets/${name}-`))).toBe(true);
+    expect(files.filter((f) => f.endsWith(".svg") && !f.startsWith("assets/"))).toEqual([]);
+  });
+
   it("the Stage HUD's manifest and page: id, name, author, variants, sponsors permission and player cams", () => {
     const folder = join(repo, "apps", "hud-designs", "package-files", "stage");
     const m = validateManifest(new Map([["manifest.json", readFileSync(join(folder, "manifest.json"))], ["index.html", new TextEncoder().encode("<!doctype html>")]]));

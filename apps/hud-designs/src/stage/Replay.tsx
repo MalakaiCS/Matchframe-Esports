@@ -2,7 +2,8 @@ import type { CSSProperties } from "react";
 import type { HudReplayClip, HudState } from "@matchframe/hud-sdk";
 import { replayBadge } from "@matchframe/hud-sdk";
 import { clipColor, clipVictims, teamMonogram, useReplayGraphic } from "../../../hud-renderer/src/components/replay.ts";
-import { HeadshotIcon, ReplayIcon, WeaponIcon } from "../shared/parts.ts";
+import { ReplayIcon } from "../shared/parts.ts";
+import { Headshot, Weapon } from "./icons.tsx";
 import { readSettings, teamVars } from "./util.ts";
 import "./replay.css";
 
@@ -26,13 +27,13 @@ function Card({ clip, leaving, color }: { clip: HudReplayClip; leaving: boolean;
       <div className="st-rp-strip">
         {clip.weapon ? (
           <span className="st-rp-weapon">
-            <WeaponIcon weapon={clip.weapon.name} className="st-rp-gun" />
+            <Weapon weapon={clip.weapon.name} className="st-rp-gun" />
             {clip.weapon.displayName}
           </span>
         ) : null}
         {clip.headshot ? (
           <span className="st-rp-hs">
-            <HeadshotIcon size={15} /> HEADSHOT
+            <Headshot size={16} /> HEADSHOT
           </span>
         ) : null}
         {victims ? <span className="st-rp-victims">{victims}</span> : null}

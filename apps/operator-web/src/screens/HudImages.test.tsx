@@ -7,6 +7,7 @@ import { liveStore } from "../state/live.ts";
 import { SessionContext } from "../state/session.tsx";
 import type { HudArtResponse, HudArtSetting } from "./HudImages.tsx";
 import { HudImagesScreen } from "./HudImages.tsx";
+import type { IconPackStatus } from "./IconPack.tsx";
 import { HudLibraryScreen } from "./HudLibrary.tsx";
 
 const ID = (n: number, ext = "png") => `${String(n).repeat(24).slice(0, 24)}.${ext}`;
@@ -100,7 +101,7 @@ describe("HUD images screen", () => {
     await screen.findByRole("region", { name: "CT player pictures" });
     fireEvent.change(screen.getByLabelText("Upload CT player 2"), { target: { files: [picture("second.png")] } });
     await waitFor(() => expect(e.art().defaultPlayers.ct).toEqual([ID(1), ID(7)]));
-    expect(e.calls.map((c) => `${c.method} ${c.path}`)).toEqual(["GET /api/v1/hud/art", "POST /api/v1/assets?name=second.png", "PUT /api/v1/hud/art"]);
+    expect(e.calls.filter((c) => !c.path.startsWith("/api/v1/hud/icon-pack")).map((c) => `${c.method} ${c.path}`)).toEqual(["GET /api/v1/hud/art", "POST /api/v1/assets?name=second.png", "PUT /api/v1/hud/art"]);
     expect(await within(slot("CT player 2")).findByRole("img")).toBeTruthy();
     // Replacing the first keeps it first.
     fireEvent.change(screen.getByLabelText("Upload CT player 1"), { target: { files: [picture("first.png")] } });
@@ -144,3 +145,47 @@ describe("HUD images screen", () => {
     expect(link.getAttribute("href")).toBe("/hud/images");
   });
 });
+
+describe("Icon pack (HUD images)", () => {
+  /** An engine whose icon pack is empty until Get CS2 icons runs (two progress polls, then done). */
+  function packEngine() {
+    let polls = 0;
+    let pack: IconPackStatus = { count: 0, names: [], source: null, importedAt: null, refused: [], job: null };
+    const calls = serve((m, p) => {
+      if (m === "GET" && p === "/api/v1/hud/art") return { status: 200, json: { art: empty(), maps: MAPS } satisfies HudArtResponse };
+      if (m === "POST" && p === "/api/v1/hud/icon-pack/download") {
+        pack = { ...pack, job: { state: "downloading", done: 0, total: 130 } };
+        return { status: 200, json: pack };
+      }
+      if (m === "GET" && p === "/api/v1/hud/icon-pack") {
+        if (pack.job?.state === "downloading" && ++polls >= 2) pack = { count: 3, names: ["ak47", "awp", "kill"], source: "download", importedAt: "2026-11-17T06:00:00Z", refused: [], job: { state: "done", count: 3 } };
+        else if (pack.job?.state === "downloading") pack = { ...pack, job: { state: "downloading", done: 96, total: 130 } };
+        return { status: 200, json: pack };
+      }
+      if (m === "DELETE" && p === "/api/v1/hud/icon-pack") {
+        pack = { count: 0, names: [], source: null, importedAt: null, refused: [], job: null };
+        return { status: 200, json: pack };
+      }
+      return undefined;
+    });
+    return calls;
+  }
+
+  it("says MatchFrame ships no CS2 icons, gets them with progress, previews and removes them", async () => {
+    const calls = packEngine();
+    renderScreen();
+    expect(await screen.findByText("No icon pack: HUDs use MatchFrame's icons.")).toBeTruthy();
+    expect(screen.getByText("MatchFrame doesn't include CS2's icons: load them from your own copy (a folder or ZIP of CS2's icons).")).toBeTruthy();
+    expect(screen.getByText(/Downloads Counter-Strike 2's icons \(Valve's artwork\) from a public GitHub collection/)).toBeTruthy();
+    expect(screen.getByText(/kept on this computer \(account sync does not share it\)/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Get CS2 icons" }));
+    expect(await screen.findByText(/Downloading \d+ of 130…/)).toBeTruthy();
+    expect(await screen.findByText("3 icons loaded from Get CS2 icons.", undefined, { timeout: 4000 })).toBeTruthy();
+    const preview = screen.getByLabelText("Icon pack preview");
+    expect([...preview.querySelectorAll("img")].map((i) => i.getAttribute("alt"))).toEqual(["ak47", "awp"]);
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(await screen.findByText("No icon pack: HUDs use MatchFrame's icons.")).toBeTruthy();
+    expect(calls.some((c) => c.method === "DELETE" && c.path === "/api/v1/hud/icon-pack")).toBe(true);
+  });
+});
+

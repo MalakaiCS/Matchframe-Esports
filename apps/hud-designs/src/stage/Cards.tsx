@@ -1,8 +1,8 @@
 import { memo } from "react";
 import type { HudPlayer, HudState, HudTeam } from "@matchframe/hud-sdk";
 import { deadIcon, playerPicture } from "../shared/art.ts";
-import { ArmorIcon, BombIcon, GrenadeIcon, KitIcon, SkullIcon, WeaponIcon } from "../shared/parts.ts";
-import { KillsMark, Photo, RoundKill } from "./bits.tsx";
+import { Photo } from "./bits.tsx";
+import { Armor, Bomb, DeadMark, Deaths, Disconnected, Dollar, Grenade, Health, Kills, Kit, RoundKillMark, Weapon } from "./icons.tsx";
 import { mvpShowing, slotKey, slotOrder, teamName, teamVars, type Settings } from "./util.ts";
 
 const NADE_ORDER = ["smoke", "flash", "hegrenade", "molotov", "incgrenade", "decoy"];
@@ -29,7 +29,7 @@ export function Nades({ list, size = 15 }: { list: string; size?: number }) {
   return (
     <span className="st-nades">
       {list.split(",").map((g, i) => (
-        <GrenadeIcon key={`${g}-${i}`} type={g} size={size} />
+        <Grenade key={`${g}-${i}`} type={g} size={size} />
       ))}
     </span>
   );
@@ -40,11 +40,11 @@ function KillsDeaths({ kills, deaths }: { kills: number | null; deaths: number |
   return (
     <span className="st-card-kd">
       <span>
-        <KillsMark size={15} />
+        <Kills size={16} />
         <b>{kills ?? "–"}</b>
       </span>
       <span>
-        <SkullIcon size={17} />
+        <Deaths size={16} />
         <b>{deaths ?? "–"}</b>
       </span>
     </span>
@@ -54,7 +54,7 @@ function KillsDeaths({ kills, deaths }: { kills: number | null; deaths: number |
 /** Money: the dollar sign light, the amount green. */
 const Money = ({ value }: { value: number | null }) => (
   <span className="st-card-money">
-    <i>$</i>
+    <Dollar />
     {value === null ? "–" : value.toLocaleString("en-US")}
   </span>
 );
@@ -67,6 +67,8 @@ interface CardProps {
   color: string;
   align: "left" | "right";
   alive: boolean;
+  /** Gone from the game data (left the server): the card dims with the disconnected mark. */
+  offline: boolean;
   health: number;
   armor: number;
   helmet: boolean;
@@ -98,7 +100,7 @@ const Card = memo(function Card(p: CardProps) {
   const dead = !p.alive;
   const hp = dead ? 0 : Math.max(0, Math.min(100, p.health));
   return (
-    <div className={`st-card st-card-${p.align} ${dead ? "is-dead" : ""} ${p.observed ? "is-observed" : ""}`} style={{ ...teamVars(p.color), ["--i" as string]: p.index }}>
+    <div className={`st-card st-card-${p.align} ${dead ? "is-dead" : ""} ${p.offline && !dead ? "is-offline" : ""} ${p.observed ? "is-observed" : ""}`} style={{ ...teamVars(p.color), ["--i" as string]: p.index }}>
       <span className="st-card-shape" aria-hidden>
         <i className="st-card-trail" style={{ transform: `scaleX(${hp / 100})` }} />
         <i className="st-card-fill" style={{ transform: `scaleX(${hp / 100})` }} />
@@ -106,7 +108,7 @@ const Card = memo(function Card(p: CardProps) {
       {p.roundKills > 0 ? (
         <span className="st-card-rk" aria-label={`${p.roundKills} kills this round`}>
           {Array.from({ length: Math.min(5, p.roundKills) }, (_, i) => (
-            <RoundKill key={i} />
+            <RoundKillMark key={i} />
           ))}
         </span>
       ) : null}
@@ -122,20 +124,25 @@ const Card = memo(function Card(p: CardProps) {
       </span>
       <span className="st-card-gear">
         <span className="st-card-guns">
-          {p.main ? <WeaponIcon weapon={p.main} className={`st-gun is-main ${p.otherActive ? "" : "is-active"}`} /> : null}
-          {p.other ? <WeaponIcon weapon={p.other} className={`st-gun is-other ${p.otherActive ? "is-active" : ""}`} /> : null}
+          {p.main ? <Weapon weapon={p.main} className={`st-gun is-main ${p.otherActive ? "" : "is-active"}`} /> : null}
+          {p.other ? <Weapon weapon={p.other} className={`st-gun is-other ${p.otherActive ? "is-active" : ""}`} /> : null}
         </span>
         <span className={`st-card-hp ${p.health <= 20 ? "is-low" : ""}`}>{dead ? "" : p.health}</span>
         <span className="st-card-util">
           <Nades list={p.nades} size={19} />
         </span>
         <span className="st-card-kit">
-          {p.bomb ? <BombIcon size={21} className="st-c4" /> : p.kit ? <KitIcon size={19} className="st-kit" /> : null}
-          {p.armor > 0 ? <ArmorIcon helmet={p.helmet} size={20} className="st-armor" /> : null}
+          {p.bomb ? <Bomb size={21} className="st-c4" /> : p.kit ? <Kit size={19} className="st-kit" /> : null}
+          {p.armor > 0 ? <Armor helmet={p.helmet} size={20} className="st-armor" /> : null}
         </span>
       </span>
+      {p.offline && !dead ? (
+        <span className="st-card-offline">
+          <Disconnected size={24} />
+        </span>
+      ) : null}
       <span className={`st-card-skull ${p.deadIcon ? "is-art" : ""}`} aria-hidden>
-        {p.deadIcon ? <img src={p.deadIcon} alt="" /> : <SkullIcon size={44} />}
+        {p.deadIcon ? <img src={p.deadIcon} alt="" /> : <DeadMark size={42} />}
       </span>
     </div>
   );
@@ -173,15 +180,16 @@ const MvpCard = memo(function MvpCard(p: MvpProps) {
         <span className={`st-mvp-name ${p.name.length > 10 ? "is-long" : ""}`}>{p.name}</span>
         <span className="st-mvp-round">ROUND {p.roundNumber} STATS</span>
         <span className="st-mvp-stats">
-          <KillsMark size={19} />
+          <Kills size={21} />
           <b>{p.kills}</b>
           <i className="st-mvp-sep" />
           <span className="st-mvp-dmg">DMG</span>
           <b>{p.damage}</b>
         </span>
         <span className="st-mvp-hp">
+          <Health size={19} />
           <b>{p.health}</b>
-          {p.armor > 0 ? <ArmorIcon helmet={p.helmet} size={20} /> : null}
+          {p.armor > 0 ? <Armor helmet={p.helmet} size={21} /> : null}
         </span>
       </span>
       <span className="st-mvp-slot">{p.slot}</span>
@@ -209,6 +217,7 @@ function cardProps(state: HudState, p: HudPlayer, color: string, align: "left" |
     color,
     align,
     alive,
+    offline: p.alive === null,
     health: p.health ?? (alive ? 100 : 0),
     armor: alive ? (p.armor ?? 0) : 0,
     helmet: !!p.helmet,

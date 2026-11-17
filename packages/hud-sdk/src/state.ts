@@ -257,6 +257,13 @@ export interface HudArt {
   maps: Record<string, { logoUrl: string | null; imageUrl: string | null }>;
   /** Marks replacing a HUD's own: the dead player's icon. */
   icons: { dead: string | null };
+  /**
+   * Counter-Strike 2's own icons the operator loaded on this computer (HUD images → Icon pack): the
+   * names there are (`ak47`, `kill_headshot`, …) and where they are served (`<base><name>.svg` on the
+   * overlay server: white silhouettes, for tinting with a CSS mask). Null without a pack; absent from
+   * older engines. MatchFrame ships none of these files.
+   */
+  iconPack?: { names: string[]; base: string } | null;
 }
 
 export interface HudStageTeam {

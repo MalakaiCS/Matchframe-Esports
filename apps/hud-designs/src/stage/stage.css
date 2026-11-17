@@ -65,6 +65,40 @@ body,
   white-space: nowrap;
 }
 
+/* The icon pack's icons (white silhouettes): a CSS mask over the text colour, sized by a hidden copy
+   of the icon (its own shape). The sizes of MatchFrame's own icons apply to them the same way. */
+.st-ico {
+  display: inline-block;
+  flex: none;
+  overflow: hidden;
+  line-height: 0;
+  vertical-align: middle;
+  background-color: currentColor;
+  -webkit-mask: var(--ico) center / contain no-repeat;
+  mask: var(--ico) center / contain no-repeat;
+}
+.st-ico > img {
+  display: block;
+  height: 100%;
+  width: auto;
+  visibility: hidden;
+}
+.st-ico-dollar {
+  margin-right: 2px;
+  color: #d9e4f2;
+}
+.st-ico-ammo {
+  margin-right: 2px;
+  color: var(--st-ink-dim);
+}
+.st-ico-timeout {
+  color: var(--st-ink);
+}
+.st-ico-hp {
+  margin-right: 4px;
+  opacity: 0.85;
+}
+
 /* ------------------------------------------------------------ logos and photos */
 .st-logo {
   display: flex;
@@ -530,6 +564,7 @@ body,
 .st-paused {
   height: 34px;
   align-items: center;
+  gap: 8px;
   padding: 2px 16px 0;
   background: var(--st-panel);
   box-shadow: inset 0 -3px 0 var(--st-ink);
@@ -1035,6 +1070,37 @@ body,
   opacity: 1;
   transform: none;
 }
+/* Disconnected (gone from the game data): dimmed, the mark where the gear was. */
+.st-card-offline {
+  position: absolute !important;
+  top: 0;
+  bottom: 0;
+  width: 156px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+.st-card-left .st-card-offline {
+  right: 0;
+}
+.st-card-right .st-card-offline {
+  left: 0;
+}
+.st-card.is-offline .st-card-gear {
+  opacity: 0;
+}
+.st-card.is-offline .st-card-fill {
+  background: rgba(98, 104, 116, 0.9);
+}
+.st-card.is-offline .st-card-pic {
+  opacity: 0.55;
+}
+.st-offline {
+  font-size: 15px;
+  letter-spacing: 0.1em;
+}
+
 /* Observed: a lighter fill with a white rim, nudged towards the centre. */
 .st-card.is-observed .st-card-fill {
   background: var(--st-team-lit);
@@ -1318,11 +1384,17 @@ body,
   padding: 4px 4px 0 0;
   font-size: 17px;
 }
-.st-obs-kad i {
+.st-obs-kad i,
+.st-obs-kad .mf-icon,
+.st-obs-kad .st-ico {
   margin-left: 5px;
   font-style: normal;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.7);
+}
+.st-obs-kad .mf-icon,
+.st-obs-kad .st-ico {
+  margin-top: -2px;
 }
 .st-obs-ammo-bar {
   width: 3px;
@@ -1379,8 +1451,8 @@ body,
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 60px;
-  padding-top: 4px;
+  min-width: 60px;
+  padding: 4px 8px 0 4px;
   font-size: 30px;
   font-weight: 700;
 }
@@ -1482,25 +1554,27 @@ body,
   font-size: 40px;
   font-weight: 800;
 }
+.st-tocall-mark {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  box-shadow: inset 1px 0 0 var(--st-line);
+}
+.st-tocall-mark b {
+  padding-top: 4px;
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
 .st-tocall-text {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
-  padding: 4px 16px 0;
-  box-shadow: inset 1px 0 0 var(--st-line);
+  gap: 6px;
+  padding: 4px 14px 0 0;
 }
-.st-tocall-text b {
-  font-size: 25px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: 0.05em;
-}
-.st-tocall-sub {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
+.st-tocall-team {
+  font-size: 20px;
   line-height: 1;
   color: var(--st-team);
 }
@@ -1528,8 +1602,12 @@ body,
 .st-tocall.is-left .st-tocall-logo {
   margin: 0 0 0 4px;
 }
-.st-tocall.is-left .st-tocall-text {
+.st-tocall.is-left .st-tocall-mark {
   box-shadow: inset -1px 0 0 var(--st-line);
+}
+.st-tocall.is-left .st-tocall-text {
+  padding: 4px 0 0 14px;
+  align-items: flex-end;
 }
 @keyframes st-tocall-in-l {
   from {

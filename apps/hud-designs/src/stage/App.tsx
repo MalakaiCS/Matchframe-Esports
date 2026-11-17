@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { isReplayLayer } from "../../../hud-renderer/src/components/replay.ts";
 import { VARIANT, useHud } from "../shared/useHud.ts";
 import { TeamCards } from "./Cards.tsx";
+import { IconPackProvider } from "./icons.tsx";
 import { Observed } from "./Observed.tsx";
 import { ReplayLayer } from "./Replay.tsx";
 import { ScoreBar } from "./ScoreBar.tsx";
@@ -38,7 +39,13 @@ export default function App() {
   const scale = useStageScale();
   // Nothing until the first state arrives: the page stays transparent.
   if (!state) return null;
-  if (REPLAY_LAYER) return <ReplayLayer state={state} scale={scale} />;
+  // CS2's icons when the operator loaded an icon pack (state.art.iconPack), else the HUD's own.
+  if (REPLAY_LAYER)
+    return (
+      <IconPackProvider pack={state.art.iconPack}>
+        <ReplayLayer state={state} scale={scale} />
+      </IconPackProvider>
+    );
   const settings = readSettings(state.settings);
   const compact = (state.variant || VARIANT) === "compact";
   const phase = state.match.phase;
@@ -59,26 +66,28 @@ export default function App() {
     "--st-name-t": mix(t, "#ffffff", 0.6),
   } as CSSProperties;
   return (
-    <div className={`st-stage ${board ? "is-board" : "is-live"} ${compact ? "is-compact" : ""} ${state.stale ? "is-stale" : ""}`} style={vars} data-phase={phase}>
-      {compact ? null : <TopLeft state={state} settings={settings} />}
-      <ScoreBar state={state} receivedAt={receivedAt} settings={settings} compact={compact} boardOn={board && settings.showScoreboard && !compact} />
-      <TopRight state={state} settings={settings} compact={compact} />
-      {compact ? null : (
-        <>
-          <TeamCards state={state} team={state.left} color={colorOf(state.left, settings)} align="left" settings={settings} shown={!board || !settings.showScoreboard} />
-          <TeamCards state={state} team={state.right} color={colorOf(state.right, settings)} align="right" settings={settings} shown={!board || !settings.showScoreboard} />
-          {settings.showScoreboard ? <Scoreboard state={state} receivedAt={receivedAt} settings={settings} shown={board} /> : null}
-        </>
-      )}
-      {settings.showObserved ? <Observed state={state} color={observedColor} shown={!board || compact} /> : null}
-      {/* Honest labels: the test simulation, data that has stopped arriving, a replay on air. */}
-      {state.simulated || state.stale || state.replay.active ? (
-        <div className="st-labels">
-          {state.replay.active ? <span className="st-label is-replay">{state.replay.label || "REPLAY"}</span> : null}
-          {state.simulated ? <span className="st-label is-sim">SIMULATION</span> : null}
-          {state.stale ? <span className="st-label is-stale">DATA PAUSED</span> : null}
-        </div>
-      ) : null}
-    </div>
+    <IconPackProvider pack={state.art.iconPack}>
+      <div className={`st-stage ${board ? "is-board" : "is-live"} ${compact ? "is-compact" : ""} ${state.stale ? "is-stale" : ""}`} style={vars} data-phase={phase}>
+        {compact ? null : <TopLeft state={state} settings={settings} />}
+        <ScoreBar state={state} receivedAt={receivedAt} settings={settings} compact={compact} boardOn={board && settings.showScoreboard && !compact} />
+        <TopRight state={state} settings={settings} compact={compact} />
+        {compact ? null : (
+          <>
+            <TeamCards state={state} team={state.left} color={colorOf(state.left, settings)} align="left" settings={settings} shown={!board || !settings.showScoreboard} />
+            <TeamCards state={state} team={state.right} color={colorOf(state.right, settings)} align="right" settings={settings} shown={!board || !settings.showScoreboard} />
+            {settings.showScoreboard ? <Scoreboard state={state} receivedAt={receivedAt} settings={settings} shown={board} /> : null}
+          </>
+        )}
+        {settings.showObserved ? <Observed state={state} color={observedColor} shown={!board || compact} /> : null}
+        {/* Honest labels: the test simulation, data that has stopped arriving, a replay on air. */}
+        {state.simulated || state.stale || state.replay.active ? (
+          <div className="st-labels">
+            {state.replay.active ? <span className="st-label is-replay">{state.replay.label || "REPLAY"}</span> : null}
+            {state.simulated ? <span className="st-label is-sim">SIMULATION</span> : null}
+            {state.stale ? <span className="st-label is-stale">DATA PAUSED</span> : null}
+          </div>
+        ) : null}
+      </div>
+    </IconPackProvider>
   );
 }

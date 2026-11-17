@@ -65,6 +65,8 @@ Honour the flags in the state: show a SIMULATION marker when `state.simulated` i
 
 **Event** (`state.event`, permission `event`): `name`, `logoUrl` and the brand colours `primary` / `secondary`; also `stage` (the active match's stage, e.g. "Group A") and `matchTitle` (the match's title, e.g. "Grand Final"), each `null` when not set and absent from older engines.
 
+**Icon pack** (`state.art.iconPack`, optional): Counter-Strike 2's own icons the operator loaded on this computer (HUD images → Icon pack): `names` (`ak47`, `knife_karambit`, `kill_headshot`, `defuser`, …) and `base` (`/icon-pack/`), so `<base><name>.svg` on the overlay server; `null` without a pack. They are white silhouettes: draw them as a CSS mask over `currentColor` to tint them, and keep your own icon for a name that isn't listed. MatchFrame ships none of these files.
+
 **Coaches and the last round** (optional, absent from older engines): `state.left.coach` / `state.right.coach` are the team's roster coach (`name`, `avatarUrl`), or `null`; never their voice. `state.lastRound` is the last round this output's timeline has seen end, kept from its end because CS2 resets round kills and damage at the next freeze time: `roundNumber`, `winnerSide` and `mvp` (`steamId`, `kills`, `damage`, `health`, `armor`, `helmet`; CS2's own round MVP when the game data shows it, else the winning side's player with the most kills, then damage), or `null`.
 
 **Players** (`state.left.players`, `state.right.players`, `state.observed`): besides health, armour, money, weapons and grenades, `roundKills`, `kills`/`deaths`/`assists`, `roundDamage` (damage dealt this round, as the game reports it; `null` when it doesn't) and `adr` (only with validated damage totals, else `null`).
