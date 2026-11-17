@@ -7,29 +7,31 @@ import { useApi } from "../../lib/hooks.ts";
 import { REPLAY_KEYS, replayHotkeys, shortcutLabel, type ReplayHotkeyState, type ReplayKey, type ReplayKeyAction } from "../../lib/replay-keys.ts";
 import { useSnapshot } from "../../state/live.ts";
 import { usePermission } from "../../state/session.tsx";
+import { perLocale, t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 
 const STATE_TONE = { off: "neutral", waiting: "info", playing: "accent", blocked: "warn" } as const;
 /** Slow motion (ADR-081): around each kill, the whole clip, or none. */
-const SLOW_MODES = [
-  { id: "kill", label: "Kill moment (recommended)" },
-  { id: "whole", label: "Whole clip" },
-  { id: "off", label: "Off" },
-] as const;
-const ANGLE_LABEL = { victim: "victim's view", free: "free camera" } as const;
+const SLOW_MODES = perLocale(() => ([
+  { id: "kill", label: t("replays.killMomentRecommended") },
+  { id: "whole", label: t("replays.wholeClip") },
+  { id: "off", label: t("replays.off") },
+] as const));
+const ANGLE_LABEL = perLocale(() => ({ victim: t("replays.victimSView"), free: t("replays.freeCamera") } as const));
 
-const RANKED_STATE: Record<RankedReplay["state"], { label: string; tone: "ok" | "accent" | "info" | "neutral" }> = {
-  played: { label: "Played", tone: "ok" },
-  picked: { label: "On air", tone: "accent" },
-  waiting: { label: "Waiting", tone: "info" },
-  duplicate: { label: "Same kills", tone: "neutral" },
-  left: { label: "Not played", tone: "neutral" },
-};
-const TRANSITIONS = [
-  { id: "CutDirect", label: "Cut" },
-  { id: "Fade", label: "Fade" },
-  { id: "Stinger1", label: "Stinger 1" },
-  { id: "Stinger2", label: "Stinger 2" },
-] as const;
+const RANKED_STATE: Record<RankedReplay["state"], { label: string; tone: "ok" | "accent" | "info" | "neutral" }> = perLocale(() => ({
+  played: { label: t("replays.played"), tone: "ok" },
+  picked: { label: t("replays.onAir"), tone: "accent" },
+  waiting: { label: t("replays.waiting"), tone: "info" },
+  duplicate: { label: t("replays.sameKills"), tone: "neutral" },
+  left: { label: t("replays.notPlayed"), tone: "neutral" },
+}));
+const TRANSITIONS = perLocale(() => ([
+  { id: "CutDirect", label: t("replays.cut") },
+  { id: "Fade", label: t("replays.fade") },
+  { id: "Stinger1", label: t("replays.stinger1") },
+  { id: "Stinger2", label: t("replays.stinger2") },
+] as const));
 /** When the break's replays end: by a time on the next round's clock (seconds left), or before it starts. */
 const CUT_BACK = [112, 110, 105, 100, 95, 90] as const;
 const FADES = [300, 500, 750, 1000] as const;
@@ -62,7 +64,7 @@ export function AutoReplaysPanel() {
     try {
       auto.setData(await api.put<AutoReplayResponse>("/api/v1/replays/auto", patch));
     } catch (e) {
-      toast.push("danger", "Setting not saved", describeError(e));
+      toast.push("danger", t("replays.settingNotSaved"), describeError(e));
     } finally {
       setBusy(false);
     }
@@ -83,48 +85,44 @@ export function AutoReplaysPanel() {
     try {
       auto.setData(await (method === "PUT" ? api.put<AutoReplayResponse>(path, body) : api.post<AutoReplayResponse>(path, body)));
     } catch (e) {
-      toast.push("warn", "Replays", describeError(e));
+      toast.push("warn", t("replays.replays"), describeError(e));
     }
   };
   return (
-    <Panel title="Automatic replays" subtitle={status?.detail} actions={status ? <Badge tone={STATE_TONE[status.state]}>{status.state === "playing" ? (status.held ? "Held" : "Playing") : status.enabled ? "On" : "Off"}</Badge> : null}>
+    <Panel title={t("replays.automaticReplays")} subtitle={status?.detail} actions={status ? <Badge tone={STATE_TONE[status.state]}>{status.state === "playing" ? (status.held ? t("replays.held") : t("replays.playing")) : status.enabled ? t("replays.on") : t("replays.off")}</Badge> : null}>
       <div className="stack-sm">
         {status?.running ? (
-          <div className="row" role="group" aria-label="Replays playing now">
-            <Button variant="primary" disabledReason={reason} title={`Ends the clip on air now (${shortcutLabel("F5")})`} onClick={() => void control("/api/v1/replays/auto/skip")}>
-              Skip
+          <div className="row" role="group" aria-label={t("replays.replaysPlayingNow")}>
+            <Button variant="primary" disabledReason={reason} title={t("replays.endsTheClipOnAir", { shortcutLabel: shortcutLabel("F5") })} onClick={() => void control("/api/v1/replays/auto/skip")}>{t("replays.skip")}</Button>
+            <Button variant={status.held ? "primary" : "secondary"} disabledReason={reason} title={`${status.held ? t("replays.playsItOn") : t("replays.pausesTheClipOnAir")} (${shortcutLabel("F6")})`} onClick={() => void control("/api/v1/replays/auto/hold", { held: !status.held })}>
+              {status.held ? t("replays.resume") : t("replays.hold")}
             </Button>
-            <Button variant={status.held ? "primary" : "secondary"} disabledReason={reason} title={`${status.held ? "Plays it on" : "Pauses the clip on air"} (${shortcutLabel("F6")})`} onClick={() => void control("/api/v1/replays/auto/hold", { held: !status.held })}>
-              {status.held ? "Resume" : "Hold"}
-            </Button>
-            <Button variant="danger" disabledReason={reason} title={`Back to the live scene now, with Replay out (${shortcutLabel("F7")})`} onClick={() => void control("/api/v1/replays/auto/stop")}>
-              Stop and go live
-            </Button>
-            <span className="muted small">{status.held ? "Held: nothing plays on until Resume. The round clock still cuts back to live." : `${shortcutLabel("F5")} Skip · ${shortcutLabel("F6")} Hold · ${shortcutLabel("F7")} Stop`}</span>
+            <Button variant="danger" disabledReason={reason} title={t("replays.backToTheLiveScene", { shortcutLabel: shortcutLabel("F7") })} onClick={() => void control("/api/v1/replays/auto/stop")}>{t("replays.stopAndGoLive")}</Button>
+            <span className="muted small">{status.held ? t("replays.heldNothingPlaysOnUntil") : t("replays.shortcutlabelSkipShortcutlabel2HoldShort", { shortcutLabel: shortcutLabel("F5"), shortcutLabel2: shortcutLabel("F6"), shortcutLabel3: shortcutLabel("F7") })}</span>
           </div>
         ) : null}
         <Checkbox
           checked={st?.enabled ?? false}
           disabled={off}
-          label="Play replays by themselves"
-          hint={`In the break after a round: from a few seconds after it ends until ${st?.cutBack === "before_round" ? "just before the next round starts" : `the next round's clock reads ${clock(st?.cutBackClockSec ?? 110)}`}, one transition to the replays and one back to live. They never start once the next round is live.`}
+          label={t("replays.playReplaysByThemselves")}
+          hint={t("replays.inTheBreakAfterA", { v: st?.cutBack === "before_round" ? t("replays.justBeforeTheNextRound") : t("replays.theNextRoundSClock", { clock: clock(st?.cutBackClockSec ?? 110) }) })}
           onChange={(v) => void save({ enabled: v })}
         />
         <Checkbox
           checked={st?.early ?? true}
           disabled={off}
-          label="Start replays early when the round is decided"
-          hint="The bomb is planted and no CT can reach it and defuse in time, or no T can plant before the round clock ends, and no duel is on or about to start. Never with more than 10 s left on the bomb or the round clock."
+          label={t("replays.startReplaysEarlyWhenThe")}
+          hint={t("replays.theBombIsPlantedAnd")}
           onChange={(v) => void save({ early: v })}
         />
         {st?.early !== false ? (
           <>
             <div className="form-grid">
-              <Field label="At most" hint="Before the bomb goes off, or before the round clock ends. 10 s is the most.">
+              <Field label={t("replays.atMost")} hint={t("replays.beforeTheBombGoesOff")}>
                 <select value={String(st?.earlyMaxSec ?? 10)} disabled={off} onChange={(e) => void save({ earlyMaxSec: Number(e.target.value) })}>
                   {EARLY_SEC.map((n) => (
                     <option key={n} value={String(n)}>
-                      {`${n} seconds early${n === 10 ? " (recommended)" : ""}`}
+                      {t("replays.secondsEarly", { count: n })}{n === 10 ? t("replays.recommendedSuffix") : ""}
                     </option>
                   ))}
                 </select>
@@ -133,29 +131,29 @@ export function AutoReplaysPanel() {
             <Checkbox
               checked={st?.earlyBackToLive ?? true}
               disabled={off}
-              label="Back to live if the round isn't over after all"
-              hint="While early replays are on air: a CT back within reach of a defuse, a duel, a kill, or a T within reach of a plant."
+              label={t("replays.backToLiveIfThe")}
+              hint={t("replays.whileEarlyReplaysAreOn")}
               onChange={(v) => void save({ earlyBackToLive: v })}
             />
           </>
         ) : null}
         <div className="form-grid">
-          <Field label="Replays per break" hint="The best clips of the round that fit in the break; the rest are left.">
+          <Field label={t("replays.replaysPerBreak")} hint={t("replays.theBestClipsOfThe")}>
             <select value={st?.perBreak ?? 4} disabled={off} onChange={(e) => void save({ perBreak: Number(e.target.value) })}>
               {[1, 2, 3, 4].map((n) => (
                 <option key={n} value={n}>
-                  {n === 1 ? "The best one" : `The best ${n}`}
+                  {n === 1 ? t("replays.theBestOne") : t("replays.theBestN", { n })}
                 </option>
               ))}
             </select>
           </Field>
-          <Field label="Order" hint="The chosen clips play back to back. Round order: from the start of the round to its end. Best first: the best one first.">
+          <Field label={t("replays.order")} hint={t("replays.theChosenClipsPlayBack")}>
             <select value={st?.order ?? "round"} disabled={off} onChange={(e) => void save({ order: e.target.value as AutoReplaySettings["order"] })}>
-              <option value="round">Round order</option>
-              <option value="best">Best first</option>
+              <option value="round">{t("replays.roundOrder")}</option>
+              <option value="best">{t("replays.bestFirst")}</option>
             </select>
           </Field>
-          <Field label="Back to live" hint="Replays may run on into the next round while the teams leave spawn: the cut back to live starts by this time on its clock (CS2's round starts at 1:55). The bomb planted, or the round over, ends them at once.">
+          <Field label={t("replays.backToLive")} hint={t("replays.replaysMayRunOnInto")}>
             <select
               value={st?.cutBack === "before_round" ? "before_round" : String(st?.cutBackClockSec ?? 110)}
               disabled={off}
@@ -163,22 +161,22 @@ export function AutoReplaysPanel() {
             >
               {[...CUT_BACK, ...(st?.cutBackClockSec && !(CUT_BACK as readonly number[]).includes(st.cutBackClockSec) ? [st.cutBackClockSec] : [])].map((sec) => (
                 <option key={sec} value={String(sec)}>
-                  {`By ${clock(sec)} on the round clock${sec === 110 ? " (recommended)" : ""}`}
+                  {t("replays.bySecOnTheRound", { sec: clock(sec), v: sec === 110 ? t("replays.recommendedSuffix") : "" })}
                 </option>
               ))}
-              <option value="before_round">Before the round starts</option>
+              <option value="before_round">{t("replays.beforeTheRoundStarts")}</option>
             </select>
           </Field>
-          <Field label="Between replays" hint={vmix ? "The end of one replay fades into the start of the next (vMix's Fade), or a cut." : "Fade (one scene, rendered): the break's clips are joined into one file with the fade and played in your replay scene; smoothest, needs ffmpeg (Replay feed). Fade (two scenes, OBS): each clip in your replay scene and a copy of it, OBS fading between them. If the file isn't ready in time, the break plays the second way."}>
+          <Field label={t("replays.betweenReplays")} hint={vmix ? t("replays.theEndOfOneReplay") : t("replays.fadeOneSceneRenderedThe")}>
             <select value={st?.between === "cut" ? "cut" : st?.playback === "scenes" || vmix ? "scenes" : "rendered"} disabled={off} onChange={(e) => void save(e.target.value === "cut" ? { between: "cut" } : { between: "fade", playback: e.target.value as "rendered" | "scenes" })}>
-              {vmix ? <option value="scenes">Fade</option> : null}
-              {!vmix ? <option value="rendered">Fade (one scene, rendered)</option> : null}
-              {!vmix ? <option value="scenes">Fade (two scenes, OBS)</option> : null}
-              <option value="cut">Cut</option>
+              {vmix ? <option value="scenes">{t("replays.fade")}</option> : null}
+              {!vmix ? <option value="rendered">{t("replays.fadeOneSceneRendered")}</option> : null}
+              {!vmix ? <option value="scenes">{t("replays.fadeTwoScenesObs")}</option> : null}
+              <option value="cut">{t("replays.cut")}</option>
             </select>
           </Field>
           {st?.between !== "cut" ? (
-            <Field label="Fade length">
+            <Field label={t("replays.fadeLength")}>
               <select value={String(st?.fadeMs ?? 500)} disabled={off} onChange={(e) => void save({ fadeMs: Number(e.target.value) })}>
                 {[...FADES, ...(st?.fadeMs && !(FADES as readonly number[]).includes(st.fadeMs) ? [st.fadeMs] : [])].map((ms) => (
                   <option key={ms} value={String(ms)}>
@@ -189,17 +187,17 @@ export function AutoReplaysPanel() {
             </Field>
           ) : null}
           {!vmix && st?.playback !== "scenes" ? (
-            <Field label="Sound fade" hint="A rendered break's sound fades in at its start and out at its end, so it never ends on a hard cut (and before Stop or the round clock ends it early).">
+            <Field label={t("replays.soundFade")} hint={t("replays.aRenderedBreakSSound")}>
               <select value={String(st?.audioFadeMs ?? 400)} disabled={off} onChange={(e) => void save({ audioFadeMs: Number(e.target.value) })}>
                 {[...AUDIO_FADES, ...(st?.audioFadeMs !== undefined && !(AUDIO_FADES as readonly number[]).includes(st.audioFadeMs) ? [st.audioFadeMs] : [])].map((ms) => (
                   <option key={ms} value={String(ms)}>
-                    {ms === 0 ? "None" : `${ms / 1000} s${ms === 400 ? " (recommended)" : ""}`}
+                    {ms === 0 ? t("replays.none") : `${ms / 1000} s${ms === 400 ? " (recommended)" : ""}`}
                   </option>
                 ))}
               </select>
             </Field>
           ) : null}
-          <Field label="Slow motion" hint={vmix || st?.playback === "scenes" ? "Kill moment slows a rendered break's file: played clip by clip (vMix, or Fade (two scenes, OBS)) only Whole clip is slowed, by the mixer." : "Kill moment: each clip eases down to the slow speed about 0.3 s before its kill, holds through it and eases back up after (each kill of a multi-kill). The break's clips are chosen with the longer lengths, so they still end in time."}>
+          <Field label={t("replays.slowMotion")} hint={vmix || st?.playback === "scenes" ? t("replays.killMomentSlowsARendered") : t("replays.killMomentEachClipEases")}>
             <select value={st?.slowMotion ?? "kill"} disabled={off} onChange={(e) => void save({ slowMotion: e.target.value as NonNullable<AutoReplaySettings["slowMotion"]> })}>
               {SLOW_MODES.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -209,7 +207,7 @@ export function AutoReplaysPanel() {
             </select>
           </Field>
           {st?.slowMotion !== "off" ? (
-            <Field label="Slow speed">
+            <Field label={t("replays.slowSpeed")}>
               <select value={String(st?.slowSpeed ?? 50)} disabled={off} onChange={(e) => void save({ slowSpeed: Number(e.target.value) as 50 | 33 })}>
                 <option value="50">50 %</option>
                 <option value="33">33 %</option>
@@ -217,10 +215,10 @@ export function AutoReplaysPanel() {
             </Field>
           ) : null}
           {st?.slowMotion !== "off" ? (
-            <Field label="Sound while slowed" hint="Muted: the game sound fades out just before the slow part and back in after it (clean; casters talk over it). Slowed: played slower with its pitch kept, which can make gunshots sound doubled.">
+            <Field label={t("replays.soundWhileSlowed")} hint={t("replays.mutedTheGameSoundFades")}>
               <select value={st?.slowAudio ?? "mute"} disabled={off} onChange={(e) => void save({ slowAudio: e.target.value as "mute" | "pitch" })}>
-                <option value="mute">Muted (recommended)</option>
-                <option value="pitch">Slowed, pitch kept</option>
+                <option value="mute">{t("replays.mutedRecommended")}</option>
+                <option value="pitch">{t("replays.slowedPitchKept")}</option>
               </select>
             </Field>
           ) : null}
@@ -229,32 +227,32 @@ export function AutoReplaysPanel() {
           <Checkbox
             checked={st?.slowSmooth ?? false}
             disabled={off}
-            label="Smooth slow motion (more CPU)"
-            hint="Makes the in-between frames by motion interpolation instead of blending two frames. It takes far longer (measured: about half a second a frame at 1080p on a 4-core CPU without a graphics card), so a break uses it only when its file will still be ready in time; highlights and reels, which can wait, always do."
+            label={t("replays.smoothSlowMotionMoreCpu")}
+            hint={t("replays.makesTheInBetweenFrames")}
             onChange={(v) => void save({ slowSmooth: v })}
           />
         ) : null}
         <div className="form-grid">
-          <Field label="Multi-angle replays" hint="The replay PC is asked to film the moment again from another angle (it goes back in its CS2 when that costs no kill: Replay PC → Film extra angles). An angle that arrives in time plays straight after the moment, slowed, when the break has time for it. Star a clip in the list below to ask for its angles and play them with it.">
+          <Field label={t("replays.multiAngleReplays")} hint={t("replays.theReplayPcIsAsked")}>
             <select value={st?.multiAngle ?? "top"} disabled={off} onChange={(e) => void save({ multiAngle: e.target.value as NonNullable<AutoReplaySettings["multiAngle"]> })}>
-              <option value="top">The round's top kill and starred kills</option>
-              <option value="starred">Only starred kills</option>
-              <option value="off">Off</option>
+              <option value="top">{t("replays.theRoundSTopKill")}</option>
+              <option value="starred">{t("replays.onlyStarredKills")}</option>
+              <option value="off">{t("replays.off")}</option>
             </select>
           </Field>
           {st?.multiAngle !== "off" ? (
-            <Field label="Extra angle">
+            <Field label={t("replays.extraAngle")}>
               <select value={st?.angleViews ?? "victim"} disabled={off} onChange={(e) => void save({ angleViews: e.target.value as NonNullable<AutoReplaySettings["angleViews"]> })}>
-                <option value="victim">The player who died's view</option>
-                <option value="free">A free camera</option>
-                <option value="both">Both</option>
+                <option value="victim">{t("replays.thePlayerWhoDiedS")}</option>
+                <option value="free">{t("replays.aFreeCamera")}</option>
+                <option value="both">{t("replays.both")}</option>
               </select>
             </Field>
           ) : null}
         </div>
-        <Checkbox checked={st?.otherAngles ?? true} disabled={off} label="Other angles" hint="When the main camera showed only the player who died, replay it from the killer's side (from the replay PC)." onChange={(v) => void save({ otherAngles: v })} />
-        <Checkbox checked={st?.ownBigPlays ?? true} disabled={off} label="Replay big plays shown live" hint="When the main camera shows a 3K or more, save this computer's OBS replay buffer and replay it too." onChange={(v) => void save({ ownBigPlays: v })} />
-        <Field label="Play replays in">
+        <Checkbox checked={st?.otherAngles ?? true} disabled={off} label={t("replays.otherAngles")} hint={t("replays.whenTheMainCameraShowed")} onChange={(v) => void save({ otherAngles: v })} />
+        <Checkbox checked={st?.ownBigPlays ?? true} disabled={off} label={t("replays.replayBigPlaysShownLive")} hint={t("replays.whenTheMainCameraShows")} onChange={(v) => void save({ ownBigPlays: v })} />
+        <Field label={t("replays.playReplaysIn")}>
           <select value={st?.mixer ?? "obs"} disabled={off} onChange={(e) => void save({ mixer: e.target.value as AutoReplaySettings["mixer"] })}>
             <option value="obs">OBS</option>
             <option value="vmix">vMix</option>
@@ -263,54 +261,50 @@ export function AutoReplaysPanel() {
         {st?.mixer === "vmix" ? (
           <div className="stack-sm">
             <div className="form-grid">
-              <Field label="vMix address" hint="vMix on this computer, with its Web Controller on (vMix → Settings → Web Controller).">
+              <Field label={t("replays.vmixAddress")} hint={t("replays.vmixOnThisComputerWith")}>
                 <input value={vmixUrl} disabled={off} spellCheck={false} onChange={(e) => setVmixUrl(e.target.value)} onBlur={() => vmixUrl !== st.vmixUrl && void save({ vmixUrl })} placeholder="http://127.0.0.1:8088" />
               </Field>
-              <Field label="Replay in" hint="To the first replay. Stingers use vMix's own Stinger 1 or 2.">
+              <Field label={t("replays.replayIn")} hint={t("replays.toTheFirstReplayStingers")}>
                 <select value={st.vmixTransition} disabled={off} onChange={(e) => void save({ vmixTransition: e.target.value as AutoReplaySettings["vmixTransition"] })}>
-                  {TRANSITIONS.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.label}
+                  {TRANSITIONS.map((tRow) => (
+                    <option key={tRow.id} value={tRow.id}>
+                      {tRow.label}
                     </option>
                   ))}
                 </select>
               </Field>
-              <Field label="Replay out" hint="Back to live after the last replay.">
+              <Field label={t("replays.replayOut")} hint={t("replays.backToLiveAfterThe")}>
                 <select value={st.vmixTransitionOut ?? ""} disabled={off} onChange={(e) => void save({ vmixTransitionOut: (e.target.value || null) as AutoReplaySettings["vmixTransitionOut"] })}>
-                  <option value="">Same as Replay in</option>
-                  {TRANSITIONS.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.label}
+                  <option value="">{t("replays.sameAsReplayIn")}</option>
+                  {TRANSITIONS.map((tRow) => (
+                    <option key={tRow.id} value={tRow.id}>
+                      {tRow.label}
                     </option>
                   ))}
                 </select>
               </Field>
             </div>
             <div className="row">
-              <ActionButton action={() => api.post<{ connected: boolean; version: string | null; error: string | null }>("/api/v1/replays/vmix/test")} success={(r) => (r.connected ? `vMix ${r.version ?? ""} answers` : `vMix doesn't answer: ${r.error ?? ""}`)} onDone={() => void auto.reload()} disabledReason={reason}>
-                Test vMix
-              </ActionButton>
-              {status?.vmix ? <Badge tone={status.vmix.connected ? "ok" : "warn"}>{status.vmix.connected ? `vMix ${status.vmix.version ?? ""}` : "vMix not reached"}</Badge> : null}
-              <span className="muted small">Each replay is added to vMix as an input (the next one while the one before plays) and removed after the break's replays.</span>
+              <ActionButton action={() => api.post<{ connected: boolean; version: string | null; error: string | null }>("/api/v1/replays/vmix/test")} success={(r) => (r.connected ? t("replays.vmixVAnswers", { v: r.version ?? "" }) : t("replays.vmixDoesnTAnswerV", { v: r.error ?? "" }))} onDone={() => void auto.reload()} disabledReason={reason}>{t("replays.testVmix")}</ActionButton>
+              {status?.vmix ? <Badge tone={status.vmix.connected ? "ok" : "warn"}>{status.vmix.connected ? `vMix ${status.vmix.version ?? ""}` : t("replays.vmixNotReached")}</Badge> : null}
+              <span className="muted small">{t("replays.eachReplayIsAddedTo")}</span>
             </div>
           </div>
         ) : (
           <div className="row">
-            <ActionButton action={() => api.post<{ scene: string; input: string }>("/api/v1/replays/obs-setup")} success={(r) => `OBS: scene “${r.scene}” with the media source “${r.input}” is ready`} onDone={() => void auto.reload()} disabledReason={setupReason}>
-              Set up OBS replay scene
-            </ActionButton>
-            <span className="muted small">Adds a “MatchFrame Replay” scene to OBS and uses it, with a second one beside it for fading between replays. Pick a Stinger for replays under OBS scenes → Transitions.</span>
-            {status?.twin ? <span className={`small ${status.twin.ready ? "muted" : "text-warn"}`}>{status.twin.ready ? `Fades between replays through “${status.twin.scene}”, a copy of your replay scene that MatchFrame keeps the same: leave it to MatchFrame.` : `Between replays: ${status.twin.detail}`}</span> : null}
+            <ActionButton action={() => api.post<{ scene: string; input: string }>("/api/v1/replays/obs-setup")} success={(r) => t("replays.obsSceneSceneWithThe", { scene: r.scene, input: r.input })} onDone={() => void auto.reload()} disabledReason={setupReason}>{t("replays.setUpObsReplayScene")}</ActionButton>
+            <span className="muted small">{t("replays.addsAMatchframeReplayScene")}</span>
+            {status?.twin ? <span className={`small ${status.twin.ready ? "muted" : "text-warn"}`}>{status.twin.ready ? t("replays.fadesBetweenReplaysThroughScene", { scene: status.twin.scene }) : t("replays.betweenReplaysDetail", { detail: status.twin.detail })}</span> : null}
           </div>
         )}
         {ranked.length ? (
-          <div className="stack-sm" aria-label="Clips of the round, best first">
-            <span className="small muted">Round {status?.round ?? "?"}: its clips, best first{renderedNow ? ". This break plays as one rendered file: Exclude, Pin and Slow made now apply from the next break." : ""}</span>
+          <div className="stack-sm" aria-label={t("replays.clipsOfTheRoundBest")}>
+            <span className="small muted">{t("replays.roundVItsClipsBest", { v: status?.round ?? "?", v2: renderedNow ? t("replays.thisBreakPlaysAsOne") : "" })}</span>
             <ol className="ranked-replays small">
               {ranked.map((r) => (
                 <li key={r.id} className="row">
                   <Badge tone={RANKED_STATE[r.state].tone}>{RANKED_STATE[r.state].label}</Badge>
-                  {r.pinned ? <Badge tone="accent">Pinned first</Badge> : null}
+                  {r.pinned ? <Badge tone="accent">{t("replays.pinnedFirst")}</Badge> : null}
                   <span>{r.label}</span>
                   <span className="muted">
                     {r.score}
@@ -319,41 +313,37 @@ export function AutoReplaysPanel() {
                   {r.note ? <span className="text-warn">{r.note}</span> : null}
                   {r.state !== "played" && r.state !== "picked" && (!r.note || r.excluded) ? (
                     <span className="row">
-                      <Button size="sm" variant="ghost" disabledReason={reason} aria-label={`${r.excluded ? "Include" : "Exclude"} ${r.label}`} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(r.id)}`, { excluded: !r.excluded }, "PUT")}>
-                        {r.excluded ? "Include" : "Exclude"}
+                      <Button size="sm" variant="ghost" disabledReason={reason} aria-label={r.excluded ? t("replays.includeLabel", { label: r.label }) : t("replays.excludeLabel", { label: r.label })} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(r.id)}`, { excluded: !r.excluded }, "PUT")}>
+                        {r.excluded ? t("replays.include") : t("replays.exclude")}
                       </Button>
                       {!r.excluded ? (
-                        <Button size="sm" variant="ghost" disabledReason={reason} aria-label={`${r.pinned ? "Unpin" : "Pin first"} ${r.label}`} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(r.id)}`, { pinned: !r.pinned }, "PUT")}>
-                          {r.pinned ? "Unpin" : "Pin first"}
+                        <Button size="sm" variant="ghost" disabledReason={reason} aria-label={r.pinned ? t("replays.unpinLabel", { label: r.label }) : t("replays.pinFirstLabel", { label: r.label })} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(r.id)}`, { pinned: !r.pinned }, "PUT")}>
+                          {r.pinned ? t("replays.unpin") : t("replays.pinFirst")}
                         </Button>
                       ) : null}
                       {!r.excluded && r.slow !== undefined ? (
-                        <Button size="sm" variant={r.slow ? "secondary" : "ghost"} aria-pressed={r.slow} disabledReason={reason} title={r.slow ? "Plays in slow motion: press for real time" : "Plays at real time: press for slow motion"} aria-label={`Slow ${r.label}`} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(r.id)}`, { slow: !r.slow }, "PUT")}>
-                          Slow
-                        </Button>
+                        <Button size="sm" variant={r.slow ? "secondary" : "ghost"} aria-pressed={r.slow} disabledReason={reason} title={r.slow ? t("replays.playsInSlowMotionPress") : t("replays.playsAtRealTimePress")} aria-label={t("replays.slowLabel", { label: r.label })} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(r.id)}`, { slow: !r.slow }, "PUT")}>{t("replays.slow")}</Button>
                       ) : null}
                       {!r.excluded && r.starred !== undefined && st?.multiAngle !== "off" ? (
-                        <Button size="sm" variant={r.starred ? "secondary" : "ghost"} aria-pressed={!!r.starred} disabledReason={reason} title={r.starred ? "Starred: its extra angles are asked for and play with it" : "Ask the replay PC for this kill's extra angles, and play them with it"} aria-label={`Star ${r.label}`} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(r.id)}`, { starred: !r.starred }, "PUT")}>
-                          {r.starred ? "★ Starred" : "☆ Star"}
+                        <Button size="sm" variant={r.starred ? "secondary" : "ghost"} aria-pressed={!!r.starred} disabledReason={reason} title={r.starred ? t("replays.starredItsExtraAnglesAre") : t("replays.askTheReplayPcFor")} aria-label={t("replays.starLabel", { label: r.label })} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(r.id)}`, { starred: !r.starred }, "PUT")}>
+                          {r.starred ? t("replays.starred") : t("replays.star")}
                         </Button>
                       ) : null}
                     </span>
                   ) : null}
-                  {r.anglesWanted?.length ? <span className="muted">{`Extra angle asked of the replay PC: ${r.anglesWanted.map((v) => ANGLE_LABEL[v]).join(", ")}`}</span> : null}
+                  {r.anglesWanted?.length ? <span className="muted">{t("replays.extraAngleAskedOfThe", { join: r.anglesWanted.map((v) => ANGLE_LABEL[v]).join(", ") })}</span> : null}
                   {r.angles?.length ? (
-                    <ul className="list-plain stack-sm" aria-label={`Extra angles of ${r.label}`} style={{ flexBasis: "100%", paddingLeft: 24 }}>
+                    <ul className="list-plain stack-sm" aria-label={t("replays.extraAnglesOfLabel", { label: r.label })} style={{ flexBasis: "100%", paddingLeft: 24 }}>
                       {r.angles.map((a) => (
                         <li key={a.id} className="row">
                           <Badge tone={RANKED_STATE[a.state].tone}>{RANKED_STATE[a.state].label}</Badge>
                           <span>{`↳ ${ANGLE_LABEL[a.angle]}`}</span>
                           {a.state !== "played" && a.state !== "picked" ? (
                             <span className="row">
-                              <Button size="sm" variant="ghost" disabledReason={reason} aria-label={`${a.excluded ? "Include" : "Exclude"} ${a.label}`} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(a.id)}`, { excluded: !a.excluded }, "PUT")}>
-                                {a.excluded ? "Include" : "Exclude"}
+                              <Button size="sm" variant="ghost" disabledReason={reason} aria-label={a.excluded ? t("replays.includeLabel", { label: a.label }) : t("replays.excludeLabel", { label: a.label })} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(a.id)}`, { excluded: !a.excluded }, "PUT")}>
+                                {a.excluded ? t("replays.include") : t("replays.exclude")}
                               </Button>
-                              <Button size="sm" variant={a.slow ? "secondary" : "ghost"} aria-pressed={a.slow} disabledReason={reason} aria-label={`Slow ${a.label}`} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(a.id)}`, { slow: !a.slow }, "PUT")}>
-                                Slow
-                              </Button>
+                              <Button size="sm" variant={a.slow ? "secondary" : "ghost"} aria-pressed={a.slow} disabledReason={reason} aria-label={t("replays.slowLabel", { label: a.label })} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(a.id)}`, { slow: !a.slow }, "PUT")}>{t("replays.slow")}</Button>
                             </span>
                           ) : null}
                         </li>
@@ -365,8 +355,8 @@ export function AutoReplaysPanel() {
             </ol>
           </div>
         ) : null}
-        {status?.lastPlayed ? <p className="small muted">Last replay: {status.lastPlayed.label}</p> : null}
-        {status?.render && !vmix ? <p className={`small ${status.render.rendered ? "muted" : "text-warn"}`}>{`${status.render.kind === "highlights" ? "Last highlights" : status.render.kind === "test" ? "Last Test replays" : "Last break"}: ${status.render.detail}`}</p> : null}
+        {status?.lastPlayed ? <p className="small muted">{t("replays.lastReplayLabel", { label: status.lastPlayed.label })}</p> : null}
+        {status?.render && !vmix ? <p className={`small ${status.render.rendered ? "muted" : "text-warn"}`}>{`${status.render.kind === "highlights" ? t("replays.lastHighlights") : status.render.kind === "test" ? t("replays.lastTestReplays") : t("replays.lastBreak")}: ${status.render.detail}`}</p> : null}
         {st ? <ReplaySound st={st} status={status ?? null} save={save} off={off} /> : null}
         <TestReplays report={status?.test ?? null} running={!!status?.running} reason={reason} onDone={(r) => auto.setData(r)} />
         <ReplayHotkeys />
@@ -388,7 +378,7 @@ function ReplaySound({ st, status, save, off }: { st: AutoReplaySettings; status
     try {
       setInputs(await api.get<ReplayAudioInputs>("/api/v1/replays/audio-inputs"));
     } catch (e) {
-      toast.push("warn", "Audio inputs not read", describeError(e));
+      toast.push("warn", t("replays.audioInputsNotRead"), describeError(e));
     }
   };
   useEffect(() => {
@@ -403,46 +393,44 @@ function ReplaySound({ st, status, save, off }: { st: AutoReplaySettings; status
   const missing = picked.filter((id) => !list.some((i) => i.id === id));
   const audio = status?.audio;
   return (
-    <div className="stack-sm" aria-label="Sound during replays">
-      <h4 className="hud-section-title">Sound</h4>
+    <div className="stack-sm" aria-label={t("replays.soundDuringReplays")}>
+      <h4 className="hud-section-title">{t("replays.sound")}</h4>
       <div className="form-grid">
-        <Field label="Replay volume" hint={vmix ? "Each replay input in vMix (its fader; above 0 dB its gain)." : "Both replay media sources (your replay scene's and its copy). Above 0 dB is louder than recorded."}>
+        <Field label={t("replays.replayVolume")} hint={vmix ? t("replays.eachReplayInputInVmix") : t("replays.bothReplayMediaSourcesYour")}>
           <select value={st.replayVolumeDb === null || st.replayVolumeDb === undefined ? "" : String(st.replayVolumeDb)} disabled={off} onChange={(e) => void save({ replayVolumeDb: e.target.value === "" ? null : Number(e.target.value) })}>
             {[...REPLAY_VOLUMES, ...(st.replayVolumeDb !== null && st.replayVolumeDb !== undefined && !(REPLAY_VOLUMES as readonly (number | null)[]).includes(st.replayVolumeDb) ? [st.replayVolumeDb] : [])].map((db) => (
               <option key={String(db)} value={db === null ? "" : String(db)}>
-                {db === null ? (vmix ? "As vMix has it" : "As set in OBS") : db === 0 ? "0 dB (as recorded)" : `${db > 0 ? "+" : ""}${db} dB`}
+                {db === null ? (vmix ? t("replays.asVmixHasIt") : t("replays.asSetInObs")) : db === 0 ? t("replays.text0DbAsRecorded") : t("replays.vDbDb", { v: db > 0 ? "+" : "", db })}
               </option>
             ))}
           </select>
         </Field>
-        <Field label="Live game audio during replays" hint="Turned down with a short ramp as the replays start, and back to exactly where it was after them, however they end.">
+        <Field label={t("replays.liveGameAudioDuringReplays")} hint={t("replays.turnedDownWithAShort")}>
           <select value={String(st.duckTo ?? -20)} disabled={off} onChange={(e) => void save({ duckTo: e.target.value === "mute" ? "mute" : Number(e.target.value) })}>
             {DUCK_TO.map((d) => (
               <option key={String(d)} value={String(d)}>
-                {d === "mute" ? "Muted" : `${d} dB`}
+                {d === "mute" ? t("replays.muted") : t("replays.dDb", { d })}
               </option>
             ))}
           </select>
         </Field>
       </div>
-      <div className="stack-sm" role="group" aria-label="Live game audio inputs">
-        <span className="small muted">The live game audio: tick the {vmix ? "vMix inputs" : "OBS audio inputs"} with the game's sound. Only these are touched: leave casters' microphones unticked.</span>
+      <div className="stack-sm" role="group" aria-label={t("replays.liveGameAudioInputs")}>
+        <span className="small muted">{t("replays.theLiveGameAudioTick", { v: vmix ? t("replays.vmixInputs") : t("replays.obsAudioInputs") })}</span>
         {inputs?.error ? <span className="small text-warn">{inputs.error}</span> : null}
         {list.map((i) => (
-          <Checkbox key={i.id} checked={picked.includes(i.id)} disabled={off || i.replay} label={`${i.name}${i.replay ? " (a replay source: never turned down)" : ""}`} hint={vmix ? `vMix volume ${Math.round(i.volume)}${i.muted ? ", off" : ""}` : `${i.volume <= -100 ? "-inf" : i.volume} dB${i.muted ? ", muted" : ""}`} onChange={(v) => pick(i.id, v)} />
+          <Checkbox key={i.id} checked={picked.includes(i.id)} disabled={off || i.replay} label={`${i.name}${i.replay ? t("replays.aReplaySourceNeverTurned") : ""}`} hint={vmix ? t("replays.vmixVolumeVolumeV", { volume: Math.round(i.volume), v: i.muted ? t("replays.offSuffix") : "" }) : t("replays.vDbV2", { v: i.volume <= -100 ? "-inf" : i.volume, v2: i.muted ? t("replays.mutedSuffix") : "" })} onChange={(v) => pick(i.id, v)} />
         ))}
         {missing.map((id) => (
-          <Checkbox key={id} checked disabled={off} label={`${id} (not found in ${vmix ? "vMix" : "OBS"})`} onChange={() => pick(id, false)} />
+          <Checkbox key={id} checked disabled={off} label={t("replays.idNotFoundInV", { id, v: vmix ? "vMix" : "OBS" })} onChange={() => pick(id, false)} />
         ))}
         <div className="row">
-          <Button size="sm" onClick={() => void find()}>
-            Find audio inputs
-          </Button>
+          <Button size="sm" onClick={() => void find()}>{t("replays.findAudioInputs")}</Button>
           {audio ? <span className={`small ${audio.state === "lowered" ? "text-warn" : "muted"}`}>{audio.detail}</span> : null}
         </div>
         {audio?.lastRestore && !audio.lastRestore.ok ? <span className="small text-warn">{audio.lastRestore.detail}</span> : null}
       </div>
-      <p className="muted small">Replays carry the replay PC's game sound: the replay feed records it with the picture (when its NDI sender sends sound), and clips from its OBS replay buffer have the tracks its OBS records.</p>
+      <p className="muted small">{t("replays.replaysCarryTheReplayPc")}</p>
     </div>
   );
 }
@@ -450,26 +438,24 @@ function ReplaySound({ st, status, save, off }: { st: AutoReplaySettings; status
 /** Test replays: two sample clips on program now, through the whole chain, then what worked and how to fix what didn't. */
 function TestReplays({ report, running, reason, onDone }: { report: ReplayTestReport | null; running: boolean; reason: string | null; onDone: (r: AutoReplayResponse) => void }) {
   return (
-    <div className="stack-sm" aria-label="Test replays">
-      <h4 className="hud-section-title">Test replays</h4>
+    <div className="stack-sm" aria-label={t("replays.testReplays")}>
+      <h4 className="hud-section-title">{t("replays.testReplays")}</h4>
       <div className="row">
         <ActionButton
           action={() => api.post<AutoReplayResponse>("/api/v1/replays/auto/test")}
           confirm={{
-            title: "Test replays on air?",
-            body: "This plays on your program output now: two sample clips (Test clip 1 and 2) with Replay in, the fade between them and Replay out, the live game audio turned down meanwhile. It takes about 10 seconds.",
-            confirmLabel: "Play the test now",
+            title: t("replays.testReplaysOnAir"),
+            body: t("replays.thisPlaysOnYourProgram"),
+            confirmLabel: t("replays.playTheTestNow"),
           }}
           success={null}
           onDone={onDone}
-          disabledReason={reason ?? (report?.state === "running" ? "Test replays are playing" : running ? "Replays are playing" : null)}
-        >
-          Test replays
-        </ActionButton>
-        <span className="muted small">Plays two sample clips through the same path as a break's replays. Not while a round is live.</span>
+          disabledReason={reason ?? (report?.state === "running" ? t("replays.testReplaysArePlaying") : running ? t("replays.replaysArePlaying") : null)}
+        >{t("replays.testReplays")}</ActionButton>
+        <span className="muted small">{t("replays.playsTwoSampleClipsThrough")}</span>
       </div>
       {report ? (
-        <ol className="stack-sm small" aria-label="Test replays report">
+        <ol className="stack-sm small" aria-label={t("replays.testReplaysReport")}>
           {report.steps.map((s) => (
             <li key={s.id} className="stack-sm">
               <div className="row">
@@ -477,19 +463,19 @@ function TestReplays({ report, running, reason, onDone }: { report: ReplayTestRe
                 <span>{s.label}</span>
                 {s.detail ? <span className="muted">{s.detail}</span> : null}
               </div>
-              {s.state === "failed" && s.fix ? <span className="text-warn">Fix: {s.fix}</span> : null}
+              {s.state === "failed" && s.fix ? <span className="text-warn">{t("replays.fixFix", { fix: s.fix })}</span> : null}
             </li>
           ))}
         </ol>
       ) : null}
-      {report && report.state !== "running" ? <span className={`small ${report.state === "passed" ? "muted" : "text-warn"}`}>{report.state === "passed" ? "Every step worked." : "Some steps failed: see Fix above, then test again."}</span> : null}
+      {report && report.state !== "running" ? <span className={`small ${report.state === "passed" ? "muted" : "text-warn"}`}>{report.state === "passed" ? t("replays.everyStepWorked") : t("replays.someStepsFailedSeeFix")}</span> : null}
     </div>
   );
 }
 
 /** Keys for the replays playing: the console's own, and (in the program) global hotkeys that work with CS2 or OBS in front. */
 function ReplayHotkeys() {
-  return <Hotkeys keys={REPLAY_KEYS} label="Replay hotkeys" devices="the device actions replay_skip, replay_hold, replay_stop, replay_exclude and replay_pin (see the Replay PC guide)" />;
+  return <Hotkeys keys={REPLAY_KEYS} label={t("replays.replayHotkeys")} devices={t("replays.theDeviceActionsReplaySkip")} />;
 }
 
 /**
@@ -525,25 +511,21 @@ export function Hotkeys({ keys, label, devices }: { keys: ReplayKey[]; label: st
   };
   return (
     <div className="stack-sm" aria-label={label}>
-      <h4 className="hud-section-title">Hotkeys and Stream Deck</h4>
-      <p className="muted small">In the console: {keys.map((k) => `${shortcutLabel(k.key)} ${k.label}`).join(" · ")}. Stream Deck and Bitfocus Companion: {devices}.</p>
+      <h4 className="hud-section-title">{t("replays.hotkeysAndStreamDeck")}</h4>
+      <p className="muted small">{t("replays.inTheConsoleJoinStream", { join: keys.map((k) => `${shortcutLabel(k.key)} ${k.label}`).join(" · "), devices })}</p>
       {bridge ? (
         <div className="stack-sm">
-          <span className="small muted">Global hotkeys work with CS2 or OBS in front. They are off until set; the suggested keys aren't used by CS2 or OBS.</span>
+          <span className="small muted">{t("replays.globalHotkeysWorkWithCs2")}</span>
           <div className="form-grid">
             {keys.map((k) => (
-              <Field key={k.id} label={`${k.label} (global)`} hint={state?.errors[k.id] ?? (state?.keys[k.id] ? (state.registered[k.id] ? "Registered" : "Not registered") : "Off")}>
+              <Field key={k.id} label={t("replays.labelGlobal", { label: k.label })} hint={state?.errors[k.id] ?? (state?.keys[k.id] ? (state.registered[k.id] ? t("replays.registered") : t("replays.notRegistered")) : t("replays.off"))}>
                 <input value={draft[k.id] ?? ""} placeholder={state?.suggested[k.id] ?? ""} spellCheck={false} onChange={(e) => setDraft((d) => ({ ...d, [k.id]: e.target.value }))} onBlur={() => (draft[k.id] ?? "") !== (state?.keys[k.id] ?? "") && void set({ [k.id]: (draft[k.id] ?? "").trim() || null })} />
               </Field>
             ))}
           </div>
           <div className="row">
-            <Button size="sm" disabledReason={!state ? "Loading…" : null} onClick={() => state && void set(Object.fromEntries(ids.filter((id) => state.suggested[id]).map((id) => [id, state.suggested[id]])))}>
-              Use the suggested keys
-            </Button>
-            <Button size="sm" variant="ghost" disabledReason={!state ? "Loading…" : null} onClick={() => void set(Object.fromEntries(ids.map((id) => [id, null])))}>
-              Turn them off
-            </Button>
+            <Button size="sm" disabledReason={!state ? t("common.loading") : null} onClick={() => state && void set(Object.fromEntries(ids.filter((id) => state.suggested[id]).map((id) => [id, state.suggested[id]])))}>{t("replays.useTheSuggestedKeys")}</Button>
+            <Button size="sm" variant="ghost" disabledReason={!state ? t("common.loading") : null} onClick={() => void set(Object.fromEntries(ids.map((id) => [id, null])))}>{t("replays.turnThemOff")}</Button>
           </div>
           {keys
             .filter((k) => state?.errors[k.id])
@@ -565,37 +547,34 @@ export function Hotkeys({ keys, label, devices }: { keys: ReplayKey[]; label: st
 
 const TIMING_TONE = { measuring: "info", live: "neutral", behind: "ok", ahead: "warn" } as const;
 
-function timingLabel(t: ReplayPcResponse["status"]["timing"]): string {
-  if (t.delayMs === null || t.state === "measuring") return "Timing…";
-  const s = (Math.abs(t.delayMs) / 1000).toFixed(1);
-  return t.state === "behind" ? `${s} s behind` : t.state === "ahead" ? `${s} s ahead` : "Same time";
+function timingLabel(tRow: ReplayPcResponse["status"]["timing"]): string {
+  if (tRow.delayMs === null || tRow.state === "measuring") return t("replays.timing");
+  const s = (Math.abs(tRow.delayMs) / 1000).toFixed(1);
+  return tRow.state === "behind" ? t("replays.sSBehind", { s }) : tRow.state === "ahead" ? t("replays.sSAhead", { s }) : t("replays.sameTime");
 }
 
 const SECOND_CSTV = "tv_enable1 1\ntv_port1 27021\ntv_delay1 17";
 
-const SAME_CSTV_HINT = {
-  stay_behind: "When this computer is at the main PC's time, CS2 goes back once (demo_gototick) and stays behind: every missed kill is then known before it plays here. It goes back again after a reconnect or a map change.",
-  each_kill: "When a kill the main camera missed wasn't on this camera, CS2 goes back a few seconds, films it, then skips forward to live again.",
-  off: "This computer films someone else and sends what its camera happens to catch.",
-} as const;
+const SAME_CSTV_HINT = perLocale(() => ({
+  stay_behind: t("replays.whenThisComputerIsAt"),
+  each_kill: t("replays.whenAKillTheMain"),
+  off: t("replays.thisComputerFilmsSomeoneElse"),
+} as const));
 
 /** The best setup: this computer a few seconds behind the main PC, so it knows each missed kill before it plays here. */
 function BehindHelp() {
   return (
     <details className="small">
-      <summary>Best: this computer about 7 s behind the main PC</summary>
+      <summary>{t("replays.bestThisComputerAbout7")}</summary>
       <div className="stack-sm">
-        <p>Then every kill the main camera misses is known here before it happens on this computer: the camera gets on the killer first and the whole kill is filmed. The program measures how far behind it is by itself.</p>
+        <p>{t("replays.thenEveryKillTheMain")}</p>
         <ul>
-          <li>Both on the same CSTV: nothing to set up. This computer goes back 7 s by itself (demo_gototick -448 relative) and stays there (below).</li>
-          <li>Main PC in the server as a spectator: watch the server's CSTV here, with a CSTV delay of about 7 s (tv_delay 7).</li>
-          <li>
-            Main PC on CSTV: give the server a second CSTV, 7 s later than the first, and connect to it here (connect server-address:27021). With the main CSTV at tv_delay 10:
-            <div className="row">
+          <li>{t("replays.bothOnTheSameCstv")}</li>
+          <li>{t("replays.mainPcInTheServer")}</li>
+          <li><T k="replays.mainPcOnCstvGive" values={{ div: <div className="row">
               <code className="mono">{SECOND_CSTV.replace(/\n/g, "; ")}</code>
-              <CopyButton text={SECOND_CSTV} label="Copy" />
-            </div>
-          </li>
+              <CopyButton text={SECOND_CSTV} label={t("common.copy")} />
+            </div> }} /></li>
         </ul>
       </div>
     </details>
@@ -616,14 +595,14 @@ export function ReplayPcPanel() {
     }
   }, [link.data]);
   return (
-    <Panel title="Replay PC" subtitle="A second computer with its own CS2 and OBS that films the kills this camera misses.">
+    <Panel title={t("replays.replayPc")} subtitle={t("replays.aSecondComputerWithIts")}>
       <Tabs
-        label="Which computer this is"
+        label={t("replays.whichComputerThisIs")}
         value={tab}
         onChange={setTab}
         tabs={[
-          { id: "main" as const, label: "This is the main PC" },
-          { id: "replay" as const, label: isReplayPc ? "This is the replay PC ●" : "This is the replay PC" },
+          { id: "main" as const, label: t("replays.thisIsTheMainPc") },
+          { id: "replay" as const, label: isReplayPc ? t("replays.thisIsTheReplayPc2") : t("replays.thisIsTheReplayPc") },
         ]}
       />
       {tab === "main" ? <MainSide /> : <ReplaySide data={link.data ?? null} reload={() => void link.reload()} />}
@@ -645,7 +624,7 @@ function MainSide() {
     const r = await bridge?.set(on);
     if (r) {
       setAccess(r.networkAccess);
-      toast.push("info", on ? "Other computers can connect" : "Only this computer can connect", "The engine restarts; the console reconnects by itself.");
+      toast.push("info", on ? t("replays.otherComputersCanConnect") : t("replays.onlyThisComputerCanConnect2"), t("replays.theEngineRestartsTheConsole"));
     }
   };
   const addresses = net.data?.addresses ?? [];
@@ -653,47 +632,45 @@ function MainSide() {
   return (
     <div className="stack-sm">
       <ol className="steps small">
-        <li>Let other computers connect to this one.</li>
-        <li>Make a replay PC code and type it, with this computer's address, on the replay PC.</li>
-        <li>Turn on automatic replays above.</li>
+        <li>{t("replays.letOtherComputersConnectTo")}</li>
+        <li>{t("replays.makeAReplayPcCode2")}</li>
+        <li>{t("replays.turnOnAutomaticReplaysAbove")}</li>
       </ol>
       {bridge ? (
-        <Checkbox checked={access === true} disabled={!!reason || access === null} label="Let other computers on the network connect" hint="They still need a code from this computer. Windows may ask to allow MatchFrame through the firewall: allow it on private networks." onChange={(v) => void toggle(v)} />
+        <Checkbox checked={access === true} disabled={!!reason || access === null} label={t("replays.letOtherComputersOnThe")} hint={t("replays.theyStillNeedACode")} onChange={(v) => void toggle(v)} />
       ) : (
-        <Note tone="neutral">Network access is set in the MatchFrame program on the main PC.</Note>
+        <Note tone="neutral">{t("replays.networkAccessIsSetIn")}</Note>
       )}
       {net.data?.reachable ? (
         addresses.length ? (
           <div className="stack-sm">
-            <span className="small muted">This computer's address (use one the replay PC can reach):</span>
+            <span className="small muted">{t("replays.thisComputerSAddressUse")}</span>
             {addresses.map((a) => (
               <div key={a} className="row">
                 <code>{`${a}:${port}`}</code>
-                <CopyButton text={`${a}:${port}`} label="Copy" />
+                <CopyButton text={`${a}:${port}`} label={t("common.copy")} />
               </div>
             ))}
           </div>
         ) : (
-          <Note tone="warn">This computer has no network address. Connect it to the same network as the replay PC.</Note>
+          <Note tone="warn">{t("replays.thisComputerHasNoNetwork")}</Note>
         )
       ) : net.data ? (
-        <p className="small muted">Only this computer can connect right now.</p>
+        <p className="small muted">{t("replays.onlyThisComputerCanConnect")}</p>
       ) : null}
       <div className="row">
         <ActionButton
-          action={() => api.post<{ token: string }>("/api/v1/tokens", { role: "replay", label: `Replay PC (${new Date().toLocaleDateString()})` })}
-          success="Replay PC code made: type it on the replay PC"
-          onDone={(t) => setCode(t.token)}
+          action={() => api.post<{ token: string }>("/api/v1/tokens", { role: "replay", label: t("replays.replayPcTolocaledatestring", { toLocaleDateString: new Date().toLocaleDateString() }) })}
+          success={t("replays.replayPcCodeMadeType")}
+          onDone={(tRow) => setCode(tRow.token)}
           disabledReason={reason}
-        >
-          Make a replay PC code
-        </ActionButton>
+        >{t("replays.makeAReplayPcCode")}</ActionButton>
       </div>
       {code ? (
         <div className="row">
           <code className="mono">{code}</code>
-          <CopyButton text={code} label="Copy code" />
-          <span className="muted small">Shown once. Remove it in Settings → Access to lock the replay PC out.</span>
+          <CopyButton text={code} label={t("replays.copyCode")} />
+          <span className="muted small">{t("replays.shownOnceRemoveItIn")}</span>
         </div>
       ) : null}
       <ReplayFeedSection />
@@ -702,16 +679,15 @@ function MainSide() {
 }
 
 const FEED_TONE = { off: "neutral", starting: "info", waiting: "warn", recording: "ok", error: "warn" } as const;
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 /** An ffmpeg encoder in words. */
 const encoderName = (id: string) => ({ h264_nvenc: "NVIDIA (NVENC)", h264_qsv: "Intel (Quick Sync)", h264_amf: "AMD (AMF)", libx264: "the CPU (x264)" })[id] ?? id;
-const ENCODERS = [
-  { id: "auto", label: "Best this computer has" },
-  { id: "h264_nvenc", label: "NVIDIA (NVENC)" },
-  { id: "h264_qsv", label: "Intel (Quick Sync)" },
+const ENCODERS = perLocale(() => ([
+  { id: "auto", label: t("replays.bestThisComputerHas") },
+  { id: "h264_nvenc", label: t("replays.nvidiaNvenc") },
+  { id: "h264_qsv", label: t("replays.intelQuickSync") },
   { id: "h264_amf", label: "AMD (AMF)" },
-  { id: "libx264", label: "CPU (x264)" },
-] as const;
+  { id: "libx264", label: t("replays.cpuX264") },
+] as const));
 
 /**
  * Main PC: the replay feed. This computer records the replay PC's whole screen over NDI and cuts
@@ -726,7 +702,7 @@ function ReplayFeedSection() {
     try {
       feed.setData(await api.put<ReplayFeedResponse>("/api/v1/replays/feed", patch));
     } catch (e) {
-      toast.push("danger", "Setting not saved", describeError(e));
+      toast.push("danger", t("replays.settingNotSaved"), describeError(e));
     }
   };
   const st = feed.data?.settings;
@@ -737,29 +713,27 @@ function ReplayFeedSection() {
   const choices = [...(sources ?? []), ...(st?.source && !sources?.some((x) => x.name === st.source!.name) ? [st.source] : [])];
   return (
     <div className="stack-sm">
-      <h3 className="gb-section-title">Replay feed (NDI)</h3>
-      <p className="small muted">This computer records the replay PC's whole screen over NDI and cuts each kill from it. The replay PC then needs no OBS: only an NDI screen sender, such as vMix Desktop Capture.</p>
-      <Checkbox checked={st?.enabled ?? false} disabled={!!reason || !st} label="Record the replay PC's screen" hint="It keeps the last few minutes and cuts clips from them; nothing is played from it by itself." onChange={(v) => void save({ enabled: v })} />
+      <h3 className="gb-section-title">{t("replays.replayFeedNdi")}</h3>
+      <p className="small muted">{t("replays.thisComputerRecordsTheReplay")}</p>
+      <Checkbox checked={st?.enabled ?? false} disabled={!!reason || !st} label={t("replays.recordTheReplayPcS")} hint={t("replays.itKeepsTheLastFew")} onChange={(v) => void save({ enabled: v })} />
       {ff?.source === "missing" ? (
         ff.canDownload ? (
           <div className="row">
-            <ActionButton action={() => api.post("/api/v1/replays/feed/ffmpeg")} success="ffmpeg downloaded" onDone={() => void feed.reload()} disabledReason={reason ?? (ff.downloading !== null ? "Downloading…" : null)}>
-              Download ffmpeg
-            </ActionButton>
-            <span className="muted small">{ff.downloading !== null ? `Downloading… ${Math.round(ff.downloading * 100)} %` : "The recording needs ffmpeg (a 92 MB download from gyan.dev, checked before use)."}</span>
+            <ActionButton action={() => api.post("/api/v1/replays/feed/ffmpeg")} success={t("replays.ffmpegDownloaded")} onDone={() => void feed.reload()} disabledReason={reason ?? (ff.downloading !== null ? t("replays.downloading") : null)}>{t("replays.downloadFfmpeg")}</ActionButton>
+            <span className="muted small">{ff.downloading !== null ? t("replays.downloadingRound", { round: Math.round(ff.downloading * 100) }) : t("replays.theRecordingNeedsFfmpegA")}</span>
           </div>
         ) : (
-          <Note tone="warn">The recording needs ffmpeg: install it with this system's package manager.</Note>
+          <Note tone="warn">{t("replays.theRecordingNeedsFfmpegInstall")}</Note>
         )
       ) : ff ? (
-        <span className="small muted">ffmpeg {ff.version ?? ""}{encoder ? ` · encoding with ${encoderName(encoder)}` : ""}</span>
+        <span className="small muted">{t("replays.ffmpegVV2", { v: ff.version ?? "", v2: encoder ? t("replays.encodingWithEncoder", { encoder: encoderName(encoder) }) : "" })}</span>
       ) : null}
       {ff?.error ? <span className="small text-warn">{ff.error}</span> : null}
       <div className="form-grid">
-        <Field label="The replay PC's NDI source" hint="Start the NDI sender on the replay PC first, then find it here.">
+        <Field label={t("replays.theReplayPcSNdi")} hint={t("replays.startTheNdiSenderOn")}>
           <select value={st?.source?.name ?? ""} disabled={!!reason || !st} onChange={(e) => void save({ source: choices.find((c) => c.name === e.target.value) ?? null })}>
             <option value="" disabled>
-              {sources === null ? "Press Find NDI sources" : sources.length ? "Choose one" : "No NDI sources found"}
+              {sources === null ? t("replays.pressFindNdiSources") : sources.length ? t("replays.chooseOne") : t("replays.noNdiSourcesFound")}
             </option>
             {choices.map((c) => (
               <option key={c.name} value={c.name}>
@@ -768,7 +742,7 @@ function ReplayFeedSection() {
             ))}
           </select>
         </Field>
-        <Field label="Encoder">
+        <Field label={t("replays.encoder")}>
           <select value={st?.encoder ?? "auto"} disabled={!!reason || !st} onChange={(e) => void save({ encoder: e.target.value as ReplayFeedResponse["settings"]["encoder"] })}>
             {ENCODERS.map((x) => (
               <option key={x.id} value={x.id}>
@@ -779,26 +753,21 @@ function ReplayFeedSection() {
         </Field>
       </div>
       <div className="row">
-        <ActionButton action={() => api.post<{ sources: { name: string; urlAddress?: string }[]; error: string | null }>("/api/v1/replays/feed/sources")} success={(r) => (r.error ? `NDI: ${r.error}` : `${r.sources.length} NDI source${r.sources.length === 1 ? "" : "s"} found`)} onDone={(r) => setSources(r.sources)} disabledReason={reason}>
-          Find NDI sources
-        </ActionButton>
+        <ActionButton action={() => api.post<{ sources: { name: string; urlAddress?: string }[]; error: string | null }>("/api/v1/replays/feed/sources")} success={(r) => (r.error ? `NDI: ${r.error}` : t("replays.ndiSourcesFound", { count: r.sources.length }))} onDone={(r) => setSources(r.sources)} disabledReason={reason}>{t("replays.findNdiSources")}</ActionButton>
         {status?.ndi.version ? <span className="muted small">{status.ndi.version}</span> : status?.ndi.error ? <span className="small text-warn">NDI: {status.ndi.error}</span> : null}
       </div>
       {status && status.enabled ? (
         <div className="stack-sm small" role="status">
           <div className="row">
-            <Badge tone={FEED_TONE[status.state]}>{status.state === "recording" ? "Recording" : status.state === "waiting" ? "No picture" : status.state === "starting" ? "Starting" : status.state === "error" ? "Not recording" : "Off"}</Badge>
+            <Badge tone={FEED_TONE[status.state]}>{status.state === "recording" ? t("replays.recording") : status.state === "waiting" ? t("replays.noPicture") : status.state === "starting" ? t("replays.starting") : status.state === "error" ? t("replays.notRecording") : t("replays.off")}</Badge>
             <span>{status.detail}</span>
           </div>
           {status.state === "recording" ? (
-            <span className="muted">
-              {status.bufferedSec.toFixed(0)} s kept · {status.receivingFps.toFixed(0)}
-              {d?.sourceFps ? ` of ${Math.round(d.sourceFps)}` : ""} frames a second arriving · {status.clips} clips cut
-            </span>
+            <span className="muted">{t("replays.tofixedSKeptTofixed2V", { toFixed: status.bufferedSec.toFixed(0), toFixed2: status.receivingFps.toFixed(0), v: d?.sourceFps ? t("replays.ofSourcefps", { sourceFps: Math.round(d.sourceFps) }) : "", clips: status.clips })}</span>
           ) : null}
           {status.state === "recording" && status.losses ? (
             status.losses.length ? (
-              <ul className="list-plain stack-sm" aria-label="Frames lost">
+              <ul className="list-plain stack-sm" aria-label={t("replays.framesLost")}>
                 {status.losses.map((l) => (
                   <li key={l.where}>
                     <span className="text-warn">{l.text}</span> <span className="muted">{l.hint}</span>
@@ -806,14 +775,11 @@ function ReplayFeedSection() {
                 ))}
               </ul>
             ) : (
-              <span className="muted">No frames lost in the last 10 s.</span>
+              <span className="muted">{t("replays.noFramesLostInThe")}</span>
             )
           ) : null}
           {status.state === "recording" && d ? (
-            <span className="muted small">
-              Since it started: {plural(d.repeated, "frame")} repeated to fill gaps, {d.encoderDropped} not recorded by the encoder{d.ndi ? `, ${d.ndi.videoDropped} dropped by NDI` : ""}
-              {d.audio ? `; sound: ${plural(d.audio.dropouts, "dropout")} filled with silence, put back in step with the picture ${plural(d.audio.corrections + d.audio.joins, "time")}` : ""}.
-            </span>
+            <span className="muted small">{t("replays.sinceItStarted", { repeated: t("replays.framesRepeated", { count: d.repeated }), encoderDropped: d.encoderDropped, ndi: d.ndi ? t("replays.videodroppedDroppedByNdi", { videoDropped: d.ndi.videoDropped }) : "", audio: d.audio ? t("replays.soundDetail", { dropouts: t("replays.soundDropouts", { count: d.audio.dropouts }), resyncs: t("replays.soundResyncs", { count: d.audio.corrections + d.audio.joins }) }) : "" })}</span>
           ) : null}
           {status.state === "recording" && status.audio ? <span className={status.audio.recording ? "muted" : "text-warn"}>{status.audio.detail}</span> : null}
         </div>
@@ -836,15 +802,15 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
   return (
     <div className="stack-sm">
       <ol className="steps small">
-        <li>On this computer: Start CS2 and spectate the same match, connect OBS (Game Capture of CS2) and start the Auto Director.</li>
-        <li>Type the main PC's address and its replay PC code below.</li>
+        <li>{t("replays.onThisComputerStartCs2")}</li>
+        <li>{t("replays.typeTheMainPcS2")}</li>
       </ol>
       <BehindHelp />
       <div className="form-grid">
-        <Field label="Main PC address" hint="As shown on the main PC, e.g. 192.168.1.20:37211">
+        <Field label={t("replays.mainPcAddress")} hint={t("replays.asShownOnTheMain")}>
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="192.168.1.20:37211" spellCheck={false} />
         </Field>
-        <Field label="Replay PC code" hint={data?.hasToken ? "A code is saved; type a new one to replace it." : "Made on the main PC."}>
+        <Field label={t("replays.replayPcCode")} hint={data?.hasToken ? t("replays.aCodeIsSavedType") : t("replays.madeOnTheMainPc")}>
           <input value={token} onChange={(e) => setToken(e.target.value)} type="password" autoComplete="off" spellCheck={false} placeholder={data?.hasToken ? "••••••••" : ""} />
         </Field>
       </div>
@@ -852,50 +818,46 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
         <ActionButton
           variant="primary"
           action={() => api.put<ReplayPcResponse>("/api/v1/replay-pc", { enabled: true, mainUrl: url, ...(token ? { token } : {}) })}
-          success="Connecting to the main PC"
+          success={t("replays.connectingToTheMainPc")}
           onDone={() => {
             setToken("");
             reload();
           }}
-          disabledReason={reason ?? (!url.trim() ? "Type the main PC's address" : !token && !data?.hasToken ? "Type the replay PC code" : null)}
+          disabledReason={reason ?? (!url.trim() ? t("replays.typeTheMainPcS") : !token && !data?.hasToken ? t("replays.typeTheReplayPcCode") : null)}
         >
-          {enabled ? "Save and reconnect" : "Make this the replay PC"}
+          {enabled ? t("replays.saveAndReconnect") : t("replays.makeThisTheReplayPc")}
         </ActionButton>
         {enabled ? (
-          <Button variant="ghost" disabledReason={reason} onClick={() => void api.put("/api/v1/replay-pc", { enabled: false }).then(reload)}>
-            Stop being the replay PC
-          </Button>
+          <Button variant="ghost" disabledReason={reason} onClick={() => void api.put("/api/v1/replay-pc", { enabled: false }).then(reload)}>{t("replays.stopBeingTheReplayPc")}</Button>
         ) : null}
       </div>
       {enabled ? (
         <div className="form-grid">
-          <Field label="On the same CSTV as the main PC" hint={SAME_CSTV_HINT[data?.settings.sameCstv ?? "stay_behind"]}>
+          <Field label={t("replays.onTheSameCstvAs")} hint={SAME_CSTV_HINT[data?.settings.sameCstv ?? "stay_behind"]}>
             <select value={data?.settings.sameCstv ?? "stay_behind"} disabled={!!reason} onChange={(e) => void api.put("/api/v1/replay-pc", { sameCstv: e.target.value }).then(reload)}>
-              <option value="stay_behind">Go back and stay behind (recommended)</option>
-              <option value="each_kill">Go back for each missed kill, then live</option>
-              <option value="off">Don't go back</option>
+              <option value="stay_behind">{t("replays.goBackAndStayBehind")}</option>
+              <option value="each_kill">{t("replays.goBackForEachMissed")}</option>
+              <option value="off">{t("replays.donTGoBack")}</option>
             </select>
           </Field>
-          <Field label="Kills to film" hint="Behind the main PC, this computer can film every kill it has time for; the main PC replays the best of each round.">
+          <Field label={t("replays.killsToFilm")} hint={t("replays.behindTheMainPcThis")}>
             <select value={data?.settings.filmAll === false ? "missed" : "all"} disabled={!!reason} onChange={(e) => void api.put("/api/v1/replay-pc", { filmAll: e.target.value === "all" }).then(reload)}>
-              <option value="all">Every kill (recommended)</option>
-              <option value="missed">Only kills the main camera missed</option>
+              <option value="all">{t("replays.everyKillRecommended")}</option>
+              <option value="missed">{t("replays.onlyKillsTheMainCamera")}</option>
             </select>
           </Field>
           <Checkbox
             checked={data?.settings.filmAngles ?? false}
             disabled={!!reason}
-            label="Film extra angles (experimental)"
-            hint="When the main PC asks for a kill again (its round's top kill, or one its operator starred), CS2 here goes back to just before it, films it from the player who died's view or a free camera, and comes forward again. Only when no kill loses its lead-up: with 7 s behind, after the round ends here. Needs going back to work (a CSTV connection)."
+            label={t("replays.filmExtraAnglesExperimental")}
+            hint={t("replays.whenTheMainPcAsks")}
             onChange={(v) => void api.put("/api/v1/replay-pc", { filmAngles: v }).then(reload)}
           />
           {data?.settings.sameCstv === "stay_behind" ? (
-            <Field label="How far behind">
+            <Field label={t("replays.howFarBehind")}>
               <select value={data.settings.behindMs} disabled={!!reason} onChange={(e) => void api.put("/api/v1/replay-pc", { behindMs: Number(e.target.value) }).then(reload)}>
                 {[5000, 7000, 10000].map((ms) => (
-                  <option key={ms} value={ms}>
-                    {ms / 1000} s (demo_gototick -{(ms / 1000) * 64} relative)
-                  </option>
+                  <option key={ms} value={ms}>{t("replays.vSDemoGototickV2", { v: ms / 1000, v2: (ms / 1000) * 64 })}</option>
                 ))}
               </select>
             </Field>
@@ -905,7 +867,7 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
       {st && st.enabled ? (
         <div className="stack-sm small" role="status">
           <div className="row">
-            <Badge tone={st.state === "connected" ? "ok" : st.state === "error" ? "warn" : "info"}>{st.state === "connected" ? "Linked" : st.state === "error" ? "Not linked" : "Connecting"}</Badge>
+            <Badge tone={st.state === "connected" ? "ok" : st.state === "error" ? "warn" : "info"}>{st.state === "connected" ? t("replays.linked") : st.state === "error" ? t("replays.notLinked") : t("replays.connecting")}</Badge>
             <span>{st.detail}</span>
           </div>
           {st.state === "connected" ? (
@@ -914,29 +876,20 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
               <span>{st.timing.detail}</span>
             </div>
           ) : null}
-          {st.state === "connected" && st.timing.state !== "behind" ? <span>The main camera shows {nameOf(st.mainObserved)}: this computer's Auto Director films someone else.</span> : null}
-          {data?.settings.sameCstv !== "off" && st.rewind.detail ? <span className={st.rewind.state === "unsupported" ? "text-warn" : ""}>Going back: {st.rewind.detail}</span> : null}
-          {st.filming ? <span>Filming now: {st.filming}{st.planned ? ` (${st.planned} more planned)` : ""}</span> : null}
+          {st.state === "connected" && st.timing.state !== "behind" ? <span>{t("replays.theMainCameraShowsMainobserved", { mainObserved: nameOf(st.mainObserved) })}</span> : null}
+          {data?.settings.sameCstv !== "off" && st.rewind.detail ? <span className={st.rewind.state === "unsupported" ? "text-warn" : ""}>{t("replays.goingBackDetail", { detail: st.rewind.detail })}</span> : null}
+          {st.filming ? <span>{t("replays.filmingNowFilmingV", { filming: st.filming, v: st.planned ? t("replays.plannedMorePlanned", { planned: st.planned }) : "" })}</span> : null}
           {st.transport === "feed" ? (
-            <span>The main PC records this computer's screen over NDI: no OBS needed here. Keep the NDI sender (such as vMix Desktop Capture) running.</span>
+            <span>{t("replays.theMainPcRecordsThis")}</span>
           ) : (
-            <span className={st.obsReady ? "" : "text-warn"}>{st.obsReady ? "OBS replay buffer is running." : "Connect OBS on this computer (Settings → Devices); its replay buffer starts by itself. Or let the main PC record this screen over NDI (its Replay feed)."}</span>
+            <span className={st.obsReady ? "" : "text-warn"}>{st.obsReady ? t("replays.obsReplayBufferIsRunning") : t("replays.connectObsOnThisComputer")}</span>
           )}
-          <span>
-            Clips sent: {st.sent}
-            {st.failed ? `, not sent: ${st.failed}` : ""}
-            {st.last ? ` · last: ${st.last.label}${st.last.ok ? "" : ` (${st.last.error})`}` : ""}
-          </span>
+          <span>{t("replays.clipsSentSentVV2", { sent: st.sent, v: st.failed ? t("replays.notSentFailed", { failed: st.failed }) : "", v2: st.last ? t("replays.lastLabelV", { label: st.last.label, v: st.last.ok ? "" : ` (${st.last.error})` }) : "" })}</span>
           {st.lastSkip ? (
-            <span className="muted">
-              Not filmed: {st.skipped} · last: {st.lastSkip.label} ({st.lastSkip.reason})
-            </span>
+            <span className="muted">{t("replays.notFilmedSkippedLastLabel", { skipped: st.skipped, label: st.lastSkip.label, reason: st.lastSkip.reason })}</span>
           ) : null}
           {st.angles && st.angles.state !== "off" ? (
-            <span className={st.angles.state === "unsupported" ? "text-warn" : ""}>
-              Extra angles: {st.angles.detail || "none asked for."}
-              {st.angles.filmed || st.angles.failed ? ` (${st.angles.filmed} filmed${st.angles.failed ? `, ${st.angles.failed} not` : ""}${st.angles.last && !st.angles.last.ok ? `; last: ${st.angles.last.label}, ${st.angles.last.detail}` : ""})` : ""}
-            </span>
+            <span className={st.angles.state === "unsupported" ? "text-warn" : ""}>{t("replays.extraAnglesVV2", { v: st.angles.detail || t("replays.noneAskedFor"), v2: st.angles.filmed || st.angles.failed ? t("replays.filmedFilmedVV2", { filmed: st.angles.filmed, v: st.angles.failed ? t("replays.notFilmedCount", { failed: st.angles.failed }) : "", v2: st.angles.last && !st.angles.last.ok ? t("replays.lastAngleFailed", { label: st.angles.last.label, detail: st.angles.last.detail }) : "" }) : "" })}</span>
           ) : null}
         </div>
       ) : null}

@@ -4,6 +4,8 @@ import { ActionButton, Field, Mono, Note, Panel } from "../../components/ui.tsx"
 import { fmtBytes } from "../../lib/format.ts";
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
+import { perLocale, t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 
 /** GET /api/v1/storage (services/local-engine/src/routes/storage.ts). */
 export interface StorageOverview {
@@ -15,18 +17,18 @@ export interface StorageOverview {
 
 type Which = "replays" | "highlights";
 
-const LABELS: Record<Which, { label: string; hint: string; pick: string }> = {
+const LABELS: Record<Which, { label: string; hint: string; pick: string }> = perLocale(() => ({
   replays: {
-    label: "Replay clips and recording",
-    hint: "The replay PC's clips and the replay feed's recording of its picture: what writes the most while a match is on.",
-    pick: "Folder for replay clips and the replay feed's recording",
+    label: t("replays.replayClipsAndRecording"),
+    hint: t("replays.theReplayPcSClips"),
+    pick: t("replays.folderForReplayClipsAnd"),
   },
   highlights: {
-    label: "Highlights",
-    hint: "The clips kept for highlight reels (in its \"Kept clips\" folder) and the reels themselves.",
-    pick: "Folder for highlight reels and the clips kept for them",
+    label: t("replays.highlights"),
+    hint: t("replays.theClipsKeptForHighlight"),
+    pick: t("replays.folderForHighlightReelsAnd"),
   },
-};
+}));
 
 /** Where replays and highlights are saved: another drive instead of the one Windows is on, say. */
 export function StoragePanel() {
@@ -47,7 +49,7 @@ export function StoragePanel() {
       <div key={which} className="stack-sm">
         <Field label={LABELS[which].label} hint={LABELS[which].hint}>
           <div className="row">
-            <input value={draft[which]} disabled={!!reason || !d} spellCheck={false} placeholder={which === "replays" ? "MatchFrame's data folder" : "Videos → MatchFrame Highlights"} onChange={(e) => setDraft({ ...draft, [which]: e.target.value })} />
+            <input value={draft[which]} disabled={!!reason || !d} spellCheck={false} placeholder={which === "replays" ? t("replays.matchframeSDataFolder") : t("replays.videosMatchframeHighlights")} onChange={(e) => setDraft({ ...draft, [which]: e.target.value })} />
             {pick ? (
               <ActionButton
                 size="sm"
@@ -57,35 +59,26 @@ export function StoragePanel() {
                   const dir = await pick(LABELS[which].pick);
                   return dir ? save({ [which]: dir }) : null;
                 }}
-                success={(r) => (r ? "Folder saved" : null)}
+                success={(r) => (r ? t("replays.folderSaved") : null)}
                 onDone={() => void st.reload()}
-              >
-                Choose folder…
-              </ActionButton>
+              >{t("replays.chooseFolder")}</ActionButton>
             ) : null}
-            <ActionButton size="sm" disabledReason={reason ?? (draft[which].trim() === (chosen ?? "") ? "No change" : null)} action={() => save({ [which]: draft[which].trim() || null })} success="Folder saved" onDone={() => void st.reload()}>
-              Save
-            </ActionButton>
+            <ActionButton size="sm" disabledReason={reason ?? (draft[which].trim() === (chosen ?? "") ? t("replays.noChange") : null)} action={() => save({ [which]: draft[which].trim() || null })} success={t("replays.folderSaved")} onDone={() => void st.reload()}>{t("replays.save")}</ActionButton>
             {chosen ? (
-              <ActionButton size="sm" variant="ghost" disabledReason={reason} action={() => save({ [which]: null })} success="Back to the default folder" onDone={() => void st.reload()}>
-                Use default
-              </ActionButton>
+              <ActionButton size="sm" variant="ghost" disabledReason={reason} action={() => save({ [which]: null })} success={t("replays.backToTheDefaultFolder")} onDone={() => void st.reload()}>{t("replays.useDefault")}</ActionButton>
             ) : null}
           </div>
         </Field>
-        <span className="muted small">
-          Now: <Mono>{where ?? "…"}</Mono>
-          {free !== null && free !== undefined ? ` · ${fmtBytes(free)} free on that drive` : ""}
-        </span>
+        <span className="muted small"><T k="replays.nowMonoV" values={{ mono: <Mono>{where ?? "…"}</Mono>, v: free !== null && free !== undefined ? t("replays.freeFreeOnThatDrive", { free: fmtBytes(free) }) : "" }} /></span>
       </div>
     );
   };
   return (
-    <Panel title="Storage" subtitle="Where replays and highlights are saved on this computer">
+    <Panel title={t("replays.storage")} subtitle={t("replays.whereReplaysAndHighlightsAre")}>
       <div className="stack-sm">
         {row("replays")}
         {row("highlights")}
-        <Note>New files go to the new folder from then on. Clips already saved stay where they are and still play and go into reels. A folder on another drive (D:, an SSD for video) keeps this load off the drive Windows is on.</Note>
+        <Note>{t("replays.newFilesGoToThe")}</Note>
       </div>
     </Panel>
   );
