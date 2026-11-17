@@ -134,6 +134,7 @@ export function HighlightsOnAirPanel() {
           </Field>
         </div>
         {st?.count !== "all" ? <Checkbox checked={st?.unplayed ?? false} disabled={off} label="Also clips that weren't played" hint="The best of the map's other clips (the replay PC films more than a break has time for)." onChange={(v) => void save({ unplayed: v })} /> : null}
+        <Checkbox checked={st?.slowMotion ?? false} disabled={off} label="Slow motion" hint="Each highlight slowed as automatic replays slow theirs (around each kill when theirs is off); a kill's extra angle slowed after it, its first angle at real time." onChange={(v) => void save({ slowMotion: v })} />
 
         {plan && plan.clips.length ? (
           <div className="stack-sm" aria-label="Highlights that will play">
@@ -145,8 +146,9 @@ export function HighlightsOnAirPanel() {
             <ol className="small" style={{ margin: 0, paddingLeft: 20 }}>
               {plan.clips.map((c) => (
                 <li key={c.id}>
-                  R{c.roundNumber ?? "?"} · {c.label} · {fmtMs(c.playMs)}
-                  {c.played ? "" : " · not played"}
+                  R{c.roundNumber ?? "?"} · {c.label} · {fmtMs(c.onAirMs ?? c.playMs)}
+                  {c.slow ? " · slow motion" : ""}
+                  {c.played || c.angle ? "" : " · not played"}
                   {status?.playing?.id === c.id ? <strong> · on air</strong> : null}
                 </li>
               ))}

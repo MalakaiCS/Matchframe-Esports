@@ -103,48 +103,96 @@ export interface PlanCandidate {
   leadMs: number | null;
   /** When its play happened in the round (any clock, the same for every candidate), for round order. */
   at?: number | null;
+  /**
+   * Slow motion around its kills makes it this much longer (wall ms; ADR-081). The lead-up before the
+   * first kill isn't slowed, so shortening it leaves this as it is.
+   */
+  extraMs?: number;
+  /** Its own speed (percent; the whole clip slowed), instead of the break's. */
+  speedPercent?: number;
+  /**
+   * The moment's extra angles (ADR-081): played straight after it, each this long on air (wall ms, its
+   * slow motion counted) with a switch before it. They take the time the break's clips leave, never a
+   * clip's place, unless `anglesFirst`.
+   */
+  angles?: { id: string; wallMs: number }[];
+  /** The operator starred it: its extra angles are part of it (chosen with it when they fit, before other clips). */
+  anglesFirst?: boolean;
 }
+
+/** Wall time of `playMs` of a candidate: at its speed (or the break's), with its slow motion. */
+export const clipWallMs = (c: Pick<PlanCandidate, "extraMs" | "speedPercent">, playMs: number, speedPercent: number): number => (playMs * 100) / (c.speedPercent ?? speedPercent) + (c.extraMs ?? 0);
+
+/** Wall time of a moment's extra angles after it (each with its switch). */
+const anglesWallMs = (c: Pick<PlanCandidate, "angles">): number => (c.angles ?? []).reduce((n, a) => n + a.wallMs + SWITCH_MS, 0);
 
 /**
  * How much of a clip fits in `availableMs` with `overheadMs` of cuts: all of it, or its lead-up
  * shortened (down to MIN_LEAD_MS) when that makes it fit. Null when it doesn't fit.
  */
-export function fitReplay(c: Pick<PlanCandidate, "playMs" | "leadMs">, availableMs: number, speedPercent: number, overheadMs = CUT_MS): number | null {
-  if ((c.playMs * 100) / speedPercent + overheadMs <= availableMs) return c.playMs;
+export function fitReplay(c: Pick<PlanCandidate, "playMs" | "leadMs" | "extraMs" | "speedPercent">, availableMs: number, speedPercent: number, overheadMs = CUT_MS): number | null {
+  const speed = c.speedPercent ?? speedPercent;
+  const extra = c.extraMs ?? 0;
+  if ((c.playMs * 100) / speed + extra + overheadMs <= availableMs) return c.playMs;
   if (c.leadMs === null || c.leadMs <= MIN_LEAD_MS) return null;
   const shortest = c.playMs - (c.leadMs - MIN_LEAD_MS);
-  const fits = Math.floor(((availableMs - overheadMs) * speedPercent) / 100);
+  const fits = Math.floor(((availableMs - overheadMs - extra) * speed) / 100);
   return fits >= shortest ? Math.min(c.playMs, fits) : null;
 }
 
+/** A candidate (a starred one with its extra angles when they fit with it), else alone: how much of it to show, and which angles follow it. */
+function fitMoment(c: PlanCandidate, availableMs: number, speedPercent: number, overheadMs: number): { playMs: number; angles: string[] } | null {
+  if (c.angles?.length && c.anglesFirst) {
+    const playMs = fitReplay(c, availableMs - anglesWallMs(c), speedPercent, overheadMs);
+    if (playMs !== null) return { playMs, angles: c.angles.map((a) => a.id) };
+  }
+  const playMs = fitReplay(c, availableMs, speedPercent, overheadMs);
+  return playMs === null ? null : { playMs, angles: [] };
+}
+
+/** Wall time a chosen moment takes: the clip, its cuts, and the extra angles that follow it. */
+const momentWallMs = (c: PlanCandidate, fit: { playMs: number; angles: string[] }, speedPercent: number, overheadMs: number): number =>
+  clipWallMs(c, fit.playMs, speedPercent) + overheadMs + (c.angles ?? []).filter((a) => fit.angles.includes(a.id)).reduce((n, a) => n + a.wallMs + SWITCH_MS, 0);
+
 /**
  * The next replay of a break: the best-scoring candidate that fits in `availableMs`, its lead-up
- * shortened (down to MIN_LEAD_MS) when that makes it fit. Null when none fits.
+ * shortened (down to MIN_LEAD_MS) when that makes it fit (a starred one with its extra angles when
+ * they fit too). Null when none fits.
  */
-export function nextReplay(candidates: readonly PlanCandidate[], availableMs: number, speedPercent: number, overheadMs = CUT_MS): { id: string; playMs: number } | null {
+export function nextReplay(candidates: readonly PlanCandidate[], availableMs: number, speedPercent: number, overheadMs = CUT_MS): { id: string; playMs: number; angles: string[] } | null {
   const sorted = [...candidates].sort((a, b) => b.score - a.score);
   for (const c of sorted) {
-    const playMs = fitReplay(c, availableMs, speedPercent, overheadMs);
-    if (playMs !== null) return { id: c.id, playMs };
+    const fit = fitMoment(c, availableMs, speedPercent, overheadMs);
+    if (fit) return { id: c.id, ...fit };
   }
   return null;
+}
+
+/** A chosen replay of a break: how much to show, what is left of its lead-up, and the extra angles that follow it. */
+export interface PlannedReplay {
+  id: string;
+  playMs: number;
+  leadMs: number | null;
+  angles: string[];
 }
 
 /**
  * A break's replays, played back to back: the best candidates that fit together in `availableMs`
  * (one cut to the replay and back, SWITCH_MS from one clip to the next), up to `max`, chosen as
  * nextReplay chooses. Then in round order (earliest play first, an unknown time last) or best first.
- * A clip the operator pinned (`pinned`) is chosen first and plays first, if it fits.
+ * A clip the operator pinned (`pinned`) is chosen first and plays first, if it fits. A moment's extra
+ * angles follow it (they don't count towards `max`): with the time the chosen clips leave, best moment
+ * first (a starred moment's are chosen with it).
  */
-export function planBreak(candidates: readonly PlanCandidate[], availableMs: number, speedPercent: number, max: number, order: "round" | "best" = "round", pinned: string | null = null): { id: string; playMs: number; leadMs: number | null }[] {
-  const chosen: { c: PlanCandidate; playMs: number }[] = [];
+export function planBreak(candidates: readonly PlanCandidate[], availableMs: number, speedPercent: number, max: number, order: "round" | "best" = "round", pinned: string | null = null): PlannedReplay[] {
+  const chosen: { c: PlanCandidate; playMs: number; angles: string[] }[] = [];
   let left = availableMs;
   let rest = [...candidates];
   const pin = pinned ? rest.find((x) => x.id === pinned) : undefined;
-  const pinMs = pin ? fitReplay(pin, left, speedPercent, CUT_MS) : null;
-  if (pin && pinMs !== null) {
-    chosen.push({ c: pin, playMs: pinMs });
-    left -= (pinMs * 100) / speedPercent + CUT_MS;
+  const pinFit = pin ? fitMoment(pin, left, speedPercent, CUT_MS) : null;
+  if (pin && pinFit) {
+    chosen.push({ c: pin, ...pinFit });
+    left -= momentWallMs(pin, pinFit, speedPercent, CUT_MS);
     rest = rest.filter((x) => x !== pin);
   }
   while (chosen.length < max) {
@@ -152,12 +200,20 @@ export function planBreak(candidates: readonly PlanCandidate[], availableMs: num
     const pick = nextReplay(rest, left, speedPercent, overhead);
     if (!pick) break;
     const c = rest.find((x) => x.id === pick.id)!;
-    chosen.push({ c, playMs: pick.playMs });
-    left -= (pick.playMs * 100) / speedPercent + overhead;
+    chosen.push({ c, playMs: pick.playMs, angles: pick.angles });
+    left -= momentWallMs(c, pick, speedPercent, overhead);
     rest = rest.filter((x) => x !== c);
+  }
+  // The extra angles of the chosen moments, in the time left (best moment first).
+  for (const m of [...chosen].sort((a, b) => b.c.score - a.c.score)) {
+    for (const a of m.c.angles ?? []) {
+      if (m.angles.includes(a.id) || a.wallMs + SWITCH_MS > left) continue;
+      m.angles.push(a.id);
+      left -= a.wallMs + SWITCH_MS;
+    }
   }
   const at = (x: { c: PlanCandidate }) => (x.c === pin ? Number.MIN_SAFE_INTEGER : (x.c.at ?? Number.MAX_SAFE_INTEGER));
   if (order === "round") chosen.sort((a, b) => at(a) - at(b));
   // A shortened clip keeps what is left of its lead-up (it may be shortened again to fit later).
-  return chosen.map(({ c, playMs }) => ({ id: c.id, playMs, leadMs: c.leadMs === null ? null : c.leadMs - (c.playMs - playMs) }));
+  return chosen.map(({ c, playMs, angles }) => ({ id: c.id, playMs, leadMs: c.leadMs === null ? null : c.leadMs - (c.playMs - playMs), angles }));
 }

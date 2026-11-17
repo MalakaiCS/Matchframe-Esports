@@ -611,6 +611,11 @@ export class LiveSession extends EventEmitter<SessionEvents> {
     });
   }
 
+  /** Shows a camera placed on air rather than one of the map's (the replay PC's free-camera angle, ADR-081), as a device takes the camera. */
+  async showCamera(camera: CameraRecord, holder: string, plannedDurationMs = 3000) {
+    return this.arbiter.submit({ kind: "activate_static_camera", camera, plannedDurationMs }, { owner: "device", holder, expiresInMs: 1500 });
+  }
+
   async manualCamera(cameraId: string, holder: string, plannedDurationMs = 3000) {
     const cam = this.findCamera(cameraId);
     if (!cam) throw Object.assign(new Error("unknown camera"), { status: 404 });

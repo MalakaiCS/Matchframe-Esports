@@ -1082,7 +1082,18 @@ export interface AutoReplaySettings {
   perBreak: number;
   /** The order the chosen clips play in, back to back: the round's own, or best first. */
   order: "round" | "best";
-  speedPercent: number;
+  /** Slow motion in a rendered break (ADR-081): around each kill, the whole clip, or none. */
+  slowMotion?: "off" | "kill" | "whole";
+  /** 50 % or 33 % of real time. */
+  slowSpeed?: 50 | 33;
+  /** Smooth slow motion: frame interpolation (more CPU) instead of blending. */
+  slowSmooth?: boolean;
+  /** The game sound while slowed: muted, or slowed with its pitch kept. */
+  slowAudio?: "mute" | "pitch";
+  /** Multi-angle replays: the round's top kill and starred kills, only starred kills, or none. */
+  multiAngle?: "off" | "top" | "starred";
+  /** The extra angles the replay PC is asked for. */
+  angleViews?: "victim" | "free" | "both";
   startDelayMs: number;
   otherAngles: boolean;
   ownBigPlays: boolean;
@@ -1125,6 +1136,25 @@ export interface RankedReplay {
   /** The operator excluded it from its break, or pinned it to play first. */
   excluded?: boolean;
   pinned?: boolean;
+  /** It plays slowed, and whether the operator set that (Slow). */
+  slow?: boolean;
+  slowSet?: boolean;
+  /** Starred: the replay PC is asked for its extra angles, and they play with it. */
+  starred?: boolean;
+  /** Its extra angles that came in, and the ones asked for that haven't (ADR-081). */
+  angles?: RankedAngle[];
+  anglesWanted?: ("victim" | "free")[];
+}
+
+/** An extra angle of a ranked clip (ADR-081). */
+export interface RankedAngle {
+  id: string;
+  label: string;
+  angle: "victim" | "free";
+  state: "played" | "picked" | "waiting" | "left";
+  excluded: boolean;
+  slow: boolean;
+  slowSet: boolean;
 }
 
 /** The live game audio turned down during replays. */
@@ -1259,7 +1289,7 @@ export interface AutoReplayResponse {
   };
 }
 export interface ReplayPcResponse {
-  settings: { enabled: boolean; mainUrl: string; preRollMs: number; postRollMs: number; sameCstv: "stay_behind" | "each_kill" | "off"; behindMs: number; filmAll?: boolean };
+  settings: { enabled: boolean; mainUrl: string; preRollMs: number; postRollMs: number; sameCstv: "stay_behind" | "each_kill" | "off"; behindMs: number; filmAll?: boolean; filmAngles?: boolean };
   hasToken: boolean;
   status: {
     enabled: boolean;
@@ -1280,6 +1310,8 @@ export interface ReplayPcResponse {
     skipped: number;
     last: { label: string; at: string; ok: boolean; error: string | null } | null;
     lastSkip: { label: string; reason: string; at: string } | null;
+    /** Extra angles the main PC asked for (ADR-081). */
+    angles?: { state: "off" | "ready" | "filming" | "unsupported"; detail: string; asked: number; filmed: number; failed: number; last: { label: string; at: string; ok: boolean; detail: string } | null };
   };
 }
 export interface NetworkInfo {
@@ -1349,6 +1381,8 @@ export interface HighlightsAirSettings {
   autoMapEnd: boolean;
   vmixIn: "CutDirect" | "Fade" | "Stinger1" | "Stinger2" | null;
   vmixOut: "CutDirect" | "Fade" | "Stinger1" | "Stinger2" | null;
+  /** Slow motion, as automatic replays slow (ADR-081). */
+  slowMotion?: boolean;
 }
 
 export interface HighlightsAirClip {
@@ -1359,6 +1393,10 @@ export interface HighlightsAirClip {
   score: number;
   reasons: string[];
   playMs: number;
+  /** An extra angle of the clip before it. */
+  angle?: "victim" | "free" | null;
+  slow?: boolean;
+  onAirMs?: number;
 }
 
 export interface HighlightsAirResponse {

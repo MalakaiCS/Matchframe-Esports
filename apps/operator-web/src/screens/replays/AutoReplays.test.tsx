@@ -9,7 +9,7 @@ import { useReplayShortcuts } from "../../lib/replay-keys.ts";
 import { AutoReplaysPanel, ReplayPcPanel } from "./AutoReplays.tsx";
 
 const auto: AutoReplayResponse = {
-  settings: { enabled: false, perBreak: 4, order: "round", speedPercent: 100, startDelayMs: 3500, otherAngles: true, ownBigPlays: true, mixer: "obs", vmixUrl: "http://127.0.0.1:8088", vmixTransition: "CutDirect", vmixTransitionOut: null, cutBack: "clock", cutBackClockSec: 110, between: "fade", fadeMs: 500, playback: "rendered", audioFadeMs: 400 },
+  settings: { enabled: false, perBreak: 4, order: "round", slowMotion: "kill", slowSpeed: 50, slowSmooth: false, slowAudio: "mute", multiAngle: "top", angleViews: "victim", startDelayMs: 3500, otherAngles: true, ownBigPlays: true, mixer: "obs", vmixUrl: "http://127.0.0.1:8088", vmixTransition: "CutDirect", vmixTransitionOut: null, cutBack: "clock", cutBackClockSec: 110, between: "fade", fadeMs: 500, playback: "rendered", audioFadeMs: 400 },
   status: { enabled: false, state: "off", detail: "Automatic replays are off.", waiting: 0, playing: null, lastPlayed: null },
 };
 const link: ReplayPcResponse = {
@@ -61,8 +61,57 @@ describe("Automatic replays panel", () => {
     fireEvent.click(box);
     await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ enabled: true }));
     expect(await screen.findByText("Waiting for the round to end.")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Speed"), { target: { value: "50" } });
-    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ speedPercent: 50 }));
+    // Slow motion (ADR-081): around the kill by default, at 50 %, muted, blended.
+    expect((screen.getByLabelText(/^Slow motion/) as HTMLSelectElement).value).toBe("kill");
+    expect((screen.getByLabelText(/Slow speed/) as HTMLSelectElement).value).toBe("50");
+    expect((screen.getByLabelText(/Sound while slowed/) as HTMLSelectElement).value).toBe("mute");
+    expect((screen.getByLabelText(/Smooth slow motion/) as HTMLInputElement).checked).toBe(false);
+    fireEvent.change(screen.getByLabelText(/^Slow motion/), { target: { value: "whole" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ slowMotion: "whole" }));
+    fireEvent.change(screen.getByLabelText(/Slow speed/), { target: { value: "33" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ slowSpeed: 33 }));
+    fireEvent.click(screen.getByLabelText(/Smooth slow motion/));
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ slowSmooth: true }));
+    // Multi-angle: the round's top kill from the player who died's view by default.
+    expect((screen.getByLabelText(/Multi-angle replays/) as HTMLSelectElement).value).toBe("top");
+    fireEvent.change(screen.getByLabelText(/Extra angle/), { target: { value: "both" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ angleViews: "both" }));
+  });
+
+  it("per clip: Slow on or off, Star for extra angles, and a clip's extra angles under it (ADR-081)", async () => {
+    const withAngles: AutoReplayResponse = {
+      ...auto,
+      status: {
+        ...auto.status,
+        round: 9,
+        ranked: [
+          { id: "a", label: "3K: saber ▸ a, b, c (AK47)", score: 50, reasons: ["3K"], state: "waiting", excluded: false, pinned: false, slow: false, slowSet: false, starred: false, angles: [{ id: "a2", label: "saber ▸ a, b, c · victim's view", angle: "victim", state: "waiting", excluded: false, slow: true, slowSet: false }], anglesWanted: [] },
+          { id: "b", label: "nova ▸ zeal (KNIFE)", score: 30, reasons: ["knife"], state: "waiting", excluded: false, pinned: false, slow: true, slowSet: false, starred: true, angles: [], anglesWanted: ["victim"] },
+        ],
+      },
+    };
+    const calls = serve({ "GET /api/v1/replays/auto": withAngles, "PUT /api/v1/replays/auto/clips/a": withAngles, "PUT /api/v1/replays/auto/clips/b": withAngles, "PUT /api/v1/replays/auto/clips/a2": withAngles });
+    wrap(<AutoReplaysPanel />);
+    // The moment plays at real time (its angle is the slow look); Slow turns it on.
+    const slowA = await screen.findByRole("button", { name: "Slow 3K: saber ▸ a, b, c (AK47)" });
+    expect(slowA.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(slowA);
+    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/replays/auto/clips/a")?.body).toEqual({ slow: true }));
+    // Its extra angle under it, slowed, with its own Slow and Exclude.
+    const angles = screen.getByLabelText("Extra angles of 3K: saber ▸ a, b, c (AK47)");
+    expect(angles.textContent).toContain("↳ victim's view");
+    fireEvent.click(screen.getByRole("button", { name: "Slow saber ▸ a, b, c · victim's view" }));
+    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/replays/auto/clips/a2")?.body).toEqual({ slow: false }));
+    fireEvent.click(screen.getByRole("button", { name: "Exclude saber ▸ a, b, c · victim's view" }));
+    await waitFor(() => expect(calls.filter((c) => c.path === "/api/v1/replays/auto/clips/a2").at(-1)?.body).toEqual({ excluded: true }));
+    // Starred: asked of the replay PC; Star toggles it.
+    expect(screen.getByText("Extra angle asked of the replay PC: victim's view")).toBeTruthy();
+    const star = screen.getByRole("button", { name: "Star nova ▸ zeal (KNIFE)" });
+    expect(star.textContent).toBe("★ Starred");
+    fireEvent.click(star);
+    await waitFor(() => expect(calls.find((c) => c.path === "/api/v1/replays/auto/clips/b")?.body).toEqual({ starred: false }));
+    fireEvent.click(screen.getByRole("button", { name: "Star 3K: saber ▸ a, b, c (AK47)" }));
+    await waitFor(() => expect(calls.filter((c) => c.path === "/api/v1/replays/auto/clips/a").at(-1)?.body).toEqual({ starred: true }));
   });
 
   it("plays the chosen clips in round order by default, or best first", async () => {
@@ -426,6 +475,22 @@ describe("Replay PC panel", () => {
     await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ behindMs: 10000 }));
     fireEvent.change(screen.getByLabelText(/On the same CSTV as the main PC/), { target: { value: "each_kill" } });
     await waitFor(() => expect(calls.filter((c) => c.method === "PUT").map((c) => c.body)).toContainEqual({ sameCstv: "each_kill" }));
+  });
+
+  it("films extra angles when asked (experimental), and says how it goes", async () => {
+    const angles: ReplayPcResponse = {
+      ...link,
+      settings: { ...link.settings, enabled: true, mainUrl: "http://192.168.1.20:37211", filmAngles: true },
+      hasToken: true,
+      status: { ...link.status, enabled: true, state: "connected", detail: "Linked to STUDIO-PC.", angles: { state: "ready", detail: "Filmed haze ▸ kite · victim's view and back where it was.", asked: 0, filmed: 1, failed: 0, last: { label: "haze ▸ kite · victim's view", at: "2026-11-17T10:00:00Z", ok: true, detail: "Sent to the main PC." } } },
+    };
+    const calls = serve({ "GET /api/v1/replay-pc": angles, "PUT /api/v1/replay-pc": angles });
+    wrap(<ReplayPcPanel />);
+    expect(await screen.findByText(/Extra angles: Filmed haze ▸ kite · victim's view and back where it was\. \(1 filmed\)/)).toBeTruthy();
+    const box = screen.getByLabelText(/Film extra angles/) as HTMLInputElement;
+    expect(box.checked).toBe(true);
+    fireEvent.click(box);
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ filmAngles: false }));
   });
 
   it("makes a replay PC code on the main PC", async () => {

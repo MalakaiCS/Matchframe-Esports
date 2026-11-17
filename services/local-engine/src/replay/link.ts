@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
 import { extname } from "node:path";
 import { z } from "zod";
-import type { MatchState } from "@matchframe/contracts";
+import type { MatchState, Vec3 } from "@matchframe/contracts";
 import type { Pin } from "@matchframe/director-policy";
 import type { HudKillfeedEntry } from "@matchframe/hud-sdk";
-import type { ReplayPlay } from "@matchframe/replay-agent";
+import type { ReplayAngle, ReplayPlay } from "@matchframe/replay-agent";
 import type { Engine } from "../app.ts";
+import { killCamera } from "./angles.ts";
+import type { AngleRequest } from "./auto.ts";
 import type { OnAirClock, OnAirKill } from "./onair.ts";
 import { onAirAt, SHOWN_WINDOW_MS, showedDuring } from "./onair.ts";
 import { DelayEstimator, killKey } from "./timing.ts";
@@ -27,6 +29,14 @@ import { DelayEstimator, killKey } from "./timing.ts";
  * - Ahead of the main PC: going back (by the lead plus 7 s) puts it behind; otherwise it works as live.
  *
  * The main PC plays the clips in the next replay break (replay/auto.ts).
+ *
+ * Extra angles (ADR-081, experimental, `filmAngles`): the main PC asks for some moments again (the
+ * round's top kill, the kills its operator starred) from the player who died's view or a free camera.
+ * When that can't cost any kill its lead-up (this computer's round is over, or it is far enough behind
+ * that a kill reported meanwhile still gets its whole lead-up), CS2 goes back to just before the kill
+ * (demo_gototick), the camera goes to the player who died (or a free camera placed for the kill), the
+ * kill plays again, and the clip is sent as an extra angle of the moment. Then CS2 goes forward by as
+ * much: the stretch it skips was played while it filmed, and has no kill (that is the condition).
  */
 
 export const ReplayPcSettings = z.object({
@@ -50,6 +60,11 @@ export const ReplayPcSettings = z.object({
    * from the player who died.
    */
   filmAll: z.boolean().default(true),
+  /**
+   * Extra angles (ADR-081, experimental): film the moments the main PC asks for again, from the player
+   * who died's view or a free camera, by going back in CS2 when that costs no kill its lead-up.
+   */
+  filmAngles: z.boolean().default(false),
 });
 export type ReplayPcSettings = z.infer<typeof ReplayPcSettings>;
 
@@ -65,6 +80,19 @@ export interface MainOnAir {
   kills?: OnAirKill[];
   /** Main PCs from 0.9.0 on: it records this computer's screen over NDI (the replay feed). */
   feed?: { recording: boolean };
+  /** Main PCs from 0.13 on: the moments it wants filmed again from another angle (ADR-081). */
+  angles?: AngleRequest[];
+}
+
+/** Extra angles (ADR-081): what this computer is doing about them. */
+export interface AnglesStatus {
+  state: "off" | "ready" | "filming" | "unsupported";
+  detail: string;
+  /** The moments asked for now. */
+  asked: number;
+  filmed: number;
+  failed: number;
+  last: { label: string; at: string; ok: boolean; detail: string } | null;
 }
 
 export type TimingState = "measuring" | "live" | "behind" | "ahead";
@@ -91,6 +119,8 @@ export interface ReplayPcStatus {
   skipped: number;
   last: { label: string; at: string; ok: boolean; error: string | null } | null;
   lastSkip: { label: string; reason: string; at: string } | null;
+  /** Extra angles of moments the main PC asked for (ADR-081). */
+  angles: AnglesStatus;
 }
 
 const POLL_MS = 250;
@@ -128,6 +158,27 @@ const RETURN_CHECK_MS = 5000;
 const RETURN_IDLE_MS = 800;
 /** What CS2's console answers to a demo command when it has nothing to go back in (connected straight to the game server). */
 const REFUSED = /not currently playing back a demo|unknown command/i;
+/** An extra angle (ADR-081): it shows this long before the kill, and this long after the last kill. */
+const ANGLE_LEAD_MS = 2500;
+const ANGLE_POST_MS = 1500;
+/** Of the stream gone back to, this much is for CS2 to land and the camera to get there before the lead-up. */
+const ANGLE_SETTLE_MS = 1000;
+/** Going back further than this for an angle isn't tried (a CSTV connection keeps so much of the match). */
+const ANGLE_MAX_BACK_MS = 90_000;
+/** CS2 must show it went back (the player who died alive again) within this long. */
+const ANGLE_LAND_MS = 4000;
+/** Going forward again: CS2 must show it is back where it was within this long. */
+const ANGLE_RETURN_MS = 5000;
+/** After the pass, before the next kill's lead-up: time to go forward and get the camera there. */
+const ANGLE_RETURN_MARGIN_MS = 1500;
+/** Extra angles filmed (or tried) per round, at most. */
+const ANGLES_PER_ROUND = 2;
+/** The main PC's kills remembered for extra angles. */
+const KILL_LOG_MS = 180_000;
+/** Close enough to where this computer was before the pass (ms of delay). */
+const RETURN_TOLERANCE_MS = 1500;
+/** Freeze time assumed after a round's end, until the game says (CS2's competitive default is 20 s; many servers use 15). */
+const ASSUMED_FREEZE_MS = 15_000;
 
 interface Pending {
   killer: { steamId: string; name: string };
@@ -165,6 +216,44 @@ interface Job {
 
 type Shown = OnAirKill["shown"];
 
+/** A kill the main PC reported: who, and when it happened there (this computer's clock). */
+interface LoggedKill {
+  round: number | null;
+  killer: { steamId: string; name: string };
+  victim: { steamId: string; name: string };
+  tk: number;
+}
+
+/** An extra angle being filmed (ADR-081): going back, filming, going forward again. */
+interface AnglePass {
+  req: AngleRequest;
+  view: ReplayAngle;
+  label: string;
+  kills: LoggedKill[];
+  stage: "back" | "filming" | "forward";
+  backMs: number;
+  /** How far behind the main PC this computer was before going back. */
+  delayBefore: number;
+  startedAt: number;
+  landedAt: number | null;
+  onTargetAt: number | null;
+  /** When the first kill should play again (this computer's clock), and each victim's death as it did. */
+  expectAt: number;
+  seen: Map<string, number>;
+  /** The camera's state before (to give it back). */
+  prevPin: Pin | null;
+  automatic: boolean;
+  camera: boolean;
+  /** The main PC's kills reported meanwhile: planned once back (with the delay from before). */
+  queued: { k: OnAirKill; tk: number }[];
+  forwardUntil: number;
+  /** Why it wasn't filmed (null: filmed, or not over yet). */
+  failed: string | null;
+}
+
+/** "the player who died's view", "a free camera". */
+const VIEW_LABEL: Record<ReplayAngle, string> = { victim: "victim's view", free: "free camera" };
+
 export const SECRET_KEY = "replayPc.token";
 
 export class ReplayLink {
@@ -188,6 +277,7 @@ export class ReplayLink {
     skipped: 0,
     last: null,
     lastSkip: null,
+    angles: { state: "off", detail: "", asked: 0, filmed: 0, failed: 0, last: null },
   };
   /** The main PC's on-air player over time (local monotonic ms). */
   private mainHistory: { at: number; steamId: string | null }[] = [];
@@ -217,6 +307,15 @@ export class ReplayLink {
   private rewindRun: { requestedMs: number; checkUntil: number; idleSince: number | null; kills: { k: OnAirKill; tk: number }[] } = { requestedMs: 0, checkUntil: 0, idleSince: null, kills: [] };
   /** Staying behind: not before this (after the last go-back, or after returning to the main PC's time). */
   private stayNextAt = 0;
+  /** The main PC's kills of the last minutes, for extra angles (ADR-081). */
+  private killLog: LoggedKill[] = [];
+  /** Where each player stood at each kill this computer showed (for a free camera). */
+  private killPos = new Map<string, { killer: Vec3 | null; victim: Vec3 | null; at: number }>();
+  /** The moments the main PC asks for now, the extra angles done or given up (moment id + view), and how many each round had. */
+  private angleAsks: AngleRequest[] = [];
+  private angleDone = new Set<string>();
+  private anglesPerRound = new Map<number, number>();
+  private pass: AnglePass | null = null;
 
   constructor(private readonly e: Engine) {}
 
@@ -244,7 +343,7 @@ export class ReplayLink {
   }
 
   getStatus(): ReplayPcStatus {
-    return { ...this.status, obsReady: this.e.obs.state.connected && this.e.obs.state.replayBuffer === true, planned: this.jobs.length };
+    return { ...this.status, obsReady: this.e.obs.state.connected && this.e.obs.state.replayBuffer === true, planned: this.jobs.length, angles: { ...this.status.angles, asked: this.angleAsks.filter((r) => r.views.some((v) => !this.angleDone.has(`${r.id}|${v}`))).length } };
   }
 
   start(): void {
@@ -260,6 +359,7 @@ export class ReplayLink {
         : { state: "ready", detail: st.sameCstv === "stay_behind" ? `At the main PC's time, CS2 goes back ${sec(st.behindMs)} once and stays there.` : "On a missed kill this camera didn't have, CS2 goes back a few seconds to film it.", count: this.status.rewind.count };
     this.stayNextAt = 0;
     this.status.timing = { state: "measuring", delayMs: null, detail: "" };
+    this.status.angles = { ...this.status.angles, state: st.filmAngles ? "ready" : "off", detail: st.filmAngles ? "Extra angles the main PC asks for are filmed by going back, when no kill's lead-up is lost." : "" };
     if (!st.enabled) {
       this.status = { ...this.status, enabled: false, state: "off", detail: "This computer is not a replay PC.", main: null, mainObserved: null };
       return;
@@ -289,6 +389,12 @@ export class ReplayLink {
     this.jobs = [];
     this.dropped = [];
     this.waiting = [];
+    if (this.pass) {
+      // Stopped while CS2 is back for an angle: forward again first (it isn't checked any more).
+      const p = this.pass;
+      if (p.stage !== "forward" && p.landedAt !== null) this.forward(p, this.e.now());
+      this.endPass(p, "stopped");
+    }
     this.status.filming = null;
     this.estimator = new DelayEstimator();
     this.seenMainKills.clear();
@@ -305,11 +411,19 @@ export class ReplayLink {
     trim(this.ownHistory, now);
     const j = this.active;
     if (j && j.onKillerAt === null && id === j.killer.steamId) j.onKillerAt = now;
+    const pass = this.pass;
     for (const p of s.players) {
       const alive = p.lifeState === "alive";
-      if (j && !alive && this.alive.get(p.steamId) === true && j.victims.some((v) => v.steamId === p.steamId) && !j.seen.has(p.steamId)) j.seen.set(p.steamId, now);
+      const was = this.alive.get(p.steamId);
+      if (j && !alive && was === true && j.victims.some((v) => v.steamId === p.steamId) && !j.seen.has(p.steamId)) j.seen.set(p.steamId, now);
+      // An extra angle: CS2 went back (the player who died alive again), then the kill plays again.
+      if (pass && pass.kills.some((k) => k.victim.steamId === p.steamId)) {
+        if (pass.stage === "back" && alive && was === false && p.steamId === pass.kills[0]!.victim.steamId) pass.landedAt = now;
+        if (pass.stage === "filming" && !alive && was === true && !pass.seen.has(p.steamId)) pass.seen.set(p.steamId, now);
+      }
       this.alive.set(p.steamId, alive);
     }
+    if (pass && pass.stage === "filming" && pass.onTargetAt === null && pass.view === "victim" && id === pass.kills[0]!.victim.steamId) pass.onTargetAt = now;
     if (s.phaseEndsInSec !== null) this.estimator.noteOwn({ at: s.phaseObservedAtMonotonicMs ?? now, map: s.mapName, round: s.roundNumber, phase: s.gamePhase, endsInSec: s.phaseEndsInSec });
   }
 
@@ -322,7 +436,7 @@ export class ReplayLink {
     try {
       const sentAt = this.e.now();
       // The rounds this computer still has kills of to film or send: the main PC's replay break waits for them.
-      const res = await fetch(`${st.mainUrl}/api/v1/replay-link/on-air?pending=${this.pendingRounds().join(",")}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(2000) });
+      const res = await fetch(`${st.mainUrl}/api/v1/replay-link/on-air?pending=${this.pendingRounds().join(",")}&angles=${this.angleRounds().join(",")}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(2000) });
       if (res.status === 401 || res.status === 403) throw new Error("the main PC refused this computer's code: make a new replay PC code on the main PC");
       if (!res.ok) throw new Error(`the main PC answered ${res.status}`);
       const onAir = (await res.json()) as MainOnAir;
@@ -343,7 +457,10 @@ export class ReplayLink {
         const tk = at - k.ageMs;
         this.estimator.noteMainKill(killKey(k.round, k.killer.steamId, k.victim.steamId), tk);
         this.mainVerdicts.set(killKey(k.round, k.killer.steamId, k.victim.steamId), { shown: k.shown, at: now });
+        this.killLog.push({ round: k.round, killer: { ...k.killer }, victim: { ...k.victim }, tk });
       }
+      while (this.killLog.length && this.killLog[0]!.tk < now - KILL_LOG_MS) this.killLog.shift();
+      this.angleAsks = Array.isArray(onAir.angles) ? onAir.angles.slice(0, 5) : [];
       for (const [key, v] of this.mainVerdicts) if (v.at < now - 60_000) this.mainVerdicts.delete(key);
       this.updateTiming(now);
       if (this.status.timing.state !== "measuring" && this.waiting.length) {
@@ -375,6 +492,8 @@ export class ReplayLink {
     for (const j of [...(this.active ? [this.active] : []), ...this.jobs]) if (j.round !== null) rounds.add(j.round);
     for (const r of this.sending) rounds.add(r);
     for (const p of this.pending.values()) if (p.roundNumber !== null) rounds.add(p.roundNumber);
+    // Kills reported while an extra angle is filmed: planned once CS2 is back.
+    for (const q of this.pass?.queued ?? []) if (q.k.round !== null) rounds.add(q.k.round);
     return [...rounds].slice(0, 10);
   }
 
@@ -407,6 +526,11 @@ export class ReplayLink {
   private onMainKill(k: OnAirKill, tk: number): void {
     // Kills the main camera showed are filmed too with filmAll, from behind only (never worth going back for).
     if (k.shown === "killer" && !this.settings().filmAll) return;
+    // Filming an extra angle (CS2 further back than usual): planned once it is back, with the delay from before.
+    if (this.pass) {
+      this.pass.queued.push({ k, tk });
+      return;
+    }
     const rw = this.status.rewind.state;
     if (rw === "rewinding") {
       this.rewindRun.kills.push({ k, tk });
@@ -495,6 +619,7 @@ export class ReplayLink {
 
   private tick(): void {
     const now = this.e.now();
+    if (this.pass) return this.tickPass(this.pass, now);
     this.checkRewind(now);
     this.maybeStayBehind(now);
     const st = this.settings();
@@ -508,6 +633,7 @@ export class ReplayLink {
     while (this.jobs.length && this.jobs[0]!.firstT - now < MIN_PRE_MS) this.skip(this.jobs.shift()!, "too late to get the camera there");
     const next = this.jobs[0];
     if (next && next.firstT - st.preRollMs - CUT_LEAD_MS <= now) this.begin(next, now);
+    else this.maybeFilmAngle(now);
   }
 
   private begin(j: Job, now: number): void {
@@ -541,7 +667,9 @@ export class ReplayLink {
     const now = this.e.now();
     const playFrom = Math.max(onAt + 300, first - st.preRollMs);
     const play: ReplayPlay = { kind: j.kind, killer: j.killer, victims: j.victims.map((v) => v.name), kills: j.victims.length, weapon: j.weapon, headshot: j.headshot };
-    void this.send(play, Math.round(now - playFrom), j.round, Math.round(first - playFrom));
+    // Each kill's time in the clip, for slow motion around each of a multi-kill's (ADR-081).
+    const killsMs = [...j.seen.values()].sort((a, b) => a - b).map((t) => Math.round(t - playFrom));
+    void this.send(play, Math.round(now - playFrom), j.round, Math.round(first - playFrom), { killsMs });
   }
 
   /** This computer's camera stayed on one player from `from` to `to`. */
@@ -645,6 +773,217 @@ export class ReplayLink {
     }
   }
 
+  // ---- extra angles: going back to film a moment again (ADR-081) -----------------------------------
+
+  /** Rounds this computer is filming (or about to film) an extra angle of: the main PC's break waits a little for it. */
+  private angleRounds(): number[] {
+    const rounds = new Set<number>();
+    if (this.pass) rounds.add(this.pass.req.round);
+    if (this.settings().filmAngles && this.status.angles.state !== "unsupported") for (const r of this.angleAsks) if (this.nextView(r) && (this.anglesPerRound.get(r.round) ?? 0) < ANGLES_PER_ROUND && this.killsOf(r).length) rounds.add(r.round);
+    return [...rounds].slice(0, 5);
+  }
+
+  /** The next view of a moment still to film, or null. */
+  private nextView(r: AngleRequest): ReplayAngle | null {
+    return r.views.find((v) => !this.angleDone.has(`${r.id}|${v}`)) ?? null;
+  }
+
+  /** The main PC's kills of a moment (its killer, its victims, its round), first to last. */
+  private killsOf(r: AngleRequest): LoggedKill[] {
+    return this.killLog.filter((k) => k.round === r.round && k.killer.steamId === r.killer.steamId && r.victims.includes(k.victim.name)).sort((a, b) => a.tk - b.tk);
+  }
+
+  /**
+   * Why going back now for `passMs` (wall time) would cost a kill its lead-up, or null. No kill already
+   * planned may start its lead-up before the pass is over and CS2 back. A kill the main PC reports
+   * meanwhile plays here at least the delay later, and only once this computer's round is live: so the
+   * later of the two must leave room for the pass and the whole lead-up (this computer's round over, or
+   * far enough behind).
+   */
+  private angleWindow(now: number, passMs: number, d: number): string | null {
+    const s = this.e.session.state();
+    const st = this.settings();
+    const need = passMs + ANGLE_RETURN_MARGIN_MS;
+    if (this.jobs.some((j) => j.firstT - st.preRollMs - CUT_LEAD_MS < now + need)) return "a kill is planned too soon";
+    const phase = s?.roundPhase ?? "live";
+    const left = (s?.phaseEndsInSec ?? 0) * 1000;
+    const liveIn = phase === "live" ? 0 : phase === "freezetime" ? left : left + ASSUMED_FREEZE_MS;
+    if (Math.max(d, liveIn) < need + st.preRollMs + CUT_LEAD_MS) return phase === "live" ? "the round is live here, and this computer isn't far enough behind for a kill reported meanwhile to keep its lead-up" : "the next round starts here too soon";
+    return null;
+  }
+
+  /** Starts filming an extra angle the main PC asked for, when one can be filmed now. */
+  private maybeFilmAngle(now: number): void {
+    const st = this.settings();
+    if (!st.filmAngles || this.pass || this.active || this.pending.size || this.status.state !== "connected") return;
+    if (this.status.angles.state === "unsupported") return;
+    const rw = this.status.rewind.state;
+    if (rw === "rewinding" || rw === "rewound" || rw === "returning" || rw === "unsupported") return;
+    const d = this.status.timing.delayMs;
+    if (this.status.timing.state !== "behind" || d === null) return;
+    if (!this.e.gameConsole.connection?.connected) return;
+    for (const r of this.angleAsks) {
+      const view = this.nextView(r);
+      if (!view || (this.anglesPerRound.get(r.round) ?? 0) >= ANGLES_PER_ROUND) continue;
+      const kills = this.killsOf(r);
+      if (!kills.length) continue;
+      const firstAt = kills[0]!.tk + d;
+      const lastAt = kills[kills.length - 1]!.tk + d;
+      // It must have played here (and its end too) before it is filmed again.
+      if (lastAt + ANGLE_POST_MS > now) continue;
+      const backMs = Math.round(now - firstAt + ANGLE_LEAD_MS + ANGLE_SETTLE_MS);
+      const passMs = ANGLE_SETTLE_MS + ANGLE_LEAD_MS + (lastAt - firstAt) + ANGLE_POST_MS;
+      const label = `${replayLabel({ kind: "shown", killer: r.killer, victims: r.victims, kills: r.victims.length, weapon: null, headshot: false })} · ${VIEW_LABEL[view]}`;
+      if (backMs > ANGLE_MAX_BACK_MS) {
+        this.angleGiveUp(r, view, label, `it is ${sec(backMs)} back, further than a CSTV keeps`);
+        continue;
+      }
+      const why = this.angleWindow(now, passMs, d);
+      if (why) {
+        this.status.angles = { ...this.status.angles, state: "ready", detail: `Waiting to film ${label}: ${why}.` };
+        return;
+      }
+      this.startPass(r, view, label, kills, backMs, d, now);
+      return;
+    }
+  }
+
+  private angleGiveUp(r: AngleRequest, view: ReplayAngle, label: string, why: string): void {
+    this.angleDone.add(`${r.id}|${view}`);
+    this.status.angles = { ...this.status.angles, failed: this.status.angles.failed + 1, last: { label, at: new Date().toISOString(), ok: false, detail: why } };
+    this.e.logger.info("replay PC: extra angle not filmed", { label, why });
+  }
+
+  private startPass(r: AngleRequest, view: ReplayAngle, label: string, kills: LoggedKill[], backMs: number, d: number, now: number): void {
+    const conn = this.e.gameConsole.connection!;
+    this.angleDone.add(`${r.id}|${view}`);
+    this.anglesPerRound.set(r.round, (this.anglesPerRound.get(r.round) ?? 0) + 1);
+    for (const k of this.anglesPerRound.keys()) if (k < r.round - 6) this.anglesPerRound.delete(k);
+    const automatic = this.e.autoDirector.status().on || this.e.session.director.currentMode === "automatic";
+    const pass: AnglePass = { req: r, view, label, kills, stage: "back", backMs, delayBefore: d, startedAt: now, landedAt: null, onTargetAt: null, expectAt: now + ANGLE_LEAD_MS + ANGLE_SETTLE_MS, seen: new Map(), prevPin: this.e.session.director.controls.pin, automatic, camera: false, queued: [], forwardUntil: 0, failed: null };
+    this.pass = pass;
+    this.status.filming = label;
+    this.status.angles = { ...this.status.angles, state: "filming", detail: `Going back ${sec(backMs)} to film ${label}…` };
+    this.e.session.director.avoid([], 0);
+    void conn.write(`demo_gototick -${Math.round((backMs / 1000) * TICKRATE)} relative`).catch((err) => this.e.logger.warn("replay PC: going back for an extra angle failed", { error: String(err) }));
+    // This computer's clock readings start over (CS2 jumped; across the round's end its phase changes too, which hides a jump).
+    this.estimator.resetOwn();
+    this.e.logger.info("replay PC: filming an extra angle", { label, backMs });
+  }
+
+  /** The camera on the angle: the player who died (pinned, or selected), or a free camera placed for the kill. */
+  private aimPass(p: AnglePass): void {
+    const victim = p.kills[0]!.victim;
+    if (p.view === "victim") {
+      if (p.automatic) this.e.session.pin({ kind: "player", steamId: victim.steamId });
+      else void this.e.session.manualSelectPlayer(victim.steamId, "replay-pc", "device").catch((err) => this.e.logger.warn("replay PC: could not show the player who died", { error: String(err) }));
+      return;
+    }
+    const s = this.e.session.state();
+    const map = s?.mapName ? this.e.maps.get(s.mapName) : undefined;
+    const grid = map?.grid ?? null;
+    const at = this.killPos.get(killKey(p.req.round, p.req.killer.steamId, victim.steamId));
+    // Where they stood at the kill (as this computer showed it), else where they stand now (just before it).
+    const pos = (id: string, then: Vec3 | null | undefined) => then ?? s?.players.find((x) => x.steamId === id)?.position ?? null;
+    const cam = grid && s?.mapName ? killCamera(s.mapName, pos(p.req.killer.steamId, at?.killer), pos(victim.steamId, at?.victim), grid, ANGLE_LEAD_MS + ANGLE_POST_MS + 2000) : null;
+    if (!cam) {
+      p.camera = false;
+      return;
+    }
+    p.camera = true;
+    void this.e.session.showCamera(cam, "replay-pc", ANGLE_LEAD_MS + ANGLE_POST_MS + 2000).catch((err) => this.e.logger.warn("replay PC: could not show the free camera", { error: String(err) }));
+  }
+
+  private tickPass(p: AnglePass, now: number): void {
+    if (p.stage === "back") {
+      if (p.landedAt === null) {
+        if (now - p.startedAt > ANGLE_LAND_MS) return this.failPass(p, "CS2 didn't go back (demo_gototick)", true);
+        return;
+      }
+      p.stage = "filming";
+      // The kill plays again the lead-up and the settling time after CS2 lands (it may land a moment after the command).
+      p.expectAt = Math.max(p.expectAt, p.landedAt + ANGLE_LEAD_MS + ANGLE_SETTLE_MS - 500);
+      this.aimPass(p);
+      if (p.view === "free" && !p.camera) return this.failPass(p, "no spot for a free camera (this map has no free-space grid here)", false);
+      if (p.view === "free") p.onTargetAt = now;
+      return;
+    }
+    if (p.stage === "filming") {
+      const victims = p.kills.map((k) => k.victim.steamId);
+      const all = victims.every((v) => p.seen.has(v));
+      const span = p.kills[p.kills.length - 1]!.tk - p.kills[0]!.tk;
+      if (!p.seen.size && now > p.expectAt + span + GRACE_MS) return this.failPass(p, "the kill didn't play again on this computer", false);
+      const lastSeen = p.seen.size ? Math.max(...p.seen.values()) : 0;
+      const finishAt = all ? lastSeen + ANGLE_POST_MS : p.expectAt + span + GRACE_MS + ANGLE_POST_MS;
+      if (now < finishAt) return;
+      const first = Math.min(...p.seen.values());
+      const on = p.onTargetAt;
+      if (on === null || on > first - 1000 || (p.view === "victim" && !this.stayedOn(p.kills[0]!.victim.steamId, on, first))) return this.failPass(p, `the camera wasn't on ${p.view === "victim" ? p.kills[0]!.victim.name : "the free camera"} for it`, false);
+      const playFrom = Math.max(on + 300, first - ANGLE_LEAD_MS);
+      const play: ReplayPlay = { kind: "shown", killer: p.req.killer, victims: p.req.victims, kills: p.req.victims.length, weapon: null, headshot: false };
+      const killsMs = [...p.seen.values()].sort((a, b) => a - b).map((t) => Math.round(t - playFrom));
+      const label = p.label;
+      void this.send(play, Math.round(now - playFrom), p.req.round, Math.round(first - playFrom), { killsMs, angle: p.view, momentOf: p.req.id, label }).then((ok) => {
+        this.status.angles = { ...this.status.angles, ...(ok ? { filmed: this.status.angles.filmed + 1 } : { failed: this.status.angles.failed + 1 }), last: { label, at: new Date().toISOString(), ok, detail: ok ? "Sent to the main PC." : "Filmed, but not sent (see the last clip)." } };
+      });
+      return this.forward(p, now);
+    }
+    // Going forward: back where it was (about as far behind as before), or CS2 stayed back.
+    const d = this.status.timing.delayMs;
+    this.updateTiming(now);
+    if (d !== null && Math.abs(d - p.delayBefore) <= RETURN_TOLERANCE_MS) return this.endPass(p, "back");
+    if (now > p.forwardUntil) return this.endPass(p, "stayed");
+  }
+
+  /** Done filming (or given up after going back): forward by as much as it went back. */
+  private forward(p: AnglePass, now: number): void {
+    this.releasePass(p);
+    p.stage = "forward";
+    p.forwardUntil = now + ANGLE_RETURN_MS;
+    this.status.angles = { ...this.status.angles, detail: `Going forward ${sec(p.backMs)} again after ${p.label}…` };
+    // As far as it is behind now beyond where it was (or as far as it went back), less a little: never ahead of where it was.
+    const d = this.status.timing.delayMs;
+    const extra = d !== null && d - p.delayBefore > LEAD_MIN_MS ? d - p.delayBefore : p.backMs;
+    void this.e.gameConsole.connection?.write(`demo_gototick ${Math.round((Math.max(0, extra - 300) / 1000) * TICKRATE)} relative`).catch(() => undefined);
+    this.estimator.resetOwn();
+  }
+
+  private failPass(p: AnglePass, why: string, notBack: boolean): void {
+    p.failed = why;
+    this.angleGiveUp(p.req, p.view, p.label, why);
+    if (notBack) {
+      // CS2 didn't go back: nothing to undo; and it won't, here (going back isn't available).
+      this.releasePass(p);
+      this.status.angles = { ...this.status.angles, state: "unsupported", detail: `Extra angles can't be filmed here: ${why}.` };
+      return this.endPass(p, "not back");
+    }
+    this.forward(p, this.e.now());
+  }
+
+  /** The camera back as it was before the angle. */
+  private releasePass(p: AnglePass): void {
+    if (p.automatic) {
+      if (p.view === "victim") this.e.session.pin(p.prevPin);
+      // A free camera took the camera as a device: the director has it again.
+      if (p.camera) this.e.session.resume(0);
+    }
+    p.camera = false;
+  }
+
+  private endPass(p: AnglePass, how: "back" | "stayed" | "not back" | "stopped"): void {
+    if (this.pass !== p) return;
+    if (p.stage !== "forward") this.releasePass(p);
+    this.pass = null;
+    this.status.filming = null;
+    const d = this.status.timing.delayMs;
+    if (how === "stayed") {
+      this.status.angles = { ...this.status.angles, state: "unsupported", detail: `CS2 didn't go forward after ${p.label}: this computer stays ${d !== null ? sec(d) : "further"} behind, and films no more extra angles.` };
+      this.e.logger.warn("replay PC: CS2 didn't go forward after an extra angle", { label: p.label, delayMs: d });
+    } else if (how === "back") this.status.angles = { ...this.status.angles, state: "ready", detail: p.failed ? `Back where it was; ${p.label} not filmed: ${p.failed}.` : `Filmed ${p.label} and back where it was.` };
+    // The main PC's kills reported meanwhile: planned now (with the delay as it is).
+    for (const { k, tk } of p.queued.splice(0)) if (how !== "stopped") this.onMainKill(k, tk);
+  }
+
   // ---- kills on this computer's camera (live with the main PC) -----------------------------------
 
   private onKill(k: HudKillfeedEntry): void {
@@ -654,6 +993,10 @@ export class ReplayLink {
     const victim = k.victim.steamId;
     // The round being played, or the one just ended for a kill after it was won (the main PC's on-air kills say the same).
     const roundNumber = this.e.playRound();
+    // Where the two stood (a free camera on the kill, ADR-081).
+    const players = this.e.session.state()?.players ?? [];
+    this.killPos.set(killKey(roundNumber, killer, victim), { killer: players.find((p) => p.steamId === killer)?.position ?? null, victim: players.find((p) => p.steamId === victim)?.position ?? null, at: now });
+    for (const [key, v] of this.killPos) if (v.at < now - KILL_LOG_MS) this.killPos.delete(key);
     this.estimator.noteOwnKill(killKey(roundNumber, killer, victim), now);
     // Behind (or rewound), missed kills are planned from the main PC's list instead.
     if (this.status.timing.state === "behind" || this.status.rewind.state === "rewinding" || this.status.rewind.state === "rewound" || this.status.rewind.state === "returning") return;
@@ -697,10 +1040,12 @@ export class ReplayLink {
    * first kill). With the replay feed the main PC cuts it from its recording of this screen, so only
    * the moment is sent; otherwise this computer's replay buffer is saved and the clip uploaded.
    */
-  private async send(play: ReplayPlay, playMs: number, round: number | null, leadMs: number): Promise<void> {
+  private async send(play: ReplayPlay, playMs: number, round: number | null, leadMs: number, extra: { killsMs?: number[]; angle?: ReplayAngle; momentOf?: string; label?: string } = {}): Promise<boolean> {
     const st = this.settings();
     const token = this.e.secrets.getSecret(SECRET_KEY);
-    const label = replayLabel(play);
+    const label = extra.label ?? replayLabel(play);
+    const killsMs = (extra.killsMs ?? []).filter((k) => k >= 0 && k <= playMs).slice(0, 5);
+    const angle = extra.angle && extra.momentOf ? { angle: extra.angle, momentOf: extra.momentOf } : null;
     if (round !== null) this.sending.push(round);
     try {
       if (this.status.transport === "feed") {
@@ -708,13 +1053,13 @@ export class ReplayLink {
         const res = await fetch(`${st.mainUrl}/api/v1/replays/mark`, {
           method: "POST",
           headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-          body: JSON.stringify({ label, kind: play.kind, round, kills: play.kills, killer: play.killer, victims: play.victims, weapon: play.weapon, headshot: play.headshot, fromAgoMs: playMs, killAgoMs: playMs - lead, endAgoMs: 0 }),
+          body: JSON.stringify({ label, kind: play.kind, round, kills: play.kills, killer: play.killer, victims: play.victims, weapon: play.weapon, headshot: play.headshot, fromAgoMs: playMs, killAgoMs: playMs - lead, endAgoMs: 0, ...(killsMs.length ? { killsAgoMs: killsMs.map((k) => playMs - k) } : {}), ...(angle ?? {}) }),
           signal: AbortSignal.timeout(15000),
         });
         if (res.ok) {
           this.status = { ...this.status, sent: this.status.sent + 1, last: { label, at: new Date().toISOString(), ok: true, error: null } };
-          this.e.logger.info("replay PC: marked a kill for the replay feed", { label, playMs });
-          return;
+          this.e.logger.info("replay PC: marked a kill for the replay feed", { label, playMs, ...(angle ?? {}) });
+          return true;
         }
         // The main PC stopped recording this screen: send the clip from this computer's OBS when it can.
         if (res.status !== 409 || !this.e.obs.state.connected) throw new Error(`the main PC answered ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -723,15 +1068,17 @@ export class ReplayLink {
       const { savedPath } = await this.e.obs.saveReplayBuffer();
       const body = readFileSync(savedPath);
       const ext = (extname(savedPath).slice(1) || "mp4").toLowerCase();
-      const q = new URLSearchParams({ label, kind: play.kind, playMs: String(playMs), leadMs: String(Math.max(0, Math.min(playMs, leadMs))), ext, kills: String(play.kills), killer: play.killer?.steamId ?? "", killerName: play.killer?.name ?? "", victims: play.victims.join("\n"), weapon: play.weapon ?? "", headshot: play.headshot ? "1" : "0", ...(round !== null ? { round: String(round) } : {}) });
+      const q = new URLSearchParams({ label, kind: play.kind, playMs: String(playMs), leadMs: String(Math.max(0, Math.min(playMs, leadMs))), ext, kills: String(play.kills), killer: play.killer?.steamId ?? "", killerName: play.killer?.name ?? "", victims: play.victims.join("\n"), weapon: play.weapon ?? "", headshot: play.headshot ? "1" : "0", ...(round !== null ? { round: String(round) } : {}), ...(killsMs.length ? { killsMs: killsMs.join(",") } : {}), ...(angle ?? {}) });
       const res = await fetch(`${st.mainUrl}/api/v1/replays/incoming?${q.toString()}`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/octet-stream" }, body, signal: AbortSignal.timeout(60000) });
       if (!res.ok) throw new Error(`the main PC answered ${res.status}: ${(await res.text()).slice(0, 200)}`);
       this.status = { ...this.status, sent: this.status.sent + 1, last: { label, at: new Date().toISOString(), ok: true, error: null } };
-      this.e.logger.info("replay PC: sent a clip", { label, bytes: body.length, playMs });
+      this.e.logger.info("replay PC: sent a clip", { label, bytes: body.length, playMs, ...(angle ?? {}) });
+      return true;
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
       this.status = { ...this.status, failed: this.status.failed + 1, last: { label, at: new Date().toISOString(), ok: false, error } };
       this.e.logger.warn("replay PC: clip not sent", { label, error });
+      return false;
     } finally {
       if (round !== null) this.sending.splice(this.sending.indexOf(round), 1);
     }

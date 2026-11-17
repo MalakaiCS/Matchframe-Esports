@@ -35,12 +35,14 @@ export function lanAddresses(): string[] {
 export function registerReplayRoutes(r: Router, e: Engine): void {
   // ---- main PC: what the replay PC asks for ---------------------------------------------------
   r.get("/api/v1/replay-link/on-air", { permission: "state.read" }, (req) => {
-    // The replay PC says which rounds it still has kills of to film or send (the break waits for them).
+    // The replay PC says which rounds it still has kills of to film or send, and extra angles of (the break waits for them).
+    const rounds = (q: string | null) => (q ?? "").split(",").filter(Boolean).map(Number).filter((n) => Number.isInteger(n) && n >= 0).slice(0, 10);
     const pending = req.query.get("pending");
-    if (pending !== null) e.onAir.notePeer(pending.split(",").map(Number).filter((n) => Number.isInteger(n) && n >= 0).slice(0, 10));
+    if (pending !== null) e.onAir.notePeer(rounds(pending), rounds(req.query.get("angles")));
     const s = e.session.state();
     // feed.recording: this computer records the replay PC's screen over NDI, so the replay PC only marks its kills (POST /api/v1/replays/mark).
-    return { computer: hostname(), version: APP_VERSION, observedSteamId: s?.observer.observedSteamId ?? null, roundNumber: s?.roundNumber ?? null, roundPhase: s?.roundPhase ?? null, mapName: s?.mapName ?? null, clock: e.onAir.clock(s), kills: e.onAir.recentKills(), feed: { recording: e.replayFeed.recording() } };
+    // angles: the moments the replay PC is asked to film again from another angle (ADR-081).
+    return { computer: hostname(), version: APP_VERSION, observedSteamId: s?.observer.observedSteamId ?? null, roundNumber: s?.roundNumber ?? null, roundPhase: s?.roundPhase ?? null, mapName: s?.mapName ?? null, clock: e.onAir.clock(s), kills: e.onAir.recentKills(), feed: { recording: e.replayFeed.recording() }, angles: e.autoReplay.angleRequests() };
   });
 
   /**
@@ -63,6 +65,11 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
         fromAgoMs: z.number().min(0).max(120_000),
         killAgoMs: z.number().min(0).max(120_000),
         endAgoMs: z.number().min(0).max(120_000),
+        /** Each kill (a multi-kill's later ones too), as how long ago; for slow motion around each (ADR-081). */
+        killsAgoMs: z.array(z.number().min(0).max(120_000)).max(5).optional(),
+        /** An extra angle of a moment (ADR-081): the player who died's view or a free camera, and the moment's first clip here. */
+        angle: z.enum(["victim", "free"]).nullable().optional(),
+        momentOf: z.string().max(80).nullable().optional(),
       }),
     },
     async (req) => {
@@ -85,6 +92,8 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
       ReplayFeed.pruneClips(dir, KEEP_CLIPS);
       const startsAt = Math.max(from, cut.startWall);
       const play: ReplayPlay = { kind: b.kind, killer: b.killer, victims: b.victims, kills: b.kills, weapon: b.weapon, headshot: b.headshot };
+      const killsMs = b.killsAgoMs?.length ? b.killsAgoMs.map((ago) => Math.max(0, Math.round(at - ago - startsAt))) : null;
+      const angle = b.angle && b.momentOf ? { angle: b.angle, momentOf: b.momentOf } : {};
       const item = e.replays.addExternal(b.label || replayLabel(play), b.kind, b.round, {
         clipId: `clip_feed_${Date.now().toString(36)}`,
         providerId: "replay-feed",
@@ -97,8 +106,8 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
         roundNumber: b.round,
         media: { path: file, durationMs: cut.durationMs, frameRate: cut.fps, timebase: null, startPts: null, hasAudio: cut.hasAudio, width: cut.width, height: cut.height },
         createdAt: new Date().toISOString(),
-      }, { priority: playPriority(b.kind), playMs: Math.max(1000, Math.round(to - startsAt)), leadMs: Math.max(0, Math.round(kill - startsAt)), play });
-      e.audit.record(req.principal!.label, "replay.feed_clip", item.id, { label: item.label, durationMs: cut.durationMs });
+      }, { priority: playPriority(b.kind), playMs: Math.max(1000, Math.round(to - startsAt)), leadMs: Math.max(0, Math.round(kill - startsAt)), killsMs, ...angle, play });
+      e.audit.record(req.principal!.label, "replay.feed_clip", item.id, { label: item.label, durationMs: cut.durationMs, ...(b.angle ? { angle: b.angle, momentOf: b.momentOf } : {}) });
       return item;
     },
   );
@@ -144,6 +153,11 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
     const media = await probeMedia(file);
     const round = num("round");
     const playMs = num("playMs");
+    // Each kill's time in the part (ms), and an extra angle of a moment (ADR-081).
+    const killsMs = String(q.get("killsMs") ?? "").split(",").filter(Boolean).map(Number).filter((n) => Number.isFinite(n) && n >= 0).slice(0, 5);
+    const angleQ = q.get("angle");
+    const momentOf = q.get("momentOf");
+    const angle = (angleQ === "victim" || angleQ === "free") && momentOf ? { angle: angleQ as "victim" | "free", momentOf: momentOf.slice(0, 80) } : {};
     const item = e.replays.addExternal(String(q.get("label") ?? replayLabel(play)).slice(0, 120), kind, round, {
       clipId: `clip_rp_${Date.now().toString(36)}`,
       providerId: "replay-pc",
@@ -156,7 +170,7 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
       roundNumber: round,
       media,
       createdAt: new Date().toISOString(),
-    }, { priority: playPriority(kind), playMs: playMs !== null ? Math.max(1000, Math.min(60000, playMs)) : null, leadMs: num("leadMs"), play });
+    }, { priority: playPriority(kind), playMs: playMs !== null ? Math.max(1000, Math.min(60000, playMs)) : null, leadMs: num("leadMs"), killsMs: killsMs.length ? killsMs : null, ...angle, play });
     e.audit.record(req.principal!.label, "replay.incoming", item.id, { label: item.label, bytes: req.rawBody.length });
     return item;
   });
@@ -190,10 +204,15 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
     e.autoReplay.hold(req.body.held);
     return auto();
   });
-  /** A clip of the current (or next) break's round: excluded (never played automatically) or pinned to play first, if it fits. */
-  r.put("/api/v1/replays/auto/clips/:id", { permission: "replay.control", body: z.object({ excluded: z.boolean().optional(), pinned: z.boolean().optional() }) }, (req) => {
+  /**
+   * A clip of the current (or next) break's round: excluded (never played automatically) or pinned to
+   * play first, if it fits; slowed or at real time (slow; null: as set), starred for extra angles (ADR-081).
+   */
+  r.put("/api/v1/replays/auto/clips/:id", { permission: "replay.control", body: z.object({ excluded: z.boolean().optional(), pinned: z.boolean().optional(), slow: z.boolean().nullable().optional(), starred: z.boolean().optional() }) }, (req) => {
     if (req.body.excluded !== undefined) e.autoReplay.exclude(req.params.id!, req.body.excluded);
     if (req.body.pinned !== undefined) e.autoReplay.pin(req.params.id!, req.body.pinned);
+    if (req.body.slow !== undefined) e.autoReplay.slow(req.params.id!, req.body.slow);
+    if (req.body.starred !== undefined) e.autoReplay.star(req.params.id!, req.body.starred);
     return auto();
   });
   /**
@@ -230,7 +249,7 @@ export function registerReplayRoutes(r: Router, e: Engine): void {
 
   // ---- replay PC: its link to the main PC -------------------------------------------------------
   r.get("/api/v1/replay-pc", { permission: "state.read" }, () => ({ settings: e.replayLink.settings(), hasToken: e.replayLink.hasToken(), status: e.replayLink.getStatus() }));
-  r.put("/api/v1/replay-pc", { permission: "settings.manage", body: z.object({ enabled: z.boolean().optional(), mainUrl: z.string().max(200).optional(), token: z.string().max(200).nullable().optional(), preRollMs: ReplayPcSettings.shape.preRollMs.unwrap().optional(), postRollMs: ReplayPcSettings.shape.postRollMs.unwrap().optional(), sameCstv: ReplayPcSettings.shape.sameCstv.unwrap().optional(), behindMs: ReplayPcSettings.shape.behindMs.unwrap().optional(), filmAll: z.boolean().optional() }) }, (req) => {
+  r.put("/api/v1/replay-pc", { permission: "settings.manage", body: z.object({ enabled: z.boolean().optional(), mainUrl: z.string().max(200).optional(), token: z.string().max(200).nullable().optional(), preRollMs: ReplayPcSettings.shape.preRollMs.unwrap().optional(), postRollMs: ReplayPcSettings.shape.postRollMs.unwrap().optional(), sameCstv: ReplayPcSettings.shape.sameCstv.unwrap().optional(), behindMs: ReplayPcSettings.shape.behindMs.unwrap().optional(), filmAll: z.boolean().optional(), filmAngles: z.boolean().optional() }) }, (req) => {
     try {
       e.replayLink.setSettings(req.body);
     } catch (err) {

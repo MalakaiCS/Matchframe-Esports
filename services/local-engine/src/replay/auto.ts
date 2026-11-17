@@ -2,14 +2,17 @@ import { mkdirSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import type { HudKillfeedEntry } from "@matchframe/hud-sdk";
-import type { QueueItem, ReplayPlay } from "@matchframe/replay-agent";
+import type { QueueItem, ReplayAngle, ReplayPlay } from "@matchframe/replay-agent";
 import type { MatchState } from "@matchframe/contracts";
 import type { Engine } from "../app.ts";
 import type { TransitionPick } from "../live/obs-auto.ts";
 import type { ProgramOwner } from "../production/program.ts";
 import { replayLabel } from "./link.ts";
 import type { RankFacts } from "./rank.ts";
-import { clipScore, CUT_MS, fitReplay, planBreak, replayWallMs, SWITCH_MS } from "./rank.ts";
+import type { PlanCandidate } from "./rank.ts";
+import { clipScore, clipWallMs, CUT_MS, fitReplay, planBreak, replayWallMs, SWITCH_MS } from "./rank.ts";
+import type { SlowMode, SlowSpec } from "./slowmo.ts";
+import { slowFactor, slowInList, slowOutMs, slowWindows, windowOutMs } from "./slowmo.ts";
 import type { VmixInput, VmixTransition } from "./vmix.ts";
 import { VMIX_TRANSITIONS, VmixClient } from "./vmix.ts";
 import type { TwinStatus } from "./twin.ts";
@@ -45,6 +48,14 @@ import { renderBreak, TAIL_MS } from "./render.ts";
  * cut), the sound fading in and out (replay/render.ts), and the file plays in the replay scene's one
  * media source. Without it in time, the clips play through the replay scene and its twin, each loaded
  * just in time off air (never held paused there) and checked to move on air.
+ *
+ * Slow motion and multi-angle replays (ADR-081): a rendered break's clips are slowed around their kills
+ * (or throughout), at 50 % or 33 %, the slow stretches counted when the break's clips are chosen; the
+ * operator turns it on or off per clip (Slow). The replay PC can film a moment again from the player
+ * who died's view or a free camera (replay/link.ts); such a clip is an extra angle of the moment's first
+ * clip and plays straight after it, slowed, when the break has time for it (a starred moment's angles
+ * are chosen with it). The replay PC is asked for the round's top kill's extra angles and the ones the
+ * operator stars (angleRequests).
  */
 
 export const AutoReplaySettings = z.object({
@@ -53,8 +64,26 @@ export const AutoReplaySettings = z.object({
   perBreak: z.number().int().min(1).max(4).default(4),
   /** The order the chosen clips play in: the round's own (its first kill first), or best first. */
   order: z.enum(["round", "best"]).default("round"),
-  /** Playback speed of a replay in percent (100 = real time). */
-  speedPercent: z.number().int().min(25).max(100).default(100),
+  /**
+   * Slow motion (ADR-081): in a rendered break's file, each clip slowed around its kills (easing in about
+   * 0.3 s before, holding through the kill, easing out after), or the whole clip, or none. Played by
+   * itself (through the scenes, vMix) a clip can only be slowed throughout: "kill" plays at real time there.
+   */
+  slowMotion: z.enum(["off", "kill", "whole"]).default("kill"),
+  /** How slow: 50 % or 33 % of real time. */
+  slowSpeed: z.union([z.literal(50), z.literal(33)]).default(50),
+  /** Smooth slow motion: the frames between made by motion interpolation (much more CPU) instead of blended; used when the file will still be ready in time. */
+  slowSmooth: z.boolean().default(false),
+  /** The game sound while a clip is slowed: muted (fading out and back in), or slowed with its pitch kept. */
+  slowAudio: z.enum(["mute", "pitch"]).default("mute"),
+  /**
+   * Multi-angle replays (ADR-081): the replay PC is asked to film the round's top kill again (and kills the
+   * operator stars), or only starred kills, from the angles below; those that arrive play after the
+   * moment's first clip. Off: none asked for, none played.
+   */
+  multiAngle: z.enum(["off", "top", "starred"]).default("top"),
+  /** The extra angles asked for: the player who died's view, a free camera on the two players, or both. */
+  angleViews: z.enum(["victim", "free", "both"]).default("victim"),
   /** Wait this long after the round ends, so the round win stays on air. */
   startDelayMs: z.number().int().min(0).max(8000).default(3500),
   /** Also play the replay PC's angle of a kill the main camera showed from the victim. */
@@ -105,7 +134,14 @@ export const AutoReplayPatch = z.object({
   enabled: z.boolean().optional(),
   perBreak: AutoReplaySettings.shape.perBreak.unwrap().optional(),
   order: AutoReplaySettings.shape.order.unwrap().optional(),
-  speedPercent: AutoReplaySettings.shape.speedPercent.unwrap().optional(),
+  /** Before 0.13: one speed for every replay (100 = real time). Below 100 it is Whole clip slow motion at 50 % (or 33 % up to 40). */
+  speedPercent: z.number().int().min(25).max(100).optional(),
+  slowMotion: AutoReplaySettings.shape.slowMotion.unwrap().optional(),
+  slowSpeed: AutoReplaySettings.shape.slowSpeed.unwrap().optional(),
+  slowSmooth: z.boolean().optional(),
+  slowAudio: AutoReplaySettings.shape.slowAudio.unwrap().optional(),
+  multiAngle: AutoReplaySettings.shape.multiAngle.unwrap().optional(),
+  angleViews: AutoReplaySettings.shape.angleViews.unwrap().optional(),
   startDelayMs: AutoReplaySettings.shape.startDelayMs.unwrap().optional(),
   otherAngles: z.boolean().optional(),
   ownBigPlays: z.boolean().optional(),
@@ -139,6 +175,35 @@ export interface RankedReplay {
   /** The operator excluded it (it never plays automatically), or pinned it to play first in its break. */
   excluded: boolean;
   pinned: boolean;
+  /** It plays slowed (the setting, or the operator's Slow), and whether the operator set that. */
+  slow: boolean;
+  slowSet: boolean;
+  /** The operator starred it: the replay PC is asked for its extra angles, and they play with it. */
+  starred: boolean;
+  /** Its extra angles that came in (ADR-081), and the ones asked for that haven't yet. */
+  angles: RankedAngle[];
+  anglesWanted: ReplayAngle[];
+}
+
+/** An extra angle of a ranked clip. */
+export interface RankedAngle {
+  id: string;
+  label: string;
+  angle: ReplayAngle;
+  state: "played" | "picked" | "waiting" | "left";
+  excluded: boolean;
+  slow: boolean;
+  slowSet: boolean;
+}
+
+/** What the main PC asks the replay PC to film again (GET /api/v1/replay-link/on-air: `angles`). */
+export interface AngleRequest {
+  /** The moment's first clip, here. */
+  id: string;
+  round: number;
+  killer: { steamId: string; name: string };
+  victims: string[];
+  views: ReplayAngle[];
 }
 
 export interface AutoReplayStatus {
@@ -171,6 +236,8 @@ export interface AutoReplayStatus {
   preparing: { kind: SequenceKind; progress: number; clips: number } | null;
   /** The last rendered run: how long the file took, or why its clips played through the scenes instead. */
   render: RenderNote | null;
+  /** What the replay PC is asked to film again now (ADR-081). */
+  angleRequests: AngleRequest[];
 }
 
 /** How the last run's file went: rendered (in how long, with which encoder), or why not (its clips played through the scenes). */
@@ -195,11 +262,13 @@ export type TraceEvent =
   | { type: "audio-down"; inputs: string[] }
   | { type: "audio-back"; ok: boolean; detail: string };
 
-/** A clip chosen for the break (or highlights), and how much of it to show. */
+/** A clip chosen for the break (or highlights), how much of it to show, whether it is slowed, and the moment it is an extra angle of. */
 interface Planned {
   item: QueueItem;
   playMs: number;
   leadMs: number | null;
+  slow: boolean;
+  angleOf?: string | null;
 }
 
 /** What a sequence of clips is: a break's replays, Test replays' sample clips, or highlights on air (ADR-063). */
@@ -275,6 +344,8 @@ interface Sequence {
   ducking: Promise<void> | null;
   /** The transition in's cut point (ms: a Stinger's; 0 for the others), once on air. */
   inCutMs?: number;
+  /** How its slowed clips are slowed (highlights: the replays' way, or around the kills when that is off); absent: the replays' setting. */
+  slowMode?: "kill" | "whole";
 }
 
 /** The operator's controls of the replays playing now. */
@@ -353,6 +424,16 @@ const LIVE_SLACK_MS = 1000;
  */
 const REPLAY_PC_WAIT_MS = 8000;
 /**
+ * ...and up to this long while it films an extra angle of the round (ADR-081): filmed in the dead time
+ * after the round on the replay PC, it comes about 15 s after the round ends. KEEP_FOR_REPLAYS_MS still
+ * holds: with 15 s of freeze time it rarely makes the break, with 20 s it can.
+ */
+const ANGLE_WAIT_MS = 12000;
+/** Angles asked of the replay PC at once, at most. */
+const MAX_ANGLE_REQUESTS = 3;
+/** Smooth slow motion's cost to start with, until a render measures it: ms per interpolated frame per megapixel (measured: 4 cores, no graphics card, ffmpeg 6). */
+const SMOOTH_MS_PER_MPX_FRAME = 270;
+/**
  * ...but stop waiting while the break still has this much time left for replays. Since replays run
  * to 1:50 on the next round's clock, a break has about 6 s more than before 0.10.5, so with 15 s of
  * freeze time the wait is no longer cut short (before, it ended about 1 s in).
@@ -416,6 +497,14 @@ export class AutoReplay {
   private excluded = new Set<string>();
   /** The clip the operator pinned to play first in its round's break. */
   private pinned: { round: number; id: string } | null = null;
+  /** The operator's Slow, per clip: slowed (true) or at real time (false), whatever the setting says. */
+  private slowSet = new Map<string, boolean>();
+  /** Clips the operator starred: the replay PC is asked for their extra angles (ADR-081). */
+  private starred = new Set<string>();
+  /** Each clip's speed in the mixer while it plays by itself (percent): the whole clip slowed, else real time. */
+  private speeds = new Map<string, number>();
+  /** Smooth slow motion's cost, learned from the renders that used it (ms per interpolated frame per megapixel). */
+  private smoothRate = SMOOTH_MS_PER_MPX_FRAME;
   /** Clips played (or started) this break. */
   private playedIds = new Set<string>();
   /** Every kill of the last rounds on this computer (for the ranking: opening kill, round winner, multi-kill speed; and for round order). */
@@ -451,12 +540,21 @@ export class AutoReplay {
   }
 
   settings(): AutoReplaySettings {
-    const r = AutoReplaySettings.safeParse(this.e.settings.get("replay.auto", {}));
+    const raw = this.e.settings.get<Record<string, unknown>>("replay.auto", {});
+    // Before 0.13 one speed slowed every replay throughout (75 % or 50 %): now Whole clip slow motion.
+    const legacy = raw && typeof raw === "object" && raw.slowMotion === undefined && typeof raw.speedPercent === "number" && raw.speedPercent < 100 ? { slowMotion: "whole", slowSpeed: raw.speedPercent <= 40 ? 33 : 50 } : {};
+    const r = AutoReplaySettings.safeParse({ ...raw, ...legacy });
     return r.success ? r.data : AutoReplaySettings.parse({});
   }
 
-  setSettings(patch: Partial<AutoReplaySettings>): AutoReplaySettings {
-    const given = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
+  setSettings(patch: Partial<AutoReplaySettings> & { speedPercent?: number }): AutoReplaySettings {
+    const { speedPercent, ...rest } = patch;
+    const given: Record<string, unknown> = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined));
+    // The old speed setting (the API before 0.13): slower than real time is Whole clip; real time ends Whole clip.
+    if (speedPercent !== undefined && given.slowMotion === undefined) {
+      if (speedPercent < 100) Object.assign(given, { slowMotion: "whole", slowSpeed: speedPercent <= 40 ? 33 : 50 });
+      else if (this.settings().slowMotion === "whole") given.slowMotion = "off";
+    }
     const next = AutoReplaySettings.parse({ ...this.settings(), ...given });
     this.e.settings.set("replay.auto", next);
     if (!next.enabled) this.abort = true;
@@ -564,6 +662,164 @@ export class AutoReplay {
     return this.getStatus();
   }
 
+  /**
+   * Slow (ADR-081): the clip (or an extra angle) plays slowed (true) or at real time (false), whatever
+   * the setting says; null goes back to the setting; toggles when not given. While a break's file plays,
+   * from the next break (its file is made).
+   */
+  slow(id: string, on?: boolean | null): AutoReplayStatus {
+    const it = this.e.replays.get(id);
+    if (!it) throw refuse(404, "not_found", `replay ${id} not found`);
+    if (on === null) this.slowSet.delete(id);
+    else {
+      // (As the list shows it: a moment with its extra angles plays at real time by default.)
+      const withAngles = this.settings().multiAngle !== "off" && this.anglesOf(id).length > 0;
+      const next = on ?? !this.slowOf(it, this.defaultSlow(it, withAngles));
+      this.slowSet.set(id, next);
+      if (this.slowSet.size > 500) this.slowSet.delete(this.slowSet.keys().next().value!);
+    }
+    this.e.audit.record(HOLDER, "replay.auto_slow", id, { slow: on === null ? "setting" : this.slowSet.get(id) });
+    return this.getStatus();
+  }
+
+  /**
+   * Star (ADR-081): the replay PC is asked to film the clip's kill again from the extra angles set
+   * (the player who died's view, a free camera), and they play with it in its break, chosen with it.
+   * Toggles when not given.
+   */
+  star(id: string, on?: boolean): AutoReplayStatus {
+    const it = this.roundClip(id);
+    if (it.momentOf) throw refuse(409, "angle", "That clip is an extra angle: star the moment's first clip.");
+    if (!it.play?.killer) throw refuse(409, "no_kill", "That clip has no kill to film again.");
+    const starred = on ?? !this.starred.has(id);
+    if (starred) {
+      this.starred.add(id);
+      if (this.starred.size > 200) this.starred.delete(this.starred.values().next().value!);
+    } else this.starred.delete(id);
+    this.e.audit.record(HOLDER, starred ? "replay.auto_star" : "replay.auto_unstar", id, { round: it.roundNumber });
+    return this.getStatus();
+  }
+
+  // ------------------------------------------------------------------ slow motion and extra angles (ADR-081)
+
+  /** A clip's extra angles that came in: the player who died's view, a free camera (newest last). */
+  private anglesOf(id: string): QueueItem[] {
+    return this.e.replays.list().filter((i) => i.momentOf === id && !!i.angle && i.clip?.media.path && i.state !== "rejected" && i.state !== "failed");
+  }
+
+  /** Whether a clip plays slowed by default: slow motion on, except a moment's first clip when its extra angles play (they are slowed instead). */
+  private defaultSlow(it: QueueItem, withAngles = false, st: AutoReplaySettings = this.settings()): boolean {
+    return st.slowMotion !== "off" && (!!it.momentOf || !withAngles);
+  }
+
+  /** Whether a clip plays slowed: the operator's Slow, else `byDefault`. */
+  private slowOf(it: QueueItem, byDefault: boolean): boolean {
+    return this.slowSet.get(it.id) ?? byDefault;
+  }
+
+  /**
+   * Each kill's time in a clip's part as shown (`playMs` of its end; ms from that part's start): the
+   * replay PC's times when it sent them, else its first kill at its lead-up. A part shortened to fit
+   * (its lead-up cut) moves them earlier.
+   */
+  private killsOf(it: QueueItem, playMs: number): number[] {
+    const full = this.playMsOf(it);
+    const kills = it.killsMs?.length ? it.killsMs : it.leadMs !== null && it.leadMs !== undefined ? [it.leadMs] : [];
+    return kills.map((k) => k - (full - playMs)).filter((k) => k >= 0 && k <= playMs);
+  }
+
+  /** A slowed clip's slow motion in a rendered file, or null (real time; "kill" with no kill known). `mode`: instead of the setting (highlights). */
+  slowSpecOf(c: Pick<Planned, "item" | "slow">, playMs: number, smooth: boolean, mode: SlowMode = this.settings().slowMotion): SlowSpec | null {
+    const st = this.settings();
+    if (!c.slow || mode === "off") return null;
+    const killsMs = this.killsOf(c.item, playMs);
+    if (mode === "kill" && !killsMs.length) return null;
+    return { mode, speedPercent: st.slowSpeed, killsMs, smooth, audio: st.slowAudio };
+  }
+
+  /** Slow motion for a part with these kills (highlight reels, ADR-081): as the replays slow (their speed and sound, Smooth), `mode` when given; null when nothing is slowed. */
+  slowSpecFor(killsMs: number[], mode: "kill" | "whole" = this.highlightSlowMode()): SlowSpec | null {
+    const st = this.settings();
+    if (mode === "kill" && !killsMs.length) return null;
+    return { mode, speedPercent: st.slowSpeed, killsMs, smooth: st.slowSmooth, audio: st.slowAudio };
+  }
+
+  /** Highlights' slow motion (ADR-081): the replays' way, or around the kills when theirs is off. */
+  highlightSlowMode(): "kill" | "whole" {
+    const m = this.settings().slowMotion;
+    return m === "off" ? "kill" : m;
+  }
+
+  /** How long a clip lasts on air (ms): `playMs` of it, slowed as `mode` says when `slow`, rendered or played by itself (highlights' running time). */
+  clipOnAirMs(it: QueueItem, playMs: number, slow: boolean, mode: SlowMode = this.settings().slowMotion): number {
+    return this.wallOf({ item: it, slow }, playMs, this.renders(), mode);
+  }
+
+  /**
+   * How a planned clip counts in the break's time (rank.ts): in a rendered file, slowed around its kills
+   * (extraMs) or throughout (its own speed); played by itself (through the scenes, vMix), only a whole
+   * clip slowed is slowed (its speed in the mixer).
+   */
+  private timing(c: Pick<Planned, "item" | "slow">, rendered: boolean, playMs = this.playMsOf(c.item), mode?: SlowMode, st: AutoReplaySettings = this.settings()): Pick<PlanCandidate, "extraMs" | "speedPercent"> {
+    mode ??= st.slowMotion;
+    if (!c.slow || mode === "off") return {};
+    if (mode === "whole") return { speedPercent: 100 / slowFactor(st.slowSpeed) };
+    if (!rendered) return {};
+    const killsMs = this.killsOf(c.item, playMs);
+    return killsMs.length ? { extraMs: Math.ceil(slowOutMs({ mode: "kill", speedPercent: st.slowSpeed, killsMs }, playMs) - playMs) } : {};
+  }
+
+  /** A planned clip's wall time (ms) as it plays (rendered, or by itself). */
+  private wallOf(c: Pick<Planned, "item" | "slow">, playMs: number, rendered: boolean, mode?: SlowMode, st?: AutoReplaySettings): number {
+    return clipWallMs(this.timing(c, rendered, playMs, mode, st), playMs, 100);
+  }
+
+  /** A break's clips play rendered into one file (OBS, playback "rendered"): slow motion around kills is there. */
+  private renders(): boolean {
+    const st = this.settings();
+    return st.mixer === "obs" && st.playback === "rendered";
+  }
+
+  /** A clip's speed in the mixer when it plays by itself (percent): the whole clip slowed, else real time. */
+  private speedOf(id: string): number {
+    return this.speeds.get(id) ?? 100;
+  }
+
+  /** The speed of the clip playing from this file (a rendered file, or one not known: real time). */
+  private speedOfFile(file: string): number {
+    const id = this.running?.ids.find((x) => this.e.replays.get(x)?.clip?.media.path === file);
+    return id ? this.speedOf(id) : 100;
+  }
+
+  /**
+   * What the replay PC is asked to film again (ADR-081): the round's top kill (its best clip with a kill,
+   * the replay PC's or this computer's) unless only starred ones are wanted, and every kill the operator
+   * starred, in the round being played or the one that ended (until the next goes live: an angle too late
+   * for the break is still there for highlights and to play by hand); the angles set that haven't come in.
+   */
+  angleRequests(): AngleRequest[] {
+    const st = this.settings();
+    if (st.multiAngle === "off") return [];
+    const views: ReplayAngle[] = st.angleViews === "both" ? ["victim", "free"] : [st.angleViews];
+    const out: AngleRequest[] = [];
+    for (const round of new Set([this.breakRound, this.liveRound].filter((r): r is number => r !== null))) {
+      const ranked = this.ranked(round).filter((r) => {
+        const why = this.never(r.item);
+        return !r.duplicate && r.item.play?.killer && r.item.play.victims.length && (why === null || why === "its round's break is over") && !this.excluded.has(r.item.id);
+      });
+      const top = st.multiAngle === "top" ? ranked[0] : undefined;
+      for (const r of ranked) {
+        if (r !== top && !this.starred.has(r.item.id)) continue;
+        const have = new Set(this.anglesOf(r.item.id).map((a) => a.angle));
+        const want = views.filter((v) => !have.has(v));
+        const p = r.item.play!;
+        if (want.length) out.push({ id: r.item.id, round, killer: { steamId: p.killer!.steamId, name: p.killer!.name }, victims: p.victims, views: want });
+      }
+    }
+    // Starred first, then the top kill.
+    return out.sort((a, b) => Number(this.starred.has(b.id)) - Number(this.starred.has(a.id))).slice(0, MAX_ANGLE_REQUESTS);
+  }
+
   getStatus(): AutoReplayStatus {
     const round = this.breakRound ?? this.liveRound;
     const st = this.settings();
@@ -572,6 +828,7 @@ export class AutoReplay {
       ...this.status,
       enabled: st.enabled,
       waiting: this.candidates(round).length,
+      angleRequests: this.angleRequests(),
       round,
       ranked: this.rankedList(round),
       vmix: v ? { connected: v.connected, version: v.version, error: v.error } : null,
@@ -612,7 +869,7 @@ export class AutoReplay {
     const st = this.settings();
     return this.e.replays
       .list()
-      .filter((i) => playable(i) && i.clip?.media.path && i.play && (i.play.kind !== "other_angle" || st.otherAngles) && round !== null && i.roundNumber === round && this.never(i) === null && !this.excluded.has(i.id));
+      .filter((i) => playable(i) && i.clip?.media.path && i.play && !i.momentOf && (i.play.kind !== "other_angle" || st.otherAngles) && round !== null && i.roundNumber === round && this.never(i) === null && !this.excluded.has(i.id));
   }
 
   /** What the round as a whole says about a clip's kills (for its score). */
@@ -638,13 +895,14 @@ export class AutoReplay {
    * the replay PC carry no match time). A clip whose kills weren't seen here (a clutch, a kill with
    * no killer): when it came in, less its part after the lead-up.
    */
-  private roundTimeOf(it: QueueItem): number {
+  private roundTimeOf(it: QueueItem, clock: { mono: number; wall: number } = { mono: this.e.now(), wall: Date.now() }): number {
     const killer = it.play?.killer?.steamId ?? null;
     const victims = it.play?.victims ?? [];
     const kills = it.roundNumber !== null ? (this.roundKills.get(it.roundNumber) ?? []) : [];
     const first = killer ? kills.find((k) => k.killer === killer && victims.includes(k.victimName)) : undefined;
     if (first) return first.at;
-    const cameIn = this.e.now() - (Date.now() - Date.parse(it.createdAt));
+    // (One reading of both clocks for all the round's clips: read for each, clips made in the same millisecond could swap places.)
+    const cameIn = clock.mono - (clock.wall - Date.parse(it.createdAt));
     return cameIn - Math.max(0, this.playMsOf(it) - (it.leadMs ?? 0));
   }
 
@@ -656,7 +914,7 @@ export class AutoReplay {
     const st = this.settings();
     const items = this.e.replays
       .list()
-      .filter((i) => i.clip?.media.path && i.play && (i.play.kind !== "other_angle" || st.otherAngles) && round !== null && i.roundNumber === round && i.state !== "rejected" && i.state !== "failed");
+      .filter((i) => i.clip?.media.path && i.play && !i.momentOf && (i.play.kind !== "other_angle" || st.otherAngles) && round !== null && i.roundNumber === round && i.state !== "rejected" && i.state !== "failed");
     const scored = items.map((item) => ({ item, ...clipScore(item.play!, this.facts(item)), duplicate: false })).sort((a, b) => b.score - a.score || (a.item.origin === "replay_pc" ? -1 : 0) - (b.item.origin === "replay_pc" ? -1 : 0) || a.item.order - b.item.order);
     const kept: typeof scored = [];
     for (const c of scored) {
@@ -670,6 +928,8 @@ export class AutoReplay {
   private rankedList(round: number | null): RankedReplay[] {
     // Left: once the break's replays are chosen, a clip not among them (during the round, its clips still wait).
     const seq = round !== null && this.sequence?.round === round ? this.sequence : null;
+    const requests = this.angleRequests();
+    const st = this.settings();
     return this.ranked(round).map(({ item, score, reasons, duplicate }) => {
       const played = this.playedIds.has(item.id) || item.state === "played";
       const picked = !played && (item.state === "playing" || this.status.playing?.id === item.id);
@@ -683,7 +943,28 @@ export class AutoReplay {
       // A clip pinned while the break's replays play joins them (if it fits).
       const joins = pinned && seq?.running === true;
       const state = played ? "played" : picked ? "picked" : duplicate && !pinned ? "duplicate" : note || (seq && !joins && (!seq.running || !seq.ids.includes(item.id))) ? "left" : "waiting";
-      return { id: item.id, label: item.label, score, reasons, state, note: state === "left" ? note : null, excluded, pinned };
+      const angles = st.multiAngle === "off" ? [] : this.anglesOf(item.id);
+      const asked = requests.find((r) => r.id === item.id);
+      return {
+        id: item.id,
+        label: item.label,
+        score,
+        reasons,
+        state,
+        note: state === "left" ? note : null,
+        excluded,
+        pinned,
+        slow: this.slowOf(item, this.defaultSlow(item, angles.length > 0, st)),
+        slowSet: this.slowSet.has(item.id),
+        starred: this.starred.has(item.id),
+        angles: angles.map((a) => {
+          const aPlayed = this.playedIds.has(a.id) || a.state === "played";
+          const aPicked = !aPlayed && this.status.playing?.id === a.id;
+          const aState: RankedAngle["state"] = aPlayed ? "played" : aPicked ? "picked" : this.excluded.has(a.id) || state === "left" || state === "duplicate" || (seq && !seq.ids.includes(a.id)) ? "left" : "waiting";
+          return { id: a.id, label: a.label, angle: a.angle!, state: aState, excluded: this.excluded.has(a.id), slow: this.slowOf(a, this.defaultSlow(a, false, st)), slowSet: this.slowSet.has(a.id) };
+        }),
+        anglesWanted: asked?.views ?? [],
+      };
     });
   }
 
@@ -767,7 +1048,8 @@ export class AutoReplay {
    */
   private applyOperator(seq: Sequence): void {
     if (seq.kind !== "break") return;
-    seq.rest = seq.rest.filter((c) => !this.excluded.has(c.item.id));
+    // (An excluded moment's extra angles go with it.)
+    seq.rest = seq.rest.filter((c) => !this.excluded.has(c.item.id) && !(c.angleOf && this.excluded.has(c.angleOf)));
     const pin = this.waitingPin(seq);
     if (!pin) return;
     const at = seq.rest.findIndex((c) => c.item.id === pin);
@@ -775,10 +1057,12 @@ export class AutoReplay {
     let c = at > 0 ? seq.rest.splice(at, 1)[0] : undefined;
     if (!c) {
       const it = this.e.replays.get(pin)!;
-      c = { item: it, playMs: this.playMsOf(it), leadMs: it.leadMs ?? null };
+      c = { item: it, playMs: this.playMsOf(it), leadMs: it.leadMs ?? null, slow: this.slowOf(it, this.defaultSlow(it)) };
       seq.ids.push(pin);
     }
-    seq.rest.unshift(c);
+    // Its extra angles come with it.
+    const angles = seq.rest.filter((x) => x.angleOf === pin);
+    seq.rest = [c, ...angles, ...seq.rest.filter((x) => x.angleOf !== pin)];
   }
 
   /** The clip pinned for this break that hasn't been taken from its list yet and may still play, or null. */
@@ -795,7 +1079,13 @@ export class AutoReplay {
   private take(seq: Sequence): Planned | null {
     this.applyOperator(seq);
     const c = seq.rest.shift() ?? null;
-    if (c) seq.taken++;
+    if (c) {
+      seq.taken++;
+      // Played by itself, a whole clip slowed plays at the slow speed in the mixer (a rendered file carries its own).
+      const t = this.timing(c, false, undefined, seq.slowMode);
+      this.speeds.set(c.item.id, t.speedPercent ?? 100);
+      if (this.speeds.size > 200) this.speeds.delete(this.speeds.keys().next().value!);
+    }
     return c;
   }
 
@@ -875,16 +1165,37 @@ export class AutoReplay {
     if (this.e.onAir.peerPending(this.breakRound) && sinceBreak < st.startDelayMs + REPLAY_PC_WAIT_MS && left > KEEP_FOR_REPLAYS_MS) {
       return this.setStatus("waiting", "Waiting for the replay PC's last kills of the round…");
     }
+    // An extra angle of the round's top kill (or a starred one) being filmed: a little longer, while the break has the time (ADR-081).
+    if (st.multiAngle !== "off" && this.e.onAir.peerAnglePending(this.breakRound) && sinceBreak < st.startDelayMs + ANGLE_WAIT_MS && left > KEEP_FOR_REPLAYS_MS) {
+      return this.setStatus("waiting", "Waiting for the replay PC's extra angle of the round's top kill…");
+    }
     // Excluded by the operator: out. Pinned: first, if it fits (even with the same kills as a better clip).
     const pin = this.pinned && this.pinned.round === this.breakRound ? this.pinned.id : null;
     const open = new Set(this.candidates(this.breakRound).map((c) => c.id));
     const pool = this.ranked(this.breakRound).filter((r) => (!r.duplicate || r.item.id === pin) && open.has(r.item.id) && !this.playedIds.has(r.item.id));
     // A rendered break starts once its file is made: its clips have that much less time.
-    const renderAhead = st.mixer === "obs" && st.playback === "rendered" ? this.renderGuessMs : 0;
+    const rendered = this.renders();
+    const renderAhead = rendered ? this.renderGuessMs : 0;
+    // Each clip with its slow motion counted, and a moment's extra angles that came in (they play after it when there is time: ADR-081).
+    const angleOk = (a: QueueItem) => playable(a) && !this.excluded.has(a.id) && this.never(a) === null;
+    const clk = { mono: this.e.now(), wall: Date.now() };
     const plan = planBreak(
-      pool.map((r) => ({ id: r.item.id, score: r.score, playMs: this.playMsOf(r.item), leadMs: r.item.leadMs ?? null, at: this.roundTimeOf(r.item) })),
+      pool.map((r) => {
+        const it = r.item;
+        const angles = st.multiAngle === "off" ? [] : this.anglesOf(it.id).filter(angleOk);
+        return {
+          id: it.id,
+          score: r.score,
+          playMs: this.playMsOf(it),
+          leadMs: it.leadMs ?? null,
+          at: this.roundTimeOf(it, clk),
+          ...this.timing({ item: it, slow: this.slowOf(it, this.defaultSlow(it, false, st)) }, rendered, undefined, undefined, st),
+          angles: angles.map((a) => ({ id: a.id, wallMs: this.wallOf({ item: a, slow: this.slowOf(a, this.defaultSlow(a, false, st)) }, this.playMsOf(a), rendered, undefined, st) })),
+          anglesFirst: this.starred.has(it.id),
+        };
+      }),
       left - renderAhead,
-      st.speedPercent,
+      100,
       st.perBreak,
       st.order,
       pin,
@@ -892,7 +1203,12 @@ export class AutoReplay {
     if (!plan.length) return this.setStatus("waiting", pool.length ? "The round's replays don't fit in the time left." : "No replays for this round.");
     // (Highlights went on air while this tick waited for vMix: they have the program.)
     if (this.running) return;
-    const list: Planned[] = plan.map((p) => ({ item: pool.find((r) => r.item.id === p.id)!.item, playMs: p.playMs, leadMs: p.leadMs }));
+    // A moment with its extra angles: its first clip at real time (by default), then the angles, slowed.
+    const list: Planned[] = plan.flatMap((p) => {
+      const item = pool.find((r) => r.item.id === p.id)!.item;
+      const angles = p.angles.map((id) => this.e.replays.get(id)!).filter(Boolean);
+      return [{ item, playMs: p.playMs, leadMs: p.leadMs, slow: this.slowOf(item, this.defaultSlow(item, angles.length > 0, st)) }, ...angles.map((a) => ({ item: a, playMs: this.playMsOf(a), leadMs: a.leadMs ?? null, slow: this.slowOf(a, this.defaultSlow(a, false, st)), angleOf: item.id }))];
+    });
     const seq: Sequence = { kind: "break", stage: this.replayStage(), round: this.breakRound, ids: list.map((c) => c.item.id), rest: list, taken: 0, chosenAt: Date.now(), running: true, played: 0, failed: 0, error: null, wentLive: null, stopped: null, obsChanges: this.e.obsAuto.changesInObs, resumable: false, skipped: 0, trace: null, ducking: null };
     this.sequence = seq;
     this.abort = false;
@@ -935,7 +1251,7 @@ export class AutoReplay {
    * Nothing is ranked, marked or recorded as played. Returns how it went.
    */
   async playTest(items: QueueItem[], trace: (ev: TraceEvent) => void): Promise<{ played: number; failed: number; error: string | null; stopped: Stop | null }> {
-    const list: Planned[] = items.map((item) => ({ item, playMs: this.playMsOf(item), leadMs: null }));
+    const list: Planned[] = items.map((item) => ({ item, playMs: this.playMsOf(item), leadMs: null, slow: this.settings().slowMotion !== "off" }));
     const seq: Sequence = { kind: "test", stage: this.replayStage(), round: null, ids: list.map((c) => c.item.id), rest: list, taken: 0, chosenAt: Date.now(), running: true, played: 0, failed: 0, error: null, wentLive: null, stopped: null, obsChanges: this.e.obsAuto.changesInObs, resumable: false, skipped: 0, trace, ducking: null };
     if (this.settings().mixer === "vmix") await this.checkVmix();
     await this.play(seq);
@@ -950,12 +1266,13 @@ export class AutoReplay {
    * back on its clock (the replays' setting). Nothing is marked in the replay list. A break whose
    * replays haven't started has none. Returns how it went once they are over.
    */
-  async playHighlights(items: QueueItem[], stage: Stage): Promise<SequenceResult> {
+  async playHighlights(items: QueueItem[], stage: Stage, opts: { slow?: boolean } = {}): Promise<SequenceResult> {
     if (this.running || this.busy) throw refuse(409, "busy", this.running?.kind === "highlights" ? "Highlights are on air already." : "The break's replays are playing: try again after them.");
     // A break whose replays are about to play: highlights instead (they would come straight after).
     if (this.breakStartedAt !== null && !this.sequence && this.e.session.state()?.roundPhase !== "live") this.sequence = this.noReplays("highlights");
-    const list: Planned[] = items.map((item) => ({ item, playMs: this.playMsOf(item), leadMs: item.leadMs ?? null }));
-    const seq: Sequence = { kind: "highlights", stage, round: null, ids: list.map((c) => c.item.id), rest: list, taken: 0, chosenAt: Date.now(), running: true, played: 0, failed: 0, error: null, wentLive: null, stopped: null, obsChanges: this.e.obsAuto.changesInObs, resumable: false, skipped: 0, trace: null, ducking: null };
+    // Slowed when highlights take slow motion: a moment's extra angle (it follows its first clip) slowed, its first clip at real time.
+    const list: Planned[] = items.map((item, k) => ({ item, playMs: this.playMsOf(item), leadMs: item.leadMs ?? null, slow: !!opts.slow && slowInList(items, k), angleOf: item.momentOf ?? null }));
+    const seq: Sequence = { kind: "highlights", stage, round: null, ids: list.map((c) => c.item.id), rest: list, taken: 0, chosenAt: Date.now(), running: true, played: 0, failed: 0, error: null, wentLive: null, stopped: null, obsChanges: this.e.obsAuto.changesInObs, resumable: false, skipped: 0, trace: null, ducking: null, slowMode: this.highlightSlowMode() };
     await this.play(seq);
     return { played: seq.played, skipped: seq.skipped, failed: seq.failed, error: seq.error, stopped: seq.stopped };
   }
@@ -973,7 +1290,7 @@ export class AutoReplay {
     if (this.running && this.running.kind !== "highlights") return true;
     const st = this.settings();
     if (!st.enabled || this.breakStartedAt === null || this.sequence) return false;
-    if (this.e.now() - this.breakStartedAt > st.startDelayMs + REPLAY_PC_WAIT_MS + 2000) return false;
+    if (this.e.now() - this.breakStartedAt > st.startDelayMs + (st.multiAngle === "off" ? REPLAY_PC_WAIT_MS : ANGLE_WAIT_MS) + 2000) return false;
     return this.candidates(this.breakRound).length > 0;
   }
 
@@ -1062,13 +1379,13 @@ export class AutoReplay {
    * when the break has less time left than planned (freeze time reported, slow loads); null when it
    * no longer fits.
    */
-  private fitNow(c: Planned, first: boolean, seq: Sequence, startsAt = this.e.now()): number | null {
+  private fitNow(c: Planned, first: boolean, seq: Sequence, startsAt = this.e.now(), rendered = false): number | null {
     const s = this.e.session.state();
     if (!s || seq.kind === "test") return c.playMs;
     // Highlights fit in nothing until a round is live (then by its clock, as a break's replays).
     if (seq.kind === "highlights" && seq.wentLive === null && s.roundPhase !== "live") return c.playMs;
     // The first clip has the cut to the replay and back to make; a later one the switch and the cut back.
-    return fitReplay(c, this.cutBackAt(s, seq.wentLive) - startsAt, this.settings().speedPercent, first ? CUT_MS : SWITCH_MS + CUT_MS / 2);
+    return fitReplay({ playMs: c.playMs, leadMs: c.leadMs, ...this.timing(c, rendered, undefined, seq.slowMode) }, this.cutBackAt(s, seq.wentLive) - startsAt, 100, first ? CUT_MS : SWITCH_MS + CUT_MS / 2);
   }
 
   private clipPlayed(it: QueueItem, seq: Sequence, mixer: "obs" | "vmix", end: Stop): void {
@@ -1246,6 +1563,27 @@ export class AutoReplay {
   // ------------------------------------------------------------------ rendered: one file, one scene
 
   /**
+   * What Smooth slow motion would add to a render of these clips: the frames it interpolates (each slowed
+   * window's length on air at the clip's frame rate), their size in megapixels, and the time at the
+   * rate learned from earlier renders (ms).
+   */
+  private smoothCost(clips: Planned[], mode?: SlowMode): { ms: number; frames: number; mpx: number } {
+    let frames = 0;
+    let weighted = 0;
+    for (const c of clips) {
+      const spec = this.slowSpecOf(c, c.playMs, true, mode);
+      if (!spec) continue;
+      const m = c.item.clip!.media;
+      const K = slowFactor(spec.speedPercent);
+      const f = slowWindows(spec, c.playMs).reduce((n, w) => n + (windowOutMs(w, K) * (m.frameRate ?? 60)) / 1000, 0);
+      frames += f;
+      weighted += f * (((m.width ?? 1920) * (m.height ?? 1080)) / 1e6);
+    }
+    const mpx = frames ? weighted / frames : 0;
+    return { ms: Math.round(frames * mpx * this.smoothRate), frames: Math.round(frames), mpx };
+  }
+
+  /**
    * A run's clips (a break's, Test replays', highlights') rendered into one file (render.ts): the clips
    * taken from the list as far as they still fit once it is made. Null when it can't be had in time
    * (the clips go back on the list and play through the scenes): no ffmpeg, an error, longer than
@@ -1255,17 +1593,16 @@ export class AutoReplay {
   private async renderRun(seq: Sequence): Promise<RenderedRun | null> {
     const st = this.settings();
     const fadeMs = st.between === "fade" ? st.fadeMs : 0;
-    const wall = (ms: number) => (ms * 100) / st.speedPercent;
     const taken: Planned[] = [];
     const clips: RenderedRun["clips"] = [];
     let at = this.e.now() + this.renderGuessMs;
     for (let c = this.take(seq); c; c = this.take(seq)) {
       taken.push(c);
       if (!this.mayPlay(c.item, seq) || !c.item.clip?.media.path) continue;
-      const playMs = this.fitNow(c, !clips.length, seq, at);
+      const playMs = this.fitNow(c, !clips.length, seq, at, true);
       if (playMs === null) continue;
       clips.push({ c: { ...c, playMs }, n: clips.length + 1 });
-      at += wall(playMs) - fadeMs;
+      at += this.wallOf(c, playMs, true, seq.slowMode) - fadeMs;
     }
     const giveBack = (detail: string | null, ms: number | null = null): null => {
       seq.rest.unshift(...taken);
@@ -1295,15 +1632,19 @@ export class AutoReplay {
     } catch (err) {
       return giveBack(`the replay folder can't be written (${err instanceof Error ? err.message : String(err)})`);
     }
+    const limit = seq.kind === "highlights" ? HIGHLIGHTS_RENDER_MAX_MS : this.renderWaitMs;
+    // Smooth slow motion only when the file will still be ready in time (interpolating frames costs about half a second each at 1080p on a CPU).
+    const cost = st.slowSmooth ? this.smoothCost(clips.map(({ c }) => c), seq.slowMode) : null;
+    const smooth = !!cost && cost.frames > 0 && this.renderGuessMs + cost.ms <= limit;
+    const slowNote = cost && cost.frames > 0 && !smooth ? `; blended, not interpolated: Smooth slow motion would take about ${Math.round(cost.ms / 1000)} s here` : "";
     const started = this.e.now();
-    const job = this.renderer({ ffmpeg, version: this.e.ffmpeg.status().version, encoder, clips: clips.map(({ c }) => ({ file: c.item.clip!.media.path!, startMs: null, durationMs: c.playMs })), fadeMs, audioFadeMs: st.audioFadeMs, outFile: file });
+    const job = this.renderer({ ffmpeg, version: this.e.ffmpeg.status().version, encoder, clips: clips.map(({ c }) => ({ file: c.item.clip!.media.path!, startMs: null, durationMs: c.playMs, slow: this.slowSpecOf(c, c.playMs, smooth, seq.slowMode) })), fadeMs, audioFadeMs: st.audioFadeMs, outFile: file });
     let done: RenderedBreak | null = null;
     let failed: string | null = null;
     job.done.then(
       (r) => (done = r),
       (err) => (failed = err instanceof Error ? err.message : String(err)),
     );
-    const limit = seq.kind === "highlights" ? HIGHLIGHTS_RENDER_MAX_MS : this.renderWaitMs;
     const what = seq.kind === "test" ? "Test replays" : seq.kind === "highlights" ? "highlights" : "the replays";
     this.preparing = { kind: seq.kind, progress: 0, clips: clips.length };
     try {
@@ -1325,8 +1666,11 @@ export class AutoReplay {
     }
     if (!done) return giveBack(`ffmpeg failed (${failed ?? "no message"})`, this.e.now() - started);
     const r = done as RenderedBreak;
-    this.renderGuessMs = Math.round((this.renderGuessMs + r.ms) / 2);
-    const detail = `${clips.length} clip${clips.length === 1 ? "" : "s"} rendered into one file in ${(r.ms / 1000).toFixed(1)} s (${r.encoder}, ${r.width}×${r.height}).`;
+    // (A render with interpolation teaches its cost per frame, not the usual render time.)
+    if (r.smooth && cost) this.smoothRate = Math.round((this.smoothRate + r.ms / Math.max(1, cost.frames * cost.mpx)) / 2);
+    else this.renderGuessMs = Math.round((this.renderGuessMs + r.ms) / 2);
+    const slowed = r.slowed ? `, ${r.slowed} in slow motion${r.smooth ? " (interpolated)" : ""}${slowNote}` : "";
+    const detail = `${clips.length} clip${clips.length === 1 ? "" : "s"} rendered into one file in ${(r.ms / 1000).toFixed(1)} s (${r.encoder}, ${r.width}×${r.height}${slowed}).`;
     this.lastRender = { at: new Date().toISOString(), kind: seq.kind, clips: clips.length, rendered: true, ms: r.ms, encoder: r.encoder, detail };
     seq.trace?.({ type: "rendered", ok: true, clips: clips.length, ms: r.ms, detail });
     this.e.logger.info("automatic replays: rendered", { kind: seq.kind, clips: clips.length, ms: r.ms, encoder: r.encoder, bytes: r.bytes, totalMs: r.layout.totalMs });
@@ -1343,8 +1687,7 @@ export class AutoReplay {
    * clips go back on the list.
    */
   private async playRendered(seq: Sequence, slot: Slot, r: RenderedRun): Promise<Stop | "scenes"> {
-    const st = this.settings();
-    const media = (ms: number) => (ms * st.speedPercent) / 100;
+    // (The file carries its slow motion: it plays at real time, so its time and the wall's are one.)
     const input = slot.input;
     const L = r.layout;
     const first = r.clips[0]!.c.item;
@@ -1355,7 +1698,7 @@ export class AutoReplay {
     };
     let hidden: { durationMs: number | null; cursorMs: number | null } | null;
     try {
-      await this.e.obs.setMediaFile(input, r.file, { speedPercent: st.speedPercent });
+      await this.e.obs.setMediaFile(input, r.file, { speedPercent: 100 });
       hidden = await this.obsPlaying(input, false);
       if (hidden && !(await this.moving(input, MOVE_CHECK_MS + 200)).moved) throw new Error("it opened, but its cursor didn't move");
     } catch (err) {
@@ -1378,7 +1721,7 @@ export class AutoReplay {
       const since = Date.now() - (this.e.obsAuto.lastSwitch?.at ?? Date.now());
       // The same transition back (a Stinger in and out): it starts its cut point before the clips' end, so the scene leaves as they end.
       r.outLeadMs = Math.min(L.tailMs, this.outLeadMs(seq));
-      if (hidden) await this.obsSeek(input, Math.max(0, L.leadMs - media(point - since)));
+      if (hidden) await this.obsSeek(input, Math.max(0, L.leadMs - (point - since)));
       else {
         // A source that doesn't play hidden opens its file as it is shown.
         if (point > since) await sleep(point - since);
@@ -1409,7 +1752,6 @@ export class AutoReplay {
    */
   private async watchRendered(seq: Sequence, input: string, r: RenderedRun, reload: (at: number) => Promise<void>): Promise<Stop> {
     const st = this.settings();
-    const wall = (ms: number) => (ms * 100) / st.speedPercent;
     const L = r.layout;
     const contentEnd = L.leadMs + L.contentMs;
     const stall = new StallWatch(() => this.e.now());
@@ -1466,7 +1808,7 @@ export class AutoReplay {
       if (!m || m.state === "OBS_MEDIA_STATE_ENDED" || m.state === "OBS_MEDIA_STATE_STOPPED") return finish("ended");
       const p = m.cursorMs ?? 0;
       while (k + 1 < r.clips.length && p >= L.starts[k + 1]!) await to(k + 1, "ended");
-      if (p >= contentEnd - (r.outLeadMs * st.speedPercent) / 100 - 40) return finish("ended");
+      if (p >= contentEnd - r.outLeadMs - 40) return finish("ended");
       // The round clock: the sound fades out before the cut back, when there is time for it.
       const left = this.deadlineIn(seq);
       if (!fading && left !== null && left <= st.audioFadeMs + 150) {
@@ -1479,8 +1821,8 @@ export class AutoReplay {
         return finish("late");
       }
       if (act) await this.unstick(input, act, m.cursorMs ?? 0, reload, id);
-      const upcoming = k + 1 < r.clips.length ? L.starts[k + 1]! : contentEnd - (r.outLeadMs * st.speedPercent) / 100;
-      wait = Math.max(25, Math.min(100, wall(upcoming - p)));
+      const upcoming = k + 1 < r.clips.length ? L.starts[k + 1]! : contentEnd - r.outLeadMs;
+      wait = Math.max(25, Math.min(100, upcoming - p));
     }
   }
 
@@ -1500,8 +1842,6 @@ export class AutoReplay {
     const st = this.settings();
     const fade = st.between === "fade";
     const pick: TransitionPick = fade ? { kind: "fade_transition", durationMs: st.fadeMs } : { kind: "cut_transition" };
-    const wall = (ms: number) => (ms * 100) / st.speedPercent;
-    const media = (ms: number) => (ms * st.speedPercent) / 100;
     let shown = false;
     // The list's next clip that may still play, for a scene off air (loaded later, just in time); null when none is left.
     const prepare = (slot: number, startsAt: number): Next | null => {
@@ -1527,6 +1867,8 @@ export class AutoReplay {
       const cur: Next = next;
       const it = cur.c.item;
       const scene = slots[cur.slot]!;
+      // Its speed in OBS (a whole clip slowed: the slow speed), for its time on air.
+      const speed = this.speedOf(it.id);
       // Played, rejected or excluded meanwhile, or it no longer fits: the next one, in the same scene.
       const playMs = this.mayPlay(it, seq) ? this.fitNow(cur.c, !shown, seq) : null;
       if (playMs === null) {
@@ -1552,7 +1894,7 @@ export class AutoReplay {
           seq.inCutMs = point;
           const since = Date.now() - (this.e.obsAuto.lastSwitch?.at ?? Date.now());
           if (h.cursorMs !== null && point - since > 150) {
-            cued = Math.max(0, h.partMs - media(point - since));
+            cued = Math.max(0, h.partMs - ((point - since) * speed) / 100);
             await this.obsSeek(scene.input, cued);
           }
           if (h.cursorMs === null) {
@@ -1579,7 +1921,7 @@ export class AutoReplay {
       }
       // The scene faded out of is off air once the fade is over: the next clip is loaded there, just in time.
       if (over) await over;
-      const startsAt = this.e.now() + wall(playMs) - (fade ? st.fadeMs : 0);
+      const startsAt = this.e.now() + (playMs * 100) / speed - (fade ? st.fadeMs : 0);
       next = prepare(1 - cur.slot, startsAt);
       const end = await this.watchObs(
         scene.input,
@@ -1629,7 +1971,6 @@ export class AutoReplay {
    * air each must move (ensureMoving).
    */
   private async playObsOneSource(seq: Sequence, input: string): Promise<Stop> {
-    const st = this.settings();
     let shown = false;
     let end: Stop = "ended";
     for (let c = this.take(seq); c; c = this.take(seq)) {
@@ -1648,7 +1989,7 @@ export class AutoReplay {
           // Off air: the clip is loaded (an earlier one still playing there is held first) and, if OBS
           // plays it hidden, skipped to its part, so the cut opens on it.
           if ((await this.e.obs.mediaStatus(input).catch(() => null))?.state === "OBS_MEDIA_STATE_PLAYING") await this.e.obs.mediaAction(input, "pause").catch(() => undefined);
-          await this.e.obs.setMediaFile(input, it.clip!.media.path!, { speedPercent: st.speedPercent });
+          await this.e.obs.setMediaFile(input, it.clip!.media.path!, { speedPercent: this.speedOf(it.id) });
           const hidden = await this.obsPlaying(input, false);
           const startHidden = partStart(hidden?.durationMs ?? it.clip!.media.durationMs, playMs);
           const cued = hidden ? (startHidden ? await this.obsSeek(input, startHidden) : hidden.cursorMs) : null;
@@ -1661,7 +2002,7 @@ export class AutoReplay {
         } else {
           // On air: the next clip goes into the same source; until it plays, the last frame of the one before stays.
           if (end === "late" || end === "skipped") await this.e.obs.mediaAction(input, "pause").catch(() => undefined);
-          await this.e.obs.setMediaFile(input, it.clip!.media.path!, { speedPercent: st.speedPercent });
+          await this.e.obs.setMediaFile(input, it.clip!.media.path!, { speedPercent: this.speedOf(it.id) });
           await this.e.program.request(seq.stage.mode, seq.stage.owner, seq.stage.holder, { replayItemId: it.id });
           this.nowOnAir(it, seq);
           const media = (await this.obsPlaying(input, true, it.clip!.media.path!))!;
@@ -1686,7 +2027,7 @@ export class AutoReplay {
    * once shown), its length and its part's start; how long OBS took to play it leads the next one.
    */
   private async loadHidden(input: string, it: QueueItem, playMs: number, at: number): Promise<Hidden> {
-    const speed = this.settings().speedPercent;
+    const speed = this.speedOf(it.id);
     // A part that starts (nearly) at the file's start can't be skipped back to: the file is loaded later, so it starts about as it shows.
     const early = at - this.e.now() - (partStart(it.clip!.media.durationMs, playMs) * 100) / speed - this.loadMs * 1.2;
     if (early > 0) await sleep(early);
@@ -1709,7 +2050,7 @@ export class AutoReplay {
    */
   private async alignHidden(input: string, it: QueueItem, playMs: number, h: Hidden): Promise<Hidden> {
     if (h.cursorMs === null) return h;
-    const speed = this.settings().speedPercent;
+    const speed = this.speedOf(it.id);
     const partMs = partStart(h.durationMs ?? it.clip!.media.durationMs, playMs);
     const m = await this.e.obs.mediaStatus(input).catch(() => null);
     const at = m?.cursorMs ?? null;
@@ -1729,7 +2070,7 @@ export class AutoReplay {
    */
   private async reloadAt(input: string, it: QueueItem, at: number, onAir: boolean): Promise<{ cursorMs: number | null; durationMs: number | null }> {
     const file = it.clip!.media.path!;
-    await this.reopen(input, file);
+    await this.reopen(input, file, this.speedOf(it.id));
     const m = await this.obsPlaying(input, onAir, file);
     if (!m) return { cursorMs: null, durationMs: null };
     return { cursorMs: at > 0 ? await this.obsSeek(input, at) : m.cursorMs, durationMs: m.durationMs };
@@ -1739,9 +2080,9 @@ export class AutoReplay {
    * Opens a media source's file again: OBS 30 leaves a source alone when it is given the file it has
    * (its cursor carries on, measured), so it is emptied first.
    */
-  private async reopen(input: string, file: string): Promise<void> {
+  private async reopen(input: string, file: string, speed = 100): Promise<void> {
     await this.e.obs.setMediaFile(input, "");
-    await this.e.obs.setMediaFile(input, file, { speedPercent: this.settings().speedPercent });
+    await this.e.obs.setMediaFile(input, file, { speedPercent: speed });
   }
 
   /** On air: a source that plays only when shown, or starts over when shown (OBS's default for a new one), is skipped to the part now. */
@@ -1813,7 +2154,7 @@ export class AutoReplay {
       if (!startIt && waited > 500) return null;
       if (startIt && !restarted && waited > 500 && media?.state !== "OBS_MEDIA_STATE_OPENING" && media?.state !== "OBS_MEDIA_STATE_PLAYING") {
         restarted = true;
-        if (file) await this.reopen(input, file).catch(() => undefined);
+        if (file) await this.reopen(input, file, this.speedOfFile(file)).catch(() => undefined);
         else await this.e.obs.mediaAction(input, "restart").catch(() => undefined);
       }
       await sleep(25);
@@ -1853,7 +2194,7 @@ export class AutoReplay {
    * loaded again where it was (`reload`), before it is given up.
    */
   private async watchObs(input: string, id: string, playMs: number, leadOut: () => number, seq: Sequence, onPoll?: (toLeadMs: number | null) => void, reload?: (at: number) => Promise<void>): Promise<Stop> {
-    const speed = this.settings().speedPercent;
+    const speed = this.speedOf(id);
     const wall = (ms: number) => (ms * 100) / speed;
     // Until OBS says where the clip is: it starts at the keyframe before the part, so it may run longer (up to KEYFRAME_SLACK_MS).
     let endsAt = this.e.now() + wall(playMs);
@@ -1959,7 +2300,8 @@ export class AutoReplay {
           added.push(input.key);
           const duration = input.duration || it.clip?.media.durationMs || c.playMs;
           if (duration > c.playMs + 300) await vmix.call("SetPosition", { Input: input.key, Value: Math.round(duration - c.playMs) });
-          if (st.speedPercent !== 100) await vmix.call("SetRate", { Input: input.key, Value: st.speedPercent / 100 }).catch(() => undefined);
+          const speed = this.speedOf(it.id);
+          if (speed !== 100) await vmix.call("SetRate", { Input: input.key, Value: Math.round(speed) / 100 }).catch(() => undefined);
           await this.audio.applyVmixReplayVolume(vmix, input.key).catch((err) => this.e.logger.warn("automatic replays: vMix didn't take the replay volume", { error: String(err) }));
           return { c, n: seq.taken, key: input.key, duration };
         } catch (err) {
@@ -2048,7 +2390,7 @@ export class AutoReplay {
    * operator skips it, or the break's replays must stop. Hold pauses it (vMix's Pause) until Resume.
    */
   private async watchVmix(vmix: VmixClient, key: string, id: string, playMs: number, startedAt: number, leadOut: () => number, seq: Sequence, onPoll?: () => Promise<void>): Promise<Stop> {
-    const speed = this.settings().speedPercent;
+    const speed = this.speedOf(id);
     let endsAt = startedAt + (playMs * 100) / speed;
     let deadline = startedAt + replayWallMs(playMs, speed) + 1500;
     // The transition to it (a fade, a stinger) may still show the input before.

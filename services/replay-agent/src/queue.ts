@@ -21,9 +21,24 @@ export interface QueueItem {
   playMs: number | null;
   /** Of playMs, how much comes before the first kill (the lead-up, which may be shortened to fit a break); null when unknown. */
   leadMs?: number | null;
+  /** Each kill's time from the start of playMs, when the replay PC knows them (a multi-kill's later kills); else only the first, at leadMs. */
+  killsMs?: number[] | null;
+  /**
+   * An extra angle of a moment filmed again (ADR-081): the player who died's view, or a free camera.
+   * Absent or null for a moment's first angle (the killer's view, or what the camera showed).
+   */
+  angle?: ReplayAngle | null;
+  /** For an extra angle: the clip with the moment's first angle (its id on the main PC). */
+  momentOf?: string | null;
   /** What the clip shows, when it was cut for a play. */
   play: ReplayPlay | null;
 }
+
+/** An extra angle of a moment: the player who died's view, or a free camera on the two players. */
+export type ReplayAngle = "victim" | "free";
+
+/** What a clip may carry besides its media. */
+type ClipExtra = Partial<Pick<QueueItem, "priority" | "playMs" | "leadMs" | "killsMs" | "angle" | "momentOf" | "play">>;
 
 /** The play a clip was cut for. */
 export interface ReplayPlay {
@@ -76,7 +91,7 @@ export class ReplayQueue {
    * playlist() (highlights), only found by its id until removed. For sample clips played to test the
    * replay chain (replay/test-run.ts); `reason` is "test".
    */
-  addUnlisted(label: string, clip: ClipRecord, extra: Partial<Pick<QueueItem, "playMs" | "leadMs" | "play">> = {}): QueueItem {
+  addUnlisted(label: string, clip: ClipRecord, extra: Partial<Pick<QueueItem, "playMs" | "leadMs" | "killsMs" | "play">> = {}): QueueItem {
     const it: QueueItem = { id: `test_${Date.now().toString(36)}_${this.counter++}`, state: "prepared", label, reason: "test", roundNumber: null, createdAt: new Date().toISOString(), clip, error: null, order: -1, trim: null, origin: "main", priority: 0, playMs: null, play: null, ...extra };
     this.unlisted.set(it.id, it);
     return it;
@@ -87,13 +102,13 @@ export class ReplayQueue {
     this.unlisted.delete(id);
   }
 
-  bookmark(label: string, reason: string, roundNumber: number | null, extra: Partial<Pick<QueueItem, "priority" | "playMs" | "leadMs" | "play">> = {}): QueueItem {
+  bookmark(label: string, reason: string, roundNumber: number | null, extra: ClipExtra = {}): QueueItem {
     const it: QueueItem = { id: `bm_${Date.now().toString(36)}_${this.counter}`, state: "bookmarked", label, reason, roundNumber, createdAt: new Date().toISOString(), clip: null, error: null, order: this.counter++, trim: null, origin: "main", priority: 0, playMs: null, play: null, ...extra };
     return this.push(it);
   }
 
   /** A clip captured elsewhere (the replay PC), ready for approval. */
-  addExternal(label: string, reason: string, roundNumber: number | null, clip: ClipRecord, extra: Partial<Pick<QueueItem, "priority" | "playMs" | "leadMs" | "play">> = {}): QueueItem {
+  addExternal(label: string, reason: string, roundNumber: number | null, clip: ClipRecord, extra: ClipExtra = {}): QueueItem {
     const it: QueueItem = { id: `rp_${Date.now().toString(36)}_${this.counter}`, state: "prepared", label, reason, roundNumber, createdAt: new Date().toISOString(), clip, error: null, order: this.counter++, trim: null, origin: "replay_pc", priority: 0, playMs: null, play: null, ...extra };
     return this.push(it);
   }

@@ -3,7 +3,7 @@ import type { MatchState } from "@matchframe/contracts";
 import type { ReplayPlay } from "@matchframe/replay-agent";
 import type { Engine } from "../src/app.ts";
 import { AutoReplay } from "../src/replay/auto.ts";
-import { clipScore, CUT_MS, fitReplay, MIN_LEAD_MS, NO_FACTS, nextReplay, planBreak, replayWallMs, SWITCH_MS } from "../src/replay/rank.ts";
+import { clipScore, clipWallMs, CUT_MS, fitReplay, MIN_LEAD_MS, NO_FACTS, nextReplay, planBreak, replayWallMs, SWITCH_MS } from "../src/replay/rank.ts";
 import { parseVmixXml, vmixVolumeAfter } from "../src/replay/vmix.ts";
 
 const play = (p: Partial<ReplayPlay>): ReplayPlay => ({ kind: "shown", killer: { steamId: "1", name: "haze" }, victims: ["kite"], kills: 1, weapon: "ak47", headshot: false, ...p });
@@ -28,11 +28,11 @@ describe("ranking a round's clips", () => {
       { id: "best", score: 50, playMs: 9000, leadMs: 5000 },
       { id: "mid", score: 30, playMs: 6000, leadMs: null },
     ];
-    expect(nextReplay(c, 20_000, 100)).toEqual({ id: "best", playMs: 9000 });
+    expect(nextReplay(c, 20_000, 100)).toEqual({ id: "best", playMs: 9000, angles: [] });
     // 7 s left: the best fits with its lead-up cut to 3 s (it can go down to 2 s).
-    expect(nextReplay(c, 7000, 100)).toEqual({ id: "best", playMs: 7000 - CUT_MS });
+    expect(nextReplay(c, 7000, 100)).toEqual({ id: "best", playMs: 7000 - CUT_MS, angles: [] });
     // Too little for the best even at its shortest lead-up (9000 - (5000 - 2000) = 6000): the next best that fits.
-    expect(nextReplay(c, 6000 + CUT_MS - 1, 100)).toEqual({ id: "low", playMs: 5000 });
+    expect(nextReplay(c, 6000 + CUT_MS - 1, 100)).toEqual({ id: "low", playMs: 5000, angles: [] });
     // Slow motion takes longer: at 50 % nothing fits in 5 s except a shortened low (5000 - 2000 = 3000 ms → 6.6 s): none.
     expect(nextReplay(c, 5000, 50)).toBeNull();
     expect(replayWallMs(3000, 50)).toBe(6000 + CUT_MS);
@@ -59,9 +59,9 @@ describe("ranking a round's clips", () => {
     ]);
     // 0.5 s less: the last chosen has its lead-up shortened to the 2 s it can go down to.
     expect(planBreak(c, three - 500, 100, 3)).toEqual([
-      { id: "middle", playMs: 3500, leadMs: MIN_LEAD_MS },
-      { id: "late", playMs: 4000, leadMs: 2500 },
-      { id: "unknown", playMs: 4000, leadMs: null },
+      { id: "middle", playMs: 3500, leadMs: MIN_LEAD_MS, angles: [] },
+      { id: "late", playMs: 4000, leadMs: 2500, angles: [] },
+      { id: "unknown", playMs: 4000, leadMs: null, angles: [] },
     ]);
     // 1 s less: no third clip fits, even shortened.
     expect(planBreak(c, three - 1000, 100, 3).map((p) => p.id)).toEqual(["late", "unknown"]);
@@ -75,6 +75,55 @@ describe("ranking a round's clips", () => {
     expect(fitReplay({ playMs: 4000, leadMs: 2500 }, 4000 + SWITCH_MS, 100, SWITCH_MS)).toBe(4000);
     expect(fitReplay({ playMs: 4000, leadMs: 2500 }, 3500 + SWITCH_MS, 100, SWITCH_MS)).toBe(3500);
     expect(fitReplay({ playMs: 4000, leadMs: 2500 }, 3500 + SWITCH_MS, 100, SWITCH_MS + 1)).toBeNull();
+  });
+
+  it("counts slow motion (ADR-081): a slowed clip is longer by its slowed windows, the whole clip at its own speed; a lead-up shortened to fit isn't slowed", () => {
+    // 1.3 s more for a kill slowed to 50 %: four 4 s clips fit in 20 s, not with every one slowed.
+    const c = ["a", "b", "c", "d"].map((id, k) => ({ id, score: 40 - k, playMs: 4000, leadMs: 2500, at: k }));
+    const plain = 4 * 4000 + CUT_MS + 3 * SWITCH_MS;
+    expect(planBreak(c, plain, 100, 4)).toHaveLength(4);
+    const slowed = c.map((x) => ({ ...x, extraMs: 1300 }));
+    expect(planBreak(slowed, plain + 4 * 1300, 100, 4)).toHaveLength(4);
+    // 0.5 s short: the last one has its lead-up shortened (its slow motion stays); 1 s short: only three fit.
+    expect(planBreak(slowed, plain + 4 * 1300 - 500, 100, 4).map((p) => p.playMs)).toEqual([4000, 4000, 4000, 3500]);
+    expect(planBreak(slowed, plain + 4 * 1300 - 1000, 100, 4)).toHaveLength(3);
+    expect(fitReplay({ playMs: 4000, leadMs: 2500, extraMs: 1300 }, 5300 + CUT_MS, 100)).toBe(4000);
+    expect(fitReplay({ playMs: 4000, leadMs: 2500, extraMs: 1300 }, 4800 + CUT_MS, 100)).toBe(3500);
+    expect(fitReplay({ playMs: 4000, leadMs: 2500, extraMs: 1300 }, 4700 + CUT_MS, 100)).toBeNull();
+    // The whole clip slowed: its own speed; the others at the break's.
+    expect(clipWallMs({ speedPercent: 50 }, 4000, 100)).toBe(8000);
+    expect(clipWallMs({ extraMs: 2600 }, 4000, 100)).toBe(6600);
+    expect(planBreak([{ ...c[0]!, speedPercent: 50 }, c[1]!], 8000 + 4000 + CUT_MS + SWITCH_MS, 100, 2)).toHaveLength(2);
+    expect(planBreak([{ ...c[0]!, speedPercent: 50 }, c[1]!], 8000 + 4000 + CUT_MS + SWITCH_MS - 1100, 100, 2).map((p) => p.id)).toEqual(["a"]);
+  });
+
+  it("plays a moment's extra angles straight after it in the time the break's clips leave; a starred moment's are chosen with it (ADR-081)", () => {
+    const top = { id: "top", score: 60, playMs: 5000, leadMs: 3000, at: 2, angles: [{ id: "top-victim", wallMs: 5300 }] };
+    const other = { id: "other", score: 20, playMs: 4000, leadMs: 2500, at: 1 };
+    const all = 5000 + 5300 + SWITCH_MS + CUT_MS + 4000 + SWITCH_MS;
+    expect(planBreak([top, other], all, 100, 4)).toEqual([
+      { id: "other", playMs: 4000, leadMs: 2500, angles: [] },
+      { id: "top", playMs: 5000, leadMs: 3000, angles: ["top-victim"] },
+    ]);
+    // Short of time: the angle goes, never another clip (nor the top kill's lead-up).
+    const short = planBreak([top, other], all - 2000, 100, 4);
+    expect(short.map((p) => [p.id, p.playMs, p.angles])).toEqual([
+      ["other", 4000, []],
+      ["top", 5000, []],
+    ]);
+    // Starred by the operator: its angle is part of it, chosen before the other clip.
+    expect(planBreak([{ ...top, anglesFirst: true }, other], all - 2000, 100, 4).map((p) => [p.id, p.angles])).toEqual([["top", ["top-victim"]]]);
+    // The angles don't count as one of the break's replays.
+    expect(planBreak([top, other], all, 100, 1)).toEqual([{ id: "top", playMs: 5000, leadMs: 3000, angles: ["top-victim"] }]);
+    // Pinned, with its angle.
+    expect(planBreak([other, top], all, 100, 4, "round", "top")[0]).toMatchObject({ id: "top", angles: ["top-victim"] });
+    // Two moments with angles and time for one: the better moment's.
+    const second = { id: "second", score: 40, playMs: 4000, leadMs: 2500, at: 3, angles: [{ id: "second-free", wallMs: 5300 }] };
+    const both = planBreak([top, second], 5000 + 4000 + CUT_MS + SWITCH_MS + 5300 + SWITCH_MS, 100, 4);
+    expect(both.map((p) => [p.id, p.angles])).toEqual([
+      ["top", ["top-victim"]],
+      ["second", []],
+    ]);
   });
 });
 
@@ -161,5 +210,33 @@ describe("vMix's audio", () => {
     expect((vmixVolumeAfter(80, -20) / 80) ** 4).toBeCloseTo(0.1, 6);
     expect(vmixVolumeAfter(100, -6)).toBeCloseTo(84.14, 2);
     expect(vmixVolumeAfter(90, 20)).toBe(100);
+  });
+});
+
+describe("slow motion settings (ADR-081)", () => {
+  const replays = (stored: Record<string, unknown>) => {
+    const map = new Map<string, unknown>([["replay.auto", stored]]);
+    const e = { settings: { get: (k: string, d: unknown) => map.get(k) ?? d, set: (k: string, v: unknown) => map.set(k, v) }, now: () => 0 } as unknown as Engine;
+    return { a: new AutoReplay(e), stored: () => map.get("replay.auto") as Record<string, unknown> };
+  };
+
+  it("slows around each kill at 50 % by default, muted, blended; multi-angle for the top kill from the player who died's view", () => {
+    expect(replays({}).a.settings()).toMatchObject({ slowMotion: "kill", slowSpeed: 50, slowSmooth: false, slowAudio: "mute", multiAngle: "top", angleViews: "victim" });
+  });
+
+  it("reads the old speed (before 0.13) as Whole clip slow motion, and takes it from the old API", () => {
+    expect(replays({ speedPercent: 75 }).a.settings()).toMatchObject({ slowMotion: "whole", slowSpeed: 50 });
+    expect(replays({ speedPercent: 50 }).a.settings()).toMatchObject({ slowMotion: "whole", slowSpeed: 50 });
+    expect(replays({ speedPercent: 30 }).a.settings()).toMatchObject({ slowMotion: "whole", slowSpeed: 33 });
+    expect(replays({ speedPercent: 100 }).a.settings().slowMotion).toBe("kill");
+    // Once the new setting is saved, it wins.
+    expect(replays({ speedPercent: 50, slowMotion: "off" }).a.settings().slowMotion).toBe("off");
+    const { a, stored } = replays({});
+    expect(a.setSettings({ speedPercent: 50 })).toMatchObject({ slowMotion: "whole", slowSpeed: 50 });
+    expect(stored().speedPercent).toBeUndefined();
+    expect(a.setSettings({ speedPercent: 100 }).slowMotion).toBe("off");
+    // Real time again doesn't turn off slow motion at the kills.
+    a.setSettings({ slowMotion: "kill" });
+    expect(a.setSettings({ speedPercent: 100 }).slowMotion).toBe("kill");
   });
 });
