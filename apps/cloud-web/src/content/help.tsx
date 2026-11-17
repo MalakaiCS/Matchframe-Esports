@@ -101,7 +101,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         <p>Replace the version with the one you downloaded. The hash must match the one on the download page exactly. If it doesn't, delete the file and download it again.</p>
         <h2>Windows SmartScreen</h2>
         <p>
-          The installer isn't code-signed yet, so Windows shows <em>"Windows protected your PC"</em>. After checking the checksum, choose <strong>More info</strong> and then <strong>Run anyway</strong>.
+          The installer isn't code-signed yet, so Windows shows <em>"Windows protected your PC"</em>. After checking the checksum, choose <strong>More info</strong> and then <strong>Run anyway</strong>. Signed builds are coming.
         </p>
         <h2>Install and set up</h2>
         <ol>
@@ -162,7 +162,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         <p>Every plan includes the whole program. Plans differ in the auto-director hours included each period, the Observer modes, the number of linked computers and the size of the team. Compare them on the <Link to="/pricing">pricing page</Link>.</p>
         <h2>Observer modes on each plan</h2>
         <p>
-          The <Link to="/features/auto-director">Observer</Link> is MatchFrame's auto director. Its modes are:
+          The <Link to="/features/auto-director">Auto Director</Link> is MatchFrame's automatic observer. Its Observer modes are:
         </p>
         <ul>
           <li>

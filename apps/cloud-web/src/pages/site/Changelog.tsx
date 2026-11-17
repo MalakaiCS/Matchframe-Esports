@@ -9,7 +9,7 @@ interface Release {
   sections: { heading: string; items: string[] }[];
 }
 
-const RELEASES: Release[] = [
+export const RELEASES: Release[] = [
   {
     version: "0.13.1",
     title: "Early replays and the round MVP animation",

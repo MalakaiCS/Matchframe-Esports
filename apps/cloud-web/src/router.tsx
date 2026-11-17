@@ -35,10 +35,13 @@ export function currentLocation(): Location {
 
 export function useLocation(): Location {
   const [, force] = useState(0);
+  const rendered = window.location.pathname + window.location.search + window.location.hash;
   useEffect(() => {
     const on = () => force((n) => n + 1);
     listeners.add(on);
     window.addEventListener("popstate", on);
+    // A <Redirect> rendered in the same commit runs its effect (and navigates) before this one subscribes.
+    if (window.location.pathname + window.location.search + window.location.hash !== rendered) on();
     return () => {
       listeners.delete(on);
       window.removeEventListener("popstate", on);

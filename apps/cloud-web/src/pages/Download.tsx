@@ -89,7 +89,7 @@ export function Download() {
           </Card>
           <Card title="Install and link">
             <Alert tone="warn" title="Unsigned build: expect a SmartScreen warning" live={false}>
-              The installer isn't code-signed yet, so Windows SmartScreen shows "Windows protected your PC". After checking the SHA-256, choose <strong>More info</strong> then <strong>Run anyway</strong>.
+              The installer isn't code-signed yet, so Windows SmartScreen shows "Windows protected your PC". After checking the SHA-256, choose <strong>More info</strong> then <strong>Run anyway</strong>. Signed builds are coming. After installing, the program updates itself (Stable channel, or Beta if you choose it in Settings).
             </Alert>
             <ol className="plain-steps">
               <li>Install and start MatchFrame.</li>

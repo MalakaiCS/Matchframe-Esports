@@ -29,6 +29,12 @@ const PATHS = {
   mic: "M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM6 11a6 6 0 0 0 12 0M12 17v4M9 21h6",
   calendar: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
   layers: "M12 3l9 5-9 5-9-5zM3 13l9 5 9-5",
+  film: "M4 4h16v16H4zM8 4v16M16 4v16M4 8h4M4 12h4M4 16h4M16 8h4M16 12h4M16 16h4",
+  headset: "M4 15v-3a8 8 0 0 1 16 0v3M4 14h3v6H4zM17 14h3v6h-3zM20 20c0 1-1 1.5-2 1.5h-4",
+  video: "M3 7h12v10H3zM15 10.5l6-3.5v10l-6-3.5z",
+  sliders: "M4 6h9M17 6h3M15 4v4M4 12h3M11 12h9M9 10v4M4 18h11M19 18h1M17 16v4",
+  cpu: "M7 7h10v10H7zM10 10h4v4h-4zM9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4",
+  play: "M7 5l12 7-12 7z",
 } as const;
 
 export type IconName = keyof typeof PATHS;

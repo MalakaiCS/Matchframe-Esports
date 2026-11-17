@@ -57,23 +57,30 @@ export function useResource<T>(key: string | null, load: () => Promise<T>): Reso
 }
 
 export const DEFAULT_DESCRIPTION =
-  "MatchFrame is a Windows program for Counter-Strike 2 broadcasts: HUDs for OBS, an automatic director with manual takeover, observer camera control, replays and match administration.";
+  "MatchFrame Esports is a Windows program for Counter-Strike 2 broadcasts: the Stage HUD and four more HUDs, an Auto Director with manual takeover, replays of every kill, map intros, Team Comms and match administration.";
 
-function setMeta(name: string, content: string): void {
-  let el = document.head.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
+const HOME_TITLE = "MatchFrame — Broadcast-grade CS2 production for Windows";
+
+/** Sets (or adds) a <meta name=…> or, for Open Graph, <meta property=…>. */
+function setMeta(name: string, content: string, attr: "name" | "property" = "name"): void {
+  let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${name}"]`);
   if (!el) {
     el = document.createElement("meta");
-    el.name = name;
+    el.setAttribute(attr, name);
     document.head.appendChild(el);
   }
   el.content = content;
 }
 
-/** Sets document.title to "<title> · MatchFrame" and the page's meta description. */
+/** Sets document.title to "<title> · MatchFrame", the page's meta description and its sharing title and description. */
 export function useTitle(title: string, description: string = DEFAULT_DESCRIPTION): void {
   useEffect(() => {
-    document.title = title ? `${title} · MatchFrame` : "MatchFrame — CS2 broadcast production for Windows";
+    document.title = title ? `${title} · MatchFrame` : HOME_TITLE;
     setMeta("description", description);
+    setMeta("og:title", document.title, "property");
+    setMeta("og:description", description, "property");
+    setMeta("twitter:title", document.title);
+    setMeta("twitter:description", description);
   }, [title, description]);
 }
 

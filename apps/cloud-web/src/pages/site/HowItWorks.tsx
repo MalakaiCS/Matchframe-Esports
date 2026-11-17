@@ -1,26 +1,72 @@
 import type { ReactNode } from "react";
 import { Icon } from "../../components/icons.tsx";
 import type { IconName } from "../../components/icons.tsx";
-import { Callout, CheckList, CtaBand, PageHero, SectionHead } from "../../components/marketing.tsx";
+import { Callout, CheckList, CtaBand, DownloadButton, PageHero, SectionHead } from "../../components/marketing.tsx";
 import { useTitle } from "../../lib/hooks.ts";
 import { Link } from "../../router.tsx";
 import { useSession } from "../../state/session.tsx";
 
 const FLOW: { icon: IconName; title: string; text: string }[] = [
-  { icon: "download", title: "Install", text: "Download the Windows installer from your account and run the setup checklist in the program." },
-  { icon: "link", title: "Sign in", text: "Start the program and sign in with your MatchFrame email and password." },
+  { icon: "download", title: "Install", text: "Download the Windows installer from your account. HUDs, replays and intros work straight away, without an account." },
+  { icon: "link", title: "Sign in", text: "Sign in to the program with your MatchFrame email and password for the Auto Director, player cams and account sync." },
   { icon: "card", title: "Buy or receive hours", text: "Plans include auto-director hours each period, and hour packs add more at any time." },
-  { icon: "director", title: "Arm automation", text: "Choose an Observer mode and resume automation in Live Control. Hours are used only while it drives the camera." },
+  { icon: "director", title: "Start the Auto Director", text: "Choose an Observer mode and press Start Auto Director. Hours are used only while it drives the camera on a live match." },
 ];
 
 const OFFLINE: [string, ReactNode, ReactNode][] = [
-  ["HUDs for OBS", "Yes", "Yes"],
+  ["Every HUD, in OBS or over the game", "Yes", "Yes"],
   ["Manual direction and the Observer's Off mode (shot suggestions)", "Yes", "Yes"],
-  ["OBS control and replays", "Yes", "Yes"],
-  ["Match, veto and sponsor administration", "Yes", "Yes"],
+  ["Replays, the replay PC, highlights and map intros", "Yes", "Yes"],
+  ["Team Comms, OBS, vMix and Stream Deck", "Yes", "Yes"],
+  ["Match, veto and sponsor administration", "Yes", "Yes, shared with your other computers when you're back online"],
+  ["Player cams", "Yes, signed in", "No: the cams use our relay"],
   ["Simulation and demo pipeline", "Yes", "Yes"],
   ["Observer and Observer & Cinematics on live matches", "Uses your plan's auto-director hours", "Yes, for up to 7 days after the last licence refresh"],
   ["Full Action Observer (nade cameras) on live matches", "Top plan only, same hourly rate", "Yes, for up to 7 days after the last licence refresh"],
+];
+
+/** The three ways to set up (Home links to each by id). */
+const SETUPS: { id: string; icon: IconName; title: string; lead: string; points: ReactNode[]; more: { to: string; label: string } }[] = [
+  {
+    id: "one-pc",
+    icon: "cpu",
+    title: "One PC",
+    lead: "CS2 as an observer, OBS and MatchFrame on one Windows computer: the simplest setup, and a good one for streams and rehearsals.",
+    points: [
+      <>
+        Turn on <strong>Low-spec mode (one PC)</strong> in Settings → General → Performance: HUDs at 30 frames a second without heavy effects, MatchFrame's OBS sources at 30 fps, the engine's memory capped and background jobs paused during live rounds.
+      </>,
+      "The program suggests it once if your HUD stutters while CS2 runs on the same PC.",
+      "Replays come from the OBS replay buffer: big plays the live camera showed, such as a 3K or a won clutch.",
+    ],
+    more: { to: "/features/program", label: "Setups and updates" },
+  },
+  {
+    id: "two-pc",
+    icon: "replay",
+    title: "Two PCs: add a replay PC",
+    lead: "A second computer with its own CS2 and MatchFrame watches the match a few seconds behind and films every kill it has time for.",
+    points: [
+      "Its screen reaches the main PC over NDI and is recorded there, or it sends clips from its own OBS.",
+      "Between rounds the main PC plays the best clips back to back, slowed at the kill, and can start early once the round is decided.",
+      <>
+        Multi-angle replays film the round's top kill again from the victim's view or a still camera. <span className="badge">Experimental</span>
+      </>,
+    ],
+    more: { to: "/features/replays", label: "Replays" },
+  },
+  {
+    id: "crew",
+    icon: "network",
+    title: "A crew on a production network",
+    lead: "Extra operators run the same program on their own computers and connect to the production computer.",
+    points: [
+      "Each position gets its own role token (for example observer or producer) and sees only what the role allows.",
+      "Teams, players, matches and imported HUDs are shared across your organisation's computers with account sync.",
+      "Stream Deck and Companion buttons drive the same actions, with tally.",
+    ],
+    more: { to: "/features/program", label: "Operator positions" },
+  },
 ];
 
 const SETUP: { id: string; title: string; where: string; body: ReactNode }[] = [
@@ -40,7 +86,7 @@ const SETUP: { id: string; title: string; where: string; body: ReactNode }[] = [
     where: "On each production computer",
     body: (
       <p>
-        Download the installer from your account and check its SHA-256 checksum. The installer isn't code-signed yet, so SmartScreen asks you to confirm with More info → Run anyway. <Link to="/help/installing-the-program">More help</Link>
+        Download the installer from your account and check its SHA-256 checksum. Builds aren't code-signed yet, so Windows SmartScreen may warn: choose More info → Run anyway. Signed builds are coming. After that the program updates itself, on the Stable or Beta channel. <Link to="/help/installing-the-program">More help</Link>
       </p>
     ),
   },
@@ -50,12 +96,12 @@ const SETUP: { id: string; title: string; where: string; body: ReactNode }[] = [
     where: "In the program",
     body: (
       <>
-        <p>The program opens with a setup checklist that only ticks a step once it has seen it working:</p>
+        <p>The program opens on the HUD Library. Settings → Setup has a checklist that only ticks a step once it has seen it working:</p>
         <ul>
-          <li>Detect CS2 and write the Game State Integration config, then restart CS2 as an observer.</li>
-          <li>Wait for a real payload and read the capability report.</li>
-          <li>Choose the observer control adapter and run the player-selection test (and the static camera test for cinematics and nade cameras).</li>
-          <li>Connect OBS, map your programme scenes and add the HUD browser source.</li>
+          <li>Detect CS2 and write the Game State Integration config, then start CS2 as an observer (the program can start it for you).</li>
+          <li>Wait for real game data and read the capability report.</li>
+          <li>Connect OBS (or vMix), map your scenes and add a HUD's browser source.</li>
+          <li>On one PC, consider low-spec mode; with a replay PC, link it with a replay PC code.</li>
         </ul>
       </>
     ),
@@ -86,7 +132,7 @@ const SETUP: { id: string; title: string; where: string; body: ReactNode }[] = [
     where: "On this website and in the program",
     body: (
       <p>
-        Invite producers and billing contacts on the Team page with the right role. Extra operator computers connect to the production computer with a role token issued in the program. <Link to="/help/team-roles">More help</Link>
+        Invite producers and billing contacts on the Team page with the right role. Extra operator computers connect to the production computer with a role token issued in the program, and every computer signed in to your organisation shares teams, players, matches and imported HUDs. <Link to="/help/team-roles">More help</Link>
       </p>
     ),
   },
@@ -96,33 +142,48 @@ const SETUP: { id: string; title: string; where: string; body: ReactNode }[] = [
     where: "In the program",
     body: (
       <p>
-        Start the Observer in Off and watch its shot suggestions, move to Observer, Observer &amp; Cinematics or Full Action Observer when you trust the setup, and arm it with Resume automation. Stop everything with <kbd>F8</kbd> in the program or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F12</kbd> anywhere in Windows.
+        Rehearse with the built-in simulation first. On a live match, watch the shot suggestions in Off, then press Start Auto Director and choose Observer, Observer &amp; Cinematics or Full Action Observer: it checks the console, the game data, your hours and player switching before it directs. Stop everything with <kbd>F8</kbd> in the program or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F12</kbd> anywhere in Windows.
       </p>
     ),
   },
 ];
 
 export function HowItWorks() {
-  useTitle("How it works", "How MatchFrame works: the program on your production PC, the website for your account and hours, linking computers, metering only while automation drives the camera, and what works offline.");
+  useTitle("How it works", "How MatchFrame works: one PC with low-spec mode, two PCs with a replay PC, or a crew of operator positions; the program on your production PC and the website for your account and hours; metering only while automation drives the camera; what works offline.");
   const { me } = useSession();
   return (
     <>
-      <PageHero eyebrow="How it works" title="The program runs the show. The website runs the account." lead="MatchFrame has two parts. The Windows program on your production computer does all the broadcast work. This website keeps the account, plan and auto-director hours behind it.">
-        {me ? (
-          <Link to="/download" className="btn btn-primary btn-lg">
-            Download the program
-          </Link>
-        ) : (
-          <Link to="/signup" className="btn btn-primary btn-lg">
-            Create a free account
-          </Link>
-        )}
-        <a href="#setup" className="btn btn-secondary btn-lg">
-          Setup guide
+      <PageHero eyebrow="How it works" title="The program runs the show. The website runs the account." lead="The Windows program on your production computer does all the broadcast work, on one PC or across a crew. This website keeps the account, plan and auto-director hours behind it.">
+        <DownloadButton />
+        <a href="#setups" className="btn btn-secondary btn-lg">
+          Pick a setup
         </a>
       </PageHero>
 
-      <section className="section" aria-labelledby="parts-title">
+      <section className="section" id="setups" aria-labelledby="setups-title">
+        <div className="wrap">
+          <SectionHead id="setups-title" eyebrow="Setups" title="One PC, two PCs or a whole crew" lead="Start on one computer and grow into a production network with the same program." center />
+          <div className="setups">
+            {SETUPS.map((s) => (
+              <article key={s.id} id={s.id} className="setup-card" aria-labelledby={`${s.id}-title`}>
+                <span className="feature-icon">
+                  <Icon name={s.icon} />
+                </span>
+                <h3 id={`${s.id}-title`} className="display-3">
+                  {s.title}
+                </h3>
+                <p className="muted">{s.lead}</p>
+                <CheckList items={s.points} />
+                <Link to={s.more.to} className="link-arrow small">
+                  {s.more.label} <Icon name="arrow" size={16} />
+                </Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section section-alt" aria-labelledby="parts-title">
         <div className="wrap">
           <SectionHead id="parts-title" title="Two parts, clearly separated" center />
           <div className="parts">
@@ -132,7 +193,7 @@ export function HowItWorks() {
               </span>
               <h3 className="display-3">The program</h3>
               <p className="muted">On your production computer</p>
-              <CheckList items={["Reads the live game from your CS2 observer client", "Serves HUDs to OBS and controls scenes and replays", "Directs the observer camera when you arm it", "Keeps matches, vetoes, sponsors and the rundown", "Measures auto-director time and uploads it"]} />
+              <CheckList items={["Reads the live game from your CS2 observer client", "Serves HUDs to OBS and over the game", "Directs the observer camera when you start the Auto Director", "Plays replays, map intros and highlights through OBS or vMix", "Keeps matches, vetoes, sponsors and the rundown", "Measures auto-director time and uploads it"]} />
             </article>
             <div className="parts-link" aria-hidden="true">
               <span>licence</span>
@@ -151,7 +212,7 @@ export function HowItWorks() {
         </div>
       </section>
 
-      <section className="section section-alt" aria-labelledby="flow-title">
+      <section className="section" aria-labelledby="flow-title">
         <div className="wrap">
           <SectionHead id="flow-title" eyebrow="The flow" title="From install to automatic direction" center />
           <ol className="flow">
@@ -169,7 +230,7 @@ export function HowItWorks() {
         </div>
       </section>
 
-      <section className="section" id="metering" aria-labelledby="metering-title">
+      <section className="section section-alt" id="metering" aria-labelledby="metering-title">
         <div className="wrap two-col-lg">
           <div>
             <SectionHead id="metering-title" eyebrow="Fair metering" title="Hours are used only while automation drives the camera" lead="The program counts a second only when every one of these is true:" />
@@ -192,7 +253,7 @@ export function HowItWorks() {
         </div>
       </section>
 
-      <section className="section section-alt" id="offline" aria-labelledby="offline-title">
+      <section className="section" id="offline" aria-labelledby="offline-title">
         <div className="wrap">
           <SectionHead id="offline-title" eyebrow="Offline-first" title="What works offline" lead="Your broadcast never depends on this website. The program signs in once, refreshes its signed licence every 15 minutes while online, and keeps working offline for 7 days. Being signed out never stops a show that is already running." center />
           <div className="table-scroll" role="region" aria-label="What works offline" tabIndex={0}>
@@ -218,7 +279,7 @@ export function HowItWorks() {
         </div>
       </section>
 
-      <section className="section" id="setup" aria-labelledby="setup-title">
+      <section className="section section-alt" id="setup" aria-labelledby="setup-title">
         <div className="wrap">
           <SectionHead id="setup-title" eyebrow="Setup guide" title="Getting started, step by step" />
           <div className="guide">
