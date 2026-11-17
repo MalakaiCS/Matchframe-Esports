@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { HudPhase, HudSide, HudState, HudTeam } from "@matchframe/hud-sdk";
-import { isLive, teamColor } from "../shared/format.ts";
+import { teamColor } from "../shared/format.ts";
 
 /** The manifest's settings defaults (settingsSchema in package-files/stage/manifest.json). */
 export const DEFAULTS = {
@@ -115,7 +115,8 @@ export const teamName = (team: HudTeam, settings: Settings): string => (settings
  * Whether the full-width scoreboard replaces the player cards: freeze time, timeouts, pauses,
  * half time and warm-up (the same split as the Lineup HUD: everything but a round under way or just won).
  */
-export const scoreboardPhase = (phase: HudPhase): boolean => !(isLive(phase) || phase === "over");
+/** The full-width scoreboard is up only in timeouts and tech or match pauses (the owner: "only on timeouts and tech pauses/match pauses"), never in freeze time. */
+export const scoreboardPhase = (phase: HudPhase, paused = false): boolean => paused || phase === "paused" || phase === "timeout_ct" || phase === "timeout_t";
 
 /** The team that called the timeout under way, if any. */
 export function timeoutTeam(state: HudState): HudTeam | null {

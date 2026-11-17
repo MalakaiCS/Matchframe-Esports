@@ -220,7 +220,7 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
 
 /** The test scenes' names, by team order (left: nova, kestrel, lumen, orbit, vale; right: ember, riot, saber, dusk, flint). */
 const EDGE_NAMES = {
-  left: ["SPUDWRECKI", "kestrel", "ThisNameIsExactlyThirtyTwoChars!", "orbit", "WWWWWWWWWWWW"],
+  left: ["Spudwrecker", "kestrel", "ThisNameIsExactlyThirtyTwoChars!", "orbit", "WWWWWWWWWWWW"],
   right: ["ember", "SixteenCharacter", "saber", "dusk", "flint"],
 };
 
@@ -249,7 +249,7 @@ function edgeScene(scene: DemoTestScene, opts: DemoOptions): HudState {
   const feed = s.killfeed.entries.map((e) => ({ ...e, killer: at(e.killer), victim: { ...e.victim, name: names.get(e.victim.steamId) ?? e.victim.name }, assister: at(e.assister) }));
   let lastRound = s.lastRound;
   if (scene === "edge") {
-    // A second kill for SPUDWRECKI.
+    // A second kill for Spudwrecker.
     right[3] = { ...dead(right[3]!), roundDamage: 0 };
     left[0] = { ...left[0]!, roundKills: 2 };
     feed.push(kill("k3", left[0], right[3], "m4a1_silencer", false));

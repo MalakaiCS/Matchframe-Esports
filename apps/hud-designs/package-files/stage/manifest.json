@@ -136,7 +136,7 @@
       "label": "Sponsor slots",
       "default": true,
       "group": "Elements",
-      "description": "The top bar sponsor at the top right and the scoreboard sponsor in freeze time (from Sponsors; nothing shows when none is scheduled)."
+      "description": "The top bar sponsor at the top right and the scoreboard sponsor in timeouts and pauses (from Sponsors; nothing shows when none is scheduled)."
     },
     "showAlive": {
       "type": "boolean",
@@ -153,10 +153,10 @@
     },
     "showScoreboard": {
       "type": "boolean",
-      "label": "Freeze-time scoreboard",
+      "label": "Pause scoreboard",
       "default": true,
       "group": "Elements",
-      "description": "The full-width scoreboard in freeze time and timeouts; off keeps the player cards."
+      "description": "The full-width scoreboard in timeouts and tech or match pauses; off keeps the player cards."
     },
     "showMvp": {
       "type": "boolean",

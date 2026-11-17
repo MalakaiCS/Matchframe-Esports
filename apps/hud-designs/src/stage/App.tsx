@@ -49,7 +49,7 @@ export default function App() {
   const settings = readSettings(state.settings);
   const compact = (state.variant || VARIANT) === "compact";
   const phase = state.match.phase;
-  const board = scoreboardPhase(phase);
+  const board = scoreboardPhase(phase, state.match.paused);
   const observedColor = state.observed ? colorOf(state.right.players.some((p) => p.steamId === state.observed!.steamId) ? state.right : state.left, settings) : settings.ctColor;
   const ct = sideColor(state, settings, "CT");
   const t = sideColor(state, settings, "T");
