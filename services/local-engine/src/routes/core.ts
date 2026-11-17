@@ -1,4 +1,5 @@
-import { hostname, platform, release } from "node:os";
+import { createHash } from "node:crypto";
+import { homedir, hostname, platform, release } from "node:os";
 import { APP_VERSION } from "../config.ts";
 import { z } from "zod";
 import { discoverCs2, GSI_COMPONENTS, renderGsiConfig, writeGsiConfig } from "@matchframe/game-adapters";
@@ -11,6 +12,7 @@ import { HUD_ART_KEY } from "../hud/art.ts";
 import { HttpError } from "../http/router.ts";
 import type { Router } from "../http/router.ts";
 import { redact } from "../logger.ts";
+import { redactSupport } from "../support-redact.ts";
 import { sceneMapOf, type SceneMap } from "../production/program.ts";
 
 async function waitFor(pred: () => boolean, timeoutMs: number, stepMs = 50): Promise<boolean> {
@@ -211,11 +213,15 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
     // OBS's own performance (processor, frames a second, render time, frames it skipped): whether replays lag in OBS.
     const obsStats = e.obs.state.connected ? await e.obs.stats().catch(() => null) : null;
     const s = e.session.state();
+    // A last pass over everything (ADR-077): secrets in log messages and errors, key-like names, every
+    // secret the engine holds word for word, and the home folder in paths.
+    const finish = (bundle: Record<string, unknown>) => redactSupport(bundle, { secrets: e.secrets.knownSecrets(), home: homedir() });
     return {
-      json: {
+      json: finish({
         generatedAt: new Date().toISOString(),
         app: { version: APP_VERSION, startedAt: e.startedAt },
-        host: { platform: platform(), release: release(), hostnameHash: Buffer.from(hostname()).toString("base64url").slice(0, 8), node: process.versions.node },
+        // Tells two computers apart without naming them.
+        host: { platform: platform(), release: release(), hostnameHash: createHash("sha256").update(hostname()).digest("hex").slice(0, 12), node: process.versions.node },
         config: redact({ ...e.cfg, dataDir: "[local]" }),
         health: e.health(),
         capabilities: e.session.capabilities(),
@@ -271,7 +277,7 @@ export function registerCoreRoutes(r: Router, e: Engine): void {
         mapPackIssues: e.maps.issues,
         logs: e.logger.recent.slice(-300),
         migration: e.migration,
-      },
+      }),
       headers: { "content-disposition": `attachment; filename="matchframe-support-${Date.now()}.json"` },
     };
   });

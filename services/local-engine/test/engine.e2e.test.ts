@@ -70,6 +70,23 @@ describe("engine end-to-end (real HTTP/WS servers)", () => {
     expect(logs).not.toContain(token);
   });
 
+  it("leaves secrets out of the support file: in log messages, stored credentials, key-like names, the host name (ADR-077)", async () => {
+    const device = "mfd_DeviceCredentialForThisTest_0123456789ab";
+    ctx.engine.secrets.setSecret("cloud.deviceToken", device);
+    ctx.engine.secrets.setSecret("obs.password", "obs-password-for-this-test");
+    const role = ctx.engine.secrets.issue("viewer", "support file test");
+    ctx.engine.logger.warn(`request with Bearer ${role.token} failed; device ${device}; OBS said obs-password-for-this-test is wrong; http://127.0.0.1:1/overlay/main/live?t=overlaytoken1`, { apiKey: "sk_test_abc", nested: { privateKey: "pk" } });
+    const bundle = await (await api("/api/v1/diagnostics/bundle")).text();
+    for (const secret of [token, ctx.engine.secrets.gsiToken, role.token, device, "obs-password-for-this-test", "overlaytoken1", "sk_test_abc"]) expect(bundle).not.toContain(secret);
+    const parsed = JSON.parse(bundle) as { host: { hostnameHash: string }; logs: { msg: string; data?: unknown }[] };
+    const line = parsed.logs.find((l) => l.msg.startsWith("request with Bearer"))!;
+    expect(line.msg).toBe("request with Bearer [redacted] failed; device [redacted]; OBS said [redacted] is wrong; http://127.0.0.1:1/overlay/main/live?t=[redacted]");
+    expect(line.data).toEqual({ apiKey: "[redacted]", nested: { privateKey: "[redacted]" } });
+    expect(parsed.host.hostnameHash).toMatch(/^[0-9a-f]{12}$/);
+    ctx.engine.secrets.setSecret("cloud.deviceToken", null);
+    ctx.engine.secrets.setSecret("obs.password", null);
+  });
+
   it("requires authentication and permissions for every mutation; rejects foreign origins", async () => {
     expect((await fetch(`http://127.0.0.1:${ctx.ports.api}/api/v1/director/mode`, { method: "POST", body: "{}" })).status).toBe(401);
     const viewer = ctx.engine.secrets.issue("viewer", "viewer test");
