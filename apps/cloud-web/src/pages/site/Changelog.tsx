@@ -11,6 +11,24 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.13.1",
+    title: "Early replays and the round MVP animation",
+    summary: "Replays start up to 10 seconds early when the round is decided, and the Stage HUD's round MVP card animates in and out on new timing.",
+    sections: [
+      {
+        heading: "Replays",
+        items: [
+          "Early replays: when the bomb is planted and no CT can defuse in time, or the Ts can't plant before time runs out, with no fight about to start. Never with more than 10 seconds left.",
+          "Back to live at once if the round heats up again.",
+        ],
+      },
+      {
+        heading: "Stage HUD",
+        items: ["The round MVP card animates in 5 seconds into freeze time and out 5–10 seconds into the round (8 by default)."],
+      },
+    ],
+  },
+  {
     version: "0.13.0",
     title: "Map intros, slow-motion replays and smarter clutches",
     summary: "Map intros, slow-motion and multi-angle replays, smarter clutch direction, low-spec mode, update channels with going back to a previous version, and opt-in crash reports.",

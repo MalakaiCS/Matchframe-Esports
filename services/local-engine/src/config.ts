@@ -3,7 +3,7 @@ import { homedir, platform } from "node:os";
 import { delimiter, join } from "node:path";
 import { brandedFolder } from "./brand.ts";
 
-export const APP_VERSION = "0.13.0";
+export const APP_VERSION = "0.13.1";
 
 export interface EngineConfig {
   /** Bind host. Loopback by default; LAN exposure is an explicit operator choice. */
