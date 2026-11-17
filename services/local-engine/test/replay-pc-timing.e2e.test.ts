@@ -84,6 +84,8 @@ const PRE = 10_000;
 /** The game's kills, `at` ms into the round. Unless a test says otherwise: T4 kills CT9 4 s into the test. */
 const KILL_AT = PRE + 4000;
 let script: { at: number; killer: SyntheticPlayer; victim: SyntheticPlayer }[] = [];
+/** When the round ends (ms into it; null: it doesn't), for the round-over phase after it. */
+let roundEndAt: number | null = null;
 function playersAt(t: number): SyntheticPlayer[] {
   const done = script.filter((k) => k.at <= t);
   return roster.map((p) => {
@@ -94,8 +96,9 @@ function playersAt(t: number): SyntheticPlayer[] {
 }
 
 async function feed(p: Pc, t: number, observed: string) {
-  const endsIn = Math.round((115 - t / 1000) * 10) / 10;
-  const payload = buildSyntheticGsiPayload({ mapName: "de_dust2", round: 7, players: playersAt(t), observed, roundPhase: "live", phase: "live", phaseEndsIn: endsIn, token: p.e.secrets.gsiToken, timestamp: p.ts++ });
+  const over = roundEndAt !== null && t >= roundEndAt;
+  const endsIn = over ? Math.max(0.1, Math.round((7 - (t - roundEndAt!) / 1000) * 10) / 10) : Math.round((115 - t / 1000) * 10) / 10;
+  const payload = buildSyntheticGsiPayload({ mapName: "de_dust2", round: 7, players: playersAt(t), observed, roundPhase: over ? "over" : "live", phase: over ? "over" : "live", phaseEndsIn: endsIn, token: p.e.secrets.gsiToken, timestamp: p.ts++ });
   await fetch(`http://127.0.0.1:${p.ports.gsi}/gsi`, { method: "POST", body: JSON.stringify(payload) });
 }
 
@@ -117,12 +120,16 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
   let offset = 0;
   let t0 = 0;
   const written: string[] = [];
+  /** Who the replay PC's camera showed, from when (its game time). */
+  const pins: { at: number; steamId: string }[] = [];
   const clipFile = join(mkdtempSync(join(tmpdir(), "mf-clip-")), "Replay.mkv");
   writeFileSync(clipFile, Buffer.alloc(32 * 1024, 7));
 
-  async function setup(opts: { offsetMs: number; sameCstv?: "stay_behind" | "each_kill" | "off"; consoleRefuses?: boolean; kills?: typeof script }) {
+  async function setup(opts: { offsetMs: number; sameCstv?: "stay_behind" | "each_kill" | "off"; consoleRefuses?: boolean; kills?: typeof script; filmAngles?: boolean; roundEndAt?: number | null }) {
     process.env.MATCHFRAME_LOG_STDOUT = "0";
     script = opts.kills ?? [{ at: KILL_AT, killer: T4!, victim: CT9 }];
+    roundEndAt = opts.roundEndAt ?? null;
+    pins.length = 0;
     main = await pc("main");
     replay = await pc("replay");
     offset = opts.offsetMs;
@@ -151,7 +158,7 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     Object.defineProperty(replay.e.gameConsole, "connection", { get: () => conn, configurable: true });
     replay.e.session.setMode("automatic");
     const code = (await main.api("/api/v1/tokens", { method: "POST", body: { role: "replay", label: "Replay PC" } })).json as { token: string };
-    const r = await replay.api("/api/v1/replay-pc", { method: "PUT", body: { enabled: true, mainUrl: `127.0.0.1:${main.ports.api}`, token: code.token, preRollMs: 2000, postRollMs: 500, ...(opts.sameCstv ? { sameCstv: opts.sameCstv } : {}) } });
+    const r = await replay.api("/api/v1/replay-pc", { method: "PUT", body: { enabled: true, mainUrl: `127.0.0.1:${main.ports.api}`, token: code.token, preRollMs: 2000, postRollMs: 500, ...(opts.sameCstv ? { sameCstv: opts.sameCstv } : {}), ...(opts.filmAngles ? { filmAngles: true } : {}) } });
     expect(r.status).toBe(200);
     // The game runs: the main camera stays on T1; the replay PC's camera on CT6 unless its director is pinned.
     t0 = Date.now();
@@ -159,7 +166,9 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
       while (!stop) {
         const t = now();
         const pin = replay.e.session.director.controls.pin;
-        await Promise.all([feed(main, t, T1!.steamId), t - offset >= 0 ? feed(replay, t - offset, pin?.kind === "player" ? pin.steamId : CT6.steamId) : Promise.resolve()]);
+        const shown = pin?.kind === "player" ? pin.steamId : CT6.steamId;
+        if (pins[pins.length - 1]?.steamId !== shown) pins.push({ at: t - offset, steamId: shown });
+        await Promise.all([feed(main, t, T1!.steamId), t - offset >= 0 ? feed(replay, t - offset, shown) : Promise.resolve()]);
         await new Promise((res) => setTimeout(res, 100));
       }
     })();
@@ -177,8 +186,58 @@ describe("Replay PC behind the main PC, or rewinding to get there", () => {
     }
   });
 
-  const status = async () => (await replay.api("/api/v1/replay-pc")).json.status as { timing: { state: string; delayMs: number | null }; rewind: { state: string; count: number; detail: string }; sent: number; skipped: number; lastSkip: { reason: string } | null; filming: string | null; transport: string };
+  const status = async () => (await replay.api("/api/v1/replay-pc")).json.status as { timing: { state: string; delayMs: number | null }; rewind: { state: string; count: number; detail: string }; sent: number; skipped: number; lastSkip: { reason: string } | null; filming: string | null; transport: string; angles: { state: string; detail: string; filmed: number; failed: number; asked: number } };
   const clips = async () => (await main.api("/api/v1/replays")).json.items as Clip[];
+
+  it("an extra angle (ADR-081): after the round, the replay PC goes back, films the kill again from the player who died's view, sends it as an extra angle of its moment, and goes forward again", async () => {
+    // 3 s behind; the round ends on the main PC 2.5 s after the kill.
+    await setup({ offsetMs: 3000, filmAngles: true, roundEndAt: KILL_AT + 2500 });
+    await waitFor(async () => (await status()).timing.state === "behind");
+    // The killer's view, filmed live (behind), as before.
+    await waitFor(async () => (await clips()).length > 0);
+    const first = (await main.api("/api/v1/replays")).json.items as (Clip & { id: string; angle?: string | null; momentOf?: string | null; killsMs?: number[] | null })[];
+    const moment = first[0]!;
+    expect(moment.angle ?? null).toBeNull();
+    // Each kill's time in the clip came with it (the slow motion's windows).
+    expect(moment.killsMs).toEqual([moment.leadMs]);
+    // The main PC asks for the round's top kill again, from the player who died's view.
+    const asked = (await main.api("/api/v1/replay-link/on-air")).json.angles as { id: string; views: string[] }[];
+    expect(asked).toEqual([expect.objectContaining({ id: moment.id, views: ["victim"] })]);
+    // After the round ends on the replay PC: back, the player who died, the kill again, sent as an extra angle.
+    const before = offset;
+    await waitFor(async () => ((await main.api("/api/v1/replays")).json.items as { angle?: string | null }[]).some((i) => i.angle === "victim"), 25000);
+    const items = (await main.api("/api/v1/replays")).json.items as (Clip & { id: string; angle?: string | null; momentOf?: string | null })[];
+    const angle = items.find((i) => i.angle === "victim")!;
+    expect(angle).toMatchObject({ momentOf: moment.id, origin: "replay_pc", roundNumber: moment.roundNumber, label: `${T4!.name} ▸ ${CT9.name} · victim's view` });
+    // The clip: from about 2.5 s before the kill (the lead-up) to 1.5 s after it.
+    expect(angle.leadMs).toBeGreaterThanOrEqual(2000);
+    expect(angle.leadMs).toBeLessThanOrEqual(2600);
+    expect(angle.playMs - angle.leadMs!).toBeGreaterThanOrEqual(1400);
+    expect(angle.playMs - angle.leadMs!).toBeLessThanOrEqual(2000);
+    // It went back (to the lead-up and a second for the camera) and forward again.
+    const back = written.map((l) => /^demo_gototick -(\d+) relative$/.exec(l)).filter(Boolean).map((m) => Number(m![1]));
+    expect(back).toHaveLength(1);
+    expect(written.some((l) => /^demo_gototick \d+ relative$/.test(l))).toBe(true);
+    // The camera was on the player who died before the kill played again (at its game time, 14 s into the round).
+    expect(pins.some((p) => p.steamId === CT9.steamId && p.at < KILL_AT - 1000)).toBe(true);
+    // Back where it was, about 3 s behind, and the main PC asks for nothing more.
+    await waitFor(async () => (await status()).angles.detail.startsWith("Filmed"), 10000);
+    expect(Math.abs(offset - before)).toBeLessThan(600);
+    const st = await status();
+    expect(st.angles).toMatchObject({ state: "ready", filmed: 1, failed: 0 });
+    expect((await main.api("/api/v1/replay-link/on-air")).json.angles).toEqual([]);
+    // On the main PC it is listed under its moment, which plays first at real time and then the angle slowed.
+    const auto = (await main.api("/api/v1/replays/auto")).json.status as { ranked: { id: string; slow: boolean; angles: { id: string; angle: string; slow: boolean }[] }[] };
+    expect(auto.ranked.find((r) => r.id === moment.id)).toMatchObject({ slow: false, angles: [{ id: angle.id, angle: "victim", slow: true }] });
+  }, 60000);
+
+  it("an extra angle isn't filmed while the round is live when a kill reported meanwhile would lose its lead-up", async () => {
+    await setup({ offsetMs: 3000, filmAngles: true, roundEndAt: null });
+    await waitFor(async () => (await clips()).length > 0);
+    await waitFor(async () => (await status()).angles.detail.startsWith("Waiting to film"), 10000);
+    expect((await status()).angles.detail).toMatch(/isn't far enough behind for a kill reported meanwhile to keep its lead-up/);
+    expect(written.filter((l) => l.startsWith("demo_gototick"))).toEqual([]);
+  }, 30000);
 
   it("3 s behind (a second CSTV): knows the missed kill is coming, gets on the killer first and sends the clip", async () => {
     await setup({ offsetMs: 3000 });
