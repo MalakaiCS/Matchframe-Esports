@@ -12,6 +12,7 @@ import { CONTROL_HEALTH_TEXT } from "../lib/ownership.ts";
 import { makeNameOf } from "../lib/players.ts";
 import { Link } from "../router.tsx";
 import { useLive, useSnapshot } from "../state/live.ts";
+import { perLocale, t } from "../i18n/index.ts";
 import "../styles/group-c.css";
 
 const humanKey = (k: string) => {
@@ -27,7 +28,7 @@ function ConfigView({ config }: { config: DirectorStatus["config"] }) {
   return (
     <div className="grid-2">
       <div>
-        <h3 className="gc-section-title">Weights</h3>
+        <h3 className="gc-section-title">{t("director.weights")}</h3>
         <table className="mini-table">
           <tbody>
             {Object.entries(weights ?? {}).map(([k, v]) => (
@@ -38,9 +39,7 @@ function ConfigView({ config }: { config: DirectorStatus["config"] }) {
             ))}
           </tbody>
         </table>
-        <h3 className="gc-section-title" style={{ marginTop: 12 }}>
-          Thresholds
-        </h3>
+        <h3 className="gc-section-title" style={{ marginTop: 12 }}>{t("director.thresholds")}</h3>
         <table className="mini-table">
           <tbody>
             {flat.map(([k, v]) => (
@@ -84,20 +83,20 @@ function DecisionLog({ nameOf }: { nameOf: (id: string) => string }) {
         const rows = [...list].reverse().filter((d) => !onlyActions || d.action === "cut" || d.action === "recommend");
         return (
           <>
-            <Checkbox checked={onlyActions} onChange={setOnlyActions} label="Only cuts and recommendations" />
+            <Checkbox checked={onlyActions} onChange={setOnlyActions} label={t("director.onlyCutsAndRecommendations")} />
             {rows.length === 0 ? (
-              <EmptyState title="No decisions yet">The director logs a decision for every evaluated telemetry update.</EmptyState>
+              <EmptyState title={t("director.noDecisionsYet")}>{t("director.theDirectorLogsADecision")}</EmptyState>
             ) : (
               <div className="table-wrap" style={{ maxHeight: 420, overflowY: "auto", marginTop: 6 }}>
                 <table className="table table-compact">
                   <thead>
                     <tr>
-                      <th>Action</th>
-                      <th>Current → desired</th>
-                      <th>Reasons</th>
-                      <th>Confidence</th>
-                      <th>Mode · control</th>
-                      <th title="Telemetry sequence the decision is based on">Seq</th>
+                      <th>{t("director.action")}</th>
+                      <th>{t("director.currentDesired")}</th>
+                      <th>{t("director.reasons")}</th>
+                      <th>{t("director.confidence")}</th>
+                      <th>{t("director.modeControl")}</th>
+                      <th title={t("director.telemetrySequenceTheDecisionIs")}>{t("director.seq")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -135,8 +134,8 @@ function MainStory({ story, nameOf }: { story: Record<string, unknown>; nameOf: 
   return (
     <KV
       items={[
-        ...(members.length ? ([["Players", members.map((m) => nameOf(m)).join(", ")]] as [string, string][]) : []),
-        ...(regions.length ? ([["Regions", regions.join(", ")]] as [string, string][]) : []),
+        ...(members.length ? ([[t("director.players"), members.map((m) => nameOf(m)).join(", ")]] as [string, string][]) : []),
+        ...(regions.length ? ([[t("director.regions"), regions.join(", ")]] as [string, string][]) : []),
         ...rest.map(([k, v]) => [humanKey(k), humanValue(v)] as [string, string]),
       ]}
     />
@@ -147,20 +146,20 @@ function Status({ st, nameOf }: { st: DirectorStatus; nameOf: (id: string) => st
   const own = st.ownership;
   const health = st.decision ? CONTROL_HEALTH_TEXT[st.decision.controlHealth] : null;
   const mode = MODE_INFO[st.mode];
-  const owner = own.emergencyStopped ? "Emergency stop" : own.owner === "director" ? "Director" : `${humanKey(own.owner)}${own.manualSticky ? " (manual)" : ""}`;
+  const owner = own.emergencyStopped ? t("director.emergencyStop") : own.owner === "director" ? "Director" : `${humanKey(own.owner)}${own.manualSticky ? " (manual)" : ""}`;
   return (
     <>
       <ul className="status-list gc-status">
         <li title={mode?.hint}>
-          <span className="muted">Mode</span>
+          <span className="muted">{t("director.mode")}</span>
           <span>{mode?.label ?? st.mode}</span>
         </li>
         <li>
-          <span className="muted">Camera</span>
+          <span className="muted">{t("director.camera")}</span>
           <span className={own.emergencyStopped ? "text-danger" : undefined}>{owner}</span>
         </li>
         <li title={health?.hint}>
-          <span className="muted">Control</span>
+          <span className="muted">{t("director.control")}</span>
           <span>
             {health ? (
               <>
@@ -172,35 +171,35 @@ function Status({ st, nameOf }: { st: DirectorStatus; nameOf: (id: string) => st
           </span>
         </li>
         <li>
-          <span className="muted">Current shot</span>
+          <span className="muted">{t("director.currentShot")}</span>
           <span>{shotLabel(st.currentShot, nameOf)}</span>
         </li>
         {st.resumeInMs !== null ? (
           <li>
-            <span className="muted">Resuming in</span>
+            <span className="muted">{t("director.resumingIn")}</span>
             <span>{fmtMs(st.resumeInMs)}</span>
           </li>
         ) : null}
         {st.pendingCommand ? (
           <li>
-            <span className="muted">Pending command</span>
+            <span className="muted">{t("director.pendingCommand")}</span>
             <span>
               {st.pendingCommand.request.kind} · {st.pendingCommand.status}
             </span>
           </li>
         ) : null}
       </ul>
-      <Details summary="All director state">
+      <Details summary={t("director.allDirectorState")}>
         <KV
           items={[
-            ["Mode", `${mode?.label ?? st.mode}${mode?.hint ? ` — ${mode.hint}` : ""}`],
-            ["Control health", health ? `${health.text} — ${health.hint}` : MISSING],
-            ["Ownership", `${own.owner}${own.manualSticky ? " (manual, sticky)" : ""}${own.emergencyStopped ? " · emergency stop" : ""} · gen ${own.generation}`],
-            ["Resume countdown", st.resumeInMs !== null ? fmtMs(st.resumeInMs) : "none"],
-            ["Pending command", st.pendingCommand ? `${st.pendingCommand.request.kind} · ${st.pendingCommand.status}` : "none"],
-            ["Cinematics this round", String(st.cinematicsUsedThisRound)],
-            ["Active cinematic", st.cinematic ? JSON.stringify(st.cinematic) : "none"],
-            ["Policy", `${st.config.policyVersion ?? MISSING} · model ${st.decision?.modelVersion ?? "none (baseline)"}`],
+            [t("director.mode"), `${mode?.label ?? st.mode}${mode?.hint ? ` — ${mode.hint}` : ""}`],
+            [t("director.controlHealth"), health ? `${health.text} — ${health.hint}` : MISSING],
+            [t("director.ownership"), t("director.ownerVV2GenGeneration", { owner: own.owner, v: own.manualSticky ? t("director.manualStickySuffix") : "", v2: own.emergencyStopped ? t("director.emergencyStopSuffix") : "", generation: own.generation })],
+            [t("director.resumeCountdown"), st.resumeInMs !== null ? fmtMs(st.resumeInMs) : t("common.none")],
+            [t("director.pendingCommand"), st.pendingCommand ? `${st.pendingCommand.request.kind} · ${st.pendingCommand.status}` : t("common.none")],
+            [t("director.cinematicsThisRound"), String(st.cinematicsUsedThisRound)],
+            [t("director.activeCinematic"), st.cinematic ? JSON.stringify(st.cinematic) : t("common.none")],
+            [t("director.policy"), t("director.vModelV2", { v: st.config.policyVersion ?? MISSING, v2: st.decision?.modelVersion ?? "none (baseline)" })],
           ]}
         />
       </Details>
@@ -208,15 +207,15 @@ function Status({ st, nameOf }: { st: DirectorStatus; nameOf: (id: string) => st
   );
 }
 
-const GATES = [
-  { key: "playerSelectionControl", gates: "Observer POV cuts and roster-card POV requests" },
-  { key: "staticCameraControl", gates: "Cinematics (Observer & Cinematics) and nade cameras (Full Action Observer)" },
-  { key: "cameraPathControl", gates: "Camera path shots" },
-  { key: "observerModeControl", gates: "Switching in-eye / chase / free camera" },
-  { key: "grenadeEntities", gates: "Utility opportunities from tracked grenades" },
-  { key: "playerPositions", gates: "Contact prediction, clusters and main story" },
-  { key: "exactKillEvents", gates: "Exact killfeed (otherwise eliminations are labelled as derived)" },
-] as const;
+const GATES = perLocale(() => ([
+  { key: "playerSelectionControl", gates: t("director.observerPovCutsAndRoster") },
+  { key: "staticCameraControl", gates: t("director.cinematicsObserverCinematicsAndNade") },
+  { key: "cameraPathControl", gates: t("director.cameraPathShots") },
+  { key: "observerModeControl", gates: t("director.switchingInEyeChaseFree") },
+  { key: "grenadeEntities", gates: t("director.utilityOpportunitiesFromTrackedGrenades") },
+  { key: "playerPositions", gates: t("director.contactPredictionClustersAndMain") },
+  { key: "exactKillEvents", gates: t("director.exactKillfeedOtherwiseEliminationsAre") },
+] as const));
 
 export function DirectorScreen() {
   const status = useApi<DirectorStatus>("/api/v1/director/status", { refreshMs: 2000 });
@@ -227,62 +226,60 @@ export function DirectorScreen() {
   return (
     <div className="page">
       <div className="page-head">
-        <h1 className="page-title">Auto Director</h1>
-        <Link to="/live" className="btn btn-primary btn-md">
-          Operate in Live Control
-        </Link>
+        <h1 className="page-title">{t("director.autoDirector")}</h1>
+        <Link to="/live" className="btn btn-primary btn-md">{t("director.operateInLiveControl")}</Link>
       </div>
-      <p className="page-intro">What the director sees and why it decides. Operate the camera from Live Control.</p>
+      <p className="page-intro">{t("director.whatTheDirectorSeesAnd")}</p>
       <Async state={status}>
         {(st) => (
           <div className="stack">
             <div className="grid-2">
-              <Panel title="Status">
+              <Panel title={t("director.status")}>
                 <Status st={st} nameOf={nameOf} />
               </Panel>
-              <Panel title="Current decision">
+              <Panel title={t("director.currentDecision")}>
                 <DecisionExplain decision={st.decision} nameOf={nameOf} threshold={typeof st.config.advantageThreshold === "number" ? st.config.advantageThreshold : null} />
-                <p className="gc-caption">{decisions.length} decisions received live since this console connected.</p>
-                <Details summary="How the director works">
-                  <p className="small muted">The baseline director is deterministic and explainable: prediction (interaction features), editorial scoring (candidates), temporal planning (holds, budgets) and camera control (the arbiter) are separate stages. This page is for inspection; operate from Live Control.</p>
+                <p className="gc-caption">{t("director.countDecisionsReceivedLiveSince", { count: decisions.length })}</p>
+                <Details summary={t("director.howTheDirectorWorks")}>
+                  <p className="small muted">{t("director.theBaselineDirectorIsDeterministic")}</p>
                 </Details>
               </Panel>
             </div>
             <div className="grid-2">
-              <Panel title="Candidates">{snap ? <CandidateList candidates={snap.candidates} nameOf={nameOf} limit={6} currentShot={snap.currentShot} /> : <p className="muted">Waiting for live data.</p>}</Panel>
+              <Panel title={t("director.candidates")}>{snap ? <CandidateList candidates={snap.candidates} nameOf={nameOf} limit={6} currentShot={snap.currentShot} /> : <p className="muted">{t("director.waitingForLiveData")}</p>}</Panel>
               <div className="stack">
-                <Panel title="Main story">
-                  {st.mainStory ? <MainStory story={st.mainStory} nameOf={nameOf} /> : <p className="muted small">No main story identified.</p>}
+                <Panel title={t("director.mainStory")}>
+                  {st.mainStory ? <MainStory story={st.mainStory} nameOf={nameOf} /> : <p className="muted small">{t("director.noMainStoryIdentified")}</p>}
                   {st.clusters.length ? (
-                    <Details summary={`Interaction clusters (${st.clusters.length})`}>
+                    <Details summary={t("director.interactionClustersCount", { count: st.clusters.length })}>
                       <ul className="list-plain small">
                         {st.clusters.map((c, i) => (
                           <li key={c.id ?? i}>
-                            <strong>{c.id ?? `cluster ${i + 1}`}</strong>: {(c.steamIds ?? []).map((s) => nameOf(s)).join(", ") || "no players"}
+                            <strong>{c.id ?? t("director.clusterV", { v: i + 1 })}</strong>: {(c.steamIds ?? []).map((s) => nameOf(s)).join(", ") || t("director.noPlayers")}
                           </li>
                         ))}
                       </ul>
                     </Details>
                   ) : (
-                    <p className="gc-caption">No interaction clusters.</p>
+                    <p className="gc-caption">{t("director.noInteractionClusters")}</p>
                   )}
                 </Panel>
-                <Panel title="Utility opportunities">
+                <Panel title={t("director.utilityOpportunities")}>
                   <OpportunityList opportunities={st.opportunities} nameOf={nameOf} />
                 </Panel>
               </div>
             </div>
-            <Panel title="Decision log" subtitle="Most recent first">
+            <Panel title={t("director.decisionLog")} subtitle={t("director.mostRecentFirst")}>
               <DecisionLog nameOf={nameOf} />
             </Panel>
             <div className="grid-2" style={{ alignItems: "start" }}>
-              <Panel title="Capability gates" subtitle="What each capability unlocks">
+              <Panel title={t("director.capabilityGates")} subtitle={t("director.whatEachCapabilityUnlocks")}>
                 <table className="table table-compact">
                   <thead>
                     <tr>
-                      <th>Capability</th>
-                      <th>Status</th>
-                      <th>Unlocks</th>
+                      <th>{t("director.capability")}</th>
+                      <th>{t("director.status")}</th>
+                      <th>{t("director.unlocks")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -295,7 +292,7 @@ export function DirectorScreen() {
                             {capabilityMeta(g.key).label}
                           </td>
                           <td className="small gc-nowrap" title={gate.enabled && gate.reason ? gate.reason : undefined}>
-                            <StatusDot tone={gate.enabled ? "ok" : "warn"} /> {gate.enabled ? "Open" : "Closed"}
+                            <StatusDot tone={gate.enabled ? "ok" : "warn"} /> {gate.enabled ? t("director.open") : t("director.closed")}
                           </td>
                           <td className="small">
                             {g.gates}
@@ -306,27 +303,25 @@ export function DirectorScreen() {
                     })}
                   </tbody>
                 </table>
-                <Details summary="Control capability report">
+                <Details summary={t("director.controlCapabilityReport")}>
                   <CapabilityTable caps={caps} group="control" />
                 </Details>
               </Panel>
-              <Panel title="Policy" subtitle={`${st.config.policyVersion ?? MISSING} · model ${st.decision?.modelVersion ?? "none (baseline)"}`}>
-                <p className="small muted">Per-map utility scenarios and the director&apos;s tuning values. Read-only.</p>
-                <Details summary={`Utility scenarios (${st.scenarios.length})`}>
+              <Panel title={t("director.policy")} subtitle={t("director.vModelV2", { v: st.config.policyVersion ?? MISSING, v2: st.decision?.modelVersion ?? t("director.noneBaseline") })}>
+                <p className="small muted">{t("director.perMapUtilityScenariosAnd")}</p>
+                <Details summary={t("director.utilityScenariosCount", { count: st.scenarios.length })}>
                   {st.scenarios.length === 0 ? (
-                    <p className="muted small">No scenarios loaded.</p>
+                    <p className="muted small">{t("director.noScenariosLoaded")}</p>
                   ) : (
                     <>
-                      <p className="gc-caption" style={{ marginTop: 0, marginBottom: 6 }}>
-                        Per-map rules that boost specific utility moments.
-                      </p>
+                      <p className="gc-caption" style={{ marginTop: 0, marginBottom: 6 }}>{t("director.perMapRulesThatBoost")}</p>
                       <table className="table table-compact">
                         <thead>
                           <tr>
-                            <th>Scenario</th>
-                            <th>Map / regions</th>
-                            <th>Trigger</th>
-                            <th>Boost</th>
+                            <th>{t("director.scenario")}</th>
+                            <th>{t("director.mapRegions")}</th>
+                            <th>{t("director.trigger")}</th>
+                            <th>{t("director.boost")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -336,9 +331,7 @@ export function DirectorScreen() {
                               <td className="small">
                                 {s.mapName} · {s.regionIds.join(", ")}
                               </td>
-                              <td className="small">
-                                {s.grenadeTypes.join("/")} on ≥{s.minAliveTargets} {s.targetSide} within {fmtMs(s.maxTimeToEffectMs)}, conf ≥ {s.minConfidence}
-                              </td>
+                              <td className="small">{t("director.joinOnMinalivetargetsTargetsideWithin", { join: s.grenadeTypes.join("/"), minAliveTargets: s.minAliveTargets, targetSide: s.targetSide, maxTimeToEffectMs: fmtMs(s.maxTimeToEffectMs), minConfidence: s.minConfidence })}</td>
                               <td>+{s.valueBoost}</td>
                             </tr>
                           ))}
@@ -347,10 +340,8 @@ export function DirectorScreen() {
                     </>
                   )}
                 </Details>
-                <Details summary="Configuration">
-                  <p className="gc-caption" style={{ marginTop: 0, marginBottom: 6 }}>
-                    Initial engineering defaults to be measured and tuned; not learned values.
-                  </p>
+                <Details summary={t("director.configuration")}>
+                  <p className="gc-caption" style={{ marginTop: 0, marginBottom: 6 }}>{t("director.initialEngineeringDefaultsToBe")}</p>
                   <ConfigView config={st.config} />
                 </Details>
               </Panel>

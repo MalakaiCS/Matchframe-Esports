@@ -20,25 +20,20 @@ const SOURCES = import.meta.glob<string>(["../**/*.tsx", "!../**/*.test.tsx"], {
 /** Screens and components not extracted yet. The check expects English in them (remove a file once it is done). */
 const PENDING = new Set<string>([
   "components/AssetUpload.tsx",
-  "components/CapabilityTable.tsx",
   "components/EditorShell.tsx",
   "components/RecordDialogs.tsx",
   "components/SignIn.tsx",
   "screens/Account.tsx",
   "screens/Demos.tsx",
-  "screens/Director.tsx",
   "screens/Events.tsx",
   "screens/HudImages.tsx",
   "screens/Huds.tsx",
   "screens/IconPack.tsx",
   "screens/Maps.tsx",
   "screens/Matches.tsx",
-  "screens/PlayerCameras.tsx",
   "screens/Sponsors.tsx",
-  "screens/Studio.tsx",
   "screens/Teams.tsx",
   "screens/Training.tsx",
-  "screens/cams/WebCams.tsx",
   "screens/demos/PipelinePanels.tsx",
   "screens/hudlib/HudDetails.tsx",
   "screens/huds/Annotations.tsx",
@@ -64,7 +59,7 @@ const OUT_OF_SCOPE: Record<string, string> = {
   "components/icons.tsx": "the brand badge's alt text is the product name",
 };
 
-const USER_PROPS = new Set(["title", "label", "placeholder", "aria-label", "alt", "hint", "subtitle", "summary", "success", "confirmLabel", "disabledReason", "reasonLabel", "description", "emptyLabel", "tooltip", "caption", "heading", "help", "message", "body", "text"]);
+const USER_PROPS = new Set(["title", "label", "placeholder", "aria-label", "alt", "hint", "subtitle", "summary", "success", "confirmLabel", "disabledReason", "reasonLabel", "description", "emptyLabel", "tooltip", "caption", "heading", "help", "message", "body", "text", "submitLabel"]);
 const OBJECT_PROPS = new Set(["title", "body", "confirmLabel", "reasonLabel", "label", "message", "hint"]);
 
 /** Names kept as they are in every language (brands, products, game terms the scene uses in English). */
