@@ -75,17 +75,19 @@ describe("Highlight reel panel", () => {
     const calls = serve({ "GET /api/v1/highlights": overview([]), "POST /api/v1/highlights/plan": plan, "POST /api/v1/highlights/reels": job({}) });
     wrap(<HighlightReelPanel />);
     expect(await screen.findByText(/2 clips, 0:11 with 0.5 s crossfades/)).toBeTruthy();
-    expect(calls.find((c) => c.path === "/api/v1/highlights/plan")?.body).toEqual({ map: null, count: "all", unplayed: false, fadeMs: 500 });
+    expect(calls.find((c) => c.path === "/api/v1/highlights/plan")?.body).toEqual({ map: null, count: "all", unplayed: false, fadeMs: 500, slowMotion: false });
     // The previous map, the best 5 with unplayed clips, a longer fade.
     fireEvent.change(screen.getByLabelText("Map"), { target: { value: "m1" } });
     fireEvent.change(screen.getByLabelText(/^Clips/), { target: { value: "5" } });
     fireEvent.click(screen.getByLabelText(/Also clips that weren't played/));
     fireEvent.change(screen.getByLabelText(/Crossfade/), { target: { value: "1" } });
-    await waitFor(() => expect(calls.filter((c) => c.path === "/api/v1/highlights/plan").at(-1)?.body).toEqual({ map: "m1", count: 5, unplayed: true, fadeMs: 1000 }));
+    // Slow motion at the kills, as automatic replays slow (ADR-081).
+    fireEvent.click(screen.getByLabelText(/Slow motion at the kills/));
+    await waitFor(() => expect(calls.filter((c) => c.path === "/api/v1/highlights/plan").at(-1)?.body).toEqual({ map: "m1", count: 5, unplayed: true, fadeMs: 1000, slowMotion: true }));
     fireEvent.click(screen.getByRole("button", { name: "Export highlight reel" }));
     await waitFor(() => expect(calls.some((c) => c.path === "/api/v1/highlights/reels")).toBe(true));
     expect(draw).toHaveBeenCalledTimes(1);
-    expect(calls.find((c) => c.path === "/api/v1/highlights/reels")!.body).toEqual({ map: "m1", count: 5, unplayed: true, fadeMs: 1000, clipIds: ["rp1", "rp2"], graphics: { rp1: "png:rp1", rp2: "png:rp2" } });
+    expect(calls.find((c) => c.path === "/api/v1/highlights/reels")!.body).toEqual({ map: "m1", count: 5, unplayed: true, fadeMs: 1000, slowMotion: true, clipIds: ["rp1", "rp2"], graphics: { rp1: "png:rp1", rp2: "png:rp2" } });
   });
 
   it("sends no graphics when they aren't burned in", async () => {
@@ -96,7 +98,7 @@ describe("Highlight reel panel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Export highlight reel" }));
     await waitFor(() => expect(calls.some((c) => c.path === "/api/v1/highlights/reels")).toBe(true));
     expect(draw).not.toHaveBeenCalled();
-    expect(calls.find((c) => c.path === "/api/v1/highlights/reels")!.body).toEqual({ map: null, count: "all", unplayed: false, fadeMs: 500, clipIds: ["rp1", "rp2"] });
+    expect(calls.find((c) => c.path === "/api/v1/highlights/reels")!.body).toEqual({ map: null, count: "all", unplayed: false, fadeMs: 500, slowMotion: false, clipIds: ["rp1", "rp2"] });
   });
 
   it("shows the reel being made with a way to stop it, then where it is with Open folder", async () => {

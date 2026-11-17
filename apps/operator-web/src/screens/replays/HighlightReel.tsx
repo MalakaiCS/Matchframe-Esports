@@ -40,7 +40,7 @@ export interface ReelPlan {
   mapName: string;
   displayName: string;
   title: string | null;
-  clips: { id: string; label: string; roundNumber: number | null; played: boolean; score: number; reasons: string[]; startMs: number; durationMs: number; graphic: HudReplayClip }[];
+  clips: { id: string; label: string; roundNumber: number | null; played: boolean; score: number; reasons: string[]; startMs: number; durationMs: number; graphic: HudReplayClip; angle?: "victim" | "free" | null; slow?: unknown; outMs?: number }[];
   fadeMs: number;
   totalMs: number;
 }
@@ -69,12 +69,13 @@ export function HighlightReelPanel() {
   const [unplayed, setUnplayed] = useState(false);
   const [fade, setFade] = useState(0.5);
   const [burn, setBurn] = useState(true);
+  const [slow, setSlow] = useState(false);
   const [plan, setPlan] = useState<ReelPlan | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
   const [drawing, setDrawing] = useState<string | null>(null);
   const [keepGb, setKeepGb] = useState<number | null>(null);
   const data = ov.data;
-  const choice = { map: map || null, count, unplayed: count !== "all" && unplayed, fadeMs: Math.round(fade * 1000) };
+  const choice = { map: map || null, count, unplayed: count !== "all" && unplayed, fadeMs: Math.round(fade * 1000), slowMotion: slow };
   const key = JSON.stringify(choice);
   const maps = data?.maps ?? [];
   const mapKeys = maps.map((m) => `${m.key}:${m.played}:${m.unplayed}`).join(",");
@@ -149,14 +150,16 @@ export function HighlightReelPanel() {
         </div>
         {count !== "all" ? <Checkbox checked={unplayed} onChange={setUnplayed} label="Also clips that weren't played" hint="The best of the map's other clips (the replay PC films more than a break has time for)." /> : null}
         <Checkbox checked={burn} onChange={setBurn} label="Burn in the replay graphic" hint="Each clip gets its lower third (player, weapon, victims, 2K–ACE, clutch, round), fading in and out." />
+        <Checkbox checked={slow} onChange={setSlow} label="Slow motion at the kills" hint="Each clip slowed as automatic replays slow theirs (around each kill when theirs is off); a kill's extra angle slowed after it, the first angle at real time." />
         {planError ? <Note tone="warn">{planError}</Note> : null}
         {plan && plan.clips.length ? (
           <Details summary={`${plan.clips.length} clip${plan.clips.length === 1 ? "" : "s"}, ${len(plan.totalMs)}${plan.fadeMs ? ` with ${plan.fadeMs / 1000} s crossfades` : ""}`}>
             <ol className="small" style={{ margin: 0, paddingLeft: 20 }}>
               {plan.clips.map((c) => (
                 <li key={c.id}>
-                  R{c.roundNumber ?? "?"} · {c.label} · {fmtMs(c.durationMs)}
-                  {c.played ? "" : " · not played"}
+                  R{c.roundNumber ?? "?"} · {c.label} · {fmtMs(c.outMs ?? c.durationMs)}
+                  {c.slow ? " · slow motion" : ""}
+                  {c.played || c.angle ? "" : " · not played"}
                   {c.reasons.length ? <span className="muted"> ({c.reasons.join(", ")})</span> : null}
                 </li>
               ))}

@@ -9486,6 +9486,40 @@
                     "type": "number",
                     "minimum": 0,
                     "maximum": 120000
+                  },
+                  "killsAgoMs": {
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 120000
+                    }
+                  },
+                  "angle": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "victim",
+                          "free"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "momentOf": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -9803,6 +9837,52 @@
                     "type": "integer",
                     "minimum": 25,
                     "maximum": 100
+                  },
+                  "slowMotion": {
+                    "type": "string",
+                    "enum": [
+                      "off",
+                      "kill",
+                      "whole"
+                    ]
+                  },
+                  "slowSpeed": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "const": 50
+                      },
+                      {
+                        "type": "number",
+                        "const": 33
+                      }
+                    ]
+                  },
+                  "slowSmooth": {
+                    "type": "boolean"
+                  },
+                  "slowAudio": {
+                    "type": "string",
+                    "enum": [
+                      "mute",
+                      "pitch"
+                    ]
+                  },
+                  "multiAngle": {
+                    "type": "string",
+                    "enum": [
+                      "off",
+                      "top",
+                      "starred"
+                    ]
+                  },
+                  "angleViews": {
+                    "type": "string",
+                    "enum": [
+                      "victim",
+                      "free",
+                      "both"
+                    ]
                   },
                   "startDelayMs": {
                     "type": "integer",
@@ -10128,6 +10208,15 @@
                   },
                   "pinned": {
                     "type": "boolean"
+                  },
+                  "slow": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  },
+                  "starred": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -10332,6 +10421,9 @@
                     "maximum": 15000
                   },
                   "filmAll": {
+                    "type": "boolean"
+                  },
+                  "filmAngles": {
                     "type": "boolean"
                   }
                 }
@@ -10857,6 +10949,10 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 2000
+                  },
+                  "slowMotion": {
+                    "default": false,
+                    "type": "boolean"
                   }
                 }
               }
@@ -10964,6 +11060,10 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 2000
+                  },
+                  "slowMotion": {
+                    "default": false,
+                    "type": "boolean"
                   },
                   "clipIds": {
                     "minItems": 1,
@@ -11192,6 +11292,9 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "slowMotion": {
+                    "type": "boolean"
                   }
                 }
               }

@@ -9,7 +9,13 @@ import { useSnapshot } from "../../state/live.ts";
 import { usePermission } from "../../state/session.tsx";
 
 const STATE_TONE = { off: "neutral", waiting: "info", playing: "accent", blocked: "warn" } as const;
-const SPEEDS = [100, 75, 50] as const;
+/** Slow motion (ADR-081): around each kill, the whole clip, or none. */
+const SLOW_MODES = [
+  { id: "kill", label: "Kill moment (recommended)" },
+  { id: "whole", label: "Whole clip" },
+  { id: "off", label: "Off" },
+] as const;
+const ANGLE_LABEL = { victim: "victim's view", free: "free camera" } as const;
 
 const RANKED_STATE: Record<RankedReplay["state"], { label: string; tone: "ok" | "accent" | "info" | "neutral" }> = {
   played: { label: "Played", tone: "ok" },
@@ -162,15 +168,58 @@ export function AutoReplaysPanel() {
               </select>
             </Field>
           ) : null}
-          <Field label="Speed">
-            <select value={st?.speedPercent ?? 100} disabled={off} onChange={(e) => void save({ speedPercent: Number(e.target.value) })}>
-              {SPEEDS.map((s) => (
-                <option key={s} value={s}>
-                  {s === 100 ? "Real time" : `Slow motion (${s} %)`}
+          <Field label="Slow motion" hint={vmix || st?.playback === "scenes" ? "Kill moment slows a rendered break's file: played clip by clip (vMix, or Fade (two scenes, OBS)) only Whole clip is slowed, by the mixer." : "Kill moment: each clip eases down to the slow speed about 0.3 s before its kill, holds through it and eases back up after (each kill of a multi-kill). The break's clips are chosen with the longer lengths, so they still end in time."}>
+            <select value={st?.slowMotion ?? "kill"} disabled={off} onChange={(e) => void save({ slowMotion: e.target.value as NonNullable<AutoReplaySettings["slowMotion"]> })}>
+              {SLOW_MODES.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
                 </option>
               ))}
             </select>
           </Field>
+          {st?.slowMotion !== "off" ? (
+            <Field label="Slow speed">
+              <select value={String(st?.slowSpeed ?? 50)} disabled={off} onChange={(e) => void save({ slowSpeed: Number(e.target.value) as 50 | 33 })}>
+                <option value="50">50 %</option>
+                <option value="33">33 %</option>
+              </select>
+            </Field>
+          ) : null}
+          {st?.slowMotion !== "off" ? (
+            <Field label="Sound while slowed" hint="Muted: the game sound fades out just before the slow part and back in after it (clean; casters talk over it). Slowed: played slower with its pitch kept, which can make gunshots sound doubled.">
+              <select value={st?.slowAudio ?? "mute"} disabled={off} onChange={(e) => void save({ slowAudio: e.target.value as "mute" | "pitch" })}>
+                <option value="mute">Muted (recommended)</option>
+                <option value="pitch">Slowed, pitch kept</option>
+              </select>
+            </Field>
+          ) : null}
+        </div>
+        {st?.slowMotion !== "off" && !vmix ? (
+          <Checkbox
+            checked={st?.slowSmooth ?? false}
+            disabled={off}
+            label="Smooth slow motion (more CPU)"
+            hint="Makes the in-between frames by motion interpolation instead of blending two frames. It takes far longer (measured: about half a second a frame at 1080p on a 4-core CPU without a graphics card), so a break uses it only when its file will still be ready in time; highlights and reels, which can wait, always do."
+            onChange={(v) => void save({ slowSmooth: v })}
+          />
+        ) : null}
+        <div className="form-grid">
+          <Field label="Multi-angle replays" hint="The replay PC is asked to film the moment again from another angle (it goes back in its CS2 when that costs no kill: Replay PC → Film extra angles). An angle that arrives in time plays straight after the moment, slowed, when the break has time for it. Star a clip in the list below to ask for its angles and play them with it.">
+            <select value={st?.multiAngle ?? "top"} disabled={off} onChange={(e) => void save({ multiAngle: e.target.value as NonNullable<AutoReplaySettings["multiAngle"]> })}>
+              <option value="top">The round's top kill and starred kills</option>
+              <option value="starred">Only starred kills</option>
+              <option value="off">Off</option>
+            </select>
+          </Field>
+          {st?.multiAngle !== "off" ? (
+            <Field label="Extra angle">
+              <select value={st?.angleViews ?? "victim"} disabled={off} onChange={(e) => void save({ angleViews: e.target.value as NonNullable<AutoReplaySettings["angleViews"]> })}>
+                <option value="victim">The player who died's view</option>
+                <option value="free">A free camera</option>
+                <option value="both">Both</option>
+              </select>
+            </Field>
+          ) : null}
         </div>
         <Checkbox checked={st?.otherAngles ?? true} disabled={off} label="Other angles" hint="When the main camera showed only the player who died, replay it from the killer's side (from the replay PC)." onChange={(v) => void save({ otherAngles: v })} />
         <Checkbox checked={st?.ownBigPlays ?? true} disabled={off} label="Replay big plays shown live" hint="When the main camera shows a 3K or more, save this computer's OBS replay buffer and replay it too." onChange={(v) => void save({ ownBigPlays: v })} />
@@ -225,7 +274,7 @@ export function AutoReplaysPanel() {
         )}
         {ranked.length ? (
           <div className="stack-sm" aria-label="Clips of the round, best first">
-            <span className="small muted">Round {status?.round ?? "?"}: its clips, best first{renderedNow ? ". This break plays as one rendered file: Exclude and Pin made now apply from the next break." : ""}</span>
+            <span className="small muted">Round {status?.round ?? "?"}: its clips, best first{renderedNow ? ". This break plays as one rendered file: Exclude, Pin and Slow made now apply from the next break." : ""}</span>
             <ol className="ranked-replays small">
               {ranked.map((r) => (
                 <li key={r.id} className="row">
@@ -247,7 +296,38 @@ export function AutoReplaysPanel() {
                           {r.pinned ? "Unpin" : "Pin first"}
                         </Button>
                       ) : null}
+                      {!r.excluded && r.slow !== undefined ? (
+                        <Button size="sm" variant={r.slow ? "secondary" : "ghost"} aria-pressed={r.slow} disabledReason={reason} title={r.slow ? "Plays in slow motion: press for real time" : "Plays at real time: press for slow motion"} aria-label={`Slow ${r.label}`} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(r.id)}`, { slow: !r.slow }, "PUT")}>
+                          Slow
+                        </Button>
+                      ) : null}
+                      {!r.excluded && r.starred !== undefined && st?.multiAngle !== "off" ? (
+                        <Button size="sm" variant={r.starred ? "secondary" : "ghost"} aria-pressed={!!r.starred} disabledReason={reason} title={r.starred ? "Starred: its extra angles are asked for and play with it" : "Ask the replay PC for this kill's extra angles, and play them with it"} aria-label={`Star ${r.label}`} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(r.id)}`, { starred: !r.starred }, "PUT")}>
+                          {r.starred ? "★ Starred" : "☆ Star"}
+                        </Button>
+                      ) : null}
                     </span>
+                  ) : null}
+                  {r.anglesWanted?.length ? <span className="muted">{`Extra angle asked of the replay PC: ${r.anglesWanted.map((v) => ANGLE_LABEL[v]).join(", ")}`}</span> : null}
+                  {r.angles?.length ? (
+                    <ul className="list-plain stack-sm" aria-label={`Extra angles of ${r.label}`} style={{ flexBasis: "100%", paddingLeft: 24 }}>
+                      {r.angles.map((a) => (
+                        <li key={a.id} className="row">
+                          <Badge tone={RANKED_STATE[a.state].tone}>{RANKED_STATE[a.state].label}</Badge>
+                          <span>{`↳ ${ANGLE_LABEL[a.angle]}`}</span>
+                          {a.state !== "played" && a.state !== "picked" ? (
+                            <span className="row">
+                              <Button size="sm" variant="ghost" disabledReason={reason} aria-label={`${a.excluded ? "Include" : "Exclude"} ${a.label}`} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(a.id)}`, { excluded: !a.excluded }, "PUT")}>
+                                {a.excluded ? "Include" : "Exclude"}
+                              </Button>
+                              <Button size="sm" variant={a.slow ? "secondary" : "ghost"} aria-pressed={a.slow} disabledReason={reason} aria-label={`Slow ${a.label}`} onClick={() => void control(`/api/v1/replays/auto/clips/${encodeURIComponent(a.id)}`, { slow: !a.slow }, "PUT")}>
+                                Slow
+                              </Button>
+                            </span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
                   ) : null}
                 </li>
               ))}
@@ -771,6 +851,13 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
               <option value="missed">Only kills the main camera missed</option>
             </select>
           </Field>
+          <Checkbox
+            checked={data?.settings.filmAngles ?? false}
+            disabled={!!reason}
+            label="Film extra angles (experimental)"
+            hint="When the main PC asks for a kill again (its round's top kill, or one its operator starred), CS2 here goes back to just before it, films it from the player who died's view or a free camera, and comes forward again. Only when no kill loses its lead-up: with 7 s behind, after the round ends here. Needs going back to work (a CSTV connection)."
+            onChange={(v) => void api.put("/api/v1/replay-pc", { filmAngles: v }).then(reload)}
+          />
           {data?.settings.sameCstv === "stay_behind" ? (
             <Field label="How far behind">
               <select value={data.settings.behindMs} disabled={!!reason} onChange={(e) => void api.put("/api/v1/replay-pc", { behindMs: Number(e.target.value) }).then(reload)}>
@@ -812,6 +899,12 @@ function ReplaySide({ data, reload }: { data: ReplayPcResponse | null; reload: (
           {st.lastSkip ? (
             <span className="muted">
               Not filmed: {st.skipped} · last: {st.lastSkip.label} ({st.lastSkip.reason})
+            </span>
+          ) : null}
+          {st.angles && st.angles.state !== "off" ? (
+            <span className={st.angles.state === "unsupported" ? "text-warn" : ""}>
+              Extra angles: {st.angles.detail || "none asked for."}
+              {st.angles.filmed || st.angles.failed ? ` (${st.angles.filmed} filmed${st.angles.failed ? `, ${st.angles.failed} not` : ""}${st.angles.last && !st.angles.last.ok ? `; last: ${st.angles.last.label}, ${st.angles.last.detail}` : ""})` : ""}
             </span>
           ) : null}
         </div>
