@@ -1,9 +1,10 @@
 import { memo } from "react";
 import type { HudPlayer, HudState, HudTeam } from "@matchframe/hud-sdk";
 import { deadIcon, playerPicture } from "../shared/art.ts";
-import { Photo } from "./bits.tsx";
+import { FitText, Photo } from "./bits.tsx";
 import { Armor, Bomb, DeadMark, Deaths, Disconnected, Dollar, Grenade, Health, Kills, Kit, RoundKillMark, Weapon } from "./icons.tsx";
 import { mvpShowing, slotKey, slotOrder, teamName, teamVars, type Settings } from "./util.ts";
+import { mainWeaponName } from "./weapons.ts";
 
 const NADE_ORDER = ["smoke", "flash", "hegrenade", "molotov", "incgrenade", "decoy"];
 
@@ -78,9 +79,8 @@ interface CardProps {
   kills: number | null;
   deaths: number | null;
   roundKills: number;
+  /** The one weapon shown: the main gun, whatever is in hand. */
   main: string | null;
-  other: string | null;
-  otherActive: boolean;
   nades: string;
   observed: boolean;
   flashed: number;
@@ -114,7 +114,7 @@ const Card = memo(function Card(p: CardProps) {
       ) : null}
       <span className="st-card-slot">{p.slot}</span>
       <span className="st-card-info">
-        <span className={`st-card-name ${p.name.length > 9 ? "is-long" : ""}`}>{p.name}</span>
+        <FitText text={p.name} className="st-card-name" />
         <KillsDeaths kills={p.kills} deaths={p.deaths} />
         {p.showMoney ? <Money value={p.money} /> : null}
       </span>
@@ -123,10 +123,7 @@ const Card = memo(function Card(p: CardProps) {
         <span className="st-card-flash" style={{ opacity: dead ? 0 : Math.min(1, p.flashed) * 0.8 }} aria-hidden />
       </span>
       <span className="st-card-gear">
-        <span className="st-card-guns">
-          {p.main ? <Weapon weapon={p.main} className={`st-gun is-main ${p.otherActive ? "" : "is-active"}`} /> : null}
-          {p.other ? <Weapon weapon={p.other} className={`st-gun is-other ${p.otherActive ? "is-active" : ""}`} /> : null}
-        </span>
+        <span className="st-card-guns">{p.main ? <Weapon weapon={p.main} className="st-gun" /> : null}</span>
         <span className={`st-card-hp ${p.health <= 20 ? "is-low" : ""}`}>{dead ? "" : p.health}</span>
         <span className="st-card-util">
           <Nades list={p.nades} size={19} />
@@ -177,7 +174,7 @@ const MvpCard = memo(function MvpCard(p: MvpProps) {
       </span>
       <span className="st-mvp-text">
         <span className="st-mvp-head">ROUND MVP</span>
-        <span className={`st-mvp-name ${p.name.length > 10 ? "is-long" : ""}`}>{p.name}</span>
+        <FitText text={p.name} className="st-mvp-name" />
         <span className="st-mvp-round">ROUND {p.roundNumber} STATS</span>
         <span className="st-mvp-stats">
           <Kills size={21} />
@@ -196,16 +193,6 @@ const MvpCard = memo(function MvpCard(p: MvpProps) {
     </div>
   );
 });
-
-/** The weapon a card shows big (primary, else pistol) and, when the player holds something else, that too. */
-function weapons(p: HudPlayer): { main: string | null; other: string | null; otherActive: boolean } {
-  if (p.alive === false) return { main: null, other: null, otherActive: false };
-  const main = p.primary?.name ?? p.secondary?.name ?? null;
-  const active = p.activeWeapon?.name ?? null;
-  // Holding a grenade, the knife, the bomb or the pistol next to a rifle: both show, the held one lit.
-  if (active && active !== main && !active.includes("grenade") && !active.includes("flashbang") && !active.includes("molotov") && !active.includes("decoy")) return { main, other: active, otherActive: true };
-  return { main: main ?? "weapon_knife", other: null, otherActive: false };
-}
 
 function cardProps(state: HudState, p: HudPlayer, color: string, align: "left" | "right", showMoney: boolean, index: number): CardProps {
   const alive = p.alive !== false;
@@ -227,7 +214,7 @@ function cardProps(state: HudState, p: HudPlayer, color: string, align: "left" |
     kills: p.kills,
     deaths: p.deaths,
     roundKills: p.roundKills ?? 0,
-    ...weapons(p),
+    main: mainWeaponName(p),
     nades: alive ? grenadeList(p) : "",
     observed: p.observed,
     flashed: Math.round((p.flashed ?? 0) * 10) / 10,
@@ -245,7 +232,7 @@ export function TeamCards({ state, team, color, align, settings, shown }: { stat
   return (
     <div className={`st-cards st-cards-${align} ${shown ? "is-on" : ""}`} style={teamVars(color)}>
       <div className="st-tab">
-        <span className="st-tab-name">{teamName(team, settings)}</span>
+        <FitText text={teamName(team, settings)} className="st-tab-name" />
       </div>
       {slotOrder(team).map((p, i) =>
         mvp && p.steamId === mvp.steamId ? (

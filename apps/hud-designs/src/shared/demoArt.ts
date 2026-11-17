@@ -109,6 +109,15 @@ export function demoArt(): HudArt {
   };
 }
 
+/** A plain black head-and-shoulders silhouette, like a game's default player picture (test scenes). */
+export const DEMO_SILHOUETTE = uri(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140">` +
+    `<ellipse cx="60" cy="50" rx="21" ry="26" fill="#08090b"/>` +
+    `<path d="M50 72h20v14H50z" fill="#08090b"/>` +
+    `<path d="M2 140c0-30 16-46 40-52l18 8 18-8c24 6 40 22 40 52z" fill="#08090b"/>` +
+    `</svg>`,
+);
+
 export const NO_ART: HudArt = { defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null } };
 
 /** A made-up clean radar in MatchFrame's style: navy floor, light walls, red bomb sites (1024×1024 frame). */

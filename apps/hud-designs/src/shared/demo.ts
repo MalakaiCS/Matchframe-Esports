@@ -1,5 +1,5 @@
 import type { HudKillfeedEntry, HudPlayer, HudSeriesMap, HudSide, HudState, HudTeam, HudWeapon } from "@matchframe/hud-sdk";
-import { demoArt, demoRadar, NO_ART, SAMPLE_SPONSOR_BANNER, SAMPLE_SPONSOR_PLATE } from "./demoArt.ts";
+import { DEMO_SILHOUETTE, demoArt, demoRadar, NO_ART, SAMPLE_SPONSOR_BANNER, SAMPLE_SPONSOR_PLATE } from "./demoArt.ts";
 
 /**
  * Built-in sample states (fictional teams and players) for `?demo=<scene>`: thumbnails,
@@ -10,7 +10,17 @@ import { demoArt, demoRadar, NO_ART, SAMPLE_SPONSOR_BANNER, SAMPLE_SPONSOR_PLATE
  * observed player without a player cam.
  */
 export const DEMO_SCENES = ["freeze", "live", "kill", "plant", "bomb", "defuse", "over", "timeout", "mvp", "nocam"] as const;
-export type DemoScene = (typeof DEMO_SCENES)[number];
+/**
+ * Test states for a HUD's edges (`?demo=edge` …, not in the cycle): long names (ten capitals, 16 and
+ * 32 characters, twelve W's, a long team name), knives, grenades and pistols in hand next to bought
+ * guns, a pistol-only player, a team without a logo, black-silhouette default pictures. `edge` is a
+ * live round with the observed player on the right team; `edgebomb` the bomb planted with its timer
+ * while the data has paused, the team tag unusable ("?"); `edgeover` the round won with the
+ * 32-character name as its MVP; `edgeboard` freeze time with the scoreboard.
+ */
+export const DEMO_TEST_SCENES = ["edge", "edgebomb", "edgeover", "edgeboard"] as const;
+type DemoTestScene = (typeof DEMO_TEST_SCENES)[number];
+export type DemoScene = (typeof DEMO_SCENES)[number] | DemoTestScene;
 
 /** Demo extras from the page's query: `?bo=5` (series length), `?art=1` (sample HUD images), `?radar=1` (sample radar), `?logo=1` (sample team emblems). */
 export interface DemoOptions {
@@ -101,6 +111,7 @@ const kill = (id: string, killer: HudPlayer, victim: HudPlayer, weapon: string, 
 });
 
 export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
+  if ((DEMO_TEST_SCENES as readonly string[]).includes(scene)) return edgeScene(scene as DemoTestScene, opts);
   // `ct` is the left team and `t` the right one; in the `mvp` scene they have swapped sides.
   const swapped = scene === "mvp";
   const L: HudSide = swapped ? "T" : "CT";
@@ -204,6 +215,67 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     settings: {},
     art,
     lastRound,
+  };
+}
+
+/** The test scenes' names, by team order (left: nova, kestrel, lumen, orbit, vale; right: ember, riot, saber, dusk, flint). */
+const EDGE_NAMES = {
+  left: ["SPUDWRECKI", "kestrel", "ThisNameIsExactlyThirtyTwoChars!", "orbit", "WWWWWWWWWWWW"],
+  right: ["ember", "SixteenCharacter", "saber", "dusk", "flint"],
+};
+
+/** A test scene (DEMO_TEST_SCENES): the `kill`, `bomb`, `over` or `freeze` scene with the edges described there. */
+function edgeScene(scene: DemoTestScene, opts: DemoOptions): HudState {
+  const s = demoScene(scene === "edgebomb" ? "bomb" : scene === "edgeover" ? "over" : scene === "edgeboard" ? "freeze" : "kill", opts);
+  const names = new Map<string, string>();
+  const rename = (team: HudTeam, list: string[]) =>
+    team.players.map((p, i) => {
+      names.set(p.steamId, list[i] ?? p.name);
+      return { ...p, name: list[i] ?? p.name };
+    });
+  const left = rename(s.left, EDGE_NAMES.left);
+  const right = rename(s.right, EDGE_NAMES.right);
+  const hold = (list: HudPlayer[], i: number, over: (p: HudPlayer) => Partial<HudPlayer>) => {
+    if (list[i]!.alive) list[i] = { ...list[i]!, ...over(list[i]!) };
+  };
+  const knife = w("knife", "knife", true);
+  hold(left, 1, () => ({ activeWeapon: knife })); // a knife out, the M4 bought
+  hold(left, 4, (p) => ({ activeWeapon: p.secondary })); // the pistol out next to the AWP
+  hold(right, 0, (p) => ({ primary: null, activeWeapon: p.secondary })); // a pistol, nothing else (and the bomb)
+  hold(right, 1, () => ({ activeWeapon: knife })); // the knife out, the AK bought
+  hold(right, 4, (p) => ({ activeWeapon: p.grenades[1] ?? null })); // a flashbang out, the Galil bought
+  if (scene === "edgebomb") hold(left, 2, (p) => ({ primary: null, activeWeapon: p.secondary }));
+  const at = (e: HudKillfeedEntry["killer"]) => (e ? { ...e, name: names.get(e.steamId) ?? e.name } : e);
+  const feed = s.killfeed.entries.map((e) => ({ ...e, killer: at(e.killer), victim: { ...e.victim, name: names.get(e.victim.steamId) ?? e.victim.name }, assister: at(e.assister) }));
+  let lastRound = s.lastRound;
+  if (scene === "edge") {
+    // A second kill for SPUDWRECKI.
+    right[3] = { ...dead(right[3]!), roundDamage: 0 };
+    left[0] = { ...left[0]!, roundKills: 2 };
+    feed.push(kill("k3", left[0], right[3], "m4a1_silencer", false));
+  }
+  if (scene === "edgeover") {
+    // The last kill and the round's MVP are the 32-character name's.
+    const last = feed[feed.length - 1]!;
+    feed[feed.length - 1] = { ...last, killer: { steamId: left[2]!.steamId, name: left[2]!.name, side: left[2]!.side } };
+    left[2] = { ...left[2]!, roundKills: 1 };
+    left[0] = { ...left[0]!, roundKills: 1 };
+    lastRound = { roundNumber: 17, winnerSide: s.left.side!, mvp: { steamId: left[2]!.steamId, kills: 1, damage: 131, health: 31, armor: 64, helmet: true } };
+  }
+  const observedId = scene === "edge" ? right[1]!.steamId : scene === "edgebomb" ? left[2]!.steamId : s.observed?.steamId;
+  const mark = (p: HudPlayer) => ({ ...p, observed: p.steamId === observedId });
+  const players = [...left, ...right].map(mark);
+  const observed = players.find((p) => p.observed) ?? null;
+  return {
+    ...s,
+    stale: scene === "edgebomb",
+    dataAgeMs: scene === "edgebomb" ? 6500 : 0,
+    left: { ...s.left, name: "NORTHERN LIGHTS ESPORTS", shortName: "NLE", logoUrl: demoLogo("left"), players: players.slice(0, left.length) },
+    right: { ...s.right, shortName: scene === "edgebomb" ? "?" : "RHB", logoUrl: null, players: players.slice(left.length) },
+    observed,
+    killfeed: { ...s.killfeed, entries: feed },
+    lastRound,
+    art: { ...s.art, defaultPlayers: { ct: s.art.defaultPlayers.ct, t: [DEMO_SILHOUETTE] } },
   };
 }
 

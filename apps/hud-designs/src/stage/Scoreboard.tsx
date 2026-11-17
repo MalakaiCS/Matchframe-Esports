@@ -4,7 +4,7 @@ import type { HudPlayer, HudState, HudTeam } from "@matchframe/hud-sdk";
 import { playerPicture } from "../shared/art.ts";
 import { equipmentValue, lossBonus, secondsLeft, seriesBoxCount, seriesWon } from "../shared/format.ts";
 import { Armor, Bomb, Dollar, Kit, TimeoutMark, Weapon } from "./icons.tsx";
-import { Photo, TeamLogo, TimeoutPips } from "./bits.tsx";
+import { FitText, Photo, TeamLogo, TimeoutPips } from "./bits.tsx";
 import { grenadeList, Nades } from "./Cards.tsx";
 import { useNow } from "../shared/useHud.ts";
 import { SponsorSpot } from "./TopRight.tsx";
@@ -72,7 +72,9 @@ function Row({ state, p, index }: { state: HudState; p: HudPlayer; index: number
       <span className="st-row-pic">
         <Photo url={playerPicture(state, p)} />
       </span>
-      <span className="st-row-name">{p.name}</span>
+      <span className="st-row-name">
+        <FitText text={p.name} />
+      </span>
       <span className="st-row-cell st-row-armor">{alive && (p.armor ?? 0) > 0 ? <Armor helmet={!!p.helmet} size={20} /> : null}</span>
       <span className="st-row-cell st-row-kit">{alive && p.hasBomb ? <Bomb size={21} className="st-c4" /> : alive && p.defuseKit ? <Kit size={20} /> : null}</span>
       <span className="st-row-cell st-row-nades">

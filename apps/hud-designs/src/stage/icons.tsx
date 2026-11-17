@@ -61,7 +61,9 @@ export const Kit = ({ size, className = "" }: { size: number; className?: string
 export const Bomb = ({ size, className = "" }: { size: number; className?: string }) => <Ico name={["bomb_carrier", "c4"]} size={size} className={className} label="bomb carrier" fallback={<BombIcon size={size} className={className} />} />;
 /** The bomb's state in the score bar. */
 export const BombState = ({ state, size }: { state: "planting" | "planted" | "defusing" | "defused" | "exploded"; size: number }) => {
-  const names = { planting: ["planting", "c4"], planted: ["bomb_planted", "planted_c4", "bomb_icon"], defusing: ["defusing", "defuser"], defused: ["bomb_defused", "defuser"], exploded: ["explosion", "planted_c4"] }[state];
+  // Planted: the plain C4 glyph; the owner's bomb_planted art has a fixed 0:40 drawn on it, which would
+  // sit next to the live countdown.
+  const names = { planting: ["planting", "c4"], planted: ["c4", "planted_c4", "bomb_icon"], defusing: ["defusing", "defuser"], defused: ["bomb_defused", "defuser"], exploded: ["explosion", "planted_c4"] }[state];
   return <Ico name={names} size={size} label={`bomb ${state}`} fallback={state === "defusing" || state === "defused" ? <KitIcon size={size} /> : <BombIcon size={size} />} />;
 };
 export const Kills = ({ size }: { size: number }) => <Ico name={["kills", "kill"]} size={size} label="kills" fallback={<KillsMark size={size} />} />;

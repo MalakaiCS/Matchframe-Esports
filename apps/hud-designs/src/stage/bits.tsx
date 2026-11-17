@@ -1,15 +1,84 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import type { HudTeam } from "@matchframe/hud-sdk";
 
-/** The team's logo, else its tag as a wordmark in the team colour. */
+/**
+ * Text that keeps its whole: it takes the width its box allows and, when longer, its font shrinks to
+ * fit, down to `min` of its size; only beyond that does it end in an ellipsis. Measured when the text
+ * or its box size changes and again once the web fonts are in (only this element re-lays out).
+ */
+export function FitText({ text, className = "", min = 0.7 }: { text: string; className?: string; min?: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Widths in the page's own pixels (the stage may be scaled): the box, then the text at its natural width.
+    const fit = () => {
+      el.style.fontSize = "";
+      const box = el.getBoundingClientRect().width;
+      if (box === 0) return;
+      const cs = getComputedStyle(el);
+      const pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+      const k = el.offsetWidth ? box / el.offsetWidth : 1;
+      el.style.cssText = "flex: none; width: max-content; max-width: none";
+      const need = el.getBoundingClientRect().width / k - pad;
+      el.style.cssText = "";
+      const room = box / k - pad;
+      if (need > room + 0.1) el.style.fontSize = `${Math.max(min, (room / need) * 0.985) * parseFloat(cs.fontSize)}px`;
+    };
+    fit();
+    let live = true;
+    const again = () => live && fit();
+    void document.fonts?.ready.then(again);
+    document.fonts?.addEventListener?.("loadingdone", again);
+    return () => {
+      live = false;
+      document.fonts?.removeEventListener?.("loadingdone", again);
+    };
+  }, [text, min]);
+  return (
+    <span ref={ref} className={`st-fit ${className}`}>
+      {text}
+    </span>
+  );
+}
+
+/** A neutral mark for a team with neither a logo nor a usable tag (MatchFrame's own shield). */
+export function NeutralMark() {
+  return (
+    <svg className="st-logo-mark" viewBox="0 0 24 28" aria-hidden>
+      <path d="M12 1.5l9.5 3.5v8.5c0 6.2-4 10.6-9.5 13-5.5-2.4-9.5-6.8-9.5-13V5z" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
+      <path d="M7 14.5h10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** The team's tag in capitals (its short name, else its name), at most `max` characters; null when it has no letters or digits (a placeholder such as "?"). */
+export function teamTag(team: Pick<HudTeam, "shortName" | "name">, max: number): string | null {
+  const tag = (team.shortName || team.name || "").trim().slice(0, max).toUpperCase();
+  return /[\p{L}\p{N}]/u.test(tag) ? tag : null;
+}
+
+/**
+ * The team's logo; without one (or when it fails to load) its tag as a wordmark in Antonio, and a
+ * neutral shield when the tag has no letters or digits (a placeholder such as "?").
+ */
 export function TeamLogo({ team, className = "" }: { team: HudTeam; className?: string }) {
-  if (team.logoUrl) {
+  const [broken, setBroken] = useState<string | null>(null);
+  if (team.logoUrl && broken !== team.logoUrl) {
     return (
       <span className={`st-logo has-img ${className}`}>
-        <img src={team.logoUrl} alt="" />
+        <img src={team.logoUrl} alt="" onError={() => setBroken(team.logoUrl)} />
       </span>
     );
   }
-  const mark = (team.shortName || team.name).slice(0, 4).toUpperCase();
+  const mark = teamTag(team, 4);
+  if (!mark) {
+    return (
+      <span className={`st-logo is-neutral ${className}`}>
+        <NeutralMark />
+      </span>
+    );
+  }
   return (
     <span className={`st-logo ${className}`} data-len={Math.min(4, mark.length)}>
       {mark}

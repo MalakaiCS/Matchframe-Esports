@@ -3,6 +3,7 @@ import type { HudSeriesMap, HudState } from "@matchframe/hud-sdk";
 import { mapArt } from "../shared/art.ts";
 import { seriesWindow } from "../shared/format.ts";
 import { MapRadar } from "../shared/radar.tsx";
+import { NeutralMark, teamTag } from "./bits.tsx";
 import { colorOf, teamVars, type Settings } from "./util.ts";
 
 /** The strip's arrow before each map (MatchFrame's own chevron). */
@@ -28,7 +29,7 @@ function MapItem({ m, state, settings }: { m: HudSeriesMap; state: HudState; set
     <span className={`st-map is-${m.status} ${picture ? "has-image" : ""}`} style={{ ...(picker ? teamVars(colorOf(picker, settings)) : {}), ...picture }}>
       <Arrow />
       {picker ? (
-        <span className={`st-map-pick ${picker.logoUrl ? "has-img" : ""}`}>{picker.logoUrl ? <img src={picker.logoUrl} alt="" /> : (picker.shortName || picker.name).slice(0, 3).toUpperCase()}</span>
+        <span className={`st-map-pick ${picker.logoUrl ? "has-img" : ""}`}>{picker.logoUrl ? <img src={picker.logoUrl} alt="" /> : (teamTag(picker, 3) ?? <NeutralMark />)}</span>
       ) : m.pickedBy === "decider" ? (
         <span className="st-map-pick is-decider">DECIDER</span>
       ) : null}

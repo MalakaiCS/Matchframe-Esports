@@ -9,6 +9,8 @@
 // --backdrop <image> puts a picture behind the HUD instead of the gradient (e.g. a darkened game frame
 // for side-by-side comparisons; the picture stays wherever it is, it is only served to the page).
 // `?radar=mirage` pages get Mirage's real radar image from assets/radars at /demo-radar/.
+// --scenes <a,b,…> takes those scenes instead of the usual ten (e.g. --scenes edge,edgebomb,edgeboard,
+// the test states with long names, knives in hand, a team without a logo, paused data).
 // --icons <dir> serves an icon pack folder (an engine's <dataDir>/icon-pack: <name>.svg and pack.json)
 // at /icon-pack/ and tells the demo which icons there are (?iconpack=…), as a loaded icon pack would.
 import { createServer } from "node:http";
@@ -24,7 +26,10 @@ const backdropImage = bi >= 0 ? args[bi + 1] : null;
 const args1 = bi >= 0 ? [...args.slice(0, bi), ...args.slice(bi + 2)] : args;
 const ii = args1.indexOf("--icons");
 const icons = ii >= 0 ? args1[ii + 1] : null;
-const argsLeft = ii >= 0 ? [...args1.slice(0, ii), ...args1.slice(ii + 2)] : args1;
+const args2 = ii >= 0 ? [...args1.slice(0, ii), ...args1.slice(ii + 2)] : args1;
+const si = args2.indexOf("--scenes");
+const scenes = si >= 0 ? args2[si + 1].split(",") : ["freeze", "live", "kill", "plant", "bomb", "defuse", "over", "timeout", "mvp", "nocam"];
+const argsLeft = si >= 0 ? [...args2.slice(0, si), ...args2.slice(si + 2)] : args2;
 const radars = join(here, "..", "..", "..", "assets", "radars");
 const qi = argsLeft.indexOf("--query");
 const iconNames = icons ? JSON.parse(readFileSync(join(icons, "pack.json"), "utf8")).names : [];
@@ -71,7 +76,7 @@ if (rest[0] === "--replay") {
     }
   }
 } else if (!frames) {
-  for (const scene of ["freeze", "live", "kill", "plant", "bomb", "defuse", "over", "timeout", "mvp", "nocam"]) {
+  for (const scene of scenes) {
     await page.goto(`${base}?demo=${scene}${extra}`);
     await page.evaluate(backdrop);
     await page.waitForTimeout(1200);

@@ -53,7 +53,8 @@ const FuseText = memo(function FuseText({ sec, running, receivedAt }: { sec: num
   const now = useNow(100);
   const left = secondsLeft(sec, running, receivedAt, now);
   if (left === null) return <span className="st-fuse-text" />;
-  return <span className="st-fuse-text">{left < 10 ? left.toFixed(1) : Math.ceil(left)}</span>;
+  // m:ss like the round clock; tenths in the last ten seconds.
+  return <span className="st-fuse-text">{left < 10 ? left.toFixed(1) : `0:${String(Math.ceil(left)).padStart(2, "0")}`}</span>;
 });
 
 /** The fuse bar's fill, draining with the bomb (10 Hz); remembers where it stopped for the exit. */
@@ -226,9 +227,10 @@ export function ScoreBar({ state, receivedAt, settings, compact, boardOn }: { st
             <span className={`st-sb-round ${m.paused || m.phase === "paused" || m.phase.startsWith("timeout") ? "is-hold" : ""}`}>{roundLabel(state)}</span>
             <Clock sec={m.phaseEndsInSec} running={m.clockRunning && !m.paused} receivedAt={receivedAt} warn={m.phase === "live"} />
           </span>
+          {/* The bomb in the clock's place: its glyph where "ROUND n" sits, the fuse's countdown (or the state) where the clock sits. */}
           <span className="st-sb-bomb">
-            {mode !== "clock" ? <BombState state={mode === "bomb" ? "planted" : mode === "defuse" ? "defusing" : mode} size={28} /> : null}
-            {mode === "bomb" || mode === "defuse" ? b ? <FuseText sec={b.remainingSec} running={b.clockRunning} receivedAt={receivedAt} /> : null : <span className="st-sb-bomb-label">{mode === "planting" ? "PLANTING" : mode === "defused" ? "DEFUSED" : mode === "exploded" ? "EXPLODED" : ""}</span>}
+            <span className="st-sb-bomb-glyph">{mode !== "clock" ? <BombState state={mode === "bomb" ? "planted" : mode === "defuse" ? "defusing" : mode} size={18} /> : null}</span>
+            {mode === "bomb" || mode === "defuse" ? b ? <FuseText sec={b.remainingSec} running={b.clockRunning} receivedAt={receivedAt} /> : <span className="st-fuse-text" /> : <span className="st-sb-bomb-label">{mode === "planting" ? "PLANTING" : mode === "defused" ? "DEFUSED" : mode === "exploded" ? "EXPLODED" : ""}</span>}
           </span>
         </div>
       </div>

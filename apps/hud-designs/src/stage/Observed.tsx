@@ -3,9 +3,10 @@ import type { HudPlayer, HudState } from "@matchframe/hud-sdk";
 import { PlayerCam } from "../../../hud-renderer/src/components/PlayerCam.tsx";
 import { playerPicture } from "../shared/art.ts";
 import { Ammo as AmmoMark, Assists, Deaths, Health, Kills, Weapon } from "./icons.tsx";
-import { Photo } from "./bits.tsx";
+import { FitText, Photo } from "./bits.tsx";
 import { grenadeList, Nades } from "./Cards.tsx";
 import { DEMO, slotKey, teamVars } from "./util.ts";
+import { ammoWeapon } from "./weapons.ts";
 
 /** Demo pages show a stand-in cam, except the `nocam` scene (or `&cam=0`). */
 const Q = new URLSearchParams(location.search);
@@ -38,12 +39,12 @@ function CamPlaceholder({ picture }: { picture: string | null }) {
   );
 }
 
-/** The ammunition of the weapon in hand: clip, reserve and the weapon. */
+/** The ammunition of the weapon in hand when it has any, else of the main gun: clip, reserve and the weapon. */
 function Ammo({ p }: { p: HudPlayer }) {
-  const gun = p.activeWeapon;
+  const gun = ammoWeapon(p);
   if (!gun || gun.ammoClip === null) return null;
   return (
-    <span className="st-obs-stats">
+    <span className="st-obs-ammo">
       <AmmoMark size={16} />
       <b>{gun.ammoClip}</b>
       <span>/ {gun.ammoReserve ?? 0}</span>
@@ -85,15 +86,14 @@ export function Observed({ state, color, shown }: { state: HudState; color: stri
       {p ? (
         <div key={p.steamId} className="st-obs-main">
           {cam ? null : <Photo url={picture} className="st-obs-stand" />}
-          {nades ? (
-            <span className="st-obs-nades">
-              <Nades list={nades} size={18} />
-            </span>
-          ) : null}
-          <Ammo p={p} />
+          {/* Grenades on the left and ammunition on the right, on one line sitting on the bar. */}
+          <span className="st-obs-line">
+            <span className="st-obs-nades">{nades ? <Nades list={nades} size={18} /> : null}</span>
+            <Ammo p={p} />
+          </span>
           <div className="st-obs-bar">
             <span className="st-obs-slot">{slotKey(p.slot)}</span>
-            <span className={`st-obs-name ${p.name.length > 10 ? "is-long" : ""}`}>{p.name}</span>
+            <FitText text={p.name} className="st-obs-name" />
             <Kad p={p} />
             <span className={`st-obs-hp ${(p.health ?? 100) <= 20 ? "is-low" : ""}`}>
               <Health size={16} />

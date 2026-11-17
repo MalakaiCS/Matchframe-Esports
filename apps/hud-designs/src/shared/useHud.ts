@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { HudClient } from "@matchframe/hud-sdk";
 import type { HudState } from "@matchframe/hud-sdk";
-import { DEMO_PLAYS, DEMO_SCENES, demoReplay, demoScene as sampleScene, type DemoOptions, type DemoPlay, type DemoScene } from "./demo.ts";
+import { DEMO_PLAYS, DEMO_SCENES, DEMO_TEST_SCENES, demoReplay, demoScene as sampleScene, type DemoOptions, type DemoPlay, type DemoScene } from "./demo.ts";
 
 export interface HudFeed {
   state: HudState | null;
@@ -31,7 +31,7 @@ const demoState = (s: string): HudState => (s.startsWith("replay") ? replayScene
  * state is shown instead (thumbnails, development, checking the animations).
  */
 export function useHud(): HudFeed {
-  const scene = DEMO === "replay" ? "replay" : ((DEMO && DEMO !== "cycle" && (DEMO_SCENES as readonly string[]).includes(DEMO) ? DEMO : DEMO === "1" ? "live" : null) as DemoScene | null);
+  const scene = DEMO === "replay" ? "replay" : ((DEMO && DEMO !== "cycle" && ([...DEMO_SCENES, ...DEMO_TEST_SCENES] as readonly string[]).includes(DEMO) ? DEMO : DEMO === "1" ? "live" : null) as DemoScene | null);
   const [feed, setFeed] = useState<HudFeed>(() => (scene ? { state: demoState(scene), receivedAt: performance.now(), connected: true } : DEMO === "cycle" ? { state: demoScene(DEMO_SCENES[0]), receivedAt: performance.now(), connected: true } : { state: null, receivedAt: 0, connected: false }));
   useEffect(() => {
     // Demo pages can be switched to another scene (or `replay:<play>`) from outside (scripts/shots.mjs records the animations).

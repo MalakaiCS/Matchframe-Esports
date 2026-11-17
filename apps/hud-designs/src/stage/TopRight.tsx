@@ -1,6 +1,7 @@
 import { memo, useRef } from "react";
 import type { HudKillfeedEntry, HudState } from "@matchframe/hud-sdk";
 import { useNow } from "../shared/useHud.ts";
+import { FitText } from "./bits.tsx";
 import { Blinded, DeadMark, Headshot, Weapon } from "./icons.tsx";
 import { DEMO, type Settings } from "./util.ts";
 
@@ -36,7 +37,7 @@ function Kill({ k, leaving }: { k: HudKillfeedEntry; leaving: boolean }) {
     <div className={`mf-kill mf-kill-${k.kind} ${killer ? `by-${killer.side ?? "none"}` : ""} ${leaving ? "is-leaving" : ""}`} data-kill={k.kind}>
       {killer ? (
         <span className="mf-kill-killer">
-          <span className={`mf-kill-name mf-side-${killer.side ?? "none"}`}>{killer.name}</span>
+          <FitText text={killer.name} className={`mf-kill-name mf-side-${killer.side ?? "none"}`} />
           {k.assister ? (
             <span className={`mf-kill-assist mf-side-${k.assister.side ?? "none"}`}>
               <span aria-hidden>+</span>
@@ -50,7 +51,7 @@ function Kill({ k, leaving }: { k: HudKillfeedEntry; leaving: boolean }) {
         {k.weapon && killer && k.kind !== "elimination" ? <Weapon weapon={k.weapon} kill className="mf-kill-weapon" /> : <DeadMark size={18} />}
         {k.headshot ? <Headshot size={18} className="mf-kill-mod" /> : null}
       </span>
-      <span className={`mf-kill-name mf-kill-victim mf-side-${k.victim.side ?? "none"}`}>{k.victim.name}</span>
+      <FitText text={k.victim.name} className={`mf-kill-name mf-kill-victim mf-side-${k.victim.side ?? "none"}`} />
     </div>
   );
 }
