@@ -11,26 +11,47 @@ const uri = (svg: string): string => `data:image/svg+xml;charset=utf-8,${encodeU
 const SKIN = ["#efcfb6", "#d9a982", "#bf8a63", "#8e5d3e", "#e6bd9c"];
 const HAIR = ["#2b1d14", "#6b4a2b", "#14110f", "#a8743a", "#3a2a20"];
 
-/** A generic head-and-shoulders figure in the side's jersey; `n` varies skin, hair and cut. */
+/** Darker or lighter shade of a #rrggbb colour (`f` < 1 darkens, > 1 lightens towards white). */
+function shade(hex: string, f: number): string {
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const out = c.map((v) => Math.round(f < 1 ? v * f : v + (255 - v) * (f - 1)));
+  return `#${out.map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/**
+ * A generic head-and-shoulders portrait in the side's jersey (a drawing, no real person): shaded
+ * face with simple features, ears, neck shadow, hair, a collared jersey; `n` varies skin, hair and cut.
+ */
 function figure(side: "ct" | "t", n: number): string {
-  const jersey = side === "ct" ? ["#1f5fbf", "#2f7fe6"] : ["#b0283a", "#e04256"];
-  const trim = side === "ct" ? "#bcd6ff" : "#ffd0d6";
+  const jersey: [string, string] = side === "ct" ? ["#173f8c", "#2a64c8"] : ["#8e1f2e", "#cf3a4c"];
+  const trim = side === "ct" ? "#d7e6ff" : "#ffe1e5";
   const skin = SKIN[n % SKIN.length]!;
   const hair = HAIR[n % HAIR.length]!;
+  const dark = shade(skin, 0.78);
   const cuts = [
-    `<path d="M41 40c0-17 9-25 19-25s19 8 19 25c-3-7-9-11-19-11s-16 4-19 11z" fill="${hair}"/>`,
-    `<path d="M40 44c-1-19 8-29 21-29 12 0 20 8 20 22-6-4-12-10-16-14-5 9-14 15-25 21z" fill="${hair}"/>`,
-    `<path d="M42 36c2-13 9-19 18-19s16 6 18 19c-5-4-11-6-18-6s-13 2-18 6z" fill="${hair}" opacity="0.85"/>`,
-    `<path d="M39 42c-3-12 2-27 21-27s24 15 21 27c-2-5-4-9-6-11-4 3-9 4-15 4s-11-1-15-4c-2 2-4 6-6 11z" fill="${hair}"/>`,
-    `<path d="M38 38c0-16 10-25 22-25s22 9 22 25v3H38z" fill="${jersey[0]}"/><rect x="38" y="35" width="44" height="6" rx="3" fill="${trim}"/>`,
+    `<path d="M40 44c-1-19 9-28 20-28s21 9 20 28c-3-8-8-13-20-13s-17 5-20 13z" fill="url(#h)"/>`,
+    `<path d="M39 46c-2-21 8-31 22-31 13 0 21 9 21 24-6-5-12-11-16-15-5 9-14 15-27 22z" fill="url(#h)"/>`,
+    `<path d="M41 39c2-14 9-21 19-21s17 7 19 21c-5-5-11-7-19-7s-14 2-19 7z" fill="url(#h)" opacity="0.9"/>`,
+    `<path d="M38 45c-3-13 2-29 22-29s25 16 22 29c-2-6-4-10-6-12-4 3-9 5-16 5s-12-2-16-5c-2 2-4 6-6 12z" fill="url(#h)"/>`,
+    `<path d="M37 40c0-17 10-26 23-26s23 9 23 26v3H37z" fill="${jersey[0]}"/><rect x="37" y="37" width="46" height="6" rx="3" fill="${trim}"/>`,
   ];
   return uri(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140">` +
-      `<defs><linearGradient id="j" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${jersey[1]}"/><stop offset="1" stop-color="${jersey[0]}"/></linearGradient></defs>` +
-      `<path d="M2 140c0-30 12-44 34-50l14-5h20l14 5c22 6 34 20 34 50z" fill="url(#j)"/>` +
-      `<path d="M48 85l12 16 12-16" fill="none" stroke="${trim}" stroke-width="4"/>` +
-      `<path d="M50 66h20v18c-5 6-15 6-20 0z" fill="${skin}" opacity="0.85"/>` +
-      `<ellipse cx="60" cy="47" rx="19" ry="24" fill="${skin}"/>` +
+      `<defs>` +
+      `<linearGradient id="j" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${jersey[1]}"/><stop offset="1" stop-color="${jersey[0]}"/></linearGradient>` +
+      `<radialGradient id="f" cx="0.42" cy="0.38" r="0.7"><stop offset="0" stop-color="${shade(skin, 1.08)}"/><stop offset="0.7" stop-color="${skin}"/><stop offset="1" stop-color="${dark}"/></radialGradient>` +
+      `<linearGradient id="h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${shade(hair, 1.25)}"/><stop offset="1" stop-color="${hair}"/></linearGradient>` +
+      `</defs>` +
+      `<path d="M0 140c0-31 13-45 35-51l15-5h20l15 5c22 6 35 20 35 51z" fill="url(#j)"/>` +
+      `<path d="M14 140c2-20 8-31 18-37M106 140c-2-20-8-31-18-37" stroke="${shade(jersey[0], 0.75)}" stroke-width="5" fill="none"/>` +
+      `<path d="M49 66h22v17c-6 7-16 7-22 0z" fill="${dark}"/>` +
+      `<path d="M46 84l14 17 14-17" fill="none" stroke="${trim}" stroke-width="5"/>` +
+      `<ellipse cx="41" cy="50" rx="4" ry="6" fill="${dark}"/><ellipse cx="79" cy="50" rx="4" ry="6" fill="${dark}"/>` +
+      `<ellipse cx="60" cy="47" rx="19" ry="24" fill="url(#f)"/>` +
+      `<path d="M49 42q4-2 8 0M63 42q4-2 8 0" stroke="${shade(hair, 0.9)}" stroke-width="2.2" fill="none" stroke-linecap="round"/>` +
+      `<ellipse cx="53" cy="48" rx="2.2" ry="1.6" fill="#2a2420"/><ellipse cx="67" cy="48" rx="2.2" ry="1.6" fill="#2a2420"/>` +
+      `<path d="M60 49v8l-3 2" stroke="${dark}" stroke-width="1.8" fill="none" stroke-linecap="round"/>` +
+      `<path d="M54 63q6 3 12 0" stroke="${shade(skin, 0.6)}" stroke-width="2" fill="none" stroke-linecap="round"/>` +
       cuts[n % cuts.length] +
       `</svg>`,
   );
@@ -118,21 +139,69 @@ const SPOTS: [number, number, number][] = [
   [0.24, 0.48, 10],
 ];
 
-/** The demo radar: every player of the scene on the clean radar, the bomb where it lies. */
-export function demoRadar(players: { steamId: string; side: "CT" | "T" | null; alive: boolean | null; observed: boolean; slot: number | null; flashed: number | null; hasBomb: boolean }[], bomb: { state: string } | null): HudRadar {
+/**
+ * Where the demo's players stand on Mirage's real radar image (`assets/radars/de_mirage.png`, 0–1
+ * of the 1024 px image: A site, CT spawn, window, B site, short; T ramp, palace, apartments, top
+ * mid, underpass), with the bomb on A.
+ */
+const MIRAGE_SPOTS: [number, number, number][] = [
+  [0.55, 0.77, 120],
+  [0.35, 0.72, 40],
+  [0.4, 0.52, 10],
+  [0.23, 0.29, 300],
+  [0.31, 0.5, 280],
+  [0.82, 0.36, 200],
+  [0.7, 0.74, 180],
+  [0.65, 0.19, 190],
+  [0.62, 0.43, 170],
+  [0.5, 0.26, 230],
+];
+
+/**
+ * The demo radar: every player of the scene on the made-up clean radar, or with `mirage` on Mirage's
+ * real radar image (served at /demo-radar/ by scripts/shots.mjs and thumbnail.mjs, not part of any
+ * package), the bomb where it lies.
+ */
+export function demoRadar(players: { steamId: string; side: "CT" | "T" | null; alive: boolean | null; observed: boolean; slot: number | null; flashed: number | null; hasBomb: boolean }[], bomb: { state: string } | null, mirage = false): HudRadar {
+  const spots = mirage ? MIRAGE_SPOTS : SPOTS;
+  const image = mirage ? "/demo-radar/de_mirage.png" : CLEAN_RADAR;
   return {
     available: true,
     reason: null,
     mapName: "de_mirage",
     mode: "image",
     calibrationVerified: true,
-    backgroundUrl: CLEAN_RADAR,
-    cleanUrl: CLEAN_RADAR,
+    backgroundUrl: image,
+    cleanUrl: mirage ? null : CLEAN_RADAR,
     players: players.map((p, i) => {
-      const [u, v, yaw] = SPOTS[i % SPOTS.length]!;
+      const [u, v, yaw] = spots[i % spots.length]!;
       return { id: p.steamId, u, v, side: p.side, alive: p.alive !== false, observed: p.observed, levelId: null, label: p.slot === null ? null : String(p.slot), yawDeg: yaw, flashed: (p.flashed ?? 0) > 0, hasBomb: p.hasBomb };
     }),
-    bomb: bomb && bomb.state !== "carried" ? { u: 0.8, v: 0.28, state: bomb.state } : null,
-    utility: [{ id: "u1", type: "smoke", u: 0.56, v: 0.36, phase: "active", side: "CT", evidence: "observed", radius: 0.035 }],
+    bomb: bomb && bomb.state !== "carried" ? (mirage ? { u: 0.56, v: 0.76, state: bomb.state } : { u: 0.8, v: 0.28, state: bomb.state }) : null,
+    utility: [mirage ? { id: "u1", type: "smoke", u: 0.45, v: 0.47, phase: "active", side: "CT", evidence: "observed", radius: 0.03 } : { id: "u1", type: "smoke", u: 0.56, v: 0.36, phase: "active", side: "CT", evidence: "observed", radius: 0.035 }],
   };
 }
+
+/**
+ * A made-up sponsor for the demo (`?sponsor=1`): an invented wordmark, SAMPLE CO, drawn here: a
+ * small plate for the top bar and a banner for the scoreboard slot. Not a real brand.
+ */
+const SAMPLE_MARK = `<g transform="translate(0 0)"><path d="M0 22L14 0h12L12 22z" fill="#ff7a1a"/><path d="M14 22L28 0h12L26 22z" fill="#ffb21a"/></g>`;
+export const SAMPLE_SPONSOR_PLATE = uri(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 190 44">` +
+    `<g transform="translate(6 11)">${SAMPLE_MARK}</g>` +
+    `<text x="54" y="31" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-style="italic" font-size="25" letter-spacing="1" fill="#ffffff">SAMPLE</text>` +
+    `<text x="160" y="31" font-family="Arial, sans-serif" font-weight="700" font-size="14" fill="#ffb21a">CO</text>` +
+    `</svg>`,
+);
+export const SAMPLE_SPONSOR_BANNER = uri(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 192">` +
+    `<defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#121a2c"/><stop offset="1" stop-color="#2a1d14"/></linearGradient></defs>` +
+    `<rect width="600" height="192" fill="url(#b)"/>` +
+    `<path d="M380 192L470 0h40l-90 192zM450 192L540 0h26l-90 192z" fill="#ff7a1a" opacity="0.18"/>` +
+    `<g transform="translate(70 70) scale(2.2)">${SAMPLE_MARK}</g>` +
+    `<text x="178" y="117" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-style="italic" font-size="58" letter-spacing="2" fill="#ffffff">SAMPLE</text>` +
+    `<text x="182" y="146" font-family="Arial, sans-serif" font-weight="700" font-size="18" letter-spacing="6" fill="#ffb21a">CO · OFFICIAL PARTNER</text>` +
+    `</svg>`,
+);
+

@@ -43,7 +43,7 @@ function HeaderSide({ state, team, align, color }: { state: HudState; team: HudT
       <Stat label="LOSS BONUS">
         <Cash value={bonus} />
       </Stat>
-      <Stat label="TIMEOUTS LEFT">
+      <Stat label="TIMEOUTS REMAINING">
         <TimeoutPips left={team.timeoutsRemaining} />
       </Stat>
       <span className="st-board-logo">
@@ -97,25 +97,6 @@ function Rows({ state, team, align, color }: { state: HudState; team: HudTeam; a
   );
 }
 
-/**
- * The team's coach over its end of the bar (from the team's roster): a COACH tag, their photo and
- * name. Never a voice or mute indicator: Team Comms rules keep individual comms off air.
- */
-function Coach({ team, align, color }: { team: HudTeam; align: "left" | "right"; color: string }) {
-  if (!team.coach) return null;
-  return (
-    <div className={`st-coach st-coach-${align}`} style={teamVars(color)}>
-      <span className="st-coach-tag">COACH</span>
-      <span className="st-coach-row">
-        <span className="st-coach-pic">
-          <Photo url={team.coach.avatarUrl} />
-        </span>
-        <span className="st-coach-name">{team.coach.name}</span>
-      </span>
-    </div>
-  );
-}
-
 /** The timeout's seconds left, counting down locally (4 Hz). */
 const TimeoutSeconds = memo(function TimeoutSeconds({ sec, running, receivedAt }: { sec: number | null; running: boolean; receivedAt: number }) {
   const now = useNow(250);
@@ -148,9 +129,8 @@ function TimeoutCallout({ state, receivedAt, settings }: { state: HudState; rece
 /**
  * Freeze time, timeouts and other breaks in play: a full-width bar along the bottom. The header has
  * each team's equipment value, loss bonus, timeouts left, logo, tag, series boxes and score; under
- * it each team's players with their gear and money, and the scoreboard sponsor in the middle; each
- * team's coach over its end. Individual players' or coaches' voice or mute state is never shown
- * (Team Comms rules).
+ * it each team's players with their gear and money, and the scoreboard sponsor in the middle.
+ * Individual players' voice or mute state is never shown (Team Comms rules).
  */
 export function Scoreboard({ state, receivedAt, settings, shown }: { state: HudState; receivedAt: number; settings: Settings; shown: boolean }) {
   const left = colorOf(state.left, settings);
@@ -158,8 +138,6 @@ export function Scoreboard({ state, receivedAt, settings, shown }: { state: HudS
   return (
     <div className={`st-board ${shown ? "is-on" : ""}`} aria-hidden={!shown}>
       {shown ? <TimeoutCallout state={state} receivedAt={receivedAt} settings={settings} /> : null}
-      <Coach team={state.left} align="left" color={left} />
-      <Coach team={state.right} align="right" color={right} />
       <div className="st-board-header">
         <HeaderSide state={state} team={state.left} align="left" color={left} />
         <span className="st-board-vs">VS</span>

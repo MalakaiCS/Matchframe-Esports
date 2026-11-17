@@ -25,7 +25,8 @@ MatchFrame Esports is original software. This file lists third-party components 
 | react, react-dom, scheduler | 19.3.1, 19.3.1, 0.28.0 | MIT | HUD renderer, operator UI |
 | country-flag-icons | 1.5.21 | MIT (© 2020 @catamphetamine) | Operator console: country flags (SVG files) in the team and player lists and country pickers |
 | @fontsource/inter | 5.3.0 | OFL-1.1 (font: Inter, © The Inter Project Authors) | HUD renderer; Vector HUD |
-| @fontsource/barlow-condensed | 5.3.0 | OFL-1.1 (font: Barlow, © The Barlow Project Authors) | HUD renderer (Arena preset); operator console (match thumbnails and stingers); Lineup and Stage HUDs |
+| @fontsource/barlow-condensed | 5.3.0 | OFL-1.1 (font: Barlow, © The Barlow Project Authors) | HUD renderer (Arena preset); operator console (match thumbnails and stingers); Lineup HUD |
+| @fontsource/antonio | 5.3.0 | OFL-1.1 (font: Antonio, © 2013 The Antonio Project Authors) | Stage HUD |
 | Electron | 44.9.3 | MIT (bundles Chromium and Node.js; their licences ship in `LICENSES.chromium.html` / `LICENSE` inside the Electron distribution) | Desktop shell |
 | koffi (optional, Windows keyboard adapter) | not bundled by default | MIT | Observer keyboard fallback |
 | grandi | 2.0.2 | Apache-2.0 (`NOTICE`: derived from Streampunk's Grandiose, © 2018 Streampunk Media Ltd., and community forks) | Replay feed: receiving the replay PC's screen over NDI (in the feed's own process); Team Comms: sending two audio-only NDI sources, "MatchFrame Comms" and "MatchFrame Comms Recording" (in their own process) |
@@ -50,7 +51,7 @@ The program ships MatchFrame's own TeamSpeak 3 client plugin (`native/ts3-matchf
 |---|---|---|
 | MatchFrame Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2`) | Original code and artwork; weapon icons from the CS2 HUD template below (`images/weapons`); Inter font files | Code MIT; weapon icons MIT (`third-party-licenses/weapon-icons-MIT.txt`); Inter SIL OFL 1.1 (`fonts/OFL.txt`) |
 | MatchFrame Pro CS2 HUD (`apps/hud-template`) | Adapted from the CS2 HUD template below; Montserrat font files | Template code MIT (`third-party-licenses/hud-template-MIT.txt`); MatchFrame's changes MIT; Montserrat SIL OFL 1.1 (© 2011 The Montserrat Project Authors) |
-| MatchFrame Vector, Lineup and Stage HUDs (`apps/hud-designs`) | Original MatchFrame code; weapon icons from the CS2 HUD template below (shared with the HUD renderer); Montserrat and Inter font files (Vector), Barlow Condensed font files (Lineup, Stage) | Code MIT; weapon icons MIT (`third-party-licenses/weapon-icons-MIT.txt` in each package); fonts SIL OFL 1.1 (`OFL-fonts.txt` in each package; Vector also `OFL-Montserrat.txt`) |
+| MatchFrame Vector, Lineup and Stage HUDs (`apps/hud-designs`) | Original MatchFrame code; weapon icons from the CS2 HUD template below (shared with the HUD renderer); Montserrat and Inter font files (Vector), Barlow Condensed font files (Lineup), Antonio font files (Stage) | Code MIT; weapon icons MIT (`third-party-licenses/weapon-icons-MIT.txt` in each package); fonts SIL OFL 1.1 (`OFL-fonts.txt` in each package; Vector also `OFL-Montserrat.txt`, Stage `OFL-Antonio.txt`) |
 
 ## Counter-Strike 2 icons (not shipped)
 

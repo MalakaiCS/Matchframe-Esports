@@ -1856,3 +1856,16 @@ In both, the frames' stamps are 16.67 ms apart (ffmpeg's constant rate before, t
 
 **Not checked.** Get CS2 icons against GitHub itself from this environment (it was exercised against a stand-in server); the program's folder picker for the icon pack on Windows.
 
+## ADR-075 — Stage HUD third pass: royal-blue panels, plain rectangles, a tall condensed face
+
+**Context.** After ADR-073 the owner said: "I don't need the coach in the baseboard. And it's still nowhere near being close to the [reference] one." The biggest gap was the neutral panels' colour (theirs bright royal blue, ours dark navy), then the shapes (theirs plain rectangles, ours chamfered) and the typeface.
+
+**Decision.**
+- **Colour:** the neutral panels are a flat royal blue of MatchFrame's own: #1d449a to #163780 top to bottom, event band #15357f, killfeed rows rgba(26, 63, 143, 0.9). Measured from the frames, the reference's base is a deeper, textured ultramarine (about #021c74 with highlights to #1b34af); ours is lighter, slightly more cyan and flat, with no texture or pattern. A **Panel colour** setting keeps dark navy available. Cards stay in the side colours; the CT and T defaults moved to #3d7ee6 and #e6b83a, so the shaded fills (60 % into navy) land near the reference's royal blue and olive gold; tabs, slot strips and score bars use a pale tint (62 % towards white), as theirs do.
+- **Shapes:** every chamfer and angled cut removed; panels are rectangles. Dead cards still shrink, with `clip-path: inset()`.
+- **Score bar and scoreboard** rebuilt to the measured sizes (see the changelog); the series boxes are small upright bars; labels as theirs: EQUIPMENT VALUE, LOSS BONUS, TIMEOUTS REMAINING; scoreboard rows as dark cells with green money; the scoreboard sponsor fills its block.
+- **Typography:** rendered next to the reference's lettering, Antonio (OFL) was the closest of Barlow Condensed, Oswald, Teko, Bebas Neue and Antonio: tall, narrow, flat-sided digits. Weights 500 to 700, bundled with its licence (`OFL-Antonio.txt`).
+- **Coach:** not drawn; `HudTeam.coach` remains in the state (harmless, other HUDs may use it).
+- **Comparisons:** demo pages can place players on Mirage's real radar image (`?radar=mirage`; MIT, already shipped with the program; served by the screenshot scripts, never packaged), show a made-up sponsor (SAMPLE CO, drawn here) and better placeholder portraits. Side-by-side renders use a blurred, darkened game frame as their background, kept outside the repository; the committed renders and the thumbnail use the scripts' own gradient.
+- **Unchanged line:** no organiser or sponsor names or logos, no trophy or emblem, no texture artwork, no traced artwork; own icons, the owner's icon set and the MIT weapon icons.
+

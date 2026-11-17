@@ -10,7 +10,7 @@ MatchFrame opens into the **HUD Library**: the HUDs installed on this computer, 
    - the **MatchFrame Broadcast HUD** (built in);
    - the **MatchFrame Sample CS2 HUD**, a small package to copy and learn from;
    - the **Pro CS2 HUD**, a full broadcast HUD adapted from an open-source CS2 React HUD template (its source in `apps/hud-template` is a starter kit for your own);
-   - **Vector**, **Lineup** and **Stage**, MatchFrame's own broadcast HUDs. Vector puts the teams in columns at the sides; Lineup puts all ten players in one row along the bottom; Stage has a tournament-stage layout: five player cards filled with the side colour in each bottom corner, the round MVP's tall card, the observed player's cam (or picture) between them, the series strip over the minimap, and a full-width scoreboard with each team's economy, loss bonus, timeouts and coach in freeze time and timeouts. Their source is in `apps/hud-designs`.
+   - **Vector**, **Lineup** and **Stage**, MatchFrame's own broadcast HUDs. Vector puts the teams in columns at the sides; Lineup puts all ten players in one row along the bottom; Stage has a tournament-stage layout on royal-blue panels: five player cards filled with the side colour in each bottom corner, the round MVP's tall card, the observed player's cam (or picture) between them, the series strip over the minimap, and a full-width scoreboard with each team's economy, loss bonus and timeouts in freeze time and timeouts. Their source is in `apps/hud-designs`.
 
      ![Vector HUD](../screenshots/hud/hud-vector.jpg)
      ![Lineup HUD](../screenshots/hud/hud-lineup.jpg)

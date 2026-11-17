@@ -44,16 +44,33 @@
     "ctColor": {
       "type": "color",
       "label": "CT colour",
-      "default": "#3f9cf0",
+      "default": "#3d7ee6",
       "group": "Look",
       "description": "Colour of the team on CT, unless the team has its own colour."
     },
     "tColor": {
       "type": "color",
       "label": "T colour",
-      "default": "#efb236",
+      "default": "#e6b83a",
       "group": "Look",
       "description": "Colour of the team on T, unless the team has its own colour."
+    },
+    "panelColor": {
+      "type": "select",
+      "label": "Panel colour",
+      "default": "blue",
+      "options": [
+        {
+          "value": "blue",
+          "label": "Royal blue"
+        },
+        {
+          "value": "navy",
+          "label": "Dark navy"
+        }
+      ],
+      "group": "Look",
+      "description": "The score bar, event line, series strip, scoreboard header and killfeed."
     },
     "teamNames": {
       "type": "select",

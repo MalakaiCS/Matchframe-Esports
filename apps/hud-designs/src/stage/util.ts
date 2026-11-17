@@ -4,8 +4,10 @@ import { isLive, teamColor } from "../shared/format.ts";
 
 /** The manifest's settings defaults (settingsSchema in package-files/stage/manifest.json). */
 export const DEFAULTS = {
-  ctColor: "#3f9cf0",
-  tColor: "#efb236",
+  ctColor: "#3d7ee6",
+  tColor: "#e6b83a",
+  /** The neutral panels (score bar, event line, series strip, scoreboard header, killfeed): royal blue or dark navy. */
+  panelColor: "blue" as "blue" | "navy",
   teamNames: "full" as "full" | "short",
   eventTitle: "",
   stageTitle: "",
@@ -35,6 +37,7 @@ export function readSettings(s: Record<string, unknown>): Settings {
   return {
     ctColor: color("ctColor"),
     tColor: color("tColor"),
+    panelColor: s.panelColor === "navy" ? "navy" : "blue",
     teamNames: s.teamNames === "short" ? "short" : "full",
     eventTitle: str("eventTitle"),
     stageTitle: str("stageTitle"),
@@ -101,6 +104,8 @@ export const teamVars = (color: string): CSSProperties =>
     "--st-team-lit": mix(color, NAVY, 0.74),
     "--st-team-dark": mix(color, NAVY, 0.34),
     "--st-team-light": mix(color, "#ffffff", 0.72),
+    "--st-team-pale": mix(color, "#ffffff", 0.62),
+    "--st-team-pale-ink": inkOn(mix(color, "#ffffff", 0.62)),
   }) as CSSProperties;
 
 /** The name a team shows: its tag with "Team names: short", else its full name. */

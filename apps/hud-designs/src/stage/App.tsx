@@ -53,21 +53,19 @@ export default function App() {
   const observedColor = state.observed ? colorOf(state.right.players.some((p) => p.steamId === state.observed!.steamId) ? state.right : state.left, settings) : settings.ctColor;
   const ct = sideColor(state, settings, "CT");
   const t = sideColor(state, settings, "T");
-  // Killfeed rows are tinted with the killer's side colour; names in light tints of theirs.
+  // Killfeed names in light tints of their sides' colours.
   const vars = {
     transform: `scale(${scale})`,
     "--st-ct": settings.ctColor,
     "--st-t": settings.tColor,
     "--radar-ct": ct,
     "--radar-t": t,
-    "--st-kill-ct": mix(ct, "#0a1222", 0.5),
-    "--st-kill-t": mix(t, "#0a1222", 0.46),
     "--st-name-ct": mix(ct, "#ffffff", 0.55),
     "--st-name-t": mix(t, "#ffffff", 0.6),
   } as CSSProperties;
   return (
     <IconPackProvider pack={state.art.iconPack}>
-      <div className={`st-stage ${board ? "is-board" : "is-live"} ${compact ? "is-compact" : ""} ${state.stale ? "is-stale" : ""}`} style={vars} data-phase={phase}>
+      <div className={`st-stage panel-${settings.panelColor} ${board ? "is-board" : "is-live"} ${compact ? "is-compact" : ""} ${state.stale ? "is-stale" : ""}`} style={vars} data-phase={phase}>
         {compact ? null : <TopLeft state={state} settings={settings} />}
         <ScoreBar state={state} receivedAt={receivedAt} settings={settings} compact={compact} boardOn={board && settings.showScoreboard && !compact} />
         <TopRight state={state} settings={settings} compact={compact} />

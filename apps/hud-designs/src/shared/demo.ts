@@ -1,5 +1,5 @@
 import type { HudKillfeedEntry, HudPlayer, HudSeriesMap, HudSide, HudState, HudTeam, HudWeapon } from "@matchframe/hud-sdk";
-import { demoArt, demoRadar, NO_ART } from "./demoArt.ts";
+import { demoArt, demoRadar, NO_ART, SAMPLE_SPONSOR_BANNER, SAMPLE_SPONSOR_PLATE } from "./demoArt.ts";
 
 /**
  * Built-in sample states (fictional teams and players) for `?demo=<scene>`: thumbnails,
@@ -16,8 +16,11 @@ export type DemoScene = (typeof DEMO_SCENES)[number];
 export interface DemoOptions {
   bestOf?: number;
   art?: boolean;
-  radar?: boolean;
+  /** A sample radar: the made-up clean one, or Mirage's real radar image (`?radar=mirage`, served by the screenshot scripts). */
+  radar?: boolean | "mirage";
   logo?: boolean;
+  /** The made-up SAMPLE CO sponsor in the top bar and scoreboard slots (`?sponsor=1`). */
+  sponsor?: boolean;
   /** Icon names of an icon pack served at /icon-pack/ (`?iconpack=ak47,awp,…`; scripts/shots.mjs --icons). */
   iconPack?: string[];
 }
@@ -166,10 +169,8 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
   const series = demoSeries([1, 3, 5, 7].includes(opts.bestOf ?? 3) ? (opts.bestOf ?? 3) : 3, [scoreLeft, 7]);
   if (opts.bestOf && ![1, 3, 5, 7].includes(opts.bestOf)) series.bestOf = opts.bestOf;
   const art = { ...(opts.art ? demoArt() : NO_ART), iconPack: opts.iconPack?.length ? { names: opts.iconPack, base: "/icon-pack/" } : null };
-  // Made-up coaches (with the sample pictures under ?art=1).
-  const coach = (name: string, side: "ct" | "t") => ({ name, avatarUrl: art.defaultPlayers[side][4] ?? null });
-  const left = { ...team("left", L, "Northern Lights", "NRL", scoreLeft, 0, ct, coach("meridian", L === "CT" ? "ct" : "t")), seriesWins: series.left, logoUrl: opts.logo ? demoLogo("left") : null };
-  const right = { ...team("right", R, "Red Harbour", "RHB", 7, scene === "timeout" || scene === "mvp" ? 3 : 2, t, coach("quill", R === "CT" ? "ct" : "t")), seriesWins: series.right, logoUrl: opts.logo ? demoLogo("right") : null, timeoutsRemaining: scene === "timeout" || scene === "mvp" ? 2 : 3 };
+  const left = { ...team("left", L, "Northern Lights", "NRL", scoreLeft, 0, ct), seriesWins: series.left, logoUrl: opts.logo ? demoLogo("left") : null };
+  const right = { ...team("right", R, "Red Harbour", "RHB", 7, scene === "timeout" || scene === "mvp" ? 3 : 2, t), seriesWins: series.right, logoUrl: opts.logo ? demoLogo("right") : null, timeoutsRemaining: scene === "timeout" || scene === "mvp" ? 2 : 3 };
   const live = !(scene === "freeze" || scene === "over" || scene === "timeout");
   // Round 17's key player, kept from its end: nova's two kills and the defuse round's damage.
   const nova = ct[0]!;
@@ -190,10 +191,10 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     bomb,
     roundHistory,
     killfeed: { mode: "exact", entries: feed },
-    radar: opts.radar ? demoRadar([...ct, ...t], bomb) : { available: false, reason: "demo", mapName: "de_mirage", mode: "none", calibrationVerified: false, backgroundUrl: null, cleanUrl: null, players: [], bomb: null, utility: [] },
+    radar: opts.radar ? demoRadar([...ct, ...t], bomb, opts.radar === "mirage") : { available: false, reason: "demo", mapName: "de_mirage", mode: "none", calibrationVerified: false, backgroundUrl: null, cleanUrl: null, players: [], bomb: null, utility: [] },
     series,
     event: { name: "MatchFrame Invitational", logoUrl: null, primary: "#5ab8f4", secondary: "#f0c941" },
-    sponsors: {},
+    sponsors: opts.sponsor ? { top_bar: { sponsorId: "sample", name: "SAMPLE CO", assetUrl: SAMPLE_SPONSOR_PLATE, untilMs: 0 }, scoreboard_slot: { sponsorId: "sample", name: "SAMPLE CO", assetUrl: SAMPLE_SPONSOR_BANNER, untilMs: 0 } } : {},
     cues: [],
     replay: { active: false, label: null, clip: null },
     annotations: [],

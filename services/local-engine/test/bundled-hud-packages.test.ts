@@ -56,6 +56,8 @@ describe("bundled HUD packages", () => {
     expect(pngs.length).toBeGreaterThanOrEqual(60);
     for (const name of ["ak47", "m4a1_silencer", "kills", "deaths", "bomb_planted", "timeout"]) expect(pngs.some((f) => f.startsWith(`assets/${name}-`))).toBe(true);
     expect(files.filter((f) => f.endsWith(".svg") && !f.startsWith("assets/"))).toEqual([]);
+    // Its own font's licence (Antonio, SIL OFL 1.1).
+    expect(files).toContain("OFL-Antonio.txt");
   });
 
   it("the Stage HUD's manifest and page: id, name, author, variants, sponsors permission and player cams", () => {

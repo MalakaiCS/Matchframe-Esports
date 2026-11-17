@@ -1,7 +1,8 @@
 /* Stage HUD: a tournament-stage layout (series and minimap top left, score bar top centre, sponsor
    and killfeed top right, five cards in each bottom corner, the observed player's cam between
-   them, a full-width scoreboard in freeze time). MatchFrame's own look: flat deep-navy panels with
-   chamfered corners, CS side colours (CT blue, T gold) or the teams' own, Barlow Condensed.
+   them, a full-width scoreboard in freeze time). Plain rectangles; the neutral panels flat royal
+   blue in MatchFrame's own shade (or dark navy: setting "Panel colour"), the cards in the CS side
+   colours (CT blue, T gold) or the teams' own; Antonio, a tall condensed face.
    Positions are on the 1920×1080 stage; motion uses transform, opacity and clip-path only. */
 :root {
   --st-ct: #3f9cf0;
@@ -19,7 +20,7 @@
   --st-dead: rgba(44, 48, 56, 0.9);
   --st-out: cubic-bezier(0.2, 0.8, 0.25, 1);
   --st-in: cubic-bezier(0.6, 0, 0.8, 0.25);
-  --st-font: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --st-font: "Antonio", "Barlow Condensed", "Arial Narrow", sans-serif;
   --mf-ink-inverse: #0a0f18;
 }
 
@@ -35,6 +36,11 @@ body,
 }
 
 .st-stage {
+  /* The neutral panels: flat royal blue (a slight top-to-bottom shade), or dark navy. */
+  --st-blue: linear-gradient(180deg, #1d449a 0%, #163780 100%);
+  --st-blue-flat: #183d8d;
+  --st-blue-band: #15357f;
+  --st-blue-a: rgba(26, 63, 143, 0.9);
   position: absolute;
   top: 0;
   left: 0;
@@ -42,13 +48,19 @@ body,
   height: 1080px;
   transform-origin: 0 0;
   font-family: var(--st-font);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--st-ink);
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
   pointer-events: none;
+}
+.st-stage.panel-navy {
+  --st-blue: rgba(9, 14, 24, 0.92);
+  --st-blue-flat: rgba(9, 14, 24, 0.92);
+  --st-blue-band: rgba(17, 25, 40, 0.93);
+  --st-blue-a: rgba(9, 14, 24, 0.88);
 }
 .st-stage * {
   box-sizing: border-box;
@@ -87,6 +99,10 @@ body,
   margin-right: 2px;
   color: #d9e4f2;
 }
+.st-board-value .st-ico-dollar,
+.st-row-money .st-ico-dollar {
+  color: inherit;
+}
 .st-ico-ammo {
   margin-right: 2px;
   color: var(--st-ink-dim);
@@ -107,7 +123,7 @@ body,
   width: 100%;
   height: 100%;
   font-size: var(--logo-fs, 20px);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
   letter-spacing: -0.01em;
   color: var(--st-team, var(--st-ink));
@@ -144,27 +160,29 @@ body,
 .st-topleft {
   position: absolute;
   left: 16px;
-  top: 28px;
+  top: 29px;
   width: 450px;
 }
 .st-series {
+  position: relative;
+  z-index: 1;
   display: flex;
   width: max-content;
   max-width: 450px;
-  height: 24px;
-  background: var(--st-panel);
-  clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%);
+  height: 23px;
+  background: var(--st-blue-flat);
   animation: st-slide-r 0.4s var(--st-out) both;
 }
 .st-map {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 1px 10px 0 7px;
-  font-size: 16px;
-  letter-spacing: 0.03em;
-  color: var(--st-ink-dim);
+  gap: 5px;
+  padding: 1px 9px 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--st-ink);
   white-space: nowrap;
 }
 .st-map-arrow {
@@ -179,14 +197,13 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 16px;
+  height: 17px;
   min-width: 18px;
   padding: 0 3px;
   background: var(--st-team);
   color: var(--st-team-ink);
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-weight: 700;
 }
 .st-map-pick.has-img {
   background: transparent;
@@ -199,42 +216,45 @@ body,
 }
 .st-map-pick.is-decider {
   background: transparent;
-  color: var(--st-ink-faint);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
   font-size: 10px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   padding: 0 4px;
 }
 .st-map-score {
   font-size: 13px;
-  color: var(--st-team, var(--st-ink-dim));
+  color: var(--st-team-pale, var(--st-ink-dim));
 }
 .st-map.is-upcoming {
-  color: var(--st-ink-faint);
+  color: rgba(255, 255, 255, 0.72);
 }
 .st-map.is-live {
-  background: var(--st-panel-3);
-  color: var(--st-ink);
+  background: rgba(255, 255, 255, 0.12);
   box-shadow: inset 0 -2px 0 var(--st-ink);
 }
 .st-map.is-live.has-image {
   background:
-    linear-gradient(rgba(9, 14, 24, 0.55), rgba(9, 14, 24, 0.55)),
+    linear-gradient(rgba(9, 14, 24, 0.5), rgba(9, 14, 24, 0.5)),
     var(--st-map-img) center / cover no-repeat;
 }
+/* The radar image is square with margins round the map: a 500 px box puts a map like Mirage's
+   drawing at about 20–440 × 78–440, the reference's minimap area. The series strip stays on top. */
 .st-radar {
   position: absolute;
-  left: -4px;
-  top: 34px;
-  width: 424px;
-  height: 424px;
+  left: -36px;
+  top: -26px;
+  width: 500px;
+  height: 500px;
 }
 
 /* ------------------------------------------------------------ top centre: event line and score bar */
+/* Measured from the reference at 1080p: event band 760–1160 × 29–52, score bar 59–130, logo tiles
+   60 px set 6 px in, the series boxes beside them, players alive 892–1026 × 147–194. */
 .st-top {
   position: absolute;
   left: 760px;
-  top: 28px;
+  top: 29px;
   width: 400px;
 }
 .st-event {
@@ -242,14 +262,14 @@ body,
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  height: 24px;
-  margin-bottom: 6px;
-  padding: 1px 16px 0;
-  background: var(--st-panel-2);
-  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 100%, 0 100%);
+  height: 23px;
+  margin-bottom: 7px;
+  padding: 1px 14px 0;
+  background: var(--st-blue-band);
   font-size: 15px;
-  letter-spacing: 0.06em;
-  color: var(--st-ink-dim);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--st-ink);
 }
 .st-event-l,
 .st-event-r {
@@ -259,14 +279,10 @@ body,
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.st-event-r {
-  color: var(--st-ink);
-}
 .st-sb {
   position: relative;
-  height: 72px;
-  background: var(--st-panel);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 13px), calc(100% - 13px) 100%, 13px 100%, 0 calc(100% - 13px));
+  height: 71px;
+  background: var(--st-blue);
 }
 .st-sb-half {
   position: absolute;
@@ -283,19 +299,19 @@ body,
   right: 0;
   flex-direction: row-reverse;
 }
-/* The side-colour accent under each score. */
+/* The side-colour bar under each score. */
 .st-sb-edge {
   position: absolute;
-  bottom: 4px;
-  left: 100px;
+  bottom: 0;
+  left: 106px;
   width: 46px;
-  height: 4px;
-  background: var(--st-team);
+  height: 5px;
+  background: var(--st-team-pale);
   transition: background-color 0.3s;
 }
 .st-sb-right .st-sb-edge {
   left: auto;
-  right: 100px;
+  right: 106px;
 }
 .st-sb-logo {
   display: flex;
@@ -303,41 +319,40 @@ body,
   justify-content: center;
   flex: none;
   width: 60px;
-  height: 60px;
-  margin: 0 9px 0 6px;
-  background: rgba(255, 255, 255, 0.06);
+  height: 59px;
+  margin: 0 15px 0 6px;
+  background: rgba(255, 255, 255, 0.1);
   --logo-fs: 23px;
 }
 .st-sb-right .st-sb-logo {
-  margin: 0 6px 0 9px;
+  margin: 0 6px 0 15px;
 }
 .st-sb-logo .st-logo {
-  width: 50px;
-  height: 50px;
+  width: 52px;
+  height: 52px;
 }
+/* The series boxes: small upright bars beside the logo, lit for each map won. */
 .st-sb-pips {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 4px;
   flex: none;
 }
 .st-sb-pips i {
   display: block;
-  width: 8px;
-  height: 8px;
-  transform: rotate(45deg);
-  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
+  width: 9px;
+  height: 11px;
+  background: rgba(255, 255, 255, 0.32);
 }
 .st-sb-pips i.is-won {
-  background: var(--st-team);
-  box-shadow: none;
+  background: var(--st-ink);
 }
 .st-sb-score {
   flex: 1;
   display: flex;
   justify-content: center;
-  padding-top: 2px;
-  font-size: 58px;
+  padding: 0 0 4px;
+  font-size: 54px;
   font-weight: 700;
   line-height: 1;
 }
@@ -349,23 +364,8 @@ body,
   position: absolute;
   left: 160px;
   width: 80px;
-  top: 3px;
+  top: 0;
   bottom: 0;
-}
-.st-sb-centre::before,
-.st-sb-centre::after {
-  content: "";
-  position: absolute;
-  top: 14px;
-  bottom: 14px;
-  width: 1px;
-  background: var(--st-line);
-}
-.st-sb-centre::before {
-  left: 0;
-}
-.st-sb-centre::after {
-  right: 0;
 }
 .st-sb-clockbox,
 .st-sb-bomb {
@@ -380,17 +380,17 @@ body,
     transform 0.28s var(--st-out);
 }
 .st-sb-round {
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: 600;
   line-height: 1;
-  letter-spacing: 0.01em;
   color: var(--st-ink);
 }
 .st-sb-round.is-hold {
   color: var(--st-ink);
 }
 .st-clock {
-  margin-top: 3px;
-  font-size: 30px;
+  margin-top: 4px;
+  font-size: 27px;
   font-weight: 700;
   line-height: 1;
 }
@@ -415,28 +415,30 @@ body,
 }
 .st-sb-centre.is-defuse .st-sb-bomb,
 .st-sb-centre.is-defused .st-sb-bomb {
-  color: var(--st-team);
+  color: var(--st-team-pale);
 }
-.st-sb-centre.is-bomb .st-sb-bomb .mf-icon {
+.st-sb-centre.is-bomb .st-sb-bomb .mf-icon,
+.st-sb-centre.is-bomb .st-sb-bomb .st-ico {
   animation: st-blink 1s steps(2, jump-none) infinite;
 }
 .st-fuse-text {
   margin-top: 1px;
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
 }
 .st-sb-bomb-label {
   margin-top: 4px;
   font-size: 14px;
+  font-weight: 600;
   line-height: 1;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
 
 /* The fuse under the bar while the bomb ticks. */
 .st-fuse {
   height: 5px;
-  margin: 3px 13px 0;
+  margin: 2px 0 0;
   background: rgba(9, 14, 24, 0.75);
   overflow: hidden;
   transform: scaleY(0);
@@ -461,21 +463,21 @@ body,
   display: flex;
   align-items: stretch;
   width: max-content;
-  margin: 9px auto 0;
+  margin: 10px auto 0;
   animation: st-drop 0.32s var(--st-out) both;
 }
 .st-alive {
-  height: 46px;
+  height: 47px;
 }
 .st-alive-n {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 48px;
-  padding-top: 2px;
+  padding-top: 1px;
   background: var(--st-team-fill);
-  color: var(--st-team-light);
-  font-size: 36px;
+  color: var(--st-team-pale);
+  font-size: 34px;
   font-weight: 700;
   overflow: hidden;
 }
@@ -483,28 +485,23 @@ body,
   display: block;
   animation: st-pop 0.3s var(--st-out);
 }
-.st-alive-n:first-child {
-  clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px);
-}
-.st-alive-n:last-child {
-  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
-}
 .st-alive-vs {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 38px;
   padding-top: 1px;
-  background: var(--st-panel);
+  background: var(--st-blue-a);
   font-size: 19px;
-  color: var(--st-ink-dim);
+  font-weight: 600;
+  color: var(--st-ink);
 }
 .st-win {
   height: 40px;
   align-items: center;
   padding-right: 14px;
-  background: var(--st-panel);
-  box-shadow: inset 0 -3px 0 var(--st-team);
+  background: var(--st-blue);
+  box-shadow: inset 0 -4px 0 var(--st-team-pale);
 }
 .st-win-logo {
   display: flex;
@@ -512,22 +509,22 @@ body,
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: var(--st-team);
+  background: var(--st-team-fill);
   --logo-fs: 15px;
 }
 .st-win-logo .st-logo {
   width: 32px;
   height: 32px;
-  color: var(--st-team-ink);
+  color: var(--st-team-pale);
 }
 .st-win-text {
   padding: 2px 10px 0;
   font-size: 21px;
-  letter-spacing: 0.03em;
+  font-weight: 600;
 }
 .st-win-text b {
-  color: var(--st-team);
-  font-weight: 800;
+  color: var(--st-team-pale);
+  font-weight: 700;
 }
 .st-win-why {
   display: flex;
@@ -535,28 +532,29 @@ body,
   gap: 5px;
   padding-top: 2px;
   font-size: 14px;
-  letter-spacing: 0.05em;
-  color: var(--st-ink-dim);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
 }
 .st-timeout {
   height: 36px;
   align-items: center;
-  background: var(--st-panel);
+  background: var(--st-blue);
 }
 .st-timeout-team {
   display: flex;
   align-items: center;
   height: 100%;
   padding: 2px 10px 0;
-  background: var(--st-team);
-  color: var(--st-team-ink);
+  background: var(--st-team-pale);
+  color: var(--st-team-pale-ink);
   font-size: 19px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .st-timeout-text {
   padding: 2px 10px 0;
   font-size: 18px;
-  letter-spacing: 0.06em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 .st-timeout-pips {
   padding-right: 12px;
@@ -566,43 +564,42 @@ body,
   align-items: center;
   gap: 8px;
   padding: 2px 16px 0;
-  background: var(--st-panel);
-  box-shadow: inset 0 -3px 0 var(--st-ink);
+  background: var(--st-blue);
   font-size: 18px;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
 }
 .st-pips {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 .st-pips i {
   display: block;
-  width: 15px;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.18);
-  transform: skewX(-24deg);
+  width: 14px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.25);
 }
 .st-pips i.is-left {
-  background: var(--st-team, var(--st-ink));
+  background: var(--st-team-pale, var(--st-ink));
 }
 
 /* ------------------------------------------------------------ top right: sponsor and killfeed */
+/* The sponsor plate at 1597–1765 × 32–102 as in the reference, the killfeed's rows from y 129. */
 .st-topright {
   position: absolute;
   right: 16px;
-  top: 28px;
+  top: 32px;
   width: 440px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
+  gap: 0;
 }
 .st-sponsor {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--st-panel);
   animation: st-fade 0.4s ease-out both;
 }
 .st-sponsor img {
@@ -612,52 +609,47 @@ body,
   object-fit: contain;
 }
 .st-sponsor-top {
-  width: 200px;
-  height: 68px;
-  margin-bottom: 16px;
-  padding: 8px 14px;
-  clip-path: polygon(11px 0, 100% 0, 100% 100%, 0 100%, 0 11px);
+  width: 168px;
+  height: 70px;
+  margin: 0 139px 27px 0;
+  padding: 10px 12px;
+  background: rgba(225, 232, 244, 0.22);
 }
 .st-sponsor-name {
   font-size: 21px;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-align: center;
 }
 .st-sponsor.is-demo {
-  background: rgba(9, 14, 24, 0.55);
+  background: rgba(9, 14, 24, 0.45);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
 }
 .st-sponsor.is-demo .st-sponsor-name {
   font-size: 16px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--st-ink-dim);
 }
 
-/* The shared killfeed (HUD renderer markup: .mf-killfeed > .mf-kill): rows tinted with the killer's
-   side colour, names in light tints of their sides'. */
+/* The killfeed: compact rows on the panel colour, names in light tints of their sides, as typed. */
 .st-stage .mf-killfeed {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 3px;
 }
 .st-stage .mf-kill {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   height: 30px;
-  padding: 2px 10px 0;
-  background: var(--st-panel);
+  padding: 1px 9px 0;
+  background: var(--st-blue-a);
   font-size: 17px;
-  letter-spacing: 0.01em;
+  font-weight: 600;
+  text-transform: none;
   white-space: nowrap;
   animation: st-kill-in 0.24s var(--st-out) both;
-}
-.st-stage .mf-kill.by-CT {
-  background: var(--st-kill-ct);
-}
-.st-stage .mf-kill.by-T {
-  background: var(--st-kill-t);
 }
 .st-stage .mf-kill.is-leaving {
   animation: st-kill-out 0.5s ease-in forwards;
@@ -676,8 +668,8 @@ body,
 .st-stage .mf-kill-way {
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin-top: -2px;
+  gap: 4px;
+  margin-top: -1px;
   color: #ffffff;
 }
 .st-stage .mf-kill-weapon {
@@ -720,21 +712,17 @@ body,
 .st-tab {
   display: flex;
   align-items: center;
-  height: 30px;
-  padding: 2px 22px 0 10px;
-  background: var(--st-team);
-  color: var(--st-team-ink);
-  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
-  font-size: 20px;
-  letter-spacing: 0.02em;
+  height: 29px;
+  padding: 1px 9px 0;
+  background: var(--st-team-pale);
+  color: var(--st-team-pale-ink);
+  font-size: 19px;
+  font-weight: 700;
   transition:
     transform 0.4s var(--st-out),
     opacity 0.25s;
 }
-.st-cards-right .st-tab {
-  padding: 2px 10px 0 22px;
-  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%);
-}
+
 .st-card {
   position: relative;
   display: flex;
@@ -773,14 +761,11 @@ body,
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: rgba(68, 74, 88, 0.9);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%);
+  background: rgba(108, 113, 124, 0.82);
+  clip-path: inset(0);
   transition:
     clip-path 0.35s var(--st-out),
     background-color 0.25s;
-}
-.st-card-right .st-card-shape {
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 11px 100%, 0 calc(100% - 11px));
 }
 .st-card-fill,
 .st-card-trail {
@@ -816,10 +801,10 @@ body,
   flex: none;
   width: 12px;
   padding-top: 3px;
-  background: var(--st-team);
-  color: var(--st-team-ink);
+  background: var(--st-team-pale);
+  color: var(--st-team-pale-ink);
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   text-shadow: none;
 }
 .st-card-info {
@@ -840,6 +825,7 @@ body,
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 21px;
+  font-weight: 700;
   line-height: 24px;
 }
 .st-card-name.is-long {
@@ -1039,11 +1025,11 @@ body,
   opacity: 0.75;
 }
 .st-card.is-dead .st-card-shape {
-  background: rgba(58, 62, 70, 0.9);
-  clip-path: polygon(0 0, 208px 0, 208px calc(100% - 11px), 197px 100%, 0 100%);
+  background: rgba(58, 62, 70, 0.88);
+  clip-path: inset(0 calc(100% - 208px) 0 0);
 }
 .st-card-right.is-dead .st-card-shape {
-  clip-path: polygon(calc(100% - 208px) 0, 100% 0, 100% 100%, calc(100% - 197px) 100%, calc(100% - 208px) calc(100% - 11px));
+  clip-path: inset(0 0 0 calc(100% - 208px));
 }
 .st-card.is-dead .st-card-slot {
   background: #6a6f78;
@@ -1128,12 +1114,10 @@ body,
   left: 0;
   right: 12px;
   background: rgba(10, 15, 26, 0.94);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px));
 }
 .st-mvp-right .st-mvp-body {
   left: 12px;
   right: 0;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
 }
 .st-mvp-slot {
   position: absolute;
@@ -1144,10 +1128,10 @@ body,
   display: flex;
   justify-content: center;
   padding-top: 4px;
-  background: var(--st-team);
-  color: var(--st-team-ink);
+  background: var(--st-team-pale);
+  color: var(--st-team-pale-ink);
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   text-shadow: none;
 }
 .st-mvp-right .st-mvp-slot {
@@ -1204,7 +1188,7 @@ body,
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 30px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 30px;
 }
 .st-mvp-name.is-long {
@@ -1414,7 +1398,6 @@ body,
   align-items: stretch;
   height: 37px;
   background: var(--st-team-fill);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 11px 100%, 0 calc(100% - 11px));
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 .st-obs-slot {
@@ -1424,10 +1407,10 @@ body,
   flex: none;
   width: 26px;
   padding-top: 2px;
-  background: var(--st-team);
-  color: var(--st-team-ink);
+  background: var(--st-team-pale);
+  color: var(--st-team-pale-ink);
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   text-shadow: none;
 }
 .st-obs-name {
@@ -1467,70 +1450,6 @@ body,
   right: 44px;
   bottom: 49px;
 }
-/* Each team's coach over its end of the bar: a COACH tag in the team's colour, photo and name. */
-.st-coach {
-  position: absolute;
-  left: 0;
-  bottom: calc(100% + 17px);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  transition:
-    transform 0.4s var(--st-out) 0.1s,
-    opacity 0.25s linear 0.1s;
-}
-.st-coach-right {
-  left: auto;
-  right: 0;
-  align-items: flex-end;
-}
-.st-board:not(.is-on) .st-coach {
-  opacity: 0;
-  transform: translateY(20px);
-  transition-delay: 0s;
-}
-.st-coach-tag {
-  display: flex;
-  align-items: center;
-  height: 29px;
-  padding: 2px 10px 0;
-  background: var(--st-team);
-  color: var(--st-team-ink);
-  font-size: 18px;
-  letter-spacing: 0.02em;
-}
-.st-coach-row {
-  display: flex;
-  align-items: stretch;
-  height: 49px;
-  background: var(--st-panel);
-  box-shadow: inset 4px 0 0 var(--st-team);
-}
-.st-coach-right .st-coach-row {
-  flex-direction: row-reverse;
-  box-shadow: inset -4px 0 0 var(--st-team);
-}
-.st-coach-pic {
-  flex: none;
-  width: 42px;
-  margin-left: 8px;
-  overflow: hidden;
-}
-.st-coach-right .st-coach-pic {
-  margin: 0 8px 0 0;
-}
-.st-coach-name {
-  display: flex;
-  align-items: center;
-  padding: 4px 16px 0 12px;
-  font-size: 27px;
-  letter-spacing: 0.02em;
-}
-.st-coach-right .st-coach-name {
-  padding: 4px 12px 0 16px;
-}
-
 /* A timeout: over the calling team's end of the bar (the seconds left, TIMEOUT with the team and
    timeouts left, logo), mirrored on the left. */
 .st-tocall {
@@ -1540,9 +1459,8 @@ body,
   display: flex;
   align-items: stretch;
   height: 70px;
-  background: var(--st-panel);
-  box-shadow: inset -4px 0 0 var(--st-team);
-  clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px);
+  background: var(--st-blue);
+  box-shadow: inset -4px 0 0 var(--st-team-pale);
   animation: st-tocall-in 0.4s var(--st-out) both;
 }
 .st-tocall-sec {
@@ -1552,7 +1470,7 @@ body,
   width: 68px;
   padding-top: 5px;
   font-size: 40px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .st-tocall-mark {
   display: flex;
@@ -1563,7 +1481,7 @@ body,
 .st-tocall-mark b {
   padding-top: 4px;
   font-size: 25px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.05em;
 }
 .st-tocall-text {
@@ -1576,7 +1494,7 @@ body,
 .st-tocall-team {
   font-size: 20px;
   line-height: 1;
-  color: var(--st-team);
+  color: var(--st-team-pale);
 }
 .st-tocall-logo {
   display: flex;
@@ -1595,8 +1513,7 @@ body,
   right: auto;
   left: 8px;
   flex-direction: row-reverse;
-  box-shadow: inset 4px 0 0 var(--st-team);
-  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+  box-shadow: inset 4px 0 0 var(--st-team-pale);
   animation-name: st-tocall-in-l;
 }
 .st-tocall.is-left .st-tocall-logo {
@@ -1626,8 +1543,7 @@ body,
   display: flex;
   align-items: stretch;
   height: 64px;
-  background: var(--st-panel);
-  clip-path: polygon(15px 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%, 0 15px);
+  background: var(--st-blue);
   transition:
     transform 0.3s var(--st-in),
     opacity 0.2s linear;
@@ -1650,15 +1566,6 @@ body,
 }
 .st-board-head-right {
   flex-direction: row-reverse;
-}
-.st-board-head::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--st-team);
 }
 .st-board-stat {
   position: relative;
@@ -1686,18 +1593,22 @@ body,
   right: 0;
 }
 .st-board-label {
-  font-size: 13px;
+  font-size: 16px;
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.08em;
-  color: var(--st-ink-dim);
+  color: var(--st-ink);
 }
 .st-board-value {
   display: flex;
   align-items: center;
   min-height: 24px;
-  font-size: 25px;
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 700;
   line-height: 1;
+  color: #b4f0a6;
+}
+.st-board-value .st-pips {
+  margin-top: 4px;
 }
 .st-board-logo {
   display: flex;
@@ -1726,7 +1637,7 @@ body,
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 32px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.03em;
 }
 .st-board-pips {
@@ -1738,14 +1649,12 @@ body,
 }
 .st-board-pips i {
   display: block;
-  width: 7px;
-  height: 7px;
-  transform: rotate(45deg);
-  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
+  width: 9px;
+  height: 11px;
+  background: rgba(255, 255, 255, 0.32);
 }
 .st-board-pips i.is-won {
-  background: var(--st-team);
-  box-shadow: none;
+  background: var(--st-ink);
 }
 .st-board-score {
   flex: none;
@@ -1753,7 +1662,7 @@ body,
   padding-top: 5px;
   text-align: center;
   font-size: 48px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
 }
 .st-board-vs {
@@ -1784,13 +1693,15 @@ body,
   display: flex;
   align-items: center;
   height: 36px;
-  background: var(--st-panel);
+  gap: 2px;
   transition:
     transform 0.4s var(--st-out) calc(140ms + var(--i) * 35ms),
     opacity 0.25s linear calc(140ms + var(--i) * 35ms);
 }
-.st-row:nth-child(even) {
-  background: var(--st-panel-2);
+/* Rows as the reference has them: dark translucent cells side by side (name, gear, weapons, money). */
+.st-row > * {
+  align-self: stretch;
+  background: rgba(16, 19, 27, 0.84);
 }
 .st-rows-right .st-row {
   flex-direction: row-reverse;
@@ -1806,37 +1717,39 @@ body,
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 0;
-  width: 3px;
-  background: var(--st-team);
+  left: -6px;
+  width: 4px;
+  background: var(--st-team-pale);
 }
 .st-rows-right .st-row::before {
   left: auto;
-  right: 0;
+  right: -6px;
 }
 .st-row-pic {
   flex: none;
   width: 36px;
   height: 36px;
-  margin-left: 3px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(20, 30, 62, 0.88) !important;
 }
 .st-rows-right .st-row-pic {
   margin: 0 3px 0 0;
 }
 .st-row-name {
+  display: flex;
+  align-items: center;
   flex: none;
   width: 150px;
   padding: 3px 10px 0;
+  background: rgba(20, 30, 62, 0.88) !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 22px;
-  letter-spacing: 0.02em;
+  font-size: 24px;
+  font-weight: 700;
 }
 .st-rows-right .st-row-name {
-  text-align: right;
+  justify-content: flex-end;
 }
 .st-row-cell {
   display: flex;
@@ -1881,15 +1794,18 @@ body,
   max-width: 60px;
 }
 .st-row-money {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   flex: 1;
-  padding: 3px 12px 0 0;
-  text-align: right;
+  padding: 3px 10px 0 0;
   font-size: 22px;
+  font-weight: 700;
   color: var(--st-money);
 }
 .st-rows-right .st-row-money {
-  padding: 3px 0 0 12px;
-  text-align: left;
+  justify-content: flex-start;
+  padding: 3px 0 0 10px;
 }
 .st-row.is-dead {
   color: var(--st-ink-dim);
@@ -1914,7 +1830,12 @@ body,
 .st-sponsor-board {
   flex: 1;
   height: 100%;
-  padding: 16px 28px;
+  background: var(--st-blue);
+}
+.st-sponsor-board img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 .st-sponsor-board .st-sponsor-name {
   font-size: 34px;

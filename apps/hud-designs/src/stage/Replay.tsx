@@ -55,7 +55,7 @@ export function ReplayLayer({ state, scale }: { state: HudState; scale: number }
   const clip = card?.clip ?? state.replay.clip;
   const color = clip ? clipColor(clip, colors, NEUTRAL) : NEUTRAL;
   return (
-    <div className="st-stage st-replay-stage" style={{ transform: `scale(${scale})` } as CSSProperties}>
+    <div className={`st-stage st-replay-stage panel-${settings.panelColor}`} style={{ transform: `scale(${scale})` } as CSSProperties}>
       {view.tag !== "off" ? (
         <div className={`st-rp-tag ${view.tag === "out" ? "is-out" : "is-in"}`} style={teamVars(color)}>
           <span className="st-rp-tag-main">

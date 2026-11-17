@@ -6,6 +6,9 @@
 // taken every <ms> from the switch (e.g. --frames freeze,live 50 12 for going live; replay:none,replay:3k
 // for the replay graphic coming in).
 // --replay takes the replay layer (?demo=replay) with each sample play, with and without team logos.
+// --backdrop <image> puts a picture behind the HUD instead of the gradient (e.g. a darkened game frame
+// for side-by-side comparisons; the picture stays wherever it is, it is only served to the page).
+// `?radar=mirage` pages get Mirage's real radar image from assets/radars at /demo-radar/.
 // --icons <dir> serves an icon pack folder (an engine's <dataDir>/icon-pack: <name>.svg and pack.json)
 // at /icon-pack/ and tells the demo which icons there are (?iconpack=…), as a loaded icon pack would.
 import { createServer } from "node:http";
@@ -16,9 +19,13 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const [hud = "vector", out = join(here, "..", "shots", hud), ...args] = process.argv.slice(2);
-const ii = args.indexOf("--icons");
-const icons = ii >= 0 ? args[ii + 1] : null;
-const argsLeft = ii >= 0 ? [...args.slice(0, ii), ...args.slice(ii + 2)] : args;
+const bi = args.indexOf("--backdrop");
+const backdropImage = bi >= 0 ? args[bi + 1] : null;
+const args1 = bi >= 0 ? [...args.slice(0, bi), ...args.slice(bi + 2)] : args;
+const ii = args1.indexOf("--icons");
+const icons = ii >= 0 ? args1[ii + 1] : null;
+const argsLeft = ii >= 0 ? [...args1.slice(0, ii), ...args1.slice(ii + 2)] : args1;
+const radars = join(here, "..", "..", "..", "assets", "radars");
 const qi = argsLeft.indexOf("--query");
 const iconNames = icons ? JSON.parse(readFileSync(join(icons, "pack.json"), "utf8")).names : [];
 const extra = (qi >= 0 ? `&${argsLeft[qi + 1] ?? ""}` : "") + (iconNames.length ? `&iconpack=${iconNames.join(",")}` : "");
@@ -29,6 +36,12 @@ mkdirSync(out, { recursive: true });
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".woff": "font/woff", ".png": "image/png", ".webp": "image/webp" };
 const server = createServer((req, res) => {
   const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
+  if (path === "/__backdrop" && backdropImage) return res.writeHead(200, { "content-type": types[extname(backdropImage)] ?? "image/png" }).end(readFileSync(backdropImage));
+  const radar = /^\/demo-radar\/(de_[a-z0-9]+)\.png$/.exec(path);
+  if (radar) {
+    const f = join(radars, `${radar[1]}.png`);
+    return existsSync(f) ? res.writeHead(200, { "content-type": "image/png" }).end(readFileSync(f)) : res.writeHead(404).end();
+  }
   const icon = icons && /^\/icon-pack\/([a-z0-9_]+)\.svg$/.exec(path);
   if (icon) {
     const f = join(icons, `${icon[1]}.svg`);
@@ -44,7 +57,7 @@ const { chromium } = createRequire(join(here, "..", "..", "..", "package.json"))
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 // A stand-in for the game behind the HUD: a mid-tone scene with some contrast.
-const backdrop = `document.documentElement.style.background = "linear-gradient(160deg,#6f6a5c 0%,#9c8f74 35%,#4e5a63 70%,#2e3236 100%)";`;
+const backdrop = backdropImage ? `document.documentElement.style.background = "#000 url(/__backdrop) center / cover no-repeat";` : `document.documentElement.style.background = "linear-gradient(160deg,#6f6a5c 0%,#9c8f74 35%,#4e5a63 70%,#2e3236 100%)";`;
 const frames = rest[0] === "--frames" ? { scenes: rest[1].split(","), every: Number(rest[2] ?? 50), count: Number(rest[3] ?? 12) } : null;
 if (rest[0] === "--replay") {
   for (const play of ["3k", "kill", "ace", "clutch", "manual"]) {

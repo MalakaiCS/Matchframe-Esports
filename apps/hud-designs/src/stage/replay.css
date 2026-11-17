@@ -19,11 +19,10 @@
   gap: 10px;
   height: 56px;
   padding-top: 3px;
-  background: var(--st-panel);
-  box-shadow: inset 0 3px 0 var(--st-team);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
+  background: var(--st-blue);
+  box-shadow: inset 0 -4px 0 var(--st-team-pale);
   font-size: 36px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.12em;
 }
 .st-rp-tag-main .mf-icon {
@@ -37,7 +36,7 @@
   height: 26px;
   display: flex;
   align-items: center;
-  background: var(--st-panel-2);
+  background: var(--st-blue-band);
   font-size: 16px;
   letter-spacing: 0.08em;
   color: var(--st-ink-dim);
@@ -70,8 +69,8 @@
   display: flex;
   align-items: center;
   height: 64px;
-  background: var(--st-panel);
-  box-shadow: inset 0 3px 0 var(--st-team);
+  background: var(--st-blue);
+  box-shadow: inset 0 -4px 0 var(--st-team-pale);
 }
 .st-rp-logo {
   display: flex;
@@ -83,7 +82,7 @@
   background: var(--st-team);
   color: var(--st-team-ink);
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .st-rp-logo img {
   max-width: 48px;
@@ -102,7 +101,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 34px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
 }
 .st-rp-name.is-long {
@@ -122,9 +121,8 @@
   background: var(--st-ink);
   color: #0a0f18;
   font-size: 30px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.04em;
-  clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%);
 }
 .st-rp-strip {
   display: flex;
@@ -132,8 +130,7 @@
   gap: 16px;
   height: 34px;
   padding: 3px 16px 0;
-  background: var(--st-panel-2);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
+  background: var(--st-blue-band);
   font-size: 18px;
   letter-spacing: 0.04em;
   color: var(--st-ink-dim);

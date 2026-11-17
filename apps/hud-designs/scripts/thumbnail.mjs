@@ -14,6 +14,12 @@ if (!existsSync(join(dist, "index.html"))) throw new Error(`build dist/${hud} fi
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".woff": "font/woff", ".png": "image/png", ".webp": "image/webp" };
 const server = createServer((req, res) => {
   const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
+  // `radar=mirage` demo pages: Mirage's real radar image from assets/radars.
+  const radar = /^\/demo-radar\/(de_[a-z0-9]+)\.png$/.exec(path);
+  if (radar) {
+    const f = join(here, "..", "..", "..", "assets", "radars", `${radar[1]}.png`);
+    return existsSync(f) ? res.writeHead(200, { "content-type": "image/png" }).end(readFileSync(f)) : res.writeHead(404).end();
+  }
   const file = join(dist, path === "/" ? "index.html" : path);
   if (!file.startsWith(dist) || !existsSync(file)) return res.writeHead(404).end();
   res.writeHead(200, { "content-type": types[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
