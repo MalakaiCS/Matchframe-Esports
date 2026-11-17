@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { api, describeError } from "../api/index.ts";
 import { useToast } from "../components/toasts.tsx";
 import { isTypingTarget } from "./hooks.ts";
+import { perLocale, t } from "../i18n/index.ts";
 
 /**
  * The operator's controls of the replays playing, by key (ADR-062):
@@ -25,23 +26,23 @@ export interface ReplayKey {
   path: string;
 }
 
-export const REPLAY_KEYS: ReplayKey[] = [
-  { id: "skip", label: "Skip", key: "F5", path: "/api/v1/replays/auto/skip" },
-  { id: "hold", label: "Hold / Resume", key: "F6", path: "/api/v1/replays/auto/hold" },
-  { id: "stop", label: "Stop and go live", key: "F7", path: "/api/v1/replays/auto/stop" },
-];
+export const REPLAY_KEYS: ReplayKey[] = perLocale(() => ([
+  { id: "skip", label: t("lib.skip"), key: "F5", path: "/api/v1/replays/auto/skip" },
+  { id: "hold", label: t("lib.holdResume"), key: "F6", path: "/api/v1/replays/auto/hold" },
+  { id: "stop", label: t("lib.stopAndGoLive"), key: "F7", path: "/api/v1/replays/auto/stop" },
+]));
 
 /** Highlights on air: Play and Stop (Skip and Hold are the replays' keys). */
-export const HIGHLIGHT_KEYS: ReplayKey[] = [
-  { id: "highlights", label: "Play highlights", key: "F9", path: "/api/v1/highlights/air/play" },
-  { id: "highlightsStop", label: "Stop highlights", key: "F10", path: "/api/v1/highlights/air/stop" },
-];
+export const HIGHLIGHT_KEYS: ReplayKey[] = perLocale(() => ([
+  { id: "highlights", label: t("lib.playHighlights"), key: "F9", path: "/api/v1/highlights/air/play" },
+  { id: "highlightsStop", label: t("lib.stopHighlights"), key: "F10", path: "/api/v1/highlights/air/stop" },
+]));
 
 /** Swap teams: the active match's two teams change sides on the HUDs (Live Control). */
-export const TEAM_KEYS: ReplayKey[] = [{ id: "swapTeams", label: "Swap teams", key: "F11", path: "/api/v1/live/side-teams/swap" }];
+export const TEAM_KEYS: ReplayKey[] = perLocale(() => ([{ id: "swapTeams", label: t("lib.swapTeams"), key: "F11", path: "/api/v1/live/side-teams/swap" }]));
 
 /** Map intros: Play map intro (the current map's intro). */
-export const MAP_INTRO_KEYS: ReplayKey[] = [{ id: "mapIntro", label: "Play map intro", key: "F4", path: "/api/v1/map-intros/play" }];
+export const MAP_INTRO_KEYS: ReplayKey[] = perLocale(() => ([{ id: "mapIntro", label: t("lib.playMapIntro"), key: "F4", path: "/api/v1/map-intros/play" }]));
 
 /** As the console shows a console shortcut. */
 export const shortcutLabel = (key: string) => `Ctrl+Shift+${key}`;
@@ -56,7 +57,7 @@ export function useReplayShortcuts(enabled = true): void {
       const k = REPLAY_KEYS.find((x) => x.key === e.key) ?? HIGHLIGHT_KEYS.find((x) => x.key === e.key) ?? TEAM_KEYS.find((x) => x.key === e.key) ?? MAP_INTRO_KEYS.find((x) => x.key === e.key);
       if (!k) return;
       e.preventDefault();
-      const what = HIGHLIGHT_KEYS.includes(k) ? "Highlights" : TEAM_KEYS.includes(k) ? "Teams" : MAP_INTRO_KEYS.includes(k) ? "Map intro" : "Replays";
+      const what = HIGHLIGHT_KEYS.includes(k) ? "Highlights" : TEAM_KEYS.includes(k) ? "Teams" : MAP_INTRO_KEYS.includes(k) ? t("lib.mapIntro") : "Replays";
       api.post(k.path).then(
         () => toast.push("ok", `${what}: ${k.label}`),
         (err) => toast.push("warn", `${what}: ${k.label}`, describeError(err)),

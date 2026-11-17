@@ -1,4 +1,5 @@
 import type { DemoJobState, RetentionPolicy } from "@matchframe/contracts";
+import { perLocale, t } from "../i18n/index.ts";
 
 /** Demo ingest states in pipeline order (mirrors DEMO_JOB_STATES in the contracts). */
 export const DEMO_STATES = [
@@ -48,14 +49,14 @@ export function demoStateTone(s: DemoJobState): "ok" | "info" | "warn" | "danger
   return "neutral";
 }
 
-export const RETENTION_POLICIES: { id: RetentionPolicy; label: string; hint: string }[] = [
-  { id: "keep_originals", label: "Keep originals", hint: "Never delete raw demos." },
-  { id: "quarantine_then_remove", label: "Quarantine, then remove", hint: "Move raw demos to quarantine after validation; delete after the quarantine period." },
-  { id: "keep_curated_sample", label: "Keep a curated sample", hint: "Keep an audit sample of raw demos; quarantine the rest." },
-  { id: "keep_until_backup_confirmed", label: "Keep until backup confirmed", hint: "Raw demos are only removed after you confirm a backup of their SHA-256." },
-  { id: "remove_after_validation", label: "Remove after validation", hint: "Delete raw demos right after the dataset validates (irreversible)." },
-  { id: "remove_after_upload", label: "Remove after upload", hint: "Quarantine each raw demo once its dataset (with the POV labels) is uploaded to the storage and checked there; delete it after the quarantine period." },
-];
+export const RETENTION_POLICIES: { id: RetentionPolicy; label: string; hint: string }[] = perLocale(() => ([
+  { id: "keep_originals", label: t("lib.keepOriginals"), hint: t("lib.neverDeleteRawDemos") },
+  { id: "quarantine_then_remove", label: t("lib.quarantineThenRemove"), hint: t("lib.moveRawDemosToQuarantine") },
+  { id: "keep_curated_sample", label: t("lib.keepACuratedSample"), hint: t("lib.keepAnAuditSampleOf") },
+  { id: "keep_until_backup_confirmed", label: t("lib.keepUntilBackupConfirmed"), hint: t("lib.rawDemosAreOnlyRemoved") },
+  { id: "remove_after_validation", label: t("lib.removeAfterValidation"), hint: t("lib.deleteRawDemosRightAfter") },
+  { id: "remove_after_upload", label: t("lib.removeAfterUpload"), hint: t("lib.quarantineEachRawDemoOnce") },
+]));
 
 export function retryable(s: DemoJobState): boolean {
   return DEMO_TRANSITIONS[s].includes("QUEUED");

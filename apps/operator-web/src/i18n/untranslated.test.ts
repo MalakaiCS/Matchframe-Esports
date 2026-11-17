@@ -10,7 +10,8 @@ import { describe, expect, it } from "vitest";
  * - string literals in JSX children expressions ({busy ? "Saving…" : "Save"});
  * - confirm dialogs' { title, body, confirmLabel } given as literals;
  * - toast.push(tone, "literal").
- * Brand and product names, abbreviations in capitals (CT, ADR, ON AIR) and symbols are allowed.
+ * Brand and product names, abbreviations in capitals (CT, ADR, ON AIR), symbols and the text of
+ * <code>/<kbd>/<pre> elements are allowed.
  */
 
 const SOURCES = import.meta.glob<string>(["../**/*.tsx", "!../**/*.test.tsx"], { query: "?raw", import: "default", eager: true });
@@ -22,7 +23,6 @@ const PENDING = new Set<string>([
   "components/EditorShell.tsx",
   "components/RecordDialogs.tsx",
   "components/SignIn.tsx",
-  "components/director.tsx",
   "screens/Account.tsx",
   "screens/Demos.tsx",
   "screens/Devices.tsx",
@@ -31,7 +31,6 @@ const PENDING = new Set<string>([
   "screens/HudImages.tsx",
   "screens/Huds.tsx",
   "screens/IconPack.tsx",
-  "screens/LiveControl.tsx",
   "screens/Maps.tsx",
   "screens/Matches.tsx",
   "screens/PlayerCameras.tsx",
@@ -59,10 +58,6 @@ const PENDING = new Set<string>([
   "screens/huds/Cues.tsx",
   "screens/huds/Outputs.tsx",
   "screens/huds/Packages.tsx",
-  "screens/live/MapIntroCard.tsx",
-  "screens/live/RosterCard.tsx",
-  "screens/live/TeamCommsCard.tsx",
-  "screens/live/Timeline.tsx",
   "screens/maps/CameraWalkthrough.tsx",
   "screens/matches/MatchArt.tsx",
   "screens/matches/MatchEditor.tsx",
@@ -168,7 +163,10 @@ function scan(file: string, source: string): Finding[] {
     if (flagged(text)) out.push({ file, line: sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1, text: text.replace(/\s+/g, " ").trim().slice(0, 80) });
   };
   const visit = (n: ts.Node) => {
-    if (ts.isJsxText(n)) add(n, n.text);
+    if (ts.isJsxText(n)) {
+      // Text in <code>, <kbd>, <pre> and <samp> is code (a console command, a key), not prose.
+      if (!(ts.isJsxElement(n.parent) && ["code", "kbd", "pre", "samp"].includes(n.parent.openingElement.tagName.getText(sf)))) add(n, n.text);
+    }
     else if (ts.isJsxAttribute(n) && USER_PROPS.has(n.name.getText(sf)) && n.initializer) {
       if (ts.isStringLiteral(n.initializer)) add(n.initializer, n.initializer.text);
       else if (ts.isJsxExpression(n.initializer) && n.initializer.expression) for (const l of literals(n.initializer.expression)) add(l, literalText(l));
