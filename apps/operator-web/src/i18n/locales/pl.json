@@ -127,6 +127,26 @@
     },
     "grenade": {
       "fireUnknown": "Ogień (nieznany typ)"
+    },
+    "form": {
+      "search": "Szukaj…",
+      "noMatches": "Brak wyników",
+      "searchCountries": "Szukaj krajów",
+      "noCountry": "Bez kraju",
+      "searchTeams": "Szukaj drużyn"
+    },
+    "image": {
+      "notImage": "{name} nie jest obrazem PNG, JPEG ani WebP.",
+      "tooLarge": "{name} ma {mb} MB; limit to 2 MB.",
+      "preview": "Podgląd: {label}",
+      "none": "Brak: {label}",
+      "help": "Upuść tu plik PNG, JPEG lub WebP albo wybierz plik. Do 2 MB. Najlepiej sprawdza się kwadratowy obraz o boku co najmniej 200 pikseli; pokazywany jest cały obraz.",
+      "upload": "Wgraj: {label}",
+      "replace": "Zastąp: {label}",
+      "uploading": "Wysyłanie…",
+      "remove": "Usuń",
+      "staged": "Nowy obraz, {w} × {h} {type}: zostanie zachowany po wybraniu Zapisz i wyjdź.",
+      "teamLogo": "Logo: {name}"
     }
   },
   "control": {

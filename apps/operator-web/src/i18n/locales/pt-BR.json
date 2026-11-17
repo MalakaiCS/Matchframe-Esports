@@ -126,6 +126,26 @@
     },
     "grenade": {
       "fireUnknown": "Fogo (tipo desconhecido)"
+    },
+    "form": {
+      "search": "Buscar…",
+      "noMatches": "Nenhum resultado",
+      "searchCountries": "Buscar países",
+      "noCountry": "Sem país",
+      "searchTeams": "Buscar times"
+    },
+    "image": {
+      "notImage": "{name} não é uma imagem PNG, JPEG ou WebP.",
+      "tooLarge": "{name} tem {mb} MB; o limite é 2 MB.",
+      "preview": "Prévia: {label}",
+      "none": "Sem {label}",
+      "help": "Solte um PNG, JPEG ou WebP aqui ou escolha um arquivo. Até 2 MB. Uma imagem quadrada de pelo menos 200 × 200 pixels funciona melhor; a imagem inteira é mostrada.",
+      "upload": "Enviar {label}",
+      "replace": "Trocar {label}",
+      "uploading": "Enviando…",
+      "remove": "Remover",
+      "staged": "Nova imagem, {w} × {h} {type}: mantida quando você escolher Salvar e sair.",
+      "teamLogo": "Logo de {name}"
     }
   },
   "control": {

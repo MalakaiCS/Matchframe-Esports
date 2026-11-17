@@ -56,7 +56,12 @@
 .hud-option-label {
   font-weight: 650;
   font-size: 13px;
-  white-space: nowrap;
+  /* One line in English; a longer translation wraps instead of running under the switch (ADR-082). */
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+.hud-option > .switch {
+  flex: none;
 }
 .hud-option-hint {
   display: inline-grid;

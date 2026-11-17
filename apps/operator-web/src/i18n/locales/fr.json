@@ -126,6 +126,26 @@
     },
     "grenade": {
       "fireUnknown": "Feu (type inconnu)"
+    },
+    "form": {
+      "search": "Rechercher…",
+      "noMatches": "Aucun résultat",
+      "searchCountries": "Rechercher un pays",
+      "noCountry": "Aucun pays",
+      "searchTeams": "Rechercher une équipe"
+    },
+    "image": {
+      "notImage": "{name} n'est pas une image PNG, JPEG ou WebP.",
+      "tooLarge": "{name} fait {mb} Mo ; la limite est de 2 Mo.",
+      "preview": "Aperçu : {label}",
+      "none": "Pas de {label}",
+      "help": "Déposez ici un PNG, JPEG ou WebP, ou choisissez un fichier. 2 Mo maximum. Une image carrée d'au moins 200 × 200 pixels donne le meilleur résultat ; l'image entière est affichée.",
+      "upload": "Importer : {label}",
+      "replace": "Remplacer : {label}",
+      "uploading": "Envoi…",
+      "remove": "Retirer",
+      "staged": "Nouvelle image, {w} × {h} {type} : conservée quand vous choisissez Enregistrer et quitter.",
+      "teamLogo": "Logo de {name}"
     }
   },
   "control": {

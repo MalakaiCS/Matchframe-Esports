@@ -125,6 +125,26 @@
     },
     "grenade": {
       "fireUnknown": "Fire (type unknown)"
+    },
+    "form": {
+      "search": "Search…",
+      "noMatches": "No matches",
+      "searchCountries": "Search countries",
+      "noCountry": "No country",
+      "searchTeams": "Search teams"
+    },
+    "image": {
+      "notImage": "{name} is not a PNG, JPEG or WebP image.",
+      "tooLarge": "{name} is {mb} MB; the limit is 2 MB.",
+      "preview": "{label} preview",
+      "none": "No {label}",
+      "help": "Drop a PNG, JPEG or WebP here, or choose a file. Up to 2 MB. A square image of at least 200 × 200 pixels works best; the whole image is shown.",
+      "upload": "Upload {label}",
+      "replace": "Replace {label}",
+      "uploading": "Uploading…",
+      "remove": "Remove",
+      "staged": "New image, {w} × {h} {type}: kept when you choose Save and Exit.",
+      "teamLogo": "{name} logo"
     }
   },
   "control": {

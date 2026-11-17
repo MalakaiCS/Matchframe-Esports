@@ -126,6 +126,26 @@
     },
     "grenade": {
       "fireUnknown": "Fuego (tipo desconocido)"
+    },
+    "form": {
+      "search": "Buscar…",
+      "noMatches": "Sin resultados",
+      "searchCountries": "Buscar países",
+      "noCountry": "Sin país",
+      "searchTeams": "Buscar equipos"
+    },
+    "image": {
+      "notImage": "{name} no es una imagen PNG, JPEG o WebP.",
+      "tooLarge": "{name} ocupa {mb} MB; el límite es 2 MB.",
+      "preview": "Vista previa: {label}",
+      "none": "Sin {label}",
+      "help": "Suelta aquí un PNG, JPEG o WebP, o elige un archivo. Hasta 2 MB. Funciona mejor una imagen cuadrada de al menos 200 × 200 píxeles; se muestra la imagen completa.",
+      "upload": "Subir {label}",
+      "replace": "Cambiar {label}",
+      "uploading": "Subiendo…",
+      "remove": "Quitar",
+      "staged": "Imagen nueva, {w} × {h} {type}: se guarda al elegir Guardar y salir.",
+      "teamLogo": "Logo de {name}"
     }
   },
   "control": {
@@ -1019,7 +1039,7 @@
       "program": "Programa {version}",
       "libraryUnavailable": "Biblioteca de HUD no disponible: {error}",
       "outputsTitle": "Salidas de HUD activas (overlays de escritorio, fuentes de navegador de OBS, vistas previas)",
-      "outputs": "Salidas de HUD",
+      "outputs": "Salidas HUD",
       "allHidden": "Todo oculto",
       "lastDataTitle": {
         "one": "Últimos datos del juego hace {age} ({count} paquete)",
@@ -1043,7 +1063,7 @@
       "programMode": "Modo de programa {mode} (propietario {kind}, {holder})",
       "connected": "Conectado",
       "connectionFailed": "Conexión fallida",
-      "notConnected": "No conectado (opcional)"
+      "notConnected": "No conectado"
     },
     "programMode": {
       "LIVE": "En directo",

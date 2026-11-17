@@ -125,6 +125,26 @@
     },
     "grenade": {
       "fireUnknown": "Feuer (Typ unbekannt)"
+    },
+    "form": {
+      "search": "Suchen…",
+      "noMatches": "Keine Treffer",
+      "searchCountries": "Länder suchen",
+      "noCountry": "Kein Land",
+      "searchTeams": "Teams suchen"
+    },
+    "image": {
+      "notImage": "{name} ist kein PNG-, JPEG- oder WebP-Bild.",
+      "tooLarge": "{name} ist {mb} MB groß; die Grenze liegt bei 2 MB.",
+      "preview": "Vorschau: {label}",
+      "none": "Kein {label}",
+      "help": "Zieh ein PNG, JPEG oder WebP hierher oder wähle eine Datei. Bis 2 MB. Am besten eignet sich ein quadratisches Bild mit mindestens 200 × 200 Pixeln; das ganze Bild wird gezeigt.",
+      "upload": "{label} hochladen",
+      "replace": "{label} ersetzen",
+      "uploading": "Wird hochgeladen…",
+      "remove": "Entfernen",
+      "staged": "Neues Bild, {w} × {h} {type}: wird mit Speichern und schließen übernommen.",
+      "teamLogo": "Logo von {name}"
     }
   },
   "control": {
@@ -1034,7 +1054,7 @@
       "programMode": "Programmmodus {mode} (Besitzer {kind}, {holder})",
       "connected": "Verbunden",
       "connectionFailed": "Verbindung fehlgeschlagen",
-      "notConnected": "Nicht verbunden (optional)"
+      "notConnected": "Nicht verbunden"
     },
     "programMode": {
       "LIVE": "Live",
@@ -1049,7 +1069,7 @@
     },
     "gateState": {
       "notEnforced": "Nicht erzwungen",
-      "free": "Kostenlos in der Simulation",
+      "free": "Gratis (Simulation)",
       "available": "Verfügbar",
       "not_linked": "Abgemeldet",
       "no_entitlement": "Keine Lizenz",

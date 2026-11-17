@@ -2548,6 +2548,16 @@ legend {
   }
 }
 
+/* Longer languages (ADR-082: German and Russian run a third longer than English) take the compact
+   header sooner: below 1680 px the connection pill (unless it warns) and the data pill's SIMULATION
+   tag go, so the game picker, the pills and Stop automation still fit at 1600 px. */
+@media (max-width: 1679px) {
+  html:not([lang="en"]) .topbar-status .chip[data-link].tone-neutral,
+  html:not([lang="en"]) .chip-data .chip-meta {
+    display: none;
+  }
+}
+
 /* ---- account & hours ---------------------------------------------------- */
 .link-code {
   font-family: var(--mono);
