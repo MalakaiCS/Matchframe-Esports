@@ -11,10 +11,12 @@ import { Link } from "../router.tsx";
 import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
 import { engineOrigin } from "../lib/engine.ts";
+import { t } from "../i18n/index.ts";
+import { T } from "../i18n/T.tsx";
 import "../styles/group-c.css";
 
 function onOff(v: boolean | null): string {
-  return v === null ? "unknown" : v ? "on" : "off";
+  return v === null ? t("common.unknown") : v ? t("common.on") : t("common.off");
 }
 
 function SceneItems({ scene }: { scene: string }) {
@@ -24,7 +26,7 @@ function SceneItems({ scene }: { scene: string }) {
     <Async state={items}>
       {(list) =>
         list.length === 0 ? (
-          <p className="muted small">No sources in this scene.</p>
+          <p className="muted small">{t("devices.noSourcesInThisScene")}</p>
         ) : (
           <ul className="list-plain small">
             {list.map((it) => {
@@ -34,9 +36,9 @@ function SceneItems({ scene }: { scene: string }) {
                   <span style={{ flex: 1 }} className={enabled ? undefined : "muted"}>
                     {it.sourceName} <span className="muted">{it.inputKind ?? ""}</span>
                   </span>
-                  {enabled ? null : <span className="muted">Hidden</span>}
-                  <ActionButton size="sm" variant="ghost" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/source-visibility", { scene, source: it.sourceName, visible: !enabled })} success={(r) => `${it.sourceName} ${enabled ? "hidden" : "shown"}${r.confirmed ? "" : " (not confirmed)"}`} onDone={() => void items.reload()} disabledReason={reason}>
-                    {enabled ? "Hide" : "Show"}
+                  {enabled ? null : <span className="muted">{t("devices.hidden")}</span>}
+                  <ActionButton size="sm" variant="ghost" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/source-visibility", { scene, source: it.sourceName, visible: !enabled })} success={(r) => `${it.sourceName} ${enabled ? "hidden" : "shown"}${r.confirmed ? "" : t("devices.notConfirmed")}`} onDone={() => void items.reload()} disabledReason={reason}>
+                    {enabled ? t("devices.hide") : t("devices.show")}
                   </ActionButton>
                 </li>
               );
@@ -59,23 +61,15 @@ function AudioRow({ input }: { input: { name: string; kind: string } }) {
       </td>
       <td>
         <div className="row">
-          <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/obs/audio", { input: input.name, muted: true })} success={`${input.name} muted`} disabledReason={reason}>
-            Mute
-          </ActionButton>
-          <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/obs/audio", { input: input.name, muted: false })} success={`${input.name} unmuted`} disabledReason={reason}>
-            Unmute
-          </ActionButton>
+          <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/obs/audio", { input: input.name, muted: true })} success={t("devices.nameMuted", { name: input.name })} disabledReason={reason}>{t("devices.mute")}</ActionButton>
+          <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/obs/audio", { input: input.name, muted: false })} success={t("devices.nameUnmuted", { name: input.name })} disabledReason={reason}>{t("devices.unmute")}</ActionButton>
         </div>
       </td>
       <td>
         <div className="row">
-          <input type="range" min={-60} max={6} step={1} value={db} aria-label={`${input.name} volume (dB)`} onChange={(e) => setDb(Number(e.target.value))} />
-          <span className="mono small" style={{ width: 52 }}>
-            {db} dB
-          </span>
-          <ActionButton size="sm" action={() => api.post<{ volume?: { confirmed: boolean; db: number } }>("/api/v1/obs/audio", { input: input.name, volumeDb: db })} success={(r) => `${input.name} → ${r.volume?.db ?? db} dB${r.volume?.confirmed === false ? " (not confirmed)" : ""}`} disabledReason={reason}>
-            Set
-          </ActionButton>
+          <input type="range" min={-60} max={6} step={1} value={db} aria-label={t("devices.nameVolumeDb", { name: input.name })} onChange={(e) => setDb(Number(e.target.value))} />
+          <span className="mono small" style={{ width: 52 }}>{t("devices.dbDb", { db })}</span>
+          <ActionButton size="sm" action={() => api.post<{ volume?: { confirmed: boolean; db: number } }>("/api/v1/obs/audio", { input: input.name, volumeDb: db })} success={(r) => `${input.name} → ${r.volume?.db ?? db} dB${r.volume?.confirmed === false ? t("devices.notConfirmed") : ""}`} disabledReason={reason}>{t("devices.set")}</ActionButton>
         </div>
       </td>
     </tr>
@@ -90,24 +84,22 @@ function ObsConnectForm({ onDone, defaultUrl, primary = true }: { onDone: () => 
   return (
     <div className="gc-form">
       <div className="form-grid">
-        <Field label="obs-websocket URL" hint="OBS → Tools → WebSocket Server Settings (v5)">
+        <Field label={t("devices.obsWebsocketUrl")} hint={t("devices.obsToolsWebsocketServerSettings")}>
           <input value={url} onChange={(e) => setUrl(e.target.value)} />
         </Field>
-        <Field label="Password">
+        <Field label={t("devices.password")}>
           <input type="password" autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
       </div>
       <div className="row">
-        <Checkbox checked={remember} onChange={setRemember} label="Remember" />
+        <Checkbox checked={remember} onChange={setRemember} label={t("devices.remember")} />
         <ActionButton
           variant={primary ? "primary" : "secondary"}
           action={() => api.post<{ state: ObsState }>("/api/v1/obs/connect", { url, ...(password ? { password } : {}), remember })}
-          success={(r) => (r.state.connected ? `Connected to OBS ${r.state.obsVersion ?? ""}` : `Not connected: ${r.state.lastError ?? "unknown error"}`)}
+          success={(r) => (r.state.connected ? t("devices.connectedToObsV", { v: r.state.obsVersion ?? "" }) : t("devices.notConnectedV", { v: r.state.lastError ?? t("devices.unknownError") }))}
           onDone={onDone}
-          disabledReason={reason ?? (/^wss?:\/\//.test(url) ? null : "URL must start with ws:// or wss://")}
-        >
-          Connect
-        </ActionButton>
+          disabledReason={reason ?? (/^wss?:\/\//.test(url) ? null : t("devices.urlMustStartWithWs"))}
+        >{t("devices.connect")}</ActionButton>
       </div>
     </div>
   );
@@ -125,36 +117,30 @@ function ObsTab() {
         <div className="stack">
           <div className="grid-2">
             <Panel
-              title="OBS connection"
-              actions={s.connected ? <Badge tone="ok">Connected</Badge> : s.connecting ? <Badge tone="info">Connecting</Badge> : <Badge tone="warn">Disconnected</Badge>}
+              title={t("devices.obsConnection")}
+              actions={s.connected ? <Badge tone="ok">{t("devices.connected")}</Badge> : s.connecting ? <Badge tone="info">{t("devices.connecting")}</Badge> : <Badge tone="warn">{t("devices.disconnected")}</Badge>}
             >
               {s.connected ? (
                 <>
                   <KV
                     items={[
-                      ["Program / preview", `${s.programScene ?? MISSING} / ${s.previewScene ?? MISSING}`],
-                      ["Studio mode", onOff(s.studioMode)],
+                      [t("devices.programPreview"), `${s.programScene ?? MISSING} / ${s.previewScene ?? MISSING}`],
+                      [t("devices.studioMode"), onOff(s.studioMode)],
                     ]}
                   />
-                  {s.inputKinds.includes("browser_source") ? null : <p className="small text-warn">The obs-browser plugin is missing, so HUD browser sources cannot be added.</p>}
+                  {s.inputKinds.includes("browser_source") ? null : <p className="small text-warn">{t("devices.theObsBrowserPluginIs")}</p>}
                   <div className="form-actions">
-                    <ActionButton size="sm" action={() => api.post("/api/v1/obs/refresh")} success="OBS state refreshed" onDone={() => void obs.reload()} disabledReason={reason}>
-                      Refresh
-                    </ActionButton>
-                    <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/obs/disconnect")} success="OBS disconnected" onDone={() => void obs.reload()} disabledReason={reason} confirm={{ title: "Disconnect OBS?", body: "Program mode becomes degraded until OBS is reconnected and an operator recovers it." }}>
-                      Disconnect
-                    </ActionButton>
+                    <ActionButton size="sm" action={() => api.post("/api/v1/obs/refresh")} success={t("devices.obsStateRefreshed")} onDone={() => void obs.reload()} disabledReason={reason}>{t("devices.refresh")}</ActionButton>
+                    <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/obs/disconnect")} success={t("devices.obsDisconnected")} onDone={() => void obs.reload()} disabledReason={reason} confirm={{ title: t("devices.disconnectObs"), body: t("devices.programModeBecomesDegradedUntil") }}>{t("devices.disconnect")}</ActionButton>
                   </div>
                 </>
               ) : (
                 <>
-                  {s.lastError ? <p className="small text-danger">Last error: {s.lastError}</p> : null}
+                  {s.lastError ? <p className="small text-danger">{t("devices.lastErrorLasterror", { lastError: s.lastError })}</p> : null}
                   {profiles[0] ? (
                     <>
-                      <ActionButton variant="primary" action={() => api.post<{ state: ObsState }>("/api/v1/obs/connect", { url: profiles[0]!.url, name: profiles[0]!.name })} success={(r) => (r.state.connected ? "Connected to OBS" : `Not connected: ${r.state.lastError ?? "?"}`)} onDone={() => void obs.reload()} disabledReason={reason}>
-                        Reconnect saved profile
-                      </ActionButton>
-                      <Details summary="Connect to a different OBS">
+                      <ActionButton variant="primary" action={() => api.post<{ state: ObsState }>("/api/v1/obs/connect", { url: profiles[0]!.url, name: profiles[0]!.name })} success={(r) => (r.state.connected ? t("devices.connectedToObs") : t("devices.notConnectedV", { v: r.state.lastError ?? "?" }))} onDone={() => void obs.reload()} disabledReason={reason}>{t("devices.reconnectSavedProfile")}</ActionButton>
+                      <Details summary={t("devices.connectToADifferentObs")}>
                         <ObsConnectForm onDone={() => void obs.reload()} defaultUrl={profiles[0]?.url} primary={false} />
                       </Details>
                     </>
@@ -163,23 +149,23 @@ function ObsTab() {
                   )}
                 </>
               )}
-              <Details summary="Connection details">
+              <Details summary={t("devices.connectionDetails")}>
                 <KV
                   items={[
-                    ["Profile", profiles[0] ? `${profiles[0].name} · ${profiles[0].url}${profiles[0].hasPassword ? " (password stored)" : ""}` : "none saved"],
-                    ["OBS / websocket", `${s.obsVersion ?? MISSING} / ${s.websocketVersion ?? MISSING}${s.platform ? ` · ${s.platform}` : ""}`],
-                    ["Studio mode", onOff(s.studioMode)],
-                    ["Program / preview", `${s.programScene ?? MISSING} / ${s.previewScene ?? MISSING}`],
-                    ["Browser source plugin", s.inputKinds.includes("browser_source") ? "available" : s.connected ? "missing (obs-browser not installed)" : MISSING],
-                    ["Last error", s.lastError ?? "none"],
-                    ["Reconnect attempts", s.reconnectAttempt],
+                    [t("devices.profile"), profiles[0] ? `${profiles[0].name} · ${profiles[0].url}${profiles[0].hasPassword ? t("devices.passwordStored") : ""}` : t("devices.noneSaved")],
+                    [t("devices.obsWebsocketVersions"), `${s.obsVersion ?? MISSING} / ${s.websocketVersion ?? MISSING}${s.platform ? ` · ${s.platform}` : ""}`],
+                    [t("devices.studioMode"), onOff(s.studioMode)],
+                    [t("devices.programPreview"), `${s.programScene ?? MISSING} / ${s.previewScene ?? MISSING}`],
+                    [t("devices.browserSourcePlugin"), s.inputKinds.includes("browser_source") ? t("devices.available") : s.connected ? t("devices.obsBrowserMissing") : MISSING],
+                    [t("devices.lastError"), s.lastError ?? t("common.none")],
+                    [t("devices.reconnectAttempts"), s.reconnectAttempt],
                   ]}
                 />
               </Details>
             </Panel>
-            <Panel title="Outputs">
+            <Panel title={t("devices.outputs")}>
               {!s.connected ? (
-                <EmptyState title="OBS not connected">Connect OBS to control recording, streaming and the replay buffer.</EmptyState>
+                <EmptyState title={t("devices.obsNotConnected")}>{t("devices.connectObsToControlRecording")}</EmptyState>
               ) : (
                 <table className="table table-compact">
                   <tbody>
@@ -187,12 +173,12 @@ function ObsTab() {
                       [
                         ["record", "Recording", s.recording],
                         ["stream", "Streaming", s.streaming],
-                        ["replay", "Replay buffer", s.replayBuffer],
+                        ["replay", t("devices.replayBuffer"), s.replayBuffer],
                       ] as const
                     ).map(([kind, label, on]) => (
                       <tr key={kind}>
                         <td>{label}</td>
-                        <td>{on ? <Badge tone={kind === "stream" ? "danger" : "ok"} icon="●">On</Badge> : <span className="muted">{on === null ? "Unknown" : "Off"}</span>}</td>
+                        <td>{on ? <Badge tone={kind === "stream" ? "danger" : "ok"} icon="●">{t("devices.on")}</Badge> : <span className="muted">{on === null ? t("common.unknown") : t("devices.off")}</span>}</td>
                         <td>
                           <ActionButton
                             size="sm"
@@ -202,9 +188,9 @@ function ObsTab() {
                             onDone={() => void obs.reload()}
                             disabledReason={reason}
                            
-                            confirm={kind === "stream" ? { title: on ? "Stop the stream?" : "Start streaming?", body: on ? "Viewers will lose the broadcast." : "OBS starts streaming to its configured service.", danger: !!on } : undefined}
+                            confirm={kind === "stream" ? { title: on ? t("devices.stopTheStream") : t("devices.startStreaming"), body: on ? t("devices.viewersWillLoseTheBroadcast") : t("devices.obsStartsStreamingToIts"), danger: !!on } : undefined}
                           >
-                            {on ? "Stop" : "Start"}
+                            {on ? t("devices.stop") : t("devices.start")}
                           </ActionButton>
                         </td>
                       </tr>
@@ -213,16 +199,14 @@ function ObsTab() {
                 </table>
               )}
               <div className="form-actions">
-                <ActionButton size="sm" title="Adds the main HUD as a browser source in the scene “MatchFrame Live”" action={() => api.post("/api/v1/obs/provision", {})} success="HUD browser source provisioned (scene “MatchFrame Live”)" disabledReason={reason ?? (s.connected ? null : "Connect OBS first")}>
-                  Add HUD browser source
-                </ActionButton>
+                <ActionButton size="sm" title={t("devices.addsTheMainHudAs")} action={() => api.post("/api/v1/obs/provision", {})} success={t("devices.hudBrowserSourceProvisionedScene")} disabledReason={reason ?? (s.connected ? null : t("devices.connectObsFirst"))}>{t("devices.addHudBrowserSource")}</ActionButton>
               </div>
             </Panel>
           </div>
           {s.connected ? (
             <>
               <div className="grid-2">
-                <Panel title={`Scenes (${s.scenes.length})`}>
+                <Panel title={t("devices.scenesCount", { count: s.scenes.length })}>
                   <table className="table table-compact">
                     <tbody>
                       {s.scenes.map((sc) => (
@@ -231,16 +215,12 @@ function ObsTab() {
                             <button className="link-btn" onClick={() => setScene(sc === scene ? null : sc)}>
                               {sc}
                             </button>{" "}
-                            {sc === s.programScene ? <Badge tone="danger">Program</Badge> : null} {sc === s.previewScene ? <Badge tone="ok">Preview</Badge> : null}
+                            {sc === s.programScene ? <Badge tone="danger">{t("devices.program")}</Badge> : null} {sc === s.previewScene ? <Badge tone="ok">{t("devices.preview")}</Badge> : null}
                           </td>
                           <td>
                             <div className="cell-actions">
-                              <ActionButton size="sm" variant="ghost" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/preview", { scene: sc })} success={(r) => `Preview: ${sc}${r.confirmed ? "" : " (not confirmed)"}`} onDone={() => void obs.reload()} disabledReason={reason ?? (s.studioMode ? null : "Studio mode is off in OBS")}>
-                                Preview
-                              </ActionButton>
-                              <ActionButton size="sm" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/program", { scene: sc })} success={(r) => `Program: ${sc}${r.confirmed ? "" : " (not confirmed)"}`} onDone={() => void obs.reload()} disabledReason={reason} confirm={{ title: `Put “${sc}” on program?`, body: "Bypasses the program state machine (use Studio & Rundown for mode changes)." }}>
-                                Program
-                              </ActionButton>
+                              <ActionButton size="sm" variant="ghost" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/preview", { scene: sc })} success={(r) => `Preview: ${sc}${r.confirmed ? "" : t("devices.notConfirmed")}`} onDone={() => void obs.reload()} disabledReason={reason ?? (s.studioMode ? null : t("devices.studioModeIsOffIn"))}>{t("devices.preview")}</ActionButton>
+                              <ActionButton size="sm" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/program", { scene: sc })} success={(r) => `Program: ${sc}${r.confirmed ? "" : t("devices.notConfirmed")}`} onDone={() => void obs.reload()} disabledReason={reason} confirm={{ title: t("devices.putScOnProgram", { sc }), body: t("devices.bypassesTheProgramStateMachine") }}>{t("devices.program")}</ActionButton>
                             </div>
                           </td>
                         </tr>
@@ -248,10 +228,10 @@ function ObsTab() {
                     </tbody>
                   </table>
                 </Panel>
-                <Panel title={scene ? `Sources in “${scene}”` : "Scene sources"}>{scene ? <SceneItems key={scene} scene={scene} /> : <p className="muted small">Choose a scene to list and toggle its sources.</p>}</Panel>
+                <Panel title={scene ? t("devices.sourcesInScene", { scene }) : t("devices.sceneSources")}>{scene ? <SceneItems key={scene} scene={scene} /> : <p className="muted small">{t("devices.chooseASceneToList")}</p>}</Panel>
               </div>
               <div className="grid-2">
-                <Panel title="Audio" subtitle="OBS does not report current mute or volume here; each change is confirmed by read-back.">
+                <Panel title={t("devices.audio")} subtitle={t("devices.obsDoesNotReportCurrent")}>
                   <table className="table table-compact">
                     <tbody>
                       {s.inputs.map((i) => (
@@ -260,9 +240,9 @@ function ObsTab() {
                     </tbody>
                   </table>
                 </Panel>
-                <Panel title="Screenshot">
+                <Panel title={t("devices.screenshot")}>
                   <div className="row-end">
-                    <Field label="Source or scene">
+                    <Field label={t("devices.sourceOrScene")}>
                       <input list="obs-shot-sources" value={shotSource} onChange={(e) => setShotSource(e.target.value)} />
                       <datalist id="obs-shot-sources">
                         {[...s.scenes, ...s.inputs.map((i) => i.name)].map((n) => (
@@ -270,11 +250,9 @@ function ObsTab() {
                         ))}
                       </datalist>
                     </Field>
-                    <ActionButton action={() => api.post<{ image: string }>("/api/v1/obs/screenshot", { source: shotSource, width: 640 })} onDone={(r) => setShot(r.image)} disabledReason={shotSource ? null : "Choose a source"}>
-                      Capture
-                    </ActionButton>
+                    <ActionButton action={() => api.post<{ image: string }>("/api/v1/obs/screenshot", { source: shotSource, width: 640 })} onDone={(r) => setShot(r.image)} disabledReason={shotSource ? null : t("devices.chooseASource")}>{t("devices.capture")}</ActionButton>
                   </div>
-                  {shot ? <img src={shot} alt={`OBS screenshot of ${shotSource}`} style={{ width: "100%", marginTop: 8, borderRadius: 6 }} /> : null}
+                  {shot ? <img src={shot} alt={t("devices.obsScreenshotOfShotsource", { shotSource })} style={{ width: "100%", marginTop: 8, borderRadius: 6 }} /> : null}
                 </Panel>
               </div>
             </>
@@ -303,67 +281,65 @@ function ActionRow({ a }: { a: DeviceActionInfo }) {
         {a.label}
         <div className="small muted">
           <span className="mono">{a.id}</span> · {a.permission}
-          {a.allowed ? null : <span className="text-warn"> · not allowed for your role</span>}
+          {a.allowed ? null : <span className="text-warn">{t("devices.notAllowedForYourRole")}</span>}
         </div>
       </td>
-      <td>{hasParams ? <input className="mono" aria-label={`Parameters for ${a.id}`} value={params} onChange={(e) => setParams(e.target.value)} style={{ width: 220 }} aria-invalid={!parsed.ok} /> : <span className="muted small">—</span>}</td>
+      <td>{hasParams ? <input className="mono" aria-label={t("devices.parametersForId", { id: a.id })} value={params} onChange={(e) => setParams(e.target.value)} style={{ width: 220 }} aria-invalid={!parsed.ok} /> : <span className="muted small">—</span>}</td>
       <td>
         <div className="cell-actions">
           <ActionButton
             size="sm"
             variant={a.id === "emergency_stop" ? "danger" : "secondary"}
             action={() => {
-              if (!parsed.ok) throw new Error(`Invalid JSON: ${parsed.error}`);
+              if (!parsed.ok) throw new Error(t("common.invalidJson", { error: parsed.error }));
               return api.post<{ action: string; result: unknown }>(`/api/v1/devices/actions/${a.id}`, hasParams ? parsed.value : {});
             }}
-            success={(r) => `Device action ${r.action} executed`}
-            disabledReason={a.allowed ? null : `Your role lacks ${a.permission}`}
+            success={(r) => t("devices.deviceActionActionExecuted", { action: r.action })}
+            disabledReason={a.allowed ? null : t("devices.yourRoleLacksPermission", { permission: a.permission })}
            
-            confirm={{ title: `Run “${a.label}” now?`, body: "This is a real control action, exactly as a Stream Deck/Companion button would trigger it." }}
-          >
-            Run
-          </ActionButton>
-          <CopyButton text={curl} label="Copy curl" />
+            confirm={{ title: t("devices.runLabelNow", { label: a.label }), body: t("devices.thisIsARealControl") }}
+          >{t("devices.run")}</ActionButton>
+          <CopyButton text={curl} label={t("devices.copyCurl")} />
         </div>
       </td>
     </tr>
   );
 }
 
-function TallyView({ t }: { t: DeviceTally }) {
+function TallyView({ t: tRow }: { t: DeviceTally }) {
   return (
     <>
       <ul className="gc-facts">
         <li>
-          <span className="muted">Source</span> {t.simulated ? "Simulation" : "Live"}
+          <span className="muted">{t("devices.source")}</span> {tRow.simulated ? t("common.simulation") : t("devices.live")}
         </li>
         <li>
-          <span className="muted">Telemetry</span> <span className={t.telemetry === "stale" ? "text-danger" : undefined}>{t.telemetry}</span>
+          <span className="muted">{t("devices.telemetry")}</span> <span className={tRow.telemetry === "stale" ? "text-danger" : undefined}>{tRow.telemetry}</span>
         </li>
         <li>
-          <span className="muted">Camera</span> <span className={t.control.emergencyStopped ? "text-danger" : undefined}>{t.control.emergencyStopped ? "Emergency stop" : t.control.automationActive ? "Automation" : "Manual"}</span>
+          <span className="muted">{t("devices.camera")}</span> <span className={tRow.control.emergencyStopped ? "text-danger" : undefined}>{tRow.control.emergencyStopped ? t("devices.emergencyStop") : tRow.control.automationActive ? t("devices.automation") : t("devices.manual")}</span>
         </li>
         <li>
-          <span className="muted">Director</span> {MODE_INFO[t.director.mode]?.label ?? t.director.mode}
-          {t.director.hold ? " · hold" : ""}
+          <span className="muted">{t("devices.director")}</span> {MODE_INFO[tRow.director.mode]?.label ?? tRow.director.mode}
+          {tRow.director.hold ? t("devices.hold") : ""}
         </li>
         <li>
-          <span className="muted">Program</span> {t.program.mode}
+          <span className="muted">{t("devices.program")}</span> {tRow.program.mode}
         </li>
         <li>
-          <span className="muted">OBS</span> {t.obs.connected ? "Connected" : "Off"}
+          <span className="muted">OBS</span> {tRow.obs.connected ? t("devices.connected") : t("devices.off")}
         </li>
       </ul>
-      {t.slots.length ? (
+      {tRow.slots.length ? (
         <div className="row" style={{ marginTop: 10 }}>
-          {t.slots.map((s) => (
+          {tRow.slots.map((s) => (
             <span key={s.steamId} className={`badge ${s.onAir ? "tone-ok" : s.alive ? "" : "tone-danger"}`} title={`${s.side ?? "?"} · ${s.alive ? "alive" : "dead"}`}>
-              {s.slot ?? "·"} {s.name} {s.onAir ? "● on air" : s.alive ? "" : "✕"}
+              {s.slot ?? "·"} {s.name} {s.onAir ? t("devices.onAir") : s.alive ? "" : "✕"}
             </span>
           ))}
         </div>
       ) : (
-        <p className="muted small">No observer slots (no telemetry).</p>
+        <p className="muted small">{t("devices.noObserverSlotsNoTelemetry")}</p>
       )}
     </>
   );
@@ -373,18 +349,18 @@ function ControlSurfacesTab() {
   const actions = useApi<DeviceActionInfo[]>("/api/v1/devices/actions");
   const snap = useSnapshot();
   const tally = useApi<DeviceTally>(snap?.tally ? null : "/api/v1/devices/tally", { refreshMs: 2000 });
-  const t = snap?.tally ?? tally.data;
+  const tRow = snap?.tally ?? tally.data;
   return (
     <div className="stack">
-      <Panel title="Device actions" subtitle="What a Stream Deck or Companion button can trigger. Issue a token for each device in the Tokens tab.">
+      <Panel title={t("devices.deviceActions")} subtitle={t("devices.whatAStreamDeckOr")}>
         <Async state={actions}>
           {(list) => (
             <table className="table table-compact">
               <thead>
                 <tr>
-                  <th>Action</th>
-                  <th>Parameters (JSON)</th>
-                  <th aria-label="Run" />
+                  <th>{t("devices.action")}</th>
+                  <th>{t("devices.parametersJson")}</th>
+                  <th aria-label={t("devices.run")} />
                 </tr>
               </thead>
               <tbody>
@@ -395,14 +371,12 @@ function ControlSurfacesTab() {
             </table>
           )}
         </Async>
-        <Details summary="How to connect Companion or Stream Deck">
-          <p className="small muted">
-            Control surfaces use the same local HTTP API as this console: <code>POST {engineOrigin()}/api/v1/devices/actions/&lt;action&gt;</code> with <code>Authorization: Bearer &lt;token&gt;</code> and a JSON body. In Bitfocus Companion use the Generic HTTP module (POST, JSON body, custom header). Poll <code>GET /api/v1/devices/tally</code> for button feedback. Every action goes through the same control/program arbiters as the console and is audited. Issue a role-scoped token in the Tokens tab (e.g. role <em>observer</em> for camera buttons) — never share the operator token.
-          </p>
+        <Details summary={t("devices.howToConnectCompanionOr")}>
+          <p className="small muted"><T k="devices.controlSurfacesUseTheSame" values={{ code: <code>POST {engineOrigin()}/api/v1/devices/actions/&lt;action&gt;</code> }} tags={{ code: (c) => <code>{c}</code>, em: (c) => <em>{c}</em> }} /></p>
         </Details>
       </Panel>
-      <Panel title="Tally" subtitle="What a control surface sees for button feedback">
-        {t ? <TallyView t={t} /> : <Async state={tally}>{(x) => <TallyView t={x} />}</Async>}
+      <Panel title={t("devices.tally")} subtitle={t("devices.whatAControlSurfaceSees")}>
+        {tRow ? <TallyView t={tRow} /> : <Async state={tally}>{(x) => <TallyView t={x} />}</Async>}
       </Panel>
     </div>
   );
@@ -418,13 +392,13 @@ function TokensTab() {
   const [matchId, setMatchId] = useState("");
   const [teamId, setTeamId] = useState("");
   const [issued, setIssued] = useState<{ id: string; token: string; role: string } | null>(null);
-  if (reason) return <Note tone="warn">{reason}. Token management requires the owner role.</Note>;
+  if (reason) return <Note tone="warn">{t("devices.reasonTokenManagementRequiresThe", { reason })}</Note>;
   const m = matches.data?.find((x) => x.id === matchId);
   return (
     <div className="grid-1-2">
-      <Panel title="Issue a token">
+      <Panel title={t("devices.issueAToken")}>
         <div className="form-grid">
-          <Field label="Role" hint={ROLE_DESCRIPTIONS[role]}>
+          <Field label={t("devices.role")} hint={ROLE_DESCRIPTIONS[role]}>
             <select value={role} onChange={(e) => setRole(e.target.value)}>
               {(tokens.data?.roles ?? Object.keys(ROLE_DESCRIPTIONS)).map((r) => (
                 <option key={r} value={r}>
@@ -433,17 +407,17 @@ function TokensTab() {
               ))}
             </select>
           </Field>
-          <Field label="Label">
-            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Stream Deck — observer desk" />
+          <Field label={t("devices.label")}>
+            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={t("devices.streamDeckObserverDesk")} />
           </Field>
-          <Field label="Expires after (hours)" hint="Leave empty for no expiry (captain links default to 6 h)">
+          <Field label={t("devices.expiresAfterHours")} hint={t("devices.leaveEmptyForNoExpiry")}>
             <input type="number" min={1} max={720} value={ttl} onChange={(e) => setTtl(e.target.value)} />
           </Field>
           {role === "captain" ? (
             <>
-              <Field label="Match">
+              <Field label={t("devices.match")}>
                 <select value={matchId} onChange={(e) => setMatchId(e.target.value)}>
-                  <option value="">Choose…</option>
+                  <option value="">{t("devices.choose")}</option>
                   {(matches.data ?? []).map((x) => (
                     <option key={x.id} value={x.id}>
                       {x.title ?? x.id}
@@ -451,13 +425,13 @@ function TokensTab() {
                   ))}
                 </select>
               </Field>
-              <Field label="Team">
+              <Field label={t("devices.team")}>
                 <select value={teamId} onChange={(e) => setTeamId(e.target.value)} disabled={!m}>
-                  <option value="">Choose…</option>
+                  <option value="">{t("devices.choose")}</option>
                   {m ? (
                     <>
-                      <option value={m.teamAId}>Team A ({m.teamAId})</option>
-                      <option value={m.teamBId}>Team B ({m.teamBId})</option>
+                      <option value={m.teamAId}>{t("devices.teamATeamaid", { teamAId: m.teamAId })}</option>
+                      <option value={m.teamBId}>{t("devices.teamBTeambid", { teamBId: m.teamBId })}</option>
                     </>
                   ) : null}
                 </select>
@@ -469,64 +443,58 @@ function TokensTab() {
           <ActionButton
             variant="primary"
             action={() => api.post<{ id: string; token: string }>("/api/v1/tokens", { role, label: label.trim(), ...(ttl ? { ttlHours: Number(ttl) } : {}), ...(role === "captain" ? { matchId, teamId } : {}) })}
-            success="Token issued — copy it now, it is shown only once"
-            onDone={(t) => {
-              setIssued({ ...t, role });
+            success={t("devices.tokenIssuedCopyItNow")}
+            onDone={(tRow) => {
+              setIssued({ ...tRow, role });
               setLabel("");
               void tokens.reload();
             }}
-            disabledReason={!label.trim() ? "Enter a label" : role === "captain" && (!matchId || !teamId) ? "Captain tokens need a match and a team" : null}
-          >
-            Issue token
-          </ActionButton>
+            disabledReason={!label.trim() ? t("devices.enterALabel") : role === "captain" && (!matchId || !teamId) ? t("devices.captainTokensNeedAMatch") : null}
+          >{t("devices.issueToken")}</ActionButton>
         </div>
         {issued ? (
-          <Note tone="warn" title="Shown once">
+          <Note tone="warn" title={t("devices.shownOnce")}>
             <div className="url-box">
-              <input readOnly className="mono" value={issued.token} aria-label="New token" onFocus={(e) => e.target.select()} />
+              <input readOnly className="mono" value={issued.token} aria-label={t("devices.newToken")} onFocus={(e) => e.target.select()} />
               <CopyButton text={issued.token} />
             </div>
             {issued.role === "captain" ? (
-              <div className="small">
-                Captain link: <code>{`${engineOrigin()}/captain?match=${matchId}&token=${issued.token}`}</code>
-              </div>
+              <div className="small"><T k="devices.captainLinkCode" values={{ code: <code>{`${engineOrigin()}/captain?match=${matchId}&token=${issued.token}`}</code> }} /></div>
             ) : (
-              <div className="small">Use as <code>Authorization: Bearer {issued.token.slice(0, 6)}…</code>. Only a hash is stored by the engine.</div>
+              <div className="small"><T k="devices.useAsCodeOnlyA" values={{ code: <code>Authorization: Bearer {issued.token.slice(0, 6)}…</code> }} /></div>
             )}
           </Note>
         ) : null}
       </Panel>
-      <Panel title="Issued tokens">
+      <Panel title={t("devices.issuedTokens")}>
         <Async state={tokens}>
           {(d) =>
             d.tokens.length === 0 ? (
-              <EmptyState title="No issued tokens">Only the local operator token exists. Issue a scoped token for each Companion, Stream Deck, remote producer or captain.</EmptyState>
+              <EmptyState title={t("devices.noIssuedTokens")}>{t("devices.onlyTheLocalOperatorToken")}</EmptyState>
             ) : (
               <table className="table table-compact">
                 <thead>
                   <tr>
-                    <th>Label</th>
-                    <th>Role</th>
-                    <th>Scope</th>
-                    <th>Created</th>
-                    <th>Expires</th>
+                    <th>{t("devices.label")}</th>
+                    <th>{t("devices.role")}</th>
+                    <th>{t("devices.scope")}</th>
+                    <th>{t("devices.created")}</th>
+                    <th>{t("devices.expires")}</th>
                     <th />
                   </tr>
                 </thead>
                 <tbody>
-                  {d.tokens.map((t) => {
-                    const expired = t.expiresAt ? Date.parse(t.expiresAt) < Date.now() : false;
+                  {d.tokens.map((tRow) => {
+                    const expired = tRow.expiresAt ? Date.parse(tRow.expiresAt) < Date.now() : false;
                     return (
-                      <tr key={t.id}>
-                        <td title={`Token id ${t.id}`}>{t.label}</td>
-                        <td>{t.role}</td>
-                        <td className="small">{t.scope ? Object.entries(t.scope).map(([k, v]) => `${k}=${v}`).join(", ") : "—"}</td>
-                        <td className="small">{fmtTime(t.createdAt)}</td>
-                        <td className="small">{t.expiresAt ? <>{fmtTime(t.expiresAt)} {expired ? <span className="text-warn">expired</span> : null}</> : "never"}</td>
+                      <tr key={tRow.id}>
+                        <td title={t("devices.tokenIdId", { id: tRow.id })}>{tRow.label}</td>
+                        <td>{tRow.role}</td>
+                        <td className="small">{tRow.scope ? Object.entries(tRow.scope).map(([k, v]) => `${k}=${v}`).join(", ") : "—"}</td>
+                        <td className="small">{fmtTime(tRow.createdAt)}</td>
+                        <td className="small">{tRow.expiresAt ? <>{fmtTime(tRow.expiresAt)} {expired ? <span className="text-warn">{t("devices.expired")}</span> : null}</> : t("devices.never")}</td>
                         <td>
-                          <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/tokens/${seg(t.id)}`)} success={`Token “${t.label}” revoked`} onDone={() => void tokens.reload()} confirm={{ title: `Revoke “${t.label}”?`, body: "Devices using it lose access immediately.", danger: true, confirmLabel: "Revoke" }}>
-                            Revoke
-                          </ActionButton>
+                          <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/tokens/${seg(tRow.id)}`)} success={t("devices.tokenLabelRevoked", { label: tRow.label })} onDone={() => void tokens.reload()} confirm={{ title: t("devices.revokeLabel", { label: tRow.label }), body: t("devices.devicesUsingItLoseAccess"), danger: true, confirmLabel: t("devices.revoke") }}>{t("devices.revoke")}</ActionButton>
                         </td>
                       </tr>
                     );
@@ -556,18 +524,18 @@ function IntegrationsTab() {
   return (
     <div className="stack">
       <div className="grid-2">
-        <Panel title="Observer adapter" actions={<Link to="/settings/setup#step-adapter">Configure in Setup</Link>}>
+        <Panel title={t("devices.observerAdapter")} actions={<Link to="/settings/setup#step-adapter">{t("devices.configureInSetup")}</Link>}>
           <Async state={adapter}>
             {(a) => (
               <>
                 <KV
                   items={[
-                    ["Configured", a.settings.kind],
-                    ["Active adapter", a.active ?? "none"],
+                    [t("devices.configured"), a.settings.kind],
+                    [t("devices.activeAdapter"), a.active ?? t("common.none")],
                   ]}
                 />
                 {a.capabilities ? (
-                  <Details summary={`Capabilities (${Object.keys(a.capabilities).length})`}>
+                  <Details summary={t("devices.capabilitiesCount", { count: Object.keys(a.capabilities).length })}>
                     <table className="table table-compact">
                       <tbody>
                         {Object.entries(a.capabilities).map(([k, c]) => (
@@ -589,51 +557,47 @@ function IntegrationsTab() {
             )}
           </Async>
         </Panel>
-        <Panel title="Games">
+        <Panel title={t("devices.games")}>
           <Async state={games}>
             {(g) => (
               <KV
                 items={[
-                  ["Supported", g.supported.map((x) => `${x.displayName} (${x.status})`).join(", ") || "none"],
-                  ["Planned, not supported yet", <span key="p" className="muted">{g.expansion.map((x) => x.displayName).join(", ") || "none"}</span>],
+                  [t("devices.supported"), g.supported.map((x) => `${x.displayName} (${x.status})`).join(", ") || t("common.none")],
+                  [t("devices.plannedNotSupported"), <span key="p" className="muted">{g.expansion.map((x) => x.displayName).join(", ") || t("devices.none")}</span>],
                 ]}
               />
             )}
           </Async>
         </Panel>
       </div>
-      <Panel title="MatchFrame bridge" subtitle="Optional push of match results to the MatchFrame service" actions={bridge.data ? <Badge tone={bridge.data.status === "connected" ? "ok" : bridge.data.status === "disabled" ? "neutral" : "warn"}>{bridge.data.status}</Badge> : null}>
+      <Panel title={t("devices.matchframeBridge")} subtitle={t("devices.optionalPushOfMatchResults")} actions={bridge.data ? <Badge tone={bridge.data.status === "connected" ? "ok" : bridge.data.status === "disabled" ? "neutral" : "warn"}>{bridge.data.status}</Badge> : null}>
         <Async state={bridge}>
           {(b) => (
             <>
               <div className="form-grid">
-                <Field label="Bridge URL">
+                <Field label={t("devices.bridgeUrl")}>
                   <input value={cfg.url} onChange={(e) => setCfg({ ...cfg, url: e.target.value })} placeholder="https://…" />
                 </Field>
-                <Field label="Token" hint="Stored in the secret store. Leave empty to keep the stored token.">
+                <Field label={t("devices.token")} hint={t("devices.storedInTheSecretStore")}>
                   <input type="password" autoComplete="off" value={cfg.token} onChange={(e) => setCfg({ ...cfg, token: e.target.value })} />
                 </Field>
               </div>
               <div className="form-actions">
-                <Checkbox checked={cfg.enabled} onChange={(v) => setCfg({ ...cfg, enabled: v })} label="Enabled" />
-                <Checkbox checked={cfg.autoPushResults} onChange={(v) => setCfg({ ...cfg, autoPushResults: v })} label="Push results automatically" />
+                <Checkbox checked={cfg.enabled} onChange={(v) => setCfg({ ...cfg, enabled: v })} label={t("devices.enabled")} />
+                <Checkbox checked={cfg.autoPushResults} onChange={(v) => setCfg({ ...cfg, autoPushResults: v })} label={t("devices.pushResultsAutomatically")} />
                 <ActionButton
                   variant="primary"
                   action={() => api.put("/api/v1/integrations/matchframe", { enabled: cfg.enabled, url: cfg.url || null, autoPushResults: cfg.autoPushResults, ...(cfg.token ? { token: cfg.token } : {}) })}
-                  success="Bridge settings saved"
+                  success={t("devices.bridgeSettingsSaved")}
                   onDone={() => void bridge.reload()}
-                  disabledReason={settingsReason ?? (cfg.url && !/^https?:\/\//.test(cfg.url) ? "URL must start with http(s)://" : null)}
-                >
-                  Save
-                </ActionButton>
-                <ActionButton variant="ghost" action={() => api.post<{ lastError: string | null }>("/api/v1/integrations/matchframe/discover")} success={(r) => (r.lastError ? `Discovery failed: ${r.lastError}` : "Bridge capabilities discovered")} onDone={() => void bridge.reload()} disabledReason={settingsReason ?? (b.config.enabled && b.config.url ? null : "Enable the bridge and set its URL first")}>
-                  Discover
-                </ActionButton>
+                  disabledReason={settingsReason ?? (cfg.url && !/^https?:\/\//.test(cfg.url) ? t("devices.urlMustStartWithHttp") : null)}
+                >{t("devices.save")}</ActionButton>
+                <ActionButton variant="ghost" action={() => api.post<{ lastError: string | null }>("/api/v1/integrations/matchframe/discover")} success={(r) => (r.lastError ? t("devices.discoveryFailedLasterror", { lastError: r.lastError }) : t("devices.bridgeCapabilitiesDiscovered"))} onDone={() => void bridge.reload()} disabledReason={settingsReason ?? (b.config.enabled && b.config.url ? null : t("devices.enableTheBridgeAndSet"))}>{t("devices.discover")}</ActionButton>
               </div>
               <div className="row-end gc-section">
-                <Field label="Push a match result">
+                <Field label={t("devices.pushAMatchResult")}>
                   <select value={pushMatch} onChange={(e) => setPushMatch(e.target.value)}>
-                    <option value="">Choose…</option>
+                    <option value="">{t("devices.choose")}</option>
                     {(matches.data ?? []).map((x) => (
                       <option key={x.id} value={x.id}>
                         {x.title ?? x.id}
@@ -641,12 +605,10 @@ function IntegrationsTab() {
                     ))}
                   </select>
                 </Field>
-                <ActionButton action={() => api.post<{ ok: boolean; lastError: string | null }>("/api/v1/integrations/matchframe/push-result", { matchId: pushMatch })} success={(r) => (r.ok ? "Result pushed" : `Push failed: ${r.lastError ?? "?"}`)} disabledReason={writeReason ?? (!b.config.enabled ? "Bridge disabled" : pushMatch ? null : "Choose a match")}>
-                  Push result
-                </ActionButton>
+                <ActionButton action={() => api.post<{ ok: boolean; lastError: string | null }>("/api/v1/integrations/matchframe/push-result", { matchId: pushMatch })} success={(r) => (r.ok ? t("devices.resultPushed") : t("devices.pushFailedV", { v: r.lastError ?? "?" }))} disabledReason={writeReason ?? (!b.config.enabled ? t("devices.bridgeDisabled") : pushMatch ? null : t("devices.chooseAMatch"))}>{t("devices.pushResult")}</ActionButton>
               </div>
-              {b.lastError ? <p className="small text-danger">Last error: {b.lastError}</p> : null}
-              <Details summary="About the bridge">
+              {b.lastError ? <p className="small text-danger">{t("devices.lastErrorLasterror", { lastError: b.lastError })}</p> : null}
+              <Details summary={t("devices.aboutTheBridge")}>
                 <p className="small muted">{b.note}</p>
               </Details>
             </>
@@ -662,17 +624,17 @@ export function DevicesScreen() {
   return (
     <div className="page">
       <div className="page-head">
-        <h1 className="page-title">Devices &amp; Integrations</h1>
+        <h1 className="page-title">{t("devices.devicesIntegrations")}</h1>
       </div>
       <Tabs
-        label="Device sections"
+        label={t("devices.deviceSections")}
         value={tab}
         onChange={setTab}
         tabs={[
           { id: "obs", label: "OBS" },
-          { id: "surfaces", label: "Control surfaces" },
-          { id: "tokens", label: "Tokens" },
-          { id: "integrations", label: "Adapters & integrations" },
+          { id: "surfaces", label: t("devices.controlSurfaces") },
+          { id: "tokens", label: t("devices.tokens") },
+          { id: "integrations", label: t("devices.adaptersIntegrations") },
         ]}
       />
       {tab === "obs" ? <ObsTab /> : null}

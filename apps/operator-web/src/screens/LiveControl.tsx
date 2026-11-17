@@ -228,12 +228,12 @@ function PovStatus({ snap }: { snap: OperatorSnapshot }) {
       <Details summary={t("common.details")}>
         <KV
           items={[
-            ["On air", `confirmed by source feedback (${s.observer.evidence}) · camera ${s.observer.cameraMode.replace("_", " ")}`],
-            ["Command", p ? `${p.status.replace(/_/g, " ")} · owner ${p.context.owner}${p.retries ? ` · retry ${p.retries}` : ""}` : "nothing in flight"],
-            ["Director", snap.director ? `${snap.director.action} · ${snap.director.mode}` : "no decision"],
+            [t("live.onAir"), t("live.confirmedBySource", { evidence: s.observer.evidence, camera: s.observer.cameraMode.replace("_", " ") })],
+            [t("live.kvCommand"), p ? `${p.status.replace(/_/g, " ")} · ${t("live.ownerName", { owner: p.context.owner })}${p.retries ? t("live.retryN", { n: p.retries }) : ""}` : t("live.nothingInFlight")],
+            [t("live.kvDirector"), snap.director ? `${snap.director.action} · ${snap.director.mode}` : t("live.noDecision")],
             [
-              "Last arbiter event",
-              lastResult ? `${lastResult.kind.replace(/_/g, " ")} ${String(lastResult.detail.status ?? lastResult.detail.reason ?? "")}${lastResult.detail.failureReason ? ` — ${String(lastResult.detail.failureReason).replace(/_/g, " ")}` : ""}` : "none since this console connected",
+              t("live.lastArbiterEvent"),
+              lastResult ? `${lastResult.kind.replace(/_/g, " ")} ${String(lastResult.detail.status ?? lastResult.detail.reason ?? "")}${lastResult.detail.failureReason ? ` — ${String(lastResult.detail.failureReason).replace(/_/g, " ")}` : ""}` : t("live.noneSinceConnected"),
             ],
           ]}
         />
@@ -262,7 +262,7 @@ function ActionsBar({ snap, cameras }: { snap: OperatorSnapshot; cameras: { id: 
     const out: string[] = [];
     if (snap.program.mode !== "LIVE") {
       const tRow = await api.post<{ to: string; confirmed: boolean; detail: string | null }>("/api/v1/program/return-live");
-      out.push(`Program → ${tRow.to}${tRow.confirmed ? "" : t("live.mixerNotConfirmed")}${tRow.detail ? `: ${tRow.detail}` : ""}`);
+      out.push(`${t("live.programTo", { to: tRow.to })}${tRow.confirmed ? "" : t("live.mixerNotConfirmed")}${tRow.detail ? `: ${tRow.detail}` : ""}`);
     }
     const shot = shotTarget(snap.currentShot);
     if (!shot || shot.kind !== "pov") {
@@ -408,9 +408,9 @@ function DirectorPanel({ snap, threshold, nameOf }: { snap: OperatorSnapshot; th
       <Details summary={t("live.decisionDetails")}>
         <KV
           items={[
-            ["Control", health ? <span key="h" title={health.hint}>{health.text}</span> : <span className="muted">{t("live.noDecisionYet")}</span>],
-            ["Input", `${stale ? "stale" : "fresh"} · decision input ${fmtMs(inputAge)} · data age ≈ ${fmtMs(ageEst)} · last packet ${sequenceChangedAt ? fmtMs(Math.max(0, now - sequenceChangedAt)) : MISSING} ago`],
-            ["Policy / model", d ? `${d.policyVersion} · ${d.modelVersion ?? "no learned model (baseline policy)"}` : MISSING],
+            [t("live.kvControl"), health ? <span key="h" title={health.hint}>{health.text}</span> : <span className="muted">{t("live.noDecisionYet")}</span>],
+            [t("live.kvInput"), t("live.inputDetail", { state: stale ? t("live.stale") : t("live.fresh"), input: fmtMs(inputAge), age: fmtMs(ageEst), packet: sequenceChangedAt ? fmtMs(Math.max(0, now - sequenceChangedAt)) : MISSING })],
+            [t("live.policyModel"), d ? `${d.policyVersion} · ${d.modelVersion ?? t("live.noLearnedModel")}` : MISSING],
           ]}
         />
       </Details>
@@ -457,7 +457,7 @@ function DirectorControls({ snap }: { snap: OperatorSnapshot }) {
   );
 }
 
-const onOff = (v: boolean | null) => (v === null ? "?" : v ? "on" : "off");
+const onOff = (v: boolean | null) => (v === null ? "?" : v ? t("common.on") : t("common.off"));
 
 function ProductionPanel({ snap }: { snap: OperatorSnapshot }) {
   const replays = useApi<ReplaysResponse>("/api/v1/replays", { refreshMs: 5000 });
@@ -471,11 +471,11 @@ function ProductionPanel({ snap }: { snap: OperatorSnapshot }) {
     <>
       <KV
         items={[
-          ["Program", <span key="p" title={t("live.ownerKind", { kind: snap.program.owner.kind })}>{titleCase(snap.program.mode.replace("_", " ").toLowerCase())}</span>],
-          ["OBS", snap.obs.connected ? `${snap.obs.programScene ?? MISSING} (preview ${snap.obs.previewScene ?? MISSING})${snap.obs.studioMode ? " · studio mode" : ""}` : <Link key="o" to="/settings/devices">{t("live.notConnectedConnectInSettings")}</Link>],
-          ["Replays", prov ? <span key="r" title={prov.health.detail}>{t("live.vApprovedApproved", { v: prov.health.ok ? t("live.ready") : t("live.notReadyDetail", { detail: prov.health.detail }), approved })}</span> : replays.data ? <Link key="r" to="/replays">{t("live.noReplayProviderSetUp")}</Link> : MISSING],
-          ["Outputs", `Recording ${onOff(snap.obs.recording)} · streaming ${onOff(snap.obs.streaming)} · replay buffer ${onOff(snap.obs.replayBuffer)}`],
-          ...(early ? [["Early replays", early.state === "decided" || early.state === "on_air" ? <strong key="e">{early.detail}</strong> : early.detail] as [string, ReactNode]] : []),
+          [t("live.kvProgram"), <span key="p" title={t("live.ownerKind", { kind: snap.program.owner.kind })}>{titleCase(snap.program.mode.replace("_", " ").toLowerCase())}</span>],
+          ["OBS", snap.obs.connected ? `${snap.obs.programScene ?? MISSING}${t("live.previewScene", { scene: snap.obs.previewScene ?? MISSING })}${snap.obs.studioMode ? t("live.studioModeSuffix") : ""}` : <Link key="o" to="/settings/devices">{t("live.notConnectedConnectInSettings")}</Link>],
+          [t("live.replays"), prov ? <span key="r" title={prov.health.detail}>{t("live.vApprovedApproved", { v: prov.health.ok ? t("live.ready") : t("live.notReadyDetail", { detail: prov.health.detail }), approved })}</span> : replays.data ? <Link key="r" to="/replays">{t("live.noReplayProviderSetUp")}</Link> : MISSING],
+          [t("live.kvOutputs"), t("live.outputsDetail", { recording: onOff(snap.obs.recording), streaming: onOff(snap.obs.streaming), buffer: onOff(snap.obs.replayBuffer) })],
+          ...(early ? [[t("live.earlyReplays"), early.state === "decided" || early.state === "on_air" ? <strong key="e">{early.detail}</strong> : early.detail] as [string, ReactNode]] : []),
         ]}
       />
       <Details summary={t("live.telemetrySourcesCount", { count: src.length })}>

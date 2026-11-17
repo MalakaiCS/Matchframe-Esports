@@ -178,9 +178,9 @@ export function ReplaysScreen() {
                     <Details summary={t("replays.providerDetails")}>
                       <KV
                         items={[
-                          ["Provider", `${p.kind} · ${p.id}`],
-                          ["Health", p.health.detail],
-                          ["Capabilities", p.capabilities ? Object.entries(p.capabilities).filter(([k, v]) => k !== "limitations" && v === true).map(([k]) => k).join(", ") : "unknown"],
+                          [t("replays.provider"), `${p.kind} · ${p.id}`],
+                          [t("replays.health"), p.health.detail],
+                          [t("replays.capabilities"), p.capabilities ? Object.entries(p.capabilities).filter(([k, v]) => k !== "limitations" && v === true).map(([k]) => k).join(", ") : t("common.unknown")],
                         ]}
                       />
                       {p.capabilities?.limitations.length ? (

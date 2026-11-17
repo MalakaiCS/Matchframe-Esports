@@ -9,7 +9,8 @@ import { describe, expect, it } from "vitest";
  *   including `cond ? "A" : "B"` and template literals;
  * - string literals in JSX children expressions ({busy ? "Saving…" : "Save"});
  * - confirm dialogs' { title, body, confirmLabel } given as literals;
- * - toast.push(tone, "literal").
+ * - toast.push(tone, "literal");
+ * - the rows of a key/value list (<KV items={[["Label", value], …]}>, and `…Items` arrays), label and value.
  * Brand and product names, abbreviations in capitals (CT, ADR, ON AIR), symbols and the text of
  * <code>/<kbd>/<pre>/<samp>/<Mono> elements are allowed.
  */
@@ -25,7 +26,6 @@ const PENDING = new Set<string>([
   "components/SignIn.tsx",
   "screens/Account.tsx",
   "screens/Demos.tsx",
-  "screens/Devices.tsx",
   "screens/Director.tsx",
   "screens/Events.tsx",
   "screens/HudImages.tsx",
@@ -34,7 +34,6 @@ const PENDING = new Set<string>([
   "screens/Maps.tsx",
   "screens/Matches.tsx",
   "screens/PlayerCameras.tsx",
-  "screens/Setup.tsx",
   "screens/Sponsors.tsx",
   "screens/Studio.tsx",
   "screens/Teams.tsx",
@@ -162,10 +161,25 @@ function scan(file: string, source: string): Finding[] {
     } else if (ts.isCallExpression(n) && /(^|\.)push$/.test(n.expression.getText(sf)) && n.arguments.length >= 2 && ts.isStringLiteral(n.arguments[0]!) && ["ok", "info", "warn", "danger"].includes(n.arguments[0].text)) {
       for (const a of n.arguments.slice(1)) for (const l of literals(a)) add(l, literalText(l));
     }
+    // Key/value rows: <KV items={[["Label", value], …]} /> and arrays named …Items (built up with push).
+    if (ts.isJsxAttribute(n) && n.name.getText(sf) === "items" && n.initializer && ts.isJsxExpression(n.initializer) && n.initializer.expression) kvRows(n.initializer.expression, add);
+    else if (ts.isVariableDeclaration(n) && /items$/i.test(n.name.getText(sf)) && n.initializer) kvRows(n.initializer, add);
+    else if (ts.isCallExpression(n) && /items\.push$/i.test(n.expression.getText(sf))) for (const a of n.arguments) kvRows(a, add);
     ts.forEachChild(n, visit);
   };
   visit(sf);
   return out;
+}
+
+/** The label and the literal value of each [label, value] row under `root`. */
+function kvRows(root: ts.Node, add: (n: ts.Node, text: string) => void) {
+  const walk = (x: ts.Node) => {
+    if (ts.isArrayLiteralExpression(x) && x.elements.length === 2 && (ts.isArrayLiteralExpression(x.parent) || ts.isCallExpression(x.parent))) {
+      for (const el of x.elements) if (!ts.isSpreadElement(el)) for (const l of literals(el)) add(l, literalText(l));
+    }
+    ts.forEachChild(x, walk);
+  };
+  walk(root);
 }
 
 function insideJsxAttribute(n: ts.Node): boolean {
