@@ -6,6 +6,8 @@ import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
 import { fmtDelay } from "./TeamPanel.tsx";
 import type { CommsPublicSettings, CommsSlot, CommsView, ObsAudioInput, ObsCheck } from "./types.ts";
+import { t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 
 type Reload = () => void;
 
@@ -21,37 +23,35 @@ export function TimingPanel({ view, onChanged }: { view: CommsView; onChanged: R
   }, [view.settings.delaySec, view.settings.fineMs]);
   const s = Number(sec);
   const f = Number(ms);
-  const bad = !Number.isInteger(s) || s < 0 || s > 300 ? "Seconds: 0 to 300" : !Number.isInteger(f) || f < -999 || f > 999 ? "Fine adjustment: −999 to 999 ms" : null;
+  const bad = !Number.isInteger(s) || s < 0 || s > 300 ? t("comms.seconds0To300") : !Number.isInteger(f) || f < -999 || f > 999 ? t("comms.fineAdjustment999To999") : null;
   const changed = s !== view.settings.delaySec || f !== view.settings.fineMs;
   const apply = async () => {
     try {
       await api.put("/api/v1/comms/settings", { delaySec: s, fineMs: f });
       onChanged();
     } catch (e) {
-      toast.push("danger", "Delay not changed", describeError(e));
+      toast.push("danger", t("comms.delayNotChanged"), describeError(e));
     }
   };
   return (
-    <Panel title="Delay" subtitle="Both teams share it: they play against the same gameplay. Match it to the observer's gameplay as it reaches the output.">
+    <Panel title={t("comms.delay")} subtitle={t("comms.bothTeamsShareItThey")}>
       <div className="stack-sm">
         <div className="row-end">
-          <Field label="Seconds">
+          <Field label={t("comms.seconds")}>
             <input type="number" min={0} max={300} step={1} value={sec} onChange={(e) => setSec(e.target.value)} />
           </Field>
-          <Field label="Fine (ms)">
+          <Field label={t("comms.fineMs")}>
             <input type="number" min={-999} max={999} step={1} value={ms} onChange={(e) => setMs(e.target.value)} />
           </Field>
-          <Button variant="primary" disabledReason={reason ?? bad ?? (changed ? null : "No change")} onClick={() => void apply()}>
-            Apply delay
-          </Button>
+          <Button variant="primary" disabledReason={reason ?? bad ?? (changed ? null : t("comms.noChange"))} onClick={() => void apply()}>{t("comms.applyDelay")}</Button>
         </div>
         <KV
           items={[
-            ["In effect", fmtDelay(view.delay.effectiveMs)],
-            ...(view.delay.pendingMs !== null ? [["Changing to", `${fmtDelay(view.delay.pendingMs)} (muted, then re-buffering)`] as [string, string]] : []),
+            [t("comms.inEffect"), fmtDelay(view.delay.effectiveMs)],
+            ...(view.delay.pendingMs !== null ? [[t("comms.changingTo"), t("comms.delayRebuffering", { delay: fmtDelay(view.delay.pendingMs) })] as [string, string]] : []),
           ]}
         />
-        <p className="muted small">A change mutes every output for a moment, then plays from the new delay once the buffers hold it (a longer delay re-buffers). Never less than {view.delay.floorMs} ms.</p>
+        <p className="muted small">{t("comms.aChangeMutesEveryOutput", { floorMs: view.delay.floorMs })}</p>
       </div>
     </Panel>
   );
@@ -67,47 +67,47 @@ export function BridgePanel({ view, onChanged }: { view: CommsView; onChanged: R
       await api.put("/api/v1/comms/settings", { enabled: on });
       onChanged();
     } catch (e) {
-      toast.push("danger", "Not changed", describeError(e));
+      toast.push("danger", t("comms.notChanged"), describeError(e));
     }
   };
   const b = view.bridge;
   return (
-    <Panel title="Bridge and TeamSpeak plugin" subtitle="The MatchFrame Team Comms plugin in TeamSpeak 3 hands each person's voice to MatchFrame on this computer." actions={<Badge tone={b.state === "listening" ? (b.sessions ? "ok" : "warn") : b.state === "error" ? "danger" : "neutral"}>{b.state === "listening" ? (b.sessions ? `${b.sessions} plugin${b.sessions > 1 ? "s" : ""} connected` : "Waiting for the plugin") : b.state === "error" ? "Bridge error" : "Off"}</Badge>}>
+    <Panel title={t("comms.bridgeAndTeamspeakPlugin")} subtitle={t("comms.theMatchframeTeamCommsPlugin")} actions={<Badge tone={b.state === "listening" ? (b.sessions ? "ok" : "warn") : b.state === "error" ? "danger" : "neutral"}>{b.state === "listening" ? (b.sessions ? t("comms.pluginsConnected", { count: b.sessions }) : t("comms.waitingForThePlugin")) : b.state === "error" ? t("comms.bridgeError") : t("comms.off")}</Badge>}>
       <div className="stack-sm">
-        <Checkbox checked={view.enabled} disabled={!!reason} label="Team Comms on" hint="Off: nothing listens for the plugin, and no comms output runs." onChange={(v) => void toggle(v)} />
+        <Checkbox checked={view.enabled} disabled={!!reason} label={t("comms.teamCommsOn")} hint={t("comms.offNothingListensForThe")} onChange={(v) => void toggle(v)} />
         {b.error ? <Note tone="danger">{b.error}</Note> : null}
         <KV
           items={[
-            ["Bridge", b.port ? `127.0.0.1:${b.port} (this computer only)` : "—"],
-            ["Token", "Kept in MatchFrame's secure settings; the plugin reads it from the bridge file below. Never shown here."],
-            ["Bridge file", <Mono key="f">{b.file}</Mono>],
-            ...b.plugins.map((p) => [`Plugin ${p.instance.slice(0, 8)}`, `${p.plugin?.name ?? "plugin"} ${p.plugin?.version ?? ""} (API ${p.plugin?.apiVersion ?? "?"}) · TeamSpeak ${p.ts3?.clientLibVersion ?? "?"} · ${p.platform ?? "?"}`] as [string, string]),
+            [t("comms.kvBridge"), b.port ? t("comms.bridgeLocalOnly", { address: `127.0.0.1:${b.port}` }) : "—"],
+            [t("comms.kvToken"), t("comms.tokenKept")],
+            [t("comms.kvBridgeFile"), <Mono key="f">{b.file}</Mono>],
+            ...b.plugins.map((p) => [t("comms.pluginInstance", { id: p.instance.slice(0, 8) }), t("comms.vV2ApiV3Teamspeak", { v: p.plugin?.name ?? t("comms.plugin"), v2: p.plugin?.version ?? "", v3: p.plugin?.apiVersion ?? "?", v4: p.ts3?.clientLibVersion ?? "?", v5: p.platform ?? "?" })] as [string, string]),
           ]}
         />
         {view.tabs && view.tabs.length ? (
-          <table className="table comms-tabs" aria-label="TeamSpeak tabs">
+          <table className="table comms-tabs" aria-label={t("comms.teamspeakTabs")}>
             <thead>
               <tr>
-                <th>TeamSpeak tab</th>
-                <th>Is</th>
+                <th>{t("comms.teamspeakTab")}</th>
+                <th>{t("comms.is")}</th>
               </tr>
             </thead>
             <tbody>
-              {view.tabs.map((t) => (
-                <tr key={t.key}>
+              {view.tabs.map((tRow) => (
+                <tr key={tRow.key}>
                   <td className="small">
-                    {`${t.channel?.name ?? "—"} on ${t.server?.name ?? t.server?.host ?? "—"}`}
-                    <div className="muted">{`as ${t.listener?.nickname ?? "?"} · ${t.status}`}</div>
+                    {t("comms.vOnV2", { v: tRow.channel?.name ?? "—", v2: tRow.server?.name ?? tRow.server?.host ?? "—" })}
+                    <div className="muted">{t("comms.asVStatus", { v: tRow.listener?.nickname ?? "?", status: tRow.status })}</div>
                   </td>
                   <td className="small">
-                    {t.team ? (
-                      <Badge tone={t.capturing ? "ok" : "warn"} icon={t.capturing ? "●" : "◔"}>
-                        {`Team ${t.team.slot}: ${t.team.name ?? "?"}${t.capturing ? " (captured)" : " (connecting)"}`}
+                    {tRow.team ? (
+                      <Badge tone={tRow.capturing ? "ok" : "warn"} icon={tRow.capturing ? "●" : "◔"}>
+                        {t("comms.teamSlotVV2", { slot: tRow.team.slot, v: tRow.team.name ?? "?", v2: tRow.capturing ? t("comms.capturedSuffix") : t("comms.connectingSuffix") })}
                       </Badge>
                     ) : (
-                      <span className="muted">{t.released ? "Not a team tab (handed back to TeamSpeak)" : "Not a team tab"}</span>
+                      <span className="muted">{tRow.released ? t("comms.notATeamTabHanded") : t("comms.notATeamTab")}</span>
                     )}
-                    {t.restoredByPlugin ? <div className="muted">Kept listen-only and silent by the plugin before MatchFrame asked: it remembers the team tabs across a TeamSpeak restart.</div> : null}
+                    {tRow.restoredByPlugin ? <div className="muted">{t("comms.keptListenOnlyAndSilent")}</div> : null}
                   </td>
                 </tr>
               ))}
@@ -115,16 +115,14 @@ export function BridgePanel({ view, onChanged }: { view: CommsView; onChanged: R
           </table>
         ) : null}
         <div className="row">
-          <ActionButton size="sm" action={() => api.post("/api/v1/comms/bridge/rotate-token")} success="New token: the plugin reconnects with it" onDone={onChanged} disabledReason={setup} confirm={{ title: "Rotate the plugin's token?", body: "The TeamSpeak plugin is disconnected and reconnects with the new token from the bridge file. An open listen-in closes (FAULT).", confirmLabel: "Rotate token" }}>
-            Rotate token
-          </ActionButton>
+          <ActionButton size="sm" action={() => api.post("/api/v1/comms/bridge/rotate-token")} success={t("comms.newTokenThePluginReconnects")} onDone={onChanged} disabledReason={setup} confirm={{ title: t("comms.rotateThePluginSToken"), body: t("comms.theTeamspeakPluginIsDisconnected"), confirmLabel: t("comms.rotateToken") }}>{t("comms.rotateToken")}</ActionButton>
         </div>
-        <Details summary="Install the TeamSpeak plugin">
+        <Details summary={t("comms.installTheTeamspeakPlugin")}>
           <ol className="small comms-steps">
-            <li>Close TeamSpeak 3. Double-click <Mono>matchframe-team-comms.ts3_plugin</Mono> (in the program's <Mono>resources\ts3-plugin</Mono> folder), or copy the DLL into <Mono>%APPDATA%\TS3Client\plugins\</Mono>.</li>
-            <li>Start TeamSpeak 3: Tools → Options → Add-ons → <em>MatchFrame Team Comms</em> enabled.</li>
-            <li>Connect one tab to each team's channel: open each team's TeamSpeak link below in TeamSpeak (or a bookmark per team with Connect on startup). On a default server, give the second tab its own identity (Tools → Identities). The plugin remembers the team tabs: after a TeamSpeak restart they are listen-only and silent here before MatchFrame even answers.</li>
-            <li>Set each team's server and channel below. MatchFrame takes over those two tabs: microphone off, sound silent on this computer, each person captured.</li>
+            <li><T k="comms.closeTeamspeak3DoubleClick" values={{ mono: <Mono>matchframe-team-comms.ts3_plugin</Mono>, mono2: <Mono>resources\ts3-plugin</Mono>, mono3: <Mono>%APPDATA%\TS3Client\plugins\</Mono> }} /></li>
+            <li><T k="comms.startTeamspeak3ToolsOptions2" tags={{ em: (c) => <em>{c}</em> }} /></li>
+            <li>{t("comms.connectOneTabToEach")}</li>
+            <li>{t("comms.setEachTeamSServer")}</li>
           </ol>
         </Details>
         {view.slots.map((s) => (
@@ -142,52 +140,48 @@ function SlotForm({ slot, onChanged, disabledReason }: { slot: CommsSlot; onChan
     try {
       await api.put(`/api/v1/comms/slots/${seg(slot.id)}`, { serverHost: f.serverHost.trim(), serverPort: Number(f.serverPort) || 9987, serverUid: f.serverUid.trim(), channel: f.channel.trim(), ...(f.serverPassword ? { serverPassword: f.serverPassword } : {}), ...(f.channelPassword ? { channelPassword: f.channelPassword } : {}) });
       setF((x) => ({ ...x, serverPassword: "", channelPassword: "" }));
-      toast.push("ok", `${slot.team?.name ?? `Team ${slot.id}`}: TeamSpeak saved`);
+      toast.push("ok", t("comms.vTeamspeakSaved", { v: slot.team?.name ?? t("comms.teamId", { id: slot.id }) }));
       onChanged();
     } catch (e) {
-      toast.push("danger", "Not saved", describeError(e));
+      toast.push("danger", t("comms.notSaved"), describeError(e));
     }
   };
   const field = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }));
   return (
     <fieldset className="comms-slot-form">
       <legend>
-        {slot.team?.name ?? `Team ${slot.id}`} <span className="muted small">(slot {slot.id})</span>
+        {slot.team?.name ?? t("comms.teamId", { id: slot.id })} <span className="muted small">{t("comms.slotId", { id: slot.id })}</span>
       </legend>
       <div className="row-end">
-        <Field label="Server address">
+        <Field label={t("comms.serverAddress")}>
           <input value={f.serverHost} onChange={field("serverHost")} placeholder="ts.example.org" />
         </Field>
-        <Field label="Port">
+        <Field label={t("comms.port")}>
           <input type="number" value={f.serverPort} onChange={field("serverPort")} style={{ width: 90 }} />
         </Field>
-        <Field label="Channel">
-          <input value={f.channel} onChange={field("channel")} placeholder="Team channel name" />
+        <Field label={t("comms.channel")}>
+          <input value={f.channel} onChange={field("channel")} placeholder={t("comms.teamChannelName")} />
         </Field>
       </div>
       {slot.connectLink ? (
         <div className="row small">
-          <span>TeamSpeak link (no password in it):</span> <Mono>{slot.connectLink}</Mono> <CopyButton text={slot.connectLink} label="Copy link" />
+          <span>{t("comms.teamspeakLinkNoPasswordIn")}</span> <Mono>{slot.connectLink}</Mono> <CopyButton text={slot.connectLink} label={t("comms.copyLink")} />
           {window.matchframe?.connectionMode !== "remote" ? (
-            <a className="btn btn-sm" href={slot.connectLink} target="_blank" rel="noreferrer">
-              Connect in TeamSpeak
-            </a>
+            <a className="btn btn-sm" href={slot.connectLink} target="_blank" rel="noreferrer">{t("comms.connectInTeamspeak")}</a>
           ) : null}
         </div>
       ) : null}
       <div className="row-end">
-        <Field label="Server password" hint={slot.serverPasswordSaved ? "Saved (not shown)" : "None saved"}>
+        <Field label={t("comms.serverPassword")} hint={slot.serverPasswordSaved ? t("comms.savedNotShown") : t("comms.noneSaved")}>
           <input type="password" autoComplete="off" value={f.serverPassword} onChange={field("serverPassword")} />
         </Field>
-        <Field label="Channel password" hint={slot.channelPasswordSaved ? "Saved (not shown)" : "None saved"}>
+        <Field label={t("comms.channelPassword")} hint={slot.channelPasswordSaved ? t("comms.savedNotShown") : t("comms.noneSaved")}>
           <input type="password" autoComplete="off" value={f.channelPassword} onChange={field("channelPassword")} />
         </Field>
-        <Field label="Server unique id (optional)">
+        <Field label={t("comms.serverUniqueIdOptional")}>
           <input value={f.serverUid} onChange={field("serverUid")} />
         </Field>
-        <Button disabledReason={disabledReason} onClick={() => void save()}>
-          Save
-        </Button>
+        <Button disabledReason={disabledReason} onClick={() => void save()}>{t("comms.save")}</Button>
       </div>
     </fieldset>
   );
@@ -204,29 +198,29 @@ export function OutputsPanel({ view, onChanged }: { view: CommsView; onChanged: 
       await api.put("/api/v1/comms/public", { ndi: patch });
       onChanged();
     } catch (e) {
-      toast.push("danger", "Not saved", describeError(e));
+      toast.push("danger", t("comms.notSaved"), describeError(e));
     }
   };
   const st = o.stats;
   return (
-    <Panel title="Public output to OBS (NDI)" subtitle="Audio only, sent by MatchFrame. OBS takes it with DistroAV; its silence when no listen-in is open is MatchFrame's, not an OBS mute." actions={<Badge tone={o.state === "running" ? "ok" : o.state === "error" ? "danger" : o.state === "starting" ? "info" : "neutral"}>{o.state === "running" ? "Sending" : o.state === "error" ? "Not sending" : o.state === "starting" ? "Starting" : "Off"}</Badge>}>
+    <Panel title={t("comms.publicOutputToObsNdi")} subtitle={t("comms.audioOnlySentByMatchframe")} actions={<Badge tone={o.state === "running" ? "ok" : o.state === "error" ? "danger" : o.state === "starting" ? "info" : "neutral"}>{o.state === "running" ? t("comms.sending") : o.state === "error" ? t("comms.notSending") : o.state === "starting" ? t("comms.starting") : t("comms.off")}</Badge>}>
       <div className="stack-sm">
         <p className="small">{o.detail}</p>
         <KV
           items={[
-            [o.names.public, st ? `${st.connections.public} receiver${st.connections.public === 1 ? "" : "s"} connected (OBS is one)` : "—"],
-            [o.names.recording, st ? `${st.connections.recording} receiver${st.connections.recording === 1 ? "" : "s"} connected · for the dedicated recording` : "—"],
-            ["Format", "48 kHz stereo, 32-bit float, 10 ms frames"],
-            ["Timing", st ? `sent ${Math.round(st.lagMs)} ms after the output time (set ${s.latencyMs} ms) · ${st.underruns} gaps · ${st.late} late · ${st.resyncs} resyncs` : "—"],
-            ["Public silenced", `${view.onAir.outputs.publicGuard.blocksSilenced} blocks sent as silence while closed`],
-            ...(o.restarts ? [["Restarts", `${o.restarts} (last: exit ${o.lastExit?.code ?? "?"} after ${Math.round((o.lastExit?.ranMs ?? 0) / 1000)} s)${o.nextStartInMs != null ? ` · starting again in ${Math.ceil(o.nextStartInMs / 1000)} s` : ""}`] as [string, string]] : []),
+            [o.names.public, st ? t("comms.receiversPublic", { count: st.connections.public }) : "—"],
+            [o.names.recording, st ? t("comms.receiversRecording", { count: st.connections.recording }) : "—"],
+            [t("comms.format"), t("comms.ndiFormat")],
+            [t("comms.kvTiming"), st ? t("comms.ndiTiming", { lag: Math.round(st.lagMs), set: s.latencyMs, underruns: st.underruns, late: st.late, resyncs: st.resyncs }) : "—"],
+            [t("comms.publicSilenced"), t("comms.blocksSilenced", { n: view.onAir.outputs.publicGuard.blocksSilenced })],
+            ...(o.restarts ? [[t("comms.restarts"), `${t("comms.restartsDetail", { n: o.restarts, code: o.lastExit?.code ?? "?", s: Math.round((o.lastExit?.ranMs ?? 0) / 1000) })}${o.nextStartInMs != null ? t("comms.startingAgainIn", { s: Math.ceil(o.nextStartInMs / 1000) }) : ""}`] as [string, string]] : []),
           ]}
         />
-        {o.state === "error" ? <Note tone="danger" title="Nothing reaches OBS">{`${o.detail} The public route is silent and the dedicated recording shows a fault until it runs again; a listen-in needs a new Listen In.`}</Note> : null}
-        <Details summary="Output settings">
+        {o.state === "error" ? <Note tone="danger" title={t("comms.nothingReachesObs")}>{t("comms.detailThePublicRouteIs", { detail: o.detail })}</Note> : null}
+        <Details summary={t("comms.outputSettings")}>
           <div className="stack-sm">
-            <Checkbox checked={s.enabled} disabled={!!reason} label="Send the NDI outputs" hint="Off: nothing reaches OBS (a listen-in can still be opened)." onChange={(v) => void save({ enabled: v })} />
-            <Field label="Send latency (ms)" hint="Room for the engine's timing: each 10 ms block leaves this long after its own time. Compensate in the delay's fine adjustment.">
+            <Checkbox checked={s.enabled} disabled={!!reason} label={t("comms.sendTheNdiOutputs")} hint={t("comms.offNothingReachesObsA")} onChange={(v) => void save({ enabled: v })} />
+            <Field label={t("comms.sendLatencyMs")} hint={t("comms.roomForTheEngineS")}>
               <input type="number" min={20} max={500} defaultValue={s.latencyMs} onBlur={(e) => Number(e.target.value) !== s.latencyMs && void save({ latencyMs: Number(e.target.value) })} />
             </Field>
           </div>
@@ -248,35 +242,35 @@ export function DuckingPanel({ view, onChanged }: { view: CommsView; onChanged: 
       onChanged();
       void inputs.reload();
     } catch (e) {
-      toast.push("danger", "Not saved", describeError(e));
+      toast.push("danger", t("comms.notSaved"), describeError(e));
     }
   };
   const st = view.onAir.ducking;
   return (
-    <Panel title="Caster ducking" subtitle="The casters' microphones go down in OBS while a listen-in is open, and back when it ends." actions={<Badge tone={st.state === "lowered" ? "accent" : st.state === "pending" ? "warn" : st.state === "idle" ? "ok" : "neutral"}>{st.state === "lowered" ? "Casters down" : st.state === "pending" ? "Not put back yet" : st.state === "idle" ? "Ready" : "Off"}</Badge>}>
+    <Panel title={t("comms.casterDucking")} subtitle={t("comms.theCastersMicrophonesGoDown")} actions={<Badge tone={st.state === "lowered" ? "accent" : st.state === "pending" ? "warn" : st.state === "idle" ? "ok" : "neutral"}>{st.state === "lowered" ? t("comms.castersDown") : st.state === "pending" ? t("comms.notPutBackYet") : st.state === "idle" ? t("comms.ready") : t("comms.off")}</Badge>}>
       <div className="stack-sm">
-        <Checkbox checked={d.enabled} disabled={!!reason} label="Turn the casters down during a listen-in" onChange={(v) => void save({ enabled: v })} />
+        <Checkbox checked={d.enabled} disabled={!!reason} label={t("comms.turnTheCastersDownDuring")} onChange={(v) => void save({ enabled: v })} />
         <div className="row-end">
-          <Field label={`Down by ${-d.amountDb} dB`}>
-            <input type="range" min={-40} max={0} step={1} aria-label="Ducking amount (dB)" defaultValue={d.amountDb} disabled={!!reason} onPointerUp={(e) => void save({ amountDb: Number((e.target as HTMLInputElement).value) })} onKeyUp={(e) => void save({ amountDb: Number((e.target as HTMLInputElement).value) })} />
+          <Field label={t("comms.downByVDb", { v: -d.amountDb })}>
+            <input type="range" min={-40} max={0} step={1} aria-label={t("comms.duckingAmountDb")} defaultValue={d.amountDb} disabled={!!reason} onPointerUp={(e) => void save({ amountDb: Number((e.target as HTMLInputElement).value) })} onKeyUp={(e) => void save({ amountDb: Number((e.target as HTMLInputElement).value) })} />
           </Field>
-          <Field label="Ramp (ms)">
+          <Field label={t("comms.rampMs")}>
             <input type="number" min={0} max={3000} defaultValue={d.rampMs} onBlur={(e) => Number(e.target.value) !== d.rampMs && void save({ rampMs: Number(e.target.value) })} />
           </Field>
         </div>
-        <div className="field" role="group" aria-label="Caster inputs in OBS">
-          <span className="field-label">Caster inputs in OBS</span>
+        <div className="field" role="group" aria-label={t("comms.casterInputsInObs")}>
+          <span className="field-label">{t("comms.casterInputsInObs")}</span>
           <div className="comms-inputs">
             {inputs.data?.error ? <Note tone="warn">{inputs.data.error}</Note> : null}
             {(inputs.data?.inputs ?? []).map((i) => (
               <Checkbox key={i.name} checked={d.inputs.includes(i.name)} disabled={!!reason} label={`${i.name} (${i.kind}, ${i.muted ? "muted" : `${i.db} dB`})`} onChange={(on) => void save({ inputs: on ? [...d.inputs, i.name] : d.inputs.filter((n) => n !== i.name) })} />
             ))}
-            {inputs.data && !inputs.data.error && inputs.data.inputs.length === 0 ? <span className="muted small">OBS has no audio inputs.</span> : null}
+            {inputs.data && !inputs.data.error && inputs.data.inputs.length === 0 ? <span className="muted small">{t("comms.obsHasNoAudioInputs")}</span> : null}
           </div>
         </div>
         <p className="small">{st.detail}</p>
-        {st.lastRelease ? <p className="muted small">Last put back: {st.lastRelease.detail}</p> : null}
-        <p className="muted small">With a break's replays turning the same input down, whichever ends last puts it back. A fader moved by hand meanwhile is left where it was put.</p>
+        {st.lastRelease ? <p className="muted small">{t("comms.lastPutBackDetail", { detail: st.lastRelease.detail })}</p> : null}
+        <p className="muted small">{t("comms.withABreakSReplays")}</p>
       </div>
     </Panel>
   );
@@ -293,36 +287,34 @@ export function OverlayPanel({ view, onChanged }: { view: CommsView; onChanged: 
       await api.put("/api/v1/comms/public", { overlay: patch });
       onChanged();
     } catch (e) {
-      toast.push("danger", "Not saved", describeError(e));
+      toast.push("danger", t("comms.notSaved"), describeError(e));
     }
   };
   return (
-    <Panel title="Public Team Comms graphic" subtitle="A TEAM COMMS banner with the team's name and logo while it is on air. Team only: it never names or shows who is speaking." actions={o.onAir ? <Badge tone="accent">On air</Badge> : <Badge>Hidden</Badge>}>
+    <Panel title={t("comms.publicTeamCommsGraphic")} subtitle={t("comms.aTeamCommsBannerWith")} actions={o.onAir ? <Badge tone="accent">{t("comms.onAir")}</Badge> : <Badge>{t("comms.hidden")}</Badge>}>
       <div className="stack-sm">
         <div className="row">
           <Mono>{o.url}</Mono>
           <CopyButton text={o.url} />
         </div>
         <div className="row-end">
-          <Field label="Position">
+          <Field label={t("comms.position")}>
             <select value={o.placement.anchor} disabled={!!reason} onChange={(e) => void save({ anchor: e.target.value as "top" | "bottom" })}>
-              <option value="top">Top centre</option>
-              <option value="bottom">Bottom centre</option>
+              <option value="top">{t("comms.topCentre")}</option>
+              <option value="bottom">{t("comms.bottomCentre")}</option>
             </select>
           </Field>
-          <Field label="From the edge (px)">
+          <Field label={t("comms.fromTheEdgePx")}>
             <input type="number" min={0} max={1000} defaultValue={o.placement.offsetPx} onBlur={(e) => Number(e.target.value) !== o.placement.offsetPx && void save({ offsetPx: Number(e.target.value) })} />
           </Field>
         </div>
         <div className="row">
           <ActionButton
             action={() => api.post<{ scene: string; source: string; created: boolean; onTop: boolean }>("/api/v1/comms/overlay/obs")}
-            success={(r) => `${r.created ? `“${r.source}” added on top of “${r.scene}”` : `“${r.source}” in “${r.scene}” points at this page`}${r.onTop ? "" : " (move it to the top in OBS)"}`}
-            disabledReason={setup ?? (!o.obsConnected ? "Connect OBS first (Settings → Devices)" : !o.liveScene ? "Map the live scene first (Settings → Setup → OBS scenes)" : null)}
-          >
-            Add to the live scene in OBS
-          </ActionButton>
-          <span className="muted small">{o.liveScene ? `Live scene: ${o.liveScene}` : "No live scene mapped"} · {o.pages} page{o.pages === 1 ? "" : "s"} open</span>
+            success={(r) => `${r.created ? t("comms.sourceAddedOnTopOf", { source: r.source, scene: r.scene }) : t("comms.sourceInScenePointsAt", { source: r.source, scene: r.scene })}${r.onTop ? "" : t("comms.moveItToTheTop")}`}
+            disabledReason={setup ?? (!o.obsConnected ? t("comms.connectObsFirstSettingsDevices") : !o.liveScene ? t("comms.mapTheLiveSceneFirst") : null)}
+          >{t("comms.addToTheLiveScene")}</ActionButton>
+          <span className="muted small">{t("comms.pagesOpen", { v: o.liveScene ? t("comms.liveSceneLivescene", { liveScene: o.liveScene }) : t("comms.noLiveSceneMapped"), count: o.pages })}</span>
         </div>
       </div>
     </Panel>
@@ -333,19 +325,17 @@ export function OverlayPanel({ view, onChanged }: { view: CommsView; onChanged: 
 export function ObsCheckPanel() {
   const [res, setRes] = useState<ObsCheck | null>(null);
   return (
-    <Panel title="OBS routing check" subtitle="Desktop Audio off, the comms source in the live scene and not monitored, the recording source kept off air, TeamSpeak not captured. Then do the listening tests in the setup guide.">
+    <Panel title={t("comms.obsRoutingCheck")} subtitle={t("comms.desktopAudioOffTheComms")}>
       <div className="stack-sm">
         <div className="row">
-          <ActionButton action={() => api.get<ObsCheck>("/api/v1/comms/obs/check")} onDone={setRes}>
-            Check OBS routing
-          </ActionButton>
+          <ActionButton action={() => api.get<ObsCheck>("/api/v1/comms/obs/check")} onDone={setRes}>{t("comms.checkObsRouting")}</ActionButton>
         </div>
         {res ? (
           <ul className="comms-checks">
             {res.checks.map((c) => (
               <li key={c.id} className={c.ok === false ? "is-bad" : c.ok ? "is-ok" : ""}>
                 <Badge tone={c.ok === false ? "danger" : c.ok ? "ok" : "neutral"} icon={c.ok === false ? "✗" : c.ok ? "✓" : "?"}>
-                  {c.ok === false ? "Fix" : c.ok ? "OK" : "Unknown"}
+                  {c.ok === false ? t("comms.fix") : c.ok ? "OK" : t("common.unknown")}
                 </Badge>{" "}
                 <strong>{c.title}</strong> <span className="small">{c.detail}</span>
               </li>

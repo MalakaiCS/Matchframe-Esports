@@ -5,6 +5,7 @@ import { ActionButton, Button, Details, Field, KV, Note, Panel } from "../../com
 import { usePermission } from "../../state/session.tsx";
 import { fmtDelay } from "./TeamPanel.tsx";
 import type { CalibrationStatus, CommsView, TimingTestStatus } from "./types.ts";
+import { t } from "../../i18n/index.ts";
 
 type Reload = () => void;
 
@@ -31,69 +32,55 @@ export function CalibrationPanel({ view, onChanged }: { view: CommsView; onChang
       await api.post<CalibrationStatus>("/api/v1/comms/calibration/seen");
       onChanged();
     } catch (e) {
-      toast.push("danger", "No mark", describeError(e));
+      toast.push("danger", t("comms.noMark"), describeError(e));
     }
   };
   const step = !cal.live && !cal.armed ? 1 : cal.armed ? 2 : 3;
   return (
-    <Panel title="Delay against the gameplay" subtitle="Line the comms up with the observer's gameplay as OBS shows it: a call heard live, the same moment seen in the gameplay.">
+    <Panel title={t("comms.delayAgainstTheGameplay")} subtitle={t("comms.lineTheCommsUpWith")}>
       <div className="stack-sm">
         <ol className="small comms-steps">
-          <li className={step === 1 ? "is-current" : ""}>Choose the team, ask a player to say a short “mark!” (or clap) exactly as they do something you will see: a shot, a flash popping, a jump. Press Arm just before.</li>
-          <li className={step === 2 ? "is-current" : ""}>MatchFrame takes the start of the call from that player's own TeamSpeak sound (to 7.5 ms).</li>
-          <li className={step === 3 ? "is-current" : ""}>Watch the observer's gameplay in OBS (program, preview or the recording scene). Press Seen the moment it happens there.</li>
-          <li>Three to five marks; use the suggested delay; then check one recording and fine-tune the milliseconds.</li>
+          <li className={step === 1 ? "is-current" : ""}>{t("comms.chooseTheTeamAskA")}</li>
+          <li className={step === 2 ? "is-current" : ""}>{t("comms.matchframeTakesTheStartOf")}</li>
+          <li className={step === 3 ? "is-current" : ""}>{t("comms.watchTheObserverSGameplay")}</li>
+          <li>{t("comms.threeToFiveMarksUse")}</li>
         </ol>
         <div className="row-end">
-          <Field label="Team">
-            <select aria-label="Calibration team" value={team} disabled={!!reason} onChange={(e) => setTeam(e.target.value)}>
+          <Field label={t("comms.team")}>
+            <select aria-label={t("comms.calibrationTeam")} value={team} disabled={!!reason} onChange={(e) => setTeam(e.target.value)}>
               {teams.map((s) => (
                 <option key={s.team!.id} value={s.team!.id}>
-                  {s.team!.name ?? `Team ${s.id}`}
+                  {s.team!.name ?? t("comms.teamId", { id: s.id })}
                 </option>
               ))}
             </select>
           </Field>
-          <ActionButton disabledReason={reason ?? (!team ? "No team" : !view.enabled ? "Team Comms is off" : null)} action={() => api.post<CalibrationStatus>("/api/v1/comms/calibration/arm", { teamId: team })} onDone={onChanged} success="Listening for the call">
-            Arm: listen for the call
-          </ActionButton>
-          <Button variant="primary" size="lg" disabledReason={reason ?? (cal.live ? null : "No call heard yet")} onClick={() => void seen()}>
-            Seen in gameplay
-          </Button>
+          <ActionButton disabledReason={reason ?? (!team ? t("comms.noTeam") : !view.enabled ? t("comms.teamCommsIsOff") : null)} action={() => api.post<CalibrationStatus>("/api/v1/comms/calibration/arm", { teamId: team })} onDone={onChanged} success={t("comms.listeningForTheCall")}>{t("comms.armListenForTheCall")}</ActionButton>
+          <Button variant="primary" size="lg" disabledReason={reason ?? (cal.live ? null : t("comms.noCallHeardYet"))} onClick={() => void seen()}>{t("comms.seenInGameplay")}</Button>
         </div>
         <p className="small" role="status" aria-live="polite">
-          {cal.live ? `Heard ${cal.live.who} ${(cal.live.agoMs / 1000).toFixed(1)} s ago: press Seen when it shows in the gameplay.` : cal.armed ? `Listening for the next call (${Math.ceil(cal.armed.forMs / 1000)} s left)…` : "Not armed."}
+          {cal.live ? t("comms.heardWhoTofixedSAgo", { who: cal.live.who, toFixed: (cal.live.agoMs / 1000).toFixed(1) }) : cal.armed ? t("comms.listeningForTheNextCall", { ceil: Math.ceil(cal.armed.forMs / 1000) }) : t("comms.notArmed")}
         </p>
         {cal.marks.length ? (
-          <KV items={cal.marks.map((m, i) => [`Mark ${i + 1} (${m.who})`, `${fmtDelay(m.offsetMs)} from the call to the gameplay`] as [string, string])} />
+          <KV items={cal.marks.map((m, i) => [t("comms.markN", { n: i + 1, who: m.who }), t("comms.offsetmsFromTheCallTo", { offsetMs: fmtDelay(m.offsetMs) })] as [string, string])} />
         ) : null}
-        {cal.applied ? <p className="small muted">{`In use since ${cal.applied.at.slice(0, 16).replace("T", " ")}: ${fmtDelay(cal.applied.delayMs)} from ${cal.applied.marks} mark${cal.applied.marks === 1 ? "" : "s"}.`}</p> : null}
+        {cal.applied ? <p className="small muted">{t("comms.inUseSince", { at: cal.applied.at.slice(0, 16).replace("T", " "), delay: fmtDelay(cal.applied.delayMs), count: cal.applied.marks })}</p> : null}
         {sug ? (
-          <Note tone="info" title={`Suggested delay: ${fmtDelay(sug.delayMs)}`}>
-            Median of {sug.n} mark{sug.n === 1 ? "" : "s"} {fmtDelay(sug.medianOffsetMs)} (spread {sug.spreadMs} ms), less {cal.settings.reactionMs} ms reaction and {cal.sendLatencyMs} ms for the comms to reach OBS. {sug.n < 3 ? "Take a few more marks: one is a guess." : sug.spreadMs > 300 ? "The marks disagree by more than 300 ms: take more." : ""}
-          </Note>
+          <Note tone="info" title={t("comms.suggestedDelayDelayms", { delayMs: fmtDelay(sug.delayMs) })}>{t("comms.medianOfMarks", { count: sug.n, medianOffsetMs: fmtDelay(sug.medianOffsetMs), spreadMs: sug.spreadMs, reactionMs: cal.settings.reactionMs, sendLatencyMs: cal.sendLatencyMs, v2: sug.n < 3 ? t("comms.takeAFewMoreMarks") : sug.spreadMs > 300 ? t("comms.theMarksDisagreeByMore") : "" })}</Note>
         ) : null}
         <div className="row">
-          <ActionButton variant="primary" disabledReason={reason ?? (sug ? null : "No marks yet")} action={() => api.post<{ delaySec: number; fineMs: number }>("/api/v1/comms/calibration/apply")} onDone={onChanged} success={(r) => `Delay set to ${r.delaySec} s ${r.fineMs} ms`} confirm={{ title: "Use the suggested delay?", body: "Every output fades out for a moment and plays from the new delay once the buffers hold it.", confirmLabel: "Use this delay" }}>
-            Use this delay
-          </ActionButton>
-          <ActionButton variant="ghost" disabledReason={reason ?? (cal.marks.length || cal.live ? null : "Nothing to clear")} action={() => api.post("/api/v1/comms/calibration/clear")} onDone={onChanged}>
-            Clear marks
-          </ActionButton>
+          <ActionButton variant="primary" disabledReason={reason ?? (sug ? null : t("comms.noMarksYet"))} action={() => api.post<{ delaySec: number; fineMs: number }>("/api/v1/comms/calibration/apply")} onDone={onChanged} success={(r) => t("comms.delaySetToDelaysecS", { delaySec: r.delaySec, fineMs: r.fineMs })} confirm={{ title: t("comms.useTheSuggestedDelay"), body: t("comms.everyOutputFadesOutFor"), confirmLabel: t("comms.useThisDelay") }}>{t("comms.useThisDelay")}</ActionButton>
+          <ActionButton variant="ghost" disabledReason={reason ?? (cal.marks.length || cal.live ? null : t("comms.nothingToClear"))} action={() => api.post("/api/v1/comms/calibration/clear")} onDone={onChanged}>{t("comms.clearMarks")}</ActionButton>
         </div>
-        <Details summary="Reaction time and the check in a recording">
+        <Details summary={t("comms.reactionTimeAndTheCheck")}>
           <div className="stack-sm">
-            <Field label="Your reaction (ms)" hint="Taken off each mark: seeing something and pressing takes about 200 ms.">
+            <Field label={t("comms.yourReactionMs")} hint={t("comms.takenOffEachMarkSeeing")}>
               <span className="row">
-                <input type="number" aria-label="Reaction (ms)" min={0} max={1000} value={reaction} disabled={!!reason} onChange={(e) => setReaction(e.target.value)} style={{ width: 90 }} />
-                <ActionButton size="sm" disabledReason={reason ?? (Number(reaction) === cal.settings.reactionMs ? "No change" : null)} action={() => api.put("/api/v1/comms/calibration", { reactionMs: Number(reaction) })} onDone={onChanged}>
-                  Set
-                </ActionButton>
+                <input type="number" aria-label={t("comms.reactionMs")} min={0} max={1000} value={reaction} disabled={!!reason} onChange={(e) => setReaction(e.target.value)} style={{ width: 90 }} />
+                <ActionButton size="sm" disabledReason={reason ?? (Number(reaction) === cal.settings.reactionMs ? t("comms.noChange") : null)} action={() => api.put("/api/v1/comms/calibration", { reactionMs: Number(reaction) })} onDone={onChanged}>{t("comms.set")}</ActionButton>
               </span>
             </Field>
-            <p className="small">
-              The check: record a minute with marks, open the file, step frame by frame to a mark. The call and the moment in the gameplay should be within a frame or two; move the delay's fine milliseconds by what's left (positive: comms later). Then compare the call with its card lighting and set the strip's timing offset the same way, or let the timing test below measure it.
-            </p>
+            <p className="small">{t("comms.theCheckRecordAMinute")}</p>
           </div>
         </Details>
         {view.timingTest ? <TimingTest view={view} test={view.timingTest} onChanged={onChanged} /> : null}
@@ -113,32 +100,24 @@ function TimingTest({ view, test, onChanged }: { view: CommsView; test: TimingTe
   const recording = view.recorder.state !== "idle";
   const cards = view.strip.cards.length;
   return (
-    <section className="stack-sm" aria-label="Timing test in a recording">
-      <h4 className="comms-subhead">Timing test in a recording</h4>
+    <section className="stack-sm" aria-label={t("comms.timingTestInARecording")}>
+      <h4 className="comms-subhead">{t("comms.timingTestInARecording")}</h4>
       <ol className="small comms-steps">
-        <li>Start the dedicated recording (a minute is enough) with someone included in it, so the strip shows cards.</li>
-        <li>
-          Press Run timing test: {test.beep.count} beeps ({test.beep.hz} Hz, {test.beep.ms} ms, one a second) in the recording comms only, every card lit on the same moments. Never on the public output.
-        </li>
-        <li>Stop the recording, then Find it in the recording: MatchFrame reads the file with ffmpeg.</li>
+        <li>{t("comms.startTheDedicatedRecordingA")}</li>
+        <li>{t("comms.pressRunTimingTestCount", { count: test.beep.count, hz: test.beep.hz, ms: test.beep.ms })}</li>
+        <li>{t("comms.stopTheRecordingThenFind")}</li>
       </ol>
       <div className="row">
-        <ActionButton disabledReason={reason ?? (!recording ? "Start the dedicated recording first" : cards < 1 ? "The strip shows nobody: include someone in the recording" : test.running ? "Running" : null)} action={() => api.post<TimingTestStatus>("/api/v1/comms/timing-test/start")} onDone={onChanged} success="Beeps on their way to the recording">
-          Run timing test
-        </ActionButton>
-        <ActionButton disabledReason={reason ?? (!test.lastRun ? "Run the timing test first" : test.analysing ? "Analysing" : view.recorder.state === "recording" ? "Stop the recording first (its file must be finished)" : null)} action={() => api.post<TimingTestStatus>("/api/v1/comms/timing-test/analyse")} onDone={onChanged} success="Found in the recording">
-          Find it in the recording
-        </ActionButton>
-        <ActionButton variant="primary" disabledReason={reason ?? (!r ? "Nothing found yet" : r.applied ? "Applied" : null)} action={() => api.post<TimingTestStatus>("/api/v1/comms/timing-test/apply")} onDone={onChanged} success="Applied" confirm={r && r.suggestion.fineMs !== null ? { title: "Apply the timing test?", body: "The strip's timing offset changes, and so does the delay (every output fades out for a moment).", confirmLabel: "Apply" } : undefined}>
-          Apply the suggestion
-        </ActionButton>
+        <ActionButton disabledReason={reason ?? (!recording ? t("comms.startTheDedicatedRecordingFirst") : cards < 1 ? t("comms.theStripShowsNobodyInclude") : test.running ? t("comms.running") : null)} action={() => api.post<TimingTestStatus>("/api/v1/comms/timing-test/start")} onDone={onChanged} success={t("comms.beepsOnTheirWayTo")}>{t("comms.runTimingTest")}</ActionButton>
+        <ActionButton disabledReason={reason ?? (!test.lastRun ? t("comms.runTheTimingTestFirst") : test.analysing ? t("comms.analysing") : view.recorder.state === "recording" ? t("comms.stopTheRecordingFirstIts") : null)} action={() => api.post<TimingTestStatus>("/api/v1/comms/timing-test/analyse")} onDone={onChanged} success={t("comms.foundInTheRecording")}>{t("comms.findItInTheRecording")}</ActionButton>
+        <ActionButton variant="primary" disabledReason={reason ?? (!r ? t("comms.nothingFoundYet") : r.applied ? t("comms.applied") : null)} action={() => api.post<TimingTestStatus>("/api/v1/comms/timing-test/apply")} onDone={onChanged} success={t("comms.applied")} confirm={r && r.suggestion.fineMs !== null ? { title: t("comms.applyTheTimingTest"), body: t("comms.theStripSTimingOffset"), confirmLabel: t("comms.apply") } : undefined}>{t("comms.applyTheSuggestion")}</ActionButton>
       </div>
       <p className="small" role="status" aria-live="polite">
-        {test.running ? `Beeping: ${Math.ceil(test.running.endsInMs / 1000)} s left.` : test.lastRun && !r ? `Last test ${test.lastRun.startedAt.slice(11, 19)} with ${test.lastRun.cards} card${test.lastRun.cards === 1 ? "" : "s"}: not analysed yet.` : null}
+        {test.running ? t("comms.beepingCeilSLeft", { ceil: Math.ceil(test.running.endsInMs / 1000) }) : test.lastRun && !r ? t("comms.lastTestNotAnalysed", { at: test.lastRun.startedAt.slice(11, 19), count: test.lastRun.cards }) : null}
       </p>
       {r ? (
-        <Note tone={r.pairs >= 3 && r.spreadMs <= 2 * Math.max(17, r.frameMs) ? "info" : "warn"} title={`The strip lit ${Math.abs(r.medianMs)} ms ${r.medianMs >= 0 ? "after" : "before"} the beep in the recording`}>
-          {`${r.pairs} of ${r.beeps} beeps matched (spread ${r.spreadMs} ms, one frame ${r.frameMs} ms). Suggested: strip timing offset ${r.suggestion.stripOffsetMs} ms${r.suggestion.fineMs !== null ? `, delay ${r.suggestion.delaySec} s + ${r.suggestion.fineMs} ms` : ""}. ${r.suggestion.note}${r.applied ? " Applied." : ""}`}
+        <Note tone={r.pairs >= 3 && r.spreadMs <= 2 * Math.max(17, r.frameMs) ? "info" : "warn"} title={r.medianMs >= 0 ? t("comms.stripLitAfter", { medianMs: Math.abs(r.medianMs) }) : t("comms.stripLitBefore", { medianMs: Math.abs(r.medianMs) })}>
+          {t("comms.pairsOfBeepsBeepsMatched", { pairs: r.pairs, beeps: r.beeps, spreadMs: r.spreadMs, frameMs: r.frameMs, stripOffsetMs: r.suggestion.stripOffsetMs, v: r.suggestion.fineMs !== null ? t("comms.delayDelaysecSFinemsMs", { delaySec: r.suggestion.delaySec, fineMs: r.suggestion.fineMs }) : "", note: r.suggestion.note, v2: r.applied ? t("comms.appliedSuffix") : "" })}
         </Note>
       ) : null}
     </section>

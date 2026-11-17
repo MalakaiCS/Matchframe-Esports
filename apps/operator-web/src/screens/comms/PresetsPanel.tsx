@@ -6,6 +6,7 @@ import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
 import { fmtDelay } from "./TeamPanel.tsx";
 import type { PresetsView } from "./types.ts";
+import { t } from "../../i18n/index.ts";
 
 /**
  * Event presets (ADR-069): the people (mappings, Include in Broadcast and in Recording, levels), each
@@ -23,16 +24,16 @@ export function PresetsPanel({ onChanged }: { onChanged: () => void }) {
   const done = (r?: PresetsView) => {
     void st.reload();
     onChanged();
-    if (r?.loaded?.skipped.length) toast.push("warn", `Loaded “${r.loaded.name}”, except`, r.loaded.skipped.join("; "));
+    if (r?.loaded?.skipped.length) toast.push("warn", t("comms.loadedNameExcept", { name: r.loaded.name }), r.loaded.skipped.join("; "));
   };
   const saveAs = async () => {
     try {
       await api.post<PresetsView>("/api/v1/comms/presets", { name: name.trim() });
-      toast.push("ok", `Saved “${name.trim()}”`);
+      toast.push("ok", t("comms.savedTrim", { trim: name.trim() }));
       setName("");
       done();
     } catch (e) {
-      toast.push("danger", "Not saved", describeError(e));
+      toast.push("danger", t("comms.notSaved"), describeError(e));
     }
   };
   const rename = async () => {
@@ -42,45 +43,43 @@ export function PresetsPanel({ onChanged }: { onChanged: () => void }) {
       setRenaming(null);
       done();
     } catch (e) {
-      toast.push("danger", "Not renamed", describeError(e));
+      toast.push("danger", t("comms.notRenamed"), describeError(e));
     }
   };
-  if (!v) return <Panel title="Event presets">{st.error ? <Note tone="warn">Presets aren't available: {st.error}</Note> : <p className="muted small">Loading…</p>}</Panel>;
+  if (!v) return <Panel title={t("comms.eventPresets")}>{st.error ? <Note tone="warn">{t("comms.presetsArenTAvailableError", { error: st.error })}</Note> : <p className="muted small">{t("common.loading")}</p>}</Panel>;
   const active = v.active;
   return (
     <Panel
-      title="Event presets"
-      subtitle={`People and their choices, each team's TeamSpeak channel, the delay, the recording team and levels, the strip and the on-air settings, by name${v.currentEventName ? ` (this match: ${v.currentEventName})` : ""}.`}
-      actions={active ? <Badge tone={active.changed ? "warn" : "ok"} icon={active.changed ? "✎" : "✓"}>{active.changed ? `${active.name}: changed` : active.name}</Badge> : <Badge tone="neutral">No preset loaded</Badge>}
+      title={t("comms.eventPresets")}
+      subtitle={t("comms.peopleAndTheirChoicesEach", { v: v.currentEventName ? t("comms.thisMatchCurrenteventname", { currentEventName: v.currentEventName }) : "" })}
+      actions={active ? <Badge tone={active.changed ? "warn" : "ok"} icon={active.changed ? "✎" : "✓"}>{active.changed ? t("comms.nameChanged", { name: active.name }) : active.name}</Badge> : <Badge tone="neutral">{t("comms.noPresetLoaded")}</Badge>}
     >
       <div className="stack-sm">
         <p className="small" role="status" aria-live="polite">
-          {active ? (active.changed ? `Active preset: ${active.name}. Changed since: ${active.differs.join(", ")}.` : `Active preset: ${active.name} (as saved).`) : "No active preset: the current setup isn't saved as one."}
+          {active ? (active.changed ? t("comms.activePresetNameChangedSince", { name: active.name, join: active.differs.join(", ") }) : t("comms.activePresetNameAsSaved", { name: active.name })) : t("comms.noActivePresetTheCurrent")}
         </p>
         <div className="row-end">
-          <Field label="Save as">
-            <input aria-label="New preset name" value={name} maxLength={80} placeholder="e.g. Spring Cup — playoffs" onChange={(e) => setName(e.target.value)} />
+          <Field label={t("comms.saveAs")}>
+            <input aria-label={t("comms.newPresetName")} value={name} maxLength={80} placeholder={t("comms.eGSpringCupPlayoffs")} onChange={(e) => setName(e.target.value)} />
           </Field>
-          <Button variant="primary" disabledReason={reason ?? (name.trim() ? null : "Name it first")} onClick={() => void saveAs()}>
-            Save as
-          </Button>
+          <Button variant="primary" disabledReason={reason ?? (name.trim() ? null : t("comms.nameItFirst"))} onClick={() => void saveAs()}>{t("comms.saveAs")}</Button>
           {active ? (
-            <ActionButton disabledReason={reason ?? (active.changed ? null : "No change since it was saved")} action={() => api.post<PresetsView>(`/api/v1/comms/presets/${seg(active.id)}/save`)} onDone={() => done()} success={`Saved “${active.name}”`}>
-              {`Save “${active.name}”`}
+            <ActionButton disabledReason={reason ?? (active.changed ? null : t("comms.noChangeSinceItWas"))} action={() => api.post<PresetsView>(`/api/v1/comms/presets/${seg(active.id)}/save`)} onDone={() => done()} success={t("comms.savedName", { name: active.name })}>
+              {t("comms.saveName", { name: active.name })}
             </ActionButton>
           ) : null}
         </div>
         {v.presets.length === 0 ? (
-          <p className="muted small">No presets yet.</p>
+          <p className="muted small">{t("comms.noPresetsYet")}</p>
         ) : (
           <table className="table comms-presets">
             <thead>
               <tr>
-                <th>Preset</th>
-                <th>Event</th>
-                <th>People</th>
-                <th>Delay</th>
-                <th aria-label="Actions" />
+                <th>{t("comms.preset")}</th>
+                <th>{t("comms.event")}</th>
+                <th>{t("comms.people")}</th>
+                <th>{t("comms.delay")}</th>
+                <th aria-label={t("comms.actions")} />
               </tr>
             </thead>
             <tbody>
@@ -89,23 +88,19 @@ export function PresetsPanel({ onChanged }: { onChanged: () => void }) {
                   <td>
                     {renaming?.id === p.id ? (
                       <span className="row">
-                        <input aria-label={`Rename ${p.name}`} value={renaming.name} maxLength={80} onChange={(e) => setRenaming({ id: p.id, name: e.target.value })} />
-                        <Button size="sm" disabledReason={renaming.name.trim() ? null : "Name it"} onClick={() => void rename()}>
-                          Rename
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setRenaming(null)}>
-                          Cancel
-                        </Button>
+                        <input aria-label={t("comms.renameName", { name: p.name })} value={renaming.name} maxLength={80} onChange={(e) => setRenaming({ id: p.id, name: e.target.value })} />
+                        <Button size="sm" disabledReason={renaming.name.trim() ? null : t("comms.nameIt")} onClick={() => void rename()}>{t("comms.rename")}</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setRenaming(null)}>{t("common.cancel")}</Button>
                       </span>
                     ) : (
                       <>
-                        <strong>{p.name}</strong> {p.active ? <Badge tone="info">{active?.changed ? "Active (changed)" : "Active"}</Badge> : null}
-                        <div className="muted small">{p.teams.map((t) => t.name ?? "a team no longer in MatchFrame").join(" vs ")}</div>
+                        <strong>{p.name}</strong> {p.active ? <Badge tone="info">{active?.changed ? t("comms.activeChanged") : t("comms.active")}</Badge> : null}
+                        <div className="muted small">{p.teams.map((tRow) => tRow.name ?? t("comms.aTeamNoLongerIn")).join(" vs ")}</div>
                       </>
                     )}
                   </td>
-                  <td className="small">{p.eventName ?? (p.eventId ? "an event no longer in MatchFrame" : "Any event")}</td>
-                  <td className="small">{`${p.people} (${p.included.broadcast} broadcast, ${p.included.recording} recording)`}</td>
+                  <td className="small">{p.eventName ?? (p.eventId ? t("comms.anEventNoLongerIn") : t("comms.anyEvent"))}</td>
+                  <td className="small">{t("comms.peopleBroadcastBroadcastRecordingRecordi", { people: p.people, broadcast: p.included.broadcast, recording: p.included.recording })}</td>
                   <td className="small">{fmtDelay(p.delayMs)}</td>
                   <td>
                     <span className="row">
@@ -115,17 +110,11 @@ export function PresetsPanel({ onChanged }: { onChanged: () => void }) {
                         disabledReason={reason}
                         action={() => api.post<PresetsView>(`/api/v1/comms/presets/${seg(p.id)}/load`)}
                         onDone={(r) => done(r)}
-                        success={`Loaded “${p.name}”`}
-                        confirm={active?.changed ? { title: `Load “${p.name}”?`, body: `The current setup has changes not saved in “${active.name}” (${active.differs.join(", ")}). Loading replaces them. The public listen-in is left as it is.`, confirmLabel: "Load" } : undefined}
-                      >
-                        Load
-                      </ActionButton>
-                      <Button size="sm" variant="ghost" disabledReason={reason} onClick={() => setRenaming({ id: p.id, name: p.name })}>
-                        Rename
-                      </Button>
-                      <ActionButton size="sm" variant="ghost" disabledReason={reason} action={() => api.del<PresetsView>(`/api/v1/comms/presets/${seg(p.id)}`)} onDone={() => done()} success={`Deleted “${p.name}”`} confirm={{ title: `Delete “${p.name}”?`, body: "The preset is gone; the current setup is not changed.", confirmLabel: "Delete" }}>
-                        Delete
-                      </ActionButton>
+                        success={t("comms.loadedName", { name: p.name })}
+                        confirm={active?.changed ? { title: t("comms.loadName", { name: p.name }), body: t("comms.theCurrentSetupHasChanges", { name: active.name, join: active.differs.join(", ") }), confirmLabel: t("comms.load") } : undefined}
+                      >{t("comms.load")}</ActionButton>
+                      <Button size="sm" variant="ghost" disabledReason={reason} onClick={() => setRenaming({ id: p.id, name: p.name })}>{t("comms.rename")}</Button>
+                      <ActionButton size="sm" variant="ghost" disabledReason={reason} action={() => api.del<PresetsView>(`/api/v1/comms/presets/${seg(p.id)}`)} onDone={() => done()} success={t("comms.deletedName", { name: p.name })} confirm={{ title: t("comms.deleteName", { name: p.name }), body: t("comms.thePresetIsGoneThe"), confirmLabel: t("comms.delete") }}>{t("comms.delete")}</ActionButton>
                     </span>
                   </td>
                 </tr>
@@ -133,7 +122,7 @@ export function PresetsPanel({ onChanged }: { onChanged: () => void }) {
             </tbody>
           </table>
         )}
-        <p className="muted small">Loading a preset never puts comms on air (and never takes them off): passwords stay in MatchFrame's secure settings, and your headphone Solo is your own.</p>
+        <p className="muted small">{t("comms.loadingAPresetNeverPuts")}</p>
       </div>
     </Panel>
   );

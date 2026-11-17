@@ -10,6 +10,7 @@ import { StripPanel } from "./comms/StripPanel.tsx";
 import { BridgePanel, DuckingPanel, ObsCheckPanel, OutputsPanel, OverlayPanel, TimingPanel } from "./comms/SetupPanels.tsx";
 import { TeamPanel } from "./comms/TeamPanel.tsx";
 import type { CommsView } from "./comms/types.ts";
+import { t } from "../i18n/index.ts";
 import "../styles/team-comms.css";
 
 /**
@@ -29,12 +30,12 @@ export function TeamCommsScreen() {
       <Async state={st}>
         {(v) => (
           <>
-            <section className="panel comms-onair" aria-label="Public listen-in">
+            <section className="panel comms-onair" aria-label={t("comms.publicListenIn")}>
               <div className="panel-body">
                 <PublicStateBanner view={v.onAir.listenIn} />
                 <ListenInButtons view={v.onAir.listenIn} size="lg" onDone={reload} />
-                {!v.enabled ? <Note tone="info">Team Comms is off: switch it on under Bridge and TeamSpeak plugin.</Note> : null}
-                <p className="muted small">Listen In opens only a team whose buffer holds the delay, and closes the other team first (never both). Mute All Comms silences the public route at once; the recording carries on. Comms come back on air only with a new Listen In: never after a restart, a reset or a lost connection.</p>
+                {!v.enabled ? <Note tone="info">{t("comms.teamCommsIsOffSwitch")}</Note> : null}
+                <p className="muted small">{t("comms.listenInOpensOnlyA")}</p>
               </div>
             </section>
             <div className="grid-2">

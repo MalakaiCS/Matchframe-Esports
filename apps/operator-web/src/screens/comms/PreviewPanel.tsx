@@ -4,18 +4,20 @@ import { usePersistentState } from "../../lib/hooks.ts";
 import { CommsPreviewPlayer, listOutputDevices, type PreviewDevice, type PreviewStatus } from "../../lib/commsPreview.ts";
 import { usePermission } from "../../state/session.tsx";
 import type { CommsParticipant } from "./types.ts";
+import { t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 
 /** The player lives as long as the page; its status read four times a second (not on every chunk). */
 function usePreview(make: () => CommsPreviewPlayer) {
   const player = useMemo(make, [make]);
   const [st, setSt] = useState<PreviewStatus>(player.status());
   useEffect(() => {
-    const t = setInterval(() => setSt(player.status()), 250);
+    const tRow = setInterval(() => setSt(player.status()), 250);
     const off = player.onChange((s) => {
       if (s.state !== st.state) setSt(s);
     });
     return () => {
-      clearInterval(t);
+      clearInterval(tRow);
       off();
     };
   }, [player, st.state]);
@@ -54,52 +56,43 @@ export function PreviewPanel({ people, makePlayer = defaultPlayer, listDevices =
   const on = st.state !== "off" && st.state !== "error";
   const known = !device || (devices ?? []).some((d) => d.deviceId === device);
   return (
-    <Panel title="Preview in your headphones" subtitle="Only you hear this. It never goes to OBS, the broadcast or the recording." actions={<Badge tone={st.state === "playing" ? "ok" : st.state === "error" ? "danger" : "neutral"}>{st.state === "playing" ? "Listening" : st.state === "connecting" ? "Connecting" : st.state === "error" ? "Error" : "Off"}</Badge>}>
+    <Panel title={t("comms.previewInYourHeadphones")} subtitle={t("comms.onlyYouHearThisIt")} actions={<Badge tone={st.state === "playing" ? "ok" : st.state === "error" ? "danger" : "neutral"}>{st.state === "playing" ? t("comms.listening") : st.state === "connecting" ? t("comms.connecting") : st.state === "error" ? t("common.error") : t("comms.off")}</Badge>}>
       <div className="stack-sm">
-        <Field label="Headphones (output device)" hint={st.state !== "off" && !st.sinkSupported ? "This window can't choose an output device: the preview plays on the system default." : "Pick a device OBS doesn't capture (Desktop Audio is off in the documented setup)."}>
+        <Field label={t("comms.headphonesOutputDevice")} hint={st.state !== "off" && !st.sinkSupported ? t("comms.thisWindowCanTChoose") : t("comms.pickADeviceObsDoesn")}>
           <div className="row">
             <select
-              aria-label="Headphones (output device)"
+              aria-label={t("comms.headphonesOutputDevice")}
               value={known ? device : ""}
               onChange={(e) => {
                 setDevice(e.target.value);
                 void player.setDevice(e.target.value);
               }}
             >
-              <option value="">System default output</option>
+              <option value="">{t("comms.systemDefaultOutput")}</option>
               {(devices ?? []).map((d) => (
                 <option key={d.deviceId} value={d.deviceId}>
                   {d.label}
                 </option>
               ))}
             </select>
-            <Button size="sm" onClick={() => void refresh()}>
-              Refresh devices
-            </Button>
+            <Button size="sm" onClick={() => void refresh()}>{t("comms.refreshDevices")}</Button>
           </div>
         </Field>
-        {deviceError ? <Note tone="warn">Couldn't list the outputs: {deviceError}</Note> : null}
+        {deviceError ? <Note tone="warn">{t("comms.couldnTListTheOutputs", { deviceError })}</Note> : null}
         <div className="row">
           {on ? (
-            <Button variant="secondary" onClick={() => player.stop()}>
-              Stop listening
-            </Button>
+            <Button variant="secondary" onClick={() => player.stop()}>{t("comms.stopListening")}</Button>
           ) : (
-            <Button variant="primary" disabledReason={reason} onClick={() => void player.start(known ? device : "")}>
-              Listen in headphones
-            </Button>
+            <Button variant="primary" disabledReason={reason} onClick={() => void player.start(known ? device : "")}>{t("comms.listenInHeadphones")}</Button>
           )}
-          <label className="row small">
-            Volume
-            <input type="range" min={0} max={2} step={0.05} aria-label="Preview volume" value={volume} onChange={(e) => setVolume(Number(e.target.value))} />
-          </label>
+          <label className="row small"><T k="comms.volumeInput" values={{ input: <input type="range" min={0} max={2} step={0.05} aria-label={t("comms.previewVolume")} value={volume} onChange={(e) => setVolume(Number(e.target.value))} /> }} /></label>
         </div>
-        <Meter value={st.levelDb <= -60 ? 0 : (st.levelDb + 60) / 60} tone={st.state === "playing" ? "ok" : "neutral"} label="Preview level" />
+        <Meter value={st.levelDb <= -60 ? 0 : (st.levelDb + 60) / 60} tone={st.state === "playing" ? "ok" : "neutral"} label={t("comms.previewLevel")} />
         {st.error ? <Note tone="warn">{st.error}</Note> : null}
         <KV
           items={[
-            ["Soloed", soloed.length ? soloed.map((p) => p.displayName || p.nickname).join(", ") : "Nobody: press Solo next to a person"],
-            ["Playback", on ? `${st.chunks} chunks · ${st.underruns} gaps · ${st.dropped} dropped` : "—"],
+            [t("comms.soloed"), soloed.length ? soloed.map((p) => p.displayName || p.nickname).join(", ") : t("comms.nobodyPressSolo")],
+            [t("comms.playback"), on ? t("comms.playbackStats", { chunks: st.chunks, underruns: st.underruns, dropped: st.dropped }) : "—"],
           ]}
         />
       </div>

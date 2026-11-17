@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
  * - confirm dialogs' { title, body, confirmLabel } given as literals;
  * - toast.push(tone, "literal").
  * Brand and product names, abbreviations in capitals (CT, ADR, ON AIR), symbols and the text of
- * <code>/<kbd>/<pre> elements are allowed.
+ * <code>/<kbd>/<pre>/<samp>/<Mono> elements are allowed.
  */
 
 const SOURCES = import.meta.glob<string>(["../**/*.tsx", "!../**/*.test.tsx"], { query: "?raw", import: "default", eager: true });
@@ -37,19 +37,9 @@ const PENDING = new Set<string>([
   "screens/Setup.tsx",
   "screens/Sponsors.tsx",
   "screens/Studio.tsx",
-  "screens/TeamComms.tsx",
   "screens/Teams.tsx",
   "screens/Training.tsx",
   "screens/cams/WebCams.tsx",
-  "screens/comms/CalibrationPanel.tsx",
-  "screens/comms/PresetsPanel.tsx",
-  "screens/comms/PreviewPanel.tsx",
-  "screens/comms/PublicControls.tsx",
-  "screens/comms/RecordingPanel.tsx",
-  "screens/comms/SetupChecklist.tsx",
-  "screens/comms/SetupPanels.tsx",
-  "screens/comms/StripPanel.tsx",
-  "screens/comms/TeamPanel.tsx",
   "screens/demos/PipelinePanels.tsx",
   "screens/hudlib/HudDetails.tsx",
   "screens/huds/Annotations.tsx",
@@ -148,6 +138,8 @@ function literalText(n: ts.Node): string {
   return "";
 }
 
+const CODE_TAGS = new Set(["code", "kbd", "pre", "samp", "Mono"]);
+
 function scan(file: string, source: string): Finding[] {
   const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const out: Finding[] = [];
@@ -155,14 +147,15 @@ function scan(file: string, source: string): Finding[] {
     if (flagged(text)) out.push({ file, line: sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1, text: text.replace(/\s+/g, " ").trim().slice(0, 80) });
   };
   const visit = (n: ts.Node) => {
+    // Text in <code>, <kbd>, <pre>, <samp> and <Mono> is code (a console command, a key, a path), not prose.
+    const inCode = (x: ts.Node) => ts.isJsxElement(x.parent) && CODE_TAGS.has(x.parent.openingElement.tagName.getText(sf));
     if (ts.isJsxText(n)) {
-      // Text in <code>, <kbd>, <pre> and <samp> is code (a console command, a key), not prose.
-      if (!(ts.isJsxElement(n.parent) && ["code", "kbd", "pre", "samp"].includes(n.parent.openingElement.tagName.getText(sf)))) add(n, n.text);
+      if (!inCode(n)) add(n, n.text);
     }
     else if (ts.isJsxAttribute(n) && USER_PROPS.has(n.name.getText(sf)) && n.initializer) {
       if (ts.isStringLiteral(n.initializer)) add(n.initializer, n.initializer.text);
       else if (ts.isJsxExpression(n.initializer) && n.initializer.expression) for (const l of literals(n.initializer.expression)) add(l, literalText(l));
-    } else if (ts.isJsxExpression(n) && n.expression && (ts.isJsxElement(n.parent) || ts.isJsxFragment(n.parent))) {
+    } else if (ts.isJsxExpression(n) && n.expression && (ts.isJsxElement(n.parent) || ts.isJsxFragment(n.parent)) && !inCode(n)) {
       for (const l of literals(n.expression)) add(l, literalText(l));
     } else if (ts.isPropertyAssignment(n) && OBJECT_PROPS.has(n.name.getText(sf)) && insideJsxAttribute(n)) {
       for (const l of literals(n.initializer)) add(l, literalText(l));
