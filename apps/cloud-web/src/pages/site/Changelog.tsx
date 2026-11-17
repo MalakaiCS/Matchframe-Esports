@@ -11,6 +11,33 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.13.0",
+    title: "Map intros, slow-motion replays and smarter clutches",
+    summary: "Map intros, slow-motion and multi-angle replays, smarter clutch direction, low-spec mode, update channels with going back to a previous version, and opt-in crash reports.",
+    sections: [
+      {
+        heading: "Broadcast",
+        items: [
+          "Map intros: one video per map, played at the moment you choose (map load, knife round, pistol round or match live).",
+          "Slow-motion replays around each kill, and experimental multi-angle replays from the victim's view or a still camera.",
+          "Auto Director: short looks at the hunters in a clutch, and freeze-time shots that tell each team's buy.",
+        ],
+      },
+      {
+        heading: "Program",
+        items: [
+          "Low-spec mode for one-PC productions.",
+          "Stable and Beta update channels, and going back to a previous version with your data kept safe.",
+          "Opt-in crash reports with the support file, and code signing as soon as a certificate is added.",
+        ],
+      },
+      {
+        heading: "Stage HUD",
+        items: ["Main gun only on the cards, names that fit, a trophy in the tournament bar, the pause scoreboard only in timeouts and pauses."],
+      },
+    ],
+  },
+  {
     version: "0.12.4",
     title: "Stage HUD",
     summary: "A new bundled HUD with a tournament-stage layout, and Counter-Strike 2's own icons loaded on your computer.",
