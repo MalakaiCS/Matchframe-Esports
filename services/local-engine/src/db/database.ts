@@ -1,9 +1,31 @@
 import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { MIGRATIONS } from "./migrations.ts";
+import { MIGRATIONS, type Migration } from "./migrations.ts";
+import { backupName, lastProgramVersion } from "./version-backups.ts";
 
 export type SqlValue = string | number | bigint | null | Uint8Array;
+
+/**
+ * The database was saved by a newer version in a format this version doesn't know (ADR-076). The
+ * engine stops before reading or writing anything: an older engine must never change a newer
+ * database. The message is for the operator (the program shows it).
+ */
+export class NewerDatabaseError extends Error {
+  constructor(
+    readonly schema: number,
+    readonly supported: number,
+    readonly lastVersion: string | null,
+  ) {
+    const newer = lastVersion ? `version ${lastVersion}` : "a newer version of MatchFrame";
+    super(
+      `Your MatchFrame data was last used by ${newer}, which saved it in a newer format (database version ${schema}; this version reads up to ${supported}). ` +
+        `To keep it safe, this version hasn't opened it. Install ${lastVersion ? `version ${lastVersion}` : "the newer version"} again, ` +
+        `or go back from it with Settings → General → Program → Go back to a previous version, which restores the backup made for this version.`,
+    );
+    this.name = "NewerDatabaseError";
+  }
+}
 
 /**
  * Thin wrapper around Node's built-in SQLite (node:sqlite), which is available in both the
@@ -27,16 +49,22 @@ export class Database {
     return row?.v ?? 0;
   }
 
-  /** Applies pending migrations. A file-backed database is copied to `backupDir` first. */
-  migrate(backupDir?: string): { from: number; to: number; backup: string | null } {
+  /**
+   * Applies pending migrations. A file-backed database is copied to `backupDir` first, named with its
+   * format and the program version that last used it (going back to that version restores it;
+   * db/version-backups.ts). A database in a newer format than `migrations` knows is refused.
+   */
+  migrate(backupDir?: string, migrations: readonly Migration[] = MIGRATIONS): { from: number; to: number; backup: string | null } {
     const from = this.schemaVersion;
-    const pending = MIGRATIONS.filter((m) => m.version > from);
+    const supported = migrations.at(-1)?.version ?? 0;
+    if (from > supported) throw new NewerDatabaseError(from, supported, lastProgramVersion(this.db));
+    const pending = migrations.filter((m) => m.version > from);
     if (pending.length === 0) return { from, to: from, backup: null };
     let backup: string | null = null;
     if (this.path !== ":memory:" && backupDir && from > 0 && existsSync(this.path)) {
       mkdirSync(backupDir, { recursive: true });
       this.db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-      backup = join(backupDir, `matchframe-v${from}-${new Date().toISOString().replace(/[:.]/g, "-")}.sqlite`);
+      backup = join(backupDir, backupName(from, lastProgramVersion(this.db), new Date()));
       copyFileSync(this.path, backup);
     }
     for (const m of pending) {

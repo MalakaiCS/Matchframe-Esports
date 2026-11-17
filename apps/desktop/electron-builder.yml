@@ -81,8 +81,16 @@ win:
       arch: [x64]
     - target: zip
       arch: [x64]
-  # Code signing is configured in the release environment (CSC_LINK / CSC_KEY_PASSWORD).
-  # Unsigned development builds are labelled as such in the release notes.
+  # Code signing (ADR-076, docs/operations/code-signing.md): unsigned unless the Windows workflow has
+  # signing secrets. Azure Artifact Signing (formerly Trusted Signing) is turned on by the workflow
+  # adding win.azureSignOptions (publisherName, endpoint, codeSigningAccountName,
+  # certificateProfileName) on the command line, with the Azure credentials in AZURE_TENANT_ID /
+  # AZURE_CLIENT_ID / AZURE_CLIENT_SECRET. A certificate authority's signing tool: the workflow adds
+  # win.signtoolOptions.sign (custom-sign.mjs, which runs WIN_SIGN_COMMAND) and publisherName. Neither
+  # is set here, because electron-builder signs whenever they are present. An existing PFX certificate
+  # comes from the CSC_LINK / CSC_KEY_PASSWORD environment variables. Signed, the program, its helpers,
+  # the uninstaller and the installer are signed, and app-update.yml names the publisher, so installed
+  # programs accept only updates signed by the same publisher.
 nsis:
   oneClick: false
   perMachine: false
@@ -103,3 +111,7 @@ publish:
   owner: MalakaiCS
   repo: Matchframe-Esports
   releaseType: release
+  # Update channel from the version (ADR-076): latest.yml for 0.13.0, beta.yml for 0.13.0-beta.1 (a
+  # GitHub prerelease, read by programs on the Beta update channel). For the GitHub provider
+  # electron-builder doesn't take the channel from the version by itself.
+  channel: ${channel}

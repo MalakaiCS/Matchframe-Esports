@@ -55,7 +55,15 @@ declare global {
         download(): Promise<unknown>;
         installNow(): Promise<void>;
         setAutoDownload(on: boolean): Promise<unknown>;
+        /** Stable or Beta (programs after 0.12.4). */
+        setChannel?(channel: "stable" | "beta"): Promise<unknown>;
         onChange(fn: (s: unknown) => void): () => void;
+      };
+      /** Go back to a previous version (see lib/updates.ts; programs after 0.12.4). */
+      rollback?: {
+        list(): Promise<unknown>;
+        start(version: string, opts?: { toStable?: boolean }): Promise<unknown>;
+        onProgress(fn: (p: unknown) => void): () => void;
       };
     };
   }
