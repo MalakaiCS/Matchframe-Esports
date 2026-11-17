@@ -5,9 +5,11 @@ import { demoArt, demoRadar, NO_ART } from "./demoArt.ts";
  * Built-in sample states (fictional teams and players) for `?demo=<scene>`: thumbnails,
  * development, and `?demo=cycle`, which plays the scenes in turn so every animation can be seen
  * without a running program: freeze time → live → kills → bomb planted → defuse → round won → a
- * tactical timeout in the next freeze time.
+ * tactical timeout in the next freeze time → that round live with the last round's MVP (`mvp`, the
+ * teams on the other sides, as after half time). `nocam` is the live round for a HUD to show the
+ * observed player without a player cam.
  */
-export const DEMO_SCENES = ["freeze", "live", "kill", "plant", "bomb", "defuse", "over", "timeout"] as const;
+export const DEMO_SCENES = ["freeze", "live", "kill", "plant", "bomb", "defuse", "over", "timeout", "mvp", "nocam"] as const;
 export type DemoScene = (typeof DEMO_SCENES)[number];
 
 /** Demo extras from the page's query: `?bo=5` (series length), `?art=1` (sample HUD images), `?radar=1` (sample radar), `?logo=1` (sample team emblems). */
@@ -76,8 +78,8 @@ function player(i: number, side: HudSide, name: string, over: Partial<HudPlayer>
 
 const dead = (p: HudPlayer): HudPlayer => ({ ...p, alive: false, health: 0, armor: 0, helmet: false, defuseKit: false, activeWeapon: null, primary: null, secondary: null, grenades: [], hasBomb: false });
 
-function team(key: "left" | "right", side: HudSide, name: string, short: string, score: number, losses: number, players: HudPlayer[]): HudTeam {
-  return { key, teamId: null, name, shortName: short, logoUrl: null, color: null, side, score, seriesWins: key === "left" ? 1 : 0, timeoutsRemaining: 3, consecutiveRoundLosses: losses, players };
+function team(key: "left" | "right", side: HudSide, name: string, short: string, score: number, losses: number, players: HudPlayer[], coach: HudTeam["coach"] = null): HudTeam {
+  return { key, teamId: null, name, shortName: short, logoUrl: null, color: null, side, score, seriesWins: key === "left" ? 1 : 0, timeoutsRemaining: 3, consecutiveRoundLosses: losses, players, coach };
 }
 
 const kill = (id: string, killer: HudPlayer, victim: HudPlayer, weapon: string, headshot: boolean, extra: Partial<HudKillfeedEntry> = {}): HudKillfeedEntry => ({
@@ -94,8 +96,14 @@ const kill = (id: string, killer: HudPlayer, victim: HudPlayer, weapon: string, 
 });
 
 export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
-  let ct = [player(1, "CT", "nova"), player(2, "CT", "kestrel"), player(3, "CT", "lumen"), player(4, "CT", "orbit"), player(5, "CT", "vale", { primary: w("awp", "primary", true, 5, 20), activeWeapon: w("awp", "primary", true, 5, 20) })];
-  const t = [player(6, "T", "ember", { hasBomb: true }), player(7, "T", "riot"), player(8, "T", "saber"), player(9, "T", "dusk"), player(0, "T", "flint", { primary: w("galilar", "primary", true, 35, 90), activeWeapon: w("galilar", "primary", true, 35, 90) })];
+  // `ct` is the left team and `t` the right one; in the `mvp` scene they have swapped sides.
+  const swapped = scene === "mvp";
+  const L: HudSide = swapped ? "T" : "CT";
+  const R: HudSide = swapped ? "CT" : "T";
+  const leftAwp = swapped ? w("ak47", "primary", true, 30, 90) : w("awp", "primary", true, 5, 20);
+  let ct = [player(1, L, "nova"), player(2, L, "kestrel", { hasBomb: swapped }), player(3, L, "lumen"), player(4, L, "orbit"), player(5, L, "vale", { primary: leftAwp, activeWeapon: leftAwp })];
+  const rightRifle = swapped ? w("famas", "primary", true, 25, 90) : w("galilar", "primary", true, 35, 90);
+  const t = [player(6, R, "ember", { hasBomb: !swapped }), player(7, R, "riot"), player(8, R, "saber"), player(9, R, "dusk"), player(0, R, "flint", { primary: rightRifle, activeWeapon: rightRifle })];
   let phase: HudState["match"]["phase"] = "live";
   let clock: number | null = 108;
   let bomb: HudState["bomb"] = { state: "carried", site: null, remainingSec: null, clockRunning: false };
@@ -108,10 +116,12 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     ct = ct.map((p) => ({ ...p, activeWeapon: p.secondary }));
   }
   // The next round's freeze time, with the team on T in a tactical timeout (one of three used).
-  if (scene === "timeout") {
+  if (scene === "timeout" || scene === "mvp") {
     scoreLeft = 10;
     roundHistory.push({ roundNumber: 17, winner: "left", reason: "ct_win_defuse" });
   }
+  // That round under way, a few seconds in: everyone alive, the last round's MVP still up.
+  if (scene === "mvp") clock = 103;
   if (scene === "kill" || scene === "plant" || scene === "bomb" || scene === "defuse" || scene === "over") {
     feed.push(kill("k1", ct[0]!, t[2]!, "m4a1_silencer", true), kill("k2", t[1]!, ct[3]!, "ak47", false, { assister: { steamId: t[0]!.steamId, name: "ember", side: "T" } }));
     t[2] = { ...dead(t[2]!), roundDamage: 42 };
@@ -146,13 +156,20 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     scoreLeft = 10;
     roundHistory.push({ roundNumber: 17, winner: "left", reason: "ct_win_defuse" });
   }
-  const observed = scene === "bomb" ? ct[4]! : ct[0]!;
+  const observed = scene === "bomb" ? ct[4]! : scene === "mvp" ? ct[2]! : scene === "nocam" ? t[0]! : ct[0]!;
   ct = ct.map((p) => ({ ...p, observed: p.steamId === observed.steamId }));
+  t.forEach((p, i) => (t[i] = { ...p, observed: p.steamId === observed.steamId }));
   const series = demoSeries([1, 3, 5, 7].includes(opts.bestOf ?? 3) ? (opts.bestOf ?? 3) : 3, [scoreLeft, 7]);
   if (opts.bestOf && ![1, 3, 5, 7].includes(opts.bestOf)) series.bestOf = opts.bestOf;
-  const left = { ...team("left", "CT", "Northern Lights", "NRL", scoreLeft, 0, ct), seriesWins: series.left, logoUrl: opts.logo ? demoLogo("left") : null };
-  const right = { ...team("right", "T", "Red Harbour", "RHB", 7, scene === "timeout" ? 3 : 2, t), seriesWins: series.right, logoUrl: opts.logo ? demoLogo("right") : null, timeoutsRemaining: scene === "timeout" ? 2 : 3 };
+  const art = opts.art ? demoArt() : NO_ART;
+  // Made-up coaches (with the sample pictures under ?art=1).
+  const coach = (name: string, side: "ct" | "t") => ({ name, avatarUrl: art.defaultPlayers[side][4] ?? null });
+  const left = { ...team("left", L, "Northern Lights", "NRL", scoreLeft, 0, ct, coach("meridian", L === "CT" ? "ct" : "t")), seriesWins: series.left, logoUrl: opts.logo ? demoLogo("left") : null };
+  const right = { ...team("right", R, "Red Harbour", "RHB", 7, scene === "timeout" || scene === "mvp" ? 3 : 2, t, coach("quill", R === "CT" ? "ct" : "t")), seriesWins: series.right, logoUrl: opts.logo ? demoLogo("right") : null, timeoutsRemaining: scene === "timeout" || scene === "mvp" ? 2 : 3 };
   const live = !(scene === "freeze" || scene === "over" || scene === "timeout");
+  // Round 17's key player, kept from its end: nova's two kills and the defuse round's damage.
+  const nova = ct[0]!;
+  const lastRound: HudState["lastRound"] = roundHistory.some((r) => r.roundNumber === 17) ? { roundNumber: 17, winnerSide: L, mvp: { steamId: nova.steamId, kills: 2, damage: 200, health: 76, armor: 100, helmet: true } } : null;
   return {
     schemaVersion: 1,
     outputId: "demo",
@@ -162,10 +179,10 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     timeline: { profile: "live", delayMs: 0 },
     dataAgeMs: 0,
     stale: false,
-    match: { mapName: "de_mirage", mapDisplayName: "Mirage", roundNumber: scene === "timeout" ? 18 : 17, phase, phaseEndsInSec: clock, clockRunning: live || scene === "freeze" || scene === "timeout", paused: false, regulationRounds: 24 },
+    match: { mapName: "de_mirage", mapDisplayName: "Mirage", roundNumber: scene === "timeout" || scene === "mvp" ? 18 : 17, phase, phaseEndsInSec: clock, clockRunning: live || scene === "freeze" || scene === "timeout", paused: false, regulationRounds: 24 },
     left,
     right,
-    observed: { ...observed, observed: true },
+    observed: { ...(ct.find((p) => p.observed) ?? t.find((p) => p.observed) ?? observed), observed: true },
     bomb,
     roundHistory,
     killfeed: { mode: "exact", entries: feed },
@@ -180,7 +197,8 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     standings: null,
     bracket: null,
     settings: {},
-    art: opts.art ? demoArt() : NO_ART,
+    art,
+    lastRound,
   };
 }
 

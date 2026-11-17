@@ -76,6 +76,11 @@ export interface HudTeam {
   /** Loss bonus only when the source reports consecutive losses. */
   consecutiveRoundLosses: number | null;
   players: HudPlayer[];
+  /**
+   * The team's coach: the current roster member with the role coach (their display name, and their
+   * photo when it may be shown). Null without one; absent from older engines. Never their voice.
+   */
+  coach?: { name: string; avatarUrl: string | null } | null;
 }
 
 export interface HudKillfeedEntry {
@@ -208,6 +213,13 @@ export interface HudState {
   settings: Record<string, unknown>;
   /** Pictures the operator added in the HUD Library (HUD images) for every MatchFrame HUD. */
   art: HudArt;
+  /**
+   * The last round this output's timeline has seen end, kept from its end (CS2 resets round kills and
+   * damage when the next round starts): who won it and its key player (CS2's round MVP when the game
+   * data shows it, else the winning side's player with the most kills, then damage). Null when its
+   * end wasn't seen; absent from older engines.
+   */
+  lastRound?: { roundNumber: number; winnerSide: HudSide | null; mvp: { steamId: string; kills: number; damage: number; health: number; armor: number; helmet: boolean } | null } | null;
 }
 
 /** A replay clip on air: who made the play and what it was. */

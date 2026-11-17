@@ -19,6 +19,10 @@ export interface HudContext {
   event: EventRecord | null;
   /** The active match's stage name, when it is in a stage. */
   stageName?: string | null;
+  /** A team's coach: its current roster member with the role coach (name and photo), or null. */
+  coachOf?: (teamId: string) => HudTeam["coach"];
+  /** The result and key player of a round kept from its end (round MVP), or null. */
+  lastRound?: (roundNumber: number) => HudState["lastRound"];
   assetUrl: (assetId: string | null) => string | null;
   /** The picture for a player without their own on a side (Settings' default player picture), or null. */
   defaultPlayerPicture?: (side: "CT" | "T" | null) => string | null;
@@ -121,10 +125,14 @@ function hudTeam(state: MatchState, side: Side, key: "left" | "right", ctx: HudC
     seriesWins,
     timeoutsRemaining: ts.timeoutsRemaining,
     consecutiveRoundLosses: ts.consecutiveRoundLosses,
-    // Coaches listed with the team are left out of it.
+    // Coaches listed with the team are left out of it; the roster's coach is named on its own.
     players: state.players.filter((p) => p.side === side && !p.coach).map((p) => toHudPlayer(p, observed, ctx, carrier)),
+    coach: coachOf(ctx, ts.teamId),
   };
 }
+
+/** The team's coach from its roster (null without a team, a coach or the lookup). */
+const coachOf = (ctx: HudContext, teamId: string | null): HudTeam["coach"] => (teamId && ctx.coachOf ? (ctx.coachOf(teamId) ?? null) : null);
 
 type Uv = { u: number; v: number };
 
@@ -295,6 +303,7 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
     timeoutsRemaining: null,
     consecutiveRoundLosses: null,
     players: [],
+    coach: null,
   });
   if (!state || state.sequence === 0) {
     const s = series(ctx, ctx.match?.teamAId ?? null);
@@ -303,8 +312,8 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
     if (ctx.match) {
       const a = ctx.teams.get(ctx.match.teamAId);
       const b = ctx.teams.get(ctx.match.teamBId);
-      if (a) Object.assign(left, { teamId: a.id, name: a.name, shortName: a.shortName, logoUrl: ctx.assetUrl(a.logoAssetId), color: a.primaryColor, seriesWins: s.left });
-      if (b) Object.assign(right, { teamId: b.id, name: b.name, shortName: b.shortName, logoUrl: ctx.assetUrl(b.logoAssetId), color: b.primaryColor, seriesWins: s.right });
+      if (a) Object.assign(left, { teamId: a.id, name: a.name, shortName: a.shortName, logoUrl: ctx.assetUrl(a.logoAssetId), color: a.primaryColor, seriesWins: s.left, coach: coachOf(ctx, a.id) });
+      if (b) Object.assign(right, { teamId: b.id, name: b.name, shortName: b.shortName, logoUrl: ctx.assetUrl(b.logoAssetId), color: b.primaryColor, seriesWins: s.right, coach: coachOf(ctx, b.id) });
     }
     return {
       schemaVersion: 1,
@@ -334,6 +343,7 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
       bracket: ctx.bracket,
       settings: ctx.settings,
       art: ctx.art,
+      lastRound: null,
     };
   }
 
@@ -354,6 +364,7 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
       })
     : null;
   const dataAge = state.time.receivedAtMonotonicMs ? nowMonotonicMs - state.time.receivedAtMonotonicMs : null;
+  const lastFinished = state.roundHistory.length ? Math.max(...state.roundHistory.map((r) => r.roundNumber)) : null;
   const allPlayers = [...leftTeam.players, ...rightTeam.players];
   return {
     schemaVersion: 1,
@@ -404,5 +415,7 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
     bracket: ctx.bracket,
     settings: ctx.settings,
     art: ctx.art,
+    // The last round this timeline has seen end (a delayed output's own round history).
+    lastRound: lastFinished !== null && ctx.lastRound ? (ctx.lastRound(lastFinished) ?? null) : null,
   };
 }

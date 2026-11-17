@@ -17,6 +17,7 @@ export const DEFAULTS = {
   showAlive: true,
   showObserved: true,
   showScoreboard: true,
+  showMvp: true,
   showMoney: true,
 };
 export type Settings = typeof DEFAULTS;
@@ -45,6 +46,7 @@ export function readSettings(s: Record<string, unknown>): Settings {
     showAlive: bool("showAlive"),
     showObserved: bool("showObserved"),
     showScoreboard: bool("showScoreboard"),
+    showMvp: bool("showMvp"),
     showMoney: bool("showMoney"),
   };
 }
@@ -59,6 +61,24 @@ export function sideColor(state: HudState, settings: Settings, side: HudSide | n
   return side === "T" ? settings.tColor : side === "CT" ? settings.ctColor : "#9aa6b8";
 }
 
+const rgb = (hex: string): [number, number, number] | null => {
+  const m = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.exec(hex.trim());
+  if (!m) return null;
+  const h = m[1]!.length === 3 ? [...m[1]!].map((c) => c + c).join("") : m[1]!;
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number];
+};
+
+/** `amount` of `hex` over `base` (no CSS color-mix: OBS's browser is older). */
+export function mix(hex: string, base: string, amount: number): string {
+  const a = rgb(hex);
+  const b = rgb(base);
+  if (!a || !b) return hex;
+  return `#${a.map((c, i) => Math.round(c * amount + b[i]! * (1 - amount)).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** The deep navy the team colours are shaded towards for card fills. */
+const NAVY = "#0a1222";
+
 /** Dark or white text on a colour (team colours can be light, CS gold is). */
 export function inkOn(hex: string): string {
   const m = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.exec(hex.trim());
@@ -68,8 +88,20 @@ export function inkOn(hex: string): string {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.32 ? "#0a0f18" : "#ffffff";
 }
 
-/** CSS variables for a team-coloured element: the colour and the ink that reads on it. */
-export const teamVars = (color: string): CSSProperties => ({ "--st-team": color, "--st-team-ink": inkOn(color) }) as CSSProperties;
+/**
+ * CSS variables for a team-coloured element: the colour and the ink that reads on it, the flat card
+ * fill (the colour shaded towards navy, so white text reads on CS gold too), a lit fill for the
+ * observed player, a dark tint (killfeed rows) and a light tint (names on dark tints).
+ */
+export const teamVars = (color: string): CSSProperties =>
+  ({
+    "--st-team": color,
+    "--st-team-ink": inkOn(color),
+    "--st-team-fill": mix(color, NAVY, 0.6),
+    "--st-team-lit": mix(color, NAVY, 0.74),
+    "--st-team-dark": mix(color, NAVY, 0.34),
+    "--st-team-light": mix(color, "#ffffff", 0.72),
+  }) as CSSProperties;
 
 /** The name a team shows: its tag with "Team names: short", else its full name. */
 export const teamName = (team: HudTeam, settings: Settings): string => (settings.teamNames === "short" ? team.shortName || team.name : team.name || team.shortName);
@@ -86,6 +118,26 @@ export function timeoutTeam(state: HudState): HudTeam | null {
   if (p !== "timeout_ct" && p !== "timeout_t") return null;
   const side: HudSide = p === "timeout_ct" ? "CT" : "T";
   return state.left.side === side ? state.left : state.right.side === side ? state.right : null;
+}
+
+/** CS2's round time (s) until a longer one is seen: the MVP card stays this long into a round. */
+const ROUND_SECONDS = 115;
+let roundSeconds = ROUND_SECONDS;
+/** How long the previous round's MVP card stays once the next round is live (the reference shows it at 1:40). */
+const MVP_LIVE_SECONDS = 15;
+
+/**
+ * Whether the previous round's MVP card shows: at the round's end, in freeze time (when the cards are
+ * up), and the first seconds of the next round; never during a bomb plant or later in the round.
+ */
+export function mvpShowing(state: HudState): boolean {
+  const m = state.match;
+  if (!state.lastRound?.mvp) return false;
+  if (m.phase === "live" && m.phaseEndsInSec !== null) {
+    roundSeconds = Math.max(roundSeconds, Math.ceil(m.phaseEndsInSec));
+    return roundSeconds - m.phaseEndsInSec < MVP_LIVE_SECONDS;
+  }
+  return m.phase === "over" || m.phase === "freezetime";
 }
 
 /** Players of a team in observer-slot order (at most five). */

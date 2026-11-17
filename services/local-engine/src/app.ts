@@ -56,6 +56,7 @@ import { HighlightsOnAir } from "./replay/highlights-air.ts";
 import { HighlightReels } from "./replay/reel.ts";
 import { OnAirLog } from "./replay/onair.ts";
 import { LiveSession } from "./live/session.ts";
+import { RoundMvpTracker } from "./live/round-mvp.ts";
 import { TeamSideTracker } from "./live/team-sides.ts";
 import { SideTeams } from "./live/side-teams.ts";
 import { Logger } from "./logger.ts";
@@ -269,6 +270,8 @@ export class Engine {
   private readonly cues = new Map<string, Cue>();
   private annotations: HudState["annotations"] = [];
   private roundWinnersLR = new Map<number, "left" | "right">();
+  /** Each round's key player, kept from its end for the round MVP card (any output's timeline). */
+  private roundMvps = new RoundMvpTracker();
   private sim: { simulator: RoundSimulator; adapter: SimulationObserverAdapter; timer: ReturnType<typeof setInterval> } | null = null;
   private replayProvider: ReplayProvider | null = null;
   private hudListeners = new Set<(outputId: string, urgent?: boolean) => void>();
@@ -728,8 +731,23 @@ export class Engine {
     const m = matchId ? this.matches.get(matchId)?.data : null;
     this.sides = new TeamSideTracker({ leftTeamId: m?.teamAId ?? null, rightTeamId: m?.teamBId ?? null });
     this.roundWinnersLR.clear();
+    this.roundMvps.reset();
     this.teamComms?.refreshTeams();
     if (matchId) void this.matchArt.onActivated(matchId);
+  }
+
+  /**
+   * A team's coach for the HUDs: its current roster member with the role coach (the first, when there
+   * are several), with their photo only when it may be shown. Never their voice (Team Comms).
+   */
+  private teamCoach(teamId: string): { name: string; avatarUrl: string | null } | null {
+    for (const m of this.roster.forTeam(teamId)) {
+      if (m.role !== "coach") continue;
+      const p = this.players.get(m.playerId)?.data;
+      if (!p || p.archived) continue;
+      return { name: p.displayName, avatarUrl: p.photoVisible ? this.assetUrl(p.avatarAssetId) : null };
+    }
+    return null;
   }
 
   /** Standings/bracket for studio and break screens only (public team fields). */
@@ -798,6 +816,8 @@ export class Engine {
         return eventId ? (this.events.get(eventId)?.data ?? null) : null;
       })(),
       stageName: match?.stageId ? (this.stages.get(match.stageId)?.data.name ?? null) : null,
+      coachOf: (teamId) => this.teamCoach(teamId),
+      lastRound: (n) => this.roundMvps.lastRound(n),
       assetUrl: (id) => this.assetUrl(id),
       defaultPlayerPicture: (side) => this.fallbackPlayerPicture(side),
       map: state?.mapName ? this.maps.get(state.mapName) : undefined,
@@ -911,7 +931,11 @@ export class Engine {
   }
 
   private onState(s: MatchState): void {
-    if (s.mapName !== this.lastLiveMap) [this.lastLiveRound, this.lastLiveMap] = [null, s.mapName];
+    if (s.mapName !== this.lastLiveMap) {
+      [this.lastLiveRound, this.lastLiveMap] = [null, s.mapName];
+      this.roundMvps.reset();
+    }
+    this.roundMvps.noteState(s);
     if (s.roundPhase === "live") this.lastLiveRound = s.roundNumber;
     if (!s.simulated) this.gameConsole.onState(s);
     this.onAir.noteState(s.observer.observedSteamId);
@@ -1038,6 +1062,7 @@ export class Engine {
           const { left } = this.sides.assign(this.sideTeams.apply(state, this.activeMatch()));
           this.roundWinnersLR.set(e.data.roundNumber, e.data.winnerSide === left ? "left" : "right");
         }
+        if (e.kind === "round_end" && typeof e.data.roundNumber === "number") this.roundMvps.roundEnded(e.data.roundNumber, (e.data.winnerSide as Side | null) ?? null, state);
         if (e.kind === "epoch_changed") this.ruleEngine.resetWatermark();
       }
     }

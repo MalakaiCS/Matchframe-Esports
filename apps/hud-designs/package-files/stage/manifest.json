@@ -6,7 +6,7 @@
   "author": "MatchFrame",
   "licence": "MIT; weapon icons third-party MIT (third-party-licenses/); fonts: SIL OFL 1.1",
   "thumbnail": "thumbnail.webp",
-  "description": "Tournament-stage broadcast HUD: series strip and minimap top left, event line and score bar with players alive top centre, sponsor slot and killfeed top right, five player cards in each bottom corner around the observed player's cam, and a full-width scoreboard with economy, loss bonus and timeouts in freeze time.",
+  "description": "Tournament-stage broadcast HUD: series strip and minimap top left, event line and score bar with players alive top centre, sponsor slot and killfeed top right, five side-coloured player cards in each bottom corner with the round MVP's card and the observed player's cam between them, and a full-width scoreboard with economy, loss bonus, timeouts and coaches in freeze time.",
   "game": "cs2",
   "category": "Broadcast",
   "tags": [
@@ -140,6 +140,13 @@
       "default": true,
       "group": "Elements",
       "description": "The full-width scoreboard in freeze time and timeouts; off keeps the player cards."
+    },
+    "showMvp": {
+      "type": "boolean",
+      "label": "Round MVP card",
+      "default": true,
+      "group": "Elements",
+      "description": "The last round's key player in a tall card in their team's list: at the round's end and the first seconds of the next round."
     },
     "showMoney": {
       "type": "boolean",

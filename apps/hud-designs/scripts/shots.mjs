@@ -47,7 +47,7 @@ if (rest[0] === "--replay") {
     }
   }
 } else if (!frames) {
-  for (const scene of ["freeze", "live", "kill", "plant", "bomb", "defuse", "over", "timeout"]) {
+  for (const scene of ["freeze", "live", "kill", "plant", "bomb", "defuse", "over", "timeout", "mvp", "nocam"]) {
     await page.goto(`${base}?demo=${scene}${extra}`);
     await page.evaluate(backdrop);
     await page.waitForTimeout(1200);

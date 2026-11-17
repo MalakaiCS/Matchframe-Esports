@@ -126,22 +126,20 @@ body,
   position: relative;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 11px 0 5px;
-  font-size: 15px;
-  letter-spacing: 0.04em;
+  gap: 6px;
+  padding: 1px 10px 0 7px;
+  font-size: 16px;
+  letter-spacing: 0.03em;
   color: var(--st-ink-dim);
   white-space: nowrap;
 }
-.st-map + .st-map::before {
-  content: "";
-  position: absolute;
-  left: -1px;
-  top: 5px;
-  bottom: 5px;
-  width: 2px;
-  background: var(--st-line);
-  transform: skewX(-20deg);
+.st-map-arrow {
+  display: block;
+  flex: none;
+  width: 9px;
+  height: 11px;
+  margin-top: -1px;
+  color: var(--st-ink);
 }
 .st-map-pick {
   display: flex;
@@ -161,8 +159,8 @@ body,
   padding: 0;
 }
 .st-map-pick img {
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 19px;
   object-fit: contain;
 }
 .st-map-pick.is-decider {
@@ -172,11 +170,6 @@ body,
   font-size: 10px;
   letter-spacing: 0.08em;
   padding: 0 4px;
-}
-.st-map-logo {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
 }
 .st-map-score {
   font-size: 13px;
@@ -216,7 +209,7 @@ body,
   align-items: center;
   gap: 12px;
   height: 24px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   padding: 1px 16px 0;
   background: var(--st-panel-2);
   clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 100%, 0 100%);
@@ -256,45 +249,48 @@ body,
   right: 0;
   flex-direction: row-reverse;
 }
+/* The side-colour accent under each score. */
 .st-sb-edge {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
+  bottom: 4px;
+  left: 100px;
+  width: 46px;
+  height: 4px;
   background: var(--st-team);
-  transform-origin: left center;
   transition: background-color 0.3s;
 }
 .st-sb-right .st-sb-edge {
-  transform-origin: right center;
+  left: auto;
+  right: 100px;
 }
 .st-sb-logo {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 54px;
-  height: 54px;
-  margin: 3px 9px 0;
-  background: rgba(255, 255, 255, 0.05);
-  --logo-fs: 21px;
+  width: 60px;
+  height: 60px;
+  margin: 0 9px 0 6px;
+  background: rgba(255, 255, 255, 0.06);
+  --logo-fs: 23px;
+}
+.st-sb-right .st-sb-logo {
+  margin: 0 6px 0 9px;
 }
 .st-sb-logo .st-logo {
-  width: 44px;
-  height: 44px;
+  width: 50px;
+  height: 50px;
 }
 .st-sb-pips {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 7px;
   flex: none;
-  margin-top: 3px;
 }
 .st-sb-pips i {
   display: block;
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   transform: rotate(45deg);
   box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
 }
@@ -306,9 +302,9 @@ body,
   flex: 1;
   display: flex;
   justify-content: center;
-  padding-top: 4px;
-  font-size: 50px;
-  font-weight: 800;
+  padding-top: 2px;
+  font-size: 58px;
+  font-weight: 700;
   line-height: 1;
 }
 .st-sb-num {
@@ -350,18 +346,18 @@ body,
     transform 0.28s var(--st-out);
 }
 .st-sb-round {
-  font-size: 14px;
+  font-size: 20px;
   line-height: 1;
-  letter-spacing: 0.06em;
-  color: var(--st-ink-dim);
+  letter-spacing: 0.01em;
+  color: var(--st-ink);
 }
 .st-sb-round.is-hold {
   color: var(--st-ink);
 }
 .st-clock {
-  margin-top: 4px;
-  font-size: 31px;
-  font-weight: 800;
+  margin-top: 3px;
+  font-size: 30px;
+  font-weight: 700;
   line-height: 1;
 }
 .st-clock.is-low {
@@ -431,22 +427,22 @@ body,
   display: flex;
   align-items: stretch;
   width: max-content;
-  margin: 6px auto 0;
+  margin: 9px auto 0;
   animation: st-drop 0.32s var(--st-out) both;
 }
 .st-alive {
-  height: 40px;
+  height: 46px;
 }
 .st-alive-n {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
+  width: 48px;
   padding-top: 2px;
-  background: var(--st-team);
-  color: var(--st-team-ink);
-  font-size: 31px;
-  font-weight: 800;
+  background: var(--st-team-fill);
+  color: var(--st-team-light);
+  font-size: 36px;
+  font-weight: 700;
   overflow: hidden;
 }
 .st-alive-n > span {
@@ -466,7 +462,7 @@ body,
   width: 38px;
   padding-top: 1px;
   background: var(--st-panel);
-  font-size: 16px;
+  font-size: 19px;
   color: var(--st-ink-dim);
 }
 .st-win {
@@ -602,7 +598,8 @@ body,
   color: var(--st-ink-dim);
 }
 
-/* The shared killfeed (HUD renderer markup: .mf-killfeed > .mf-kill). */
+/* The shared killfeed (HUD renderer markup: .mf-killfeed > .mf-kill): rows tinted with the killer's
+   side colour, names in light tints of their sides'. */
 .st-stage .mf-killfeed {
   display: flex;
   flex-direction: column;
@@ -612,21 +609,20 @@ body,
 .st-stage .mf-kill {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   height: 30px;
-  padding: 2px 12px 0 13px;
+  padding: 2px 10px 0;
   background: var(--st-panel);
   font-size: 17px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   white-space: nowrap;
-  box-shadow: inset 3px 0 0 var(--st-ink-faint);
   animation: st-kill-in 0.24s var(--st-out) both;
 }
 .st-stage .mf-kill.by-CT {
-  box-shadow: inset 3px 0 0 var(--radar-ct);
+  background: var(--st-kill-ct);
 }
 .st-stage .mf-kill.by-T {
-  box-shadow: inset 3px 0 0 var(--radar-t);
+  background: var(--st-kill-t);
 }
 .st-stage .mf-kill.is-leaving {
   animation: st-kill-out 0.5s ease-in forwards;
@@ -640,7 +636,7 @@ body,
   display: flex;
   gap: 2px;
   font-size: 14px;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 .st-stage .mf-kill-way {
   display: flex;
@@ -650,24 +646,26 @@ body,
   color: #ffffff;
 }
 .st-stage .mf-kill-weapon {
-  height: 18px;
+  height: 19px;
   width: auto;
-  max-width: 76px;
+  max-width: 78px;
 }
 .st-stage .mf-kill-skull {
   color: var(--st-ink-dim);
 }
 .st-stage .mf-killfeed .mf-side-CT {
-  color: var(--radar-ct);
+  color: var(--st-name-ct);
 }
 .st-stage .mf-killfeed .mf-side-T {
-  color: var(--radar-t);
+  color: var(--st-name-t);
 }
 .st-stage .mf-killfeed .mf-side-none {
   color: var(--st-ink-dim);
 }
 
 /* ------------------------------------------------------------ bottom corners: team tab and player cards */
+/* Left card, from the screen edge: slot strip 12 | name, K/D, money 92 | photo 48 | weapons and
+   grenades, health with armour and kit 156. The right card is the mirror image. */
 .st-cards {
   position: absolute;
   bottom: 16px;
@@ -687,29 +685,20 @@ body,
 .st-tab {
   display: flex;
   align-items: center;
-  gap: 8px;
   height: 30px;
-  padding: 2px 22px 0 12px;
-  background: var(--st-panel);
-  box-shadow: inset 4px 0 0 var(--st-team);
-  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%);
-  font-size: 18px;
-  letter-spacing: 0.05em;
+  padding: 2px 22px 0 10px;
+  background: var(--st-team);
+  color: var(--st-team-ink);
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
+  font-size: 20px;
+  letter-spacing: 0.02em;
   transition:
     transform 0.4s var(--st-out),
     opacity 0.25s;
 }
 .st-cards-right .st-tab {
-  flex-direction: row-reverse;
-  padding: 2px 12px 0 22px;
-  box-shadow: inset -4px 0 0 var(--st-team);
-  clip-path: polygon(0 100%, 12px 0, 100% 0, 100% 100%);
-}
-.st-tab-logo {
-  width: 22px;
-  height: 22px;
-  margin-top: -2px;
-  --logo-fs: 11px;
+  padding: 2px 10px 0 22px;
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%);
 }
 .st-card {
   position: relative;
@@ -717,6 +706,7 @@ body,
   flex: none;
   width: 308px;
   height: 72px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   transition:
     transform 0.4s var(--st-out) calc(60ms + var(--i) * 40ms),
     opacity 0.25s linear calc(60ms + var(--i) * 40ms);
@@ -725,6 +715,7 @@ body,
   flex-direction: row-reverse;
 }
 .st-cards:not(.is-on) .st-card,
+.st-cards:not(.is-on) .st-mvp,
 .st-cards:not(.is-on) .st-tab {
   opacity: 0;
   transform: translateX(-118%);
@@ -732,6 +723,7 @@ body,
   transition-delay: calc(var(--i, 0) * 25ms);
 }
 .st-cards-right:not(.is-on) .st-card,
+.st-cards-right:not(.is-on) .st-mvp,
 .st-cards-right:not(.is-on) .st-tab {
   transform: translateX(118%);
 }
@@ -741,65 +733,89 @@ body,
 .st-cards.is-on .st-card-right.is-observed {
   transform: translateX(-10px);
 }
-.st-card-body {
+/* The card's shape: grey where health is lost, the team colour filled to the health. */
+.st-card-shape {
   position: absolute;
   inset: 0;
-  background: var(--st-panel);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 11px 100%, 0 calc(100% - 11px));
-  transition: background-color 0.25s;
-}
-.st-card-right .st-card-body {
+  overflow: hidden;
+  background: rgba(68, 74, 88, 0.9);
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%);
+  transition:
+    clip-path 0.35s var(--st-out),
+    background-color 0.25s;
 }
-.st-card > :not(.st-card-body) {
+.st-card-right .st-card-shape {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 11px 100%, 0 calc(100% - 11px));
+}
+.st-card-fill,
+.st-card-trail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 12px;
+  right: 0;
+  transform-origin: left center;
+}
+.st-card-right .st-card-fill,
+.st-card-right .st-card-trail {
+  left: 0;
+  right: 12px;
+  transform-origin: right center;
+}
+.st-card-fill {
+  background: var(--st-team-fill);
+  transition:
+    transform 0.15s ease-out,
+    background-color 0.25s;
+}
+.st-card-trail {
+  background: rgba(255, 255, 255, 0.4);
+  transition: transform 0.5s ease-in 0.3s;
+}
+.st-card > :not(.st-card-shape) {
   position: relative;
 }
 .st-card-slot {
   display: flex;
   justify-content: center;
   flex: none;
-  width: 20px;
-  padding-top: 5px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--st-team);
+  width: 12px;
+  padding-top: 3px;
+  background: var(--st-team);
+  color: var(--st-team-ink);
   font-size: 16px;
   font-weight: 800;
-  transition:
-    background-color 0.25s,
-    color 0.25s;
+  text-shadow: none;
 }
 .st-card-info {
   display: flex;
   flex-direction: column;
   flex: none;
-  width: 106px;
+  width: 92px;
   min-width: 0;
-  padding: 5px 0 0 8px;
+  padding: 3px 0 0 8px;
 }
 .st-card-right .st-card-info {
   align-items: flex-end;
-  padding: 5px 8px 0 0;
+  padding: 3px 8px 0 0;
 }
 .st-card-name {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 20px;
-  line-height: 22px;
-  letter-spacing: 0.02em;
+  font-size: 21px;
+  line-height: 24px;
 }
 .st-card-name.is-long {
-  font-size: 17px;
+  font-size: 18px;
 }
 .st-card-kd {
   display: flex;
   align-items: center;
   gap: 9px;
-  margin-top: 1px;
-  font-size: 17px;
-  line-height: 20px;
-  color: var(--st-ink-dim);
+  height: 22px;
+  font-size: 18px;
 }
 .st-card-kd > span {
   display: flex;
@@ -810,17 +826,22 @@ body,
   margin-top: -2px;
 }
 .st-card-kd b {
-  color: var(--st-ink);
   font-weight: 700;
 }
 .st-card-money {
-  font-size: 17px;
-  line-height: 20px;
-  color: var(--st-money);
+  height: 22px;
+  font-size: 19px;
+  line-height: 22px;
+  color: #a8f09b;
+}
+.st-card-money i {
+  margin-right: 3px;
+  font-style: normal;
+  color: #d9e4f2;
 }
 .st-card-pic {
   flex: none;
-  width: 56px;
+  width: 48px;
   height: 72px;
   overflow: hidden;
 }
@@ -833,52 +854,46 @@ body,
 .st-card-gear {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: 38px 26px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: 42px 26px;
   min-width: 0;
-  padding: 2px 8px 0 6px;
+  padding: 0 6px 0 12px;
   transition:
     opacity 0.2s,
     transform 0.3s var(--st-out);
 }
 .st-card-right .st-card-gear {
-  grid-template-columns: auto 1fr;
-  padding: 2px 6px 0 8px;
-}
-.st-card-left .st-card-guns {
-  padding-right: 6px;
-}
-.st-card-right .st-card-guns {
-  padding-left: 6px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 0 12px 0 6px;
 }
 .st-card-guns {
   grid-column: 1;
   grid-row: 1;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 6px;
   min-width: 0;
+  overflow: hidden;
+  padding-top: 2px;
   color: #ffffff;
 }
 .st-card-right .st-card-guns {
   grid-column: 2;
-  flex-direction: row-reverse;
   justify-content: flex-end;
 }
 .st-gun {
-  height: 23px;
+  height: 24px;
   width: auto;
-  max-width: 74px;
-  opacity: 0.4;
+  max-width: 80px;
+  flex-shrink: 1;
+  min-width: 0;
+  object-fit: contain;
+  opacity: 0.5;
   transition: opacity 0.15s;
 }
 .st-gun.is-other {
-  height: 19px;
+  height: 20px;
   max-width: 40px;
-}
-.st-gun.is-main:only-child {
-  max-width: 78px;
 }
 .st-gun.is-active {
   opacity: 1;
@@ -887,44 +902,56 @@ body,
   grid-column: 2;
   grid-row: 1;
   min-width: 44px;
-  padding-top: 3px;
+  padding-top: 4px;
   text-align: right;
-  font-size: 34px;
-  font-weight: 800;
-  line-height: 36px;
+  font-size: 39px;
+  font-weight: 700;
+  line-height: 38px;
 }
 .st-card-right .st-card-hp {
   grid-column: 1;
   text-align: left;
 }
 .st-card-hp.is-low {
-  color: var(--st-red);
+  color: #ff8a8f;
+}
+.st-card-util {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+}
+.st-card-right .st-card-util {
+  grid-column: 2;
+  justify-content: flex-end;
 }
 .st-card-kit {
-  grid-column: 1 / 3;
+  grid-column: 2;
   grid-row: 2;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 7px;
-  color: var(--st-ink-dim);
+  gap: 6px;
 }
 .st-card-right .st-card-kit {
+  grid-column: 1;
   flex-direction: row-reverse;
+  justify-content: flex-end;
 }
 .st-nades {
   display: flex;
-  gap: 3px;
-  color: #dfe5ee;
+  gap: 6px;
+  color: #eef2f7;
+}
+.st-card-right .st-nades {
+  flex-direction: row-reverse;
 }
 .st-c4 {
   color: var(--st-c4);
 }
-.st-kit {
-  color: var(--st-team);
-}
+.st-kit,
 .st-armor {
-  color: #dfe5ee;
+  color: #eef2f7;
 }
 .st-card-rk {
   position: absolute !important;
@@ -934,14 +961,13 @@ body,
   align-items: center;
   gap: 1px;
   color: #ffffff;
-  font-size: 13px;
   animation: st-fade 0.25s both;
 }
 .st-card-left .st-card-rk {
-  right: 12px;
+  left: 164px;
 }
 .st-card-right .st-card-rk {
-  left: 12px;
+  right: 164px;
   flex-direction: row-reverse;
 }
 .st-rk {
@@ -949,26 +975,27 @@ body,
   width: 13px;
   height: 13px;
 }
+/* Dead: the card shrinks to the name and photo with a skull beside it. */
 .st-card-skull {
   position: absolute !important;
   top: 0;
-  bottom: 4px;
-  width: 126px;
+  bottom: 0;
+  width: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.4);
   opacity: 0;
   transform: scale(0.6);
   transition:
-    opacity 0.25s,
-    transform 0.35s var(--st-out);
+    opacity 0.25s 0.1s,
+    transform 0.35s var(--st-out) 0.1s;
 }
 .st-card-left .st-card-skull {
-  right: 0;
+  left: 152px;
 }
 .st-card-right .st-card-skull {
-  left: 0;
+  right: 152px;
 }
 .st-card-skull.is-art img {
   width: 42px;
@@ -976,63 +1003,26 @@ body,
   object-fit: contain;
   opacity: 0.75;
 }
-.st-card-health {
-  position: absolute !important;
-  left: 20px;
-  right: 0;
-  bottom: 0;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.08);
+.st-card.is-dead .st-card-shape {
+  background: rgba(58, 62, 70, 0.9);
+  clip-path: polygon(0 0, 208px 0, 208px calc(100% - 11px), 197px 100%, 0 100%);
 }
-.st-card-right .st-card-health {
-  left: 0;
-  right: 20px;
-}
-.st-card-fill,
-.st-card-trail {
-  position: absolute;
-  inset: 0;
-  transform-origin: left center;
-}
-.st-card-right .st-card-fill,
-.st-card-right .st-card-trail {
-  transform-origin: right center;
-}
-.st-card-fill {
-  background: var(--st-team);
-  transition: transform 0.15s ease-out;
-}
-.st-card-trail {
-  background: #ffffff;
-  opacity: 0.55;
-  transition: transform 0.5s ease-in 0.3s;
-}
-/* Observed: a lighter card with a white rim, nudged towards the centre. */
-.st-card.is-observed .st-card-body {
-  background: var(--st-panel-3);
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.9);
-}
-.st-card.is-observed .st-card-slot {
-  background: var(--st-team);
-  color: var(--st-team-ink);
-}
-/* Dead: grey, the photo faded, a skull where the gear was; name, stats and money stay. */
-.st-card.is-dead .st-card-body {
-  background: var(--st-dead);
+.st-card-right.is-dead .st-card-shape {
+  clip-path: polygon(calc(100% - 208px) 0, 100% 0, 100% 100%, calc(100% - 197px) 100%, calc(100% - 208px) calc(100% - 11px));
 }
 .st-card.is-dead .st-card-slot {
-  color: var(--st-ink-faint);
-  background: rgba(255, 255, 255, 0.03);
+  background: #6a6f78;
+  color: #e3e6ea;
 }
 .st-card.is-dead .st-card-name {
-  color: var(--st-ink-dim);
+  color: #d3d7de;
 }
 .st-card.is-dead .st-card-money {
-  color: #7fa37b;
+  color: #9cc995;
 }
 .st-card.is-dead .st-card-pic {
   filter: grayscale(1);
-  opacity: 0.5;
+  opacity: 0.6;
 }
 .st-card.is-dead .st-card-gear {
   opacity: 0;
@@ -1045,12 +1035,174 @@ body,
   opacity: 1;
   transform: none;
 }
+/* Observed: a lighter fill with a white rim, nudged towards the centre. */
+.st-card.is-observed .st-card-fill {
+  background: var(--st-team-lit);
+}
+.st-card.is-observed .st-card-shape {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.95);
+}
+
+/* The round MVP's card, in place of their card: 308 × 214, the slot strip on the inner edge. */
+.st-mvp {
+  position: relative;
+  flex: none;
+  width: 308px;
+  height: 214px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  animation: st-mvp-in 0.45s var(--st-out) both;
+  transition:
+    transform 0.4s var(--st-out),
+    opacity 0.25s linear;
+}
+.st-mvp-body {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 12px;
+  background: rgba(10, 15, 26, 0.94);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+.st-mvp-right .st-mvp-body {
+  left: 12px;
+  right: 0;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+}
+.st-mvp-slot {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+  background: var(--st-team);
+  color: var(--st-team-ink);
+  font-size: 16px;
+  font-weight: 800;
+  text-shadow: none;
+}
+.st-mvp-right .st-mvp-slot {
+  right: auto;
+  left: 0;
+}
+.st-mvp-pic {
+  position: absolute;
+  right: 14px;
+  bottom: 0;
+  width: 140px;
+  height: 196px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 86%, transparent);
+  mask-image: linear-gradient(to bottom, #000 86%, transparent);
+}
+.st-mvp-right .st-mvp-pic {
+  right: auto;
+  left: 14px;
+}
+.st-mvp-pic img {
+  object-fit: contain;
+  object-position: center bottom;
+}
+.st-mvp-text {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 164px;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0 0 9px;
+}
+.st-mvp-right .st-mvp-text {
+  left: auto;
+  right: 0;
+  align-items: flex-end;
+  padding: 12px 9px 0 0;
+}
+.st-mvp-head {
+  width: 140px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+  font-size: 25px;
+  line-height: 26px;
+}
+.st-mvp-right .st-mvp-head {
+  text-align: right;
+}
+.st-mvp-name {
+  max-width: 158px;
+  margin-top: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 30px;
+}
+.st-mvp-name.is-long {
+  font-size: 24px;
+}
+.st-mvp-round {
+  margin-top: 10px;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 20px;
+}
+.st-mvp-stats {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 18px;
+  font-size: 26px;
+  line-height: 26px;
+}
+.st-mvp-stats .mf-icon {
+  margin-top: -3px;
+}
+.st-mvp-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 3px;
+  background: rgba(255, 255, 255, 0.45);
+}
+.st-mvp-dmg {
+  color: var(--st-team);
+}
+.st-mvp-hp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 140px;
+  margin-top: 10px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255, 255, 255, 0.45);
+  font-size: 26px;
+  line-height: 26px;
+}
+.st-mvp-right .st-mvp-hp {
+  flex-direction: row-reverse;
+}
+.st-mvp-hp .mf-icon {
+  margin-top: -3px;
+}
+@keyframes st-mvp-in {
+  from {
+    opacity: 0;
+    clip-path: inset(70% 0 0 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0);
+  }
+}
 
 /* ------------------------------------------------------------ bottom centre: observed player */
 .st-obs {
   position: absolute;
   left: 812px;
-  bottom: 18px;
+  bottom: 17px;
   width: 296px;
   opacity: 0;
   transform: translateY(240px);
@@ -1070,7 +1222,7 @@ body,
   left: 0;
   bottom: 100%;
   width: 296px;
-  height: 166px;
+  height: 168px;
   overflow: hidden;
   background: #070b12;
   clip-path: inset(100% 0 0 0);
@@ -1119,35 +1271,67 @@ body,
 .st-obs-main {
   position: relative;
 }
-.st-obs-stats {
+/* Without a cam: the player's picture standing over the name bar on a transparent backdrop. */
+.st-obs-stand {
   position: absolute;
-  right: 0;
+  left: 50%;
   bottom: 100%;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  height: 26px;
-  padding: 2px 10px 0;
-  background: rgba(7, 11, 18, 0.85);
-  font-size: 17px;
+  width: 150px;
+  height: 168px;
+  transform: translateX(-50%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent);
+  mask-image: linear-gradient(to bottom, #000 80%, transparent);
   animation: st-fade 0.3s both;
 }
-.st-obs-stat {
+.st-obs-stand img {
+  object-fit: contain;
+  object-position: center bottom;
+}
+.st-obs-nades,
+.st-obs-stats {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  display: flex;
+  align-items: center;
+  height: 26px;
+  padding: 2px 8px 0;
+  background: rgba(7, 11, 18, 0.72);
+  animation: st-fade 0.3s both;
+}
+.st-obs-nades {
+  left: 4px;
+}
+.st-obs-stats {
+  right: 4px;
+  gap: 5px;
+  font-size: 20px;
+}
+.st-obs-stats span {
+  font-size: 16px;
+  color: var(--st-ink-dim);
+}
+.st-obs-kad {
   display: flex;
   align-items: center;
   gap: 3px;
+  flex: none;
+  padding: 4px 4px 0 0;
+  font-size: 17px;
 }
-.st-obs-stat i {
+.st-obs-kad i {
+  margin-left: 5px;
   font-style: normal;
-  font-size: 13px;
-  color: var(--st-ink-faint);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
 }
-.st-obs-stat .st-mark {
-  color: var(--st-ink-dim);
+.st-obs-ammo-bar {
+  width: 3px;
+  height: 15px;
   margin-top: -2px;
+  background: var(--st-ink);
 }
 .st-obs-gun {
-  height: 14px;
+  height: 15px;
   width: auto;
   max-width: 54px;
   margin-top: -2px;
@@ -1156,22 +1340,23 @@ body,
 .st-obs-bar {
   display: flex;
   align-items: stretch;
-  height: 38px;
-  background: var(--st-panel);
-  box-shadow: inset 0 3px 0 var(--st-team);
+  height: 37px;
+  background: var(--st-team-fill);
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 11px 100%, 0 calc(100% - 11px));
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 .st-obs-slot {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 30px;
+  width: 26px;
   padding-top: 2px;
   background: var(--st-team);
   color: var(--st-team-ink);
-  font-size: 21px;
+  font-size: 20px;
   font-weight: 800;
+  text-shadow: none;
 }
 .st-obs-name {
   flex: 1;
@@ -1180,8 +1365,9 @@ body,
   align-items: center;
   padding: 4px 10px 0;
   overflow: hidden;
-  font-size: 25px;
-  letter-spacing: 0.03em;
+  font-size: 27px;
+  letter-spacing: 0.02em;
+  color: var(--st-team-light);
   white-space: nowrap;
   animation: st-name-in 0.3s var(--st-out) both;
 }
@@ -1195,12 +1381,11 @@ body,
   flex: none;
   width: 60px;
   padding-top: 4px;
-  background: rgba(255, 255, 255, 0.07);
-  font-size: 29px;
-  font-weight: 800;
+  font-size: 30px;
+  font-weight: 700;
 }
 .st-obs-hp.is-low {
-  color: var(--st-red);
+  color: #ff8a8f;
 }
 
 /* ------------------------------------------------------------ freeze time: the scoreboard bar */
@@ -1210,6 +1395,70 @@ body,
   right: 44px;
   bottom: 49px;
 }
+/* Each team's coach over its end of the bar: a COACH tag in the team's colour, photo and name. */
+.st-coach {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 17px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  transition:
+    transform 0.4s var(--st-out) 0.1s,
+    opacity 0.25s linear 0.1s;
+}
+.st-coach-right {
+  left: auto;
+  right: 0;
+  align-items: flex-end;
+}
+.st-board:not(.is-on) .st-coach {
+  opacity: 0;
+  transform: translateY(20px);
+  transition-delay: 0s;
+}
+.st-coach-tag {
+  display: flex;
+  align-items: center;
+  height: 29px;
+  padding: 2px 10px 0;
+  background: var(--st-team);
+  color: var(--st-team-ink);
+  font-size: 18px;
+  letter-spacing: 0.02em;
+}
+.st-coach-row {
+  display: flex;
+  align-items: stretch;
+  height: 49px;
+  background: var(--st-panel);
+  box-shadow: inset 4px 0 0 var(--st-team);
+}
+.st-coach-right .st-coach-row {
+  flex-direction: row-reverse;
+  box-shadow: inset -4px 0 0 var(--st-team);
+}
+.st-coach-pic {
+  flex: none;
+  width: 42px;
+  margin-left: 8px;
+  overflow: hidden;
+}
+.st-coach-right .st-coach-pic {
+  margin: 0 8px 0 0;
+}
+.st-coach-name {
+  display: flex;
+  align-items: center;
+  padding: 4px 16px 0 12px;
+  font-size: 27px;
+  letter-spacing: 0.02em;
+}
+.st-coach-right .st-coach-name {
+  padding: 4px 12px 0 16px;
+}
+
 /* A timeout: over the calling team's end of the bar (the seconds left, TIMEOUT with the team and
    timeouts left, logo), mirrored on the left. */
 .st-tocall {

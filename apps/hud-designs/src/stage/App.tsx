@@ -9,7 +9,7 @@ import { ScoreBar } from "./ScoreBar.tsx";
 import { Scoreboard } from "./Scoreboard.tsx";
 import { TopLeft } from "./TopLeft.tsx";
 import { TopRight } from "./TopRight.tsx";
-import { colorOf, readSettings, scoreboardPhase, sideColor } from "./util.ts";
+import { colorOf, mix, readSettings, scoreboardPhase, sideColor } from "./util.ts";
 
 /** The `replay` entry point: the replay graphic only (for the replay scene). */
 const REPLAY_LAYER = isReplayLayer();
@@ -44,7 +44,20 @@ export default function App() {
   const phase = state.match.phase;
   const board = scoreboardPhase(phase);
   const observedColor = state.observed ? colorOf(state.right.players.some((p) => p.steamId === state.observed!.steamId) ? state.right : state.left, settings) : settings.ctColor;
-  const vars = { transform: `scale(${scale})`, "--st-ct": settings.ctColor, "--st-t": settings.tColor, "--radar-ct": sideColor(state, settings, "CT"), "--radar-t": sideColor(state, settings, "T") } as CSSProperties;
+  const ct = sideColor(state, settings, "CT");
+  const t = sideColor(state, settings, "T");
+  // Killfeed rows are tinted with the killer's side colour; names in light tints of theirs.
+  const vars = {
+    transform: `scale(${scale})`,
+    "--st-ct": settings.ctColor,
+    "--st-t": settings.tColor,
+    "--radar-ct": ct,
+    "--radar-t": t,
+    "--st-kill-ct": mix(ct, "#0a1222", 0.5),
+    "--st-kill-t": mix(t, "#0a1222", 0.46),
+    "--st-name-ct": mix(ct, "#ffffff", 0.55),
+    "--st-name-t": mix(t, "#ffffff", 0.6),
+  } as CSSProperties;
   return (
     <div className={`st-stage ${board ? "is-board" : "is-live"} ${compact ? "is-compact" : ""} ${state.stale ? "is-stale" : ""}`} style={vars} data-phase={phase}>
       {compact ? null : <TopLeft state={state} settings={settings} />}

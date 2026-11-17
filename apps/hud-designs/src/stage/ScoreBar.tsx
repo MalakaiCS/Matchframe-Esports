@@ -184,7 +184,9 @@ function UnderBar({ state, settings, colors, boardOn }: { state: HudState; setti
       </div>
     );
   }
-  if (settings.showAlive && isLive(p)) {
+  // Players alive: once someone has gone down in the round (5 VS 5 adds nothing).
+  const down = aliveCount(state.left) < state.left.players.length || aliveCount(state.right) < state.right.players.length;
+  if (settings.showAlive && isLive(p) && down) {
     return (
       <div key="alive" className="st-under st-alive">
         <span className="st-alive-n" style={teamVars(colors.left)}>

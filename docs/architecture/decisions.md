@@ -1823,3 +1823,20 @@ In both, the frames' stamps are 16.67 ms apart (ffmpeg's constant rate before, t
 
 **Not checked.** On the owner's PC over CS2, in OBS, and with a real player cam on air.
 
+## ADR-073 — Stage HUD closer to the reference: side-coloured cards, the round MVP card and coaches
+
+**Context.** The owner, after ADR-072's screenshots: "Can you make it even more similar", then a second frame of the same broadcast (the left team on T with gold cards, a tall "key player" card in its list, the next round 15 s in), asking for an 8 or 9 out of 10 on closeness while keeping the line drawn in ADR-072.
+
+**Decision.**
+- **Cards:** filled with the side colour as far as the player's health, grey beyond, as the reference does, in MatchFrame's own shades: the team colour mixed 60 % into deep navy (computed in the page; OBS's browser has no CSS `color-mix`), so white text reads on CS gold too; the observed card 74 %. Sizes and order measured from both frames (slot strip 12 px, name 21 px, K/D 18 px, money 19 px, photo 48 px, weapons from 16 px past the photo with the grenades under them, health 39 px with armour and kit or bomb under it). Dead cards shrink (clip-path) to the name and photo plus a 56 px skull area.
+- **Round MVP card:** in place of the key player's card, 308×214 (measured: the reference's is 306×215), bottom-aligned so the cards below keep their places. Shown at the round's end, in freeze time when the cards are up (the scoreboard replaces them by default), and for the first 15 s of the next round, as in the reference frame (taken at 1:40). Wording "ROUND MVP"; the picture stands on the card, contained and faded at its foot so a square photo works too.
+- **Round MVP data:** CS2 resets round kills and damage at the next freeze time, so the engine keeps each round's players at its end (`RoundMvpTracker`): the update that ends the round usually carries the final stats (the round counter has already moved on, so the reconciler files it as `.hist`; the tracker instead takes only the end of the round it saw live), else the last live update. The key player is the one whose CS2 MVP count went up at the round's end, else the winning side's player with the most kills, then damage. `HudState.lastRound` is looked up by the last round in each output's own round history, so a delayed output shows it when its timeline reaches that round's end, like the round winners kept at round end.
+- **Coaches:** `HudTeam.coach` is the team's current roster member with the role coach (name, photo when it may be shown), through a `coachOf` lookup in the HUD context; shown over each end of the scoreboard bar with a COACH tag. No voice or mute indicator (Team Comms).
+- **Observed player without a cam:** the player's picture on a transparent backdrop instead of a dark box; the name bar is side-coloured with K/A/D in it.
+- **Also matched:** series-strip arrows and picker logos, side-coloured team tabs and alive boxes, killfeed rows tinted by the killer's side, score bar sizes (logo boxes, digits, round and clock), the side-colour bar under each score, players alive only once someone is down.
+- **Kept MatchFrame's own (unchanged line):** flat dark-navy neutral panels (score bar, event line, scoreboard header, MVP card), own chamfers and arrows, own icons with the MIT weapon silhouettes, no emblem, no organiser or sponsor names or logos, no reference frame in the repository.
+
+**Checked.** Typecheck, lint, the test suite (new: MVP choice, projection on a delayed timeline, coaches, and game data through the engine to live and delayed outputs); every demo scene at 1920×1080 blended with the three reference frames.
+
+**Not checked.** CS2's exact timing of the MVP count against the round's end on a real server (both orders are handled); a real coach on a roster in CS2 (the coach slot in the game data is left out of the teams as before).
+
