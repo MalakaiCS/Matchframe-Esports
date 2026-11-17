@@ -9,21 +9,21 @@ import { HIGHLIGHT_KEYS, shortcutLabel } from "../../lib/replay-keys.ts";
 import { usePermission } from "../../state/session.tsx";
 import { Hotkeys } from "./AutoReplays.tsx";
 import { HighlightTransitions } from "./ProductionAutomation.tsx";
+import { perLocale, t } from "../../i18n/index.ts";
 
 const COUNTS = [5, 8, 10, 15, "all"] as const;
-const WHAT: { id: HighlightsAirSettings["what"]; label: string }[] = [
-  { id: "map", label: "This map" },
-  { id: "half", label: "The last half of this map" },
-  { id: "previous", label: "The previous map" },
-];
-const VMIX_TRANSITIONS = [
-  { id: "CutDirect", label: "Cut" },
-  { id: "Fade", label: "Fade" },
-  { id: "Stinger1", label: "Stinger 1" },
-  { id: "Stinger2", label: "Stinger 2" },
-] as const;
+const WHAT: { id: HighlightsAirSettings["what"]; label: string }[] = perLocale(() => ([
+  { id: "map", label: t("prod.thisMap") },
+  { id: "half", label: t("prod.theLastHalfOfThis") },
+  { id: "previous", label: t("prod.thePreviousMap") },
+]));
+const VMIX_TRANSITIONS = perLocale(() => ([
+  { id: "CutDirect", label: t("prod.cut") },
+  { id: "Fade", label: t("prod.fade") },
+  { id: "Stinger1", label: t("prod.stinger1") },
+  { id: "Stinger2", label: t("prod.stinger2") },
+] as const));
 /** What the Play button says when it is halftime and highlights are off then. */
-export const HALFTIME_OFF = "Highlights at halftime are off";
 
 /** m:ss. */
 const len = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}`;
@@ -51,7 +51,7 @@ export function HighlightsOnAirPanel() {
     try {
       air.setData(await api.put<HighlightsAirResponse>("/api/v1/highlights/air", patch));
     } catch (e) {
-      toast.push("danger", "Setting not saved", describeError(e));
+      toast.push("danger", t("prod.settingNotSaved"), describeError(e));
     } finally {
       setBusy(false);
     }
@@ -61,7 +61,7 @@ export function HighlightsOnAirPanel() {
       await api.put("/api/v1/obs/auto", patch);
       void auto.reload();
     } catch (e) {
-      toast.push("danger", "Setting not saved", describeError(e));
+      toast.push("danger", t("prod.settingNotSaved"), describeError(e));
     }
   };
   const control = async (path: string, body?: unknown) => {
@@ -69,52 +69,46 @@ export function HighlightsOnAirPanel() {
       await api.post(path, body);
       void air.reload();
     } catch (e) {
-      toast.push("warn", "Highlights", describeError(e));
+      toast.push("warn", t("prod.highlights"), describeError(e));
     }
   };
   const halftimeOff = !!st?.noHalftime && !!status?.halftime;
-  const playReason = reason ?? (!status ? "Loading…" : status.running ? "Highlights are on air" : halftimeOff ? HALFTIME_OFF : status.blocked);
+  const playReason = reason ?? (!status ? t("common.loading") : status.running ? t("prod.highlightsAreOnAir") : halftimeOff ? t("prod.highlightsAtHalftimeAreOff") : status.blocked);
   const plan = status?.plan ?? null;
   const vmix = setup?.mixer === "vmix";
   return (
-    <Panel title="Highlights on air" subtitle={status?.detail} actions={status ? <Badge tone={status.running ? "accent" : status.blocked ? "neutral" : "ok"}>{status.running ? (status.held ? "Held" : "On air") : status.blocked ? "Not now" : "Ready"}</Badge> : null}>
+    <Panel title={t("prod.highlightsOnAir")} subtitle={status?.detail} actions={status ? <Badge tone={status.running ? "accent" : status.blocked ? "neutral" : "ok"}>{status.running ? (status.held ? t("prod.held") : t("prod.onAir")) : status.blocked ? t("prod.notNow") : t("prod.ready")}</Badge> : null}>
       <div className="stack-sm">
-        <div className="row" role="group" aria-label="Highlights controls">
+        <div className="row" role="group" aria-label={t("prod.highlightsControls")}>
           {status?.running ? (
             <>
-              <Button variant="primary" disabledReason={reason} title={`Ends the highlight on air now (${shortcutLabel("F5")})`} onClick={() => void control("/api/v1/replays/auto/skip")}>
-                Skip
+              <Button variant="primary" disabledReason={reason} title={t("prod.endsTheHighlightOnAir", { shortcutLabel: shortcutLabel("F5") })} onClick={() => void control("/api/v1/replays/auto/skip")}>{t("prod.skip")}</Button>
+              <Button variant={status.held ? "primary" : "secondary"} disabledReason={reason} title={`${status.held ? t("prod.playsItOn") : t("prod.pausesTheHighlightOnAir")} (${shortcutLabel("F6")})`} onClick={() => void control("/api/v1/replays/auto/hold", { held: !status.held })}>
+                {status.held ? t("prod.resume") : t("prod.hold")}
               </Button>
-              <Button variant={status.held ? "primary" : "secondary"} disabledReason={reason} title={`${status.held ? "Plays it on" : "Pauses the highlight on air"} (${shortcutLabel("F6")})`} onClick={() => void control("/api/v1/replays/auto/hold", { held: !status.held })}>
-                {status.held ? "Resume" : "Hold"}
-              </Button>
-              <Button variant="danger" disabledReason={reason} title={`Back to the scene the program came from, with Highlights out (${shortcutLabel("F10")})`} onClick={() => void control("/api/v1/highlights/air/stop")}>
-                Stop
-              </Button>
-              {status.position ? <span className="small">{`Highlight ${status.position.n} of ${status.position.of}`}</span> : null}
+              <Button variant="danger" disabledReason={reason} title={t("prod.backToTheSceneThe2", { shortcutLabel: shortcutLabel("F10") })} onClick={() => void control("/api/v1/highlights/air/stop")}>{t("prod.stop")}</Button>
+              {status.position ? <span className="small">{t("prod.highlightNOfOf", { n: status.position.n, of: status.position.of })}</span> : null}
             </>
           ) : (
             <ActionButton
               variant="primary"
               action={() => api.post<HighlightsAirResponse>("/api/v1/highlights/air/play")}
-              success={(r) => (r.status.running ? "Highlights on air" : null)}
+              success={(r) => (r.status.running ? t("prod.highlightsOnAir") : null)}
               onDone={(r) => air.setData(r)}
               disabledReason={playReason}
               reasonPlacement={halftimeOff ? "inline" : "tooltip"}
-              title={`Plays the clips below on the program now, then goes back to the scene it came from (${shortcutLabel("F9")})`}
-            >
-              Play highlights
-            </ActionButton>
+              title={t("prod.playsTheClipsBelowOn", { shortcutLabel: shortcutLabel("F9") })}
+            >{t("prod.playHighlights")}</ActionButton>
           )}
         </div>
         {status?.blocked && !status.running && !halftimeOff ? <span className="small muted">{status.blocked}</span> : null}
 
-        <Checkbox checked={st?.noHalftime ?? true} disabled={off} label="Don't show highlights at halftime" hint="On: no highlights start at halftime, by Play, a hotkey, a Stream Deck or by themselves. Highlights already playing when halftime starts play on." onChange={(v) => void save({ noHalftime: v })} />
-        {st && !st.noHalftime ? <Checkbox checked={st.autoHalftime} disabled={off} label="Start by themselves at halftime" hint="Once the round's replays are over, and only when the program is on the live scene: never over your own scene." onChange={(v) => void save({ autoHalftime: v })} /> : null}
-        <Checkbox checked={st?.autoMapEnd ?? false} disabled={off} label="Start by themselves when a map ends" hint="Once the last round's replays are over, and only when the program is on the live scene; the studio scene (Map end → studio scene) comes after them." onChange={(v) => void save({ autoMapEnd: v })} />
+        <Checkbox checked={st?.noHalftime ?? true} disabled={off} label={t("prod.donTShowHighlightsAt")} hint={t("prod.onNoHighlightsStartAt")} onChange={(v) => void save({ noHalftime: v })} />
+        {st && !st.noHalftime ? <Checkbox checked={st.autoHalftime} disabled={off} label={t("prod.startByThemselvesAtHalftime")} hint={t("prod.onceTheRoundSReplays")} onChange={(v) => void save({ autoHalftime: v })} /> : null}
+        <Checkbox checked={st?.autoMapEnd ?? false} disabled={off} label={t("prod.startByThemselvesWhenA")} hint={t("prod.onceTheLastRoundS")} onChange={(v) => void save({ autoMapEnd: v })} />
 
         <div className="form-grid">
-          <Field label="What">
+          <Field label={t("prod.what")}>
             <select value={st?.what ?? "map"} disabled={off} onChange={(e) => void save({ what: e.target.value as HighlightsAirSettings["what"] })}>
               {WHAT.map((w) => (
                 <option key={w.id} value={w.id}>
@@ -123,63 +117,63 @@ export function HighlightsOnAirPanel() {
               ))}
             </select>
           </Field>
-          <Field label="How many" hint="Best: by the same score as automatic replays.">
+          <Field label={t("prod.howMany")} hint={t("prod.bestByTheSameScore")}>
             <select value={String(st?.count ?? 5)} disabled={off} onChange={(e) => void save({ count: e.target.value === "all" ? "all" : Number(e.target.value) })}>
               {[...COUNTS, ...(st && st.count !== "all" && !(COUNTS as readonly (number | string)[]).includes(st.count) ? [st.count] : [])].map((c) => (
                 <option key={String(c)} value={String(c)}>
-                  {c === "all" ? "All played clips" : `The best ${c}${c === 5 ? " (recommended)" : ""}`}
+                  {c === "all" ? t("prod.allPlayedClips") : t("prod.theBestCV", { c, v: c === 5 ? t("replays.recommendedSuffix") : "" })}
                 </option>
               ))}
             </select>
           </Field>
         </div>
-        {st?.count !== "all" ? <Checkbox checked={st?.unplayed ?? false} disabled={off} label="Also clips that weren't played" hint="The best of the map's other clips (the replay PC films more than a break has time for)." onChange={(v) => void save({ unplayed: v })} /> : null}
-        <Checkbox checked={st?.slowMotion ?? false} disabled={off} label="Slow motion" hint="Each highlight slowed as automatic replays slow theirs (around each kill when theirs is off); a kill's extra angle slowed after it, its first angle at real time." onChange={(v) => void save({ slowMotion: v })} />
+        {st?.count !== "all" ? <Checkbox checked={st?.unplayed ?? false} disabled={off} label={t("prod.alsoClipsThatWerenT")} hint={t("prod.theBestOfTheMap")} onChange={(v) => void save({ unplayed: v })} /> : null}
+        <Checkbox checked={st?.slowMotion ?? false} disabled={off} label={t("prod.slowMotion2")} hint={t("prod.eachHighlightSlowedAsAutomatic")} onChange={(v) => void save({ slowMotion: v })} />
 
         {plan && plan.clips.length ? (
-          <div className="stack-sm" aria-label="Highlights that will play">
+          <div className="stack-sm" aria-label={t("prod.highlightsThatWillPlay")}>
             <span className="small muted">
-              {`${plan.clips.length} clip${plan.clips.length === 1 ? "" : "s"}, ${len(plan.totalMs)}`}
-              {plan.rounds ? ` · rounds ${plan.rounds.from}–${plan.rounds.to}` : ""}
+              {`${t("prod.clipCount", { count: plan.clips.length })}, ${len(plan.totalMs)}`}
+              {plan.rounds ? t("prod.roundsFromTo", { from: plan.rounds.from, to: plan.rounds.to }) : ""}
               {plan.title ? ` · ${plan.title}` : ""}
             </span>
             <ol className="small" style={{ margin: 0, paddingLeft: 20 }}>
               {plan.clips.map((c) => (
                 <li key={c.id}>
                   R{c.roundNumber ?? "?"} · {c.label} · {fmtMs(c.onAirMs ?? c.playMs)}
-                  {c.slow ? " · slow motion" : ""}
-                  {c.played || c.angle ? "" : " · not played"}
-                  {status?.playing?.id === c.id ? <strong> · on air</strong> : null}
+                  {c.slow ? t("prod.slowMotion") : ""}
+                  {c.played || c.angle ? "" : t("prod.notPlayed")}
+                  {status?.playing?.id === c.id ? <strong>{t("prod.onAir2")}</strong> : null}
                 </li>
               ))}
             </ol>
           </div>
         ) : plan ? (
-          <p className="muted small">{st?.count === "all" ? "No clip of it has been played yet." : "No clips kept for it yet."}</p>
+          <p className="muted small">{st?.count === "all" ? t("prod.noClipOfItHas") : t("prod.noClipsKeptForIt")}</p>
         ) : null}
         {status?.auto ? <p className={`small ${status.auto.started ? "muted" : "text-warn"}`}>{status.auto.detail}</p> : null}
 
         <HighlightsScene data={data ?? null} onDone={(r) => air.setData(r)} reload={() => void air.reload()} />
 
-        <h4 className="hud-section-title">Transitions</h4>
+        <h4 className="hud-section-title">{t("prod.transitions")}</h4>
         {vmix ? (
           <div className="form-grid">
-            <Field label="Highlights in" hint="vMix: to the first highlight.">
+            <Field label={t("prod.highlightsIn")} hint={t("prod.vmixToTheFirstHighlight")}>
               <select value={st?.vmixIn ?? ""} disabled={off} onChange={(e) => void save({ vmixIn: (e.target.value || null) as HighlightsAirSettings["vmixIn"] })}>
-                <option value="">Same as Replay in</option>
-                {VMIX_TRANSITIONS.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label}
+                <option value="">{t("prod.sameAsReplayIn")}</option>
+                {VMIX_TRANSITIONS.map((tRow) => (
+                  <option key={tRow.id} value={tRow.id}>
+                    {tRow.label}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Highlights out" hint="vMix: back to the input that was on air before.">
+            <Field label={t("prod.highlightsOut")} hint={t("prod.vmixBackToTheInput")}>
               <select value={st?.vmixOut ?? ""} disabled={off} onChange={(e) => void save({ vmixOut: (e.target.value || null) as HighlightsAirSettings["vmixOut"] })}>
-                <option value="">Same as Replay out</option>
-                {VMIX_TRANSITIONS.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label}
+                <option value="">{t("prod.sameAsReplayOut")}</option>
+                {VMIX_TRANSITIONS.map((tRow) => (
+                  <option key={tRow.id} value={tRow.id}>
+                    {tRow.label}
                   </option>
                 ))}
               </select>
@@ -190,10 +184,10 @@ export function HighlightsOnAirPanel() {
             <HighlightTransitions settings={auto.data?.settings ?? null} transitions={auto.data?.transitions ?? null} disabled={!!programReason || !auto.data} save={saveObs} />
           </div>
         )}
-        <p className="muted small">Between highlights: the fade (or cut) and the speed of automatic replays. With Fade (one scene, rendered), the default, they are joined into one file first (Preparing highlights… shows how far), the sound fading in and out, and play in the highlights scene alone. The live game audio picked under Automatic replays → Sound is turned down meanwhile and put back after.</p>
+        <p className="muted small">{t("prod.betweenHighlightsTheFadeOr")}</p>
 
-        <Hotkeys keys={HIGHLIGHT_KEYS} label="Highlights hotkeys" devices={`the device actions highlights_play, highlights_stop and highlights_halftime (Don't show highlights at halftime: on, off or toggle); Skip and Hold are replay_skip and replay_hold (${shortcutLabel("F5")}, ${shortcutLabel("F6")})`} />
-        <p className="muted small">Not while a round is live. If a round goes live while they play (halftime over), they play on until the replays' cut back on its clock, then the live scene. If you switch OBS to another scene meanwhile, they stop and MatchFrame leaves it there.</p>
+        <Hotkeys keys={HIGHLIGHT_KEYS} label={t("prod.highlightsHotkeys")} devices={t("prod.theDeviceActionsHighlightsPlay", { shortcutLabel: shortcutLabel("F5"), shortcutLabel2: shortcutLabel("F6") })} />
+        <p className="muted small">{t("prod.notWhileARoundIs")}</p>
       </div>
     </Panel>
   );
@@ -214,7 +208,7 @@ function HighlightsScene({ data, onDone, reload }: { data: HighlightsAirResponse
     }
   }, [setup?.scene, setup?.input]);
   const items = useApi<{ sourceName: string; inputKind: string | null }[]>(scene && obs.data?.state.connected ? `/api/v1/obs/scenes/${seg(scene)}/items` : null);
-  if (setup?.mixer === "vmix") return <p className="muted small">Highlights play in vMix, as automatic replays do: each clip is added as an input, and vMix goes back to the input that was on air before.</p>;
+  if (setup?.mixer === "vmix") return <p className="muted small">{t("prod.highlightsPlayInVmixAs")}</p>;
   const connected = obs.data?.state.connected ?? setup?.obsConnected ?? false;
   const scenes = obs.data?.state.scenes ?? [];
   const media = (items.data ?? []).filter((i) => i.inputKind === "ffmpeg_source" || i.sourceName === input);
@@ -222,33 +216,31 @@ function HighlightsScene({ data, onDone, reload }: { data: HighlightsAirResponse
     try {
       const r = await api.put<HighlightsAirResponse>("/api/v1/highlights/air/scene", { scene: scene || null, input: scene ? input || null : null });
       onDone(r);
-      toast.push("ok", scene ? `Highlights play in “${scene}”` : "No highlights scene");
+      toast.push("ok", scene ? t("prod.highlightsPlayInScene", { scene }) : t("prod.noHighlightsScene"));
     } catch (e) {
-      toast.push("danger", "Scene not saved", describeError(e));
+      toast.push("danger", t("prod.sceneNotSaved"), describeError(e));
     }
   };
   const twin = setup?.twin;
   const graphic = setup?.graphic;
   return (
-    <div className="stack-sm" aria-label="Highlights scene">
-      <h4 className="hud-section-title">Highlights scene</h4>
-      {!connected ? <Note tone="warn">Connect OBS in Settings → Devices to set up the highlights scene.</Note> : null}
+    <div className="stack-sm" aria-label={t("prod.highlightsScene")}>
+      <h4 className="hud-section-title">{t("prod.highlightsScene")}</h4>
+      {!connected ? <Note tone="warn">{t("prod.connectObsInSettingsDevices")}</Note> : null}
       <div className="row">
         <ActionButton
           action={() => api.post<{ scene: string; input: string; graphicError: string | null }>("/api/v1/highlights/air/obs-setup")}
-          success={(r) => `OBS: scene “${r.scene}” with the media source “${r.input}” is ready${r.graphicError ? ` (replay graphic: ${r.graphicError})` : ", with the replay graphic on top"}`}
+          success={(r) => t("prod.obsSceneSceneWithThe", { scene: r.scene, input: r.input, v: r.graphicError ? t("prod.replayGraphicGraphicerror", { graphicError: r.graphicError }) : t("prod.withTheReplayGraphicOn") })}
           onDone={reload}
-          disabledReason={setupReason ?? (!connected ? "Connect OBS first (Settings → Devices)" : null)}
-        >
-          Set up OBS highlights scene
-        </ActionButton>
-        <span className="muted small">Adds a “MatchFrame Highlights” scene with a media source (set like the replay scene's), the replay graphic on top (the same source as in the replay scene), and a second one beside it for fading between highlights.</span>
+          disabledReason={setupReason ?? (!connected ? t("prod.connectObsFirstSettingsDevices") : null)}
+        >{t("prod.setUpObsHighlightsScene")}</ActionButton>
+        <span className="muted small">{t("prod.addsAMatchframeHighlightsScene")}</span>
       </div>
-      <Details summary="Or use your own scene">
+      <Details summary={t("prod.orUseYourOwnScene")}>
         <div className="form-grid">
-          <Field label="Your highlights scene" hint="An OBS scene with a Media Source directly in it (not in a group).">
+          <Field label={t("prod.yourHighlightsScene")} hint={t("prod.anObsSceneWithA")}>
             <select value={scene} disabled={!!setupReason || !connected} onChange={(e) => (setScene(e.target.value), setInput(""))}>
-              <option value="">None</option>
+              <option value="">{t("prod.none")}</option>
               {(scene && !scenes.includes(scene) ? [scene, ...scenes] : scenes).map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -256,9 +248,9 @@ function HighlightsScene({ data, onDone, reload }: { data: HighlightsAirResponse
               ))}
             </select>
           </Field>
-          <Field label="Its media source" hint="The Media Source the highlights play in.">
+          <Field label={t("prod.itsMediaSource")} hint={t("prod.theMediaSourceTheHighlights")}>
             <select value={input} disabled={!!setupReason || !connected || !scene} onChange={(e) => setInput(e.target.value)}>
-              <option value="">Choose…</option>
+              <option value="">{t("prod.choose")}</option>
               {(input && !media.some((m) => m.sourceName === input) ? [{ sourceName: input, inputKind: null }, ...media] : media).map((m) => (
                 <option key={m.sourceName} value={m.sourceName}>
                   {m.sourceName}
@@ -268,24 +260,20 @@ function HighlightsScene({ data, onDone, reload }: { data: HighlightsAirResponse
           </Field>
         </div>
         <div className="row">
-          <Button size="sm" disabledReason={setupReason ?? (scene && !input ? "Choose its media source" : null)} onClick={() => void mapOwn()}>
-            Use this scene
-          </Button>
-          <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/highlights/air/graphic")} success="Replay graphic on top of the highlights scene" onDone={reload} disabledReason={setupReason ?? (!setup?.scene ? "Choose the scene first" : !connected ? "Connect OBS first" : null)}>
-            Add the replay graphic
-          </ActionButton>
+          <Button size="sm" disabledReason={setupReason ?? (scene && !input ? t("prod.chooseItsMediaSource") : null)} onClick={() => void mapOwn()}>{t("prod.useThisScene")}</Button>
+          <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/highlights/air/graphic")} success={t("prod.replayGraphicOnTopOf")} onDone={reload} disabledReason={setupReason ?? (!setup?.scene ? t("prod.chooseTheSceneFirst") : !connected ? t("prod.connectObsFirst") : null)}>{t("prod.addTheReplayGraphic")}</ActionButton>
         </div>
       </Details>
       {setup ? (
-        <ul className="small" aria-label="Highlights scene status" style={{ margin: 0, paddingLeft: 18 }}>
+        <ul className="small" aria-label={t("prod.highlightsSceneStatus")} style={{ margin: 0, paddingLeft: 18 }}>
           <li>
-            <Badge tone={setup.sceneReady ? "ok" : "neutral"}>{setup.sceneReady ? "Scene ready" : "Scene not ready"}</Badge> {setup.scene ? `“${setup.scene}” with “${setup.input ?? "?"}”` : "None yet"}
+            <Badge tone={setup.sceneReady ? "ok" : "neutral"}>{setup.sceneReady ? t("prod.sceneReady") : t("prod.sceneNotReady")}</Badge> {setup.scene ? t("prod.sceneWithV", { scene: setup.scene, v: setup.input ?? "?" }) : t("prod.noneYet")}
           </li>
           <li>
-            <Badge tone={twin?.ready ? "ok" : "neutral"}>{twin?.ready ? "Twin ready" : "No twin yet"}</Badge> {twin ? (twin.ready ? `Fades through “${twin.scene}”${setup.sameAsReplay ? " (the replay scene's)" : ""}: leave it to MatchFrame.` : twin.detail) : "Made with the scene."}
+            <Badge tone={twin?.ready ? "ok" : "neutral"}>{twin?.ready ? t("prod.twinReady") : t("prod.noTwinYet")}</Badge> {twin ? (twin.ready ? t("prod.fadesThroughSceneVLeave", { scene: twin.scene, v: setup.sameAsReplay ? t("prod.theReplaySceneS") : "" }) : twin.detail) : t("prod.madeWithTheScene")}
           </li>
           <li>
-            <Badge tone={graphic?.onTop ? "ok" : "neutral"}>{graphic?.onTop ? "Graphic on top" : graphic?.inScene ? "Graphic not on top" : "No graphic"}</Badge> {graphic ? (graphic.inScene ? (graphic.onTop ? `“${graphic.source}” over the clips.` : "Move it to the top of the scene in OBS.") : "Press Add the replay graphic.") : ""}
+            <Badge tone={graphic?.onTop ? "ok" : "neutral"}>{graphic?.onTop ? t("prod.graphicOnTop") : graphic?.inScene ? t("prod.graphicNotOnTop") : t("prod.noGraphic")}</Badge> {graphic ? (graphic.inScene ? (graphic.onTop ? t("prod.sourceOverTheClips", { source: graphic.source }) : t("prod.moveItToTheTop")) : t("prod.pressAddTheReplayGraphic")) : ""}
           </li>
         </ul>
       ) : null}

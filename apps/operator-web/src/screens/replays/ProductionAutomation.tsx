@@ -6,21 +6,22 @@ import { ActionButton, Checkbox, Field, Note, Panel } from "../../components/ui.
 import { useToast } from "../../components/toasts.tsx";
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
+import { perLocale, t } from "../../i18n/index.ts";
 
 type SceneMap = ObsAutoResponse["scenes"];
-const MODES: { key: keyof SceneMap; label: string; hint: string }[] = [
-  { key: "LIVE", label: "Live scene", hint: "The game with the HUD." },
-  { key: "REPLAY", label: "Replay scene", hint: "Plays replays (Set up OBS replay scene makes one)." },
-  { key: "BREAK", label: "Break scene", hint: "Tactical timeouts and technical pauses." },
-  { key: "STUDIO", label: "Studio scene", hint: "After a map ends." },
-];
+const MODES: { key: keyof SceneMap; label: string; hint: string }[] = perLocale(() => ([
+  { key: "LIVE", label: t("prod.liveScene"), hint: t("prod.theGameWithTheHud") },
+  { key: "REPLAY", label: t("prod.replayScene"), hint: t("prod.playsReplaysSetUpObs") },
+  { key: "BREAK", label: t("prod.breakScene"), hint: t("prod.tacticalTimeoutsAndTechnicalPauses") },
+  { key: "STUDIO", label: t("prod.studioScene"), hint: t("prod.afterAMapEnds") },
+]));
 
 function SceneSelect({ value, scenes, onChange, label, hint, disabled }: { value: string | null; scenes: string[]; onChange: (v: string | null) => void; label: string; hint?: string; disabled: boolean }) {
   const options = value && !scenes.includes(value) ? [value, ...scenes] : scenes;
   return (
     <Field label={label} hint={hint}>
       <select value={value ?? ""} onChange={(e) => onChange(e.target.value || null)} disabled={disabled}>
-        <option value="">Not used</option>
+        <option value="">{t("prod.notUsed")}</option>
         {options.map((s) => (
           <option key={s} value={s}>
             {s}
@@ -32,6 +33,7 @@ function SceneSelect({ value, scenes, onChange, label, hint, disabled }: { value
 }
 
 /** OBS's transition kinds, as OBS names them in English (a transition's own name can be anything). */
+/** OBS transition types, by the names OBS gives them. */
 const KIND_LABEL: Record<string, string> = { obs_stinger_transition: "Stinger", fade_transition: "Fade", cut_transition: "Cut", swipe_transition: "Swipe", slide_transition: "Slide", fade_to_color_transition: "Fade to Color", wipe_transition: "Luma Wipe" };
 /** In a select: Replay out the same as Replay in. */
 const SAME = "__same_as_replay_in__";
@@ -44,8 +46,8 @@ export function TransitionSelect({ label, hint, value, transitions, same, disabl
   return (
     <Field label={label} hint={hint}>
       <select value={value === null ? SAME : value} disabled={disabled} onChange={(e) => onChange(e.target.value === SAME ? null : e.target.value)}>
-        {same ? <option value={SAME}>{typeof same === "string" ? same : "Same as Replay in"}</option> : null}
-        <option value="">OBS's current transition</option>
+        {same ? <option value={SAME}>{typeof same === "string" ? same : t("prod.sameAsReplayIn")}</option> : null}
+        <option value="">{t("prod.obsSCurrentTransition")}</option>
         {names.map((n) => {
           const kind = KIND_LABEL[kindOf.get(n) ?? ""];
           return (
@@ -54,7 +56,7 @@ export function TransitionSelect({ label, hint, value, transitions, same, disabl
             </option>
           );
         })}
-        {missing ? <option value={missing}>{transitions ? `${missing} (not in OBS)` : missing}</option> : null}
+        {missing ? <option value={missing}>{transitions ? t("prod.missingNotInObs", { missing }) : missing}</option> : null}
       </select>
     </Field>
   );
@@ -79,35 +81,33 @@ export function ObsAutomationPanel() {
       await api.put("/api/v1/obs/auto", patch);
       void auto.reload();
     } catch (e) {
-      toast.push("danger", "Setting not saved", describeError(e));
+      toast.push("danger", t("prod.settingNotSaved"), describeError(e));
     }
   };
   return (
-    <Panel title="OBS scenes" subtitle="Which OBS scene is on program, and when it changes by itself.">
+    <Panel title={t("prod.obsScenes")} subtitle={t("prod.whichObsSceneIsOn")}>
       <div className="stack-sm">
-        {!connected ? <Note tone="warn">Connect OBS in Settings → Devices to pick scenes.</Note> : null}
+        {!connected ? <Note tone="warn">{t("prod.connectObsInSettingsDevices2")}</Note> : null}
         <div className="form-grid">
           {MODES.map((m) => (
             <SceneSelect key={m.key} label={m.label} hint={m.hint} scenes={list} value={scenes?.[m.key] ?? null} disabled={!!settingsReason || !scenes} onChange={(v) => setScenes((cur) => (cur ? { ...cur, [m.key]: v } : cur))} />
           ))}
         </div>
         <div className="row">
-          <ActionButton action={() => api.put("/api/v1/settings/program.scenes", { value: scenes })} success="Scenes saved" onDone={() => void auto.reload()} disabledReason={settingsReason ?? (!scenes ? "Loading…" : null)}>
-            Save scenes
-          </ActionButton>
+          <ActionButton action={() => api.put("/api/v1/settings/program.scenes", { value: scenes })} success={t("prod.scenesSaved")} onDone={() => void auto.reload()} disabledReason={settingsReason ?? (!scenes ? t("common.loading") : null)}>{t("prod.saveScenes")}</ActionButton>
         </div>
-        <Checkbox checked={st?.timeouts ?? true} disabled={!!reason || !st} label="Timeouts and pauses → break scene" hint="On a tactical timeout or a technical pause, then back to the live scene when play resumes." onChange={(v) => void save({ timeouts: v })} />
-        <Checkbox checked={st?.mapEnd ?? true} disabled={!!reason || !st} label="Map end → studio scene" hint="When a map ends, then back to the live scene when the next map starts." onChange={(v) => void save({ mapEnd: v })} />
-        <h4 className="hud-section-title">Transitions</h4>
+        <Checkbox checked={st?.timeouts ?? true} disabled={!!reason || !st} label={t("prod.timeoutsAndPausesBreakScene")} hint={t("prod.onATacticalTimeoutOr")} onChange={(v) => void save({ timeouts: v })} />
+        <Checkbox checked={st?.mapEnd ?? true} disabled={!!reason || !st} label={t("prod.mapEndStudioScene")} hint={t("prod.whenAMapEndsThen")} onChange={(v) => void save({ mapEnd: v })} />
+        <h4 className="hud-section-title">{t("prod.transitions")}</h4>
         <div className="form-grid">
-          <TransitionSelect label="Replay in" hint="From the live scene to a replay." value={st?.replayIn ?? ""} transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} onChange={(v) => void save({ replayIn: v ?? "" })} />
-          <TransitionSelect label="Replay out" hint="From a replay back to live, also after a replay played by hand and Return live." value={st ? st.replayOut : null} same transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} onChange={(v) => void save({ replayOut: v })} />
-          <TransitionSelect label="Other scenes" hint="To and from the break and studio scenes: by themselves (above) or with your program buttons." value={st?.otherScenes ?? ""} transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} onChange={(v) => void save({ otherScenes: v ?? "" })} />
+          <TransitionSelect label={t("prod.replayIn")} hint={t("prod.fromTheLiveSceneTo")} value={st?.replayIn ?? ""} transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} onChange={(v) => void save({ replayIn: v ?? "" })} />
+          <TransitionSelect label={t("prod.replayOut")} hint={t("prod.fromAReplayBackTo")} value={st ? st.replayOut : null} same transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} onChange={(v) => void save({ replayOut: v })} />
+          <TransitionSelect label={t("prod.otherScenes")} hint={t("prod.toAndFromTheBreak")} value={st?.otherScenes ?? ""} transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} onChange={(v) => void save({ otherScenes: v ?? "" })} />
           <HighlightTransitions settings={st ?? null} transitions={auto.data?.transitions ?? null} disabled={!!reason || !st} save={save} />
         </div>
-        {scenes?.HIGHLIGHTS !== undefined ? <p className="muted small">Highlights scene: {scenes.HIGHLIGHTS ?? "not set up"}. Set it up, or pick your own, under Highlights on air.</p> : null}
-        <p className="muted small">A Stinger has to be made once in OBS first (Scene Transitions → + → Stinger, with its video); then it can be picked here. OBS's own transition is put back after each change. From one replay to the next: Between replays, under Automatic replays.</p>
-        <p className="muted small">Scenes only change from the live scene, and only back from a scene MatchFrame chose. Your own program choices are never undone.</p>
+        {scenes?.HIGHLIGHTS !== undefined ? <p className="muted small">{t("prod.highlightsSceneVSetIt", { v: scenes.HIGHLIGHTS ?? t("prod.notSetUp") })}</p> : null}
+        <p className="muted small">{t("prod.aStingerHasToBe")}</p>
+        <p className="muted small">{t("prod.scenesOnlyChangeFromThe")}</p>
       </div>
     </Panel>
   );
@@ -117,8 +117,8 @@ export function ObsAutomationPanel() {
 export function HighlightTransitions({ settings, transitions, disabled, save }: { settings: ObsAutoResponse["settings"] | null; transitions: ObsAutoResponse["transitions"]; disabled: boolean; save: (patch: Partial<ObsAutoResponse["settings"]>) => Promise<void> }) {
   return (
     <>
-      <TransitionSelect label="Highlights in" hint="To highlights on air, from the scene the program is on." value={settings ? (settings.highlightsIn ?? null) : null} same="Same as Replay in" transitions={transitions} disabled={disabled} onChange={(v) => void save({ highlightsIn: v })} />
-      <TransitionSelect label="Highlights out" hint="From highlights back to the scene the program came from (or to live)." value={settings ? (settings.highlightsOut ?? null) : null} same="Same as Replay out" transitions={transitions} disabled={disabled} onChange={(v) => void save({ highlightsOut: v })} />
+      <TransitionSelect label={t("prod.highlightsIn")} hint={t("prod.toHighlightsOnAirFrom")} value={settings ? (settings.highlightsIn ?? null) : null} same="Same as Replay in" transitions={transitions} disabled={disabled} onChange={(v) => void save({ highlightsIn: v })} />
+      <TransitionSelect label={t("prod.highlightsOut")} hint={t("prod.fromHighlightsBackToThe")} value={settings ? (settings.highlightsOut ?? null) : null} same="Same as Replay out" transitions={transitions} disabled={disabled} onChange={(v) => void save({ highlightsOut: v })} />
     </>
   );
 }
@@ -137,30 +137,30 @@ export function GraphicsPanel() {
     try {
       g.setData(await api.put<GraphicsSettings>("/api/v1/graphics/auto", patch));
     } catch (e) {
-      toast.push("danger", "Setting not saved", describeError(e));
+      toast.push("danger", t("prod.settingNotSaved"), describeError(e));
     }
   };
   const imported = (lib.data?.huds ?? []).filter((h) => h.views.length > 0);
   const sources = (items.data ?? []).map((i) => i.sourceName);
   const off = !!reason || !st;
   return (
-    <Panel title="HUD graphics" subtitle="Shown by themselves while the Auto Director has the camera.">
+    <Panel title={t("prod.hudGraphics")} subtitle={t("prod.shownByThemselvesWhileThe")}>
       <div className="stack-sm">
-        <Checkbox checked={st?.enabled ?? true} disabled={off} label="Time graphics to the shots" onChange={(v) => void save({ enabled: v })} />
+        <Checkbox checked={st?.enabled ?? true} disabled={off} label={t("prod.timeGraphicsToTheShots")} onChange={(v) => void save({ enabled: v })} />
         <div className="form-grid">
-          <Checkbox checked={st?.economy ?? true} disabled={off || !st?.enabled} label="Economy in freeze time" onChange={(v) => void save({ economy: v })} />
-          <Checkbox checked={st?.mvp ?? true} disabled={off || !st?.enabled} label="Round MVP in freeze time" onChange={(v) => void save({ mvp: v })} />
-          <Checkbox checked={st?.playerCards ?? true} disabled={off || !st?.enabled} label="Player card on a long player view" hint="Only on a player view, never over a camera, and gone when the view changes." onChange={(v) => void save({ playerCards: v })} />
-          <Checkbox checked={st?.clutch ?? true} disabled={off || !st?.enabled} label="Clutch banner (1v2 and more)" onChange={(v) => void save({ clutch: v })} />
-          <Checkbox checked={st?.buyType ?? true} disabled={off || !st?.enabled} label="Buy type in freeze time (ECO, FORCE BUY…)" hint="Data for HUDs that show it (cue buy_type); the bundled HUDs don't draw it yet." onChange={(v) => void save({ buyType: v })} />
+          <Checkbox checked={st?.economy ?? true} disabled={off || !st?.enabled} label={t("prod.economyInFreezeTime")} onChange={(v) => void save({ economy: v })} />
+          <Checkbox checked={st?.mvp ?? true} disabled={off || !st?.enabled} label={t("prod.roundMvpInFreezeTime")} onChange={(v) => void save({ mvp: v })} />
+          <Checkbox checked={st?.playerCards ?? true} disabled={off || !st?.enabled} label={t("prod.playerCardOnALong")} hint={t("prod.onlyOnAPlayerView")} onChange={(v) => void save({ playerCards: v })} />
+          <Checkbox checked={st?.clutch ?? true} disabled={off || !st?.enabled} label={t("prod.clutchBanner1v2AndMore")} onChange={(v) => void save({ clutch: v })} />
+          <Checkbox checked={st?.buyType ?? true} disabled={off || !st?.enabled} label={t("prod.buyTypeInFreezeTime")} hint={t("prod.dataForHudsThatShow")} onChange={(v) => void save({ buyType: v })} />
         </div>
-        <p className="muted small">MatchFrame HUDs draw these. Imported HUDs (hud.json format) have their own pages instead, shown below.</p>
-        <h4 className="hud-section-title">Imported HUD pages in OBS</h4>
-        <p className="muted small">Add the HUD's Player stats and Match stats pages as Browser Sources in one OBS scene (copy their addresses in HUD Library → the HUD → HUD pages), hidden. MatchFrame shows Player stats for the round MVP in freeze time, and Match stats at half time and at the end of the map.</p>
+        <p className="muted small">{t("prod.matchframeHudsDrawTheseImported")}</p>
+        <h4 className="hud-section-title">{t("prod.importedHudPagesInObs")}</h4>
+        <p className="muted small">{t("prod.addTheHudSPlayer")}</p>
         <div className="form-grid">
           <Field label="HUD">
             <select value={pages.hudId} disabled={off} onChange={(e) => void save({ pages: { hudId: e.target.value } })}>
-              <option value="">None</option>
+              <option value="">{t("prod.none")}</option>
               {imported.map((h) => (
                 <option key={h.id} value={h.id}>
                   {h.name}
@@ -168,9 +168,9 @@ export function GraphicsPanel() {
               ))}
             </select>
           </Field>
-          <Field label="OBS scene with the pages">
+          <Field label={t("prod.obsSceneWithThePages")}>
             <select value={pages.scene} disabled={off} onChange={(e) => void save({ pages: { scene: e.target.value, playerSource: "", matchSource: "" } })}>
-              <option value="">None</option>
+              <option value="">{t("prod.none")}</option>
               {(obs.data?.state.scenes ?? (pages.scene ? [pages.scene] : [])).map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -178,9 +178,9 @@ export function GraphicsPanel() {
               ))}
             </select>
           </Field>
-          <Field label="Player stats source">
+          <Field label={t("prod.playerStatsSource")}>
             <select value={pages.playerSource} disabled={off || !pages.scene} onChange={(e) => void save({ pages: { playerSource: e.target.value } })}>
-              <option value="">None</option>
+              <option value="">{t("prod.none")}</option>
               {(pages.playerSource && !sources.includes(pages.playerSource) ? [pages.playerSource, ...sources] : sources).map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -188,9 +188,9 @@ export function GraphicsPanel() {
               ))}
             </select>
           </Field>
-          <Field label="Match stats source">
+          <Field label={t("prod.matchStatsSource")}>
             <select value={pages.matchSource} disabled={off || !pages.scene} onChange={(e) => void save({ pages: { matchSource: e.target.value } })}>
-              <option value="">None</option>
+              <option value="">{t("prod.none")}</option>
               {(pages.matchSource && !sources.includes(pages.matchSource) ? [pages.matchSource, ...sources] : sources).map((s) => (
                 <option key={s} value={s}>
                   {s}
