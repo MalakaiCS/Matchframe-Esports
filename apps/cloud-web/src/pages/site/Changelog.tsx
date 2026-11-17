@@ -11,6 +11,24 @@ interface Release {
 
 const RELEASES: Release[] = [
   {
+    version: "0.12.4",
+    title: "Stage HUD",
+    summary: "A new bundled HUD with a tournament-stage layout, and Counter-Strike 2's own icons loaded on your computer.",
+    sections: [
+      {
+        heading: "HUDs",
+        items: [
+          "Stage: royal-blue panels, side-coloured player cards, a round MVP card, the observed player's cam or picture, and a full-width scoreboard in freeze time and timeouts.",
+          "Panel colour setting (royal blue or dark navy), CT and T colours, and the event and stage titles.",
+        ],
+      },
+      {
+        heading: "HUD images",
+        items: ["Icon pack: Get CS2 icons, Import ZIP or Import folder loads CS2's own icons for the HUDs that use them."],
+      },
+    ],
+  },
+  {
     version: "0.12.3",
     title: "Swap teams hotkey and saved players",
     summary: "Swap the active match's teams with a hotkey or Stream Deck button, save the in-game players to their teams, and a Demo Library fix.",
