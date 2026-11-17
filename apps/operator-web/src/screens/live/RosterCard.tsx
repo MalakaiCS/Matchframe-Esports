@@ -2,16 +2,17 @@ import type { PlayerState } from "@matchframe/contracts";
 import { Badge } from "../../components/ui.tsx";
 import { fmtMoney, grenadeAbbr, MISSING, weaponName } from "../../lib/format.ts";
 import { slotKey } from "../../lib/players.ts";
-import { t } from "../../i18n/index.ts";
+import { perLocale, t } from "../../i18n/index.ts";
 
 export type PovRole = "confirmed" | "pending" | "desired";
 
-const LIFE: Record<string, { text: string; tone: "ok" | "danger" | "warn" | "neutral" }> = {
-  alive: { text: "ALIVE", tone: "ok" },
-  dead: { text: "DEAD", tone: "danger" },
-  disconnected: { text: "DISCONNECTED", tone: "warn" },
-  unknown: { text: "LIFE ?", tone: "neutral" },
-};
+/** Shown in a badge, which sets the capitals. */
+const LIFE: Record<string, { text: string; tone: "ok" | "danger" | "warn" | "neutral" }> = perLocale(() => ({
+  alive: { text: t("live.life.alive"), tone: "ok" },
+  dead: { text: t("live.life.dead"), tone: "danger" },
+  disconnected: { text: t("live.life.disconnected"), tone: "warn" },
+  unknown: { text: t("live.life.unknown"), tone: "neutral" },
+}));
 
 function n(v: number | null | undefined): string {
   return typeof v === "number" ? String(v) : MISSING;
@@ -71,7 +72,7 @@ export function RosterCard({ p, roles, onRequest, disabledReason, busy }: { p: P
             <span className="pcard-weapon" title={w ? `${w.name} (${w.state})` : t("live.activeWeaponNotReported")}>
               {w ? weaponName(w.name) : MISSING}
               {w && w.ammoClip !== null ? <span className="pcard-ammo">{` ${w.ammoClip}/${n(w.ammoReserve)}`}</span> : null}
-              {w?.state === "reloading" ? <Badge tone="info">RELOADING</Badge> : null}
+              {w?.state === "reloading" ? <Badge tone="info">{t("live.reloading")}</Badge> : null}
             </span>
             <span className="pcard-money">{fmtMoney(p.money)}</span>
           </div>

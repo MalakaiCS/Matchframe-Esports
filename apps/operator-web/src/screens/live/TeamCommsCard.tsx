@@ -5,6 +5,7 @@ import { ListenInButtons, PublicStateBanner } from "../comms/PublicControls.tsx"
 import { RecordingButtons, RecordingStateBanner } from "../comms/RecordingPanel.tsx";
 import type { CommsView } from "../comms/types.ts";
 import { t } from "../../i18n/index.ts";
+import { fmtNum } from "../../lib/format.ts";
 import "../../styles/team-comms.css";
 
 /** Live Control's compact Team Comms controls: the public state in words and the four actions; the dedicated recording's state and its own Start/Stop. */
@@ -26,7 +27,7 @@ export function TeamCommsCard() {
         <RecordingStateBanner rec={v?.recorder ?? null} compact />
         <RecordingButtons rec={v?.recorder ?? null} size="sm" onDone={() => void st.reload()} />
         {v ? (
-          <p className="muted small">{t("live.joinDelayTofixedS", { join: v.slots.map((s) => `${s.team?.name ?? t("comms.teamId", { id: s.id })}: ${s.ready ? t("live.readyLower") : s.state}`).join(" · "), toFixed: (v.delay.effectiveMs / 1000).toFixed(3) })}</p>
+          <p className="muted small">{t("live.joinDelayTofixedS", { join: v.slots.map((s) => `${s.team?.name ?? t("comms.teamId", { id: s.id })}: ${s.ready ? t("live.readyLower") : s.state}`).join(" · "), toFixed: fmtNum(v.delay.effectiveMs / 1000, 3) })}</p>
         ) : st.error ? (
           <p className="small">{st.error}</p>
         ) : null}

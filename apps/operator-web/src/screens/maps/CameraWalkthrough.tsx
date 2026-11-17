@@ -4,6 +4,7 @@ import { ActionButton, Async, Badge, Button, Checkbox, Field, Note, Panel } from
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
 import { perLocale, t } from "../../i18n/index.ts";
+import { fmtSec } from "../../lib/format.ts";
 
 export type CameraVerdict = "keep" | "hide";
 
@@ -80,7 +81,7 @@ export function CameraWalkthroughPanel({ liveMap, onReviewed }: { liveMap: strin
                       <select value={secondsPer} onChange={(e) => setSecondsPer(Number(e.target.value))}>
                         {[3, 4, 6, 8].map((n) => (
                           <option key={n} value={n}>
-                            {n} s
+                            {fmtSec(n)}
                           </option>
                         ))}
                       </select>

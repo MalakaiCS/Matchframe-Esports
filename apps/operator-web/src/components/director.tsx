@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { DirectorDecision } from "@matchframe/contracts";
 import type { CandidateSummary, UtilityOpportunity } from "../api/types.ts";
 import { explainDecision } from "../lib/director.ts";
-import { fmtMs, GRENADE_TYPE_LABEL, shotLabel, titleCase } from "../lib/format.ts";
+import { fmtMs, fmtNum, fmtPct, GRENADE_TYPE_LABEL, shotLabel, titleCase } from "../lib/format.ts";
 import { reasonInfo } from "../lib/reasons.ts";
 import { Badge, EmptyState, Meter, SupportBadge } from "./ui.tsx";
 import { perLocale, t } from "../i18n/index.ts";
@@ -54,7 +54,7 @@ export function CandidateList({ candidates, nameOf, limit = 3, currentShot }: { 
               <span className="cand-shot">{shotLabel(c.shotKey, nameOf)}</span>
               {c.shotKey === currentShot ? <Badge tone="ok">ON AIR</Badge> : null}
               <span className="cand-util" title={t("control.candidateUtility01")}>
-                {c.utility.toFixed(2)}
+                {fmtNum(c.utility, 2)}
               </span>
             </div>
             <Meter value={c.utility} label={t("control.utilityOfShotkey", { shotKey: c.shotKey })} />
@@ -68,7 +68,7 @@ export function CandidateList({ candidates, nameOf, limit = 3, currentShot }: { 
                   {Object.entries(c.components).map(([k, v]) => (
                     <tr key={k}>
                       <th>{COMPONENT_LABEL[k] ?? k}</th>
-                      <td>{v.toFixed(3)}</td>
+                      <td>{fmtNum(v, 3)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -101,7 +101,7 @@ export function DecisionExplain({ decision, nameOf, threshold }: { decision: Dir
       <div className="decision-head">
         <span className="decision-headline">{ex.headline}</span>
         {decision ? (
-          <span className="decision-meta"><T k="control.confidenceTofixedSpan" values={{ toFixed: (decision.confidence * 100).toFixed(0), span: <span title={t("control.evidenceTypeOfTheDecision")}>{decision.evidenceType}</span> }} /></span>
+          <span className="decision-meta"><T k="control.confidenceTofixedSpan" values={{ toFixed: fmtNum(decision.confidence * 100), span: <span title={t("control.evidenceTypeOfTheDecision")}>{decision.evidenceType}</span> }} /></span>
         ) : null}
       </div>
       <ul className="decision-lines">
@@ -165,14 +165,14 @@ export function OpportunityList({ opportunities, nameOf }: { opportunities: Util
                 </>
               ) : (
                 <>
-                  <Badge tone="warn">NO CAMERA</Badge>
+                  <Badge tone="warn">{t("cams.noCamera")}</Badge>
                   <div className="muted small">{o.cameraIssue ? t("control.fallbackIssue", { issue: o.cameraIssue }) : t("control.fallback")}</div>
                 </>
               )}
             </td>
-            <td title={t("control.confidenceTofixedAffectsV", { toFixed: (o.confidence * 100).toFixed(0), v: o.affected.map((a) => nameOf(a.steamId)).join(", ") || t("live.nobody") })}>
-              {o.value.toFixed(2)}
-              <div className="muted small">{(o.confidence * 100).toFixed(0)}% conf.</div>
+            <td title={t("control.confidenceTofixedAffectsV", { toFixed: fmtNum(o.confidence * 100), v: o.affected.map((a) => nameOf(a.steamId)).join(", ") || t("live.nobody") })}>
+              {fmtNum(o.value, 2)}
+              <div className="muted small">{t("control.confidenceShort", { pct: fmtPct(o.confidence) })}</div>
             </td>
           </tr>
         ))}

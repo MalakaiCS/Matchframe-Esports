@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api, seg } from "../api/index.ts";
 import type { DemoJobsResponse, ModelsResponse, RegistryEntry, ShadowStatus, TrainingRun } from "../api/types.ts";
 import { ActionButton, Async, Badge, Checkbox, Details, EmptyState, KV, Note, Panel } from "../components/ui.tsx";
-import { fmtTime, MISSING } from "../lib/format.ts";
+import { fmtNum, fmtPct, fmtTime, MISSING } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
 import { Link } from "../router.tsx";
 import { useSnapshot } from "../state/live.ts";
@@ -42,7 +42,7 @@ export function summarizeStep(summary: Record<string, unknown>): string {
   const short = (v: unknown): string => {
     if (v === null || v === undefined) return "—";
     if (typeof v === "string") return v.includes("/") || v.includes("\\") ? `…/${v.split(/[\\/]/).filter(Boolean).slice(-2).join("/")}` : v.length > 60 ? `${v.slice(0, 57)}…` : v;
-    if (typeof v === "number") return Number.isInteger(v) ? String(v) : v.toFixed(3);
+    if (typeof v === "number") return Number.isInteger(v) ? fmtNum(v) : fmtNum(v, 3);
     if (typeof v === "boolean") return v ? "yes" : "no";
     if (Array.isArray(v)) return v.length === 0 ? "none" : `${v.length} item(s)`;
     const tRow = JSON.stringify(v);
@@ -285,8 +285,8 @@ function Shadow() {
               items={[
                 [t("training.model"), <span key="m" className="mono">{s.shadowModelId}</span>],
                 [t("training.samples"), s.summary.samples],
-                [t("training.meanModelBaseline"), s.summary.meanAbsDiffVsBaseline?.toFixed(3) ?? MISSING],
-                [t("training.topPairAgreement"), s.summary.topPairAgreementRate !== null ? `${(s.summary.topPairAgreementRate * 100).toFixed(1)}%` : MISSING],
+                [t("training.meanModelBaseline"), fmtNum(s.summary.meanAbsDiffVsBaseline, 3)],
+                [t("training.topPairAgreement"), fmtPct(s.summary.topPairAgreementRate, 1)],
               ]}
             />
             <p className="gc-caption">{s.note}</p>
@@ -308,8 +308,8 @@ function Shadow() {
                       <tr key={i}>
                         <td>{r.round ?? MISSING}</td>
                         <td>{r.top[0] ? t("training.tVsCt", { t: name(r.top[0].t), ct: name(r.top[0].ct) }) : MISSING}</td>
-                        <td>{r.top[0]?.probability.toFixed(2) ?? MISSING}</td>
-                        <td>{r.top[0]?.baseline?.toFixed(2) ?? MISSING}</td>
+                        <td>{fmtNum(r.top[0]?.probability, 2)}</td>
+                        <td>{fmtNum(r.top[0]?.baseline, 2)}</td>
                       </tr>
                     ))}
                 </tbody>

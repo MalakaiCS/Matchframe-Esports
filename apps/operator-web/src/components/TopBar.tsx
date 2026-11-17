@@ -139,7 +139,7 @@ export function TopBar({ crumbs = [] }: { crumbs?: string[] }) {
         {dataMode === "test" ? (
           <Pill dot="sim" tone="sim" title={t("shell.top.testDataTitle")} className="chip-data" data-data="test">
             <span className="chip-strong">{t("shell.top.testData")}</span>
-            <span className="chip-meta">SIMULATION</span>
+            <span className="chip-meta">{t("shell.top.simulationTag")}</span>
           </Pill>
         ) : dataMode === "live" ? (
           <Pill dot="ok" title={t("shell.top.liveDataTitle")} className="chip-data" data-data="live">

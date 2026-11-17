@@ -187,8 +187,8 @@ function MatchHeader({ snap }: { snap: OperatorSnapshot }) {
         <span className="mh-label">{t("live.roundV", { v: s.roundNumber ?? MISSING })}</span>
         <span className="mh-value">
           {PHASE_LABEL[s.gamePhase] ?? s.gamePhase} <span className="mh-clock">{fmtClock(remaining)}</span>
-          {s.paused ? <Badge tone="warn">PAUSED</Badge> : null}
-          {s.bomb && (s.bomb.state === "planted" || s.bomb.state === "defusing") ? <Badge tone="danger">BOMB {s.bomb.state.toUpperCase()}{s.bomb.site ? ` ${s.bomb.site}` : ""}</Badge> : null}
+          {s.paused ? <Badge tone="warn">{t("live.phase.paused")}</Badge> : null}
+          {s.bomb && (s.bomb.state === "planted" || s.bomb.state === "defusing") ? <Badge tone="danger">{s.bomb.state === "planted" ? t("live.bombPlanted") : t("live.bombDefusing")}{s.bomb.site ? ` ${s.bomb.site}` : ""}</Badge> : null}
         </span>
       </div>
       <div className="mh-block" title={t("live.observerCameraModeReplace", { replace: s.observer.cameraMode.replace("_", " ") })}>

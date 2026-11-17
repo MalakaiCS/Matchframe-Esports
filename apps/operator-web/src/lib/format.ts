@@ -22,6 +22,11 @@ export function fmtMs(ms: number | null | undefined): string {
   return t("common.unit.minSec", { m: Math.floor(ms / 60_000), s: Math.round((ms % 60_000) / 1000) });
 }
 
+/** Seconds and the unit in the console's language ("0.5 s", "0,5 с"): `digits` decimals, or as many as needed. */
+export function fmtSec(sec: number, digits?: number): string {
+  return t("common.unit.s", { n: digits === undefined ? formatNumber(sec, { maximumFractionDigits: 3, useGrouping: false }) : fixed(sec, digits) });
+}
+
 /** Hours and minutes from seconds ("12 h 05 min", "45 min", "-1 h 00 min"). */
 export function fmtHours(sec: number | null | undefined): string {
   if (typeof sec !== "number" || !Number.isFinite(sec)) return MISSING;

@@ -1094,7 +1094,8 @@
       "narrative": "Erzählung",
       "framing": "Bildausschnitt",
       "continuity": "Kontinuität"
-    }
+    },
+    "confidenceShort": "{pct} Konf."
   },
   "demos": {
     "pythonWorkersAvailable": "Python-Worker verfügbar",
@@ -2803,7 +2804,15 @@
       "defusing": "Wird entschärft",
       "paused": "Pausiert",
       "halftime": "Halbzeit"
-    }
+    },
+    "life": {
+      "alive": "Lebt",
+      "dead": "Tot",
+      "disconnected": "Getrennt",
+      "unknown": "Leben ?"
+    },
+    "bombDefusing": "Bombe wird entschärft",
+    "reloading": "Lädt nach"
   },
   "maps": {
     "live": "Live",
@@ -4760,7 +4769,8 @@
       "takeOver": "Übernehmen",
       "stopSuccess": "Not-Aus ausgelöst: Automatik gestoppt",
       "stopTitle": "Jede automatische Kamerasteuerung jetzt stoppen ({key})",
-      "stop": "Automatik stoppen"
+      "stop": "Automatik stoppen",
+      "simulationTag": "SIMULATION"
     },
     "offline": {
       "tokenRejected": "Token abgelehnt.",

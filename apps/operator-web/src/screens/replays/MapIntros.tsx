@@ -9,6 +9,7 @@ import { usePermission } from "../../state/session.tsx";
 import { Hotkeys } from "./AutoReplays.tsx";
 import { TransitionSelect } from "./ProductionAutomation.tsx";
 import { perLocale, t } from "../../i18n/index.ts";
+import { fmtNum, fmtSec } from "../../lib/format.ts";
 
 export const MAP_INTROS_PATH = "/api/v1/map-intros";
 
@@ -30,8 +31,8 @@ const VMIX_TRANSITIONS = perLocale(() => ([
 const ACCEPT = ".mp4,.m4v,.mov,video/mp4,video/quicktime";
 
 /** 8.0 s, or m:ss from a minute. */
-export const introLength = (ms: number) => (ms < 60_000 ? `${(Math.round(ms / 100) / 10).toFixed(1)} s` : `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}`);
-const mb = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
+export const introLength = (ms: number) => (ms < 60_000 ? fmtSec(Math.round(ms / 100) / 10, 1) : `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}`);
+const mb = (bytes: number) => (bytes >= 1024 * 1024 ? `${fmtNum(bytes / 1024 / 1024, 1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
 const CODECS: Record<string, string> = { h264: "H.264", hevc: "HEVC", prores: "ProRes", dnxhd: "DNxHD", qtrle: "QuickTime Animation", png: "PNG", vp9: "VP9", av1: "AV1", mpeg4: "MPEG-4" };
 
 /** One line about a kept intro: its length, codec, size and file. */

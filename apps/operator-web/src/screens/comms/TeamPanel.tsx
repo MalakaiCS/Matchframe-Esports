@@ -5,6 +5,7 @@ import { Badge, Button, EmptyState, KV, Meter, Note, Panel, type Tone } from "..
 import { usePermission } from "../../state/session.tsx";
 import type { CommsParticipant, CommsSlot } from "./types.ts";
 import { t } from "../../i18n/index.ts";
+import { fmtSec } from "../../lib/format.ts";
 
 /** A slot's state in words. */
 export function slotState(s: CommsSlot): { tone: Tone; text: string } {
@@ -24,7 +25,7 @@ export function slotState(s: CommsSlot): { tone: Tone; text: string } {
 
 /** −60…0 dBFS as 0…1 for a meter. */
 const meterOf = (db: number | null | undefined) => (db === null || db === undefined || db <= -60 ? 0 : Math.min(1, (db + 60) / 60));
-export const fmtDelay = (ms: number) => `${(ms / 1000).toFixed(3)} s`;
+export const fmtDelay = (ms: number) => fmtSec(ms / 1000, 3);
 
 /** One team's TeamSpeak connection, buffer, delay and people, with what each output includes. */
 export function TeamPanel({ slot, people, delayMs, onChanged }: { slot: CommsSlot; people: CommsParticipant[]; delayMs: number; onChanged: () => void }) {

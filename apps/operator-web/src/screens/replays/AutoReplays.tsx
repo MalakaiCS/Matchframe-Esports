@@ -8,6 +8,7 @@ import { REPLAY_KEYS, replayHotkeys, shortcutLabel, type ReplayHotkeyState, type
 import { useSnapshot } from "../../state/live.ts";
 import { usePermission } from "../../state/session.tsx";
 import { perLocale, t } from "../../i18n/index.ts";
+import { fmtNum, fmtSec } from "../../lib/format.ts";
 import { T } from "../../i18n/T.tsx";
 
 const STATE_TONE = { off: "neutral", waiting: "info", playing: "accent", blocked: "warn" } as const;
@@ -180,7 +181,7 @@ export function AutoReplaysPanel() {
               <select value={String(st?.fadeMs ?? 500)} disabled={off} onChange={(e) => void save({ fadeMs: Number(e.target.value) })}>
                 {[...FADES, ...(st?.fadeMs && !(FADES as readonly number[]).includes(st.fadeMs) ? [st.fadeMs] : [])].map((ms) => (
                   <option key={ms} value={String(ms)}>
-                    {`${ms / 1000} s${ms === 500 ? t("replays.recommendedSuffix") : ""}`}
+                    {`${fmtSec(ms / 1000)}${ms === 500 ? t("replays.recommendedSuffix") : ""}`}
                   </option>
                 ))}
               </select>
@@ -191,7 +192,7 @@ export function AutoReplaysPanel() {
               <select value={String(st?.audioFadeMs ?? 400)} disabled={off} onChange={(e) => void save({ audioFadeMs: Number(e.target.value) })}>
                 {[...AUDIO_FADES, ...(st?.audioFadeMs !== undefined && !(AUDIO_FADES as readonly number[]).includes(st.audioFadeMs) ? [st.audioFadeMs] : [])].map((ms) => (
                   <option key={ms} value={String(ms)}>
-                    {ms === 0 ? t("replays.none") : `${ms / 1000} s${ms === 400 ? t("replays.recommendedSuffix") : ""}`}
+                    {ms === 0 ? t("replays.none") : `${fmtSec(ms / 1000)}${ms === 400 ? t("replays.recommendedSuffix") : ""}`}
                   </option>
                 ))}
               </select>
@@ -549,7 +550,7 @@ const TIMING_TONE = { measuring: "info", live: "neutral", behind: "ok", ahead: "
 
 function timingLabel(tRow: ReplayPcResponse["status"]["timing"]): string {
   if (tRow.delayMs === null || tRow.state === "measuring") return t("replays.timing");
-  const s = (Math.abs(tRow.delayMs) / 1000).toFixed(1);
+  const s = fmtNum(Math.abs(tRow.delayMs) / 1000, 1);
   return tRow.state === "behind" ? t("replays.sSBehind", { s }) : tRow.state === "ahead" ? t("replays.sSAhead", { s }) : t("replays.sameTime");
 }
 
@@ -763,7 +764,7 @@ function ReplayFeedSection() {
             <span>{status.detail}</span>
           </div>
           {status.state === "recording" ? (
-            <span className="muted">{t("replays.tofixedSKeptTofixed2V", { toFixed: status.bufferedSec.toFixed(0), toFixed2: status.receivingFps.toFixed(0), v: d?.sourceFps ? t("replays.ofSourcefps", { sourceFps: Math.round(d.sourceFps) }) : "", clips: status.clips })}</span>
+            <span className="muted">{t("replays.tofixedSKeptTofixed2V", { toFixed: fmtNum(status.bufferedSec), toFixed2: fmtNum(status.receivingFps), v: d?.sourceFps ? t("replays.ofSourcefps", { sourceFps: Math.round(d.sourceFps) }) : "", clips: status.clips })}</span>
           ) : null}
           {status.state === "recording" && status.losses ? (
             status.losses.length ? (

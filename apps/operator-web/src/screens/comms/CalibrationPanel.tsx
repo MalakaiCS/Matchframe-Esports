@@ -6,6 +6,7 @@ import { usePermission } from "../../state/session.tsx";
 import { fmtDelay } from "./TeamPanel.tsx";
 import type { CalibrationStatus, CommsView, TimingTestStatus } from "./types.ts";
 import { t } from "../../i18n/index.ts";
+import { fmtNum } from "../../lib/format.ts";
 
 type Reload = () => void;
 
@@ -59,7 +60,7 @@ export function CalibrationPanel({ view, onChanged }: { view: CommsView; onChang
           <Button variant="primary" size="lg" disabledReason={reason ?? (cal.live ? null : t("comms.noCallHeardYet"))} onClick={() => void seen()}>{t("comms.seenInGameplay")}</Button>
         </div>
         <p className="small" role="status" aria-live="polite">
-          {cal.live ? t("comms.heardWhoTofixedSAgo", { who: cal.live.who, toFixed: (cal.live.agoMs / 1000).toFixed(1) }) : cal.armed ? t("comms.listeningForTheNextCall", { ceil: Math.ceil(cal.armed.forMs / 1000) }) : t("comms.notArmed")}
+          {cal.live ? t("comms.heardWhoTofixedSAgo", { who: cal.live.who, toFixed: fmtNum(cal.live.agoMs / 1000, 1) }) : cal.armed ? t("comms.listeningForTheNextCall", { ceil: Math.ceil(cal.armed.forMs / 1000) }) : t("comms.notArmed")}
         </p>
         {cal.marks.length ? (
           <KV items={cal.marks.map((m, i) => [t("comms.markN", { n: i + 1, who: m.who }), t("comms.offsetmsFromTheCallTo", { offsetMs: fmtDelay(m.offsetMs) })] as [string, string])} />

@@ -8,6 +8,7 @@ import { useLowSpec } from "../../lib/lowSpec.ts";
 import { Link } from "../../router.tsx";
 import { usePermission } from "../../state/session.tsx";
 import { perLocale, t } from "../../i18n/index.ts";
+import { fmtNum } from "../../lib/format.ts";
 import { T } from "../../i18n/T.tsx";
 
 const STATE: Record<CamPlayerView["state"], { tone: "ok" | "warn" | "neutral" | "info"; label: string }> = perLocale(() => ({
@@ -49,7 +50,7 @@ function PlayerCard({ p, preview, onChanged }: { p: CamPlayerView; preview: CamP
         <div className="small muted">{p.team || " "}</div>
         {p.state !== "offline" ? (
           <div className="small muted">
-            {p.camera ?? t("cams.camera")} · {p.width}×{p.height} · {p.kbps} kbit/s{p.bufferedSec > 0 ? t("cams.tofixedSBuffered", { toFixed: p.bufferedSec.toFixed(1) }) : ""}
+            {p.camera ?? t("cams.camera")} · {p.width}×{p.height} · {p.kbps} kbit/s{p.bufferedSec > 0 ? t("cams.tofixedSBuffered", { toFixed: fmtNum(p.bufferedSec, 1) }) : ""}
           </div>
         ) : null}
         <div className="cam-card-actions">
@@ -165,7 +166,7 @@ export function WebCams() {
                     ))}
                   </div>
                 )}
-                <p className="small muted">{t("cams.previewsHereAreLiveNot", { v: c.delayMs ? t("cams.tofixedSLater", { toFixed: (c.delayMs / 1000).toFixed(1) }) : t("cams.withNoDelay") })}</p>
+                <p className="small muted">{t("cams.previewsHereAreLiveNot", { v: c.delayMs ? t("cams.tofixedSLater", { toFixed: fmtNum(c.delayMs / 1000, 1) }) : t("cams.withNoDelay") })}</p>
               </Panel>
             ) : null}
             {c.enabled && c.outputs ? (

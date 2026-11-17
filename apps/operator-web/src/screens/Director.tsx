@@ -6,7 +6,7 @@ import { CandidateList, DecisionExplain, OpportunityList, ReasonChips } from "..
 import { Async, Checkbox, Details, EmptyState, KV, Panel, StatusDot } from "../components/ui.tsx";
 import { capabilityGate, capabilityMeta } from "../lib/capabilities.ts";
 import { MODE_INFO } from "../lib/director.ts";
-import { fmtMs, MISSING, shotLabel } from "../lib/format.ts";
+import { fmtMs, fmtNum, fmtPct, MISSING, shotLabel } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
 import { CONTROL_HEALTH_TEXT } from "../lib/ownership.ts";
 import { makeNameOf } from "../lib/players.ts";
@@ -34,7 +34,7 @@ function ConfigView({ config }: { config: DirectorStatus["config"] }) {
             {Object.entries(weights ?? {}).map(([k, v]) => (
               <tr key={k}>
                 <th>{k}</th>
-                <td>{v.toFixed(2)}</td>
+                <td>{fmtNum(v, 2)}</td>
               </tr>
             ))}
           </tbody>
@@ -109,7 +109,7 @@ function DecisionLog({ nameOf }: { nameOf: (id: string) => string }) {
                         <td>
                           <ReasonChips codes={d.reasonCodes} max={3} />
                         </td>
-                        <td>{(d.confidence * 100).toFixed(0)}%</td>
+                        <td>{fmtPct(d.confidence)}</td>
                         <td className="small muted">
                           {MODE_INFO[d.mode]?.label ?? d.mode} · {CONTROL_HEALTH_TEXT[d.controlHealth]?.text ?? d.controlHealth}
                         </td>

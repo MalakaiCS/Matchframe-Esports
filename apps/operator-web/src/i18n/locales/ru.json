@@ -1118,7 +1118,8 @@
       "narrative": "Сюжет",
       "framing": "Кадрирование",
       "continuity": "Непрерывность"
-    }
+    },
+    "confidenceShort": "{pct} уверен."
   },
   "demos": {
     "pythonWorkersAvailable": "Доступные воркеры Python",
@@ -2877,7 +2878,15 @@
       "defusing": "Разминирование",
       "paused": "Пауза",
       "halftime": "Смена сторон"
-    }
+    },
+    "life": {
+      "alive": "Жив",
+      "dead": "Мёртв",
+      "disconnected": "Отключён",
+      "unknown": "Жизнь ?"
+    },
+    "bombDefusing": "Бомбу разминируют",
+    "reloading": "Перезарядка"
   },
   "maps": {
     "live": "Вживую",
@@ -4876,7 +4885,8 @@
       "takeOver": "Перехватить",
       "stopSuccess": "Аварийная остановка: автоматика остановлена",
       "stopTitle": "Немедленно остановить всё автоматическое управление камерой ({key})",
-      "stop": "Стоп автоматика"
+      "stop": "Стоп автоматика",
+      "simulationTag": "СИМУЛЯЦИЯ"
     },
     "offline": {
       "tokenRejected": "Токен отклонён.",

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../../api/index.ts";
 import { ActionButton, Async, Badge, Checkbox, Details, EmptyState, Note, Panel } from "../../components/ui.tsx";
-import { fmtTime } from "../../lib/format.ts";
+import { fmtNum, fmtSec, fmtTime } from "../../lib/format.ts";
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
 import { t } from "../../i18n/index.ts";
@@ -62,8 +62,8 @@ function Row({ label, r, base }: { label: string; r: Totals | BenchResult; base?
         {pct(r.multiFragKillsShown, r.multiFragKills)} <span className="muted small">{t("training.ofMultifragkills", { multiFragKills: r.multiFragKills })}</span>
         {base ? diff(r.multiFragKillsShown, base.multiFragKillsShown, base.multiFragKills, r.multiFragKills) : null}
       </td>
-      <td>{r.meanLeadS === null ? "—" : `${r.meanLeadS.toFixed(1)} s`}</td>
-      <td>{r.cutsPerMinute.toFixed(1)}</td>
+      <td>{r.meanLeadS === null ? "—" : fmtSec(r.meanLeadS, 1)}</td>
+      <td>{fmtNum(r.cutsPerMinute, 1)}</td>
     </tr>
   );
 }

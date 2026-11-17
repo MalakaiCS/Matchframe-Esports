@@ -1094,7 +1094,8 @@
       "narrative": "Narrative",
       "framing": "Framing",
       "continuity": "Continuity"
-    }
+    },
+    "confidenceShort": "{pct} conf."
   },
   "demos": {
     "pythonWorkersAvailable": "Python workers available",
@@ -2803,7 +2804,15 @@
       "defusing": "Defusing",
       "paused": "Paused",
       "halftime": "Halftime"
-    }
+    },
+    "life": {
+      "alive": "Alive",
+      "dead": "Dead",
+      "disconnected": "Disconnected",
+      "unknown": "Life ?"
+    },
+    "bombDefusing": "Bomb being defused",
+    "reloading": "Reloading"
   },
   "maps": {
     "live": "Live",
@@ -4760,7 +4769,8 @@
       "takeOver": "Take over",
       "stopSuccess": "Emergency stop engaged: automation stopped",
       "stopTitle": "Stop all automated camera control now ({key})",
-      "stop": "Stop automation"
+      "stop": "Stop automation",
+      "simulationTag": "SIMULATION"
     },
     "offline": {
       "tokenRejected": "Token rejected.",
