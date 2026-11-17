@@ -2,10 +2,12 @@ import { existsSync, linkSync, mkdirSync, readFileSync, renameSync, rmSync, stat
 import { copyFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import type { HudKillfeedEntry, HudReplayClip, HudSide } from "@matchframe/hud-sdk";
-import type { QueueItem, ReplayPlay } from "@matchframe/replay-agent";
+import type { QueueItem, ReplayAngle, ReplayPlay } from "@matchframe/replay-agent";
 import type { Engine } from "../app.ts";
 import { mapDisplayName } from "../live/projection.ts";
 import { clipScore, type RankFacts } from "./rank.ts";
+import type { SlowSpec } from "./slowmo.ts";
+import { slowInList, slowOutMs } from "./slowmo.ts";
 import { replayClip, type ClipTeam } from "./graphic.ts";
 
 /**
@@ -52,6 +54,11 @@ export interface KeptClip {
   bytes: number;
   playMs: number | null;
   leadMs: number | null;
+  /** Each kill's time from the start of playMs, when the replay PC sent them (ADR-081). */
+  killsMs?: number[] | null;
+  /** An extra angle of a moment, and the moment's first clip (ADR-081): it follows that clip in highlights. */
+  angle?: ReplayAngle | null;
+  momentOf?: string | null;
   trim: { startMs: number; durationMs: number } | null;
   media: { durationMs: number | null; width: number | null; height: number | null; frameRate: number | null; hasAudio: boolean | null };
   /** The player's team and side in that round, as known when the clip came in (filled in later when they weren't). */
@@ -97,6 +104,11 @@ export interface ReelClip {
   durationMs: number;
   /** For the burned-in lower third. */
   graphic: HudReplayClip;
+  /** An extra angle of the clip before it (ADR-081). */
+  angle: ReplayAngle | null;
+  /** Its slow motion (null: real time), and its length on air with it (ms). */
+  slow: SlowSpec | null;
+  outMs: number;
 }
 
 export interface ReelPlan {
@@ -118,6 +130,8 @@ export interface ReelChoice {
   /** With the best N: also clips that weren't played. */
   unplayed: boolean;
   fadeMs: number;
+  /** Slow motion at the kills (ADR-081): as automatic replays slow, around the kills when theirs is off; a moment's extra angle slowed, its first clip at real time. */
+  slowMotion?: boolean;
 }
 
 const playable = (s: QueueItem["state"]) => s === "prepared" || s === "approved" || s === "playing" || s === "played";
@@ -235,6 +249,9 @@ export class HighlightStore {
       priority: 0,
       playMs: c.playMs,
       leadMs: c.leadMs,
+      killsMs: c.killsMs ?? null,
+      angle: c.angle ?? null,
+      momentOf: c.momentOf ?? null,
       play: c.play,
     };
   }
@@ -384,6 +401,9 @@ export class HighlightStore {
         bytes: statSync(dest).size,
         playMs: it.playMs,
         leadMs: it.leadMs ?? null,
+        killsMs: it.killsMs ?? null,
+        angle: it.angle ?? null,
+        momentOf: it.momentOf ?? null,
         trim: it.trim,
         media: { durationMs: media.durationMs, width: media.width, height: media.height, frameRate: media.frameRate, hasAudio: media.hasAudio },
         team: it.play?.killer ? this.e.replayGraphic.teamOf(it.play.killer.steamId) : null,
@@ -462,6 +482,15 @@ export class HighlightStore {
     };
   }
 
+  /** Each kill's time in a kept clip's part (ms from the part's start): the replay PC's times, else its first kill at its lead-up. */
+  partKills(c: KeptClip, part: { startMs: number; durationMs: number }, fileMs: number | null = c.media.durationMs): number[] {
+    const kills = c.killsMs?.length ? c.killsMs : c.leadMs !== null ? [c.leadMs] : [];
+    const playMs = c.playMs ?? fileMs ?? part.durationMs;
+    // Where the replay's part (the end playMs of the file) starts in the file.
+    const from = Math.max(0, (fileMs ?? playMs) - playMs);
+    return kills.map((k) => from + k - part.startMs).filter((k) => k >= 0 && k <= part.durationMs);
+  }
+
   /** The part of a kept clip a reel shows: its trim, else the part the replay showed (its end), else all of it. */
   part(c: KeptClip, fileMs: number | null = c.media.durationMs): { startMs: number; durationMs: number } {
     const dur = fileMs ?? c.trim?.durationMs ?? c.playMs ?? 8000;
@@ -479,9 +508,11 @@ export class HighlightStore {
    * once (the better clip); only `rounds` when given (a half). In round order, and in a round by when
    * its play happened. Only clips whose kept file is there.
    */
-  choose(map: KeptMap, choice: { count: "all" | number; unplayed: boolean; rounds?: { from: number; to: number } | null }): { c: KeptClip; score: number; reasons: string[] }[] {
+  choose(map: KeptMap, choice: { count: "all" | number; unplayed: boolean; rounds?: { from: number; to: number } | null; angles?: boolean }): { c: KeptClip; score: number; reasons: string[] }[] {
     const inRounds = (c: KeptClip) => !choice.rounds || (c.roundNumber !== null && c.roundNumber >= choice.rounds.from && c.roundNumber <= choice.rounds.to);
-    const pool = map.clips.filter((c) => (c.played || (choice.count !== "all" && choice.unplayed)) && inRounds(c) && existsSync(this.filePath(c)) && !this.copying.has(c.id));
+    const there = (c: KeptClip) => existsSync(this.filePath(c)) && !this.copying.has(c.id);
+    // (A moment's extra angles aren't ranked: they follow its first clip.)
+    const pool = map.clips.filter((c) => !c.momentOf && (c.played || (choice.count !== "all" && choice.unplayed)) && inRounds(c) && there(c));
     const scored = pool
       .map((c) => ({ c, ...(c.play ? clipScore(c.play, this.facts(map, c)) : { score: 0, reasons: [] as string[] }) }))
       .sort((a, b) => b.score - a.score || Number(b.c.played) - Number(a.c.played) || (a.c.origin === "replay_pc" ? -1 : 0) - (b.c.origin === "replay_pc" ? -1 : 0) || a.c.createdAt.localeCompare(b.c.createdAt));
@@ -493,7 +524,11 @@ export class HighlightStore {
     }
     const chosen = choice.count === "all" ? kept : kept.slice(0, Math.max(1, choice.count));
     const at = (c: KeptClip) => this.firstKill(map, c.roundNumber, c.play)?.at ?? c.killAt;
-    return chosen.sort((a, b) => (a.c.roundNumber ?? Number.MAX_SAFE_INTEGER) - (b.c.roundNumber ?? Number.MAX_SAFE_INTEGER) || at(a.c) - at(b.c));
+    const ordered = chosen.sort((a, b) => (a.c.roundNumber ?? Number.MAX_SAFE_INTEGER) - (b.c.roundNumber ?? Number.MAX_SAFE_INTEGER) || at(a.c) - at(b.c));
+    if (!choice.angles) return ordered;
+    // Each moment's extra angles straight after it (the player who died's view, then a free camera).
+    const ANGLE_ORDER = { victim: 0, free: 1 } as const;
+    return ordered.flatMap((x) => [x, ...map.clips.filter((a) => a.momentOf === x.c.id && a.angle && there(a)).sort((a, b) => ANGLE_ORDER[a.angle!] - ANGLE_ORDER[b.angle!]).map((a) => ({ c: a, score: x.score, reasons: [] as string[] }))]);
   }
 
   /**
@@ -505,19 +540,27 @@ export class HighlightStore {
     this.tick();
     const map = this.map(choice.map);
     if (!map) return null;
-    const chosen = this.choose(map, choice);
-    const clips: ReelClip[] = chosen.map(({ c, score, reasons }) => ({
-      id: c.id,
-      label: c.label,
-      roundNumber: c.roundNumber,
-      played: c.played,
-      score,
-      reasons,
-      ...this.part(c),
-      graphic: replayClip(c, { team: c.team ?? (c.play?.killer ? this.e.replayGraphic.teamOf(c.play.killer.steamId) : null), side: c.side ?? this.sideIn(map, c.roundNumber, c.play) }),
-    }));
-    const fadeMs = clips.length > 1 ? clampFade(choice.fadeMs, clips.map((c) => c.durationMs)) : 0;
-    const totalMs = clips.reduce((n, c) => n + c.durationMs, 0) - fadeMs * Math.max(0, clips.length - 1);
+    const chosen = this.choose(map, { ...choice, angles: this.e.autoReplay.settings().multiAngle !== "off" });
+    const ids = chosen.map(({ c }) => ({ id: c.id, momentOf: c.momentOf ?? null }));
+    const clips: ReelClip[] = chosen.map(({ c, score, reasons }, k) => {
+      const part = this.part(c);
+      const slow = choice.slowMotion && slowInList(ids, k) ? this.e.autoReplay.slowSpecFor(this.partKills(c, part)) : null;
+      return {
+        id: c.id,
+        label: c.label,
+        roundNumber: c.roundNumber,
+        played: c.played,
+        score,
+        reasons,
+        ...part,
+        graphic: replayClip(c, { team: c.team ?? (c.play?.killer ? this.e.replayGraphic.teamOf(c.play.killer.steamId) : null), side: c.side ?? this.sideIn(map, c.roundNumber, c.play) }),
+        angle: c.angle ?? null,
+        slow,
+        outMs: Math.round(slowOutMs(slow, part.durationMs)),
+      };
+    });
+    const fadeMs = clips.length > 1 ? clampFade(choice.fadeMs, clips.map((c) => c.outMs)) : 0;
+    const totalMs = clips.reduce((n, c) => n + c.outMs, 0) - fadeMs * Math.max(0, clips.length - 1);
     return { mapKey: map.key, mapName: map.mapName, displayName: mapDisplayName(map.mapName) ?? map.mapName, title: map.title, clips, fadeMs, totalMs };
   }
 

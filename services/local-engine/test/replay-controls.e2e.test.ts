@@ -323,6 +323,8 @@ describe("Replay controls, sound and Test replays (OBS)", () => {
       ["replay_hold", true],
       ["replay_exclude", true],
       ["replay_pin", true],
+      ["replay_slow", true],
+      ["replay_star", true],
     ]);
     expect((await act("replay_skip", {}, viewer)).status).toBe(403);
     expect((await act("replay_skip")).json).toMatchObject({ error: "no_replay", message: "No replay is on air." });

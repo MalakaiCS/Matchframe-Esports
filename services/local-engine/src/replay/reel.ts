@@ -6,7 +6,9 @@ import type { Engine } from "../app.ts";
 import { brandedFolder } from "../brand.ts";
 import { HttpError } from "../http/router.ts";
 import { encoderArgs } from "./ffmpeg.ts";
-import type { ReelChoice } from "./highlights.ts";
+import type { ReelChoice, ReelClip } from "./highlights.ts";
+import type { SlowPlan } from "./slowmo.ts";
+import { planSlow, slowAudioChains, slowVideoChains } from "./slowmo.ts";
 
 const run = promisify(execFile);
 
@@ -15,7 +17,9 @@ const run = promisify(execFile);
  * normalised to one size (1920×1080, or the largest clip's), one frame rate, yuv420p H.264 (CRF 18)
  * and 48 kHz stereo AAC (silence where a clip has no sound), joined with crossfades (xfade and
  * acrossfade), and each clip's lower third (a PNG drawn by the console) can be laid over it with a
- * fade in and out. One ffmpeg run, in the background, with progress, and it can be stopped.
+ * fade in and out. One ffmpeg run, in the background, with progress, and it can be stopped. With Slow
+ * motion (ADR-081) each clip is slowed at its kills as automatic replays slow theirs (slowmo.ts), and a
+ * moment's extra angles follow it.
  */
 
 /** A clip as ffmpeg reads it. */
@@ -27,7 +31,14 @@ export interface ReelInput {
   hasAudio: boolean;
   /** A 1920×1080 PNG laid over the part (transparent around the graphic), or null. */
   graphic: string | null;
+  /** Slow motion (slowmo.ts): the part's pieces at the reel's frame rate; the part then lasts `slow.outMs` on air. */
+  slow?: SlowPlan | null;
+  /** The clip's own frame rate (for a slowed part: the frames read past each window). */
+  srcFps?: number | null;
 }
+
+/** How long a reel input lasts on air (ms): its part, or its slowed length. */
+export const reelInputMs = (c: Pick<ReelInput, "durationMs" | "slow">): number => c.slow?.outMs ?? c.durationMs;
 
 export interface ReelOutput {
   width: number;
@@ -97,24 +108,38 @@ export function reelGraph(inputs: ReelInput[], out: ReelOutput): { args: string[
   const parts: string[] = [];
   let n = 0;
   inputs.forEach((c, i) => {
-    const D = c.durationMs / 1000;
+    const D = reelInputMs(c) / 1000;
     const vi = n++;
     args.push("-ss", sec(c.startMs), "-t", sec(c.durationMs + 500), "-i", c.file);
-    const shape = `scale=${W}:${H}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=${F},format=yuv420p`;
+    const frame = `scale=${W}:${H}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1`;
     const exact = `tpad=stop_mode=clone:stop_duration=1,trim=duration=${D.toFixed(3)},setpts=PTS-STARTPTS`;
+    // Slowed: shaped to the frame, then cut into its real-speed pieces and slowed windows (slowmo.ts) and joined again.
+    let video: string;
+    if (c.slow) {
+      parts.push(`[${vi}:v]setpts=PTS-STARTPTS,${frame},format=yuv420p[q${i}]`, ...slowVideoChains(`q${i}`, c.slow, F, `m${i}`, `w${i}`, c.srcFps ?? null));
+      video = `[w${i}]`;
+    } else video = `[${vi}:v]setpts=PTS-STARTPTS,${frame},fps=${F},format=yuv420p,`;
+    const body = `${video}${exact}`;
     if (c.graphic) {
       const gi = n++;
       args.push("-loop", "1", "-framerate", String(F), "-t", D.toFixed(3), "-i", c.graphic);
       const inAt = Math.min(fade + 0.3, Math.max(0, D / 4));
       const outAt = Math.max(inAt + GRAPHIC_FADE, D - fade - 0.3 - GRAPHIC_FADE);
-      parts.push(`[${vi}:v]setpts=PTS-STARTPTS,${shape},${exact}[c${i}]`);
+      parts.push(`${body}[c${i}]`);
       parts.push(`[${gi}:v]format=rgba,scale=${W}:${H},fade=t=in:st=${inAt.toFixed(3)}:d=${GRAPHIC_FADE}:alpha=1,fade=t=out:st=${outAt.toFixed(3)}:d=${GRAPHIC_FADE}:alpha=1[g${i}]`);
       parts.push(`[c${i}][g${i}]overlay=0:0:shortest=1,format=yuv420p[v${i}]`);
     } else {
-      parts.push(`[${vi}:v]setpts=PTS-STARTPTS,${shape},${exact}[v${i}]`);
+      parts.push(`${body}[v${i}]`);
     }
-    const audio = c.hasAudio ? `[${vi}:a]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS,` : "anullsrc=channel_layout=stereo:sample_rate=48000,aformat=sample_fmts=fltp,";
-    parts.push(`${audio}apad,atrim=duration=${D.toFixed(3)},asetpts=PTS-STARTPTS[a${i}]`);
+    const resampled = `aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS`;
+    if (c.slow) {
+      if (c.hasAudio) parts.push(`[${vi}:a]${resampled}[r${i}]`);
+      parts.push(...slowAudioChains(c.hasAudio ? `r${i}` : null, c.slow, `m${i}`, `z${i}`));
+      parts.push(`[z${i}]apad,atrim=duration=${D.toFixed(3)},asetpts=PTS-STARTPTS[a${i}]`);
+    } else {
+      const audio = c.hasAudio ? `[${vi}:a]${resampled},` : "anullsrc=channel_layout=stereo:sample_rate=48000,aformat=sample_fmts=fltp,";
+      parts.push(`${audio}apad,atrim=duration=${D.toFixed(3)},asetpts=PTS-STARTPTS[a${i}]`);
+    }
   });
   if (inputs.length === 1) {
     parts.push("[v0]null[vout]", "[a0]anull[aout]");
@@ -125,7 +150,7 @@ export function reelGraph(inputs: ReelInput[], out: ReelOutput): { args: string[
     let v = "v0";
     let a = "a0";
     for (let i = 1; i < inputs.length; i++) {
-      offset += inputs[i - 1]!.durationMs / 1000 - fade;
+      offset += reelInputMs(inputs[i - 1]!) / 1000 - fade;
       const last = i === inputs.length - 1;
       const vo = last ? "vout" : `x${i}`;
       const ao = last ? "aout" : `y${i}`;
@@ -135,7 +160,7 @@ export function reelGraph(inputs: ReelInput[], out: ReelOutput): { args: string[
       a = ao;
     }
   }
-  const totalMs = inputs.reduce((s, c) => s + c.durationMs, 0) - Math.round(fade * 1000) * Math.max(0, inputs.length - 1);
+  const totalMs = inputs.reduce((s, c) => s + reelInputMs(c), 0) - Math.round(fade * 1000) * Math.max(0, inputs.length - 1);
   return { args, filter: parts.join(";\n"), totalMs };
 }
 
@@ -166,6 +191,9 @@ export interface ReelRequest extends ReelChoice {
 }
 
 const KEEP_JOBS = 10;
+
+/** A reel clip's slow motion as planned (highlights.ts). */
+type ReelClipSlow = NonNullable<ReelClip["slow"]>;
 
 /** File names: letters, digits and a few signs. */
 const safeName = (s: string) =>
@@ -237,6 +265,7 @@ export class HighlightReels {
       try {
         const inputs: ReelInput[] = [];
         const probed: ProbedClip[] = [];
+        const slows: (ReelClipSlow | null)[] = [];
         for (const [i, id] of ids.entries()) {
           if (slot.cancelled) throw new Error("cancelled");
           const c = kept.get(id)!;
@@ -250,11 +279,16 @@ export class HighlightReels {
             graphic = join(work, `g${i}.png`);
             writeFileSync(graphic, Buffer.from(png.replace(/^data:image\/png;base64,/, ""), "base64"));
           }
-          inputs.push({ file, startMs: part.startMs, durationMs: part.durationMs, hasAudio: p.hasAudio, graphic });
+          // Slowed as planned, with its kills where they are in the file as read now.
+          const spec = byId.get(id)!.slow;
+          const slow = spec ? { ...spec, killsMs: this.e.highlights.partKills(c, part, p.durationMs) } : null;
+          inputs.push({ file, startMs: part.startMs, durationMs: part.durationMs, hasAudio: p.hasAudio, graphic, srcFps: p.fps, slow: null });
+          slows.push(slow);
           job.progress = ((i + 1) / ids.length) * 0.03;
         }
         const fmt = reelFormat(probed);
-        const fadeMs = inputs.length > 1 ? Math.max(0, Math.min(req.fadeMs, 2000, ...inputs.map((c) => Math.floor(c.durationMs / 3)))) : 0;
+        inputs.forEach((x, k) => (x.slow = slows[k] ? planSlow(slows[k], x.durationMs, x.srcFps ?? null, fmt.fps) : null));
+        const fadeMs = inputs.length > 1 ? Math.max(0, Math.min(req.fadeMs, 2000, ...inputs.map((c) => Math.floor(reelInputMs(c) / 3)))) : 0;
         const graph = reelGraph(inputs, { ...fmt, fadeMs });
         job.durationMs = graph.totalMs;
         mkdirSync(job.folder, { recursive: true });

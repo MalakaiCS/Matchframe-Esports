@@ -216,6 +216,20 @@ const ACTIONS: DeviceAction[] = [
     run: (e, _req, p: z.infer<typeof ClipTarget> & { pinned?: boolean }) => replayResult(e, e.autoReplay.pin(clipFor(e, p), p.pinned)),
   },
   {
+    id: "replay_slow",
+    label: "Replays: slow motion for a clip of the round, on or off (id, rank in the round's list, or next; toggles unless slow is given)",
+    permission: "replay.control",
+    params: ClipTarget.extend({ slow: z.boolean().optional() }),
+    run: (e, _req, p: z.infer<typeof ClipTarget> & { slow?: boolean }) => replayResult(e, e.autoReplay.slow(clipFor(e, p), p.slow)),
+  },
+  {
+    id: "replay_star",
+    label: "Replays: star a clip of the round for extra angles from the replay PC, played with it (id or rank in the round's list; toggles unless starred is given)",
+    permission: "replay.control",
+    params: ClipTarget.extend({ starred: z.boolean().optional() }),
+    run: (e, _req, p: z.infer<typeof ClipTarget> & { starred?: boolean }) => replayResult(e, e.autoReplay.star(clipFor(e, p), p.starred)),
+  },
+  {
     id: "teams_swap",
     label: "Teams: swap the active match's two teams on the HUDs (which team is on CT and which on T), for this map; again to swap back",
     permission: "program.control",

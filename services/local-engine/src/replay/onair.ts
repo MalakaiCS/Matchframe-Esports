@@ -41,14 +41,21 @@ const PEER_FRESH_MS = 2000;
 export class OnAirLog {
   private history: { at: number; steamId: string | null }[] = [];
   private kills: { at: number; kill: Omit<OnAirKill, "ageMs"> }[] = [];
-  /** The rounds (the main PC's numbers) whose kills the replay PC is still filming or sending, as it said when it last asked. */
-  private peer: { at: number; pendingRounds: number[] } | null = null;
+  /** The rounds (the main PC's numbers) whose kills the replay PC is still filming or sending, and whose extra angles it is filming (ADR-081), as it said when it last asked. */
+  private peer: { at: number; pendingRounds: number[]; angleRounds: number[] } | null = null;
 
   constructor(private readonly now: () => number) {}
 
-  /** The replay PC asked for the on-air state and said which rounds it still has kills of to film or send. */
-  notePeer(pendingRounds: number[]): void {
-    this.peer = { at: this.now(), pendingRounds };
+  /** The replay PC asked for the on-air state and said which rounds it still has kills of to film or send (and extra angles of). */
+  notePeer(pendingRounds: number[], angleRounds: number[] = []): void {
+    this.peer = { at: this.now(), pendingRounds, angleRounds };
+  }
+
+  /** The replay PC is linked and is filming (or about to film) an extra angle of `round` (ADR-081). */
+  peerAnglePending(round: number | null): boolean {
+    const p = this.peer;
+    if (!p || this.now() - p.at > PEER_FRESH_MS || round === null) return false;
+    return p.angleRounds.includes(round);
   }
 
   /** The replay PC is linked (asked lately) and still has kills of `round` to film or send. */

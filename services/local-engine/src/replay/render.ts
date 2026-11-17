@@ -2,7 +2,9 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import type { Encoder } from "./ffmpeg.ts";
 import { renderArgs } from "./ffmpeg.ts";
-import { filterOption, probeClip, reelFormat, reelGraph, type ProbedClip, type ReelInput } from "./reel.ts";
+import { filterOption, probeClip, reelFormat, reelGraph, reelInputMs, type ProbedClip, type ReelInput } from "./reel.ts";
+import type { SlowSpec } from "./slowmo.ts";
+import { planSlow, slowFramesOf } from "./slowmo.ts";
 
 /**
  * Rendered breaks (ADR-067): a break's chosen clips (or Test replays' samples, or highlights on air)
@@ -16,6 +18,9 @@ import { filterOption, probeClip, reelFormat, reelGraph, type ProbedClip, type R
  * point) whatever its length, and Replay out covers the end. A keyframe starts each clip (where the
  * fade into it begins), so a seek to it (Skip) is exact. The file's layout (where each clip starts)
  * comes from the clips' lengths alone, so the replay graphic follows the media source's cursor.
+ *
+ * A clip can be slowed (ADR-081, slowmo.ts): around its kills or throughout, at 50 % or 33 %. Its length
+ * in the file is then its slowed length, and the layout counts that.
  */
 
 /** The first frame held before the first clip (ms): a Stinger's cut point up to this long still opens on the clip's first frame. */
@@ -63,6 +68,8 @@ export interface RenderClip {
   file: string;
   startMs: number | null;
   durationMs: number;
+  /** Slow motion (null: real speed). Its kills are from the start of the part as asked (moved with it when the file is shorter). */
+  slow?: SlowSpec | null;
 }
 
 export interface RenderRequest {
@@ -80,6 +87,9 @@ export interface RenderRequest {
 export interface RenderedBreak {
   file: string;
   layout: BreakLayout;
+  /** Clips slowed in it, and whether their missing frames were interpolated (Smooth slow motion) or blended. */
+  slowed?: number;
+  smooth?: boolean;
   /** How long the render took (ms). */
   ms: number;
   width: number;
@@ -187,16 +197,19 @@ export const renderBreak: BreakRenderer = (req) => {
       // A part never runs past its file's end.
       const clips = req.clips.map((c, i) => {
         const d = probed[i]!.durationMs!;
-        const startMs = Math.max(0, Math.min(c.startMs ?? d - c.durationMs, d - 500));
-        return { ...c, startMs, durationMs: Math.max(500, Math.min(c.durationMs, d - startMs)) };
+        const asked = c.startMs ?? d - c.durationMs;
+        const startMs = Math.max(0, Math.min(asked, d - 500));
+        // Its kills stay where they are in the file when the part had to move.
+        const slow = c.slow ? { ...c.slow, killsMs: c.slow.killsMs.map((k) => k + asked - startMs) } : null;
+        return { ...c, startMs, durationMs: Math.max(500, Math.min(c.durationMs, d - startMs)), slow };
       });
+      const format = breakFormat(probed);
+      const inputs: ReelInput[] = clips.map((c, i) => ({ file: c.file, startMs: c.startMs, durationMs: c.durationMs, hasAudio: probed[i]!.hasAudio, graphic: null, srcFps: probed[i]!.fps, slow: c.slow ? planSlow(c.slow, c.durationMs, probed[i]!.fps, format.fps) : null }));
       const layout = breakLayout(
-        clips.map((c) => c.durationMs),
+        inputs.map((c) => reelInputMs(c)),
         req.fadeMs,
         req.audioFadeMs,
       );
-      const format = breakFormat(probed);
-      const inputs: ReelInput[] = clips.map((c, i) => ({ file: c.file, startMs: c.startMs, durationMs: c.durationMs, hasAudio: probed[i]!.hasAudio, graphic: null }));
       const cmd = renderCommand(req, inputs, format, layout, filterFile);
       writeFileSync(filterFile, cmd.filter);
       const args = [...cmd.args, partial];
@@ -228,7 +241,8 @@ export const renderBreak: BreakRenderer = (req) => {
       });
       renameSync(partial, req.outFile);
       progress = 1;
-      return { file: req.outFile, layout, ms: Date.now() - started, ...format, encoder: req.encoder, bytes: statSync(req.outFile).size };
+      const slowed = inputs.filter((c) => c.slow);
+      return { file: req.outFile, layout, ms: Date.now() - started, ...format, encoder: req.encoder, bytes: statSync(req.outFile).size, slowed: slowed.length, smooth: slowed.some((c) => c.slow!.smooth && slowFramesOf(c.slow!) > 0) };
     } finally {
       rmSync(partial, { force: true });
       rmSync(filterFile, { force: true });

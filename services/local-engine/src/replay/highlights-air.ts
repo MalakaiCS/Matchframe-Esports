@@ -7,6 +7,8 @@ import type { ProgramOwner } from "../production/program.ts";
 import type { SequenceResult, Stage } from "./auto.ts";
 import { halfRounds, isHalfStart } from "./graphic.ts";
 import type { KeptMap } from "./highlights.ts";
+import { slowInList } from "./slowmo.ts";
+import type { ReplayAngle } from "@matchframe/replay-agent";
 import { SceneTwin, HIGHLIGHTS_TWIN, REPLAY_MEDIA_SETTINGS, type TwinStatus } from "./twin.ts";
 import { VMIX_TRANSITIONS } from "./vmix.ts";
 
@@ -44,6 +46,11 @@ export const HighlightsAirSettings = z.object({
   /** vMix: to the first highlight (null: as automatic replays' Replay in), and back after the last (null: as their Replay out). */
   vmixIn: z.enum(VMIX_TRANSITIONS).nullable().default(null),
   vmixOut: z.enum(VMIX_TRANSITIONS).nullable().default(null),
+  /**
+   * Slow motion (ADR-081): each highlight slowed as automatic replays slow theirs (around the kills when
+   * theirs is off); a moment's extra angle slowed after its first clip at real time.
+   */
+  slowMotion: z.boolean().default(false),
 });
 export type HighlightsAirSettings = z.infer<typeof HighlightsAirSettings>;
 export const HighlightsAirPatch = z.object({
@@ -55,6 +62,7 @@ export const HighlightsAirPatch = z.object({
   autoMapEnd: z.boolean().optional(),
   vmixIn: HighlightsAirSettings.shape.vmixIn.unwrap().optional(),
   vmixOut: HighlightsAirSettings.shape.vmixOut.unwrap().optional(),
+  slowMotion: z.boolean().optional(),
 });
 
 /** The scene and media source "Set up OBS highlights scene" makes. */
@@ -79,6 +87,11 @@ export interface AirClip {
   reasons: string[];
   /** How much of it plays (the play and its lead-up, as replays). */
   playMs: number;
+  /** An extra angle of the clip before it (ADR-081): the player who died's view or a free camera. */
+  angle: ReplayAngle | null;
+  /** It plays slowed, and its length on air then (ms). */
+  slow: boolean;
+  onAirMs: number;
 }
 
 /** What Play would play now. */
@@ -90,7 +103,7 @@ export interface AirPlan {
   /** The half's rounds (what: half). */
   rounds: { from: number; to: number } | null;
   clips: AirClip[];
-  /** The running time: the clips at the replays' speed, less the fades between them. */
+  /** The running time: the clips on air (slow motion counted), less the fades between them. */
   totalMs: number;
 }
 
@@ -230,7 +243,8 @@ export class HighlightsOnAir {
    * a second (the tally and the panel ask often; each kept file is looked at), unless `fresh`.
    */
   plan(st: HighlightsAirSettings = this.settings(), fresh = false): AirPlan | null {
-    const key = JSON.stringify([st.what, st.count, st.unplayed, this.e.highlights.current()?.key ?? null]);
+    const rs = this.e.autoReplay.settings();
+    const key = JSON.stringify([st.what, st.count, st.unplayed, st.slowMotion, rs.slowMotion, rs.slowSpeed, rs.multiAngle, rs.mixer, rs.playback, this.e.highlights.current()?.key ?? null]);
     const cached = this.planCache;
     if (!fresh && cached && cached.key === key && this.e.now() - cached.at < PLAN_CACHE_MS) return cached.plan;
     const plan = this.makePlan(st);
@@ -244,12 +258,19 @@ export class HighlightsOnAir {
     if (!map) return null;
     const last = st.what === "half" ? h.lastRound(map) : null;
     const rounds = last !== null ? halfRounds(last, this.regulation()) : null;
-    const chosen = h.choose(map, { count: st.count, unplayed: st.unplayed, rounds });
-    const clips: AirClip[] = chosen.map(({ c, score, reasons }) => ({ id: c.id, label: c.label, roundNumber: c.roundNumber, played: c.played, score, reasons, playMs: c.playMs ?? c.media.durationMs ?? 8000 }));
     const rs = this.e.autoReplay.settings();
-    const media = clips.reduce((n, c) => n + c.playMs, 0);
+    // A moment's extra angles follow it (ADR-081), unless multi-angle replays are off.
+    const chosen = h.choose(map, { count: st.count, unplayed: st.unplayed, rounds, angles: rs.multiAngle !== "off" });
+    const items = chosen.map(({ c }) => h.asItem(c));
+    const mode = this.e.autoReplay.highlightSlowMode();
+    const clips: AirClip[] = chosen.map(({ c, score, reasons }, k) => {
+      const playMs = c.playMs ?? c.media.durationMs ?? 8000;
+      const slow = st.slowMotion && slowInList(items, k);
+      return { id: c.id, label: c.label, roundNumber: c.roundNumber, played: c.played, score, reasons, playMs, angle: c.angle ?? null, slow, onAirMs: Math.round(this.e.autoReplay.clipOnAirMs(items[k]!, playMs, slow, mode)) };
+    });
+    const onAir = clips.reduce((n, c) => n + c.onAirMs, 0);
     const fades = rs.between === "fade" ? rs.fadeMs * Math.max(0, clips.length - 1) : 0;
-    return { mapKey: map.key, mapName: map.mapName, title: map.title, what: st.what, rounds, clips, totalMs: Math.max(0, Math.round((media * 100) / rs.speedPercent) - fades) };
+    return { mapKey: map.key, mapName: map.mapName, title: map.title, what: st.what, rounds, clips, totalMs: Math.max(0, onAir - fades) };
   }
 
   // ------------------------------------------------------------------ playing
@@ -306,7 +327,7 @@ export class HighlightsOnAir {
       const from = this.e.program.mode === "MANUAL" ? (this.e.program.operatorScene ?? "MANUAL") : this.e.program.mode;
       const auto = by.owner === "automation";
       // (Sets the replays playing at once: from here, Skip, Hold and Stop act on the highlights.)
-      const run = this.e.autoReplay.playHighlights(items, this.stage(by.owner));
+      const run = this.e.autoReplay.playHighlights(items, this.stage(by.owner), { slow: this.settings().slowMotion });
       this.e.audit.record(by.who, "highlights.on_air", plan.mapKey, { clips: plan.clips.length, what: plan.what, rounds: plan.rounds, from, mixer: this.e.autoReplay.settings().mixer });
       void run.then(
         (r) => this.finished(r, auto),

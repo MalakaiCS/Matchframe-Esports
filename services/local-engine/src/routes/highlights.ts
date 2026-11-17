@@ -14,6 +14,8 @@ const Choice = z.object({
   count: z.union([z.literal("all"), z.number().int().min(1).max(60)]).default("all"),
   unplayed: z.boolean().default(false),
   fadeMs: z.number().int().min(0).max(2000).default(500),
+  /** Slow motion at the kills, as automatic replays slow (ADR-081). */
+  slowMotion: z.boolean().default(false),
 });
 
 /** Highlight reels (ADR-061): the kept clips per map, a reel's plan, and making it with ffmpeg. Highlights on air (ADR-063). */

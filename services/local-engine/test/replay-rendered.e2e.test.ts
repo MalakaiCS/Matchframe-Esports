@@ -9,6 +9,7 @@ import { buildSyntheticGsiPayload, syntheticRoster } from "../../../packages/cs2
 import { Engine } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
 import { breakLayout, LEAD_MS, renderBreak, TAIL_MS, type RenderedBreak, type RenderJob, type RenderRequest } from "../src/replay/render.ts";
+import { slowOutMs } from "../src/replay/slowmo.ts";
 import { TEST_CLIPS, testClipsDir } from "../src/replay/test-run.ts";
 import { startServers } from "../src/servers.ts";
 import { StandInObs } from "./stand-in-obs.ts";
@@ -89,9 +90,9 @@ describe("Replay break: one rendered file in the replay scene", () => {
     return { status: r.status, json: (await r.json()) as Record<string, unknown> };
   };
   const clip = (round: number, path: string): ClipRecord => ({ clipId: `c${Math.random()}`, providerId: "replay-pc", sourceId: "replay-pc", angle: "recorded_angle", matchTimeFromMs: null, matchTimeToMs: null, timeUncertaintyMs: null, epoch: null, roundNumber: round, media: { path, durationMs: DURATION, frameRate: 30, timebase: null, startPts: null, hasAudio: true, width: 1920, height: 1072 }, createdAt: new Date().toISOString() });
-  const add = (round: number, label: string, kills: number, path: string) => {
-    const play: ReplayPlay = { kind: "missed", killer: { steamId: `k-${label}`, name: label }, victims: [`v-${label}`], kills, weapon: "ak47", headshot: false };
-    return e.replays.addExternal(label, play.kind, round, clip(round, path), { playMs: PLAY, leadMs: 1000, play });
+  const add = (round: number, label: string, kills: number, path: string, extra: { killsMs?: number[]; angle?: "victim" | "free"; momentOf?: string; killer?: string } = {}) => {
+    const play: ReplayPlay = { kind: "missed", killer: { steamId: `k-${extra.killer ?? label}`, name: extra.killer ?? label }, victims: [`v-${extra.killer ?? label}`], kills, weapon: "ak47", headshot: false };
+    return e.replays.addExternal(label, play.kind, round, clip(round, path), { playMs: PLAY, leadMs: 1000, play, ...(extra.killsMs ? { killsMs: extra.killsMs } : {}), ...(extra.angle ? { angle: extra.angle, momentOf: extra.momentOf } : {}) });
   };
   const done = () => e.autoReplay.getStatus().detail.startsWith("Replays for this break are done");
   const settle = () => sleep(700);
@@ -140,8 +141,9 @@ describe("Replay break: one rendered file in the replay scene", () => {
     e.ffmpeg.pickEncoder = async () => "h264_nvenc";
     e.autoReplay.renderer = (req): RenderJob => {
       render.requests.push(req);
+      // (Slowed clips at their slowed length, as render.ts lays them out.)
       const layout = breakLayout(
-        req.clips.map((c) => c.durationMs),
+        req.clips.map((c) => slowOutMs(c.slow ?? null, c.durationMs)),
         req.fadeMs,
         req.audioFadeMs,
       );
@@ -153,7 +155,7 @@ describe("Replay break: one rendered file in the replay scene", () => {
           if (render.fail) return reject(new Error(render.fail));
           writeFileSync(req.outFile, Buffer.alloc(64));
           o.durations.set(req.outFile, layout.totalMs);
-          resolve({ file: req.outFile, layout, ms: Date.now() - started, width: 1920, height: 1072, fps: 29.97, encoder: req.encoder, bytes: 64 });
+          resolve({ file: req.outFile, layout, ms: Date.now() - started, width: 1920, height: 1072, fps: 29.97, encoder: req.encoder, bytes: 64, slowed: req.clips.filter((c) => c.slow).length, smooth: false });
         }, render.delayMs);
       });
       return {
@@ -165,7 +167,8 @@ describe("Replay break: one rendered file in the replay scene", () => {
         },
       };
     };
-    e.autoReplay.setSettings({ enabled: true, startDelayMs: 0, perBreak: 3, order: "best", ownBigPlays: false, between: "fade", fadeMs: FADE, audioFadeMs: 300, duckInputs: ["Game audio"], duckTo: -20, duckRampMs: 100 });
+    // (These tests time the file exactly at real speed: slow motion has its own below.)
+    e.autoReplay.setSettings({ enabled: true, startDelayMs: 0, perBreak: 3, order: "best", ownBigPlays: false, between: "fade", fadeMs: FADE, audioFadeMs: 300, duckInputs: ["Game audio"], duckTo: -20, duckRampMs: 100, slowMotion: "off", multiAngle: "off" });
     expect(e.autoReplay.settings().playback).toBe("rendered");
   });
 
@@ -360,6 +363,96 @@ describe("Replay break: one rendered file in the replay scene", () => {
       render.delayMs = 300;
     }
   }, 20000);
+
+  it("slow motion around each kill (ADR-081): the file is asked for each clip's kills at the slow speed, the operator's Slow turns a clip off, the cursor follows the slowed layout", async () => {
+    e.autoReplay.setSettings({ slowMotion: "kill", slowSpeed: 50 });
+    try {
+      await feed("live", 22);
+      const round = e.session.state()!.roundNumber!;
+      const triple = add(round, "triple", 3, files[0]!, { killsMs: [700, 1100, 1500] });
+      const double = add(round, "double", 2, files[1]!);
+      add(round, "single", 1, files[2]!);
+      // The operator: the double at real time.
+      expect((await api(`/api/v1/replays/auto/clips/${double.id}`, { slow: false }, "PUT")).status).toBe(200);
+      const ranked = e.autoReplay.getStatus().ranked;
+      expect(ranked.map((r) => [r.label, r.slow, r.slowSet])).toEqual([
+        ["triple", true, false],
+        ["double", false, true],
+        ["single", true, false],
+      ]);
+      render.requests.length = 0;
+      const w = watch();
+      await feed("over", 22);
+      await waitFor(done, 20000);
+      w.stop();
+      await settle();
+      const req = render.requests[0]!;
+      expect(req.clips.map((c) => c.slow)).toEqual([
+        { mode: "kill", speedPercent: 50, killsMs: [700, 1100, 1500], smooth: false, audio: "mute" },
+        null,
+        { mode: "kill", speedPercent: 50, killsMs: [1000], smooth: false, audio: "mute" },
+      ]);
+      // The file's layout has the slowed lengths, and the status follows it from clip to clip.
+      const lengths = req.clips.map((c) => slowOutMs(c.slow ?? null, c.durationMs));
+      expect(lengths[0]).toBeGreaterThan(PLAY + 1300);
+      expect(lengths[1]).toBe(PLAY);
+      const layout = breakLayout(lengths, FADE, 300);
+      const lines = w.seen.filter((x) => x.detail.startsWith("Replay "));
+      expect(lines.map((x) => x.detail)).toEqual(["Replay 1 of 3: triple", "Replay 2 of 3: double", "Replay 3 of 3: single"]);
+      for (const k of [1, 2]) {
+        expect(lines[k]!.cursorMs, `clip ${k + 1}`).toBeGreaterThanOrEqual(layout.starts[k]!);
+        expect(lines[k]!.cursorMs, `clip ${k + 1}`).toBeLessThanOrEqual(layout.starts[k]! + 130);
+      }
+      expect(e.autoReplay.getStatus().render!.detail).toMatch(/^3 clips rendered into one file in \d+\.\d s \(h264_nvenc, 1920×1072, 2 in slow motion\)\.$/);
+      expect(triple.state).toBe("played");
+    } finally {
+      e.autoReplay.setSettings({ slowMotion: "off" });
+    }
+  }, 40000);
+
+  it("multi-angle (ADR-081): the round's top kill is asked for from the player who died's view; once it comes it plays straight after its moment, slowed, the moment's first clip at real time; a starred kill is asked for first", async () => {
+    e.autoReplay.setSettings({ slowMotion: "kill", multiAngle: "top", angleViews: "victim" });
+    try {
+      await feed("live", 24);
+      const round = e.session.state()!.roundNumber!;
+      const top = add(round, "top", 3, files[0]!);
+      const single = add(round, "single", 1, files[1]!);
+      // What the replay PC is asked to film again: the top kill, from the player who died's view.
+      const onAir = async () => (await api("/api/v1/replay-link/on-air", undefined, "GET")).json.angles as { id: string; views: string[]; round: number; killer: { steamId: string }; victims: string[] }[];
+      expect(await onAir()).toEqual([{ id: top.id, round, killer: { steamId: "k-top", name: "top" }, victims: ["v-top"], views: ["victim"] }]);
+      // Starred: asked for first.
+      expect((await api(`/api/v1/replays/auto/clips/${single.id}`, { starred: true }, "PUT")).status).toBe(200);
+      expect((await onAir()).map((a) => a.id)).toEqual([single.id, top.id]);
+      expect((await api(`/api/v1/replays/auto/clips/${single.id}`, { starred: false }, "PUT")).status).toBe(200);
+      // The angle comes in (the replay PC's second pass): no longer asked for, listed under its moment, not ranked by itself.
+      const angle = add(round, "top · victim's view", 3, files[2]!, { angle: "victim", momentOf: top.id, killer: "top" });
+      expect(await onAir()).toEqual([]);
+      const ranked = e.autoReplay.getStatus().ranked;
+      expect(ranked.map((r) => r.label)).toEqual(["top", "single"]);
+      expect(ranked[0]!.angles).toEqual([{ id: angle.id, label: "top · victim's view", angle: "victim", state: "waiting", excluded: false, slow: true, slowSet: false }]);
+      expect(ranked[0]!.slow).toBe(false);
+      // An extra angle can't be starred.
+      expect((await api(`/api/v1/replays/auto/clips/${angle.id}`, { starred: true }, "PUT")).status).toBe(409);
+      render.requests.length = 0;
+      const w = watch();
+      await feed("over", 24);
+      await waitFor(done, 20000);
+      w.stop();
+      await settle();
+      // The moment, then its angle (slowed), then the next clip (slowed).
+      const req = render.requests[0]!;
+      expect(req.clips.map((c) => [c.file, c.slow?.mode ?? null])).toEqual([
+        [files[0], null],
+        [files[2], "kill"],
+        [files[1], "kill"],
+      ]);
+      expect(w.seen.filter((x) => x.detail.startsWith("Replay ")).map((x) => x.detail)).toEqual(["Replay 1 of 3: top", "Replay 2 of 3: top · victim's view", "Replay 3 of 3: single"]);
+      expect([top.state, angle.state, single.state]).toEqual(["played", "played", "played"]);
+      expect(e.autoReplay.getStatus().ranked[0]!.angles[0]!.state).toBe("played");
+    } finally {
+      e.autoReplay.setSettings({ slowMotion: "off", multiAngle: "off" });
+    }
+  }, 40000);
 
   it("Test replays play their sample clips through the same rendered file, and the report says so", async () => {
     const samples = testClipsDir()!;
