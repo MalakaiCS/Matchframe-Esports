@@ -1,4 +1,4 @@
-import { fork, type ChildProcess } from "node:child_process";
+import { fork, spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { delimiter, extname, isAbsolute, join, resolve, sep } from "node:path";
@@ -13,8 +13,10 @@ import { OverlayStore } from "./hud/store.ts";
 import type { Library } from "./hud/types.ts";
 import { hlaeInfo, startCs2, type PreparedLaunch } from "./game-launch.ts";
 import { DEVICE_ACTION, HIGHLIGHT_KEY_ACTIONS, ReplayHotkeys, TEAM_KEY_ACTIONS, type ReplayKeyAction, type ReplayKeys } from "./replay-hotkeys.ts";
+import { createRollback, type Rollback } from "./rollback.ts";
 import { createTray, type ProgramTray } from "./tray.ts";
 import { createUpdater, type Updater } from "./updater.ts";
+import { parseChannel, type UpdateChannel } from "./versions.ts";
 
 /**
  * MatchFrame Esports program (Windows desktop app). The operator console is bundled into the
@@ -75,11 +77,14 @@ let overlays: OverlayManager | null = null;
 let hotkeys: HotkeyManager | null = null;
 let tray: ProgramTray | null = null;
 let updater: Updater | null = null;
+let rollback: Rollback | null = null;
 let replayKeys: ReplayHotkeys | null = null;
 
 /** Small program preferences (not engine settings): `<userData>/program-settings.json`. */
 interface ProgramSettings {
   autoDownloadUpdates: boolean;
+  /** Stable (default) or Beta: GitHub prereleases too (ADR-076). */
+  updateChannel: UpdateChannel;
   /** HLAE.exe for the Start CS2 HLAE mode (chosen by the operator on this computer). */
   hlaePath: string | null;
   /** The engine listens on the network (a replay PC or another operator position connects), not only on this computer. */
@@ -91,9 +96,15 @@ const programSettingsFile = () => join(app.getPath("userData"), "program-setting
 function readProgramSettings(): ProgramSettings {
   try {
     const raw = JSON.parse(readFileSync(programSettingsFile(), "utf8")) as Partial<ProgramSettings>;
-    return { autoDownloadUpdates: raw.autoDownloadUpdates !== false, hlaePath: typeof raw.hlaePath === "string" ? raw.hlaePath : null, networkAccess: raw.networkAccess === true, replayHotkeys: raw.replayHotkeys && typeof raw.replayHotkeys === "object" ? raw.replayHotkeys : {} };
+    return {
+      autoDownloadUpdates: raw.autoDownloadUpdates !== false,
+      updateChannel: parseChannel(raw.updateChannel),
+      hlaePath: typeof raw.hlaePath === "string" ? raw.hlaePath : null,
+      networkAccess: raw.networkAccess === true,
+      replayHotkeys: raw.replayHotkeys && typeof raw.replayHotkeys === "object" ? raw.replayHotkeys : {},
+    };
   } catch {
-    return { autoDownloadUpdates: true, hlaePath: null, networkAccess: false, replayHotkeys: {} };
+    return { autoDownloadUpdates: true, updateChannel: "stable", hlaePath: null, networkAccess: false, replayHotkeys: {} };
   }
 }
 function writeProgramSettings(patch: Partial<ProgramSettings>): void {
@@ -300,11 +311,17 @@ function startEngine(): void {
   engine = child;
   child.stdout?.on("data", (d: Buffer) => process.stdout.write(d));
   child.stderr?.on("data", (d: Buffer) => process.stderr.write(d));
-  child.on("message", (m: { type?: string; operatorToken?: string }) => {
+  child.on("message", (m: { type?: string; operatorToken?: string; message?: string }) => {
     if (m?.type === "ready") {
       operatorToken = m.operatorToken ?? null;
       restarts = 0;
       if (connection.mode === "local") showConsole();
+    }
+    // The data was saved by a newer version (ADR-076): the engine didn't open it, and starting it
+    // again can't help.
+    if (m?.type === "fatal") {
+      engineWanted = false;
+      void showNewerDataRefusal(m.message ?? "Your data is from a newer version of MatchFrame.");
     }
   });
   child.on("exit", (code) => {
@@ -326,6 +343,43 @@ function stopEngine(): void {
   engineWanted = false;
   operatorToken = null;
   engine?.send({ type: "shutdown" });
+}
+
+/** Stops the engine and resolves once it has exited (Go back to a previous version restores data with it stopped). */
+function stopEngineAndWait(): Promise<void> {
+  const child = engine;
+  engineWanted = false;
+  operatorToken = null;
+  if (!child || child.exitCode !== null) return Promise.resolve();
+  return new Promise((resolve) => {
+    const kill = setTimeout(() => child.exitCode === null && child.kill(), 8000);
+    child.once("exit", () => {
+      clearTimeout(kill);
+      resolve();
+    });
+    try {
+      child.send({ type: "shutdown" });
+    } catch {
+      child.kill();
+    }
+  });
+}
+
+const RELEASES_PAGE = "https://github.com/MalakaiCS/Matchframe-Esports/releases";
+
+async function showNewerDataRefusal(message: string): Promise<void> {
+  const r = await dialog.showMessageBox({
+    type: "error",
+    title: "MatchFrame can't open your data",
+    message: "Your data is from a newer version of MatchFrame",
+    detail: message,
+    buttons: ["Open the releases page", "Quit"],
+    defaultId: 0,
+    cancelId: 1,
+    noLink: true,
+  });
+  if (r.response === 0) await shell.openExternal(RELEASES_PAGE);
+  app.quit();
 }
 
 // ------------------------------------------------------------------ window
@@ -589,6 +643,21 @@ ipcMain.handle("mf:update-install", (event) => {
   if (fromApp(event)) updater?.installNow();
 });
 ipcMain.handle("mf:update-auto", (event, on: unknown) => (fromApp(event) && updater && typeof on === "boolean" ? updater.setAutoDownload(on) : null));
+ipcMain.handle("mf:update-channel", (event, channel: unknown) => (fromApp(event) && updater && (channel === "stable" || channel === "beta") ? updater.setChannel(channel) : null));
+// Go back to a previous version (rollback.ts): `{ ok, value | error }`, as the desktop HUD calls.
+ipcMain.handle("mf:rollback-list", async (event) => {
+  if (!fromApp(event) || fromApp(event, "/connect") || !rollback) return { ok: false, error: "not available" };
+  try {
+    return { ok: true, value: await rollback.list() };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+});
+ipcMain.handle("mf:rollback-start", async (event, version: unknown, opts: unknown) => {
+  if (!fromApp(event) || fromApp(event, "/connect") || !rollback || typeof version !== "string") return { ok: false, error: "not allowed" };
+  const toStable = !!opts && typeof opts === "object" && (opts as { toStable?: unknown }).toStable === true;
+  return { ok: true, value: await rollback.start(version, { toStable }) };
+});
 // Start CS2: the engine prepares it (GSI config, launch options, console); this process starts
 // Steam, or HLAE (a program the operator chose on this computer). Nothing else can be started.
 ipcMain.handle("mf:launch-cs2", async (event) => {
@@ -776,11 +845,51 @@ if (!app.requestSingleInstanceLock()) {
     updater = createUpdater({
       autoDownload: readProgramSettings().autoDownloadUpdates,
       saveAutoDownload: (on) => writeProgramSettings({ autoDownloadUpdates: on }),
+      channel: readProgramSettings().updateChannel,
+      saveChannel: (channel) => writeProgramSettings({ updateChannel: channel }),
       onChange: (st) => {
         if (win && !win.isDestroyed()) win.webContents.send("mf:update", st);
       },
       beforeInstall: () => console.log("installing the downloaded update"),
       log: (msg) => console.log(msg),
+    });
+    rollback = createRollback({
+      currentVersion: app.getVersion(),
+      dataDir: dataDir(),
+      downloadDir: join(app.getPath("temp"), "MatchFrame go back"),
+      fetch: (url, init) => net.fetch(url, init),
+      // Loaded only when needed: it reads the engine's SQLite database (node:sqlite).
+      data: () => import("../../../services/local-engine/src/db/version-backups.ts"),
+      confirm: async (c) => {
+        const options = { type: "warning" as const, title: c.title, message: c.message, detail: c.detail, buttons: ["Cancel", c.ok], defaultId: 0, cancelId: 0, noLink: true };
+        return (await (win && !win.isDestroyed() ? dialog.showMessageBox(win, options) : dialog.showMessageBox(options))).response === 1;
+      },
+      stopEngine: stopEngineAndWait,
+      startEngine: () => {
+        if (connection.mode === "local") startEngine();
+      },
+      install: (file) => {
+        // The earlier version must not download the newer one again and install it on its next quit.
+        writeProgramSettings({ autoDownloadUpdates: false });
+        updater?.skipInstallOnQuit();
+        // As an update installs (electron-updater's NSIS flags): silent, the registered folder, user
+        // data kept (--updated), and the program started when it's done.
+        const installer = spawn(file, ["--updated", "/S", "--force-run"], { detached: true, stdio: "ignore" });
+        installer.once("spawn", () => {
+          installer.unref();
+          app.quit();
+        });
+        // The data is already in the earlier version's format; this version would only migrate it again (keeping a copy).
+        installer.once("error", (e) => {
+          console.error(`[go back] the installer did not start: ${e.message}`);
+          dialog.showErrorBox("MatchFrame", `The installer didn't start (${e.message}). You can run it yourself: ${file}`);
+          if (connection.mode === "local") startEngine();
+        });
+      },
+      progress: (p) => {
+        if (win && !win.isDestroyed()) win.webContents.send("mf:rollback", p);
+      },
+      log: (msg) => console.log(`[go back] ${msg}`),
     });
     if (connection.mode === "remote") showConsole();
     else startEngine();

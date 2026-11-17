@@ -4,7 +4,7 @@ MatchFrame opens into the **HUD Library**: the HUDs installed on this computer, 
 
 ## Install
 
-1. Run `MatchFrameEsports-Setup-<version>.exe` (per-user install, no administrator rights; unsigned development builds show a SmartScreen prompt: More info → Run anyway). Nothing else is needed: no Node.js, npm or development server.
+1. Run `MatchFrameEsports-Setup-<version>.exe` (per-user install, no administrator rights; unsigned builds show a SmartScreen prompt: More info → Run anyway; see [code signing](code-signing.md)). Nothing else is needed: no Node.js, npm or development server.
 2. Start **MatchFrame Esports**. The program starts its local HUD server automatically (`127.0.0.1`, ports 37210 for game data, 37211 for the program, 37212 for HUD outputs) and opens the HUD Library. The bottom status bar shows the server, active HUD outputs and the last game-data update.
 3. The library already contains:
    - the **MatchFrame Broadcast HUD** (built in);
@@ -34,6 +34,11 @@ The program updates itself from the MatchFrame Esports releases on GitHub, so yo
 - When the update is ready, the status bar shows **Update <version> ready · Restart now**. Restarting closes the program and every HUD output for a moment, so do it between matches. Otherwise the update installs the next time you quit the program.
 - The program never restarts on its own during a broadcast. **Check for updates** and **What's new** are in **Settings → General → Program**.
 - Updates keep your HUDs, settings and sign-in. Version 0.2.0 has no updater: install the next version once by hand, and updates are automatic from then on.
+- **Update channel** (**Settings → General → Program**): **Stable** (the default) gets released versions only. **Beta** also gets beta versions (such as 0.13.0-beta.1) as soon as they're out; they may have problems, so use Beta on a computer you can afford to have trouble with. Going back from Beta to Stable offers the latest Stable version even when it's older than your beta: **Install <version>…** downloads it, checks it and asks you first, exactly like going back to a previous version (below). Nothing is installed until you say so.
+- **Go back to a previous version** (**Settings → General → Program**) lists the earlier Stable versions on GitHub and what going back to each one does to your data. Choosing one downloads its installer, checks it against the release's `SHA256SUMS.txt`, tells you what happens and asks. The program and every HUD output then close, the earlier version installs in the same place and starts. Your HUD files and program settings stay. Automatic update downloads are turned off afterwards, so the program doesn't update straight back; turn them on again when you're ready.
+  - **Your data:** MatchFrame keeps a copy of its database (teams, players, matches, HUD and other settings) whenever an update changes the database's format, in `%APPDATA%\MatchFrame Esports\backups`, named with the version it came from. If the version you go back to reads today's data, nothing is restored and nothing is lost. If it reads an older format, the copy made when you updated is restored, and **changes made since then are lost**; the data from before going back is kept as another copy in the same folder. If there's no copy that version can read (for example a version this computer never ran), MatchFrame says so and won't go back.
+  - Opening data saved by a newer version is refused by versions after 0.12.4, with a message saying which version saved it; reinstall that version, or go back properly from it. Versions up to 0.12.4 don't have that check, which is why going back always restores the right copy first.
+- **Signed releases:** once the owner adds a code-signing certificate ([code signing](code-signing.md)), Windows shows MatchFrame's publisher name instead of "Unknown publisher". Programs installed from a signed release accept only updates signed by the same publisher.
 
 ## The library page
 

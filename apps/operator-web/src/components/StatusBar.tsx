@@ -108,7 +108,7 @@ function UpdateItem() {
   return (
     <Link to="/settings" className="sb-item sb-link" title={updateSummary(st)} data-sb="update">
       <Icon name="upload" size={14} />
-      <span>{st.status === "available" ? `Update ${st.version} available` : `Downloading ${st.version}`}</span>
+      <span>{st.status === "available" ? (st.downgrade ? `Stable ${st.version} available` : `Update ${st.version} available`) : `Downloading ${st.version}`}</span>
       {st.percent !== null && st.status === "downloading" ? <span className="sb-meta">{st.percent} %</span> : null}
     </Link>
   );

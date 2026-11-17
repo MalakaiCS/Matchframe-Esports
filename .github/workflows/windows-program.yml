@@ -16,7 +16,19 @@
 # publishing the release first (notes from docs/release-notes/<version>-dev.md) when there is none.
 # A tag that does not exist yet is created by the release, on the commit of the branch the run was
 # started from (that commit is what gets built).
-# Builds are unsigned unless CSC_LINK / CSC_KEY_PASSWORD secrets are configured.
+#
+# Betas (ADR-076): a version with a prerelease suffix (0.13.0-beta.1, tag v0.13.0-beta.1) writes
+# beta.yml instead of latest.yml and is released as a GitHub prerelease, which only programs on the
+# Beta update channel take. Stable tags work as before.
+#
+# Code signing (ADR-076, docs/operations/code-signing.md): unsigned, exactly as before, unless signing
+# secrets are set. Azure Artifact Signing (formerly Trusted Signing): secrets AZURE_TENANT_ID,
+# AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and variables (or secrets) AZURE_SIGNING_ENDPOINT,
+# AZURE_SIGNING_ACCOUNT_NAME, AZURE_SIGNING_CERTIFICATE_PROFILE, AZURE_SIGNING_PUBLISHER_NAME. A
+# certificate authority's signing tool: WIN_SIGN_COMMAND and WIN_SIGN_PUBLISHER_NAME (custom-sign.mjs).
+# An existing PFX certificate: secrets CSC_LINK (the .pfx in base64) and CSC_KEY_PASSWORD. Signed
+# builds are checked with Get-AuthenticodeSignature (installer, program and the installed program must
+# be Valid; the signer is printed).
 name: Windows program (.exe)
 
 on:
@@ -133,19 +145,117 @@ jobs:
         continue-on-error: ${{ github.event_name == 'push' }}
         run: node scripts/write-cloud-config.mjs "${{ env.MATCHFRAME_WEBSITE_URL }}"
 
-      - name: Package the installer (.exe) and portable zip
-        run: pnpm --filter @matchframe/desktop run package:win
+      # Azure Artifact Signing when all of its settings are there, else a certificate authority's own
+      # signing tool when WIN_SIGN_COMMAND is there, else a PFX certificate when CSC_LINK is there, else
+      # unsigned (as before). A half-set method stops the build rather than releasing an unsigned
+      # program by mistake.
+      - name: Choose code signing
+        id: sign
+        shell: bash
         env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT || secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT_NAME: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME || secrets.AZURE_SIGNING_ACCOUNT_NAME }}
+          AZURE_SIGNING_CERTIFICATE_PROFILE: ${{ vars.AZURE_SIGNING_CERTIFICATE_PROFILE || secrets.AZURE_SIGNING_CERTIFICATE_PROFILE }}
+          AZURE_SIGNING_PUBLISHER_NAME: ${{ vars.AZURE_SIGNING_PUBLISHER_NAME || secrets.AZURE_SIGNING_PUBLISHER_NAME }}
+          WIN_SIGN_COMMAND: ${{ vars.WIN_SIGN_COMMAND || secrets.WIN_SIGN_COMMAND }}
+          WIN_SIGN_PUBLISHER_NAME: ${{ vars.WIN_SIGN_PUBLISHER_NAME || secrets.WIN_SIGN_PUBLISHER_NAME }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          check() { # method label names...: all set, none set, or stop the build
+            local label=$1 present="" missing="" name; shift
+            for name in "$@"; do if [ -n "${!name}" ]; then present="$present $name"; else missing="$missing $name"; fi; done
+            if [ -n "$present" ] && [ -n "$missing" ]; then echo "::error::$label is only partly set up; missing:$missing (see docs/operations/code-signing.md)"; exit 1; fi
+            [ -n "$present" ]
+          }
+          if check "Azure Artifact Signing" AZURE_TENANT_ID AZURE_CLIENT_ID AZURE_CLIENT_SECRET AZURE_SIGNING_ENDPOINT AZURE_SIGNING_ACCOUNT_NAME AZURE_SIGNING_CERTIFICATE_PROFILE AZURE_SIGNING_PUBLISHER_NAME; then
+            method=azure; echo "Signing with Azure Artifact Signing (publisher: $AZURE_SIGNING_PUBLISHER_NAME)"
+          elif check "The custom signing command" WIN_SIGN_COMMAND WIN_SIGN_PUBLISHER_NAME; then
+            method=custom; echo "Signing with the custom signing command (publisher: $WIN_SIGN_PUBLISHER_NAME)"
+          elif [ -n "$CSC_LINK" ]; then
+            method=pfx; echo "Signing with the PFX certificate (CSC_LINK)"
+          else
+            method=none; echo "No signing secrets: building unsigned"
+          fi
+          echo "method=$method" >> "$GITHUB_OUTPUT"
+
+      - name: Package the installer (.exe) and portable zip
+        shell: bash
+        env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          SIGN_METHOD: ${{ steps.sign.outputs.method }}
+          # PFX certificate (only when that's the method).
+          CSC_LINK: ${{ steps.sign.outputs.method == 'pfx' && secrets.CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ steps.sign.outputs.method == 'pfx' && secrets.CSC_KEY_PASSWORD || '' }}
+          # Azure Artifact Signing: electron-builder's TrustedSigning module signs in as this app registration.
+          AZURE_TENANT_ID: ${{ steps.sign.outputs.method == 'azure' && secrets.AZURE_TENANT_ID || '' }}
+          AZURE_CLIENT_ID: ${{ steps.sign.outputs.method == 'azure' && secrets.AZURE_CLIENT_ID || '' }}
+          AZURE_CLIENT_SECRET: ${{ steps.sign.outputs.method == 'azure' && secrets.AZURE_CLIENT_SECRET || '' }}
+          AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT || secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT_NAME: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME || secrets.AZURE_SIGNING_ACCOUNT_NAME }}
+          AZURE_SIGNING_CERTIFICATE_PROFILE: ${{ vars.AZURE_SIGNING_CERTIFICATE_PROFILE || secrets.AZURE_SIGNING_CERTIFICATE_PROFILE }}
+          AZURE_SIGNING_PUBLISHER_NAME: ${{ vars.AZURE_SIGNING_PUBLISHER_NAME || secrets.AZURE_SIGNING_PUBLISHER_NAME }}
+          # Custom signing command (apps/desktop/custom-sign.mjs runs it for each file).
+          WIN_SIGN_COMMAND: ${{ steps.sign.outputs.method == 'custom' && (vars.WIN_SIGN_COMMAND || secrets.WIN_SIGN_COMMAND) || '' }}
+          WIN_SIGN_PUBLISHER_NAME: ${{ vars.WIN_SIGN_PUBLISHER_NAME || secrets.WIN_SIGN_PUBLISHER_NAME }}
+        # Azure's and the custom command's settings go on the command line (electron-builder merges them
+        # into electron-builder.yml): electron-builder signs whenever win.azureSignOptions or
+        # win.signtoolOptions.sign is set, so the file can't hold them.
+        run: |
+          args=()
+          if [ "$SIGN_METHOD" = azure ]; then
+            args+=("-c.win.azureSignOptions.publisherName=$AZURE_SIGNING_PUBLISHER_NAME")
+            args+=("-c.win.azureSignOptions.endpoint=$AZURE_SIGNING_ENDPOINT")
+            args+=("-c.win.azureSignOptions.codeSigningAccountName=$AZURE_SIGNING_ACCOUNT_NAME")
+            args+=("-c.win.azureSignOptions.certificateProfileName=$AZURE_SIGNING_CERTIFICATE_PROFILE")
+          elif [ "$SIGN_METHOD" = custom ]; then
+            args+=("-c.win.signtoolOptions.sign=./custom-sign.mjs")
+            args+=("-c.win.signtoolOptions.publisherName=$WIN_SIGN_PUBLISHER_NAME")
+          fi
+          pnpm --filter @matchframe/desktop run package:win "${args[@]}"
+
+      - name: Check the code signature (signed builds)
+        if: steps.sign.outputs.method != 'none'
+        shell: pwsh
+        env:
+          SIGN_METHOD: ${{ steps.sign.outputs.method }}
+          EXPECTED_PUBLISHER: ${{ steps.sign.outputs.method == 'azure' && (vars.AZURE_SIGNING_PUBLISHER_NAME || secrets.AZURE_SIGNING_PUBLISHER_NAME) || steps.sign.outputs.method == 'custom' && (vars.WIN_SIGN_PUBLISHER_NAME || secrets.WIN_SIGN_PUBLISHER_NAME) || '' }}
+        run: |
+          $setup = (Get-ChildItem apps/desktop/release/MatchFrameEsports-Setup-*.exe | Select-Object -First 1).FullName
+          $program = (Resolve-Path 'apps/desktop/release/win-unpacked/MatchFrame Esports.exe').Path
+          foreach ($file in @($setup, $program)) {
+            $sig = Get-AuthenticodeSignature -FilePath $file
+            "$(Split-Path $file -Leaf): $($sig.Status), signed by $($sig.SignerCertificate.Subject)"
+            if ($sig.Status -ne 'Valid') { throw "$(Split-Path $file -Leaf) is not validly signed ($($sig.Status): $($sig.StatusMessage))" }
+          }
+          # Installed programs accept only updates signed by the publisher named in app-update.yml.
+          $updateYml = Get-Content apps/desktop/release/win-unpacked/resources/app-update.yml -Raw
+          if ($updateYml -notmatch 'publisherName') { throw "app-update.yml names no publisher" }
+          # A publisher name typed into GitHub (Azure, custom command) must be the certificate's name exactly.
+          if ($env:EXPECTED_PUBLISHER) {
+            $name = (Get-AuthenticodeSignature -FilePath $setup).SignerCertificate.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+            $setting = if ($env:SIGN_METHOD -eq 'azure') { 'AZURE_SIGNING_PUBLISHER_NAME' } else { 'WIN_SIGN_PUBLISHER_NAME' }
+            if ($name -ne $env:EXPECTED_PUBLISHER) { throw "The certificate is issued to '$name' but $setting is '$($env:EXPECTED_PUBLISHER)': installed programs would refuse the next update. Set $setting to '$name'." }
+          }
 
       - name: Check the update metadata (automatic updates)
         shell: pwsh
+        env:
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
+          # Stable versions write latest.yml; betas (0.13.0-beta.1) write beta.yml (electron-builder.yml: publish.channel).
+          $version = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
+          $beta = $version.Contains('-')
+          if ($beta -and $version -notmatch '^\d+\.\d+\.\d+-beta\.\d+$') { throw "A prerelease version must look like 0.13.0-beta.1 (the program's version is $version)" }
+          if ($env:TAG -and ($env:TAG.Contains('-') -ne $beta)) { throw "The tag $($env:TAG) and the program's version $version disagree about being a beta" }
+          $channelFile = if ($beta) { 'beta.yml' } else { 'latest.yml' }
+          $otherFile = if ($beta) { 'latest.yml' } else { 'beta.yml' }
+          if (Test-Path "apps/desktop/release/$otherFile") { throw "version $version must not write $otherFile" }
           $setup = (Get-ChildItem apps/desktop/release/MatchFrameEsports-Setup-*.exe | Select-Object -First 1).Name
-          $yml = Get-Content apps/desktop/release/latest.yml -Raw
-          if ($yml -notmatch [regex]::Escape($setup)) { throw "latest.yml does not name $setup" }
+          $yml = Get-Content "apps/desktop/release/$channelFile" -Raw
+          if ($yml -notmatch [regex]::Escape($setup)) { throw "$channelFile does not name $setup" }
           if (-not (Test-Path "apps/desktop/release/$setup.blockmap")) { throw "missing $setup.blockmap" }
           if (-not (Test-Path apps/desktop/release/win-unpacked/resources/app-update.yml)) { throw "the program has no app-update.yml" }
           Get-Content apps/desktop/release/win-unpacked/resources/app-update.yml
@@ -153,11 +263,18 @@ jobs:
 
       - name: Install the program silently (per user)
         shell: pwsh
+        env:
+          SIGN_METHOD: ${{ steps.sign.outputs.method }}
         run: |
           $setup = Get-ChildItem apps/desktop/release/MatchFrameEsports-Setup-*.exe | Select-Object -First 1
           Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
           $installed = Join-Path $env:LOCALAPPDATA 'Programs\MatchFrame Esports\MatchFrame Esports.exe'
           if (-not (Test-Path $installed)) { throw "The installer did not create $installed" }
+          if ($env:SIGN_METHOD -ne 'none') {
+            $sig = Get-AuthenticodeSignature -FilePath $installed
+            "Installed program: $($sig.Status), signed by $($sig.SignerCertificate.Subject)"
+            if ($sig.Status -ne 'Valid') { throw "The installed program is not validly signed ($($sig.Status): $($sig.StatusMessage))" }
+          }
           "INSTALLED_EXE=$installed" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Smoke-test the installed program
@@ -197,11 +314,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: matchframe-windows-${{ github.sha }}
-          # latest.yml and the .blockmap are what installed programs read to update themselves.
+          # latest.yml (beta.yml for a beta) and the .blockmap are what installed programs read to update themselves.
           path: |
             apps/desktop/release/MatchFrameEsports-Setup-*.exe
             apps/desktop/release/MatchFrameEsports-Setup-*.exe.blockmap
             apps/desktop/release/latest.yml
+            apps/desktop/release/beta.yml
             apps/desktop/release/*.zip
             apps/desktop/release/SHA256SUMS.txt
           retention-days: 30
@@ -235,12 +353,23 @@ jobs:
         run: |
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then exit 0; fi
           version="${TAG#v}"
+          # A version with a prerelease suffix (0.13.0-beta.1) is a beta: a GitHub prerelease.
+          prerelease=()
+          case "$version" in *-*) prerelease=(--prerelease) ;; esac
           notes="docs/release-notes/${version}-dev.md"
           if [ -f "$notes" ]; then
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Version ${version} Beta MatchFrame Esports" --notes-file "$notes"
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Version ${version} Beta MatchFrame Esports" "${prerelease[@]}" --notes-file "$notes"
           else
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Version ${version} Beta MatchFrame Esports" --generate-notes
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Version ${version} Beta MatchFrame Esports" "${prerelease[@]}" --generate-notes
           fi
+      # A beta published on GitHub without "Set as a pre-release" would be offered to every Stable
+      # program (as GitHub's latest release, with no latest.yml): it is marked as a prerelease.
+      - name: Mark a beta as a prerelease
+        if: contains(github.event.release.tag_name || inputs.tag, '-')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --prerelease
       - uses: actions/download-artifact@v4
         with:
           name: matchframe-windows-${{ github.sha }}

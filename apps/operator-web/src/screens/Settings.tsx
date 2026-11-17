@@ -8,7 +8,7 @@ import { fmtMs, fmtTime, MISSING, saveBlob } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
 import { reasonInfo } from "../lib/reasons.ts";
 import { Link } from "../router.tsx";
-import { updates, updateSummary, useUpdates } from "../lib/updates.ts";
+import { rollback, rollbackProgressText, updates, updateSummary, useRollbackProgress, useUpdates, type RollbackOption, type RollbackResult } from "../lib/updates.ts";
 import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
 import "../styles/group-c.css";
@@ -261,12 +261,87 @@ function DiagnosticsTab() {
   );
 }
 
+/** Going back to an earlier version: one at a time, its progress pushed by the program. */
+function useGoBack() {
+  const [progress, setProgress] = useRollbackProgress();
+  const [running, setRunning] = useState<string | null>(null);
+  const [result, setResult] = useState<RollbackResult | null>(null);
+  const start = async (version: string, toStable = false) => {
+    setRunning(version);
+    setResult(null);
+    try {
+      setResult(await rollback.start(version, { toStable }));
+    } catch (e) {
+      setResult({ ok: false, message: describeError(e) });
+    } finally {
+      setRunning(null);
+      setProgress(null);
+    }
+  };
+  return { progress: running ? progress : null, running, result, start };
+}
+
+/** Settings → General → Program → Go back to a previous version (ADR-076). */
+function GoBackSection({ goBack }: { goBack: ReturnType<typeof useGoBack> }) {
+  const [options, setOptions] = useState<RollbackOption[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setOptions(await rollback.list());
+    } catch (e) {
+      setError(describeError(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <div className="gc-section" data-rollback>
+      <h3 className="gc-section-title">Go back to a previous version</h3>
+      <p className="small muted">
+        Installs an earlier Stable version over this one, after checking its download and asking you. Your HUD files and program settings stay. When that version stores data in an older format, the copy of your data made when you updated is restored, so changes made since then are lost.
+      </p>
+      <div className="row">
+        <Button onClick={() => void load()} disabledReason={loading ? "Looking up earlier versions…" : goBack.running ? "Busy…" : null}>
+          {options ? "Refresh the list" : "Go back to a previous version…"}
+        </Button>
+      </div>
+      {loading ? <p className="small muted">Looking up earlier versions on GitHub…</p> : null}
+      {error ? <Note tone="warn">{error}</Note> : null}
+      {options && options.length === 0 ? <p className="small muted">No earlier Stable version with an installer and checksums was found.</p> : null}
+      {options?.length ? (
+        <ul className="stack" style={{ listStyle: "none", margin: 0, padding: 0 }} data-rollback-list>
+          {options.map((o) => (
+            <li key={o.version} data-rollback-version={o.version}>
+              <div className="row">
+                <strong>{o.version}</strong>
+                {o.publishedAt ? <span className="small muted">{new Date(o.publishedAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</span> : null}
+                <a href={o.notesUrl} target="_blank" rel="noreferrer">
+                  What&apos;s new
+                </a>
+                <Button size="sm" onClick={() => void goBack.start(o.version)} disabledReason={o.data.kind === "refuse" ? "There's no copy of your data this version can read" : goBack.running ? "Busy…" : null}>
+                  Go back to {o.version}
+                </Button>
+              </div>
+              <p className={`small ${o.data.kind === "refuse" ? "text-warn" : "muted"}`}>{o.data.text}</p>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 /**
- * The program itself: version and automatic updates, plus what used to be in the window's File
- * menu (the window has no menu bar): connection settings and the data folder.
+ * The program itself: version, automatic updates and their channel, going back to a previous
+ * version, plus what used to be in the window's File menu (the window has no menu bar): connection
+ * settings and the data folder.
  */
 function ProgramPanel() {
   const st = useUpdates();
+  const goBack = useGoBack();
   const mf = window.matchframe;
   if (!mf?.updates && !mf?.openConnection) return null;
   const busy = st?.status === "checking" || st?.status === "downloading";
@@ -279,6 +354,10 @@ function ProgramPanel() {
             {st.status === "ready" ? (
               <Button variant="primary" onClick={() => void updates.installNow()} title="Closes the program and every HUD output for a moment, installs the update and starts the new version">
                 Restart and update
+              </Button>
+            ) : st.status === "available" && st.downgrade && st.version ? (
+              <Button variant="primary" onClick={() => void goBack.start(st.version!, true)} disabledReason={!rollback.available() ? "This program can't go back to a version" : goBack.running ? "Busy…" : null} title="Checks the download, says what happens to your data and asks before anything changes">
+                Install {st.version}…
               </Button>
             ) : st.status === "available" ? (
               <Button variant="primary" onClick={() => void updates.download()}>
@@ -299,9 +378,20 @@ function ProgramPanel() {
             <input type="checkbox" checked={st.autoDownload} disabled={st.status === "disabled"} onChange={(e) => void updates.setAutoDownload(e.target.checked)} />
             <span>Download updates automatically</span>
           </label>
+          {mf.updates?.setChannel ? (
+            <Field label="Update channel" hint="Beta versions come out first and may have problems. Back on Stable, the latest Stable version is offered even when it's older than your beta, and installs only when you say so.">
+              <select value={st.channel ?? "stable"} disabled={st.status === "disabled"} onChange={(e) => void updates.setChannel(e.target.value === "beta" ? "beta" : "stable")} data-update-channel>
+                <option value="stable">Stable</option>
+                <option value="beta">Beta</option>
+              </select>
+            </Field>
+          ) : null}
           <p className="small muted">Updates come from the MatchFrame Esports releases on GitHub. A downloaded update installs when you quit the program; it never restarts on its own during a broadcast.</p>
         </div>
       ) : null}
+      {goBack.progress ? <p className="small muted">{rollbackProgressText(goBack.progress)}</p> : null}
+      {goBack.result ? <Note tone={goBack.result.ok ? "ok" : goBack.result.cancelled ? "info" : "warn"}>{goBack.result.message}</Note> : null}
+      {rollback.available() ? <GoBackSection goBack={goBack} /> : null}
       <div className="row" style={{ marginTop: 10 }}>
         {mf.openConnection ? <Button onClick={() => void mf.openConnection!()}>Connection settings…</Button> : null}
         {mf.openDataDir ? <Button onClick={() => void mf.openDataDir!()}>Open data folder</Button> : null}
