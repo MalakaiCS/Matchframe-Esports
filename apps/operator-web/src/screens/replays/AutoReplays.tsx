@@ -44,7 +44,7 @@ const REPLAY_VOLUMES = [null, 6, 3, 0, -3, -6, -10] as const;
 /** The live game audio during replays: muted, or this many dB down. */
 const DUCK_TO = ["mute", -10, -20, -30] as const;
 const STEP_TONE = { pending: "neutral", ok: "ok", failed: "warn", skipped: "neutral" } as const;
-const STEP_LABEL = { pending: "…", ok: "OK", failed: "Failed", skipped: "Skipped" } as const;
+const STEP_LABEL = perLocale(() => ({ pending: "…", ok: "OK", failed: t("replays.step.failed"), skipped: t("replays.step.skipped") }));
 /** A round clock time as CS2 shows it (110 → 1:50). */
 const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 

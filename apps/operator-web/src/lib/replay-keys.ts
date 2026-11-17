@@ -57,7 +57,7 @@ export function useReplayShortcuts(enabled = true): void {
       const k = REPLAY_KEYS.find((x) => x.key === e.key) ?? HIGHLIGHT_KEYS.find((x) => x.key === e.key) ?? TEAM_KEYS.find((x) => x.key === e.key) ?? MAP_INTRO_KEYS.find((x) => x.key === e.key);
       if (!k) return;
       e.preventDefault();
-      const what = HIGHLIGHT_KEYS.includes(k) ? "Highlights" : TEAM_KEYS.includes(k) ? "Teams" : MAP_INTRO_KEYS.includes(k) ? t("lib.mapIntro") : "Replays";
+      const what = HIGHLIGHT_KEYS.includes(k) ? t("replays.highlights") : TEAM_KEYS.includes(k) ? t("nav.teams") : MAP_INTRO_KEYS.includes(k) ? t("lib.mapIntro") : t("nav.replays");
       api.post(k.path).then(
         () => toast.push("ok", `${what}: ${k.label}`),
         (err) => toast.push("warn", `${what}: ${k.label}`, describeError(err)),

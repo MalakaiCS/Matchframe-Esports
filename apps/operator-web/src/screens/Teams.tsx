@@ -12,13 +12,13 @@ import { useApi } from "../lib/hooks.ts";
 import { sortRows, useListState, useRestoreScroll } from "../lib/listState.ts";
 import { Link, navigate } from "../router.tsx";
 import { usePermission } from "../state/session.tsx";
-import { t } from "../i18n/index.ts";
+import { perLocale, t } from "../i18n/index.ts";
 import "../styles/records.css";
 
 export { TeamEditorScreen } from "./teams/TeamEditor.tsx";
 export { PlayerEditorScreen } from "./teams/PlayerEditor.tsx";
 
-const ROLE_TEXT: Record<string, string> = { player: "Player", substitute: "Substitute", coach: "Coach", stand_in: "Stand-in" };
+const ROLE_TEXT: Record<string, string> = perLocale(() => ({ player: t("teams.player"), substitute: t("teams.substitute"), coach: t("teams.coach"), stand_in: t("teams.standIn") }));
 export const roleText = (r: string | null | undefined) => (r ? (ROLE_TEXT[r] ?? r) : "");
 
 const norm = (s: string | null | undefined) => (s ?? "").toLowerCase();

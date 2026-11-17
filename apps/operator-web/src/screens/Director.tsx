@@ -146,7 +146,7 @@ function Status({ st, nameOf }: { st: DirectorStatus; nameOf: (id: string) => st
   const own = st.ownership;
   const health = st.decision ? CONTROL_HEALTH_TEXT[st.decision.controlHealth] : null;
   const mode = MODE_INFO[st.mode];
-  const owner = own.emergencyStopped ? t("director.emergencyStop") : own.owner === "director" ? "Director" : `${humanKey(own.owner)}${own.manualSticky ? " (manual)" : ""}`;
+  const owner = own.emergencyStopped ? t("director.emergencyStop") : own.owner === "director" ? t("nav.director") : own.manualSticky ? t("director.ownerManual", { owner: humanKey(own.owner) }) : humanKey(own.owner);
   return (
     <>
       <ul className="status-list gc-status">

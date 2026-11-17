@@ -14,8 +14,8 @@ type Reload = () => void;
 /** The recording's state's shape and word, so it never depends on colour alone. */
 const MARK: Record<RecorderStatus["state"], { icon: string; tag: string }> = perLocale(() => ({
   idle: { icon: "○", tag: t("comms.notRecording") },
-  recording: { icon: "●", tag: "Recording" },
-  fault: { icon: "⚠", tag: "Fault" },
+  recording: { icon: "●", tag: t("comms.state.recording") },
+  fault: { icon: "⚠", tag: t("comms.state.fault") },
 }));
 
 /** NOT RECORDING, RECORDING — TEAM or RECORDING FAULT, with its elapsed time, in words. */
@@ -76,7 +76,7 @@ export function RecordingPanel({ view, onChanged }: { view: CommsView; onChanged
   const control = usePermission("program.control");
   const setup = usePermission("settings.manage");
   const toast = useToast();
-  const save = async (patch: Partial<Omit<RecordingSettings, "obs">>, what = "Saved") => {
+  const save = async (patch: Partial<Omit<RecordingSettings, "obs">>, what = t("comms.saved")) => {
     try {
       await api.put("/api/v1/comms/recording", patch);
       toast.push("ok", what);

@@ -186,7 +186,7 @@ function CameraAuthoring({ map, regions, onCreated }: { map: string; regions: Ma
 }
 
 const TONE_TEXT: Record<string, string> = { ok: "text-ok", warn: "text-warn", danger: "text-danger", info: "", neutral: "muted" };
-const VALIDATION_LABEL: Record<CameraRecord["validation"], string> = perLocale(() => ({ unvalidated: "Unvalidated", preview_only: t("maps.previewOnly"), validated: "Validated", invalidated: "Invalidated" }));
+const VALIDATION_LABEL: Record<CameraRecord["validation"], string> = perLocale(() => ({ unvalidated: t("maps.unvalidated"), preview_only: t("maps.previewOnly"), validated: t("maps.validated"), invalidated: t("maps.invalidated") }));
 const human = (s: string) => s.replace(/_/g, " ");
 
 function CameraRow({ map, cam, onChanged, verdict }: { map: string; cam: CameraRecord; onChanged: () => void; verdict: CameraVerdict | null }) {

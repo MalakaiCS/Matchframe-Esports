@@ -62,7 +62,7 @@ export function SetupChecklist() {
                     variant={p.installed.same ? "secondary" : "primary"}
                     disabledReason={installReason}
                     action={() => api.post<SetupChecklistView["plugin"]>("/api/v1/comms/teamspeak-plugin/install")}
-                    success={(r) => r.lastInstall?.detail ?? "Installed"}
+                    success={(r) => r.lastInstall?.detail ?? t("comms.pluginInstalled")}
                     onDone={() => void st.reload()}
                     confirm={p.installed.path ? { title: t("comms.installTheTeamspeakPluginAgain"), body: t("comms.itReplacesThePluginIn"), confirmLabel: t("comms.install") } : undefined}
                   >

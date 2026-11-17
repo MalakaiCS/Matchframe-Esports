@@ -134,8 +134,8 @@ export function MapIntrosPanel() {
           </div>
         ) : (
           <div className="form-grid">
-            <TransitionSelect label={t("prod.mapIntroIn")} hint={t("prod.toTheIntroFromThe")} value={auto.data ? (auto.data.settings.introIn ?? null) : null} same="MatchFrame Stinger (when OBS has it)" transitions={auto.data?.transitions ?? null} disabled={!!programReason || !auto.data} onChange={(v) => void saveObs({ introIn: v })} />
-            <TransitionSelect label={t("prod.mapIntroOut")} hint={t("prod.backToTheSceneThe")} value={auto.data ? (auto.data.settings.introOut ?? null) : null} same="Same as Map intro in" transitions={auto.data?.transitions ?? null} disabled={!!programReason || !auto.data} onChange={(v) => void saveObs({ introOut: v })} />
+            <TransitionSelect label={t("prod.mapIntroIn")} hint={t("prod.toTheIntroFromThe")} value={auto.data ? (auto.data.settings.introIn ?? null) : null} same={t("prod.matchframeStingerWhenObsHasIt")} transitions={auto.data?.transitions ?? null} disabled={!!programReason || !auto.data} onChange={(v) => void saveObs({ introIn: v })} />
+            <TransitionSelect label={t("prod.mapIntroOut")} hint={t("prod.backToTheSceneThe")} value={auto.data ? (auto.data.settings.introOut ?? null) : null} same={t("prod.sameAsMapIntroIn")} transitions={auto.data?.transitions ?? null} disabled={!!programReason || !auto.data} onChange={(v) => void saveObs({ introOut: v })} />
           </div>
         )}
 

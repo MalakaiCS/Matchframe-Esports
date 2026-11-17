@@ -10,12 +10,15 @@ import { describe, expect, it } from "vitest";
  * - string literals in JSX children expressions ({busy ? "Saving…" : "Save"});
  * - confirm dialogs' { title, body, confirmLabel } given as literals;
  * - toast.push(tone, "literal");
- * - the rows of a key/value list (<KV items={[["Label", value], …]}>, and `…Items` arrays), label and value.
+ * - the rows of a key/value list (<KV items={[["Label", value], …]}>, and `…Items` arrays), label and value;
+ * - label tables: the values in a perLocale(() => …) table and in a constant named …LABEL, …LABELS,
+ *   …TEXT or …NAMES, in the .tsx files and in lib/ and api/ (`id`, `tone`, `icon` and other code
+ *   fields are skipped).
  * Brand and product names, abbreviations in capitals (CT, ADR, ON AIR), symbols and the text of
  * <code>/<kbd>/<pre>/<samp>/<Mono> elements are allowed.
  */
 
-const SOURCES = import.meta.glob<string>(["../**/*.tsx", "!../**/*.test.tsx"], { query: "?raw", import: "default", eager: true });
+const SOURCES = import.meta.glob<string>(["../**/*.tsx", "../lib/**/*.ts", "../api/**/*.ts", "!../**/*.test.tsx", "!../**/*.test.ts"], { query: "?raw", import: "default", eager: true });
 
 /** Screens and components not extracted yet. The check expects English in them (remove a file once it is done). */
 const PENDING = new Set<string>([
@@ -53,6 +56,7 @@ const ALLOWED = new Set([
   "FACEIT",
   "Workshop Tools",
   "OpenAPI",
+  "SteamID64",
   // The update channels, as the releases on GitHub name them.
   "Stable",
   "Beta",
@@ -105,8 +109,19 @@ function literalText(n: ts.Node): string {
 
 const CODE_TAGS = new Set(["code", "kbd", "pre", "samp", "Mono"]);
 
+/** Fields of a label table that hold code, not words. */
+const CODE_FIELDS = new Set(["id", "key", "kind", "type", "tone", "icon", "mode", "variant", "value", "path", "url", "href", "scene", "source", "unit", "shape", "group", "color", "className", "obs", "event", "short", "abbr", "nav", "op", "field", "cue", "timeline", "dedupeKey"]);
+/** Label tables by name; TONE_TEXT and the like map tones to class names. */
+const TABLE_NAME = /(?<!TONE_)(LABEL|LABELS|TEXT|NAMES)$/;
+
+/** Label tables that stay English on purpose ("file:NAME"). */
+const KEPT_TABLES: Record<string, string> = {
+  "lib/format.ts:WEAPON_NAMES": "CS2's guns, by the names the game and the scene use in every language",
+  "screens/replays/ProductionAutomation.tsx:KIND_LABEL": "OBS's transition types, by the English names OBS gives them",
+};
+
 function scan(file: string, source: string): Finding[] {
-  const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const out: Finding[] = [];
   const add = (n: ts.Node, text: string) => {
     if (flagged(text)) out.push({ file, line: sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1, text: text.replace(/\s+/g, " ").trim().slice(0, 80) });
@@ -131,6 +146,9 @@ function scan(file: string, source: string): Finding[] {
     if (ts.isJsxAttribute(n) && n.name.getText(sf) === "items" && n.initializer && ts.isJsxExpression(n.initializer) && n.initializer.expression) kvRows(n.initializer.expression, add);
     else if (ts.isVariableDeclaration(n) && /items$/i.test(n.name.getText(sf)) && n.initializer) kvRows(n.initializer, add);
     else if (ts.isCallExpression(n) && /items\.push$/i.test(n.expression.getText(sf))) for (const a of n.arguments) kvRows(a, add);
+    // Label tables: perLocale(() => ({ warmup: "Warmup" })) and const PHASE_LABEL = { … }.
+    if (ts.isCallExpression(n) && n.expression.getText(sf) === "perLocale") for (const a of n.arguments) tableValues(a, add);
+    else if (ts.isVariableDeclaration(n) && TABLE_NAME.test(n.name.getText(sf)) && !(`${file}:${n.name.getText(sf)}` in KEPT_TABLES) && n.initializer) tableValues(n.initializer, add);
     ts.forEachChild(n, visit);
   };
   visit(sf);
@@ -143,6 +161,16 @@ function kvRows(root: ts.Node, add: (n: ts.Node, text: string) => void) {
     if (ts.isArrayLiteralExpression(x) && x.elements.length === 2 && (ts.isArrayLiteralExpression(x.parent) || ts.isCallExpression(x.parent))) {
       for (const el of x.elements) if (!ts.isSpreadElement(el)) for (const l of literals(el)) add(l, literalText(l));
     }
+    ts.forEachChild(x, walk);
+  };
+  walk(root);
+}
+
+/** The literal values of the word fields of a label table under `root` (nested objects included). */
+function tableValues(root: ts.Node, add: (n: ts.Node, text: string) => void) {
+  const walk = (x: ts.Node) => {
+    if (ts.isPropertyAssignment(x) && !CODE_FIELDS.has(x.name.getText())) for (const l of literals(x.initializer)) add(l, literalText(l));
+    if (ts.isCallExpression(x)) return; // t("key") and helpers: their arguments are keys and values, not words
     ts.forEachChild(x, walk);
   };
   walk(root);

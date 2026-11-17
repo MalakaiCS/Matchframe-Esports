@@ -3,6 +3,7 @@
  * on connect and at least once per second, so after a reconnect the UI simply resyncs from the next
  * snapshot (deltas are never replayed across connections).
  */
+import { t } from "../i18n/index.ts";
 
 export type SocketStatus = "idle" | "connecting" | "open" | "reconnecting" | "unauthorized" | "closed";
 
@@ -117,7 +118,7 @@ export class OperatorSocket {
       const wd = this.opts.watchdogMs ?? 6_000;
       this.watchdog = setInterval(() => {
         if (Date.now() - this.lastMessageAt > wd) {
-          this.lastError = `no data for ${Math.round(wd / 1000)} s`;
+          this.lastError = t("api.ws.noData", { seconds: Math.round(wd / 1000) });
           ws.close();
         }
       }, Math.min(wd, 2_000));
@@ -133,7 +134,7 @@ export class OperatorSocket {
       this.opts.onMessage(msg);
     };
     ws.onerror = () => {
-      this.lastError = "connection error";
+      this.lastError = t("api.ws.connectionError");
     };
     ws.onclose = (ev) => {
       if (this.pingTimer) clearInterval(this.pingTimer);
@@ -141,7 +142,7 @@ export class OperatorSocket {
       this.pingTimer = this.watchdog = null;
       this.ws = null;
       if (this.stopped) return;
-      if (ev.code !== 1000 && ev.code !== 1005 && !this.lastError) this.lastError = `closed (${ev.code})`;
+      if (ev.code !== 1000 && ev.code !== 1005 && !this.lastError) this.lastError = t("api.ws.closed", { code: ev.code });
       this.scheduleRetry();
     };
   }
@@ -162,7 +163,7 @@ export class OperatorSocket {
         .then((ok) => {
           if (ok) proceed();
           else {
-            this.lastError = "token rejected by the engine";
+            this.lastError = t("api.ws.tokenRejected");
             this.stopped = true;
             this.emit("unauthorized", null);
           }

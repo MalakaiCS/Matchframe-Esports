@@ -126,6 +126,29 @@
       "paused": "приостановлена"
     }
   },
+  "api": {
+    "error": {
+      "notAuthenticated": "Нет аутентификации: токен доступа отсутствует, истёк или отклонён. Перезапустите программу MatchFrame или проверьте токен в Файл → Настройки подключения.",
+      "badOrigin": "Заблокировано: эта страница не может менять состояние движка. Используйте программу MatchFrame.",
+      "scope": "Недоступно по этой ссылке: {msg}",
+      "forbidden": "Доступ запрещён: {msg}",
+      "notFound": "Не найдено: {msg}",
+      "conflict": "Конфликт: {msg}",
+      "conflictDetail": "Конфликт: {msg} ({detail})",
+      "tooLarge": "Слишком большой объём: {msg}",
+      "invalid": "Некорректный запрос: {msg}",
+      "invalidDetail": "Некорректный запрос: {msg} — {detail}",
+      "engine": "Ошибка движка ({status}): {msg}",
+      "unreachable": "Движок недоступен ({request}): {reason}. Запущен ли движок MatchFrame?",
+      "notJson": "Неожиданный ответ не в JSON от {path}"
+    },
+    "ws": {
+      "noData": "нет данных {seconds} с",
+      "connectionError": "ошибка соединения",
+      "closed": "закрыто ({code})",
+      "tokenRejected": "токен отклонён движком"
+    }
+  },
   "autodir": {
     "phase": {
       "off": "Выкл.",
@@ -318,7 +341,12 @@
     "disconnected": "Отключён",
     "connected": "Подключён",
     "consentRecorded": "{displayName}: согласие записано",
-    "consentRevoked": "{displayName}: согласие отозвано"
+    "consentRevoked": "{displayName}: согласие отозвано",
+    "quality": {
+      "low": "Низкое ({size})",
+      "standard": "Стандартное ({size})",
+      "high": "Высокое ({size})"
+    }
   },
   "common": {
     "unknown": "Неизвестно",
@@ -372,7 +400,12 @@
       "roaming": "Свободная камера (roaming)"
     },
     "grenade": {
-      "fireUnknown": "Огонь (тип неизвестен)"
+      "fireUnknown": "Огонь (тип неизвестен)",
+      "flashbang": "Флешка",
+      "smoke": "Смок",
+      "molotov": "Молотов",
+      "incendiary": "Зажигательная",
+      "decoy": "Ложная граната"
     },
     "form": {
       "search": "Поиск…",
@@ -399,7 +432,10 @@
     "no": "нет",
     "on": "вкл.",
     "off": "выкл.",
-    "none": "нет"
+    "none": "нет",
+    "weapon": {
+      "knife": "Нож"
+    }
   },
   "comms": {
     "listenInOpensOnlyA": "«Слушать» открывает только команду, чей буфер уже покрывает задержку, и сначала закрывает другую команду (никогда обе). «Заглушить всю связь» сразу глушит публичный выход; запись продолжается. Связь возвращается в эфир только новой прослушкой: никогда после перезапуска, сброса или потери соединения.",
@@ -903,7 +939,18 @@
     "setGameLevel": "Задать уровень игры",
     "setCommsLevel": "Задать уровень связи",
     "savedPath": "Сохранено: {path}",
-    "mutedLower": "без звука"
+    "mutedLower": "без звука",
+    "state": {
+      "recording": "Идёт запись",
+      "fault": "Сбой"
+    },
+    "saved": "Сохранено",
+    "pluginInstalled": "Установлен",
+    "crop": {
+      "across": "По горизонтали",
+      "down": "По вертикали",
+      "zoom": "Масштаб"
+    }
   },
   "control": {
     "own": {
@@ -1063,7 +1110,15 @@
     "switchCost": "Цена переключения (−)",
     "mainStory": "Главная история",
     "actionCoverage": "Охват действия",
-    "staleness": "Устаревание (−)"
+    "staleness": "Устаревание (−)",
+    "component": {
+      "imminence": "Близость события",
+      "readiness": "Готовность",
+      "significance": "Значимость",
+      "narrative": "Сюжет",
+      "framing": "Кадрирование",
+      "continuity": "Непрерывность"
+    }
   },
   "demos": {
     "pythonWorkersAvailable": "Доступные воркеры Python",
@@ -1250,7 +1305,8 @@
       "QUARANTINED": "В карантине",
       "RECOVERABLE": "Восстановимо",
       "DUPLICATE": "Дубликат"
-    }
+    },
+    "working": "Выполняется"
   },
   "devices": {
     "adaptersIntegrations": "Адаптеры и интеграции",
@@ -1431,7 +1487,15 @@
     "previewSc": "Превью: {sc}",
     "programSc": "Эфир: {sc}",
     "alive": "жив",
-    "dead": "мёртв"
+    "dead": "мёртв",
+    "recording": "Запись",
+    "streaming": "Трансляция",
+    "bridgeStatus": {
+      "disabled": "отключён",
+      "not_configured": "не настроен",
+      "connected": "подключён",
+      "blocked": "заблокирован"
+    }
   },
   "director": {
     "initialEngineeringDefaultsToBe": "Начальные инженерные значения, которые предстоит измерить и настроить; это не обученные значения.",
@@ -1515,7 +1579,8 @@
     "regions": "Зоны",
     "players": "Игроки",
     "manualStickySuffix": " (вручную, закреплено)",
-    "emergencyStopSuffix": " · аварийная остановка"
+    "emergencyStopSuffix": " · аварийная остановка",
+    "ownerManual": "{owner} (вручную)"
   },
   "editor": {
     "saveAndExit": "Сохранить и выйти",
@@ -2051,7 +2116,11 @@
     "appearance": "Внешний вид",
     "overview": "Обзор",
     "hudDetails": "Подробности HUD",
-    "nameDetails": "Подробности {name}"
+    "nameDetails": "Подробности {name}",
+    "resize": "Масштаб",
+    "move": "Переместить",
+    "lock": "Закрепить",
+    "unlock": "Открепить"
   },
   "huds": {
     "composer": "Компоновщик",
@@ -2802,7 +2871,13 @@
       "other": "{count} игрока"
     },
     "readyLower": "готово",
-    "confidencePct": "Уверенность {n}%."
+    "confidencePct": "Уверенность {n}%.",
+    "phase": {
+      "warmup": "Разминка",
+      "defusing": "Разминирование",
+      "paused": "Пауза",
+      "halftime": "Смена сторон"
+    }
   },
   "maps": {
     "live": "Вживую",
@@ -2965,7 +3040,30 @@
       "many": "Ревизия задана; недействительно {count} камер",
       "other": "Ревизия задана; недействительно {count} камеры"
     },
-    "syntheticTestMapSuffix": " (синтетическая тестовая карта)"
+    "syntheticTestMapSuffix": " (синтетическая тестовая карта)",
+    "invalidated": "Признана негодной",
+    "verdict": {
+      "kept": "Оставлена",
+      "hidden": "Скрыта"
+    }
+  },
+  "matchArt": {
+    "noCanvas": "Этот компьютер не может отрисовать графику (нет 2D canvas).",
+    "noCanvasStinger": "Этот компьютер не может отрисовать стингер (нет 2D canvas).",
+    "step": {
+      "loading": "Загрузка логотипов команд",
+      "thumb": {
+        "highlights": "Создание миниатюры хайлайтов",
+        "replay": "Создание миниатюры полного повтора",
+        "live": "Создание миниатюры прямого эфира"
+      },
+      "upNext": "Создание экрана «Далее»",
+      "stinger": "Создание стингера",
+      "replayStinger": "Создание стингера повтора",
+      "saved": "Сохранено",
+      "done": "Готово",
+      "stopped": "Остановлено"
+    }
   },
   "matches": {
     "delete": "Удалить",
@@ -3038,7 +3136,6 @@
     "labelPreview": "Превью: {label}",
     "nothingMadeYet": "Пока ничего не создано.",
     "makingTheMatchGraphics": "Создание графики матча",
-    "makingTolowercaseRound": "Создание: {toLowerCase}… {round} %",
     "makeAgain": "Создать заново",
     "makingThemNow": "Создаются сейчас",
     "madeForEveryNewMatch": "Создаются для каждого нового матча из логотипов и цветов обеих команд (? — если у команды нет логотипа).",
@@ -3301,7 +3398,8 @@
       "many": "Выбрано карт: {playedCount} из {count}{v2}",
       "other": "Выбрано карт: {playedCount} из {count}{v2}"
     },
-    "manualCorrectionSuffix": "; разница сохраняется как ручная правка"
+    "manualCorrectionSuffix": "; разница сохраняется как ручная правка",
+    "artProgress": "{step}… {round} %"
   },
   "nav": {
     "account": "Аккаунт",
@@ -3635,7 +3733,9 @@
     "kill": "убийство",
     "replay": "Повтор",
     "headshot": "хедшот",
-    "roundN": "раунд {n}"
+    "roundN": "раунд {n}",
+    "matchframeStingerWhenObsHasIt": "MatchFrame Stinger (если он есть в OBS)",
+    "sameAsMapIntroIn": "Как «Вход в интро карты»"
   },
   "reasons": {
     "thisReasonCodeIsNewer": "Этот код причины новее этой консоли.",
@@ -4185,7 +4285,11 @@
     "capabilities": "Возможности",
     "bookmarkedLabel": "«{label}» отмечено",
     "capturingSuffix": " — идёт запись",
-    "encoderCpu": "процессор (x264)"
+    "encoderCpu": "процессор (x264)",
+    "step": {
+      "failed": "Сбой",
+      "skipped": "Пропущено"
+    }
   },
   "settings": {
     "save": "Сохранить",
@@ -5177,7 +5281,8 @@
     "valueOfKey": "Значение {key}",
     "extraFieldsForHuds": "Доп. поля для HUD",
     "notSet": "Не задано",
-    "clear": "Очистить"
+    "clear": "Очистить",
+    "standIn": "Стенд-ин"
   },
   "training": {
     "shadowComparison": "Сравнение в теневом режиме",

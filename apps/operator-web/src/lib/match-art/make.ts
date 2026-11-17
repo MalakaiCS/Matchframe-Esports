@@ -8,6 +8,7 @@ import { assetUrl } from "../../components/AssetUpload.tsx";
 import type { ArtInput, ArtTeam } from "./draw.ts";
 import { drawStingerFrame, drawThumbnail, drawVersus, STINGER, THUMBNAILS } from "./draw.ts";
 import { writePngMov } from "./mov.ts";
+import { t } from "../../i18n/index.ts";
 
 /** The graphics made for every match (engine kinds, see services/local-engine/src/domain/match-art.ts). */
 export type ArtKind = "thumb-highlights" | "thumb-replay" | "thumb-live" | "up-next" | "stinger" | "stinger-replay";
@@ -16,7 +17,7 @@ export const ART_ORDER: ArtKind[] = ["thumb-highlights", "thumb-replay", "thumb-
 export interface ArtJob {
   matchId: string;
   state: "working" | "done" | "failed";
-  /** What it is doing now ("Stinger", 40 %), or the outcome. */
+  /** What it is doing now ("Making the stinger", 40 %), or the outcome, in the console's language. */
   step: string;
   progress: number;
   /** Kinds made in this run. */
@@ -149,7 +150,7 @@ async function png(w: number, h: number, draw: (ctx: OffscreenCanvasRenderingCon
   // Drawn on the CPU (read back at once as a PNG): no GPU round trips, and no slow GPU emulation on a
   // computer without a usable graphics card.
   const ctx = c.getContext("2d", { willReadFrequently: true });
-  if (!ctx) throw new Error("This computer can't draw the graphics (no 2D canvas).");
+  if (!ctx) throw new Error(t("matchArt.noCanvas"));
   draw(ctx);
   return c.convertToBlob({ type: "image/png" });
 }
@@ -165,7 +166,7 @@ export function makeMatchArt(matchId: string, only?: ArtKind[]): Promise<ArtJob>
   const already = running.get(matchId);
   if (already) return already;
   const want = only ?? ART_ORDER;
-  const job: ArtJob = { matchId, state: "working", step: "Loading team logos", progress: 0, made: [], error: null };
+  const job: ArtJob = { matchId, state: "working", step: t("matchArt.step.loading"), progress: 0, made: [], error: null };
   setJob({ ...job });
   const run = (async (): Promise<ArtJob> => {
     try {
@@ -177,21 +178,21 @@ export function makeMatchArt(matchId: string, only?: ArtKind[]): Promise<ArtJob>
       const step = (label: string, part = 0, k?: ArtKind) => setJob({ ...job, step: label, progress: Math.min(1, (done + (k ? weight(k) * part : 0)) / total) });
       for (const kind of want) {
         if (kind.startsWith("thumb-")) {
-          const t = THUMBNAILS.find((x) => `thumb-${x.kind}` === kind)!;
-          step(`${t.words.join(" ").toLowerCase()} thumbnail`);
-          await store(matchId, kind, await png(1280, 720, (ctx) => drawThumbnail(ctx, 1280, 720, t.kind, input, matchId)), "image/png");
+          const th = THUMBNAILS.find((x) => `thumb-${x.kind}` === kind)!;
+          step(t(`matchArt.step.thumb.${th.kind}`));
+          await store(matchId, kind, await png(1280, 720, (ctx) => drawThumbnail(ctx, 1280, 720, th.kind, input, matchId)), "image/png");
         } else if (kind === "up-next") {
-          step("Up next screen");
+          step(t("matchArt.step.upNext"));
           await store(matchId, kind, await png(1920, 1080, (ctx) => drawVersus(ctx, 1920, 1080, input, matchId)), "image/png");
         } else {
           const replay = kind === "stinger-replay";
-          const label = replay ? "Replay stinger" : "Stinger";
+          const label = replay ? t("matchArt.step.replayStinger") : t("matchArt.step.stinger");
           // One PNG per frame in a QuickTime file: no video encoder needed (the browser's VP8
           // encoder crawled on Windows machines without a usable GPU), only the canvas's PNG export.
           const count = Math.round((STINGER.durationMs / 1000) * STINGER.fps);
           const canvas = new OffscreenCanvas(STINGER.width, STINGER.height);
           const ctx = canvas.getContext("2d", { willReadFrequently: true });
-          if (!ctx) throw new Error("This computer can't draw the stinger (no 2D canvas).");
+          if (!ctx) throw new Error(t("matchArt.noCanvasStinger"));
           const frames: Uint8Array[] = [];
           for (let i = 0; i < count; i++) {
             ctx.clearRect(0, 0, STINGER.width, STINGER.height);
@@ -205,13 +206,13 @@ export function makeMatchArt(matchId: string, only?: ArtKind[]): Promise<ArtJob>
         }
         job.made.push(kind);
         done += weight(kind);
-        step("Saved");
+        step(t("matchArt.step.saved"));
       }
-      const final: ArtJob = { ...job, state: "done", step: "Done", progress: 1, error: null };
+      const final: ArtJob = { ...job, state: "done", step: t("matchArt.step.done"), progress: 1, error: null };
       setJob(final);
       return final;
     } catch (err) {
-      const final: ArtJob = { ...job, state: "failed", step: "Stopped", error: err instanceof Error ? err.message : String(err) };
+      const final: ArtJob = { ...job, state: "failed", step: t("matchArt.step.stopped"), error: err instanceof Error ? err.message : String(err) };
       setJob(final);
       return final;
     } finally {

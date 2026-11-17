@@ -124,6 +124,29 @@
       "paused": "paused"
     }
   },
+  "api": {
+    "error": {
+      "notAuthenticated": "Not authenticated: the access token is missing, expired or was rejected. Restart the MatchFrame program, or check the token in File → Connection settings.",
+      "badOrigin": "Blocked: this page is not allowed to change engine state. Use the MatchFrame program.",
+      "scope": "Not allowed for this link: {msg}",
+      "forbidden": "Permission denied: {msg}",
+      "notFound": "Not found: {msg}",
+      "conflict": "Conflict: {msg}",
+      "conflictDetail": "Conflict: {msg} ({detail})",
+      "tooLarge": "Too large: {msg}",
+      "invalid": "Invalid request: {msg}",
+      "invalidDetail": "Invalid request: {msg} — {detail}",
+      "engine": "Engine error ({status}): {msg}",
+      "unreachable": "Engine unreachable ({request}): {reason}. Is the MatchFrame engine running?",
+      "notJson": "Unexpected non-JSON response from {path}"
+    },
+    "ws": {
+      "noData": "no data for {seconds} s",
+      "connectionError": "connection error",
+      "closed": "closed ({code})",
+      "tokenRejected": "token rejected by the engine"
+    }
+  },
   "autodir": {
     "phase": {
       "off": "Off",
@@ -312,7 +335,12 @@
     "disconnected": "Disconnected",
     "connected": "Connected",
     "consentRecorded": "{displayName}: consent recorded",
-    "consentRevoked": "{displayName}: consent revoked"
+    "consentRevoked": "{displayName}: consent revoked",
+    "quality": {
+      "low": "Low ({size})",
+      "standard": "Standard ({size})",
+      "high": "High ({size})"
+    }
   },
   "common": {
     "unknown": "Unknown",
@@ -366,7 +394,12 @@
       "roaming": "Free camera (roaming)"
     },
     "grenade": {
-      "fireUnknown": "Fire (type unknown)"
+      "fireUnknown": "Fire (type unknown)",
+      "flashbang": "Flashbang",
+      "smoke": "Smoke",
+      "molotov": "Molotov",
+      "incendiary": "Incendiary",
+      "decoy": "Decoy"
     },
     "form": {
       "search": "Search…",
@@ -393,7 +426,10 @@
     "no": "no",
     "on": "on",
     "off": "off",
-    "none": "none"
+    "none": "none",
+    "weapon": {
+      "knife": "Knife"
+    }
   },
   "comms": {
     "listenInOpensOnlyA": "Listen In opens only a team whose buffer holds the delay, and closes the other team first (never both). Mute All Comms silences the public route at once; the recording carries on. Comms come back on air only with a new Listen In: never after a restart, a reset or a lost connection.",
@@ -881,7 +917,18 @@
     "setGameLevel": "Set game level",
     "setCommsLevel": "Set comms level",
     "savedPath": "Saved: {path}",
-    "mutedLower": "muted"
+    "mutedLower": "muted",
+    "state": {
+      "recording": "Recording",
+      "fault": "Fault"
+    },
+    "saved": "Saved",
+    "pluginInstalled": "Installed",
+    "crop": {
+      "across": "Across",
+      "down": "Down",
+      "zoom": "Zoom"
+    }
   },
   "control": {
     "own": {
@@ -1039,7 +1086,15 @@
     "actionCoverage": "Action coverage",
     "fallback": "fallback: POV / radar / hold",
     "fallbackIssue": "fallback: POV / radar / hold — {issue}",
-    "staleness": "Staleness (−)"
+    "staleness": "Staleness (−)",
+    "component": {
+      "imminence": "Imminence",
+      "readiness": "Readiness",
+      "significance": "Significance",
+      "narrative": "Narrative",
+      "framing": "Framing",
+      "continuity": "Continuity"
+    }
   },
   "demos": {
     "pythonWorkersAvailable": "Python workers available",
@@ -1222,7 +1277,8 @@
       "QUARANTINED": "Quarantined",
       "RECOVERABLE": "Recoverable",
       "DUPLICATE": "Duplicate"
-    }
+    },
+    "working": "Working"
   },
   "devices": {
     "adaptersIntegrations": "Adapters & integrations",
@@ -1403,7 +1459,15 @@
     "previewSc": "Preview: {sc}",
     "programSc": "Program: {sc}",
     "alive": "alive",
-    "dead": "dead"
+    "dead": "dead",
+    "recording": "Recording",
+    "streaming": "Streaming",
+    "bridgeStatus": {
+      "disabled": "disabled",
+      "not_configured": "not configured",
+      "connected": "connected",
+      "blocked": "blocked"
+    }
   },
   "director": {
     "initialEngineeringDefaultsToBe": "Initial engineering defaults to be measured and tuned; not learned values.",
@@ -1487,7 +1551,8 @@
     "regions": "Regions",
     "players": "Players",
     "manualStickySuffix": " (manual, sticky)",
-    "emergencyStopSuffix": " · emergency stop"
+    "emergencyStopSuffix": " · emergency stop",
+    "ownerManual": "{owner} (manual)"
   },
   "editor": {
     "saveAndExit": "Save and Exit",
@@ -2005,7 +2070,11 @@
     "appearance": "Appearance",
     "overview": "Overview",
     "hudDetails": "HUD details",
-    "nameDetails": "{name} details"
+    "nameDetails": "{name} details",
+    "resize": "Scale",
+    "move": "Move",
+    "lock": "Lock",
+    "unlock": "Unlock"
   },
   "huds": {
     "composer": "Composer",
@@ -2728,7 +2797,13 @@
       "other": "{count} players"
     },
     "readyLower": "ready",
-    "confidencePct": "Confidence {n}%."
+    "confidencePct": "Confidence {n}%.",
+    "phase": {
+      "warmup": "Warmup",
+      "defusing": "Defusing",
+      "paused": "Paused",
+      "halftime": "Halftime"
+    }
   },
   "maps": {
     "live": "Live",
@@ -2883,7 +2958,30 @@
       "one": "Revision set; {count} camera invalidated",
       "other": "Revision set; {count} cameras invalidated"
     },
-    "syntheticTestMapSuffix": " (synthetic test map)"
+    "syntheticTestMapSuffix": " (synthetic test map)",
+    "invalidated": "Invalidated",
+    "verdict": {
+      "kept": "Kept",
+      "hidden": "Hidden"
+    }
+  },
+  "matchArt": {
+    "noCanvas": "This computer can't draw the graphics (no 2D canvas).",
+    "noCanvasStinger": "This computer can't draw the stinger (no 2D canvas).",
+    "step": {
+      "loading": "Loading team logos",
+      "thumb": {
+        "highlights": "Making the highlights thumbnail",
+        "replay": "Making the full replay thumbnail",
+        "live": "Making the live now thumbnail"
+      },
+      "upNext": "Making the up next screen",
+      "stinger": "Making the stinger",
+      "replayStinger": "Making the replay stinger",
+      "saved": "Saved",
+      "done": "Done",
+      "stopped": "Stopped"
+    }
   },
   "matches": {
     "delete": "Delete",
@@ -2956,7 +3054,6 @@
     "labelPreview": "{label} preview",
     "nothingMadeYet": "Nothing made yet.",
     "makingTheMatchGraphics": "Making the match graphics",
-    "makingTolowercaseRound": "Making {toLowerCase}… {round} %",
     "makeAgain": "Make again",
     "makingThemNow": "Making them now",
     "madeForEveryNewMatch": "Made for every new match from both teams' logos and colours (a ? when a team has no logo).",
@@ -3209,7 +3306,8 @@
       "one": "{playedCount} of {count} map chosen{v2}",
       "other": "{playedCount} of {count} maps chosen{v2}"
     },
-    "manualCorrectionSuffix": "; the difference is kept as a manual correction"
+    "manualCorrectionSuffix": "; the difference is kept as a manual correction",
+    "artProgress": "{step}… {round} %"
   },
   "nav": {
     "account": "Account",
@@ -3539,7 +3637,9 @@
     "kill": "kill",
     "replay": "Replay",
     "headshot": "headshot",
-    "roundN": "round {n}"
+    "roundN": "round {n}",
+    "matchframeStingerWhenObsHasIt": "MatchFrame Stinger (when OBS has it)",
+    "sameAsMapIntroIn": "Same as Map intro in"
   },
   "reasons": {
     "thisReasonCodeIsNewer": "This reason code is newer than this console.",
@@ -4079,7 +4179,11 @@
     "capabilities": "Capabilities",
     "bookmarkedLabel": "Bookmarked “{label}”",
     "capturingSuffix": " — capturing",
-    "encoderCpu": "the CPU (x264)"
+    "encoderCpu": "the CPU (x264)",
+    "step": {
+      "failed": "Failed",
+      "skipped": "Skipped"
+    }
   },
   "settings": {
     "save": "Save",
@@ -5057,7 +5161,8 @@
     "valueOfKey": "Value of {key}",
     "extraFieldsForHuds": "Extra fields for HUDs",
     "notSet": "Not set",
-    "clear": "Clear"
+    "clear": "Clear",
+    "standIn": "Stand-in"
   },
   "training": {
     "shadowComparison": "Shadow comparison",

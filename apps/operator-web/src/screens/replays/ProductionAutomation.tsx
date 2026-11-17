@@ -117,8 +117,8 @@ export function ObsAutomationPanel() {
 export function HighlightTransitions({ settings, transitions, disabled, save }: { settings: ObsAutoResponse["settings"] | null; transitions: ObsAutoResponse["transitions"]; disabled: boolean; save: (patch: Partial<ObsAutoResponse["settings"]>) => Promise<void> }) {
   return (
     <>
-      <TransitionSelect label={t("prod.highlightsIn")} hint={t("prod.toHighlightsOnAirFrom")} value={settings ? (settings.highlightsIn ?? null) : null} same="Same as Replay in" transitions={transitions} disabled={disabled} onChange={(v) => void save({ highlightsIn: v })} />
-      <TransitionSelect label={t("prod.highlightsOut")} hint={t("prod.fromHighlightsBackToThe")} value={settings ? (settings.highlightsOut ?? null) : null} same="Same as Replay out" transitions={transitions} disabled={disabled} onChange={(v) => void save({ highlightsOut: v })} />
+      <TransitionSelect label={t("prod.highlightsIn")} hint={t("prod.toHighlightsOnAirFrom")} value={settings ? (settings.highlightsIn ?? null) : null} same={t("prod.sameAsReplayIn")} transitions={transitions} disabled={disabled} onChange={(v) => void save({ highlightsIn: v })} />
+      <TransitionSelect label={t("prod.highlightsOut")} hint={t("prod.fromHighlightsBackToThe")} value={settings ? (settings.highlightsOut ?? null) : null} same={t("prod.sameAsReplayOut")} transitions={transitions} disabled={disabled} onChange={(v) => void save({ highlightsOut: v })} />
     </>
   );
 }

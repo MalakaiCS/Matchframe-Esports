@@ -27,7 +27,7 @@ export const CAPABILITY_META: Record<string, CapabilityMeta> = perLocale(() => (
   matchTimelineTime: { label: t("lib.matchTimelineTime"), setupHint: t("lib.derivedFromIngest"), group: "time" },
 }));
 
-const GRENADE_LABEL: Record<string, string> = perLocale(() => ({ he: t("lib.heGrenade"), flashbang: "Flashbang", smoke: "Smoke", molotov: "Molotov", incendiary: "Incendiary", decoy: "Decoy" }));
+const GRENADE_LABEL: Record<string, string> = perLocale(() => ({ he: t("lib.heGrenade"), flashbang: t("common.grenade.flashbang"), smoke: t("common.grenade.smoke"), molotov: t("common.grenade.molotov"), incendiary: t("common.grenade.incendiary"), decoy: t("common.grenade.decoy") }));
 
 export function capabilityMeta(key: string): CapabilityMeta {
   if (key.startsWith("grenadeTypeSupport.")) {

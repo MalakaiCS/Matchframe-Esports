@@ -27,12 +27,12 @@ export function ReasonChips({ codes, max }: { codes: string[]; max?: number }) {
 
 const COMPONENT_LABEL: Record<string, string> = perLocale(() => ({
   actionCoverage: t("control.actionCoverage"),
-  imminence: "Imminence",
-  readiness: "Readiness",
-  significance: "Significance",
-  narrative: "Narrative",
-  framing: "Framing",
-  continuity: "Continuity",
+  imminence: t("control.component.imminence"),
+  readiness: t("control.component.readiness"),
+  significance: t("control.component.significance"),
+  narrative: t("control.component.narrative"),
+  framing: t("control.component.framing"),
+  continuity: t("control.component.continuity"),
   mainStory: t("control.mainStory"),
   switchCost: t("control.switchCost"),
   stalenessPenalty: t("control.staleness"),

@@ -125,6 +125,29 @@
       "paused": "pausada"
     }
   },
+  "api": {
+    "error": {
+      "notAuthenticated": "Não autenticado: o token de acesso está ausente, expirou ou foi rejeitado. Reinicie o programa MatchFrame ou confira o token em Arquivo → Configurações de conexão.",
+      "badOrigin": "Bloqueado: esta página não pode mudar o estado do motor. Use o programa MatchFrame.",
+      "scope": "Não permitido para este link: {msg}",
+      "forbidden": "Permissão negada: {msg}",
+      "notFound": "Não encontrado: {msg}",
+      "conflict": "Conflito: {msg}",
+      "conflictDetail": "Conflito: {msg} ({detail})",
+      "tooLarge": "Grande demais: {msg}",
+      "invalid": "Pedido inválido: {msg}",
+      "invalidDetail": "Pedido inválido: {msg} — {detail}",
+      "engine": "Erro do motor ({status}): {msg}",
+      "unreachable": "Motor inacessível ({request}): {reason}. O motor do MatchFrame está rodando?",
+      "notJson": "Resposta inesperada que não é JSON de {path}"
+    },
+    "ws": {
+      "noData": "sem dados há {seconds} s",
+      "connectionError": "erro de conexão",
+      "closed": "fechada ({code})",
+      "tokenRejected": "token rejeitado pelo motor"
+    }
+  },
   "autodir": {
     "phase": {
       "off": "Desligado",
@@ -315,7 +338,12 @@
     "disconnected": "Desconectado",
     "connected": "Conectado",
     "consentRecorded": "{displayName}: consentimento registrado",
-    "consentRevoked": "{displayName}: consentimento revogado"
+    "consentRevoked": "{displayName}: consentimento revogado",
+    "quality": {
+      "low": "Baixa ({size})",
+      "standard": "Padrão ({size})",
+      "high": "Alta ({size})"
+    }
   },
   "common": {
     "unknown": "Desconhecido",
@@ -369,7 +397,12 @@
       "roaming": "Câmera livre (roaming)"
     },
     "grenade": {
-      "fireUnknown": "Fogo (tipo desconhecido)"
+      "fireUnknown": "Fogo (tipo desconhecido)",
+      "flashbang": "Flash",
+      "smoke": "Smoke",
+      "molotov": "Molotov",
+      "incendiary": "Incendiária",
+      "decoy": "Decoy"
     },
     "form": {
       "search": "Buscar…",
@@ -396,7 +429,10 @@
     "no": "não",
     "on": "ligado",
     "off": "desligado",
-    "none": "nenhum"
+    "none": "nenhum",
+    "weapon": {
+      "knife": "Faca"
+    }
   },
   "comms": {
     "listenInOpensOnlyA": "Abrir escuta só abre um time cujo buffer já cobre o atraso, e fecha o outro time antes (nunca os dois). Silenciar todas as comms cala a rota pública na hora; a gravação continua. As comms só voltam ao ar com uma nova escuta: nunca após um reinício, um reset ou uma conexão perdida.",
@@ -892,7 +928,18 @@
     "setGameLevel": "Definir nível do jogo",
     "setCommsLevel": "Definir nível das comms",
     "savedPath": "Salvo: {path}",
-    "mutedLower": "mudo"
+    "mutedLower": "mudo",
+    "state": {
+      "recording": "Gravando",
+      "fault": "Falha"
+    },
+    "saved": "Salvo",
+    "pluginInstalled": "Instalado",
+    "crop": {
+      "across": "Horizontal",
+      "down": "Vertical",
+      "zoom": "Zoom"
+    }
   },
   "control": {
     "own": {
@@ -1051,7 +1098,15 @@
     "switchCost": "Custo de troca (−)",
     "mainStory": "História principal",
     "actionCoverage": "Cobertura da ação",
-    "staleness": "Defasagem (−)"
+    "staleness": "Defasagem (−)",
+    "component": {
+      "imminence": "Iminência",
+      "readiness": "Prontidão",
+      "significance": "Relevância",
+      "narrative": "Narrativa",
+      "framing": "Enquadramento",
+      "continuity": "Continuidade"
+    }
   },
   "demos": {
     "pythonWorkersAvailable": "Workers Python disponíveis",
@@ -1236,7 +1291,8 @@
       "QUARANTINED": "Em quarentena",
       "RECOVERABLE": "Recuperável",
       "DUPLICATE": "Duplicada"
-    }
+    },
+    "working": "Trabalhando"
   },
   "devices": {
     "adaptersIntegrations": "Adaptadores e integrações",
@@ -1417,7 +1473,15 @@
     "previewSc": "Prévia: {sc}",
     "programSc": "Programa: {sc}",
     "alive": "vivo",
-    "dead": "morto"
+    "dead": "morto",
+    "recording": "Gravação",
+    "streaming": "Transmissão",
+    "bridgeStatus": {
+      "disabled": "desativada",
+      "not_configured": "não configurada",
+      "connected": "conectada",
+      "blocked": "bloqueada"
+    }
   },
   "director": {
     "initialEngineeringDefaultsToBe": "Valores iniciais de engenharia, a medir e ajustar; não são valores aprendidos.",
@@ -1501,7 +1565,8 @@
     "regions": "Regiões",
     "players": "Jogadores",
     "manualStickySuffix": " (manual, fixo)",
-    "emergencyStopSuffix": " · parada de emergência"
+    "emergencyStopSuffix": " · parada de emergência",
+    "ownerManual": "{owner} (manual)"
   },
   "editor": {
     "saveAndExit": "Salvar e sair",
@@ -2028,7 +2093,11 @@
     "appearance": "Aparência",
     "overview": "Visão geral",
     "hudDetails": "Detalhes do HUD",
-    "nameDetails": "Detalhes de {name}"
+    "nameDetails": "Detalhes de {name}",
+    "resize": "Escala",
+    "move": "Mover",
+    "lock": "Travar",
+    "unlock": "Destravar"
   },
   "huds": {
     "composer": "Composer",
@@ -2765,7 +2834,13 @@
       "other": "{count} jogadores"
     },
     "readyLower": "pronto",
-    "confidencePct": "Confiança {n}%."
+    "confidencePct": "Confiança {n}%.",
+    "phase": {
+      "warmup": "Aquecimento",
+      "defusing": "Desarmando",
+      "paused": "Pausado",
+      "halftime": "Intervalo"
+    }
   },
   "maps": {
     "live": "Ao vivo",
@@ -2924,7 +2999,30 @@
       "many": "Revisão definida; {count} de câmeras invalidadas",
       "other": "Revisão definida; {count} câmeras invalidadas"
     },
-    "syntheticTestMapSuffix": " (mapa de teste sintético)"
+    "syntheticTestMapSuffix": " (mapa de teste sintético)",
+    "invalidated": "Invalidada",
+    "verdict": {
+      "kept": "Mantida",
+      "hidden": "Oculta"
+    }
+  },
+  "matchArt": {
+    "noCanvas": "Este computador não consegue desenhar os gráficos (sem canvas 2D).",
+    "noCanvasStinger": "Este computador não consegue desenhar o stinger (sem canvas 2D).",
+    "step": {
+      "loading": "Carregando logos dos times",
+      "thumb": {
+        "highlights": "Criando a miniatura de destaques",
+        "replay": "Criando a miniatura do replay completo",
+        "live": "Criando a miniatura de ao vivo"
+      },
+      "upNext": "Criando a tela de A seguir",
+      "stinger": "Criando o stinger",
+      "replayStinger": "Criando o stinger de replay",
+      "saved": "Salvo",
+      "done": "Pronto",
+      "stopped": "Interrompido"
+    }
   },
   "matches": {
     "delete": "Excluir",
@@ -2997,7 +3095,6 @@
     "labelPreview": "Prévia de {label}",
     "nothingMadeYet": "Nada criado ainda.",
     "makingTheMatchGraphics": "Criando os gráficos da partida",
-    "makingTolowercaseRound": "Criando {toLowerCase}… {round} %",
     "makeAgain": "Criar de novo",
     "makingThemNow": "Criando agora",
     "madeForEveryNewMatch": "Criados para cada nova partida a partir dos logos e cores dos dois times (um ? quando um time não tem logo).",
@@ -3255,7 +3352,8 @@
       "many": "{playedCount} de {count} de mapas escolhidos{v2}",
       "other": "{playedCount} de {count} mapas escolhidos{v2}"
     },
-    "manualCorrectionSuffix": "; a diferença fica como correção manual"
+    "manualCorrectionSuffix": "; a diferença fica como correção manual",
+    "artProgress": "{step}… {round} %"
   },
   "nav": {
     "account": "Conta",
@@ -3333,9 +3431,9 @@
     "mapIntroOut": "Saída da intro de mapa",
     "toTheIntroFromThe": "Para a intro, a partir da cena em que o programa está.",
     "mapIntroIn": "Entrada da intro de mapa",
-    "sameAsReplayOut": "Igual ao Replay out",
+    "sameAsReplayOut": "Igual a Replay out",
     "vmixBackToTheInput": "vMix: de volta à entrada que estava no ar antes.",
-    "sameAsReplayIn": "Igual ao Replay in",
+    "sameAsReplayIn": "Igual a Replay in",
     "vmixToTheIntro": "vMix: para a intro.",
     "transitions": "Transições",
     "ffmpegChecksEachIntroAs": "O ffmpeg verifica cada intro ao ser adicionada: baixe-o em PC de replay → Feed de replay (NDI) (Windows), ou instale-o.",
@@ -3587,7 +3685,9 @@
     "kill": "abate",
     "replay": "Replay",
     "headshot": "headshot",
-    "roundN": "round {n}"
+    "roundN": "round {n}",
+    "matchframeStingerWhenObsHasIt": "MatchFrame Stinger (quando o OBS tiver)",
+    "sameAsMapIntroIn": "Igual à Entrada da intro de mapa"
   },
   "reasons": {
     "thisReasonCodeIsNewer": "Este código de motivo é mais novo que este console.",
@@ -4132,7 +4232,11 @@
     "capabilities": "Capacidades",
     "bookmarkedLabel": "“{label}” marcado",
     "capturingSuffix": " — capturando",
-    "encoderCpu": "a CPU (x264)"
+    "encoderCpu": "a CPU (x264)",
+    "step": {
+      "failed": "Falhou",
+      "skipped": "Pulado"
+    }
   },
   "settings": {
     "save": "Salvar",
@@ -5117,7 +5221,8 @@
     "valueOfKey": "Valor de {key}",
     "extraFieldsForHuds": "Campos extras para HUDs",
     "notSet": "Não definido",
-    "clear": "Limpar"
+    "clear": "Limpar",
+    "standIn": "Stand-in"
   },
   "training": {
     "shadowComparison": "Comparação em shadow",

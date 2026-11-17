@@ -29,7 +29,7 @@ export function PythonPanel({ onChange }: { onChange: () => void }) {
           <p className="small muted"><T k="demos.readingDemosNeedsPython3" values={{ span: <span className="mono">{p.envDir}</span> }} tags={{ b: (c) => <b>{c}</b> }} /></p>
           {p.setup.state === "failed" ? <Note tone="warn" title={t("demos.setupFailed")}>{p.setup.error}</Note> : null}
           {running || p.setup.log.length ? (
-            <Details summary={running ? `${p.setup.step ?? "Working"}…` : t("demos.lastSetupStateV", { state: p.setup.state, v: p.setup.finishedAt ? ` · ${fmtTime(p.setup.finishedAt)}` : "" })} open={running}>
+            <Details summary={running ? `${p.setup.step ?? t("demos.working")}…` : t("demos.lastSetupStateV", { state: p.setup.state, v: p.setup.finishedAt ? ` · ${fmtTime(p.setup.finishedAt)}` : "" })} open={running}>
               <pre className="small mono gc-log">{p.setup.log.slice(-10).join("\n")}</pre>
             </Details>
           ) : null}

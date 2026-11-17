@@ -1,4 +1,4 @@
-import { formatDate, formatMoney, formatNumber, t } from "../i18n/index.ts";
+import { formatDate, formatMoney, formatNumber, perLocale, t } from "../i18n/index.ts";
 
 /** Formatting helpers, in the console's language (ADR-082). Null/undefined always render as an explicit placeholder, never as 0. */
 
@@ -78,6 +78,7 @@ export function fmtAgo(iso: string | null | undefined, now = Date.now()): string
   return t("common.ago.d", { n: Math.floor(s / 86400) });
 }
 
+/** CS2's guns by the names the game and the scene use in every language. */
 const WEAPON_NAMES: Record<string, string> = {
   ak47: "AK-47",
   m4a1: "M4A4",
@@ -113,22 +114,26 @@ const WEAPON_NAMES: Record<string, string> = {
   sawedoff: "Sawed-Off",
   m249: "M249",
   negev: "Negev",
-  hegrenade: "HE",
-  flashbang: "Flash",
-  smokegrenade: "Smoke",
-  molotov: "Molotov",
-  incgrenade: "Incendiary",
-  decoy: "Decoy",
   c4: "C4",
   taser: "Zeus x27",
-  knife: "Knife",
-  knife_t: "Knife",
 };
+
+/** Utility and the knife, in the console's language. */
+const UTILITY_NAMES: Record<string, string> = perLocale(() => ({
+  hegrenade: "HE",
+  flashbang: t("common.grenade.flashbang"),
+  smokegrenade: t("common.grenade.smoke"),
+  molotov: t("common.grenade.molotov"),
+  incgrenade: t("common.grenade.incendiary"),
+  decoy: t("common.grenade.decoy"),
+  knife: t("common.weapon.knife"),
+  knife_t: t("common.weapon.knife"),
+}));
 
 export function weaponName(raw: string | null | undefined): string {
   if (!raw) return MISSING;
   const k = raw.replace(/^weapon_/, "");
-  return WEAPON_NAMES[k] ?? k.replace(/_/g, " ");
+  return UTILITY_NAMES[k] ?? WEAPON_NAMES[k] ?? k.replace(/_/g, " ");
 }
 
 const GRENADE_ABBR: Record<string, string> = { hegrenade: "HE", flashbang: "FL", smokegrenade: "SM", molotov: "MO", incgrenade: "IN", decoy: "DE" };
@@ -137,20 +142,16 @@ export function grenadeAbbr(raw: string): string {
   return GRENADE_ABBR[k] ?? k.slice(0, 2).toUpperCase();
 }
 
-export const GRENADE_TYPE_LABEL: Record<string, string> = {
+export const GRENADE_TYPE_LABEL: Record<string, string> = perLocale(() => ({
   he: "HE",
-  flashbang: "Flashbang",
-  smoke: "Smoke",
-  molotov: "Molotov",
-  incendiary: "Incendiary",
-  decoy: "Decoy",
-  get fire_unknown() {
-    return t("common.grenade.fireUnknown");
-  },
-  get unknown() {
-    return t("common.unknown");
-  },
-};
+  flashbang: t("common.grenade.flashbang"),
+  smoke: t("common.grenade.smoke"),
+  molotov: t("common.grenade.molotov"),
+  incendiary: t("common.grenade.incendiary"),
+  decoy: t("common.grenade.decoy"),
+  fire_unknown: t("common.grenade.fireUnknown"),
+  unknown: t("common.unknown"),
+}));
 
 /** "pov:<steamId>" → "POV · name", "camera:<id>" → "Camera · id", etc. */
 export function shotLabel(shotKey: string | null | undefined, nameOf: (steamId: string) => string): string {

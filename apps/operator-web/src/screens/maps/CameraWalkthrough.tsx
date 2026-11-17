@@ -3,7 +3,7 @@ import { api } from "../../api/index.ts";
 import { ActionButton, Async, Badge, Button, Checkbox, Field, Note, Panel } from "../../components/ui.tsx";
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
-import { t } from "../../i18n/index.ts";
+import { perLocale, t } from "../../i18n/index.ts";
 
 export type CameraVerdict = "keep" | "hide";
 
@@ -15,7 +15,7 @@ export interface WalkthroughStatus {
   cameras: { id: string; displayName: string; verdict: CameraVerdict | null; result: "shown" | "failed" | "pending" | null; detail: string | null }[];
 }
 
-export const VERDICT_LABEL: Record<CameraVerdict, string> = { keep: "Kept", hide: "Hidden" };
+export const VERDICT_LABEL: Record<CameraVerdict, string> = perLocale(() => ({ keep: t("maps.verdict.kept"), hide: t("maps.verdict.hidden") }));
 
 /** Keep / Hide for one camera (hidden cameras are never used by the director). */
 export function VerdictButtons({ mapName, cameraId, verdict, onDone }: { mapName: string; cameraId: string; verdict: CameraVerdict | null; onDone: () => void }) {

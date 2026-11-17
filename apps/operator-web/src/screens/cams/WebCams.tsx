@@ -17,11 +17,11 @@ const STATE: Record<CamPlayerView["state"], { tone: "ok" | "warn" | "neutral" | 
   hidden: { tone: "info", label: t("cams.offAir") },
 }));
 
-const QUALITY: Record<CamStatusView["quality"], string> = {
-  low: "Low (480×270)",
-  standard: "Standard (640×360)",
-  high: "High (1280×720)",
-};
+const QUALITY: Record<CamStatusView["quality"], string> = perLocale(() => ({
+  low: t("cams.quality.low", { size: "480×270" }),
+  standard: t("cams.quality.standard", { size: "640×360" }),
+  high: t("cams.quality.high", { size: "1280×720" }),
+}));
 const BITRATE: Record<CamStatusView["quality"], string> = { low: "0.4", standard: "0.7", high: "1.8" };
 
 /** One player's preview: the cam as it arrives (not delayed). */

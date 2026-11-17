@@ -28,16 +28,16 @@ import { perLocale, t } from "../i18n/index.ts";
 import { T } from "../i18n/T.tsx";
 
 const PHASE_LABEL: Record<string, string> = perLocale(() => ({
-  warmup: "Warmup",
+  warmup: t("live.phase.warmup"),
   freezetime: t("live.freezeTime"),
   live: t("live.roundLive"),
   bomb: t("live.bombPlanted"),
-  defuse: "Defusing",
+  defuse: t("live.phase.defusing"),
   over: t("live.roundOver"),
   timeout_t: t("live.tTimeout"),
   timeout_ct: t("live.ctTimeout"),
-  paused: "Paused",
-  halftime: "Halftime",
+  paused: t("live.phase.paused"),
+  halftime: t("live.phase.halftime"),
   gameover: t("live.gameOver"),
   unknown: t("live.phaseUnknown"),
 }));

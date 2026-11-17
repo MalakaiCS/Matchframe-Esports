@@ -124,15 +124,15 @@ const COLUMNS: Record<"teams" | "players", [string, string][]> = perLocale(() =>
   teams: [
     ["name", t("editor.teamName")],
     ["shortName", t("editor.shortName")],
-    ["country", "Country"],
+    ["country", t("teams.country")],
   ],
   players: [
-    ["displayName", "Nickname"],
+    ["displayName", t("teams.nickname")],
     ["firstName", t("editor.firstName")],
     ["lastName", t("editor.lastName")],
-    ["country", "Country"],
+    ["country", t("teams.country")],
     ["steamId", "SteamID64"],
-    ["team", "Team"],
+    ["team", t("teams.team")],
   ],
 }));
 

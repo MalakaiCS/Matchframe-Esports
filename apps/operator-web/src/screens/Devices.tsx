@@ -19,6 +19,13 @@ function onOff(v: boolean | null): string {
   return v === null ? t("common.unknown") : v ? t("common.on") : t("common.off");
 }
 
+/** The bridge state the engine reports, in words; an unknown state shows as sent. */
+function bridgeStatusText(status: string): string {
+  const key = `devices.bridgeStatus.${status.replace(/ /g, "_")}`;
+  const text = t(key);
+  return text === key ? status : text;
+}
+
 function SceneItems({ scene }: { scene: string }) {
   const reason = usePermission("program.control");
   const items = useApi<ObsSceneItem[]>(`/api/v1/obs/scenes/${seg(scene)}/items`);
@@ -171,8 +178,8 @@ function ObsTab() {
                   <tbody>
                     {(
                       [
-                        ["record", "Recording", s.recording],
-                        ["stream", "Streaming", s.streaming],
+                        ["record", t("devices.recording"), s.recording],
+                        ["stream", t("devices.streaming"), s.streaming],
                         ["replay", t("devices.replayBuffer"), s.replayBuffer],
                       ] as const
                     ).map(([kind, label, on]) => (
@@ -570,7 +577,7 @@ function IntegrationsTab() {
           </Async>
         </Panel>
       </div>
-      <Panel title={t("devices.matchframeBridge")} subtitle={t("devices.optionalPushOfMatchResults")} actions={bridge.data ? <Badge tone={bridge.data.status === "connected" ? "ok" : bridge.data.status === "disabled" ? "neutral" : "warn"}>{bridge.data.status}</Badge> : null}>
+      <Panel title={t("devices.matchframeBridge")} subtitle={t("devices.optionalPushOfMatchResults")} actions={bridge.data ? <Badge tone={bridge.data.status === "connected" ? "ok" : bridge.data.status === "disabled" ? "neutral" : "warn"}>{bridgeStatusText(bridge.data.status)}</Badge> : null}>
         <Async state={bridge}>
           {(b) => (
             <>

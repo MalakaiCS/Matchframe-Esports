@@ -34,7 +34,7 @@ function PublicStatePreview({ outputId }: { outputId: string }) {
             items={[
               [t("huds.source"), h.simulated ? t("huds.simulation") : t("huds.live2")],
               [t("huds.data"), h.stale ? <Badge key="d" tone="danger">{t("huds.stale")}</Badge> : t("huds.ageDataagems", { dataAgeMs: fmtMs(h.dataAgeMs) })],
-              [t("huds.timeline"), `${h.timeline.profile}${h.timeline.profile === "delayed" ? ` (${fmtMs(h.timeline.delayMs)})` : ""}`],
+              [t("huds.timeline"), h.timeline.profile === "delayed" ? `${t("huds.delayed")} (${fmtMs(h.timeline.delayMs)})` : h.timeline.profile === "live" ? t("huds.live") : h.timeline.profile],
               [t("huds.match"), t("huds.vRoundV2Phase", { v: h.match.mapDisplayName ?? h.match.mapName ?? MISSING, v2: h.match.roundNumber ?? MISSING, phase: h.match.phase })],
               [t("huds.teams"), `${h.left.name} ${h.left.score ?? MISSING} – ${h.right.score ?? MISSING} ${h.right.name}`],
               [t("huds.observed"), h.observed?.name ?? t("common.none")],

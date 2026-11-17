@@ -126,6 +126,29 @@
       "paused": "wstrzymana"
     }
   },
+  "api": {
+    "error": {
+      "notAuthenticated": "Brak uwierzytelnienia: token dostępu nie istnieje, wygasł lub został odrzucony. Uruchom ponownie program MatchFrame albo sprawdź token w Plik → Ustawienia połączenia.",
+      "badOrigin": "Zablokowano: ta strona nie może zmieniać stanu silnika. Użyj programu MatchFrame.",
+      "scope": "Niedozwolone dla tego linku: {msg}",
+      "forbidden": "Brak uprawnień: {msg}",
+      "notFound": "Nie znaleziono: {msg}",
+      "conflict": "Konflikt: {msg}",
+      "conflictDetail": "Konflikt: {msg} ({detail})",
+      "tooLarge": "Za duże: {msg}",
+      "invalid": "Nieprawidłowe żądanie: {msg}",
+      "invalidDetail": "Nieprawidłowe żądanie: {msg} — {detail}",
+      "engine": "Błąd silnika ({status}): {msg}",
+      "unreachable": "Silnik nieosiągalny ({request}): {reason}. Czy silnik MatchFrame działa?",
+      "notJson": "Nieoczekiwana odpowiedź spoza JSON z {path}"
+    },
+    "ws": {
+      "noData": "brak danych od {seconds} s",
+      "connectionError": "błąd połączenia",
+      "closed": "zamknięte ({code})",
+      "tokenRejected": "token odrzucony przez silnik"
+    }
+  },
   "autodir": {
     "phase": {
       "off": "Wyłączony",
@@ -318,7 +341,12 @@
     "disconnected": "Rozłączony",
     "connected": "Połączony",
     "consentRecorded": "{displayName}: zapisano zgodę",
-    "consentRevoked": "{displayName}: cofnięto zgodę"
+    "consentRevoked": "{displayName}: cofnięto zgodę",
+    "quality": {
+      "low": "Niska ({size})",
+      "standard": "Standardowa ({size})",
+      "high": "Wysoka ({size})"
+    }
   },
   "common": {
     "unknown": "Nieznany",
@@ -372,7 +400,12 @@
       "roaming": "Wolna kamera (roaming)"
     },
     "grenade": {
-      "fireUnknown": "Ogień (nieznany typ)"
+      "fireUnknown": "Ogień (nieznany typ)",
+      "flashbang": "Flash",
+      "smoke": "Smoke",
+      "molotov": "Mołotow",
+      "incendiary": "Granat zapalający",
+      "decoy": "Wabik"
     },
     "form": {
       "search": "Szukaj…",
@@ -399,7 +432,10 @@
     "no": "nie",
     "on": "wł.",
     "off": "wył.",
-    "none": "brak"
+    "none": "brak",
+    "weapon": {
+      "knife": "Nóż"
+    }
   },
   "comms": {
     "listenInOpensOnlyA": "Nasłuch otwiera tylko drużynę, której bufor mieści opóźnienie, i najpierw zamyka drugą (nigdy obie). Wycisz całą komunikację od razu ucisza trasę publiczną; nagrywanie trwa dalej. Komunikacja wraca na antenę tylko przez nowy nasłuch: nigdy po restarcie, resecie lub utracie połączenia.",
@@ -903,7 +939,18 @@
     "setGameLevel": "Ustaw poziom gry",
     "setCommsLevel": "Ustaw poziom komunikacji",
     "savedPath": "Zapisano: {path}",
-    "mutedLower": "wyciszone"
+    "mutedLower": "wyciszone",
+    "state": {
+      "recording": "Nagrywa",
+      "fault": "Usterka"
+    },
+    "saved": "Zapisano",
+    "pluginInstalled": "Zainstalowano",
+    "crop": {
+      "across": "W poziomie",
+      "down": "W pionie",
+      "zoom": "Powiększenie"
+    }
   },
   "control": {
     "own": {
@@ -1063,7 +1110,15 @@
     "switchCost": "Koszt przełączenia (−)",
     "mainStory": "Główna historia",
     "actionCoverage": "Pokrycie akcji",
-    "staleness": "Nieaktualność (−)"
+    "staleness": "Nieaktualność (−)",
+    "component": {
+      "imminence": "Bliskość akcji",
+      "readiness": "Gotowość",
+      "significance": "Znaczenie",
+      "narrative": "Narracja",
+      "framing": "Kadrowanie",
+      "continuity": "Ciągłość"
+    }
   },
   "demos": {
     "pythonWorkersAvailable": "Dostępne workery Python",
@@ -1250,7 +1305,8 @@
       "QUARANTINED": "W kwarantannie",
       "RECOVERABLE": "Do odzyskania",
       "DUPLICATE": "Duplikat"
-    }
+    },
+    "working": "Trwa praca"
   },
   "devices": {
     "adaptersIntegrations": "Adaptery i integracje",
@@ -1431,7 +1487,15 @@
     "previewSc": "Podgląd: {sc}",
     "programSc": "Program: {sc}",
     "alive": "żywy",
-    "dead": "martwy"
+    "dead": "martwy",
+    "recording": "Nagrywanie",
+    "streaming": "Stream",
+    "bridgeStatus": {
+      "disabled": "wyłączony",
+      "not_configured": "nieskonfigurowany",
+      "connected": "połączony",
+      "blocked": "zablokowany"
+    }
   },
   "director": {
     "initialEngineeringDefaultsToBe": "Wstępne wartości inżynierskie do zmierzenia i dostrojenia; nie są to wartości wyuczone.",
@@ -1515,7 +1579,8 @@
     "regions": "Obszary",
     "players": "Gracze",
     "manualStickySuffix": " (ręcznie, trwale)",
-    "emergencyStopSuffix": " · zatrzymanie awaryjne"
+    "emergencyStopSuffix": " · zatrzymanie awaryjne",
+    "ownerManual": "{owner} (ręcznie)"
   },
   "editor": {
     "saveAndExit": "Zapisz i wyjdź",
@@ -2051,7 +2116,11 @@
     "appearance": "Wygląd",
     "overview": "Przegląd",
     "hudDetails": "Szczegóły HUD",
-    "nameDetails": "Szczegóły {name}"
+    "nameDetails": "Szczegóły {name}",
+    "resize": "Skala",
+    "move": "Przesuń",
+    "lock": "Zablokuj",
+    "unlock": "Odblokuj"
   },
   "huds": {
     "composer": "Kompozytor",
@@ -2802,7 +2871,13 @@
       "other": "{count} gracza"
     },
     "readyLower": "gotowe",
-    "confidencePct": "Pewność {n}%."
+    "confidencePct": "Pewność {n}%.",
+    "phase": {
+      "warmup": "Rozgrzewka",
+      "defusing": "Rozbrajanie",
+      "paused": "Pauza",
+      "halftime": "Zmiana stron"
+    }
   },
   "maps": {
     "live": "Na żywo",
@@ -2965,7 +3040,30 @@
       "many": "Ustawiono rewizję; unieważniono {count} kamer",
       "other": "Ustawiono rewizję; unieważniono {count} kamery"
     },
-    "syntheticTestMapSuffix": " (syntetyczna mapa testowa)"
+    "syntheticTestMapSuffix": " (syntetyczna mapa testowa)",
+    "invalidated": "Unieważniona",
+    "verdict": {
+      "kept": "Zachowana",
+      "hidden": "Ukryta"
+    }
+  },
+  "matchArt": {
+    "noCanvas": "Ten komputer nie potrafi narysować grafik (brak canvas 2D).",
+    "noCanvasStinger": "Ten komputer nie potrafi narysować stingera (brak canvas 2D).",
+    "step": {
+      "loading": "Wczytywanie logo drużyn",
+      "thumb": {
+        "highlights": "Tworzenie miniatury najlepszych akcji",
+        "replay": "Tworzenie miniatury pełnej powtórki",
+        "live": "Tworzenie miniatury na żywo"
+      },
+      "upNext": "Tworzenie ekranu Za chwilę",
+      "stinger": "Tworzenie stingera",
+      "replayStinger": "Tworzenie stingera powtórki",
+      "saved": "Zapisano",
+      "done": "Gotowe",
+      "stopped": "Zatrzymano"
+    }
   },
   "matches": {
     "delete": "Usuń",
@@ -3038,7 +3136,6 @@
     "labelPreview": "Podgląd: {label}",
     "nothingMadeYet": "Jeszcze nic nie utworzono.",
     "makingTheMatchGraphics": "Tworzenie grafik meczu",
-    "makingTolowercaseRound": "Tworzenie: {toLowerCase}… {round}%",
     "makeAgain": "Utwórz ponownie",
     "makingThemNow": "Tworzenie w toku",
     "madeForEveryNewMatch": "Tworzone dla każdego nowego meczu z logo i kolorów obu drużyn (? gdy drużyna nie ma logo).",
@@ -3301,7 +3398,8 @@
       "many": "Wybrano map: {playedCount} z {count}{v2}",
       "other": "Wybrano map: {playedCount} z {count}{v2}"
     },
-    "manualCorrectionSuffix": "; różnica zostaje jako ręczna korekta"
+    "manualCorrectionSuffix": "; różnica zostaje jako ręczna korekta",
+    "artProgress": "{step}… {round}%"
   },
   "nav": {
     "account": "Konto",
@@ -3635,7 +3733,9 @@
     "kill": "zabójstwo",
     "replay": "Powtórka",
     "headshot": "headshot",
-    "roundN": "runda {n}"
+    "roundN": "runda {n}",
+    "matchframeStingerWhenObsHasIt": "MatchFrame Stinger (gdy OBS go ma)",
+    "sameAsMapIntroIn": "Jak Wejście w intro mapy"
   },
   "reasons": {
     "thisReasonCodeIsNewer": "Ten kod powodu jest nowszy niż ta konsola.",
@@ -4185,7 +4285,11 @@
     "capabilities": "Możliwości",
     "bookmarkedLabel": "Oznaczono „{label}”",
     "capturingSuffix": " — przechwytywanie",
-    "encoderCpu": "procesor (x264)"
+    "encoderCpu": "procesor (x264)",
+    "step": {
+      "failed": "Niepowodzenie",
+      "skipped": "Pominięto"
+    }
   },
   "settings": {
     "save": "Zapisz",
@@ -5177,7 +5281,8 @@
     "valueOfKey": "Wartość {key}",
     "extraFieldsForHuds": "Dodatkowe pola dla HUD-ów",
     "notSet": "Nie ustawiono",
-    "clear": "Wyczyść"
+    "clear": "Wyczyść",
+    "standIn": "Stand-in"
   },
   "training": {
     "shadowComparison": "Porównanie w trybie shadow",

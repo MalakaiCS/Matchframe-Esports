@@ -481,7 +481,7 @@ function DesktopControls({ entry, overlay, bridge, desktopReason, actions, reaso
   return (
     <div className="stack">
       <div className="row">
-        <Button onClick={() => void run(overlay.visible ? "Hide" : "Show", () => bridge.setVisible(entry.id, !overlay.visible))}>
+        <Button onClick={() => void run(overlay.visible ? t("hudlib.hide") : t("hudlib.show"), () => bridge.setVisible(entry.id, !overlay.visible))}>
           <Icon name={overlay.visible ? "eyeOff" : "eye"} size={14} /> {overlay.visible ? t("hudlib.hide") : t("hudlib.show")}
         </Button>
         <Button variant={overlay.editing ? "warn" : "secondary"} disabledReason={overlay.locked ? t("hudlib.unlockThePositionFirst") : null} onClick={() => void run(t("hudlib.editMode"), () => bridge.setEditing(entry.id, !overlay.editing))} aria-pressed={overlay.editing}>
@@ -503,7 +503,7 @@ function DesktopControls({ entry, overlay, bridge, desktopReason, actions, reaso
       </Field>
       <div className="row hud-scale-row">
         <Field label={t("hudlib.scale")}>
-          <input type="number" min={10} max={400} step={5} defaultValue={scalePct} key={scalePct} onBlur={(e) => Number(e.target.value) !== scalePct && configure("Scale", { scale: Math.min(4, Math.max(0.1, Number(e.target.value) / 100)) })} style={{ width: 90 }} />
+          <input type="number" min={10} max={400} step={5} defaultValue={scalePct} key={scalePct} onBlur={(e) => Number(e.target.value) !== scalePct && configure(t("hudlib.resize"), { scale: Math.min(4, Math.max(0.1, Number(e.target.value) / 100)) })} style={{ width: 90 }} />
         </Field>
         <Button size="sm" onClick={() => configure(t("hudlib.fitToMonitor"), { fit: "display" })}>{t("hudlib.fitToMonitor")}</Button>
         <Button size="sm" onClick={() => configure(t("hudlib.actualSize"), { fit: "native" })}>
@@ -513,17 +513,17 @@ function DesktopControls({ entry, overlay, bridge, desktopReason, actions, reaso
       <p className="muted small hud-hint">{t("hudlib.scalesTheDesignSizeEntry", { entry: resolutionLabel(entry) })}</p>
       <div className="row">
         <Field label="X">
-          <input type="number" value={pos.x} onChange={(e) => setPos({ ...pos, x: e.target.value })} onBlur={() => Number(pos.x) !== overlay.bounds.x && configure("Move", { bounds: { x: Math.round(Number(pos.x)) } })} style={{ width: 90 }} disabled={overlay.locked} />
+          <input type="number" value={pos.x} onChange={(e) => setPos({ ...pos, x: e.target.value })} onBlur={() => Number(pos.x) !== overlay.bounds.x && configure(t("hudlib.move"), { bounds: { x: Math.round(Number(pos.x)) } })} style={{ width: 90 }} disabled={overlay.locked} />
         </Field>
         <Field label="Y">
-          <input type="number" value={pos.y} onChange={(e) => setPos({ ...pos, y: e.target.value })} onBlur={() => Number(pos.y) !== overlay.bounds.y && configure("Move", { bounds: { y: Math.round(Number(pos.y)) } })} style={{ width: 90 }} disabled={overlay.locked} />
+          <input type="number" value={pos.y} onChange={(e) => setPos({ ...pos, y: e.target.value })} onBlur={() => Number(pos.y) !== overlay.bounds.y && configure(t("hudlib.move"), { bounds: { y: Math.round(Number(pos.y)) } })} style={{ width: 90 }} disabled={overlay.locked} />
         </Field>
         <span className="muted small num">{t("hudlib.widthHeightWindow", { width: overlay.bounds.width, height: overlay.bounds.height })}</span>
       </div>
-      <Checkbox checked={overlay.locked} onChange={(v) => configure(v ? "Lock" : "Unlock", { locked: v })} label={t("hudlib.lockPositionAndSize")} hint={t("hudlib.preventsEditModeAndMoves")} />
+      <Checkbox checked={overlay.locked} onChange={(v) => configure(v ? t("hudlib.lock") : t("hudlib.unlock"), { locked: v })} label={t("hudlib.lockPositionAndSize")} hint={t("hudlib.preventsEditModeAndMoves")} />
       {entry.variants.length > 1 ? (
         <Field label={t("hudlib.variant2")}>
-          <select value={overlay.variant} onChange={(e) => configure("Variant", { variant: e.target.value as HudVariant })}>
+          <select value={overlay.variant} onChange={(e) => configure(t("hudlib.variant2"), { variant: e.target.value as HudVariant })}>
             {entry.variants.map((v) => (
               <option key={v} value={v} disabled={!entry.urls[v]}>
                 {VARIANT_LABEL[v]}
@@ -566,7 +566,7 @@ function Hotkeys({ bridge, desktopReason }: { bridge: DesktopHudBridge | null; d
         </Field>
       </div>
       <div className="row">
-        <Button size="sm" disabledReason={changed ? null : t("hudlib.noChanges")} onClick={() => void run("Hotkeys", () => bridge.setHotkeys(draft), t("hudlib.hotkeysSaved")).then((h) => h && setState(h))}>{t("hudlib.saveHotkeys")}</Button>
+        <Button size="sm" disabledReason={changed ? null : t("hudlib.noChanges")} onClick={() => void run(t("hudlib.hotkeys"), () => bridge.setHotkeys(draft), t("hudlib.hotkeysSaved")).then((h) => h && setState(h))}>{t("hudlib.saveHotkeys")}</Button>
       </div>
     </section>
   );

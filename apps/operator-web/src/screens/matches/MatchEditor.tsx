@@ -37,8 +37,8 @@ type MatchDraft = {
 };
 const DEFAULT_FORMAT: MatchFormat = { bestOf: 3, regulationRounds: 24, overtimeEnabled: true, overtimeRounds: 6, allowTie: false };
 const EMPTY: MatchDraft = { teamAId: null, teamBId: null, format: DEFAULT_FORMAT, scheduledAt: null, eventId: null, stageId: null, title: null, mapPool: [], veto: [], seriesScoreA: 0, seriesScoreB: 0, status: "scheduled" };
-const LABEL: Record<string, string> = perLocale(() => ({ teamAId: "Team 1", teamBId: "Team 2", format: "Format", scheduledAt: t("matches.dateAndTime"), eventId: "Tournament", stageId: "Stage", title: t("matches.title"), mapPool: t("matches.mapPool"), veto: t("matches.mapVeto"), seriesScoreA: t("matches.seriesScore"), seriesScoreB: t("matches.seriesScore"), status: "Status" }));
-const TYPE_LABEL: Record<VetoEntry["type"], string> = { pick: "Pick", ban: "Ban", decider: "Decider" };
+const LABEL: Record<string, string> = perLocale(() => ({ teamAId: t("matches.team1"), teamBId: t("matches.team2"), format: t("matches.format"), scheduledAt: t("matches.dateAndTime"), eventId: t("matches.tournament"), stageId: t("matches.stage"), title: t("matches.title"), mapPool: t("matches.mapPool"), veto: t("matches.mapVeto"), seriesScoreA: t("matches.seriesScore"), seriesScoreB: t("matches.seriesScore"), status: t("matches.status") }));
+const TYPE_LABEL: Record<VetoEntry["type"], string> = perLocale(() => ({ pick: t("matches.pick"), ban: t("matches.ban"), decider: t("matches.decider") }));
 
 export const mapLabel = (m: string, names: Map<string, string>) => names.get(m) ?? m.replace(/^de_/, "").replace(/^\w/, (c) => c.toUpperCase());
 
@@ -284,7 +284,7 @@ function MatchEditor({ match, reload }: { match: MatchDetail | null; reload?: ()
 
   return (
     <EditorShell
-      title={match ? t("matches.editMatchVVsV2", { v: teamA?.name ?? "Team 1", v2: teamB?.name ?? "Team 2" }) : t("matches.createMatch")}
+      title={match ? t("matches.editMatchVVsV2", { v: teamA?.name ?? t("matches.team1"), v2: teamB?.name ?? t("matches.team2") }) : t("matches.createMatch")}
       subtitle={
         match ? (
           <span className="row">
@@ -324,8 +324,8 @@ function MatchEditor({ match, reload }: { match: MatchDetail | null; reload?: ()
           </FormField>
           <div className="versus" aria-label={t("matches.seriesScore")}>
             {[
-              ["seriesScoreA", teamA, "Team 1"],
-              ["seriesScoreB", teamB, "Team 2"],
+              ["seriesScoreA", teamA, t("matches.team1")],
+              ["seriesScoreB", teamB, t("matches.team2")],
             ].map(([key, tRow, fallback], i) => {
               const k = key as "seriesScoreA" | "seriesScoreB";
               const team = tRow as TeamRow | null;
@@ -518,7 +518,7 @@ function MatchEditor({ match, reload }: { match: MatchDetail | null; reload?: ()
       {match ? (
         <>
           <LazyDetails summary={t("matches.mapsAndResultsCountApplied", { count: match.maps.length })} className="additional">
-            <MapResults match={match} teamA={teamA?.name ?? "Team 1"} teamB={teamB?.name ?? "Team 2"} onSaved={() => reload?.()} />
+            <MapResults match={match} teamA={teamA?.name ?? t("matches.team1")} teamB={teamB?.name ?? t("matches.team2")} onSaved={() => reload?.()} />
           </LazyDetails>
           <LazyDetails summary={t("matches.statCorrectionsVAppliedAt", { v: match.corrections.length ? ` (${match.corrections.length})` : "" })} className="additional">
             <Corrections match={match} players={players.data ?? []} />

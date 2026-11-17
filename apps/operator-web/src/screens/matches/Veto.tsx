@@ -10,7 +10,7 @@ import { engineOrigin } from "../../lib/engine.ts";
 import { perLocale, t } from "../../i18n/index.ts";
 import "../../styles/group-a.css";
 
-export const VETO_KIND_LABEL: Record<string, string> = perLocale(() => ({ ban: "Ban", pick: "Pick", decider: "Decider", side_choice: t("matches.sideChoice") }));
+export const VETO_KIND_LABEL: Record<string, string> = perLocale(() => ({ ban: t("matches.ban"), pick: t("matches.pick"), decider: t("matches.decider"), side_choice: t("matches.sideChoice") }));
 
 export function stepActorName(step: VetoStep, teamA: string, teamB: string): string {
   return step.actor === "A" ? teamA : step.actor === "B" ? teamB : "automatic";

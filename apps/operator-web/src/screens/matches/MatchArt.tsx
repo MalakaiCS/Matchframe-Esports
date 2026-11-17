@@ -56,7 +56,7 @@ export function MatchArtPanel({ matchId, teams }: { matchId: string; teams: stri
     >
       {job && job.state === "working" ? (
         <div className="stack" style={{ marginBottom: 12 }}>
-          <span className="small">{t("matches.makingTolowercaseRound", { toLowerCase: job.step.toLowerCase(), round: Math.round(job.progress * 100) })}</span>
+          <span className="small">{t("matches.artProgress", { step: job.step, round: Math.round(job.progress * 100) })}</span>
           <Meter value={job.progress} label={t("matches.makingTheMatchGraphics")} />
         </div>
       ) : job?.state === "failed" && job.error ? (

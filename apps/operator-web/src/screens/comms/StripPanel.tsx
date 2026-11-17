@@ -156,9 +156,9 @@ function CropEditor({ name, picture, pictureUrl, crop, cropKey, settings, disabl
       <div className="stack-sm">
         <strong>{name}</strong>
         <span className="muted small">{picture}</span>
-        {slider("x", "Across", 0, 100, 1)}
-        {slider("y", "Down", 0, 100, 1)}
-        {slider("zoom", "Zoom", 1, 3, 0.05)}
+        {slider("x", t("comms.crop.across"), 0, 100, 1)}
+        {slider("y", t("comms.crop.down"), 0, 100, 1)}
+        {slider("zoom", t("comms.crop.zoom"), 1, 3, 0.05)}
         <Button size="sm" variant="ghost" disabledReason={disabledReason} onClick={() => void put(null)}>{t("comms.resetCrop")}</Button>
       </div>
     </div>
