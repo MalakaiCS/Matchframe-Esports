@@ -1381,3 +1381,10 @@ body,
   height: 3px;
   background: linear-gradient(90deg, var(--lu-ct) 50%, var(--lu-t) 50%);
 }
+
+/* Low-spec mode (HudState.lowSpec): the bomb and plant bars step with each update instead of gliding
+   (their short linear transitions ran all the time, drawing every display frame). */
+html.mf-low-spec .lu-bombbar-fill,
+html.mf-low-spec .lu-plant-bar i {
+  transition: none;
+}

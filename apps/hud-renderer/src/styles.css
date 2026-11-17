@@ -1387,6 +1387,18 @@ body,
     transition: none !important;
   }
 }
+/* Low-spec mode (HudState.lowSpec, ADR-078): no large soft shadows, no backdrop-filter, and animations
+   that run continuously (the planted bomb's pulse, the radar's bomb ping) play once. */
+.mf-low-spec {
+  --mf-shadow: none;
+}
+.mf-low-spec *,
+.mf-low-spec *::before,
+.mf-low-spec *::after {
+  animation-iteration-count: 1 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
 
 /* Player cam above the observed player's panel (player cams, ADR-048). */
 .mf-observed-cam {

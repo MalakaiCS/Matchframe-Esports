@@ -206,6 +206,8 @@ export class DemoLibrary {
   isUploaded: (sha256: string) => boolean = () => false;
   /** Runs after each processing tick (dataset uploads); set by DatasetStorage. */
   afterProcess: (() => void) | null = null;
+  /** Low-spec mode (ADR-078): no hashing or new jobs while this is true (a round is live); set by the engine. */
+  deferHeavy: () => boolean = () => false;
 
   constructor(
     private readonly repo: DemoJobRepo,
@@ -401,8 +403,13 @@ export class DemoLibrary {
 
   async processQueue(): Promise<void> {
     const cfg = this.config();
-    if (this.paused || (cfg.pauseDuringLive && this.isLive())) return;
-    for (const j of this.repo.list("DISCOVERED", 50)) await this.hashJob(j);
+    if (this.paused || (cfg.pauseDuringLive && this.isLive()) || this.deferHeavy()) return;
+    for (const j of this.repo.list("DISCOVERED", 50)) {
+      // A round went live while hashing (low-spec mode): the rest waits for the next tick.
+      if (this.deferHeavy()) return;
+      await this.hashJob(j);
+    }
+    if (this.deferHeavy()) return;
     while (this.running < cfg.concurrency) {
       const next = this.repo.list("QUEUED", 1)[0];
       if (!next) return;

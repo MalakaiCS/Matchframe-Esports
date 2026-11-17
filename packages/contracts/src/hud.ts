@@ -147,6 +147,37 @@ export interface HudOutputSmoothness {
   worstPauseMs: number;
   /** How many times it stopped drawing for more than 100 ms. */
   pauses: number;
+  /** The frame cap it drew under (Low-spec mode, ADR-078), or null/absent without one. */
+  frameCap?: number | null;
+}
+
+/**
+ * Low-spec mode (one PC, ADR-078): CS2, OBS and MatchFrame on one computer. GET /api/v1/performance,
+ * and `performance` in the operator snapshot.
+ */
+export interface LowSpecStatus {
+  lowSpec: boolean;
+  /** Frames a second HUD outputs and the desktop HUD draw at most (null: no cap). */
+  frameCap: number | null;
+  /**
+   * The program suggests turning it on, once: HUD outputs stuttered while CS2 sends game data from
+   * this computer. Null when there is nothing to suggest (on, dismissed, or no reason).
+   */
+  suggestion: { reason: string; at: string } | null;
+  /** Game data arrived from this computer in the last 30 s (CS2 runs here). */
+  cs2OnThisComputer: boolean;
+  /** Heavy background jobs (demo hashing and processing, training, highlight reels) are waiting for the live round to end. */
+  deferring: boolean;
+  engine: {
+    /** V8's heap limit in this engine process (MB). */
+    heapLimitMb: number;
+    /** The memory cap the program started this engine with (--max-old-space-size), or null without one (off, or started without the program). */
+    heapCapMb: number | null;
+    heapUsedMb: number;
+    rssMb: number;
+  };
+  /** OBS browser sources MatchFrame made, set to the frame cap over OBS websocket. */
+  obs: { connected: boolean; sources: string[]; error: string | null };
 }
 
 export interface HudLibraryEntry {
@@ -215,4 +246,6 @@ export interface HudRuntimeControl {
   designResolution: { width: number; height: number };
   /** The labelled simulation is running (wrappers of HUDs that do not label it themselves show a badge). */
   testData?: boolean;
+  /** Low-spec mode's frame cap (ADR-078): the output page draws at most this many frames a second; null or absent for none. */
+  frameCap?: number | null;
 }

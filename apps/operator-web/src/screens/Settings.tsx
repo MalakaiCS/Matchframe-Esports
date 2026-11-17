@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, describeError, seg } from "../api/index.ts";
 import type { AuditEntry, BroadcastReport, EngineMetrics, LogEntry, StatsResponse } from "../api/types.ts";
 import { ImageField } from "../components/forms.tsx";
+import { PerformancePanel } from "../components/LowSpec.tsx";
 import { ActionButton, Async, Badge, Button, Details, EmptyState, Field, JsonEditor, KV, Note, Panel, parseJsonOr } from "../components/ui.tsx";
 import { setDefaultPlayerPicture, useDefaultPlayerPicture, type DefaultPlayerPicture } from "../lib/defaultPicture.ts";
 import { fmtMs, fmtTime, MISSING, saveBlob } from "../lib/format.ts";
@@ -358,6 +359,7 @@ function GeneralTab() {
   return (
     <div className="grid-2">
       <ProgramPanel />
+      <PerformancePanel />
       <DefaultPlayerPicturePanel />
       <Panel title="Live session">
         <div className="row">

@@ -230,6 +230,58 @@ describe("HUD Library screen", () => {
     expect(within(details).queryByText(/Enable Browser Source Hardware Acceleration/)).toBeNull();
   });
 
+  it("low-spec mode: 30 fps under its 30 fps cap is not stuttering, 20 is; and the help says what the mode set", async () => {
+    act(() => liveStore.set({ snapshot: { performance: { lowSpec: true, frameCap: 30, suggestion: null, deferring: false } } as unknown as OperatorSnapshot }));
+    const capped = { ...PRO, outputs: { desktop: 1, obs: 1, preview: 0 }, smoothness: { desktop: { fps: 30, worstPauseMs: 40, pauses: 0, frameCap: 30 }, obs: { fps: 20, worstPauseMs: 60, pauses: 0, frameCap: 30 } } };
+    serve((m, p) => (m === "GET" && p === "/api/v1/hud/library" ? { status: 200, json: library([capped]) } : undefined));
+    renderScreen();
+    const card = await screen.findByRole("article", { name: PRO.name });
+    expect((card.querySelector('[data-output="desktop"]') as HTMLElement).className).not.toContain("is-stutter");
+    expect((card.querySelector('[data-output="obs"]') as HTMLElement).className).toContain("is-stutter");
+    fireEvent.click(card);
+    const details = await screen.findByTestId("hud-details");
+    fireEvent.click(within(details).getByRole("tab", { name: "Outputs" }));
+    expect(within(details).getByText(/drew only/).textContent).toMatch(/OBS browser source drew only 20 frames a second \(under 24, with low-spec mode's cap of 30\)/);
+    expect(within(details).getByText(/Low-spec mode sets/)).toBeTruthy();
+  });
+
+  it("low-spec mode: thumbnails are drawn still and the details panel shows no live preview until asked", async () => {
+    act(() => liveStore.set({ snapshot: { performance: { lowSpec: true, frameCap: 30, suggestion: null, deferring: false } } as unknown as OperatorSnapshot }));
+    const withThumb = { ...SAMPLE, thumbnailUrl: `${ORIGIN}/huds/${SAMPLE.id}/thumbnail.gif` };
+    serve((m, p) => (m === "GET" && p === "/api/v1/hud/library" ? { status: 200, json: library([withThumb]) } : undefined));
+    renderScreen();
+    const card = await screen.findByRole("article", { name: SAMPLE.name });
+    expect(card.querySelector("img")).toBeNull();
+    expect(within(card).getByTestId("hud-thumb-still")).toBeTruthy();
+    fireEvent.click(card);
+    const details = await screen.findByTestId("hud-details");
+    expect(within(details).getByTestId("hud-preview-paused")).toBeTruthy();
+    expect(details.querySelector("iframe")).toBeNull();
+    fireEvent.click(within(details).getByRole("button", { name: "Show live preview" }));
+    expect(details.querySelector("iframe")?.getAttribute("src")).toContain("mode=preview");
+  });
+
+  it("suggests low-spec mode once, from the engine: turn it on, or dismiss it", async () => {
+    act(() => liveStore.set({ snapshot: { performance: { lowSpec: false, frameCap: null, suggestion: { reason: "The desktop HUD stuttered while CS2 runs on this computer (31 fps, longest pause 300 ms).", at: "2026-11-17T10:00:00.000Z" }, deferring: false } } as unknown as OperatorSnapshot }));
+    const calls = serve((m, p) => {
+      if (m === "GET" && p === "/api/v1/hud/library") return { status: 200, json: library([SAMPLE]) };
+      if (m === "PUT" && p === "/api/v1/performance") return { status: 200, json: { lowSpec: true } };
+      if (m === "POST" && p === "/api/v1/performance/suggestion/dismiss") return { status: 200, json: { lowSpec: false } };
+      return undefined;
+    });
+    const view = renderScreen();
+    const note = await screen.findByTestId("low-spec-suggestion");
+    expect(note.textContent).toMatch(/desktop HUD stuttered while CS2 runs on this computer/);
+    fireEvent.click(within(note).getByRole("button", { name: "Turn on low-spec mode" }));
+    await waitFor(() => expect(screen.queryByTestId("low-spec-suggestion")).toBeNull());
+    expect(calls.find((c) => c.method === "PUT" && c.path === "/api/v1/performance")?.body).toBe(JSON.stringify({ lowSpec: true }));
+    view.unmount();
+    renderScreen();
+    fireEvent.click(within(await screen.findByTestId("low-spec-suggestion")).getByRole("button", { name: "Dismiss" }));
+    await waitFor(() => expect(screen.queryByTestId("low-spec-suggestion")).toBeNull());
+    expect(calls.some((c) => c.method === "POST" && c.path === "/api/v1/performance/suggestion/dismiss")).toBe(true);
+  });
+
   it("opens the details panel with package info, variants and the settings form", async () => {
     const withSettings = { ...SAMPLE, settingsSchema: { accentColor: { type: "color" as const, label: "Accent colour", default: "#2f7cf6" }, showMoney: { type: "boolean" as const, label: "Show money", default: true } }, settings: { accentColor: "#2f7cf6", showMoney: true } };
     const calls = serve((m, p) => {

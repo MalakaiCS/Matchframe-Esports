@@ -22,10 +22,19 @@ function useAppearance(state: HudState | null) {
   }, [ct, t, opacity]);
 }
 
+/** Low-spec mode (HudState.lowSpec, ADR-078): html.mf-low-spec drops the expensive effects (styles/app.scss). */
+function useLowSpec(state: HudState | null) {
+  const on = state?.lowSpec === true;
+  useEffect(() => {
+    document.documentElement.classList.toggle("mf-low-spec", on);
+  }, [on]);
+}
+
 export default function App() {
   const { state, receivedAt } = useHud();
   const now = useNow(100);
   useAppearance(state);
+  useLowSpec(state);
   // Nothing until the first state arrives: the page stays fully transparent.
   if (!state) return null;
   // The `replay` entry point: only the replay graphic (the page in the replay scene).

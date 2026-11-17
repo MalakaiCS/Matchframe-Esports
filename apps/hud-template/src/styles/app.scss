@@ -233,6 +233,21 @@ body {
   opacity: 0.7;
 }
 
+/* Low-spec mode (HudState.lowSpec): animations that run continuously (the radar's bomb ping) play once,
+   no backdrop-filter, and no soft text shadows. The radar's players step with each update instead of
+   gliding (a 0.2 s transition on every update kept it drawing every display frame). */
+html.mf-low-spec *,
+html.mf-low-spec *::before,
+html.mf-low-spec *::after {
+  animation-iteration-count: 1 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+html.mf-low-spec .mf-radar-player {
+  transition: none;
+}
+
 /* Demo state (thumbnails): no entry animations. */
 .demo .killfeed .single_kill_container,
 .demo .win_text.show {

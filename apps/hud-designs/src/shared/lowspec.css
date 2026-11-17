@@ -1,0 +1,13 @@
+/*
+ * Low-spec mode (HudState.lowSpec, ADR-078) for Vector, Lineup and Stage: shared/useHud.ts sets
+ * html.mf-low-spec while it is on. Animations that run continuously (the planted bomb's pulse or
+ * blink, the radar's bomb ping) play once and stop; one-off entrances already play once and are kept.
+ * Nothing draws a backdrop-filter. Each HUD's own stylesheet drops its large soft shadows.
+ */
+html.mf-low-spec *,
+html.mf-low-spec *::before,
+html.mf-low-spec *::after {
+  animation-iteration-count: 1 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

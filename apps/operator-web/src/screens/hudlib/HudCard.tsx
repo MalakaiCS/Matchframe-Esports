@@ -6,6 +6,7 @@ import { Icon } from "../../components/icons.tsx";
 import { Badge, Button } from "../../components/ui.tsx";
 import type { HudDisplayStatus } from "../../lib/hudLibrary.ts";
 import { KIND_LABEL, OUTPUT_LABEL, OUTPUT_MODES, STATUS_INFO, resolutionLabel, stutters } from "../../lib/hudLibrary.ts";
+import { useLowSpec } from "../../lib/lowSpec.ts";
 
 /** Actions on one HUD, shared by the card, the list row and the details panel. */
 export interface HudActions {
@@ -133,13 +134,45 @@ export function OutputIndicators({ outputs, smoothness = {} }: { outputs: Record
   );
 }
 
+/** An image drawn once onto a canvas: an animated thumbnail (GIF, animated WebP or PNG) stays still. */
+function StillImage({ src, onError }: { src: string; onError(): void }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const failed = useRef(onError);
+  failed.current = onError;
+  useEffect(() => {
+    let live = true;
+    const img = new Image();
+    img.onload = () => {
+      const c = ref.current;
+      if (!live || !c) return;
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      c.getContext("2d")?.drawImage(img, 0, 0);
+    };
+    img.onerror = () => live && failed.current();
+    img.src = src;
+    return () => {
+      live = false;
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [src]);
+  return <canvas ref={ref} className="hud-thumb-still" aria-hidden data-testid="hud-thumb-still" />;
+}
+
 export function Thumbnail({ entry, className = "" }: { entry: HudLibraryEntry; className?: string }) {
   const [failed, setFailed] = useState(false);
+  // Low-spec mode (ADR-078): thumbnails are drawn still in the console.
+  const still = useLowSpec()?.lowSpec === true;
   useEffect(() => setFailed(false), [entry.thumbnailUrl]);
   return (
     <div className={`hud-thumb ${className}`}>
       {entry.thumbnailUrl && !failed ? (
-        <img src={entry.thumbnailUrl} alt="" loading="lazy" draggable={false} onError={() => setFailed(true)} />
+        still ? (
+          <StillImage src={entry.thumbnailUrl} onError={() => setFailed(true)} />
+        ) : (
+          <img src={entry.thumbnailUrl} alt="" loading="lazy" draggable={false} onError={() => setFailed(true)} />
+        )
       ) : (
         <div className="hud-thumb-empty" aria-hidden>
           <Icon name="huds" size={30} />

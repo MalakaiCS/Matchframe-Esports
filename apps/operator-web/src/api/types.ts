@@ -16,6 +16,7 @@ import type {
   EventRecord,
   HudManifest,
   HudVariant,
+  LowSpecStatus,
   MapInstance,
   Match,
   MatchState,
@@ -43,6 +44,7 @@ import type {
 export type {
   CameraRecord,
   Capability,
+  LowSpecStatus,
   DirectorDecision,
   DirectorMode,
   EvidenceType,
@@ -170,7 +172,12 @@ export interface OperatorSnapshot {
   cloud?: CloudSummary;
   /** Bumped when account sync changed teams, players, matches or HUDs on this computer (lists reload). */
   dataVersion?: number;
+  /** Low-spec mode (one PC, ADR-078); details at GET /api/v1/performance. Absent from older engines. */
+  performance?: LowSpecSummary;
 }
+
+/** Low-spec mode in the operator snapshot: on, its frame cap, the one-time suggestion, deferred work. */
+export type LowSpecSummary = Pick<LowSpecStatus, "lowSpec" | "frameCap" | "suggestion" | "deferring">;
 
 export type CloudGate = { ok: true; free?: boolean } | { ok: false; code: "not_linked" | "no_entitlement" | "entitlement_expired" | "plan_excludes" | "hours_exhausted"; reason: string };
 

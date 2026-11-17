@@ -57,13 +57,18 @@ export class WsHub {
 
   /** Sends to one client, respecting backpressure. Returns false if dropped. */
   sendTo(client: HubClient, msg: unknown, opts: { snapshot?: boolean } = {}): boolean {
+    return this.sendText(client, () => JSON.stringify(msg), opts);
+  }
+
+  /** Sends text already serialized (one serialization for many clients); `text` runs only when it is sent. */
+  sendText(client: HubClient, text: string | (() => string), opts: { snapshot?: boolean } = {}): boolean {
     if (client.ws.readyState !== client.ws.OPEN) return false;
     if (client.ws.bufferedAmount > this.maxBuffered) {
       client.dropped++;
       client.needsSnapshot = true;
       return false;
     }
-    client.ws.send(JSON.stringify(msg));
+    client.ws.send(typeof text === "string" ? text : text());
     if (opts.snapshot) client.needsSnapshot = false;
     return true;
   }

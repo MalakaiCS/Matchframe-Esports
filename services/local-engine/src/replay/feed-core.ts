@@ -104,6 +104,8 @@ export interface FeedOptions {
   ffmpeg: string;
   encoder: Encoder;
   bitrateMbps: number;
+  /** Low-spec mode (ADR-078): the encoder's fastest preset. */
+  light?: boolean;
 }
 
 /** What the recording has seen and done since it started: the Replay feed panel and the support file show it, so they tell where frames are lost. */
@@ -488,7 +490,7 @@ export class FeedRecording {
       "-copyts",
       ...(wide ? ["-vf", `crop=${width}:${height}:0:0`] : []),
       // The frames come at a constant rate already (this process wrote each slot): ffmpeg adds or drops none.
-      "-fps_mode", "passthrough", ...encoderArgs(this.o.encoder, fps, this.o.bitrateMbps), "-pix_fmt", "yuv420p",
+      "-fps_mode", "passthrough", ...encoderArgs(this.o.encoder, fps, this.o.bitrateMbps, this.o.light === true), "-pix_fmt", "yuv420p",
       ...(audio ? ["-c:a", "aac", "-b:a", "160k", "-ar", String(AUDIO_RATE), "-ac", "2"] : []),
       "-f", "segment", "-segment_time", "1", "-segment_format", "mpegts", "-segment_list", join(dir, "list.csv"), "-segment_list_type", "csv", "-segment_list_flags", "+live", join(dir, "seg_%06d.ts"),
     ];

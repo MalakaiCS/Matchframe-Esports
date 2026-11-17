@@ -212,6 +212,8 @@ function renderKillfeed(state, now) {
 function render(state) {
   hud.hidden = false;
   applySettings(state);
+  // Low-spec mode (CS2, OBS and MatchFrame on one computer): draw lighter (styles.css, html.low-spec).
+  document.documentElement.classList.toggle("low-spec", state.lowSpec === true);
   renderTeam($(".team-left"), state.left, state);
   renderTeam($(".team-right"), state.right, state);
   const m = state.match;

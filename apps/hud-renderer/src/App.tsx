@@ -113,6 +113,8 @@ export function App() {
   const preset = state?.presetId && PRESETS.has(state.presetId) ? state.presetId : "classic";
   const variant = state?.variant ?? params.variant;
   const reducedMotion = state?.settings.reducedMotion === true;
+  // Low-spec mode (one PC, ADR-078): lighter drawing (styles.css, .mf-low-spec).
+  const lowSpec = state?.lowSpec === true;
 
   const ack = feed.ackSponsor;
   const onSponsorShown = useCallback((sponsorId: string, zone: string) => ack(sponsorId, zone), [ack]);
@@ -148,7 +150,7 @@ export function App() {
   }
 
   return (
-    <div className={`mf-viewport ${reducedMotion ? "mf-reduced-motion" : ""} ${params.preview ? "is-preview" : ""}`}>
+    <div className={`mf-viewport ${reducedMotion ? "mf-reduced-motion" : ""} ${lowSpec ? "mf-low-spec" : ""} ${params.preview ? "is-preview" : ""}`}>
       <div className={`mf-stage mf-preset-${preset} mf-variant-${variant} ${state?.stale ? "is-stale" : ""}`} style={{ transform: `scale(${scale})` }} data-preset={preset}>
         {body}
         {state && !replayLayer ? <Annotations state={state} /> : null}

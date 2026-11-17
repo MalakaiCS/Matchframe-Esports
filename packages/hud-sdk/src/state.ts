@@ -160,6 +160,13 @@ export interface HudState {
   presetId: string | null;
   /** True for the labelled simulation source: HUDs must show a SIMULATION badge. */
   simulated: boolean;
+  /**
+   * Low-spec mode (one PC: CS2, OBS and MatchFrame on one computer; ADR-078). While true, draw
+   * lighter: no blur or backdrop-filter, no large shadows, no animations that run continuously
+   * (one-off entrances may stay). The output page already caps drawing at 30 frames a second.
+   * Absent from older engines (treat as false).
+   */
+  lowSpec?: boolean;
   timeline: { profile: "live" | "delayed"; delayMs: number };
   dataAgeMs: number | null;
   stale: boolean;

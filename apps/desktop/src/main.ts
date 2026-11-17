@@ -1,6 +1,7 @@
 import { fork, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { totalmem } from "node:os";
 import { delimiter, extname, isAbsolute, join, resolve, sep } from "node:path";
 import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, net, Notification, protocol, safeStorage, shell } from "electron";
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron";
@@ -12,6 +13,7 @@ import { OverlayManager } from "./hud/overlays.ts";
 import { OverlayStore } from "./hud/store.ts";
 import type { Library } from "./hud/types.ts";
 import { hlaeInfo, startCs2, type PreparedLaunch } from "./game-launch.ts";
+import { engineExecArgv, parsePerformanceMessage } from "./low-spec.ts";
 import { DEVICE_ACTION, HIGHLIGHT_KEY_ACTIONS, ReplayHotkeys, TEAM_KEY_ACTIONS, type ReplayKeyAction, type ReplayKeys } from "./replay-hotkeys.ts";
 import { createTray, type ProgramTray } from "./tray.ts";
 import { createUpdater, type Updater } from "./updater.ts";
@@ -76,6 +78,8 @@ let hotkeys: HotkeyManager | null = null;
 let tray: ProgramTray | null = null;
 let updater: Updater | null = null;
 let replayKeys: ReplayHotkeys | null = null;
+/** Low-spec mode's frame cap for the desktop HUD windows, as the engine last said (ADR-078). */
+let hudFrameCap: number | null = null;
 
 /** Small program preferences (not engine settings): `<userData>/program-settings.json`. */
 interface ProgramSettings {
@@ -86,14 +90,16 @@ interface ProgramSettings {
   networkAccess: boolean;
   /** Global hotkeys for the replays playing (replay-hotkeys.ts); off unless set. */
   replayHotkeys: Partial<ReplayKeys>;
+  /** The engine's low-spec mode as it last said (ADR-078): the engine starts with a memory cap when on. */
+  lowSpec: boolean;
 }
 const programSettingsFile = () => join(app.getPath("userData"), "program-settings.json");
 function readProgramSettings(): ProgramSettings {
   try {
     const raw = JSON.parse(readFileSync(programSettingsFile(), "utf8")) as Partial<ProgramSettings>;
-    return { autoDownloadUpdates: raw.autoDownloadUpdates !== false, hlaePath: typeof raw.hlaePath === "string" ? raw.hlaePath : null, networkAccess: raw.networkAccess === true, replayHotkeys: raw.replayHotkeys && typeof raw.replayHotkeys === "object" ? raw.replayHotkeys : {} };
+    return { autoDownloadUpdates: raw.autoDownloadUpdates !== false, hlaePath: typeof raw.hlaePath === "string" ? raw.hlaePath : null, networkAccess: raw.networkAccess === true, replayHotkeys: raw.replayHotkeys && typeof raw.replayHotkeys === "object" ? raw.replayHotkeys : {}, lowSpec: raw.lowSpec === true };
   } catch {
-    return { autoDownloadUpdates: true, hlaePath: null, networkAccess: false, replayHotkeys: {} };
+    return { autoDownloadUpdates: true, hlaePath: null, networkAccess: false, replayHotkeys: {}, lowSpec: false };
   }
 }
 function writeProgramSettings(patch: Partial<ProgramSettings>): void {
@@ -295,7 +301,9 @@ function startEngine(): void {
   const key = secretKey();
   if (key) env.MATCHFRAME_SECRET_KEY = key;
   Object.assign(env, cloudReleaseConfig(env));
-  const execArgv = isDev ? ["--import", "tsx"] : [];
+  // Low-spec mode (ADR-078): the engine starts with a memory cap (the setting as the engine last said).
+  const { execArgv, heapCapMb } = engineExecArgv(isDev ? ["--import", "tsx"] : [], readProgramSettings().lowSpec, totalmem());
+  if (heapCapMb !== null) env.MATCHFRAME_ENGINE_HEAP_CAP_MB = String(heapCapMb);
   const child = fork(enginePath, [], { env, execPath: process.execPath, execArgv, stdio: ["ignore", "pipe", "pipe", "ipc"] });
   engine = child;
   child.stdout?.on("data", (d: Buffer) => process.stdout.write(d));
@@ -305,6 +313,13 @@ function startEngine(): void {
       operatorToken = m.operatorToken ?? null;
       restarts = 0;
       if (connection.mode === "local") showConsole();
+    }
+    // Low-spec mode on or off: the desktop HUD windows' frame rate now, the memory cap from the next engine start.
+    const perf = parsePerformanceMessage(m);
+    if (perf) {
+      if (readProgramSettings().lowSpec !== perf.lowSpec) writeProgramSettings({ lowSpec: perf.lowSpec });
+      hudFrameCap = perf.frameCap;
+      overlays?.setFrameCap(perf.frameCap);
     }
   });
   child.on("exit", (code) => {
@@ -545,6 +560,7 @@ function setUpDesktopHuds(): void {
   });
   overlays = om;
   om.init();
+  om.setFrameCap(hudFrameCap);
   const hk = new HotkeyManager({ store, reserved: [EMERGENCY_HOTKEY, SAVE_VIEW_HOTKEY], onToggle: () => om.toggleAll(), onEmergencyHide: () => void toggleEmergencyHide(), log: (msg) => console.error(`[hud] ${msg}`) });
   hotkeys = hk;
   registerHudIpc({

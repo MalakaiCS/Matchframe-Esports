@@ -1296,7 +1296,7 @@ export class AutoReplay {
       return giveBack(`the replay folder can't be written (${err instanceof Error ? err.message : String(err)})`);
     }
     const started = this.e.now();
-    const job = this.renderer({ ffmpeg, version: this.e.ffmpeg.status().version, encoder, clips: clips.map(({ c }) => ({ file: c.item.clip!.media.path!, startMs: null, durationMs: c.playMs })), fadeMs, audioFadeMs: st.audioFadeMs, outFile: file });
+    const job = this.renderer({ ffmpeg, version: this.e.ffmpeg.status().version, encoder, clips: clips.map(({ c }) => ({ file: c.item.clip!.media.path!, startMs: null, durationMs: c.playMs })), fadeMs, audioFadeMs: st.audioFadeMs, outFile: file, light: this.e.lowSpec.on });
     let done: RenderedBreak | null = null;
     let failed: string | null = null;
     job.done.then(

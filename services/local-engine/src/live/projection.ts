@@ -46,6 +46,8 @@ export interface HudContext {
   art: HudArt;
   /** Address of MatchFrame's clean radar for the map in the background's frame; null when there is no geometry. */
   cleanRadarUrl?: (mapName: string, frame: CleanRadarFrame) => string | null;
+  /** Low-spec mode is on (ADR-078): HUDs drop expensive effects. */
+  lowSpec?: boolean;
 }
 
 const MAP_DISPLAY: Record<string, string> = {
@@ -321,6 +323,7 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
       variant: ctx.variant,
       presetId: ctx.presetId,
       simulated: false,
+      lowSpec: ctx.lowSpec === true,
       timeline: ctx.timeline,
       dataAgeMs: null,
       stale: true,
@@ -372,6 +375,7 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
     variant: ctx.variant,
     presetId: ctx.presetId,
     simulated: state.simulated,
+    lowSpec: ctx.lowSpec === true,
     timeline: ctx.timeline,
     dataAgeMs: dataAge,
     stale: state.sources.find((s) => s.packetsReceived > 0)?.stale ?? dataAge === null,

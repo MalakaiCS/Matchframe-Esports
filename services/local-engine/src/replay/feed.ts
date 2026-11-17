@@ -200,6 +200,8 @@ export class ReplayFeed {
       spawnWorker?: () => FeedWorker;
       /** Where the recording goes (the engine's replay storage); the data folder's replay-feed when not given. */
       dir?: () => string;
+      /** Low-spec mode (ADR-078): the encoder's fastest preset, from the next time the recording starts. */
+      light?: () => boolean;
     },
   ) {}
 
@@ -261,7 +263,7 @@ export class ReplayFeed {
     rmSync(this.dir, { recursive: true, force: true });
     this.sessions.clear();
     mkdirSync(this.dir, { recursive: true });
-    this.ensureWorker().send({ type: "record", options: { source: st.source, dir: this.dir, ffmpeg, encoder, bitrateMbps: st.bitrateMbps } });
+    this.ensureWorker().send({ type: "record", options: { source: st.source, dir: this.dir, ffmpeg, encoder, bitrateMbps: st.bitrateMbps, light: this.deps.light?.() === true } });
     this.set("starting", `Connecting to ${st.source.name}…`);
   }
 

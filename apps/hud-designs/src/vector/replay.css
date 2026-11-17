@@ -312,3 +312,12 @@
   top: 108px;
   left: 56px;
 }
+
+/* Low-spec mode (HudState.lowSpec): no large soft shadows. */
+html.mf-low-spec .vx-rp-tag,
+html.mf-low-spec .vx-rp-card {
+  box-shadow: none;
+}
+html.mf-low-spec .vx-rp-logo img {
+  filter: none;
+}

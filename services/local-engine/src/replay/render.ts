@@ -75,6 +75,8 @@ export interface RenderRequest {
   audioFadeMs: number;
   /** The MP4 to write (it appears once complete). */
   outFile: string;
+  /** Low-spec mode (ADR-078): the encoder's fastest preset. */
+  light?: boolean;
 }
 
 export interface RenderedBreak {
@@ -143,7 +145,7 @@ export function renderCommand(req: RenderRequest, inputs: ReelInput[], format: {
     "[vfin]",
     "-map",
     "[afin]",
-    ...renderArgs(req.encoder, format.fps),
+    ...renderArgs(req.encoder, format.fps, req.light === true),
     // A keyframe at each clip's start (Skip lands there), and every 100 ms of the first frame held (the skip as Replay in shows the scene lands where it is sent: OBS goes to the keyframe before).
     "-force_key_frames",
     [...Array.from({ length: Math.floor(layout.leadMs / 100) }, (_, k) => k * 100), ...layout.starts].map((s) => sec(s)).join(","),

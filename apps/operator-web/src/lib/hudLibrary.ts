@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { HudLibraryEntry, HudOutputMode, HudSettingField, HudVariant } from "@matchframe/contracts";
+import { HUD_LOW_FPS, HUD_STUTTER_MS, hudLowFps, hudOutputStutters } from "@matchframe/contracts/smoothness";
 import type { DesktopHudBridge, OverlayState } from "../api/desktop.ts";
 import type { Tone } from "../components/ui.tsx";
 
@@ -20,11 +21,12 @@ export const OUTPUT_LABEL: Record<HudOutputMode, string> = { desktop: "Desktop",
 export const OUTPUT_MODES: HudOutputMode[] = ["desktop", "obs", "preview"];
 
 /** An output that stopped drawing this long (ms) in the last minute is shown as stuttering. */
-export const STUTTER_MS = 250;
-/** An output drawing fewer frames a second than this (its worst 5 s in the last minute) looks choppy. */
-export const LOW_FPS = 40;
-/** Whether an output stuttered (a pause) or drew too few frames in the last minute. */
-export const stutters = (s: { fps: number; worstPauseMs: number } | undefined): boolean => !!s && (s.worstPauseMs >= STUTTER_MS || s.fps < LOW_FPS);
+export const STUTTER_MS = HUD_STUTTER_MS;
+/** An output drawing fewer frames a second than this (its worst 5 s in the last minute) looks choppy; under Low-spec mode's cap, 80 % of the cap (hudLowFps). */
+export const LOW_FPS = HUD_LOW_FPS;
+export { hudLowFps };
+/** Whether an output stuttered (a pause) or drew too few frames for its frame cap in the last minute (the engine's Low-spec suggestion uses the same rule). */
+export const stutters = (s: { fps: number; worstPauseMs: number; frameCap?: number | null } | undefined): boolean => hudOutputStutters(s);
 
 export const KIND_LABEL: Record<HudLibraryEntry["kind"], string> = { builtin: "Built-in", sample: "Sample", imported: "Imported" };
 

@@ -45,6 +45,10 @@ export async function main(): Promise<void> {
   );
   // Signal readiness to a supervising desktop shell, if any.
   process.send?.({ type: "ready", apiPort: cfg.apiPort, overlayPort: cfg.overlayPort, gsiPort: cfg.gsiPort, operatorToken: engine.secrets.operatorToken });
+  // Low-spec mode (ADR-078) for the program: the desktop HUD windows' frame rate now, the engine's memory cap at its next start.
+  const sendPerformance = () => process.send?.({ type: "performance", lowSpec: engine.lowSpec.on, frameCap: engine.lowSpec.frameCap() });
+  sendPerformance();
+  engine.lowSpec.onChange(sendPerformance);
   let stopping = false;
   const stop = async () => {
     if (stopping) return;
