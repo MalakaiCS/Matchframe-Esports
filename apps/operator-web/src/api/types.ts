@@ -61,7 +61,7 @@ export type {
 };
 
 export type ActionClass = "pov_cut" | "cinematic" | "replay_suggestion" | "mixer_cue";
-export type ProgramMode = "LIVE" | "REPLAY_PREPARED" | "REPLAY_PLAYING" | "STUDIO" | "BREAK" | "MANUAL" | "DEGRADED" | "HIGHLIGHTS";
+export type ProgramMode = "LIVE" | "REPLAY_PREPARED" | "REPLAY_PLAYING" | "STUDIO" | "BREAK" | "MANUAL" | "DEGRADED" | "HIGHLIGHTS" | "MAP_INTRO";
 
 export type Pin =
   | { kind: "player"; steamId: string }
@@ -441,6 +441,8 @@ export interface SceneMap {
   BREAK: string | null;
   /** Highlights on air; absent from older engines. */
   HIGHLIGHTS?: string | null;
+  /** A map's intro (the "MatchFrame Map Intro" scene); absent from older engines. */
+  MAP_INTRO?: string | null;
 }
 
 export interface SetupProfile {
@@ -1289,9 +1291,9 @@ export interface NetworkInfo {
 }
 
 export interface ObsAutoResponse {
-  /** Transitions by name; "" = OBS's own; replayOut null = the same as replayIn; highlightsIn/Out null = the same as Replay in/out. */
-  settings: { timeouts: boolean; mapEnd: boolean; replayIn: string; replayOut: string | null; otherScenes: string; highlightsIn?: string | null; highlightsOut?: string | null };
-  scenes: { LIVE: string | null; REPLAY: string | null; STUDIO: string | null; BREAK: string | null; HIGHLIGHTS?: string | null };
+  /** Transitions by name; "" = OBS's own; replayOut null = the same as replayIn; highlightsIn/Out null = the same as Replay in/out; introIn null = the MatchFrame Stinger when OBS has it, introOut null = as introIn. */
+  settings: { timeouts: boolean; mapEnd: boolean; replayIn: string; replayOut: string | null; otherScenes: string; highlightsIn?: string | null; highlightsOut?: string | null; introIn?: string | null; introOut?: string | null };
+  scenes: { LIVE: string | null; REPLAY: string | null; STUDIO: string | null; BREAK: string | null; HIGHLIGHTS?: string | null; MAP_INTRO?: string | null };
   /** The replay scene and its twin. */
   replayScenes?: string[];
   /** The highlights scene and its twin. */
@@ -1385,4 +1387,68 @@ export interface HighlightsAirResponse {
     graphic: { source: string; inScene: boolean; onTop: boolean } | null;
     detail: string;
   };
+}
+
+/** Map intros (ADR-079): when an intro starts by itself. */
+export type MapIntroTrigger = "manual" | "map_load" | "knife" | "pistol" | "pistols" | "match_live";
+export type MapIntroMoment = "map_load" | "knife" | "pistol" | "pistol2" | "match_live";
+export type MapIntroSlot = "de_ancient" | "de_anubis" | "de_dust2" | "de_inferno" | "de_mirage" | "de_nuke" | "de_overpass" | "de_train" | "de_vertigo" | "de_cache" | "default";
+export interface MapIntroSettings {
+  trigger: MapIntroTrigger;
+  /** If the round goes live during the intro: cut back to the game, or finish it. */
+  onLive: "cut" | "finish";
+  vmixIn: "CutDirect" | "Fade" | "Stinger1" | "Stinger2" | null;
+  vmixOut: "CutDirect" | "Fade" | "Stinger1" | "Stinger2" | null;
+}
+export interface MapIntroFile {
+  slot: MapIntroSlot;
+  file: string;
+  preview: string | null;
+  previewUrl: string | null;
+  originalName: string;
+  bytes: number;
+  durationMs: number;
+  width: number | null;
+  height: number | null;
+  fps: number | null;
+  videoCodec: string;
+  audioCodec: string | null;
+  pixFmt: string | null;
+  uploadedAt: string;
+  notes: string[];
+}
+export interface MapIntroTarget {
+  map: string;
+  displayName: string;
+  slot: MapIntroSlot | null;
+  hasIntro: boolean;
+  isDefault: boolean;
+  durationMs: number | null;
+  played: { at: string; by: "operator" | "automation"; kind: MapIntroMoment | "manual" } | null;
+}
+export interface MapIntroStatus {
+  state: "ready" | "playing" | "waiting" | "blocked";
+  detail: string;
+  /** "Next intro: Mirage, at pistol round start". */
+  next: string;
+  running: boolean;
+  playing: { map: string; displayName: string; slot: MapIntroSlot; isDefault: boolean; by: "operator" | "automation"; durationMs: number; elapsedMs: number | null } | null;
+  current: MapIntroTarget | null;
+  nextMap: MapIntroTarget | null;
+  blocked: string | null;
+  blockedNext: string | null;
+  waiting: { map: string; kind: MapIntroMoment; why: string } | null;
+  last: { at: string; map: string; displayName: string; isDefault: boolean; by: "operator" | "automation"; kind: MapIntroMoment | "manual"; end: "ended" | "cut" | "stopped" | "taken" | "timeout" | "failed"; error: string | null; backTo: string | null } | null;
+  auto: { at: string; map: string; kind: MapIntroMoment; started: boolean; detail: string } | null;
+}
+export interface MapIntrosResponse {
+  settings: MapIntroSettings;
+  status: MapIntroStatus;
+  slots: { slot: MapIntroSlot; label: string; intro: MapIntroFile | null }[];
+  setup: { mixer: "obs" | "vmix"; obsConnected: boolean; scene: string | null; exists: boolean; detail: string };
+  folder: string;
+  ffmpeg: { source: "downloaded" | "path" | "missing"; path: string | null; version: string | null; encoder: string | null; downloading: number | null; error: string | null; canDownload: boolean };
+  maxBytes: number;
+  /** Always false: account sync doesn't share map intros (large video files). */
+  shared: boolean;
 }

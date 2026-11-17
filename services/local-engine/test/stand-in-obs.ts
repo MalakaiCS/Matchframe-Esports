@@ -37,6 +37,8 @@ interface Media {
   /** Stuck: says it plays, but its cursor stays (wedged, or a stall); requests do nothing until it is loaded again (a stall: or played). */
   wedged: boolean;
   frozen: boolean;
+  /** Counts each start from the beginning (opened, restarted, played again after its end): one MediaInputPlaybackEnded each. */
+  starts?: number;
 }
 interface Input {
   kind: string;
@@ -117,6 +119,44 @@ export class StandInObs extends EventEmitter {
 
   /** OBS isn't running (it quit or crashed): connecting and every request fail until up(). */
   down = false;
+
+  /**
+   * OBS 30's media events: MediaInputPlaybackStarted when a media source starts its file (opened,
+   * restarted, shown with restart_on_activate), MediaInputPlaybackEnded when it reaches the end (seen
+   * every 20 ms, without changing the media's state). Off: an OBS whose events don't arrive.
+   */
+  mediaEvents = true;
+  /** Every media event sent: "<input> started|ended". */
+  readonly mediaEventLog: string[] = [];
+  private readonly endedSent = new Map<string, number>();
+  private readonly mediaWatch = setInterval(() => this.watchMediaEnds(), 20).unref();
+
+  private mediaStarted(name: string, m: Media): void {
+    m.starts = (m.starts ?? 0) + 1;
+    if (!this.mediaEvents) return;
+    this.mediaEventLog.push(`${name} started`);
+    this.emit("MediaInputPlaybackStarted", { inputName: name, inputUuid: "" });
+  }
+
+  /** A media source playing past its end (a stall stops it first): MediaInputPlaybackEnded, once per start. */
+  private watchMediaEnds(): void {
+    for (const [name, i] of this.inputs) {
+      const m = i.media;
+      if (i.kind !== "ffmpeg_source" || !m.file || this.endedSent.get(name) === (m.starts ?? 0)) continue;
+      const stall = this.stalls.get(name);
+      const ended = m.state === "ENDED" || (m.state === "PLAYING" && !m.wedged && !m.frozen && !(stall && stall.atMs < m.duration) && this.cursor(m) >= m.duration);
+      if (!ended) continue;
+      this.endedSent.set(name, m.starts ?? 0);
+      if (!this.mediaEvents) continue;
+      this.mediaEventLog.push(`${name} ended`);
+      this.emit("MediaInputPlaybackEnded", { inputName: name, inputUuid: "" });
+    }
+  }
+
+  /** Stops the media watcher (the test's end). */
+  close(): void {
+    clearInterval(this.mediaWatch);
+  }
 
   // ---- obs-websocket-js's client ------------------------------------------------------------
   connect = async () => {
@@ -248,7 +288,10 @@ export class StandInObs extends EventEmitter {
       if (this.broken.has(file)) m.state = "ERROR";
       // A source closed while hidden opens its file only when shown.
       else if (this.setting(i, "close_when_inactive") === true && !this.active.has(name)) m.state = "STOPPED";
-      else Object.assign(m, { state: "PLAYING", base: 0, anchor: Date.now() });
+      else {
+        Object.assign(m, { state: "PLAYING", base: 0, anchor: Date.now() });
+        this.mediaStarted(name, m);
+      }
     }, 20);
   }
 
@@ -421,7 +464,10 @@ export class StandInObs extends EventEmitter {
           // Let go: it plays on, hidden.
         } else if (action === "pause" && m.state === "PLAYING") [m.base, m.anchor, m.state] = [this.cursor(m), null, "PAUSED"];
         if (action === "play" && m.state === "PAUSED") [m.anchor, m.state] = [Date.now(), "PLAYING"];
-        if (action === "restart" && m.file) [m.base, m.anchor, m.state] = [0, Date.now(), "PLAYING"];
+        if (action === "restart" && m.file) {
+          [m.base, m.anchor, m.state] = [0, Date.now(), "PLAYING"];
+          this.mediaStarted(name, m);
+        }
         if (action === "stop") [m.anchor, m.state] = [null, "STOPPED"];
         return {};
       }
@@ -435,7 +481,7 @@ export class StandInObs extends EventEmitter {
           Object.assign(m, { base: 24, anchor: null, state: "PLAYING", wedged: true });
           return {};
         }
-        if (m.state === "ENDED") m.state = "PLAYING";
+        if (m.state === "ENDED") [m.state, m.starts] = ["PLAYING", (m.starts ?? 0) + 1];
         // Seeking a paused source that isn't shown plays it again ("resumes").
         if (m.state === "PAUSED" && !this.active.has(name) && this.hiddenPause === "resumes") m.state = "PLAYING";
         [m.base, m.anchor] = [Math.min(m.duration, Number(d.mediaCursor)), m.state === "PLAYING" ? Date.now() : null];
@@ -555,8 +601,10 @@ export class StandInObs extends EventEmitter {
       this.active.add(name);
       const i = this.inputs.get(name)!;
       if (i.media.wedged || i.media.frozen) continue;
-      if (i.media.file && this.setting(i, "restart_on_activate") === true) [i.media.base, i.media.anchor, i.media.state] = [0, Date.now(), "PLAYING"];
-      else if (i.media.file && i.media.state === "STOPPED") this.load(name, i.media.file);
+      if (i.media.file && this.setting(i, "restart_on_activate") === true) {
+        [i.media.base, i.media.anchor, i.media.state] = [0, Date.now(), "PLAYING"];
+        this.mediaStarted(name, i.media);
+      } else if (i.media.file && i.media.state === "STOPPED") this.load(name, i.media.file);
     }
     setTimeout(() => {
       for (const name of this.mediaIn(from)) if (!this.mediaIn(this.program).includes(name)) this.active.delete(name);

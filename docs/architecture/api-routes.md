@@ -240,6 +240,15 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/highlights/air/obs-setup` | settings.manage |
 | PUT | `/api/v1/highlights/air/scene` | settings.manage |
 | POST | `/api/v1/highlights/air/graphic` | settings.manage |
+| GET | `/api/v1/map-intros` | state.read |
+| PUT | `/api/v1/map-intros/settings` | replay.control |
+| POST | `/api/v1/map-intros/play` | replay.control |
+| POST | `/api/v1/map-intros/play-next` | replay.control |
+| POST | `/api/v1/map-intros/stop` | replay.control |
+| POST | `/api/v1/map-intros/obs-setup` | settings.manage |
+| POST | `/api/v1/map-intros/:slot` | settings.manage |
+| DELETE | `/api/v1/map-intros/:slot` | settings.manage |
+| GET | `/api/v1/map-intros/:slot/preview.jpg` | public |
 | GET | `/api/v1/storage` | settings.manage |
 | PUT | `/api/v1/storage` | settings.manage |
 | GET | `/api/v1/hud/packages` | metadata.read |
@@ -272,6 +281,11 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/hud/library/:id/rollback` | hud.publish |
 | POST | `/api/v1/hud/library/:id/rotate-token` | hud.publish |
 | GET | `/api/v1/hud/library/:id/state` | state.read |
+| GET | `/api/v1/hud/icon-pack` | metadata.read |
+| POST | `/api/v1/hud/icon-pack/import` | hud.publish |
+| POST | `/api/v1/hud/icon-pack/import-folder` | hud.publish |
+| POST | `/api/v1/hud/icon-pack/download` | hud.publish |
+| DELETE | `/api/v1/hud/icon-pack` | hud.publish |
 | GET | `/api/v1/demos/config` | demos.manage |
 | GET | `/api/v1/demos/python` | demos.manage |
 | POST | `/api/v1/demos/python/check` | demos.manage |

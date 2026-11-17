@@ -20,6 +20,7 @@ import { usePermission } from "../state/session.tsx";
 import type { PovRole } from "./live/RosterCard.tsx";
 import { RosterCard } from "./live/RosterCard.tsx";
 import { Hotkeys } from "./replays/AutoReplays.tsx";
+import { MapIntroCard } from "./live/MapIntroCard.tsx";
 import { TeamCommsCard } from "./live/TeamCommsCard.tsx";
 import { Timeline } from "./live/Timeline.tsx";
 
@@ -701,6 +702,7 @@ export function LiveControlScreen() {
           <Timeline nameOf={nameOf} />
         </Panel>
         <div className="stack">
+          <MapIntroCard />
           <TeamCommsCard />
           <Panel title="Utility">
             <OpportunityList opportunities={snap.opportunities} nameOf={nameOf} />

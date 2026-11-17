@@ -44,6 +44,9 @@ function clipFor(e: Engine, p: z.infer<typeof ClipTarget>): string {
 /** What a highlights action reports: the highlights' state now. */
 const highlightsResult = (st: ReturnType<Engine["highlightsAir"]["status"]>) => ({ state: st.state, detail: st.detail, running: st.running, held: st.held, onAir: st.playing, position: st.position });
 
+/** What a map intro action reports: the intro's state now, and the next one. */
+const mapIntroResult = (st: ReturnType<Engine["mapIntros"]["status"]>) => ({ state: st.state, detail: st.detail, running: st.running, onAir: st.playing?.displayName ?? null, next: st.next });
+
 /** What a replay action reports: the replays' state now. */
 const replayResult = (e: Engine, st: ReturnType<Engine["autoReplay"]["getStatus"]>) => ({ state: st.state, detail: st.detail, running: st.running, held: st.held, onAir: st.playing, position: st.position });
 
@@ -249,6 +252,20 @@ const ACTIONS: DeviceAction[] = [
     },
   },
   {
+    id: "map_intro_play",
+    label: "Map intros: play the current map's intro on air now (the map in the game data; its own intro, else the default), then back to the scene the program came from",
+    permission: "replay.control",
+    params: NoParams,
+    run: async (e, req) => mapIntroResult(await e.mapIntros.play({ who: req.principal!.label, which: "current" })),
+  },
+  {
+    id: "map_intro_next",
+    label: "Map intros: play the next map's intro on air now (the next map in the active match's veto, before the server changes map), then back",
+    permission: "replay.control",
+    params: NoParams,
+    run: async (e, req) => mapIntroResult(await e.mapIntros.play({ who: req.principal!.label, which: "next" })),
+  },
+  {
     id: "return_live",
     label: "Return program to LIVE",
     permission: "program.control",
@@ -287,6 +304,8 @@ export function tally(e: Engine) {
     replay: replayTally(e),
     /** Highlights on air (ADR-063): playing (which clip, of how many), held, ready to play, halftime now, and Don't show highlights at halftime. */
     highlights: e.highlightsAir.brief(),
+    /** Map intros (ADR-079): on air (which map), whether Play map intro and Play next map's intro can play now, and the status line. */
+    mapIntro: e.mapIntros.brief(),
     pov: observed,
     slots: (s?.players ?? [])
       .filter((p) => p.observerKey !== null && !p.coach)
