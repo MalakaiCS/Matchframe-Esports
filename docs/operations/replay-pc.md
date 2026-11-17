@@ -17,6 +17,8 @@ PC 2's picture reaches PC 1 in one of two ways:
 
 PC 1 can also replay big plays its own camera showed (a 3K or more, a won clutch) from its own OBS replay buffer, without a replay PC.
 
+Replays slow down around each kill by default, and the round's top kill can be shown again from the player who died's view or a free camera: see [Slow motion](#slow-motion) and [Multi-angle replays](#multi-angle-replays) (ADR-081).
+
 The replay graphic over replays (a REPLAY tag and a lower third), highlight reels of a map's best clips, and highlights on air (a map's best clips on the program, then back to your scene): [replay-graphics-and-highlights.md](replay-graphics-and-highlights.md).
 
 ## Replay feed (NDI)
@@ -192,7 +194,7 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
   Two clips of the same kills (for example PC 1's own 3K and PC 2's) count once; the better one stays.
 - **How many:** when the break's replays start, PC 1 chooses the best clips that fit together in the time left, up to **Replays per break** (default 4). The rest are left. A clip that doesn't fit has its lead-up before the kill shortened, down to 2 s, when that makes it fit. The time counted is up to 1:50 on the next round's clock, each clip at its speed, one cut to the replay and back (0.6 s) and 0.4 s from one clip to the next (a fade between them overlaps them instead, so that is spare). Before each clip the time left is checked again (freeze time may turn out shorter): a clip that no longer fits is shortened again, or skipped. Clips of the next round never join a break that runs on into it.
 - **Order:** the chosen clips play in **round order** by default, from the start of the round to its end. A clip's place is the moment of its first kill as PC 1 saw it in its own game data, the same clock for PC 2's clips and PC 1's own. A clip whose kills PC 1 didn't see (a clutch) goes by when it arrived, less its part after the lead-up. **Order → Best first** plays the best one first instead.
-- **How fast:** real speed by default. Slow motion at 75 % or 50 % is a setting.
+- **How fast:** slowed around each kill by default (see [Slow motion](#slow-motion)); each clip is counted at its slowed length when the clips are chosen, so the replays still end by 1:50.
 - **Transitions:** one transition to the replays for the whole break (**Replay in**), the clips one after another, fading into each other (**Between replays**), and one transition back to the live scene after the last (**Replay out**). The status reads *Replay 2 of 3: …* meanwhile.
   - **Replay in / Replay out** (OBS scenes → Transitions): any of OBS's transitions, such as a Stinger, or OBS's current one. Replay out is the same as Replay in unless chosen. They are used whoever changes the program: automatic replays, a clip played by hand, **Return live**.
   - **Other scenes:** the transition to and from the break and studio scenes, by the OBS automation or your own program buttons.
@@ -202,7 +204,7 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
   - **Match graphics:** putting a match's stingers in OBS makes *MatchFrame Replay Stinger* Replay in and out where none is chosen.
 - **Between replays** (Automatic replays): **Fade (one scene, rendered)** (the default), **Fade (two scenes, OBS)**, or **Cut**; the fade's length is 0.5 s by default (0.3, 0.75 or 1 s). With vMix: a fade (vMix's own) or a cut.
 - **Fade (one scene, rendered)** (ADR-067): once the break's clips are chosen, ffmpeg joins them into one file and that file plays in your replay scene's one media source. One file, one scene, one play: nothing for OBS to hold paused off air, and no second scene.
-  - **The file:** each clip cut to its part (its lead-up and the play), the clips crossfaded into each other (picture and sound, the fade's length; **Cut** joins them plainly). The sound fades in at the start and out at the end (**Sound fade**, 0.4 s by default; 0.3 or 0.5 s, or none), so a break never ends on a hard cut. It opens on the first clip's first frame held for 1.2 s and ends on the last clip's last frame held for 1 s, in silence, under Replay in and out. A keyframe starts each clip, so a skip to it is exact. It has the clips' own size and frame rate when they share them (PC 2's: 1920×1072 at 29.97 fps), else 1920×1080. It is written to the replay folder (*rendered*), and removed after the break.
+  - **The file:** each clip cut to its part (its lead-up and the play), slowed as set (Slow motion), the clips crossfaded into each other (picture and sound, the fade's length; **Cut** joins them plainly). The sound fades in at the start and out at the end (**Sound fade**, 0.4 s by default; 0.3 or 0.5 s, or none), so a break never ends on a hard cut. It opens on the first clip's first frame held for 1.2 s and ends on the last clip's last frame held for 1 s, in silence, under Replay in and out. A keyframe starts each clip, so a skip to it is exact. It has the clips' own size and frame rate when they share them (PC 2's: 1920×1072 at 29.97 fps), else 1920×1080. It is written to the replay folder (*rendered*), and removed after the break.
   - **The encoder:** the one the replay feed uses (**Encoder**: the graphics card's when there is one, NVENC on an NVIDIA card), at a fast setting; x264 on the CPU otherwise. ffmpeg is needed: download it under **Replay feed (NDI)**.
   - **Playing it:** the file is loaded off air and must play (its cursor moving), then **Replay in** shows your replay scene and the first clip starts as it does (at a Stinger's cut point). When **Replay out** is the same transition as Replay in (the same Stinger), it starts that cut point before the end, so the scene leaves as the last clip ends. The status (*Replay 2 of 3: …*), the replay graphic and the program's clip follow the file's cursor from one clip to the next.
   - **While it is made:** the status says *Preparing the replays… n%*. A break waits up to **6 s** for it (the time is taken off the break when its clips are chosen: what the last ones took). If it isn't ready by then, or can't be made (no ffmpeg, an error), or the break's time would run out first, the break plays **through the two scenes** instead (below), and the panel says why (*Last break: Played through the scenes: …*), as does the log. Measured here (a 4-core PC without a graphics card, x264): four 6.2 s 1920×1072 clips in 9.4–10.3 s, so they played through the scenes; ffmpeg's reading and joining alone took 3.8 s, so with NVENC on a gaming PC expect a few seconds.
@@ -224,6 +226,39 @@ PC 2 asks PC 1 four times a second who is on air, what PC 1's round clock says, 
   - **Follows OBS (0.10.2):** when OBS shows your live scene, the program counts as live again. That covers a scene you switched to by hand, and OBS reconnecting on the live scene. Before, the program could stay in "replay playing" or "degraded" while OBS showed the live scene, and automatic replays waited.
   - **Clips played by hand:** after **Approve** and **Play**, the program goes back to the live scene when the clip ends, like an automatic replay.
   - **The second replay scene** counts as the replay scene: a break that ends on it goes back to live from it, and OBS showing it never makes the program "manual".
+
+## Slow motion
+
+In a break's rendered file (the default, **Fade (one scene, rendered)**), each clip slows down around its kill:
+
+- **Kill moment** (the default): about 0.3 s before the kill the clip eases down to the slow speed, holds through the kill (from 0.2 s before it to 0.8 s after: the shot, the hit, the fall) and eases back up to real speed. A multi-kill slows at each kill (the replay PC sends each kill's time); kills close together stay slow between them.
+- **Whole clip:** the whole clip at the slow speed.
+- **Off:** real speed.
+- **Slow speed:** 50 % (a held moment lasts twice as long) or 33 % (three times).
+- **Sound while slowed:** **Muted** (the default): the game sound fades out just before the slow part and back in after it, a clean gap under the casters. **Slowed, pitch kept:** the sound plays slower at its own pitch; gunshots can sound doubled, more so at 33 %.
+- **Smooth slow motion (more CPU):** the in-between frames are made by motion interpolation (ffmpeg's `minterpolate`) instead of blending the two nearest frames. It takes far longer: measured here, one kill's slow part at 1080p60 took 95 s to interpolate on a 4-core CPU without a graphics card (0.9 s blended). A break uses it only when its file will still be ready in time, else it blends and the panel's *Last break* line says why. Highlights on air and reels, which can wait, always use it when it is on.
+- **The break's time:** each clip counts at its slowed length when the break's clips are chosen and again before each plays (a kill at 50 % adds about 1.3 s, at 33 % about 2.6 s). A lead-up shortened to fit is never slowed. So slow motion means fewer clips in a short break, never a late cut back.
+- **Played clip by clip** (through the two scenes, or vMix), a clip can't change speed in the middle: **Whole clip** plays at the slow speed (OBS's media speed, vMix's rate), **Kill moment** at real speed.
+- **Per clip:** **Slow** in the round's list turns it on or off for that clip (below). In a moment with an extra angle, the first angle plays at real speed and the extra angle slowed.
+- **Before 0.13** there was one **Speed** for every replay (75 % or 50 %): it is now Whole clip at 50 %.
+
+## Multi-angle replays
+
+The replay PC can film a kill again, from **the player who died's view** or a **free camera** on the two players, and PC 1 plays it straight after the kill's first clip, slowed.
+
+**How it is filmed** (PC 2, **Film extra angles**, experimental, off by default):
+- PC 1 asks for the round's **top kill** (its best clip with a kill), and every kill the operator **stars**, from the angle set under **Extra angle**.
+- PC 2 goes back in its CS2 to just before the kill (`demo_gototick`, as for a missed kill), puts its camera on the player who died (or a still free camera placed for the kill from the map's free-space grid, as the Observer places team shots), lets the kill play again, sends the clip, and goes forward by as much.
+- **Never at the cost of a kill:** PC 2 only goes back when no kill can lose its lead-up. No kill planned may start before it is back, and a kill PC 1 reports meanwhile plays on PC 2 at least its delay later, and only once its next round is live: that must leave room for going back, filming and the whole lead-up. With PC 2 7 s behind and a 5 s lead-up, that is **after the round ends on PC 2** (the round over and freeze time are long enough). With 12 s behind or more (or a shorter lead-up), during the round too. The panel says what it waits for (*Waiting to film … : the round is live here, and this computer isn't far enough behind …*).
+- Kills PC 1 reports while PC 2 films an angle are planned as soon as it is back. At most two angles a round. If CS2 doesn't go back (connected straight to the game server), or doesn't come forward again, PC 2 stops filming angles and says so.
+
+**When it plays:**
+- An extra angle that has come in is listed under its kill (*↳ victim's view*), and plays straight after the kill's first clip, **slowed**, the first clip at real speed.
+- It takes the time the break's clips leave (the best kill's angle first): it never pushes another clip out. A **starred** kill's angle is chosen with it, before other clips.
+- **Timing:** filmed after the round, an angle reaches PC 1 about 15 s after the round ends. The break waits up to 12 s for one being filmed, but never with less than 16 s of the break left: with 20 s of freeze time (the competitive default) the top kill's angle usually makes the break; with 15 s it usually comes after, and is there for highlights and to play by hand. An angle of a kill early in the round, with PC 2 far enough behind, comes during the round.
+- **Highlights on air and reels** play a kill's angles after it.
+
+**Settings (PC 1, Automatic replays):** **Multi-angle replays**: the round's top kill and starred kills (the default), only starred kills, or off (nothing asked for, nothing played); **Extra angle**: the player who died's view (the default), a free camera, or both.
 
 ## Switching scenes yourself (multiview)
 
@@ -267,14 +302,19 @@ While a break's replays play, **Automatic replays** shows three buttons above it
 - **Hold / Resume:** the clip on air pauses where it is (OBS's or vMix's pause) and nothing plays on until **Resume**, which plays it on from there. The round clock still wins: at 1:50 (or the bomb planted, the round over) the program goes back to live, held or not, so a hold can never keep a replay over the live round.
 - **Stop and go live:** the break's replays end now, back to the live scene with **Replay out**. The clips that didn't play stay in the replay list for playing by hand. Pressed between the round's end and the first replay, the break has none.
 
-In the round's list (*Round 7: its clips, best first*), each clip that hasn't played has two buttons:
+In the round's list (*Round 7: its clips, best first*), each clip that hasn't played has these buttons:
 
 - **Exclude:** it doesn't play in its break (**Include** lets it play again).
 - **Pin first:** it plays first in its break, if it fits (even a clip with the same kills as a better one). Pinned while the break's replays play, it plays next: if another clip was already waiting in the second replay scene, MatchFrame loads the pinned one there instead, and a clip that wasn't chosen joins the break. One clip at a time is pinned.
 
-These apply to the current break, or the next one of that round (during the round, before it ends). A clip whose break is over can't be pinned: play it by hand.
+- **Slow:** lit when the clip plays in slow motion; press it for real speed (or, lit off, for slow motion), whatever the Slow motion setting says.
+- **☆ Star** (with Multi-angle replays on): the replay PC is asked to film this kill again from the extra angle, and that angle plays with it, chosen before other clips. *Extra angle asked of the replay PC: victim's view* until it comes in.
 
-Every control is in the audit log (`replay.auto_skip`, `replay.auto_hold`, `replay.auto_resume`, `replay.auto_stop`, `replay.auto_exclude`, `replay.auto_pin`).
+A kill's extra angles are listed under it, each with **Exclude** and **Slow**.
+
+These apply to the current break, or the next one of that round (during the round, before it ends). A clip whose break is over can't be pinned: play it by hand. While a break plays as one rendered file, Exclude, Pin and Slow apply from the next break.
+
+Every control is in the audit log (`replay.auto_skip`, `replay.auto_hold`, `replay.auto_resume`, `replay.auto_stop`, `replay.auto_exclude`, `replay.auto_pin`, `replay.auto_slow`, `replay.auto_star`).
 
 ## Stream Deck and Bitfocus Companion
 
@@ -288,6 +328,8 @@ The same controls are actions of MatchFrame's control-surface API (see [Companio
 | Exclude the next clip | `replay_exclude` | `{"next":true}` |
 | Exclude the round's best clip | `replay_exclude` | `{"rank":1}` (its place in the round's list, as shown) |
 | Pin the round's 2nd clip first | `replay_pin` | `{"rank":2}` (`{"id":"rp_…"}` for a clip by its id) |
+| Slow motion for the next clip, on or off | `replay_slow` | `{"next":true}` (toggles; `"slow":true` or `false` sets it) |
+| Star the round's best clip (extra angles) | `replay_star` | `{"rank":1}` (toggles; `"starred":true` or `false` sets it) |
 | Play highlights | `highlights_play` | `{}` (what and how many as set under Highlights on air) |
 | Stop highlights | `highlights_stop` | `{}` (Skip and Hold on a highlight: `replay_skip`, `replay_hold`) |
 | Don't show highlights at halftime | `highlights_halftime` | `{}` (toggles; `{"on":true}`, `{"on":false}`) |
@@ -363,7 +405,12 @@ Automatic replays → **Test replays** plays two sample clips (*Test clip 1* in 
 | | Between replays (Fade (one scene, rendered), Fade (two scenes, OBS), or Cut) and the fade's length | Fade (one scene, rendered), 0.5 s |
 | | Sound fade (a rendered break's sound in and out) | 0.4 s |
 | | Play replays in | OBS (or vMix: address, Replay in, Replay out) |
-| | Speed | Real time |
+| | Slow motion (Kill moment, Whole clip, Off) | Kill moment |
+| | Slow speed (50 % or 33 %) | 50 % |
+| | Sound while slowed (Muted, or Slowed with the pitch kept) | Muted |
+| | Smooth slow motion (more CPU) | Off |
+| | Multi-angle replays (the round's top kill and starred kills, only starred, off) | The round's top kill and starred kills |
+| | Extra angle (the player who died's view, a free camera, both) | The player who died's view |
 | | Other angles | On |
 | | Replay big plays shown live (3K+, won clutches) | On |
 | Automatic replays → Sound (PC 1) | Replay volume | As set in OBS |
@@ -377,11 +424,12 @@ Automatic replays → **Test replays** plays two sample clips (*Test clip 1* in 
 | Replay PC (PC 2) | Kills to film | Every kill |
 | | On the same CSTV as the main PC: go back and stay behind, go back for each missed kill, or don't | Go back and stay behind |
 | | How far behind | 7 s |
+| | Film extra angles (experimental) | Off |
 
 **API:**
-- **PC 1:** `GET`/`PUT /api/v1/replays/auto` (`perBreak`, `order` (`round`, `best`), `cutBack` (`clock`, `before_round`), `cutBackClockSec` (110 = 1:50), `between` (`fade`, `cut`), `fadeMs`, `playback` (`rendered`, `scenes`), `audioFadeMs` (400), `mixer`, `vmixUrl`, `vmixTransition`, `vmixTransitionOut` (null: as `vmixTransition`), `replayVolumeDb` (null: as set in OBS), `duckInputs` (OBS input names), `duckVmixInputs` (vMix input keys), `duckTo` (`"mute"` or dB, −20), `duckRampMs` (300); status `round`, `ranked` (with `note`, `excluded`, `pinned`), `vmix`, `twin`, `roundSec`, `running`, `held`, `position`, `audio`, `test`, `preparing` (a file being rendered: `kind`, `progress`, `clips`), `render` (the last run's file: `rendered`, `ms`, `encoder`, `detail`)), `POST /api/v1/replays/auto/skip`, `POST /api/v1/replays/auto/stop`, `POST /api/v1/replays/auto/hold` (`{"held":true|false}`, toggles without), `PUT /api/v1/replays/auto/clips/:id` (`{"excluded":…, "pinned":…}`), `POST /api/v1/replays/auto/test` (409 with why it can't play now), `GET /api/v1/replays/audio-inputs`, the device actions `replay_skip`, `replay_hold`, `replay_stop`, `replay_exclude`, `replay_pin` and `replay` in `GET /api/v1/devices/tally`, `GET`/`PUT /api/v1/obs/auto` (`replayIn`, `replayOut` (null: as `replayIn`), `otherScenes`, `highlightsIn`, `highlightsOut` (null: as Replay in, Replay out); "" is OBS's current transition; it took `replayTransition` before 0.10.5, kept as `replayIn`), the device actions `highlights_play`, `highlights_stop`, `highlights_halftime` and `highlights` in the tally (Highlights on air: [replay-graphics-and-highlights.md](replay-graphics-and-highlights.md#highlights-on-air)), `POST /api/v1/replays/vmix/test`, `POST /api/v1/replays/obs-setup` (with `twin`), `GET`/`PUT /api/v1/replays/feed`, `POST /api/v1/replays/feed/sources`, `POST /api/v1/replays/feed/ffmpeg`, `GET /api/v1/network`.
-- **PC 2:** `GET`/`PUT /api/v1/replay-pc` (settings `preRollMs`, `postRollMs`, `sameCstv` (`stay_behind`, `each_kill`, `off`), `behindMs`; status `timing`, `rewind`, `filming`, `skipped`, `lastSkip`).
-- **The link itself:** `GET /api/v1/replay-link/on-air?pending=<rounds>`, `POST /api/v1/replays/incoming` (a clip file) and `POST /api/v1/replays/mark` (a moment, with the replay feed) on PC 1, with the replay code (a `replay` role token). On-air answers carry `clock` (PC 1's round clock), `kills` (the last 30 s, each with `shown`: `killer`, `victim` or `none`) and `feed.recording`.
+- **PC 1:** `GET`/`PUT /api/v1/replays/auto` (`perBreak`, `order` (`round`, `best`), `slowMotion` (`kill`, `whole`, `off`), `slowSpeed` (50, 33), `slowSmooth`, `slowAudio` (`mute`, `pitch`), `multiAngle` (`top`, `starred`, `off`), `angleViews` (`victim`, `free`, `both`); the old `speedPercent` is still taken (below 100: Whole clip), `cutBack` (`clock`, `before_round`), `cutBackClockSec` (110 = 1:50), `between` (`fade`, `cut`), `fadeMs`, `playback` (`rendered`, `scenes`), `audioFadeMs` (400), `mixer`, `vmixUrl`, `vmixTransition`, `vmixTransitionOut` (null: as `vmixTransition`), `replayVolumeDb` (null: as set in OBS), `duckInputs` (OBS input names), `duckVmixInputs` (vMix input keys), `duckTo` (`"mute"` or dB, −20), `duckRampMs` (300); status `round`, `ranked` (with `note`, `excluded`, `pinned`, `slow`, `slowSet`, `starred`, `angles` (each `id`, `label`, `angle`, `state`, `excluded`, `slow`, `slowSet`), `anglesWanted`), `angleRequests`, `vmix`, `twin`, `roundSec`, `running`, `held`, `position`, `audio`, `test`, `preparing` (a file being rendered: `kind`, `progress`, `clips`), `render` (the last run's file: `rendered`, `ms`, `encoder`, `detail`)), `POST /api/v1/replays/auto/skip`, `POST /api/v1/replays/auto/stop`, `POST /api/v1/replays/auto/hold` (`{"held":true|false}`, toggles without), `PUT /api/v1/replays/auto/clips/:id` (`{"excluded":…, "pinned":…, "slow":true|false|null, "starred":…}`), `POST /api/v1/replays/auto/test` (409 with why it can't play now), `GET /api/v1/replays/audio-inputs`, the device actions `replay_skip`, `replay_hold`, `replay_stop`, `replay_exclude`, `replay_pin`, `replay_slow`, `replay_star` and `replay` in `GET /api/v1/devices/tally`, `GET`/`PUT /api/v1/obs/auto` (`replayIn`, `replayOut` (null: as `replayIn`), `otherScenes`, `highlightsIn`, `highlightsOut` (null: as Replay in, Replay out); "" is OBS's current transition; it took `replayTransition` before 0.10.5, kept as `replayIn`), the device actions `highlights_play`, `highlights_stop`, `highlights_halftime` and `highlights` in the tally (Highlights on air: [replay-graphics-and-highlights.md](replay-graphics-and-highlights.md#highlights-on-air)), `POST /api/v1/replays/vmix/test`, `POST /api/v1/replays/obs-setup` (with `twin`), `GET`/`PUT /api/v1/replays/feed`, `POST /api/v1/replays/feed/sources`, `POST /api/v1/replays/feed/ffmpeg`, `GET /api/v1/network`.
+- **PC 2:** `GET`/`PUT /api/v1/replay-pc` (settings `preRollMs`, `postRollMs`, `sameCstv` (`stay_behind`, `each_kill`, `off`), `behindMs`, `filmAngles`; status `timing`, `rewind`, `filming`, `skipped`, `lastSkip`, `angles` (`state`, `detail`, `asked`, `filmed`, `failed`, `last`)).
+- **The link itself:** `GET /api/v1/replay-link/on-air?pending=<rounds>&angles=<rounds>`, `POST /api/v1/replays/incoming` (a clip file) and `POST /api/v1/replays/mark` (a moment, with the replay feed) on PC 1, with the replay code (a `replay` role token). On-air answers carry `clock` (PC 1's round clock), `kills` (the last 30 s, each with `shown`: `killer`, `victim` or `none`), `feed.recording` and `angles` (the moments PC 1 wants filmed again: `id`, `round`, `killer`, `victims`, `views`). A mark may carry `killsAgoMs` (each kill), `angle` (`victim`, `free`) and `momentOf` (the moment's clip on PC 1); an upload `killsMs`, `angle` and `momentOf` in its query.
 
 ## Checked
 
@@ -444,7 +492,15 @@ Automatic replays → **Test replays** plays two sample clips (*Test clip 1* in 
   - **The feed's sound** (real ffmpeg, a stand-in NDI source with a tone on and off every 0.5 s by wall time): the cut clip has an AAC 48 kHz stereo track at the source's level, in time with the source to within 30 ms; a source without sound recorded with silence as long as the picture; the clock's handling of jitter, a busy moment, a real gap and a drifting sender (above, *The replay feed's timing*).
   - **Real NDI** (the NDI 6.3 runtime that comes with the binding, a local NDI sender on this computer, real ffmpeg): the cut clip's tone at the sender's level, in time to within 20 ms.
 - **Switching scenes yourself** (`obs-own-scenes.e2e.test.ts`, the stand-in OBS): an analysis scene put on in OBS between rounds followed as yours, no replays cut in, no break scene for a timeout, Test replays waiting, back to live and the break's replay played; back on the live scene before a break's replays started: they play; the casters put on during the replays: they stop, the live audio back up, the rest played on coming back in time; staying on it: no cut back at 1:50, Stop and Test replays refused; the mapped break scene put on by hand not taken back, MatchFrame's own taken back; Studio Mode's preview and Transition; found on your scene when OBS connects.
+- **Slow motion and multi-angle replays** (ADR-081; `replay-slowmo.test.ts`, `replay-rank.test.ts`, `replay-rendered.e2e.test.ts`, `replay-pc-timing.e2e.test.ts`, `replay-angles.test.ts`, `AutoReplays.test.tsx`, `HighlightReel.test.tsx`):
+  - **ffmpeg, on tiny generated clips** (64×36, 3 s, a 440 Hz tone; each frame's brightness tells the clip's moment, and a stripe alternating per frame shows a blend): one kill at 50 %: the file as long as planned (to 0.05 s), every frame within a frame of its planned moment, the frames before and after the slow part the clip's own (none blended); the sound at 440 Hz, fading out, silent through the slow part, back after. 33 % with the pitch kept: the sound through the slow part at 440 Hz and the right length. Whole clip: twice as long, half speed throughout. Smooth (minterpolate) on the same timing. Two clips, one slowed: the second where its fade begins after the first's slowed length.
+  - **The planner:** slowed clips fitting by 1:50, a lead-up shortened with the slow part kept, a whole clip at its own speed; a kill's angle in the time left, never pushing another clip out; a starred kill's chosen with it. The old Speed setting read as Whole clip.
+  - **A rendered break:** the file asked for each clip's kills (a 3K's three), a clip turned to real speed by Slow, the status following the slowed file clip by clip; the top kill asked of the replay PC, a starred kill first, its angle listed under it, then played straight after it (slowed) before the next clip.
+  - **The replay PC filming an angle** (two programs, a stand-in game and a stand-in CS2 console that goes back and forward): 3 s behind, after the round ends: back once, the camera on the player who died before the kill plays again, the angle sent with its lead-up (2–2.6 s) and 1.4–2 s after, forward again to within 0.6 s of where it was, PC 1 asking for nothing more. During the live round: not filmed, saying why, nothing sent to the console.
+  - **The free camera:** two players close together framed together, far apart the player who died along the line of the shot, never a camera inside a wall.
 - **Not checked yet:**
+  - `demo_gototick` going back for an extra angle on a real CS2 (CSTV or CSTV+), how far back a real CSTV connection can go (more than 90 s isn't tried), and a real CS2's camera on the player who died, or the still free camera, right after going back;
+  - Smooth slow motion's time on the owner's PC (its use in a break is gated by an estimate); 33 % blended slow motion at 60 fps on air;
   - the real NDI binding receiving a real NDI source (the Windows release build only checks that it loads), and vMix Desktop Capture;
   - the replay feed on Windows (ffmpeg's hardware encoders);
   - a real vMix;

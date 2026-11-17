@@ -672,7 +672,9 @@ export class AutoReplay {
     if (!it) throw refuse(404, "not_found", `replay ${id} not found`);
     if (on === null) this.slowSet.delete(id);
     else {
-      const next = on ?? !this.slowOf(it, this.defaultSlow(it));
+      // (As the list shows it: a moment with its extra angles plays at real time by default.)
+      const withAngles = this.settings().multiAngle !== "off" && this.anglesOf(id).length > 0;
+      const next = on ?? !this.slowOf(it, this.defaultSlow(it, withAngles));
       this.slowSet.set(id, next);
       if (this.slowSet.size > 500) this.slowSet.delete(this.slowSet.keys().next().value!);
     }
@@ -792,7 +794,8 @@ export class AutoReplay {
   /**
    * What the replay PC is asked to film again (ADR-081): the round's top kill (its best clip with a kill,
    * the replay PC's or this computer's) unless only starred ones are wanted, and every kill the operator
-   * starred, in the round being played or the one whose break is on; the angles set that haven't come in.
+   * starred, in the round being played or the one that ended (until the next goes live: an angle too late
+   * for the break is still there for highlights and to play by hand); the angles set that haven't come in.
    */
   angleRequests(): AngleRequest[] {
     const st = this.settings();
@@ -800,7 +803,10 @@ export class AutoReplay {
     const views: ReplayAngle[] = st.angleViews === "both" ? ["victim", "free"] : [st.angleViews];
     const out: AngleRequest[] = [];
     for (const round of new Set([this.breakRound, this.liveRound].filter((r): r is number => r !== null))) {
-      const ranked = this.ranked(round).filter((r) => !r.duplicate && r.item.play?.killer && r.item.play.victims.length && this.never(r.item) === null && !this.excluded.has(r.item.id));
+      const ranked = this.ranked(round).filter((r) => {
+        const why = this.never(r.item);
+        return !r.duplicate && r.item.play?.killer && r.item.play.victims.length && (why === null || why === "its round's break is over") && !this.excluded.has(r.item.id);
+      });
       const top = st.multiAngle === "top" ? ranked[0] : undefined;
       for (const r of ranked) {
         if (r !== top && !this.starred.has(r.item.id)) continue;

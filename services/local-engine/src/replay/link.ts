@@ -247,6 +247,8 @@ interface AnglePass {
   /** The main PC's kills reported meanwhile: planned once back (with the delay from before). */
   queued: { k: OnAirKill; tk: number }[];
   forwardUntil: number;
+  /** Why it wasn't filmed (null: filmed, or not over yet). */
+  failed: string | null;
 }
 
 /** "the player who died's view", "a free camera". */
@@ -387,7 +389,12 @@ export class ReplayLink {
     this.jobs = [];
     this.dropped = [];
     this.waiting = [];
-    if (this.pass) this.endPass(this.pass, "stopped");
+    if (this.pass) {
+      // Stopped while CS2 is back for an angle: forward again first (it isn't checked any more).
+      const p = this.pass;
+      if (p.stage !== "forward" && p.landedAt !== null) this.forward(p, this.e.now());
+      this.endPass(p, "stopped");
+    }
     this.status.filming = null;
     this.estimator = new DelayEstimator();
     this.seenMainKills.clear();
@@ -853,7 +860,7 @@ export class ReplayLink {
     this.anglesPerRound.set(r.round, (this.anglesPerRound.get(r.round) ?? 0) + 1);
     for (const k of this.anglesPerRound.keys()) if (k < r.round - 6) this.anglesPerRound.delete(k);
     const automatic = this.e.autoDirector.status().on || this.e.session.director.currentMode === "automatic";
-    const pass: AnglePass = { req: r, view, label, kills, stage: "back", backMs, delayBefore: d, startedAt: now, landedAt: null, onTargetAt: null, expectAt: now + ANGLE_LEAD_MS + ANGLE_SETTLE_MS, seen: new Map(), prevPin: this.e.session.director.controls.pin, automatic, camera: false, queued: [], forwardUntil: 0 };
+    const pass: AnglePass = { req: r, view, label, kills, stage: "back", backMs, delayBefore: d, startedAt: now, landedAt: null, onTargetAt: null, expectAt: now + ANGLE_LEAD_MS + ANGLE_SETTLE_MS, seen: new Map(), prevPin: this.e.session.director.controls.pin, automatic, camera: false, queued: [], forwardUntil: 0, failed: null };
     this.pass = pass;
     this.status.filming = label;
     this.status.angles = { ...this.status.angles, state: "filming", detail: `Going back ${sec(backMs)} to film ${label}…` };
@@ -942,6 +949,7 @@ export class ReplayLink {
   }
 
   private failPass(p: AnglePass, why: string, notBack: boolean): void {
+    p.failed = why;
     this.angleGiveUp(p.req, p.view, p.label, why);
     if (notBack) {
       // CS2 didn't go back: nothing to undo; and it won't, here (going back isn't available).
@@ -971,7 +979,7 @@ export class ReplayLink {
     if (how === "stayed") {
       this.status.angles = { ...this.status.angles, state: "unsupported", detail: `CS2 didn't go forward after ${p.label}: this computer stays ${d !== null ? sec(d) : "further"} behind, and films no more extra angles.` };
       this.e.logger.warn("replay PC: CS2 didn't go forward after an extra angle", { label: p.label, delayMs: d });
-    } else if (how === "back") this.status.angles = { ...this.status.angles, state: "ready", detail: `Filmed ${p.label} and back where it was.` };
+    } else if (how === "back") this.status.angles = { ...this.status.angles, state: "ready", detail: p.failed ? `Back where it was; ${p.label} not filmed: ${p.failed}.` : `Filmed ${p.label} and back where it was.` };
     // The main PC's kills reported meanwhile: planned now (with the delay as it is).
     for (const { k, tk } of p.queued.splice(0)) if (how !== "stopped") this.onMainKill(k, tk);
   }

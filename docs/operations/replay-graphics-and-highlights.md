@@ -80,13 +80,15 @@ Every HUD with a replay graphic also lists the address in the HUD Library (its *
    - **The best N** by the same score as automatic replays. With **Also clips that weren't played**, the map's other clips can be among them too. The replay PC films more kills than a break has time for.
 3. **Crossfade:** 0.5 s by default.
 4. **Burn in the replay graphic:** each clip gets its lower third (player, weapon, victims, 2K–ACE or clutch, round). It fades in after the crossfade and out before the next one.
-5. **Export highlight reel.**
+5. **Slow motion at the kills** (off by default, ADR-081): each clip slowed as automatic replays slow theirs (their Slow motion, speed, sound and Smooth slow motion; around each kill when theirs is Off). See [replay-pc.md → Slow motion](replay-pc.md#slow-motion).
+6. **Export highlight reel.**
 
 The panel lists the clips in order, with the reel's length:
 
 - Rounds in order.
 - In a round, plays in the order they happened (by the first kill as this computer saw it).
 - The same kills only once (the better clip).
+- A kill's extra angles (the player who died's view, a free camera: [replay-pc.md → Multi-angle replays](replay-pc.md#multi-angle-replays)) straight after it, slowed with Slow motion at the kills, unless Multi-angle replays are off.
 
 **What ffmpeg makes:**
 
@@ -96,6 +98,7 @@ The panel lists the clips in order, with the reel's length:
 - **Sound:** AAC 48 kHz stereo, with silence where a clip has no sound.
 - **Joins:** crossfades (xfade, acrossfade).
 - **Each clip's part:** its trim, else the part the replay showed (the end of the clip), else all of it.
+- **Slow motion** (when ticked): slowed around each kill (or throughout), the in-between frames blended or, with Smooth slow motion, interpolated; the reel's length in the panel counts it.
 
 It runs in the background, with progress and **Cancel**. One reel is made at a time. ffmpeg is the program's own (download it in the panel on Windows, about 90 MB), or the one on the system.
 
@@ -148,12 +151,14 @@ A new map starts when the map changes, or when the active match changes.
 | What | This map; the last half of this map; the previous map | This map |
 | How many | The best 5, 8, 10 or 15 (by the same score as automatic replays); all played clips | The best 5 |
 | Also clips that weren't played | With the best N: the map's other clips can be among them | Off |
+| Slow motion | Each highlight slowed as automatic replays slow theirs (around each kill when theirs is Off); a kill's extra angle slowed, its first angle at real speed (ADR-081) | Off |
 
 - **The clips** are the ones kept for highlight reels (see *Clips kept for reels* above), not the replay list, which drops clips.
 - **The last half:** the half of the last round the map has. Halves are MR12's (rounds 1–12, 13–24), then overtime halves of three rounds (25–27, 28–30, …). At halftime that is the first half; after round 17, the second half so far.
 - **Order:** rounds in order; in a round, by when the play happened. The same kills only once.
 - **Each clip:** the part a replay shows (the play and its lead-up, the end of the clip).
-- The panel lists them (round, label, length) with the running time: the clips at the replays' speed, less the fades between them.
+- **A kill's extra angles** follow it (unless Multi-angle replays are off).
+- The panel lists them (round, label, length, *slow motion*) with the running time: the clips on air (slow motion counted), less the fades between them.
 
 ### How they play
 
@@ -217,7 +222,7 @@ As a break's replays (Automatic replays' settings):
 
 Not F8: the console's F8 is **Stop automation**. The tally (`GET /api/v1/devices/tally`) has `highlights`: `running`, `held`, `onAir`, `position`, `ready`, `halftime` (it is halftime now) and `noHalftime` (the setting), for a button's light.
 
-**API:** `GET`/`PUT /api/v1/highlights/air` (`what` (`map`, `half`, `previous`), `count` (a number or `"all"`), `unplayed`, `noHalftime`, `autoHalftime`, `autoMapEnd`, `vmixIn`, `vmixOut` (null: as the replays'); with `status` (`plan`, `blocked`, `halftime`, `last`, `auto`) and `setup`), `POST /api/v1/highlights/air/play` (409 with why), `POST /api/v1/highlights/air/stop`, `POST /api/v1/highlights/air/obs-setup`, `PUT /api/v1/highlights/air/scene` (`{"scene":…,"input":…}`), `POST /api/v1/highlights/air/graphic`; `highlightsIn`, `highlightsOut` (null: as Replay in, Replay out) in `GET`/`PUT /api/v1/obs/auto`; the program's `HIGHLIGHTS` scene and mode.
+**API:** `GET`/`PUT /api/v1/highlights/air` (`what` (`map`, `half`, `previous`), `count` (a number or `"all"`), `unplayed`, `noHalftime`, `autoHalftime`, `autoMapEnd`, `vmixIn`, `vmixOut` (null: as the replays'), `slowMotion`; with `status` (`plan` (each clip with `angle`, `slow`, `onAirMs`), `blocked`, `halftime`, `last`, `auto`) and `setup`), the reel's `POST /api/v1/highlights/plan` and `POST /api/v1/highlights/reels` take `slowMotion` (each planned clip with `angle`, `slow`, `outMs`), `POST /api/v1/highlights/air/play` (409 with why), `POST /api/v1/highlights/air/stop`, `POST /api/v1/highlights/air/obs-setup`, `PUT /api/v1/highlights/air/scene` (`{"scene":…,"input":…}`), `POST /api/v1/highlights/air/graphic`; `highlightsIn`, `highlightsOut` (null: as Replay in, Replay out) in `GET`/`PUT /api/v1/obs/auto`; the program's `HIGHLIGHTS` scene and mode.
 
 ## Storage: another drive (0.10.6)
 
