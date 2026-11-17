@@ -1,3 +1,4 @@
+import { CRASH_REPORT_RETENTION_DAYS } from "@matchframe/cloud-contracts";
 import type { OrgRole, StaffRole, UserView } from "@matchframe/cloud-contracts";
 import { generateSigningKey, keyId } from "@matchframe/cloud-contracts/token";
 import { createPublicKey } from "node:crypto";
@@ -5,8 +6,10 @@ import type { CloudConfig } from "./config.ts";
 import { migrate } from "./db/migrations.ts";
 import type { Sql } from "./db/sql.ts";
 import { openSql } from "./db/sql.ts";
+import { audit } from "./domain/audit.ts";
 import type { BillingProvider } from "./domain/billing-provider.ts";
 import { StripeBilling, UnconfiguredBilling } from "./domain/billing-provider.ts";
+import { purgeCrashReports } from "./domain/crash-reports.ts";
 import { seedCatalog } from "./domain/plans.ts";
 import type { OrgAction } from "./domain/roles.ts";
 import { roleCan } from "./domain/roles.ts";
@@ -44,7 +47,18 @@ export class CloudApp {
   publicKeys: Record<string, string>;
   kid: string;
   signingKeySource: "environment" | "database" = "environment";
-  readonly limits: { auth: RateLimiter; email: RateLimiter; deviceAuthorize: RateLimiter; deviceLink: RateLimiter; contact: RateLimiter; cams: RateLimiter; sync: RateLimiter };
+  readonly limits: {
+    auth: RateLimiter;
+    email: RateLimiter;
+    deviceAuthorize: RateLimiter;
+    deviceLink: RateLimiter;
+    contact: RateLimiter;
+    cams: RateLimiter;
+    sync: RateLimiter;
+    crashDevice: RateLimiter;
+    crashAnonymous: RateLimiter;
+    crashAnonymousAll: RateLimiter;
+  };
   /** Player cams relay (ADR-048). */
   readonly cams: CamRelay;
   readonly origin: string;
@@ -64,6 +78,10 @@ export class CloudApp {
       cams: new RateLimiter(60 * k, 60_000),
       // Account sync, per computer: polling every 5 s plus catching up and fetching files after a while offline.
       sync: new RateLimiter(600 * k, 60_000),
+      // Crash reports (ADR-077): a signed-in computer, per computer; a program not signed in, per address and for all such programs together.
+      crashDevice: new RateLimiter(10 * k, 60 * 60_000),
+      crashAnonymous: new RateLimiter(3 * k, 60 * 60_000),
+      crashAnonymousAll: new RateLimiter(20 * k, 60 * 60_000),
     };
     this.sql = deps.sql ?? openSql(cfg.databaseUrl, cfg.pgliteDir ?? undefined);
     this.mailer = new Mailer(this.sql, cfg.smtpUrl, cfg.mailFrom, cfg.devLogEmails && !cfg.smtpUrl);
@@ -118,6 +136,13 @@ export class CloudApp {
   async close(): Promise<void> {
     this.cams.close();
     await this.sql.close();
+  }
+
+  /** Deletes crash reports received more than 90 days ago (startCloudServer runs this hourly); audited when any were deleted. */
+  async purgeCrashReports(): Promise<number> {
+    const n = await purgeCrashReports(this.sql, this.now());
+    if (n > 0) await audit(this.sql, "system", null, "crash_report.purged", { count: n, retentionDays: CRASH_REPORT_RETENTION_DAYS });
+    return n;
   }
 
   get secureCookies(): boolean {

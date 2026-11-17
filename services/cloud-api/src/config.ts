@@ -33,6 +33,8 @@ export interface CloudConfig {
   staffEmails: string[];
   /** Account sync: the most bytes of shared files (HUD packages, pictures) one organisation can keep. */
   syncQuotaBytes: number;
+  /** Crash reports: anonymous reports (from programs not signed in) are refused while those stored take this many bytes. */
+  crashAnonymousMaxBytes: number;
   /** Business details shown on the website's contact, about and legal pages (GET /v1/site). */
   site: SiteInfo;
 }
@@ -89,6 +91,7 @@ export function loadCloudConfig(env: NodeJS.ProcessEnv = process.env, overrides:
     offlineGraceDays: Number(opt(env.MF_OFFLINE_GRACE_DAYS) ?? 7),
     staffEmails: list(env.MF_STAFF_EMAILS).map((e) => e.toLowerCase()),
     syncQuotaBytes: Number(opt(env.MF_SYNC_QUOTA_BYTES) ?? SYNC_ORG_QUOTA_BYTES),
+    crashAnonymousMaxBytes: Number(opt(env.MF_CRASH_ANONYMOUS_MAX_BYTES) ?? 1024 ** 3),
     site: {
       companyName: opt(env.MF_COMPANY_NAME) ?? "MatchFrame Esports",
       websiteName: opt(env.MF_WEBSITE_NAME) ?? "MatchFrame",
@@ -101,6 +104,7 @@ export function loadCloudConfig(env: NodeJS.ProcessEnv = process.env, overrides:
   };
   if (!Number.isInteger(cfg.port) || cfg.port < 1 || cfg.port > 65535) throw new Error("MF_CLOUD_PORT must be a port number");
   if (!Number.isSafeInteger(cfg.syncQuotaBytes) || cfg.syncQuotaBytes < 1) throw new Error("MF_SYNC_QUOTA_BYTES must be a number of bytes");
+  if (!Number.isSafeInteger(cfg.crashAnonymousMaxBytes) || cfg.crashAnonymousMaxBytes < 0) throw new Error("MF_CRASH_ANONYMOUS_MAX_BYTES must be a number of bytes");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(cfg.site.legalEffectiveDate)) throw new Error("MF_LEGAL_EFFECTIVE_DATE must be a date like 2026-10-27");
   return cfg;
 }

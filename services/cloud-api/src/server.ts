@@ -8,10 +8,14 @@ import { HttpError, Router, json } from "./http/router.ts";
 import { registerAdminRoutes } from "./routes/admin.ts";
 import { registerAuthRoutes } from "./routes/auth.ts";
 import { registerBillingRoutes } from "./routes/billing.ts";
+import { registerCrashReportRoutes } from "./routes/crash-reports.ts";
 import { registerDeviceRoutes } from "./routes/devices.ts";
 import { registerOrgRoutes } from "./routes/orgs.ts";
 import { registerSiteRoutes } from "./routes/site.ts";
 import { registerSyncRoutes } from "./routes/sync.ts";
+
+/** How often crash reports past their 90 days are deleted. */
+const CRASH_PURGE_INTERVAL_MS = 60 * 60_000;
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -58,6 +62,7 @@ export function buildRouter(app: CloudApp): Router {
   registerBillingRoutes(router, app);
   registerDeviceRoutes(router, app);
   registerSyncRoutes(router, app);
+  registerCrashReportRoutes(router, app);
   registerAdminRoutes(router, app);
   router.add("GET", "/v1/cams/:room", { summary: "Player cams: the match being played and the video settings for a cam link (ADR-048)" }, (ctx) => {
     app.rateLimit(app.limits.cams, `cam-info:${ctx.ip}`);
@@ -111,5 +116,21 @@ export async function startCloudServer(app: CloudApp): Promise<{ server: Server;
     server.once("error", reject);
     server.listen(app.cfg.port, app.cfg.host, () => resolveListen());
   });
-  return { server, router, close: () => new Promise<void>((r) => server.close(() => r())) };
+  // Crash reports are kept 90 days: deleted at start and then every hour.
+  let purging: Promise<unknown> = Promise.resolve();
+  const purge = () => {
+    purging = app.purgeCrashReports().catch((e) => console.error("[cloud-api] crash report clean-up:", e));
+  };
+  purge();
+  const purgeTimer = setInterval(purge, CRASH_PURGE_INTERVAL_MS);
+  purgeTimer.unref();
+  return {
+    server,
+    router,
+    close: async () => {
+      clearInterval(purgeTimer);
+      await purging;
+      await new Promise<void>((r) => server.close(() => r()));
+    },
+  };
 }

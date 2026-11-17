@@ -1584,6 +1584,100 @@
         }
       }
     },
+    "/v1/crash-reports": {
+      "post": {
+        "summary": "Program: send a crash report (opt-in): the support file and what crashed, gzip or JSON, at most 10 MB unpacked. Device token when signed in, otherwise anonymous with strict limits",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary",
+                "maxLength": 10485760
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/crash-reports": {
+      "get": {
+        "summary": "Staff: crash reports sent by programs, newest first (q = id, version, organisation, computer or error; process = main | renderer | hud | engine | native)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/crash-reports/{reportId}": {
+      "get": {
+        "summary": "Staff: one crash report: what crashed, the error and stack, and what the support file holds",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/crash-reports/{reportId}/download": {
+      "get": {
+        "summary": "Staff: download a crash report as received (JSON with the support file)",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/admin/crash-reports/{reportId}/minidump": {
+      "get": {
+        "summary": "Staff: download a crash report's minidump (.dmp), when it has one",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/admin/overview": {
       "get": {
         "summary": "Staff: headline numbers (accounts, organisations, computers, usage, revenue) and recent sign-ups",
