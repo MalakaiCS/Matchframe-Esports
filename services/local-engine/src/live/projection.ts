@@ -17,6 +17,8 @@ export interface HudContext {
   teams: Map<string, Team>;
   playersBySteam: Map<string, Player>;
   event: EventRecord | null;
+  /** The active match's stage name, when it is in a stage. */
+  stageName?: string | null;
   assetUrl: (assetId: string | null) => string | null;
   /** The picture for a player without their own on a side (Settings' default player picture), or null. */
   defaultPlayerPicture?: (side: "CT" | "T" | null) => string | null;
@@ -277,6 +279,8 @@ export function buildHudState(state: MatchState | null, ctx: HudContext, sides: 
     logoUrl: ctx.event ? ctx.assetUrl(ctx.event.logoAssetId) : null,
     primary: ctx.event?.brandPrimary ?? "#2f7cf6",
     secondary: ctx.event?.brandSecondary ?? "#ffffff",
+    stage: ctx.stageName ?? null,
+    matchTitle: ctx.match?.title ?? null,
   };
   const emptyTeam = (key: "left" | "right"): HudTeam => ({
     key,

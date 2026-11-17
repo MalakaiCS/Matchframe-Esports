@@ -25,7 +25,7 @@ MatchFrame Esports is original software. This file lists third-party components 
 | react, react-dom, scheduler | 19.3.1, 19.3.1, 0.28.0 | MIT | HUD renderer, operator UI |
 | country-flag-icons | 1.5.21 | MIT (© 2020 @catamphetamine) | Operator console: country flags (SVG files) in the team and player lists and country pickers |
 | @fontsource/inter | 5.3.0 | OFL-1.1 (font: Inter, © The Inter Project Authors) | HUD renderer; Vector HUD |
-| @fontsource/barlow-condensed | 5.3.0 | OFL-1.1 (font: Barlow, © The Barlow Project Authors) | HUD renderer (Arena preset); operator console (match thumbnails and stingers); Lineup HUD |
+| @fontsource/barlow-condensed | 5.3.0 | OFL-1.1 (font: Barlow, © The Barlow Project Authors) | HUD renderer (Arena preset); operator console (match thumbnails and stingers); Lineup and Stage HUDs |
 | Electron | 44.9.3 | MIT (bundles Chromium and Node.js; their licences ship in `LICENSES.chromium.html` / `LICENSE` inside the Electron distribution) | Desktop shell |
 | koffi (optional, Windows keyboard adapter) | not bundled by default | MIT | Observer keyboard fallback |
 | grandi | 2.0.2 | Apache-2.0 (`NOTICE`: derived from Streampunk's Grandiose, © 2018 Streampunk Media Ltd., and community forks) | Replay feed: receiving the replay PC's screen over NDI (in the feed's own process); Team Comms: sending two audio-only NDI sources, "MatchFrame Comms" and "MatchFrame Comms Recording" (in their own process) |
@@ -50,14 +50,14 @@ The program ships MatchFrame's own TeamSpeak 3 client plugin (`native/ts3-matchf
 |---|---|---|
 | MatchFrame Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2`) | Original code and artwork; weapon icons from the CS2 HUD template below (`images/weapons`); Inter font files | Code MIT; weapon icons MIT (`third-party-licenses/weapon-icons-MIT.txt`); Inter SIL OFL 1.1 (`fonts/OFL.txt`) |
 | MatchFrame Pro CS2 HUD (`apps/hud-template`) | Adapted from the CS2 HUD template below; Montserrat font files | Template code MIT (`third-party-licenses/hud-template-MIT.txt`); MatchFrame's changes MIT; Montserrat SIL OFL 1.1 (© 2011 The Montserrat Project Authors) |
-| MatchFrame Vector and Lineup HUDs (`apps/hud-designs`) | Original MatchFrame code; weapon icons from the CS2 HUD template below (shared with the HUD renderer); Montserrat and Inter font files (Vector), Barlow Condensed font files (Lineup) | Code MIT; weapon icons MIT (`third-party-licenses/weapon-icons-MIT.txt` in each package); fonts SIL OFL 1.1 (`OFL-fonts.txt` in each package; Vector also `OFL-Montserrat.txt`) |
+| MatchFrame Vector, Lineup and Stage HUDs (`apps/hud-designs`) | Original MatchFrame code; weapon icons from the CS2 HUD template below (shared with the HUD renderer); Montserrat and Inter font files (Vector), Barlow Condensed font files (Lineup, Stage) | Code MIT; weapon icons MIT (`third-party-licenses/weapon-icons-MIT.txt` in each package); fonts SIL OFL 1.1 (`OFL-fonts.txt` in each package; Vector also `OFL-Montserrat.txt`) |
 
 ## CS2 React HUD template (MIT): HUD code, weapon icons and radar images
 
 **cs2-react-hud** by Lexogrine (https://github.com/lexogrine/cs2-react-hud), Copyright (c) 2021 Lexogrine, MIT licence. MatchFrame uses:
 
 - **HUD code and styles:** the Pro CS2 HUD (`apps/hud-template`) is adapted from it.
-- **Weapon and equipment icons:** the template's icon set, in the Pro CS2 HUD, the Vector and Lineup HUDs, the Sample CS2 HUD (`images/weapons`) and the MatchFrame Broadcast HUD's killfeed (HUD renderer).
+- **Weapon and equipment icons:** the template's icon set, in the Pro CS2 HUD, the Vector, Lineup and Stage HUDs, the Sample CS2 HUD (`images/weapons`) and the MatchFrame Broadcast HUD's killfeed (HUD renderer).
 - **Radar images:** `assets/radars`, flat radar drawings of eight CS2 maps (Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train, Vertigo) with their world-to-image calibration, from commit `4ec8eea6f0935193b44ec5a000f230fccdaa1c15`, `src/HUD/Radar/LexoRadar/maps/<map>/radar.png` and `index.ts`. They are the template author's own drawings of the map layouts; the maps themselves are Valve's. Every HUD's minimap shows them.
 
 The licence text, unchanged and with its copyright line, ships in a `third-party-licenses` folder next to the files it covers:
@@ -65,7 +65,7 @@ The licence text, unchanged and with its copyright line, ships in a `third-party
 | Shipped location (installed program) | Source in this repository | Covers |
 |---|---|---|
 | `sample-huds/matchframe-pro-cs2/third-party-licenses/hud-template-MIT.txt` | `apps/hud-template/package-files/third-party-licenses/` | The Pro CS2 HUD's code, styles and icons |
-| `sample-huds/matchframe-vector/third-party-licenses/weapon-icons-MIT.txt`, `sample-huds/matchframe-lineup/third-party-licenses/weapon-icons-MIT.txt` | `apps/hud-designs/package-files/third-party-licenses/` | The weapon icons in Vector and Lineup |
+| `sample-huds/matchframe-vector/third-party-licenses/weapon-icons-MIT.txt`, `sample-huds/matchframe-lineup/third-party-licenses/weapon-icons-MIT.txt`, `sample-huds/matchframe-stage/third-party-licenses/weapon-icons-MIT.txt` | `apps/hud-designs/package-files/third-party-licenses/` | The weapon icons in Vector, Lineup and Stage |
 | `sample-huds/matchframe-sample-cs2/third-party-licenses/weapon-icons-MIT.txt` | `assets/hud-packages/matchframe-sample-cs2/third-party-licenses/` | `images/weapons` |
 | `hud-renderer/third-party-licenses/weapon-icons-MIT.txt` | `apps/hud-renderer/public/third-party-licenses/` | The Broadcast HUD's killfeed icons |
 | `radars/third-party-licenses/radar-images-MIT.txt` | `assets/radars/third-party-licenses/` | The radar images and `radars.json` calibration |

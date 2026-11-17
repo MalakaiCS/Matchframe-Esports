@@ -1803,3 +1803,23 @@ In both, the frames' stamps are 16.67 ms apart (ffmpeg's constant rate before, t
 **Consequences.** An update from 0.11.0 keeps teams, players, matches, pictures, HUDs, their settings and tokens, OBS scenes and sources, and folders, and changes no stored path text on Windows. A second start changes nothing (`test/upgrade-0110.e2e.test.ts` on a data folder made by the 0.11.0 engine; `test/obs-legacy-names.e2e.test.ts` with a stand-in OBS). A computer still on 0.11.0 can't install a HUD shared under its new id (its manifest schema has no `"compat"`); its own legacy records keep working there.
 
 **Revisit if.** All computers of an organisation are past 0.12.0 and a later release can drop reading the legacy names.
+
+## ADR-072 — Stage HUD: a tournament-stage layout in MatchFrame's own look
+
+**Context.** The owner sent phone recordings of a major tournament's grand-final broadcast and asked for "a similar HUD", then: "Go as close as you can to it without having issues with copyright."
+
+**Decision.**
+- **What is matched** (layout and CS conventions, measured from the recordings at 1920×1080 and checked side by side and blended over them):
+  - the position, size and proportions of every panel: series strip (16, 28) and minimap under it; event line and score bar (760–1160, 28–128) with the players-alive badge under it; sponsor slot and killfeed top right; the team tab (16, 614) and five 308×72 cards per side every 84 px; the observed player's cam and name bar (812–1108, 858–1062); the scoreboard bar (44–1876, 769–1031: a 64 px header and five 36 px rows, the sponsor block 600 px wide in the middle) and the timeout callout over its end;
+  - the information and its order: card = slot number, name, photo, weapons, health, kills and deaths, money, armour and kit; scoreboard header = equipment value, loss bonus, timeouts left, logo, tag, series boxes, score; row = photo, name, armour, kit, grenades, pistol, main weapon, money;
+  - the states: players alive in side colours under the bar, dead cards grey with a skull, the observed card lit, the scoreboard in freeze time and timeouts with the sponsor in the middle;
+  - CS side colours (CT blue, T gold), a dark panel base and a condensed bold uppercase face (Barlow Condensed, already bundled).
+- **What is MatchFrame's own:** flat deep-navy panels with chamfered corners (no textured royal-blue panels), team-colour edge rules, the event line without any emblem, diamond series boxes and round-kill marks, skewed timeout pips, MatchFrame's glyphs (bomb, kit, armour, grenades, skull, kill mark, player figure) with the bundled MIT weapon silhouettes, its own motion (cards slide in from the edges in turn, the scoreboard header opens from the centre and its rows rise, the alive badge drops in). No logo, name or mark of the event, its organiser or its sponsors; no reference frame in the repository.
+- **Left out:** the coach row over the scoreboard (HudState has no coach), per-player voice and mute icons (Team Comms never shows a player's comms on air), the organiser's logo slot top right and the trophy emblem.
+- **Data:** the event line reads `event.stage` and `event.matchTitle`, new optional HudState fields (the active match's stage name and title), else the setting, else the series length. Sponsor spots show only the operator's sponsors (`sponsors.top_bar`, `sponsors.scoreboard_slot`) and nothing otherwise. The cam is the player cams integration (`/hud-runtime/cams.js`, the shared `PlayerCam`); the killfeed is the HUD renderer's shared component restyled; the minimap is the shared `MapRadar`.
+- **Phases:** the scoreboard replaces the cards whenever the round is not under way or just won (the same split as Lineup): freeze time, timeouts, pauses, half time and warm-up.
+
+**Checked.** Typecheck, lint, the test suite; every demo scene at 1920×1080 (live with the stand-in cam, kills with dead cards, planting, bomb, defuse, round won, freeze time, timeout), compared side by side and blended with the reference frames for position, and against the references' styling for difference.
+
+**Not checked.** On the owner's PC over CS2, in OBS, and with a real player cam on air.
+

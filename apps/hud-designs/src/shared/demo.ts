@@ -4,16 +4,18 @@ import { demoArt, demoRadar, NO_ART } from "./demoArt.ts";
 /**
  * Built-in sample states (fictional teams and players) for `?demo=<scene>`: thumbnails,
  * development, and `?demo=cycle`, which plays the scenes in turn so every animation can be seen
- * without a running program: freeze time → live → kills → bomb planted → defuse → round won.
+ * without a running program: freeze time → live → kills → bomb planted → defuse → round won → a
+ * tactical timeout in the next freeze time.
  */
-export const DEMO_SCENES = ["freeze", "live", "kill", "plant", "bomb", "defuse", "over"] as const;
+export const DEMO_SCENES = ["freeze", "live", "kill", "plant", "bomb", "defuse", "over", "timeout"] as const;
 export type DemoScene = (typeof DEMO_SCENES)[number];
 
-/** Demo extras from the page's query: `?bo=5` (series length), `?art=1` (sample HUD images), `?radar=1` (sample radar). */
+/** Demo extras from the page's query: `?bo=5` (series length), `?art=1` (sample HUD images), `?radar=1` (sample radar), `?logo=1` (sample team emblems). */
 export interface DemoOptions {
   bestOf?: number;
   art?: boolean;
   radar?: boolean;
+  logo?: boolean;
 }
 
 const map = (mapName: string, displayName: string, status: HudSeriesMap["status"], pickedBy: HudSeriesMap["pickedBy"], winner: HudSeriesMap["winner"] = null, score: [number, number] = [0, 0]): HudSeriesMap => ({ mapName, displayName, status, scoreLeft: score[0], scoreRight: score[1], pickedBy, winner });
@@ -100,10 +102,15 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
   const feed: HudKillfeedEntry[] = [];
   let scoreLeft = 9;
   const roundHistory: HudState["roundHistory"] = Array.from({ length: 16 }, (_, i) => ({ roundNumber: i + 1, winner: i % 3 === 2 ? "right" : i < 9 ? "left" : i % 2 ? "right" : "left", reason: "elimination" }));
-  if (scene === "freeze") {
-    phase = "freezetime";
-    clock = 14;
+  if (scene === "freeze" || scene === "timeout") {
+    phase = scene === "timeout" ? "timeout_t" : "freezetime";
+    clock = scene === "timeout" ? 23 : 14;
     ct = ct.map((p) => ({ ...p, activeWeapon: p.secondary }));
+  }
+  // The next round's freeze time, with the team on T in a tactical timeout (one of three used).
+  if (scene === "timeout") {
+    scoreLeft = 10;
+    roundHistory.push({ roundNumber: 17, winner: "left", reason: "ct_win_defuse" });
   }
   if (scene === "kill" || scene === "plant" || scene === "bomb" || scene === "defuse" || scene === "over") {
     feed.push(kill("k1", ct[0]!, t[2]!, "m4a1_silencer", true), kill("k2", t[1]!, ct[3]!, "ak47", false, { assister: { steamId: t[0]!.steamId, name: "ember", side: "T" } }));
@@ -143,9 +150,9 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
   ct = ct.map((p) => ({ ...p, observed: p.steamId === observed.steamId }));
   const series = demoSeries([1, 3, 5, 7].includes(opts.bestOf ?? 3) ? (opts.bestOf ?? 3) : 3, [scoreLeft, 7]);
   if (opts.bestOf && ![1, 3, 5, 7].includes(opts.bestOf)) series.bestOf = opts.bestOf;
-  const left = { ...team("left", "CT", "Northern Lights", "NRL", scoreLeft, 0, ct), seriesWins: series.left };
-  const right = { ...team("right", "T", "Red Harbour", "RHB", 7, 2, t), seriesWins: series.right };
-  const live = !(scene === "freeze" || scene === "over");
+  const left = { ...team("left", "CT", "Northern Lights", "NRL", scoreLeft, 0, ct), seriesWins: series.left, logoUrl: opts.logo ? demoLogo("left") : null };
+  const right = { ...team("right", "T", "Red Harbour", "RHB", 7, scene === "timeout" ? 3 : 2, t), seriesWins: series.right, logoUrl: opts.logo ? demoLogo("right") : null, timeoutsRemaining: scene === "timeout" ? 2 : 3 };
+  const live = !(scene === "freeze" || scene === "over" || scene === "timeout");
   return {
     schemaVersion: 1,
     outputId: "demo",
@@ -155,7 +162,7 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     timeline: { profile: "live", delayMs: 0 },
     dataAgeMs: 0,
     stale: false,
-    match: { mapName: "de_mirage", mapDisplayName: "Mirage", roundNumber: scene === "over" ? 17 : 17, phase, phaseEndsInSec: clock, clockRunning: live || scene === "freeze", paused: false, regulationRounds: 24 },
+    match: { mapName: "de_mirage", mapDisplayName: "Mirage", roundNumber: scene === "timeout" ? 18 : 17, phase, phaseEndsInSec: clock, clockRunning: live || scene === "freeze" || scene === "timeout", paused: false, regulationRounds: 24 },
     left,
     right,
     observed: { ...observed, observed: true },

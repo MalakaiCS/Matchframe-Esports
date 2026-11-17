@@ -8,8 +8,8 @@ const root = join(here, "..");
 const shared = [join(root, "package-files", "OFL-fonts.txt")];
 // The weapon icons' third-party licence, in each package's third-party-licenses/.
 const licences = join(root, "package-files", "third-party-licenses");
-// `node scripts/finish-packages.mjs vector` completes one package; no argument, both.
-const huds = process.argv.length > 2 ? process.argv.slice(2) : ["vector", "lineup"];
+// `node scripts/finish-packages.mjs vector` completes one package; no argument, all of them.
+const huds = process.argv.length > 2 ? process.argv.slice(2) : ["vector", "lineup", "stage"];
 for (const hud of huds) {
   const from = join(root, "package-files", hud);
   const to = join(root, "dist", hud);

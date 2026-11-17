@@ -797,6 +797,7 @@ export class Engine {
         const eventId = match?.eventId ?? (stageId ? (this.stages.get(stageId)?.data.eventId ?? null) : null);
         return eventId ? (this.events.get(eventId)?.data ?? null) : null;
       })(),
+      stageName: match?.stageId ? (this.stages.get(match.stageId)?.data.name ?? null) : null,
       assetUrl: (id) => this.assetUrl(id),
       defaultPlayerPicture: (side) => this.fallbackPlayerPicture(side),
       map: state?.mapName ? this.maps.get(state.mapName) : undefined,

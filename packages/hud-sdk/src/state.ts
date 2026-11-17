@@ -177,7 +177,16 @@ export interface HudState {
   killfeed: { mode: "exact" | "degraded"; entries: HudKillfeedEntry[] };
   radar: HudRadar;
   series: { bestOf: number | null; maps: HudSeriesMap[]; left: number; right: number };
-  event: { name: string | null; logoUrl: string | null; primary: string; secondary: string };
+  event: {
+    name: string | null;
+    logoUrl: string | null;
+    primary: string;
+    secondary: string;
+    /** The active match's stage ("Group A", "Playoffs"), when it is in one. Absent from older engines. */
+    stage?: string | null;
+    /** The active match's title ("Grand Final"), when the operator gave it one. Absent from older engines. */
+    matchTitle?: string | null;
+  };
   sponsors: Record<string, { sponsorId: string; name: string; assetUrl: string | null; untilMs: number } | null>;
   cues: { id: string; kind: string; title: string; subtitle: string | null; data: Record<string, unknown> }[];
   replay: {

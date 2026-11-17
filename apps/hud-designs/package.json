@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Two broadcast HUD packages with their own looks: Vector (players down both sides) and Lineup (players along the bottom).",
+  "description": "Three broadcast HUD packages with their own looks: Vector (players down both sides), Lineup (players along the bottom) and Stage (players in the bottom corners, a full-width scoreboard in freeze time).",
   "scripts": {
     "dev:vector": "vite --mode vector",
     "dev:lineup": "vite --mode lineup",
-    "build": "vite build --mode vector && vite build --mode lineup && node scripts/finish-packages.mjs",
+    "dev:stage": "vite --mode stage",
+    "build": "vite build --mode vector && vite build --mode lineup && vite build --mode stage && node scripts/finish-packages.mjs",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

@@ -23,6 +23,7 @@ Players' face cams in the broadcast: each player opens a link on the MatchFrame 
 
 - **Imported hud.json-format HUDs**: through the format's own camera protocol, with no setup. The HUD shows the observed player's cam where its design puts it. Reload a HUD that was open before you switched player cams on (these HUDs read the player list when they start).
 - **MatchFrame's own HUD:** above the observed player's panel.
+- **Stage HUD:** in the observed player's panel at the bottom centre; without a cam on air the panel keeps only its stats and name bar.
 - **OBS:** browser sources from the panel:
   - the observed player's cam (`/cams/observed?t=…`), which follows the observer and is transparent while that player has no cam on air;
   - one player's cam (`/cams/player/<SteamID64>?t=…`).

@@ -1,0 +1,152 @@
+{
+  "manifestVersion": 1,
+  "id": "matchframe.stage",
+  "name": "Stage HUD",
+  "version": "1.0.0",
+  "author": "MatchFrame",
+  "licence": "MIT; weapon icons third-party MIT (third-party-licenses/); fonts: SIL OFL 1.1",
+  "thumbnail": "thumbnail.webp",
+  "description": "Tournament-stage broadcast HUD: series strip and minimap top left, event line and score bar with players alive top centre, sponsor slot and killfeed top right, five player cards in each bottom corner around the observed player's cam, and a full-width scoreboard with economy, loss bonus and timeouts in freeze time.",
+  "game": "cs2",
+  "category": "Broadcast",
+  "tags": [
+    "broadcast",
+    "radar",
+    "killfeed",
+    "player cams",
+    "scoreboard",
+    "animated"
+  ],
+  "schemaVersions": [
+    1
+  ],
+  "entryPoints": {
+    "live": "index.html",
+    "compact": "index.html",
+    "replay": "index.html"
+  },
+  "designResolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "resolutions": [
+    "1920x1080"
+  ],
+  "permissions": [
+    "match.public",
+    "players.public",
+    "radar.public",
+    "sponsors",
+    "series",
+    "event"
+  ],
+  "settingsSchema": {
+    "ctColor": {
+      "type": "color",
+      "label": "CT colour",
+      "default": "#3f9cf0",
+      "group": "Look",
+      "description": "Colour of the team on CT, unless the team has its own colour."
+    },
+    "tColor": {
+      "type": "color",
+      "label": "T colour",
+      "default": "#efb236",
+      "group": "Look",
+      "description": "Colour of the team on T, unless the team has its own colour."
+    },
+    "teamNames": {
+      "type": "select",
+      "label": "Team names over the cards",
+      "default": "full",
+      "options": [
+        {
+          "value": "full",
+          "label": "Full name"
+        },
+        {
+          "value": "short",
+          "label": "Short (tag)"
+        }
+      ],
+      "group": "Look"
+    },
+    "eventTitle": {
+      "type": "string",
+      "label": "Event line, left",
+      "default": "",
+      "group": "Text",
+      "description": "Shown at the left of the line over the score bar; the event's name when empty."
+    },
+    "stageTitle": {
+      "type": "string",
+      "label": "Event line, right",
+      "default": "",
+      "group": "Text",
+      "description": "Shown at the right of the line over the score bar; the match's stage and title when empty."
+    },
+    "showSeries": {
+      "type": "boolean",
+      "label": "Series strip",
+      "default": true,
+      "group": "Elements",
+      "description": "The series maps over the minimap."
+    },
+    "showRadar": {
+      "type": "boolean",
+      "label": "Minimap",
+      "default": true,
+      "group": "Elements"
+    },
+    "showKillfeed": {
+      "type": "boolean",
+      "label": "Killfeed",
+      "default": true,
+      "group": "Killfeed"
+    },
+    "killfeedRows": {
+      "type": "number",
+      "label": "Killfeed rows",
+      "default": 5,
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "group": "Killfeed",
+      "description": "Most kills shown at once; each stays about seven seconds."
+    },
+    "showSponsors": {
+      "type": "boolean",
+      "label": "Sponsor slots",
+      "default": true,
+      "group": "Elements",
+      "description": "The top bar sponsor at the top right and the scoreboard sponsor in freeze time (from Sponsors; nothing shows when none is scheduled)."
+    },
+    "showAlive": {
+      "type": "boolean",
+      "label": "Players alive",
+      "default": true,
+      "group": "Elements"
+    },
+    "showObserved": {
+      "type": "boolean",
+      "label": "Observed player",
+      "default": true,
+      "group": "Elements",
+      "description": "The observed player's cam (when player cams are on air), stats and name bar between the teams."
+    },
+    "showScoreboard": {
+      "type": "boolean",
+      "label": "Freeze-time scoreboard",
+      "default": true,
+      "group": "Elements",
+      "description": "The full-width scoreboard in freeze time and timeouts; off keeps the player cards."
+    },
+    "showMoney": {
+      "type": "boolean",
+      "label": "Player money",
+      "default": true,
+      "group": "Elements",
+      "description": "Money on the player cards."
+    }
+  }
+}

@@ -1,5 +1,5 @@
 // Writes package-files/<hud>/thumbnail.webp (640x360, the HUD Library card) from the built page in a demo scene:
-//   node scripts/thumbnail.mjs <vector|lineup> [scene]
+//   node scripts/thumbnail.mjs <vector|lineup|stage> [scene] [demo params, e.g. "art=1&radar=1"]
 // The browser itself encodes the WebP (canvas), so no image tools are needed.
 import { createServer } from "node:http";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -8,7 +8,7 @@ import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const [hud = "vector", scene = "kill"] = process.argv.slice(2);
+const [hud = "vector", scene = "kill", extra = ""] = process.argv.slice(2);
 const dist = join(here, "..", "dist", hud);
 if (!existsSync(join(dist, "index.html"))) throw new Error(`build dist/${hud} first (pnpm run build)`);
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".woff": "font/woff", ".png": "image/png", ".webp": "image/webp" };
@@ -22,7 +22,7 @@ await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const { chromium } = createRequire(join(here, "..", "..", "..", "package.json"))("playwright");
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
-await page.goto(`http://127.0.0.1:${server.address().port}/index.html?demo=${scene}`);
+await page.goto(`http://127.0.0.1:${server.address().port}/index.html?demo=${scene}${extra ? `&${extra}` : ""}`);
 // The same dark stage as the other bundled HUDs' cards.
 await page.evaluate(() => (document.documentElement.style.background = "radial-gradient(ellipse at 50% 40%,#2c3440 0%,#151a21 70%,#0d1015 100%)"));
 await page.waitForTimeout(1500);

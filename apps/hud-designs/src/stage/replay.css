@@ -1,0 +1,186 @@
+/* Stage HUD's replay graphic (the `replay` entry point): a REPLAY tag where the score bar sits and
+   a lower third where the observed player's panel sits, in the HUD's own panels and colours. */
+.st-replay-stage {
+  pointer-events: none;
+}
+.st-rp-tag {
+  position: absolute;
+  left: 810px;
+  top: 56px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.st-rp-tag-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 56px;
+  padding-top: 3px;
+  background: var(--st-panel);
+  box-shadow: inset 0 3px 0 var(--st-team);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.st-rp-tag-main .mf-icon {
+  color: var(--st-red);
+  margin-top: -3px;
+}
+.st-rp-tag-round {
+  align-self: center;
+  margin-top: 5px;
+  padding: 2px 12px 0;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  background: var(--st-panel-2);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  color: var(--st-ink-dim);
+}
+.st-rp-tag.is-in {
+  animation: st-rp-in 0.4s var(--st-out) both;
+}
+.st-rp-tag.is-out {
+  animation: st-rp-out 0.3s var(--st-in) both;
+}
+.st-rp-sim {
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  transform: translateX(-50%);
+}
+.st-rp-card {
+  position: absolute;
+  left: 660px;
+  bottom: 40px;
+  width: 600px;
+}
+.st-rp-card.is-in {
+  animation: st-rp-up 0.45s var(--st-out) both;
+}
+.st-rp-card.is-out {
+  animation: st-rp-down 0.3s var(--st-in) both;
+}
+.st-rp-bar {
+  display: flex;
+  align-items: center;
+  height: 64px;
+  background: var(--st-panel);
+  box-shadow: inset 0 3px 0 var(--st-team);
+}
+.st-rp-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  background: var(--st-team);
+  color: var(--st-team-ink);
+  font-size: 20px;
+  font-weight: 800;
+}
+.st-rp-logo img {
+  max-width: 48px;
+  max-height: 48px;
+  object-fit: contain;
+}
+.st-rp-who {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  padding: 4px 16px 0;
+}
+.st-rp-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+}
+.st-rp-name.is-long {
+  font-size: 28px;
+}
+.st-rp-team {
+  margin-top: 2px;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  color: var(--st-team);
+}
+.st-rp-badge {
+  display: flex;
+  align-items: center;
+  height: 64px;
+  padding: 3px 18px 0;
+  background: var(--st-ink);
+  color: #0a0f18;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%);
+}
+.st-rp-strip {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 34px;
+  padding: 3px 16px 0;
+  background: var(--st-panel-2);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px));
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  color: var(--st-ink-dim);
+  white-space: nowrap;
+}
+.st-rp-weapon,
+.st-rp-hs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--st-ink);
+}
+.st-rp-gun {
+  height: 17px;
+  width: auto;
+  max-width: 70px;
+  margin-top: -3px;
+}
+.st-rp-hs .mf-icon {
+  margin-top: -3px;
+}
+.st-rp-victims {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@keyframes st-rp-in {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) scaleX(0.7);
+  }
+}
+@keyframes st-rp-out {
+  to {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+}
+@keyframes st-rp-up {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+@keyframes st-rp-down {
+  to {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}

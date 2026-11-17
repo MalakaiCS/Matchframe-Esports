@@ -39,6 +39,8 @@ extraResources:
     to: sample-huds/matchframe-vector
   - from: ../hud-designs/dist/lineup
     to: sample-huds/matchframe-lineup
+  - from: ../hud-designs/dist/stage
+    to: sample-huds/matchframe-stage
   # Tray icon (the window icon comes from the .exe).
   - from: build/icon.png
     to: icon.png

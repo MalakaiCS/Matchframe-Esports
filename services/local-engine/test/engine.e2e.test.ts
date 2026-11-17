@@ -210,6 +210,15 @@ describe("engine end-to-end (real HTTP/WS servers)", () => {
     expect(hud.standings?.stageName).toBe("Group A");
     expect(hud.standings?.rows[0]!.team.name).toBe("North");
     expect(JSON.stringify(hud.standings)).not.toMatch(/steamId|token/);
+
+    // A live output names the active match's event, stage and title (the Stage HUD's event line).
+    const final = await post<{ id: string }>("/api/v1/matches", { eventId: ev.id, stageId: stage.id, teamAId: teams[0]!.id, teamBId: teams[2]!.id, format: fmt, title: "Grand Final" });
+    await post(`/api/v1/matches/${final.id}/activate`, {});
+    await post("/api/v1/hud/outputs", { outputId: "stage-live", name: "Stage live", variant: "live" });
+    await post("/api/v1/hud/outputs/stage-live/publish", {});
+    const live = (await (await api("/api/v1/hud/outputs/stage-live/state")).json()) as { event: { name: string | null; stage?: string | null; matchTitle?: string | null } };
+    expect(live.event).toMatchObject({ name: "Stage Cup", stage: "Group A", matchTitle: "Grand Final" });
+    await post("/api/v1/live/deactivate-match", {});
   });
 
   it("routes player cameras only for players who consented", async () => {

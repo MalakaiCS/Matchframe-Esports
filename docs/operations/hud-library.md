@@ -10,10 +10,12 @@ MatchFrame opens into the **HUD Library**: the HUDs installed on this computer, 
    - the **MatchFrame Broadcast HUD** (built in);
    - the **MatchFrame Sample CS2 HUD**, a small package to copy and learn from;
    - the **Pro CS2 HUD**, a full broadcast HUD adapted from an open-source CS2 React HUD template (its source in `apps/hud-template` is a starter kit for your own);
-   - **Vector** and **Lineup**, MatchFrame's own broadcast HUDs. Vector puts the teams in columns at the sides; Lineup puts all ten players in one row along the bottom. Their source is in `apps/hud-designs`.
+   - **Vector**, **Lineup** and **Stage**, MatchFrame's own broadcast HUDs. Vector puts the teams in columns at the sides; Lineup puts all ten players in one row along the bottom; Stage has a tournament-stage layout: five player cards in each bottom corner around the observed player's cam, the series strip over the minimap, and a full-width scoreboard with each team's economy, loss bonus and timeouts in freeze time and timeouts. Their source is in `apps/hud-designs`.
 
      ![Vector HUD](../screenshots/hud/hud-vector.jpg)
      ![Lineup HUD](../screenshots/hud/hud-lineup.jpg)
+     ![Stage HUD](../screenshots/hud/hud-stage.jpg)
+     ![Stage HUD in a timeout](../screenshots/hud/hud-stage-timeout.jpg)
 
 The bundled HUDs update with the program: when an update brings a newer version of one, or changed files, it replaces the installed copy and keeps its settings and outputs. A bundled HUD you replaced with your own import, or removed, is left alone.
 
@@ -41,7 +43,7 @@ The program updates itself from the MatchFrame Esports releases on GitHub, so yo
 
 ## Minimap and killfeed
 
-Every bundled HUD shows a minimap (top left) and a killfeed (top right), each in its own style: the MatchFrame Broadcast HUD (Classic, Minimal and Arena presets), the Pro CS2 HUD, Vector, Lineup and the Sample CS2 HUD. Turn either off in the HUD's details → **Appearance**.
+Every bundled HUD shows a minimap (top left) and a killfeed (top right), each in its own style: the MatchFrame Broadcast HUD (Classic, Minimal and Arena presets), the Pro CS2 HUD, Vector, Lineup, Stage and the Sample CS2 HUD. Turn either off in the HUD's details → **Appearance**.
 
 - **Minimap:** the map drawing for Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo (Nuke and Vertigo show both levels), and MatchFrame's generated outline for Anubis. Players show their slot number in the team colour: bigger with a ring when observed, lighter while flashed, marked when carrying the bomb, a faded cross when dead. Smokes are outlined in the thrower's team colour; fires, flashes and HE grenades show briefly; the bomb shows when dropped or planted (pulsing) and when defused. **Utility on the radar** in the library turns the utility off. A radar image you calibrate in Maps & Cameras replaces the built-in one.
 - **Killfeed:** killer (+ assister), weapon, headshot and blind-killer marks, victim; each kill stays for a few seconds. CS2's game data does not report kills, so MatchFrame pairs them from the score changes in the same update, like every game-data HUD: the weapon is the one the killer was holding (a grenade or fire kill can show their gun), and when two players get kills in the same instant the victims are shown without a killer. Wallbang, no-scope, through-smoke and flash-assist marks are not available from game data.
@@ -59,6 +61,7 @@ PNG, JPG, WebP, SVG or GIF, up to 20 MB each. **Upload** (or **Replace**) and **
 | HUD | Player pictures | Map logos and pictures | Dead player icon |
 |---|---|---|---|
 | Vector, Lineup | player cards and the observed player | series tiles | dead players' cards |
+| Stage | player cards, the scoreboard's rows and the stand-in for the observed player's cam | series strip (each map's logo; the live map's picture behind it) | dead players' cards |
 | MatchFrame Broadcast HUD (Classic, Minimal, Arena) | observed player | series strip, pre-match, break, post-series and veto screens | player panels, in place of the skull |
 | Pro CS2 HUD | player rows and observed player | series maps in freeze time | player rows, where the health was |
 
@@ -66,7 +69,7 @@ Imported hud.json-format HUDs keep their own pictures, and the Sample CS2 HUD do
 
 ## Radar for maps without a radar image
 
-Every bundled HUD shows the map's radar image (the bundled radars for Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo, or one you calibrated in Maps & Cameras). For a map without one (Anubis, Cache), Vector, Lineup, the Pro CS2 HUD and the Broadcast HUD show MatchFrame's own drawing in the same style instead of the outline: a navy floor (a lighter navy for the lower level of Nuke and Vertigo), light wall outlines and the bombsites tinted red, with nothing around the map. It is drawn from MatchFrame's map data (the map packs' walkable areas and bombsites, with the walls placed from the maps' collision grid) for every map with a map pack, including Anubis and Cache, and in exactly the frame of the radar the markers use: the built-in radar image's calibration (one per level on Nuke and Vertigo), a radar image you calibrated in Maps & Cameras, or the generated outline. So players, the bomb and utility land in the same places as on the drawing. To use your own radar for such a map, calibrate it in Maps & Cameras.
+Every bundled HUD shows the map's radar image (the bundled radars for Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train and Vertigo, or one you calibrated in Maps & Cameras). For a map without one (Anubis, Cache), Vector, Lineup, Stage, the Pro CS2 HUD and the Broadcast HUD show MatchFrame's own drawing in the same style instead of the outline: a navy floor (a lighter navy for the lower level of Nuke and Vertigo), light wall outlines and the bombsites tinted red, with nothing around the map. It is drawn from MatchFrame's map data (the map packs' walkable areas and bombsites, with the walls placed from the maps' collision grid) for every map with a map pack, including Anubis and Cache, and in exactly the frame of the radar the markers use: the built-in radar image's calibration (one per level on Nuke and Vertigo), a radar image you calibrated in Maps & Cameras, or the generated outline. So players, the bomb and utility land in the same places as on the drawing. To use your own radar for such a map, calibrate it in Maps & Cameras.
 
 ## Start CS2
 

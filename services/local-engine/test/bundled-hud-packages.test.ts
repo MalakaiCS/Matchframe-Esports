@@ -6,12 +6,13 @@ import { readDirectory, validateManifest } from "../src/hud/packages.ts";
 
 const repo = join(import.meta.dirname, "..", "..", "..");
 
-/** The HUD packages installed into the library on first start: the sample package, the Pro CS2 HUD, Vector and Lineup. */
+/** The HUD packages installed into the library on first start: the sample package, the Pro CS2 HUD, Vector, Lineup and Stage. */
 const folders = [
   ...readdirSync(join(repo, "assets", "hud-packages")).map((n) => join(repo, "assets", "hud-packages", n)),
   join(repo, "apps", "hud-template", "package-files"),
   join(repo, "apps", "hud-designs", "package-files", "vector"),
   join(repo, "apps", "hud-designs", "package-files", "lineup"),
+  join(repo, "apps", "hud-designs", "package-files", "stage"),
 ];
 
 describe("bundled HUD packages", () => {
@@ -39,7 +40,7 @@ describe("bundled HUD packages", () => {
     expect(html).toMatch(/src="\.\/assets\//);
   });
 
-  for (const hud of ["vector", "lineup"])
+  for (const hud of ["vector", "lineup", "stage"])
     it.skipIf(!existsSync(join(repo, "apps", "hud-designs", "dist", hud, "manifest.json")))(`the built ${hud} HUD package (apps/hud-designs/dist) installs as is`, () => {
       const files = readDirectory(join(repo, "apps", "hud-designs", "dist", hud));
       const m = validateManifest(files);
@@ -48,4 +49,23 @@ describe("bundled HUD packages", () => {
       const html = new TextDecoder().decode(files.get("index.html"));
       expect(html).toMatch(/src="\.\/assets\//);
     });
+
+  it("the Stage HUD's manifest and page: id, name, author, variants, sponsors permission and player cams", () => {
+    const folder = join(repo, "apps", "hud-designs", "package-files", "stage");
+    const m = validateManifest(new Map([["manifest.json", readFileSync(join(folder, "manifest.json"))], ["index.html", new TextEncoder().encode("<!doctype html>")]]));
+    expect(m).toMatchObject({ id: "matchframe.stage", name: "Stage HUD", author: "MatchFrame", version: "1.0.0", category: "Broadcast" });
+    expect(Object.keys(m.entryPoints).sort()).toEqual(["compact", "live", "replay"]);
+    // The top bar and scoreboard sponsor slots read state.sponsors.
+    expect(m.permissions).toContain("sponsors");
+    const schema = normalizeSettingsSchema((m as { settingsSchema?: Record<string, unknown> }).settingsSchema ?? {});
+    for (const key of ["ctColor", "tColor", "showRadar", "showKillfeed", "killfeedRows", "showSponsors", "showScoreboard"]) expect(schema[key]).toBeDefined();
+    // Out-of-range killfeed rows are refused by the settings form.
+    expect(() => validateSettings(schema, { killfeedRows: 9 })).toThrow();
+    // The page loads the HUD server's player cams script before its own (the observed player's cam).
+    const page = readFileSync(join(repo, "apps", "hud-designs", "designs", "stage", "index.html"), "utf8");
+    expect(page).toMatch(/<script src="\/hud-runtime\/cams\.js"><\/script>[\s\S]*type="module"/);
+    // No other organisation's names in what ships.
+    const text = readFileSync(join(folder, "manifest.json"), "utf8") + readFileSync(join(folder, "README.md"), "utf8");
+    expect(text).not.toMatch(/\b(ESL|IEM|DHL|Intel|Predator|Zowie)\b/i);
+  });
 });

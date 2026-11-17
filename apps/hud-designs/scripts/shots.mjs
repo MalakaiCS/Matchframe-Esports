@@ -1,7 +1,7 @@
 // Screenshots of a built HUD package (dist/<hud>) in every demo scene, over a game-like background:
-//   node scripts/shots.mjs <vector|lineup> <out dir> [--query "<demo params>"] [--frames <scene>,<scene2> <ms between frames> <count>]
-// --query adds demo parameters to every page, e.g. --query "art=1&radar=1&bo=5" (sample HUD images,
-// sample radar, best of 5).
+//   node scripts/shots.mjs <vector|lineup|stage> <out dir> [--query "<demo params>"] [--frames <scene>,<scene2> <ms between frames> <count>]
+// --query adds demo parameters to every page, e.g. --query "art=1&radar=1&logo=1&bo=5" (sample HUD
+// images, sample radar, sample team emblems, best of 5).
 // --frames records an animation: the page shows <scene>, then switches to <scene2>, and a frame is
 // taken every <ms> from the switch (e.g. --frames freeze,live 50 12 for going live; replay:none,replay:3k
 // for the replay graphic coming in).
@@ -47,7 +47,7 @@ if (rest[0] === "--replay") {
     }
   }
 } else if (!frames) {
-  for (const scene of ["freeze", "live", "kill", "plant", "bomb", "defuse", "over"]) {
+  for (const scene of ["freeze", "live", "kill", "plant", "bomb", "defuse", "over", "timeout"]) {
     await page.goto(`${base}?demo=${scene}${extra}`);
     await page.evaluate(backdrop);
     await page.waitForTimeout(1200);
