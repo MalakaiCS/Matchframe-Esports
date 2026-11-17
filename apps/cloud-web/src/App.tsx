@@ -54,6 +54,8 @@ const AdminOrgs = lazyPage(() => import("./pages/admin/Orgs.tsx").then((m) => m.
 const AdminOrgDetail = lazyPage(() => import("./pages/admin/OrgDetail.tsx").then((m) => m.AdminOrgDetail));
 const AdminInbox = lazyPage(() => import("./pages/admin/Inbox.tsx").then((m) => m.AdminInbox));
 const AdminEmails = lazyPage(() => import("./pages/admin/Emails.tsx").then((m) => m.AdminEmails));
+const AdminCrashReports = lazyPage(() => import("./pages/admin/CrashReports.tsx").then((m) => m.AdminCrashReports));
+const AdminCrashReportDetail = lazyPage(() => import("./pages/admin/CrashReports.tsx").then((m) => m.AdminCrashReportDetail));
 const AdminCatalog = lazyPage(() => import("./pages/admin/Admin.tsx").then((m) => m.AdminCatalog));
 const AdminAudit = lazyPage(() => import("./pages/admin/Admin.tsx").then((m) => m.AdminAudit));
 const AdminStripe = lazyPage(() => import("./pages/admin/Admin.tsx").then((m) => m.AdminStripe));
@@ -125,6 +127,8 @@ export const ROUTES: RouteDef[] = [
   { path: "/admin/orgs/:adminOrgId", layout: "app", auth: true, staff: true, render: (p) => <AdminOrgDetail orgId={p.adminOrgId!} /> },
   { path: "/admin/inbox", layout: "app", auth: true, staff: true, render: () => <AdminInbox /> },
   { path: "/admin/emails", layout: "app", auth: true, staff: true, render: () => <AdminEmails /> },
+  { path: "/admin/crash-reports", layout: "app", auth: true, staff: true, render: () => <AdminCrashReports /> },
+  { path: "/admin/crash-reports/:reportId", layout: "app", auth: true, staff: true, render: (p) => <AdminCrashReportDetail reportId={p.reportId!} /> },
   { path: "/admin/catalog", layout: "app", auth: true, staff: true, render: () => <AdminCatalog /> },
   { path: "/admin/audit", layout: "app", auth: true, staff: true, render: () => <AdminAudit /> },
   { path: "/admin/stripe", layout: "app", auth: true, staff: true, render: () => <AdminStripe /> },

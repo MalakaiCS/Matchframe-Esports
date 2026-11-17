@@ -2,6 +2,8 @@ import type { CamRoomInfo, HourPack, OrgRole, Plan, SubscriptionStatus } from "@
 import { createClient, seg } from "./client.ts";
 import type {
   AdminCatalog,
+  AdminCrashReportDetail,
+  AdminCrashReportsResponse,
   AdminOrg,
   AdminOrgDetail,
   AdminOverview,
@@ -13,6 +15,7 @@ import type {
   BillingResponse,
   ContactMessage,
   ContactRequest,
+  CrashProcess,
   Device,
   DeviceLinkPreview,
   DownloadsResponse,
@@ -123,7 +126,22 @@ export const api = {
   adminSetMessageHandled: (id: string, handled: boolean) => client.post<{ ok: true }>(`/v1/admin/messages/${seg(id)}/handled`, { handled }),
   adminEmails: (limit = 100) => client.get<EmailLogResponse>(`/v1/admin/emails?limit=${limit}`),
   adminResendEmail: (id: string) => client.post<{ sent: boolean; error: string | null }>(`/v1/admin/emails/${seg(id)}/resend`),
+  adminCrashReports: (q: { q?: string; process?: CrashProcess | "all"; page?: number; pageSize?: number } = {}) => client.get<AdminCrashReportsResponse>(`/v1/admin/crash-reports?${crashReportsQuery(q)}`),
+  adminCrashReport: (id: string) => client.get<AdminCrashReportDetail>(`/v1/admin/crash-reports/${seg(id)}`),
 };
+
+/** Query string for the staff crash report list (empty values and "all" are left out). */
+export function crashReportsQuery(q: { q?: string; process?: CrashProcess | "all"; page?: number; pageSize?: number }): string {
+  const p = new URLSearchParams();
+  if (q.q) p.set("q", q.q);
+  if (q.process && q.process !== "all") p.set("process", q.process);
+  p.set("page", String(q.page ?? 1));
+  p.set("pageSize", String(q.pageSize ?? 25));
+  return p.toString();
+}
+
+/** Download links for a crash report (the browser sends the session cookie; staff only). */
+export const crashReportDownload = (id: string, file: "report" | "minidump") => `/v1/admin/crash-reports/${seg(id)}/${file === "report" ? "download" : "minidump"}`;
 
 /** Query string for the staff user list (empty values are left out). */
 export function adminUsersQuery(q: { q?: string; filter?: AdminUserFilter; page?: number; pageSize?: number }): string {

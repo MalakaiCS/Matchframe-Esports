@@ -435,3 +435,52 @@ export const SYNC_BLOB_MAX_BYTES = 60 * 1024 * 1024;
 export const SYNC_ORG_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;
 /** Largest record (`data` as JSON). */
 export const SYNC_ITEM_MAX_BYTES = 256 * 1024;
+
+// ---------------------------------------------------------------------------------- crash reports
+
+/**
+ * Crash reports (ADR-077): opt-in, sent by the program after a crash. One report is the program's
+ * support file plus what crashed. Sent gzip-compressed (`content-encoding: gzip`) or as plain JSON;
+ * either way it may be at most CRASH_REPORT_MAX_BYTES once unpacked.
+ */
+export const CRASH_REPORT_MAX_BYTES = 10 * 1024 * 1024;
+/** How long the website keeps a crash report before it is deleted. */
+export const CRASH_REPORT_RETENTION_DAYS = 90;
+
+/** Which part of the program crashed: Electron's main process, the manager window, a HUD window, the engine, or a native crash found by Electron's crash reporter. */
+export const CrashProcess = z.enum(["main", "renderer", "hud", "engine", "native"]);
+export type CrashProcess = z.infer<typeof CrashProcess>;
+
+export const CrashDetails = z.object({
+  /** The program's own id for this report: sending it again (after a lost answer) returns the same report. */
+  reportId: z.string().regex(/^[A-Za-z0-9_-]{16,64}$/),
+  occurredAt: z.string().datetime(),
+  appVersion: z.string().min(1).max(40),
+  os: z.object({ platform: z.string().min(1).max(20), release: z.string().max(80), arch: z.string().max(20) }),
+  process: CrashProcess,
+  /** What happened: "uncaughtException", Electron's render-process-gone reason ("crashed", "oom"…), "exit code 3", "minidump". */
+  reason: z.string().min(1).max(200),
+  error: z.string().max(4000).nullable(),
+  stack: z.string().max(32_000).nullable(),
+  /** How long the crashed process had run (null when unknown, e.g. a native crash found at the next start). */
+  uptimeSeconds: z.number().nonnegative().nullable(),
+  programUptimeSeconds: z.number().nonnegative().nullable(),
+  /** Per process: exit code and signal, the window or HUD, the engine's last output lines, the minidump's name and size, how many times it repeated. */
+  detail: z.record(z.string(), z.unknown()).default({}),
+});
+export type CrashDetails = z.infer<typeof CrashDetails>;
+
+/** POST /v1/crash-reports (device token when the program is signed in, otherwise anonymous). */
+export const CrashReportUpload = z.object({
+  v: z.literal(1),
+  crash: CrashDetails,
+  /** The support file as the engine makes it (Settings → Diagnostics), redacted again by the program; null when there is none (remote mode, engine not running). */
+  supportFile: z.record(z.string(), z.unknown()).nullable(),
+  /** A small minidump from Electron's crash reporter, base64. */
+  minidump: z.object({ name: z.string().min(1).max(200), size: z.number().int().nonnegative(), base64: z.string() }).nullable(),
+});
+export type CrashReportUpload = z.infer<typeof CrashReportUpload>;
+
+/** The id the operator quotes to support ("CR-XXXX-XXXX"); `duplicate` when the report had been received before. */
+export const CrashReportReceipt = z.object({ id: z.string(), duplicate: z.boolean() });
+export type CrashReportReceipt = z.infer<typeof CrashReportReceipt>;

@@ -159,6 +159,12 @@ export class SecretStore {
     return this.data.extra?.[name] !== undefined;
   }
 
+  /** Every secret value held here (access tokens, stored credentials), so a support file can be checked for them word for word. */
+  knownSecrets(): string[] {
+    const extra = Object.keys(this.data.extra ?? {}).map((k) => this.getSecret(k));
+    return [this.data.operatorToken, this.data.gsiToken, ...extra].filter((s): s is string => typeof s === "string" && s.length > 0);
+  }
+
   checkGsiToken(token: string | undefined): boolean {
     return typeof token === "string" && safeEqual(token, this.data.gsiToken);
   }

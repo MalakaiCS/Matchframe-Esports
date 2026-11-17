@@ -186,6 +186,7 @@ invitation links can be recovered by staff if delivery fails.
 | `MF_DOWNLOAD_DIR` | recommended | — | Directory with `MatchFrameEsports-Setup-<version>.exe` installers served at `/downloads/` (newest shown with its SHA-256) |
 | `MF_DOWNLOAD_VERSION`, `MF_DOWNLOAD_WINDOWS_URL`, `MF_DOWNLOAD_WINDOWS_SHA256`, `MF_DOWNLOAD_NOTES_URL` | no | — | External installer URL instead of `MF_DOWNLOAD_DIR`; release notes link |
 | `MF_SYNC_QUOTA_BYTES` | no | `2147483648` (2 GB) | Account sync: the most bytes of shared files (HUD packages, logos, photos) one organisation can keep in the database |
+| `MF_CRASH_ANONYMOUS_MAX_BYTES` | no | `1073741824` (1 GB) | Crash reports: reports from programs that aren't signed in are refused (the program keeps them and tries later) while those stored take this many bytes; `0` refuses them all. Signed-in computers are not affected |
 | `MF_DEV_LOG_EMAILS` | no | off | `1` prints emails to the console (development only) |
 
 Desktop side: `MATCHFRAME_CLOUD_URL` and `MATCHFRAME_CLOUD_PUBLIC_KEYS` (or the shipped
@@ -199,6 +200,14 @@ automatic direction without an account (`MATCHFRAME_SIGN_IN=off` reports sign-in
   credits, Stripe event history, the audit log and account sync (shared items and their files, up
   to `MF_SYNC_QUOTA_BYTES` per organisation) are all in the database; the service itself is
   stateless. Size the database for the shared files.
+- **Crash reports** (ADR-077, opt-in in the program): stored in the database (`crash_reports`, from
+  migration 7), each report gzip-compressed as the program sent it (at most 10 MB unpacked,
+  usually tens to hundreds of KB stored) in a `bytea` column without a second compression, like
+  account sync's files. They are **deleted 90 days after they arrive**: at start and then hourly by
+  each instance (`crash_report.purged` in the audit log). Growth is bounded by the limits: a
+  signed-in computer may send 10 an hour; programs that aren't signed in 3 an hour per address and
+  20 an hour in all, and none while their reports take `MF_CRASH_ANONYMOUS_MAX_BYTES`. The staff
+  console's Crash reports page shows the total stored. Backups hold them too, until rotated.
 - **Scaling:** run more than one instance behind the proxy if needed. Usage ingestion takes a
   per-organisation row lock, so concurrent uploads from several computers cannot double-spend
   credits (verified on Postgres 16 with six concurrent computers). Account sync hands out change
@@ -217,6 +226,7 @@ Open **Admin** on the website (shown to staff only). Staff roles:
 | Overview, users, organisations (read), audit log, plan catalogue (read) | yes | yes |
 | Verify a user's email, resend verification, send a password reset link, sign a user out everywhere | yes | yes |
 | Support inbox (contact form messages: mark handled / reopen) and email log | yes | yes |
+| Crash reports: list, detail, download the report and its minidump (downloads are audited) | yes | yes |
 | Give or remove staff roles, disable and enable accounts, edit a user's name or email | no | yes |
 | Grant hours, edit plans and hour packs, Stripe events, resend emails | no | yes |
 

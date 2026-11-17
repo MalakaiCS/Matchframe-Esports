@@ -9,6 +9,7 @@ import { useApi } from "../lib/hooks.ts";
 import { reasonInfo } from "../lib/reasons.ts";
 import { Link } from "../router.tsx";
 import { rollback, rollbackProgressText, updates, updateSummary, useRollbackProgress, useUpdates, type RollbackOption, type RollbackResult } from "../lib/updates.ts";
+import { useCrashReports } from "../lib/crashReports.ts";
 import { useSnapshot } from "../state/live.ts";
 import { usePermission } from "../state/session.tsx";
 import "../styles/group-c.css";
@@ -392,11 +393,40 @@ function ProgramPanel() {
       {goBack.progress ? <p className="small muted">{rollbackProgressText(goBack.progress)}</p> : null}
       {goBack.result ? <Note tone={goBack.result.ok ? "ok" : goBack.result.cancelled ? "info" : "warn"}>{goBack.result.message}</Note> : null}
       {rollback.available() ? <GoBackSection goBack={goBack} /> : null}
+      <CrashReportsSetting />
       <div className="row" style={{ marginTop: 10 }}>
         {mf.openConnection ? <Button onClick={() => void mf.openConnection!()}>Connection settings…</Button> : null}
         {mf.openDataDir ? <Button onClick={() => void mf.openDataDir!()}>Open data folder</Button> : null}
       </div>
     </Panel>
+  );
+}
+
+/** Send crash reports (ADR-077): off unless turned on here, or Always send after a crash. */
+function CrashReportsSetting() {
+  const { state, setEnabled } = useCrashReports();
+  if (!state) return null;
+  return (
+    <div className="stack" style={{ marginTop: 10 }} data-crash-reports={state.enabled ? "on" : "off"}>
+      <label className="check">
+        <input type="checkbox" checked={state.enabled} onChange={(e) => void setEnabled(e.target.checked)} />
+        <span>Send crash reports</span>
+      </label>
+      <p className="small muted">If MatchFrame crashes, it sends the support file (settings without passwords or tokens, health and recent logs) and the error to MatchFrame support.</p>
+      {state.recent.length > 0 ? (
+        <p className="small">
+          Crash reports sent:{" "}
+          {state.recent.slice(0, 3).map((r, i) => (
+            <span key={r.id}>
+              {i > 0 ? ", " : ""}
+              <code>{r.id}</code> ({fmtTime(r.sentAt)})
+            </span>
+          ))}
+          . Quote the ID to MatchFrame support.
+        </p>
+      ) : null}
+      {state.queued > 0 ? <p className="small muted">{state.queued === 1 ? "1 crash report waits" : `${state.queued} crash reports wait`} to be sent{state.lastError ? ` (${state.lastError})` : ""}.</p> : null}
+    </div>
   );
 }
 

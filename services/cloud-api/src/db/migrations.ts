@@ -263,6 +263,34 @@ CREATE TABLE sync_blobs (
 ALTER TABLE sync_blobs ALTER COLUMN data SET STORAGE EXTERNAL;
 `,
   },
+  {
+    version: 7,
+    name: "crash reports sent by the program (opt-in), kept 90 days",
+    sql: `
+CREATE TABLE crash_reports (
+  id text PRIMARY KEY,
+  client_report_id text NOT NULL UNIQUE,
+  org_id text REFERENCES orgs(id) ON DELETE CASCADE,
+  device_id text REFERENCES devices(id) ON DELETE CASCADE,
+  app_version text NOT NULL,
+  os_platform text NOT NULL,
+  os_release text NOT NULL,
+  process text NOT NULL,
+  reason text NOT NULL,
+  error text,
+  occurred_at timestamptz NOT NULL,
+  received_at timestamptz NOT NULL DEFAULT now(),
+  size_bytes integer NOT NULL,
+  stored_bytes integer NOT NULL,
+  has_support_file boolean NOT NULL,
+  has_minidump boolean NOT NULL,
+  report bytea NOT NULL
+);
+CREATE INDEX crash_reports_received ON crash_reports(received_at);
+CREATE INDEX crash_reports_org ON crash_reports(org_id, received_at);
+ALTER TABLE crash_reports ALTER COLUMN report SET STORAGE EXTERNAL;
+`,
+  },
 ];
 
 export async function migrate(sql: Sql): Promise<{ from: number; to: number }> {

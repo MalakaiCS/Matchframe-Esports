@@ -24,7 +24,8 @@
 - Role tokens are stored as SHA-256 hashes and shown once on creation; captain tokens are scoped to one match and team and expire (default 6 h).
 - Logs pass through a redactor: keys matching token/secret/password/auth/stream key/join key/credential are replaced, and `t=`, `token=`, `key=` query values are stripped from URLs. The owner token for scripts is written to `operator-token.txt` (owner-only) instead of the console log; the program gets it over its private IPC channel.
 - Cloud secrets: the website's licence signing key (created once and stored in the database unless `MF_CLOUD_SIGNING_KEY` is set; database backups therefore hold it and must be protected), Stripe keys, webhook secret, SMTP credentials and database URL live only in the server environment (`config/cloud.env` is git-ignored). Website session tokens, device tokens and email tokens are stored as SHA-256 hashes; passwords as scrypt hashes. The licence gate on the desktop is a licensing control, not DRM: the server-side usage record is authoritative.
-- Event package exports never include secrets. Support bundles are sanitized (config redacted, hostname hashed, no tokens).
+- Event package exports never include secrets. Support bundles are sanitized (config redacted, hostname hashed, no tokens) and get a last pass (`support-redact.ts`, ADR-077): secret-like keys at any depth, tokens and passwords written into log messages and errors, every secret in the store word for word, and the home folder in paths.
+- Crash reports (opt-in, ADR-077) carry the support file, redacted again by the program with the secrets it holds; a minidump is attached only when small, with those secrets overwritten. The program sends them with the device token when signed in (the engine hands it over its IPC channel, never HTTP), else anonymously under strict limits; only staff can read them, and the website deletes them after 90 days.
 
 ## Network modes
 

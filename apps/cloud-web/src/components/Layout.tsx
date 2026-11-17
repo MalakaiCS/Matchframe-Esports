@@ -255,6 +255,7 @@ export const ADMIN_SECTIONS: { to: string; label: string; exact?: boolean }[] = 
   { to: "/admin/orgs", label: "Organisations" },
   { to: "/admin/inbox", label: "Support inbox" },
   { to: "/admin/emails", label: "Email log" },
+  { to: "/admin/crash-reports", label: "Crash reports" },
   { to: "/admin/catalog", label: "Catalogue" },
   { to: "/admin/audit", label: "Audit log" },
   { to: "/admin/stripe", label: "Stripe events" },

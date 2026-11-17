@@ -48,6 +48,12 @@ declare global {
         info(): Promise<HlaeInfo | null>;
         choose(): Promise<HlaeInfo | null>;
       };
+      /** Crash reports (see lib/crashReports.ts). */
+      crashReports?: {
+        state(): Promise<unknown>;
+        setEnabled(on: boolean): Promise<unknown>;
+        onSent(fn: (r: unknown) => void): () => void;
+      };
       /** Automatic updates (see lib/updates.ts). */
       updates?: {
         state(): Promise<unknown>;
