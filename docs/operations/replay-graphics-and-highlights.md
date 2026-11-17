@@ -185,7 +185,7 @@ As a break's replays (Automatic replays' settings):
 
 - **Not while a round is live:** Play is refused, with why.
 - **A round goes live while they play** (halftime over): they play on until the replays' **Back to live** time on its clock (1:50 by default), then the live scene, not the scene they came from. A clip that wouldn't end by then isn't started. With **Before the round starts**, they stop as the round goes live.
-- **No automatic replays while they play.** Pressed in a break before its replays start, the break has none.
+- **No automatic replays while they play.** Pressed in a break before its replays start, the break has none. Early replays (a decided round's break starting before it ends, ADR-083) never start over highlights or a map intro.
 - **Not over a replay:** Play waits until the break's replays are over (or Stop).
 
 ### Halftime

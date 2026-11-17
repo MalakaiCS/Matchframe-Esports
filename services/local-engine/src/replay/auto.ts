@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { HudKillfeedEntry } from "@matchframe/hud-sdk";
 import type { QueueItem, ReplayAngle, ReplayPlay } from "@matchframe/replay-agent";
 import type { MatchState } from "@matchframe/contracts";
+import { walkGraphFor } from "@matchframe/map-runtime";
 import type { Engine } from "../app.ts";
 import type { TransitionPick } from "../live/obs-auto.ts";
 import type { ProgramOwner } from "../production/program.ts";
@@ -23,6 +24,8 @@ import { ReplayTest } from "./test-run.ts";
 import type { Encoder } from "./ffmpeg.ts";
 import type { BreakLayout, BreakRenderer, RenderedBreak } from "./render.ts";
 import { renderBreak, TAIL_MS } from "./render.ts";
+import type { RoundRead } from "./early.ts";
+import { EARLY_CEILING_SEC, earlyGate, HOLD_MS, LOOK_AHEAD_MS, OPEN_WORDS, RoundDecider } from "./early.ts";
 
 /**
  * Automatic replays on the main PC. Clips come from the replay PC (every kill it could film, or
@@ -56,6 +59,14 @@ import { renderBreak, TAIL_MS } from "./render.ts";
  * clip and plays straight after it, slowed, when the break has time for it (a starred moment's angles
  * are chosen with it). The replay PC is asked for the round's top kill's extra angles and the ones the
  * operator stars (angleRequests).
+ *
+ * Early replays (ADR-083, replay/early.ts): once a live round is decided (the bomb planted and no CT can
+ * make a defuse, or no T can plant before the round clock runs out) and no duel is on or about to start,
+ * held 1.5 s, the break starts up to `earlyMaxSec` before the expected end (never with more than 10 s on
+ * the fuse or the round clock), with the clips that are ready; late ones join while the break has room.
+ * If the round heats up again before it ends (a CT back within reach of a defuse, a duel, a kill, a T
+ * within reach of a plant), the program cuts straight back to live; the round's break then comes when it
+ * ends. Once the round ends, the break simply goes on to its usual cut back.
  */
 
 export const AutoReplaySettings = z.object({
@@ -97,6 +108,16 @@ export const AutoReplaySettings = z.object({
   vmixTransition: z.enum(VMIX_TRANSITIONS).default("CutDirect"),
   /** How vMix goes back to live after the last replay; null = as vmixTransition. */
   vmixTransitionOut: z.enum(VMIX_TRANSITIONS).nullable().default(null),
+  /**
+   * Early replays (ADR-083): the break starts before a live round ends once it is decided (the bomb
+   * planted and no CT can defuse in time, or no T can plant before the round clock runs out) and no duel
+   * is on or about to start.
+   */
+  early: z.boolean().default(true),
+  /** At most this many seconds before the expected end (the fuse, or the round clock). Never more than 10, whatever is set. */
+  earlyMaxSec: z.number().int().min(5).max(EARLY_CEILING_SEC).default(EARLY_CEILING_SEC),
+  /** While early replays are on air and the round heats up again (a defuse or plant back within reach, a duel, a kill): straight back to live. */
+  earlyBackToLive: z.boolean().default(true),
   /**
    * When the break's replays must be over: by a time on the next round's clock (its first seconds,
    * while the teams move out of spawn), or before the next round starts (until just before freeze
@@ -149,6 +170,9 @@ export const AutoReplayPatch = z.object({
   vmixUrl: z.string().max(200).optional(),
   vmixTransition: AutoReplaySettings.shape.vmixTransition.unwrap().optional(),
   vmixTransitionOut: AutoReplaySettings.shape.vmixTransitionOut.unwrap().optional(),
+  early: z.boolean().optional(),
+  earlyMaxSec: AutoReplaySettings.shape.earlyMaxSec.unwrap().optional(),
+  earlyBackToLive: z.boolean().optional(),
   cutBack: AutoReplaySettings.shape.cutBack.unwrap().optional(),
   cutBackClockSec: AutoReplaySettings.shape.cutBackClockSec.unwrap().optional(),
   between: AutoReplaySettings.shape.between.unwrap().optional(),
@@ -238,6 +262,28 @@ export interface AutoReplayStatus {
   render: RenderNote | null;
   /** What the replay PC is asked to film again now (ADR-081). */
   angleRequests: AngleRequest[];
+  /** Early replays (ADR-083): the live round's decision as it builds, early replays on air, or why they went back to live; null when there is nothing to say. */
+  early: EarlyStatus | null;
+}
+
+/** Early replays as the operator sees them (Live Control, Automatic replays). */
+export interface EarlyStatus {
+  /** watching: near the end, not decided; decided: replays start soon; waiting: decided, but they wait (`detail` says why); on_air: early replays are on air, the round still live; back: they went back to live. */
+  state: "watching" | "decided" | "waiting" | "on_air" | "back";
+  detail: string;
+}
+
+/** A break started early (ADR-083): its round, the expected end, and when the round truly ended. */
+interface EarlyRun {
+  round: number;
+  kind: RoundRead["kind"];
+  /** The round's expected end (monotonic ms), as last read: the bomb's explosion, or the round clock's 0:00. */
+  endsAt: number;
+  /** When the break started (monotonic ms). */
+  startedAt: number;
+  words: string;
+  /** When the round ended (monotonic ms); null while it is live. */
+  endedAt: number | null;
 }
 
 /** How the last run's file went: rendered (in how long, with which encoder), or why not (its clips played through the scenes). */
@@ -346,6 +392,8 @@ interface Sequence {
   inCutMs?: number;
   /** How its slowed clips are slowed (highlights: the replays' way, or around the kills when that is off); absent: the replays' setting. */
   slowMode?: "kill" | "whole";
+  /** A break started before its round ended (ADR-083). */
+  early?: EarlyRun;
 }
 
 /** The operator's controls of the replays playing now. */
@@ -362,9 +410,9 @@ interface Controls {
  * Why a clip stopped: it ended (or its fade to the next is due), it ran past its time (still
  * playing), the operator skipped it, the break's time is up (the round clock, or the next round
  * starting), the operator stopped the replays, automatic replays were turned off, or someone else
- * changed the program.
+ * changed the program, or (early replays, ADR-083) the round wasn't decided after all.
  */
-export type Stop = "ended" | "late" | "skipped" | "deadline" | "stopped" | "off" | "taken";
+export type Stop = "ended" | "late" | "skipped" | "deadline" | "stopped" | "off" | "taken" | "undecided";
 /** A clip that ended one of these ways lets the next one play. */
 const goesOn = (s: Stop) => s === "ended" || s === "late" || s === "skipped";
 /** A clip that may still play automatically (not played, rejected or failed). */
@@ -529,6 +577,19 @@ export class AutoReplay {
   private loadMs = 300;
   /** A replay source whose sound was faded out at an early end, put back once it is off air. */
   private turnedDown: { input: string; mul: number; fading: Promise<void> } | null = null;
+  /** Early replays (ADR-083): the live round's decision, read every tick near its end. */
+  private readonly decider = new RoundDecider();
+  private earlyRead: RoundRead | null = null;
+  /** The round try (its attempt id) early replays started in: once a round. */
+  private earlyTried: string | null = null;
+  /** Why early replays went back to live, for the round they were in. */
+  private earlyBack: { round: number; detail: string } | null = null;
+  /** Early replays on air, and the round heated up again: why (the cut back to live). */
+  private earlyBroken: { why: keyof typeof OPEN_WORDS; words: string; facts: Record<string, unknown> } | null = null;
+  /** The decision last logged (per round), so each change is logged once. */
+  private earlyLogged: { round: number | null; decided: boolean } | null = null;
+  /** The round's over time before freeze time (ms), as the game counted it last (5 s until seen, as freezeEnd assumes). */
+  private overMs = 5000;
   /** The live game audio turned down during replays, and the replay sources' volume. */
   readonly audio: ReplayAudio;
   /** The Test replays button. */
@@ -829,6 +890,7 @@ export class AutoReplay {
       enabled: st.enabled,
       waiting: this.candidates(round).length,
       angleRequests: this.angleRequests(),
+      early: this.earlyStatus(),
       round,
       ranked: this.rankedList(round),
       vmix: v ? { connected: v.connected, version: v.version, error: v.error } : null,
@@ -935,13 +997,15 @@ export class AutoReplay {
       const picked = !played && (item.state === "playing" || this.status.playing?.id === item.id);
       const never = played || picked ? null : this.never(item);
       const stale = never === "from before the round started (a restart or a backup)" ? never : null;
-      // A clip that came in after the break's replays were chosen.
-      const late = !played && !picked && !duplicate && seq && !seq.ids.includes(item.id) && Date.parse(item.createdAt) > seq.chosenAt ? "came in after the break's replays were chosen" : null;
+      // A clip that came in after the break's replays were chosen (early replays: it may still join them, ADR-083).
+      const cameLate = !played && !picked && !duplicate && !!seq && !seq.ids.includes(item.id) && Date.parse(item.createdAt) > seq.chosenAt;
+      const mayJoin = cameLate && !!seq?.early && seq.running;
+      const late = cameLate && !mayJoin ? "came in after the break's replays were chosen" : null;
       const excluded = !played && !picked && this.excluded.has(item.id);
       const pinned = !played && !picked && this.pinned?.id === item.id;
       const note = excluded ? "excluded by the operator" : (stale ?? late);
       // A clip pinned while the break's replays play joins them (if it fits).
-      const joins = pinned && seq?.running === true;
+      const joins = (pinned && seq?.running === true) || mayJoin;
       const state = played ? "played" : picked ? "picked" : duplicate && !pinned ? "duplicate" : note || (seq && !joins && (!seq.running || !seq.ids.includes(item.id))) ? "left" : "waiting";
       const angles = st.multiAngle === "off" ? [] : this.anglesOf(item.id);
       const asked = requests.find((r) => r.id === item.id);
@@ -980,11 +1044,17 @@ export class AutoReplay {
    * default): in the next round, when its clock reads cutBackClockSec (the game's phase countdown is
    * the time left); before that, freeze time's end plus the round time less that. The bomb down or
    * the round already over: now. Before the round starts: shortly before freeze time ends, and now
-   * once it is live. `wentLive`: when the next round went live during the break's replays.
+   * once it is live. `wentLive`: when the next round went live during the break's replays. A break
+   * started early (ADR-083), while its round is still live: from the round's expected end, its over time
+   * (as the game counted it last) and the assumed freeze time, as freezeEnd works it out after the end.
    */
-  private cutBackAt(s: MatchState, wentLive: number | null): number {
+  private cutBackAt(s: MatchState, wentLive: number | null, early: EarlyRun | null = null): number {
     const st = this.settings();
     const now = this.e.now();
+    if (early && early.endedAt === null && s.roundPhase === "live") {
+      const freezeEnds = Math.max(now, early.endsAt) + this.overMs + ASSUMED_FREEZE_MS;
+      return st.cutBack === "before_round" ? freezeEnds - END_MARGIN_MS : freezeEnds + this.roundSec * 1000 - st.cutBackClockSec * 1000 - CUT_LEAD_MS;
+    }
     const reported = s.phaseEndsInSec !== null && s.phaseObservedAtMonotonicMs !== null ? s.phaseObservedAtMonotonicMs + s.phaseEndsInSec * 1000 : null;
     const live = s.roundPhase === "live" || wentLive !== null;
     if (st.cutBack === "before_round") return live ? now : this.freezeEnd(s, reported) - END_MARGIN_MS;
@@ -1001,6 +1071,11 @@ export class AutoReplay {
   private learnRoundTime(s: MatchState): void {
     const was = this.gamePhase;
     this.gamePhase = s.gamePhase;
+    // The round's over time, as the game counts it when a round ends (an early break's end is worked out with it before its round ends).
+    if (s.gamePhase === "over" && was !== "over" && s.phaseEndsInSec !== null && s.phaseObservedAtMonotonicMs !== null && this.e.now() - s.phaseObservedAtMonotonicMs <= 1000) {
+      const ms = Math.round(s.phaseEndsInSec * 1000);
+      if (ms >= 2000 && ms <= 15000) this.overMs = ms;
+    }
     if (s.gamePhase !== "live" || was !== "freezetime" || s.phaseEndsInSec === null || s.phaseObservedAtMonotonicMs === null) return;
     if (this.e.now() - s.phaseObservedAtMonotonicMs > 1000) return;
     const sec = Math.round(s.phaseEndsInSec);
@@ -1078,6 +1153,8 @@ export class AutoReplay {
   /** The next clip of the list (the operator's changes applied), counted. */
   private take(seq: Sequence): Planned | null {
     this.applyOperator(seq);
+    // Early replays: clips that came in late join once the list is through, while the break has room.
+    if (!seq.rest.length && seq.early) this.joinLate(seq);
     const c = seq.rest.shift() ?? null;
     if (c) {
       seq.taken++;
@@ -1108,11 +1185,15 @@ export class AutoReplay {
     if (s) {
       this.learnRoundTime(s);
       const running = this.sequence?.running === true;
+      // A break started early in this round (ADR-083), the round still live: its own round, not the next one.
+      const ownEarly = this.sequence?.early && this.sequence.early.endedAt === null && this.sequence.early.round === s.roundNumber;
       if (s.roundPhase === "live") {
         // The round went live (again, after a restart or a backup: the same number, a new try).
         if (s.roundNumber !== null && (this.phase !== "live" || this.liveRound !== s.roundNumber)) this.liveAt.set(s.roundNumber, Date.now());
         this.liveRound = s.roundNumber;
-        if (running) this.sequence!.wentLive ??= this.e.now();
+        if (ownEarly) {
+          // (Early replays of this round on air, or done before it ends: its break goes on as it ends.)
+        } else if (running) this.sequence!.wentLive ??= this.e.now();
         else {
           // The break's replays (if any) are over: no clip of an earlier round plays any more (nor the rest of a break taken in OBS).
           if (this.sequence?.resumable) this.sequence.resumable = false;
@@ -1122,14 +1203,24 @@ export class AutoReplay {
         }
         this.trackClutch(s);
       } else if (this.phase === "live" || (this.breakStartedAt === null && s.roundPhase === "over")) {
-        this.breakRound = this.liveRound;
-        this.breakStartedAt = this.e.now();
-        this.sequence = null;
-        this.playedIds.clear();
+        const early = this.sequence?.early;
+        if (early && early.endedAt === null && early.round === this.liveRound) {
+          // The round ended during (or after) its early replays (ADR-083): the break simply goes on (the same clip fitting, the same cut back).
+          early.endedAt = this.e.now();
+          this.breakRound = early.round;
+          this.breakStartedAt ??= this.e.now();
+          this.e.logger.info("automatic replays: the round ended during early replays; the break goes on", { round: early.round, kind: early.kind, earlyByMs: Math.round(early.endedAt - early.startedAt), expectedEndOffMs: Math.round(early.endedAt - early.endsAt) });
+        } else {
+          this.breakRound = this.liveRound;
+          this.breakStartedAt = this.e.now();
+          this.sequence = null;
+          this.playedIds.clear();
+        }
         if (this.clutch) this.endedClutch = { ...this.clutch, endedAt: this.e.now() };
         this.clutch = null;
       }
       this.phase = s.roundPhase;
+      this.watchEarly(s, st);
       if (this.endedClutch && s.roundPhase !== "live") this.settleClutch(s);
       for (const r of this.liveAt.keys()) if (s.roundNumber !== null && Math.abs(r - s.roundNumber) > 40) this.liveAt.delete(r);
     }
@@ -1148,25 +1239,42 @@ export class AutoReplay {
     }
     const why = this.blocked();
     if (why) return this.setStatus("blocked", why);
-    // Never a cut to the replays once the next round is live (the break's replays may run on into it).
-    if (!s || s.roundPhase === "live" || this.breakStartedAt === null) return this.setStatus("waiting", "Waiting for the round to end.");
+    // Never a cut to the replays once the next round is live (the break's replays may run on into it), unless the round is decided (early replays, ADR-083).
+    let early: EarlyRun | null = null;
+    if (s?.roundPhase === "live" && !(this.sequence?.early && this.sequence.early.endedAt === null && this.sequence.early.round === s.roundNumber)) {
+      early = this.earlyStart(s, st);
+      if (!early) {
+        const e = this.earlyStatus();
+        return this.setStatus("waiting", e && e.state !== "watching" ? e.detail : "Waiting for the round to end.");
+      }
+      this.breakRound = early.round;
+      this.breakStartedAt = this.e.now();
+      this.sequence = null;
+      this.playedIds.clear();
+      this.earlyTried = s.roundAttemptId ?? String(s.roundNumber);
+      this.earlyBroken = null;
+      const facts = { round: early.round, kind: early.kind, words: early.words, endsInMs: Math.round(early.endsAt - this.e.now()), maxSec: Math.min(st.earlyMaxSec, EARLY_CEILING_SEC), ...this.earlyRead?.facts };
+      this.e.logger.info("automatic replays: early replays start (the round is decided)", facts);
+      this.e.audit.record(HOLDER, "replay.auto_early", null, facts);
+    }
+    if (!s || this.breakStartedAt === null) return this.setStatus("waiting", "Waiting for the round to end.");
     const sinceBreak = this.e.now() - this.breakStartedAt;
-    // Taken by the operator's own scene in OBS, and OBS is back on the live scene: what is left (and still fits) plays.
-    if (this.sequence?.resumable && !this.sequence.running && this.e.program.mode === "LIVE") this.sequence = null;
+    // Taken by the operator's own scene in OBS, and OBS is back on the live scene: what is left (and still fits) plays (after the round, for early replays).
+    if (this.sequence?.resumable && !this.sequence.running && this.e.program.mode === "LIVE" && s.roundPhase !== "live") this.sequence = null;
     if (this.sequence) {
       const q = this.sequence;
       const how = [q.played ? `${q.played} played` : "", q.skipped ? `${q.skipped} skipped` : "", q.failed ? `${q.failed} didn't play` : "", q.stopped === "stopped" ? "stopped by the operator" : "", q.yielded ? "highlights went on air instead" : "", q.stopped === "deadline" ? (st.cutBack === "clock" ? `back to live by ${clock(st.cutBackClockSec)} on the round clock` : "back to live before the round started") : ""].filter(Boolean).join(", ");
       const summary = [how, q.error].filter(Boolean).join(": ");
       return this.setStatus(q.error && !q.played ? "blocked" : "waiting", `Replays for this break are done${summary ? ` (${summary})` : ""}.`);
     }
-    if (sinceBreak < st.startDelayMs) return this.setStatus("waiting", "The round just ended: replays start in a moment.");
-    const left = this.cutBackAt(s, null) - this.e.now();
-    // The replay PC plays the round some seconds later: wait a little for its last kills before the break's replays.
-    if (this.e.onAir.peerPending(this.breakRound) && sinceBreak < st.startDelayMs + REPLAY_PC_WAIT_MS && left > KEEP_FOR_REPLAYS_MS) {
+    if (!early && sinceBreak < st.startDelayMs) return this.setStatus("waiting", "The round just ended: replays start in a moment.");
+    const left = this.cutBackAt(s, null, early) - this.e.now();
+    // The replay PC plays the round some seconds later: wait a little for its last kills before the break's replays (early replays start with the clips that are ready; late ones join).
+    if (!early && this.e.onAir.peerPending(this.breakRound) && sinceBreak < st.startDelayMs + REPLAY_PC_WAIT_MS && left > KEEP_FOR_REPLAYS_MS) {
       return this.setStatus("waiting", "Waiting for the replay PC's last kills of the round…");
     }
     // An extra angle of the round's top kill (or a starred one) being filmed: a little longer, while the break has the time (ADR-081).
-    if (st.multiAngle !== "off" && this.e.onAir.peerAnglePending(this.breakRound) && sinceBreak < st.startDelayMs + ANGLE_WAIT_MS && left > KEEP_FOR_REPLAYS_MS) {
+    if (!early && st.multiAngle !== "off" && this.e.onAir.peerAnglePending(this.breakRound) && sinceBreak < st.startDelayMs + ANGLE_WAIT_MS && left > KEEP_FOR_REPLAYS_MS) {
       return this.setStatus("waiting", "Waiting for the replay PC's extra angle of the round's top kill…");
     }
     // Excluded by the operator: out. Pinned: first, if it fits (even with the same kills as a better clip).
@@ -1200,25 +1308,173 @@ export class AutoReplay {
       st.order,
       pin,
     );
-    if (!plan.length) return this.setStatus("waiting", pool.length ? "The round's replays don't fit in the time left." : "No replays for this round.");
-    // (Highlights went on air while this tick waited for vMix: they have the program.)
-    if (this.running) return;
+    if (!plan.length || this.running) {
+      // Early replays that can't start after all: the round's break comes when it ends.
+      if (early) [this.breakRound, this.breakStartedAt] = [null, null];
+      // (Highlights went on air while this tick waited for vMix: they have the program.)
+      if (this.running) return;
+      return this.setStatus("waiting", pool.length ? "The round's replays don't fit in the time left." : "No replays for this round.");
+    }
     // A moment with its extra angles: its first clip at real time (by default), then the angles, slowed.
     const list: Planned[] = plan.flatMap((p) => {
       const item = pool.find((r) => r.item.id === p.id)!.item;
       const angles = p.angles.map((id) => this.e.replays.get(id)!).filter(Boolean);
       return [{ item, playMs: p.playMs, leadMs: p.leadMs, slow: this.slowOf(item, this.defaultSlow(item, angles.length > 0, st)) }, ...angles.map((a) => ({ item: a, playMs: this.playMsOf(a), leadMs: a.leadMs ?? null, slow: this.slowOf(a, this.defaultSlow(a, false, st)), angleOf: item.id }))];
     });
-    const seq: Sequence = { kind: "break", stage: this.replayStage(), round: this.breakRound, ids: list.map((c) => c.item.id), rest: list, taken: 0, chosenAt: Date.now(), running: true, played: 0, failed: 0, error: null, wentLive: null, stopped: null, obsChanges: this.e.obsAuto.changesInObs, resumable: false, skipped: 0, trace: null, ducking: null };
+    const seq: Sequence = { kind: "break", stage: this.replayStage(), round: this.breakRound, ids: list.map((c) => c.item.id), rest: list, taken: 0, chosenAt: Date.now(), running: true, played: 0, failed: 0, error: null, wentLive: null, stopped: null, obsChanges: this.e.obsAuto.changesInObs, resumable: false, skipped: 0, trace: null, ducking: null, ...(early ? { early } : {}) };
     this.sequence = seq;
     this.abort = false;
     await this.play(seq);
     // Taken in OBS itself (the operator's own scene): the rest may still play when OBS is back on the live scene during the break.
     seq.resumable = seq.stopped === "taken" && this.e.obsAuto.changesInObs !== seq.obsChanges && st.mixer === "obs";
     if (seq.resumable) return;
+    // Early replays back to live (the round heated up again), or done, before the round ended: its break comes when it ends, with the clips not played yet.
+    if (seq.early && seq.early.endedAt === null && seq.stopped !== null && (seq.stopped === "undecided" || goesOn(seq.stopped))) {
+      if (seq.stopped === "undecided") {
+        const broke = this.earlyBroken;
+        const detail = `Back to live: ${OPEN_WORDS[broke?.why ?? "duel"]}.`;
+        this.earlyBack = { round: seq.early.round, detail };
+        const facts = { round: seq.early.round, why: broke?.why ?? null, words: broke?.words ?? null, played: seq.played, onAirMs: Math.round(this.e.now() - seq.early.startedAt), ...broke?.facts };
+        this.e.logger.info("automatic replays: back to live, the round isn't over after all", facts);
+        this.e.audit.record(HOLDER, "replay.auto_early_back", null, facts);
+      }
+      this.sequence = null;
+      return;
+    }
     // Its break is over: no clip of this round (or an earlier one) plays automatically any more.
     if (seq.round !== null) this.closedThrough = Math.max(this.closedThrough ?? seq.round, seq.round);
     if (this.pinned && seq.round !== null && this.pinned.round <= seq.round) this.pinned = null;
+  }
+
+  // ------------------------------------------------------------------ early replays (ADR-083)
+
+  /**
+   * Each tick of a live round near its end: the round's decision (replay/early.ts). While early replays
+   * are on air and the round still live, whether it heated up again (a kill, a defuse or plant back
+   * within reach, a duel): then they go straight back to live (interrupted). Each change logged once,
+   * with the numbers.
+   */
+  private watchEarly(s: MatchState, st: AutoReplaySettings): void {
+    const seq = this.sequence;
+    // (Early replays of this round on air; once they are over, nothing more to watch until the round ends.)
+    const run = seq?.running && seq.early && seq.early.endedAt === null && seq.early.round === this.liveRound ? seq.early : null;
+    const tried = this.earlyTried === (s.roundAttemptId ?? String(s.roundNumber));
+    const map = s.mapName ? this.e.maps.get(s.mapName) : undefined;
+    if (!st.enabled || !st.early || s.roundPhase !== "live" || (!run && (tried || this.breakStartedAt !== null))) {
+      this.earlyRead = null;
+      if (s.roundPhase !== "live") {
+        this.decider.reset();
+        // The map's walking graph is built once (about 0.3 s), outside a live round, before the first decision needs it.
+        if (st.enabled && st.early && map?.grid) walkGraphFor(map.grid);
+      }
+      return;
+    }
+    const now = this.e.now();
+    const r = this.decider.read(s, now, map, Math.min(st.earlyMaxSec, EARLY_CEILING_SEC) * 1000 + LOOK_AHEAD_MS);
+    this.earlyRead = r;
+    const decided = !!r?.decided && r.since !== null && now - r.since >= HOLD_MS;
+    const logged = this.earlyLogged?.round === s.roundNumber ? this.earlyLogged.decided : false;
+    if (!run && r && decided !== logged) {
+      this.e.logger.info(decided ? "automatic replays: round decided" : "automatic replays: round no longer decided", { round: s.roundNumber, kind: r.kind, words: r.words, endsInMs: Math.round(r.endsAt - now), ...r.facts });
+      this.earlyLogged = { round: s.roundNumber, decided };
+    }
+    if (!run) return;
+    if (r) run.endsAt = r.endsAt;
+    if (this.earlyBroken) return;
+    const kill = this.decider.lastKill;
+    if (kill && kill.at >= run.startedAt) this.breakEarly("kill", `a kill (${kill.victims.join(", ")})`, { victims: kill.victims.join(", ") });
+    else if (r && !r.decided && r.open && r.open !== "data") this.breakEarly(r.open, r.words, r.facts);
+  }
+
+  /** Early replays on air and the round heated up again: they go back to live (if the setting says so), logged with the numbers. */
+  private breakEarly(why: keyof typeof OPEN_WORDS, words: string, facts: Record<string, unknown>): void {
+    const run = this.sequence?.early;
+    if (this.earlyBroken || !run) return;
+    this.earlyBroken = { why, words, facts };
+    const s = this.e.session.state();
+    this.e.logger.info("automatic replays: the round heated up during early replays", { round: run.round, why, words, backToLive: this.settings().earlyBackToLive, endsInMs: Math.round(run.endsAt - this.e.now()), roundPhase: s?.roundPhase ?? null, ...facts });
+  }
+
+  /** Early replays may start now: the round is decided (held), its end within the window, nothing in the way, a clip ready. */
+  private earlyStart(s: MatchState, st: AutoReplaySettings): EarlyRun | null {
+    const round = this.liveRound;
+    const r = this.earlyRead;
+    if (!st.early || !r || round === null || this.breakStartedAt !== null || this.earlyTried === (s.roundAttemptId ?? String(s.roundNumber))) return null;
+    if (!earlyGate(r, this.e.now(), st.earlyMaxSec).go || this.earlyHold(s)) return null;
+    return { round, kind: r.kind, endsAt: r.endsAt, startedAt: this.e.now(), words: r.words, endedAt: null };
+  }
+
+  /** Why early replays wait for the round's end although it is decided, or null: a pause, something else on air, the operator's scene, no clip ready. */
+  private earlyHold(s: MatchState): string | null {
+    if (s.paused || s.gamePhase === "paused" || s.gamePhase === "timeout_t" || s.gamePhase === "timeout_ct") return "The match is paused: replays after the round ends.";
+    if (this.running) return this.running.kind === "highlights" ? "Highlights are on air." : this.running.kind === "test" ? "Test replays are playing." : "Replays are on air.";
+    if (this.e.mapIntros.onAir()) return "A map intro is on air.";
+    if (this.e.highlightsAir.onAir()) return "Highlights are on air.";
+    const theirs = this.theirScene();
+    if (theirs) return theirs;
+    const blocked = this.blocked();
+    if (blocked) return blocked;
+    if (this.liveRound === null || !this.candidates(this.liveRound).length) return "No replay of the round is ready yet.";
+    return null;
+  }
+
+  /** Early replays as the operator sees them, or null. */
+  private earlyStatus(): EarlyStatus | null {
+    const st = this.settings();
+    const s = this.e.session.state();
+    if (!st.enabled || !st.early || !s) return null;
+    const seq = this.sequence;
+    const run = seq?.early && seq.early.endedAt === null && s.roundPhase === "live" ? seq.early : null;
+    if (run && seq?.running) return { state: "on_air", detail: `Early replays on air: ${run.words}. The round isn't over yet${st.earlyBackToLive ? ": back to live if it heats up" : ""}.` };
+    if (s.roundPhase !== "live") return null;
+    if (this.earlyBack && this.earlyBack.round === this.liveRound) return { state: "back", detail: this.earlyBack.detail };
+    const r = this.earlyRead;
+    if (!r || run) return null;
+    if (!r.decided) return { state: "watching", detail: `Round not decided: ${r.words}.` };
+    const head = `Round decided: ${r.words}.`;
+    const gate = earlyGate(r, this.e.now(), st.earlyMaxSec);
+    if (gate.tooLate) return { state: "waiting", detail: `${head} Under 3 s left: replays after the round ends.` };
+    const hold = this.earlyHold(s);
+    if (hold) return { state: "waiting", detail: `${head} ${hold}` };
+    return { state: "decided", detail: `${head} Replays ${gate.inMs ? `in ${Math.ceil(gate.inMs / 1000)} s` : "now"}.` };
+  }
+
+  /**
+   * Early replays (the replay PC films some seconds behind, so the round's last kills may come in after
+   * the break started): the round's clips that came in since, the best that fit in `availableMs`, up to
+   * the clips per break, none with the same kills as a clip already in the break.
+   */
+  private lateClips(seq: Sequence, availableMs: number): Planned[] {
+    if (seq.kind !== "break" || !seq.early || seq.round === null || availableMs <= 0) return [];
+    const st = this.settings();
+    const inBreak = seq.ids.map((id) => this.e.replays.get(id)).filter((it): it is QueueItem => !!it && !it.momentOf);
+    const room = st.perBreak - inBreak.length;
+    if (room <= 0) return [];
+    const same = (a: QueueItem, b: QueueItem) => a.play?.killer?.steamId === b.play?.killer?.steamId && !!a.play?.victims.some((v) => b.play?.victims.includes(v));
+    const open = new Set(this.candidates(seq.round).filter((c) => !seq.ids.includes(c.id) && !this.playedIds.has(c.id) && !inBreak.some((b) => same(b, c))).map((c) => c.id));
+    if (!open.size) return [];
+    const pool = this.ranked(seq.round).filter((r) => !r.duplicate && open.has(r.item.id));
+    const clk = { mono: this.e.now(), wall: Date.now() };
+    // (They play clip by clip, after the rest: through the scenes, or in vMix.)
+    const plan = planBreak(pool.map((r) => ({ id: r.item.id, score: r.score, playMs: this.playMsOf(r.item), leadMs: r.item.leadMs ?? null, at: this.roundTimeOf(r.item, clk), ...this.timing({ item: r.item, slow: this.slowOf(r.item, this.defaultSlow(r.item, false, st)) }, false, undefined, undefined, st) })), availableMs, 100, room, st.order);
+    return plan.map((p) => {
+      const item = pool.find((r) => r.item.id === p.id)!.item;
+      return { item, playMs: p.playMs, leadMs: p.leadMs, slow: this.slowOf(item, this.defaultSlow(item, false, st)) };
+    });
+  }
+
+  /** Late clips join the break's list (at its end), logged. */
+  private joinLate(seq: Sequence): void {
+    const late = this.lateClips(seq, this.deadlineIn(seq) ?? 0);
+    if (!late.length) return;
+    seq.rest.push(...late);
+    seq.ids.push(...late.map((c) => c.item.id));
+    this.e.logger.info("automatic replays: late clips join the early break", { round: seq.round, clips: late.map((c) => c.item.label) });
+  }
+
+  /** A late clip could join the break now (it plays after the clip on air). */
+  private lateWaiting(seq: Sequence): boolean {
+    return !!seq.early && seq.running && seq.kind === "break" && this.lateClips(seq, this.deadlineIn(seq) ?? 0).length > 0;
   }
 
   /** While OBS shows the operator's own scene (put on in OBS itself): why replays wait, or null. */
@@ -1369,8 +1625,10 @@ export class AutoReplay {
       return seq.wentLive !== null && this.cutBackAt(s, seq.wentLive) <= this.e.now() ? "deadline" : null;
     }
     if (this.abort || !this.settings().enabled) return "off";
+    // Early replays (ADR-083), the round still live: back to live if it heated up again.
+    if (seq.early && seq.early.endedAt === null && this.earlyBroken && this.settings().earlyBackToLive && s?.roundPhase === "live") return "undecided";
     // (The time is read after: "now" from cutBackAt is then never later than it.)
-    if (s && this.cutBackAt(s, seq.wentLive) <= this.e.now()) return "deadline";
+    if (s && this.cutBackAt(s, seq.wentLive, seq.early) <= this.e.now()) return "deadline";
     return null;
   }
 
@@ -1385,7 +1643,7 @@ export class AutoReplay {
     // Highlights fit in nothing until a round is live (then by its clock, as a break's replays).
     if (seq.kind === "highlights" && seq.wentLive === null && s.roundPhase !== "live") return c.playMs;
     // The first clip has the cut to the replay and back to make; a later one the switch and the cut back.
-    return fitReplay({ playMs: c.playMs, leadMs: c.leadMs, ...this.timing(c, rendered, undefined, seq.slowMode) }, this.cutBackAt(s, seq.wentLive) - startsAt, 100, first ? CUT_MS : SWITCH_MS + CUT_MS / 2);
+    return fitReplay({ playMs: c.playMs, leadMs: c.leadMs, ...this.timing(c, rendered, undefined, seq.slowMode) }, this.cutBackAt(s, seq.wentLive, seq.early) - startsAt, 100, first ? CUT_MS : SWITCH_MS + CUT_MS / 2);
   }
 
   private clipPlayed(it: QueueItem, seq: Sequence, mixer: "obs" | "vmix", end: Stop): void {
@@ -1450,12 +1708,14 @@ export class AutoReplay {
     let end: Stop = "ended";
     let slots: Slot[] = [main];
     try {
-      let how: Stop | "scenes" = "scenes";
+      let how: Stop | "scenes" | "more" = "scenes";
       if (rendered) {
         await this.audio.applyReplayVolume().catch(() => undefined);
         how = await this.playRendered(seq, main, rendered);
+        // Early replays (ADR-083): clips that came in late play after the file, through the scenes, while the break has room.
+        if (how === "ended" && this.lateWaiting(seq)) how = "more";
       }
-      if (how !== "scenes") end = how;
+      if (how !== "scenes" && how !== "more") end = how;
       else {
         // (Stopped, or the break's time up, while its file was made: nothing goes on air.)
         const why = this.interrupted(seq);
@@ -1465,7 +1725,7 @@ export class AutoReplay {
           if (!twin) seq.trace?.({ type: "one-source", why: stage.twinDetail() });
           await this.audio.applyReplayVolume().catch(() => undefined);
           if (twin) slots = [main, twin];
-          end = twin ? await this.playObsTwin(seq, [main, twin]) : await this.playObsOneSource(seq, main.input);
+          end = twin ? await this.playObsTwin(seq, [main, twin], how === "more") : await this.playObsOneSource(seq, main.input, how === "more");
         }
       }
     } finally {
@@ -1557,7 +1817,7 @@ export class AutoReplay {
     const s = this.e.session.state();
     if (!s || seq.kind === "test") return null;
     if (seq.kind === "highlights" && seq.wentLive === null && s.roundPhase !== "live") return null;
-    return this.cutBackAt(s, seq.kind === "highlights" ? (seq.wentLive ?? this.e.now()) : seq.wentLive) - this.e.now();
+    return this.cutBackAt(s, seq.kind === "highlights" ? (seq.wentLive ?? this.e.now()) : seq.wentLive, seq.early) - this.e.now();
   }
 
   // ------------------------------------------------------------------ rendered: one file, one scene
@@ -1839,11 +2099,12 @@ export class AutoReplay {
    * air each must move (ensureMoving); one that doesn't play is skipped. If the operator excludes the
    * clip next, or pins another, the right one is loaded in its place.
    */
-  private async playObsTwin(seq: Sequence, slots: [Slot, Slot]): Promise<Stop> {
+  private async playObsTwin(seq: Sequence, slots: [Slot, Slot], onAir = false): Promise<Stop> {
     const st = this.settings();
     const fade = st.between === "fade";
     const pick: TransitionPick = fade ? { kind: "fade_transition", durationMs: st.fadeMs } : { kind: "cut_transition" };
-    let shown = false;
+    // On air already (`onAir`: a rendered file in the replay scene just ended, late clips follow it in the twin).
+    let shown = onAir;
     // The list's next clip that may still play, for a scene off air (loaded later, just in time); null when none is left.
     const prepare = (slot: number, startsAt: number): Next | null => {
       for (let c = this.take(seq); c; c = this.take(seq)) {
@@ -1861,7 +2122,7 @@ export class AutoReplay {
       chain = p.catch(() => undefined);
       n.loaded = p;
     };
-    let next = prepare(0, this.e.now());
+    let next = prepare(onAir ? 1 : 0, this.e.now());
     while (next) {
       const why = this.interrupted(seq) ?? (shown && !this.onAirOurs(seq) ? "taken" : null);
       if (why) return why;
@@ -1933,7 +2194,7 @@ export class AutoReplay {
         seq,
         (toLead) => {
           // The operator excluded the clip next, or pinned another (one may join after the last): the right one is next now.
-          if (next ? this.stale(seq, next.c) : this.waitingPin(seq)) {
+          if (next ? this.stale(seq, next.c) : this.waitingPin(seq) || this.lateWaiting(seq)) {
             if (next) this.putBack(seq, next.c);
             next = prepare(1 - cur.slot, startsAt);
           }
@@ -1971,8 +2232,8 @@ export class AutoReplay {
    * source as soon as the one before ends and skipped to its part, without going live in between. On
    * air each must move (ensureMoving).
    */
-  private async playObsOneSource(seq: Sequence, input: string): Promise<Stop> {
-    let shown = false;
+  private async playObsOneSource(seq: Sequence, input: string, onAir = false): Promise<Stop> {
+    let shown = onAir;
     let end: Stop = "ended";
     for (let c = this.take(seq); c; c = this.take(seq)) {
       const it = c.item;
@@ -2355,7 +2616,7 @@ export class AutoReplay {
         next = await load();
         end = await this.watchVmix(vmix, key, it.id, playMs, startedAt, () => (next && fade ? st.fadeMs : 0), seq, async () => {
           // The operator excluded the clip loaded next, or pinned another (one may join after the last): the right one loaded now.
-          if (next ? !this.stale(seq, next.c) : !this.waitingPin(seq)) return;
+          if (next ? !this.stale(seq, next.c) : !this.waitingPin(seq) && !this.lateWaiting(seq)) return;
           if (next) {
             this.putBack(seq, next.c);
             await vmix.call("RemoveInput", { Input: next.key }).catch(() => undefined);
@@ -2479,6 +2740,9 @@ export class AutoReplay {
 
   private onKill(k: HudKillfeedEntry): void {
     const st = this.settings();
+    // Early replays on air and the round still live (ADR-083): a kill means it wasn't decided after all.
+    const run = this.sequence?.running ? this.sequence.early : undefined;
+    if (run && run.endedAt === null && this.e.session.state()?.roundPhase === "live") this.breakEarly("kill", `a kill (${k.killer?.name ?? "someone"} killed ${k.victim.name})`, { killer: k.killer?.name ?? null, victim: k.victim.name, weapon: k.weapon ?? null });
     if (k.killer && k.killer.steamId !== k.victim.steamId) {
       // The round being played, or the one just won for a kill after the win (the game's round number has moved on).
       const round = this.e.playRound();

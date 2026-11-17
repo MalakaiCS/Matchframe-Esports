@@ -1,7 +1,8 @@
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CommandResult, ObserverMode, PlayerState, Side } from "@matchframe/contracts";
 import { api, describeError, seg } from "../api/index.ts";
-import type { DirectorStatus, EventRecord, MapPackDetail, MatchRow, OperatorSnapshot, ReplaysResponse, TeamRow } from "../api/types.ts";
+import type { AutoReplayResponse, DirectorStatus, EventRecord, MapPackDetail, MatchRow, OperatorSnapshot, ReplaysResponse, TeamRow } from "../api/types.ts";
 import { AutoDirectorCard } from "../components/AutoDirectorCard.tsx";
 import { CandidateList, DecisionExplain, OpportunityList } from "../components/director.tsx";
 import { useToast } from "../components/toasts.tsx";
@@ -482,6 +483,9 @@ const onOff = (v: boolean | null) => (v === null ? "?" : v ? "on" : "off");
 
 function ProductionPanel({ snap }: { snap: OperatorSnapshot }) {
   const replays = useApi<ReplaysResponse>("/api/v1/replays", { refreshMs: 5000 });
+  // Early replays (ADR-083): the live round's decision as it builds, and why replays went back to live.
+  const auto = useApi<AutoReplayResponse>(snap.state?.roundPhase === "live" ? "/api/v1/replays/auto" : null, { refreshMs: 1000 });
+  const early = snap.state?.roundPhase === "live" ? (auto.data?.status.early ?? null) : null;
   const prov = replays.data?.provider ?? null;
   const approved = replays.data?.items.filter((i) => i.state === "approved").length ?? 0;
   const src = snap.state?.sources ?? [];
@@ -493,6 +497,7 @@ function ProductionPanel({ snap }: { snap: OperatorSnapshot }) {
           ["OBS", snap.obs.connected ? `${snap.obs.programScene ?? MISSING} (preview ${snap.obs.previewScene ?? MISSING})${snap.obs.studioMode ? " · studio mode" : ""}` : <Link key="o" to="/settings/devices">Not connected — connect in Settings → Devices</Link>],
           ["Replays", prov ? <span key="r" title={prov.health.detail}>{prov.health.ok ? "Ready" : `Not ready — ${prov.health.detail}`} · {approved} approved</span> : replays.data ? <Link key="r" to="/replays">No replay provider set up</Link> : MISSING],
           ["Outputs", `Recording ${onOff(snap.obs.recording)} · streaming ${onOff(snap.obs.streaming)} · replay buffer ${onOff(snap.obs.replayBuffer)}`],
+          ...(early ? [["Early replays", early.state === "decided" || early.state === "on_air" ? <strong key="e">{early.detail}</strong> : early.detail] as [string, ReactNode]] : []),
         ]}
       />
       <Details summary={`Telemetry sources (${src.length})`}>
