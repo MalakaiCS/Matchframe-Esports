@@ -47,7 +47,7 @@ export function RecordingButtons({ rec, onDone, size = "md" }: { rec: RecorderSt
         variant="danger"
         action={() => api.post<RecorderStatus>("/api/v1/comms/recording/stop")}
         onDone={onDone}
-        success={(r) => (r.last?.path ? `Saved: ${r.last.path}` : t("comms.commsRecordingStopped"))}
+        success={(r) => (r.last?.path ? t("comms.savedPath", { path: r.last.path }) : t("comms.commsRecordingStopped"))}
         disabledReason={reason ?? (rec ? rec.actions.stop.disabledReason : t("common.loading"))}
         confirm={{ title: t("comms.stopTheCommsRecording"), body: t("comms.sourceRecordClosesTheFile"), confirmLabel: t("comms.stopRecording"), danger: true }}
       >{t("comms.stopRecording")}</ActionButton>

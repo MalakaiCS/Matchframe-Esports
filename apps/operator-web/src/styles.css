@@ -2553,7 +2553,15 @@ legend {
    tag go, so the game picker, the pills and Stop automation still fit at 1600 px. */
 @media (max-width: 1679px) {
   html:not([lang="en"]) .topbar-status .chip[data-link].tone-neutral,
-  html:not([lang="en"]) .chip-data .chip-meta {
+  html:not([lang="en"]) .chip-data .chip-meta,
+  html:not([lang="en"]) .topbar-subtitle {
+    display: none;
+  }
+}
+/* …and below 1441 px the engine's ports leave the status bar (they stay in its tooltip), so the
+   outputs, data age, hours and OBS items keep their words. */
+@media (max-width: 1440px) {
+  html:not([lang="en"]) .sb-item[data-sb="engine"] .sb-meta {
     display: none;
   }
 }

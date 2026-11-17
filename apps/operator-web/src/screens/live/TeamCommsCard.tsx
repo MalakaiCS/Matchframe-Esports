@@ -26,7 +26,7 @@ export function TeamCommsCard() {
         <RecordingStateBanner rec={v?.recorder ?? null} compact />
         <RecordingButtons rec={v?.recorder ?? null} size="sm" onDone={() => void st.reload()} />
         {v ? (
-          <p className="muted small">{t("live.joinDelayTofixedS", { join: v.slots.map((s) => `${s.team?.name ?? `Team ${s.id}`}: ${s.ready ? "ready" : s.state}`).join(" · "), toFixed: (v.delay.effectiveMs / 1000).toFixed(3) })}</p>
+          <p className="muted small">{t("live.joinDelayTofixedS", { join: v.slots.map((s) => `${s.team?.name ?? t("comms.teamId", { id: s.id })}: ${s.ready ? t("live.readyLower") : s.state}`).join(" · "), toFixed: (v.delay.effectiveMs / 1000).toFixed(3) })}</p>
         ) : st.error ? (
           <p className="small">{st.error}</p>
         ) : null}

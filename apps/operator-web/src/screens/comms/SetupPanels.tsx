@@ -263,7 +263,7 @@ export function DuckingPanel({ view, onChanged }: { view: CommsView; onChanged: 
           <div className="comms-inputs">
             {inputs.data?.error ? <Note tone="warn">{inputs.data.error}</Note> : null}
             {(inputs.data?.inputs ?? []).map((i) => (
-              <Checkbox key={i.name} checked={d.inputs.includes(i.name)} disabled={!!reason} label={`${i.name} (${i.kind}, ${i.muted ? "muted" : `${i.db} dB`})`} onChange={(on) => void save({ inputs: on ? [...d.inputs, i.name] : d.inputs.filter((n) => n !== i.name) })} />
+              <Checkbox key={i.name} checked={d.inputs.includes(i.name)} disabled={!!reason} label={`${i.name} (${i.kind}, ${i.muted ? t("comms.mutedLower") : `${i.db} dB`})`} onChange={(on) => void save({ inputs: on ? [...d.inputs, i.name] : d.inputs.filter((n) => n !== i.name) })} />
             ))}
             {inputs.data && !inputs.data.error && inputs.data.inputs.length === 0 ? <span className="muted small">{t("comms.obsHasNoAudioInputs")}</span> : null}
           </div>

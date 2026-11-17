@@ -219,8 +219,8 @@ function ObsTab() {
                           </td>
                           <td>
                             <div className="cell-actions">
-                              <ActionButton size="sm" variant="ghost" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/preview", { scene: sc })} success={(r) => `Preview: ${sc}${r.confirmed ? "" : t("devices.notConfirmed")}`} onDone={() => void obs.reload()} disabledReason={reason ?? (s.studioMode ? null : t("devices.studioModeIsOffIn"))}>{t("devices.preview")}</ActionButton>
-                              <ActionButton size="sm" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/program", { scene: sc })} success={(r) => `Program: ${sc}${r.confirmed ? "" : t("devices.notConfirmed")}`} onDone={() => void obs.reload()} disabledReason={reason} confirm={{ title: t("devices.putScOnProgram", { sc }), body: t("devices.bypassesTheProgramStateMachine") }}>{t("devices.program")}</ActionButton>
+                              <ActionButton size="sm" variant="ghost" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/preview", { scene: sc })} success={(r) => `${t("devices.previewSc", { sc })}${r.confirmed ? "" : t("devices.notConfirmed")}`} onDone={() => void obs.reload()} disabledReason={reason ?? (s.studioMode ? null : t("devices.studioModeIsOffIn"))}>{t("devices.preview")}</ActionButton>
+                              <ActionButton size="sm" action={() => api.post<{ confirmed: boolean }>("/api/v1/obs/program", { scene: sc })} success={(r) => `${t("devices.programSc", { sc })}${r.confirmed ? "" : t("devices.notConfirmed")}`} onDone={() => void obs.reload()} disabledReason={reason} confirm={{ title: t("devices.putScOnProgram", { sc }), body: t("devices.bypassesTheProgramStateMachine") }}>{t("devices.program")}</ActionButton>
                             </div>
                           </td>
                         </tr>
@@ -333,7 +333,7 @@ function TallyView({ t: tRow }: { t: DeviceTally }) {
       {tRow.slots.length ? (
         <div className="row" style={{ marginTop: 10 }}>
           {tRow.slots.map((s) => (
-            <span key={s.steamId} className={`badge ${s.onAir ? "tone-ok" : s.alive ? "" : "tone-danger"}`} title={`${s.side ?? "?"} · ${s.alive ? "alive" : "dead"}`}>
+            <span key={s.steamId} className={`badge ${s.onAir ? "tone-ok" : s.alive ? "" : "tone-danger"}`} title={`${s.side ?? "?"} · ${s.alive ? t("devices.alive") : t("devices.dead")}`}>
               {s.slot ?? "·"} {s.name} {s.onAir ? t("devices.onAir") : s.alive ? "" : "✕"}
             </span>
           ))}

@@ -180,7 +180,7 @@ export function AutoReplaysPanel() {
               <select value={String(st?.fadeMs ?? 500)} disabled={off} onChange={(e) => void save({ fadeMs: Number(e.target.value) })}>
                 {[...FADES, ...(st?.fadeMs && !(FADES as readonly number[]).includes(st.fadeMs) ? [st.fadeMs] : [])].map((ms) => (
                   <option key={ms} value={String(ms)}>
-                    {`${ms / 1000} s${ms === 500 ? " (recommended)" : ""}`}
+                    {`${ms / 1000} s${ms === 500 ? t("replays.recommendedSuffix") : ""}`}
                   </option>
                 ))}
               </select>
@@ -191,7 +191,7 @@ export function AutoReplaysPanel() {
               <select value={String(st?.audioFadeMs ?? 400)} disabled={off} onChange={(e) => void save({ audioFadeMs: Number(e.target.value) })}>
                 {[...AUDIO_FADES, ...(st?.audioFadeMs !== undefined && !(AUDIO_FADES as readonly number[]).includes(st.audioFadeMs) ? [st.audioFadeMs] : [])].map((ms) => (
                   <option key={ms} value={String(ms)}>
-                    {ms === 0 ? t("replays.none") : `${ms / 1000} s${ms === 400 ? " (recommended)" : ""}`}
+                    {ms === 0 ? t("replays.none") : `${ms / 1000} s${ms === 400 ? t("replays.recommendedSuffix") : ""}`}
                   </option>
                 ))}
               </select>
@@ -680,7 +680,7 @@ function MainSide() {
 
 const FEED_TONE = { off: "neutral", starting: "info", waiting: "warn", recording: "ok", error: "warn" } as const;
 /** An ffmpeg encoder in words. */
-const encoderName = (id: string) => ({ h264_nvenc: "NVIDIA (NVENC)", h264_qsv: "Intel (Quick Sync)", h264_amf: "AMD (AMF)", libx264: "the CPU (x264)" })[id] ?? id;
+const encoderName = (id: string) => ({ h264_nvenc: "NVIDIA (NVENC)", h264_qsv: "Intel (Quick Sync)", h264_amf: "AMD (AMF)", libx264: t("replays.encoderCpu") })[id] ?? id;
 const ENCODERS = perLocale(() => ([
   { id: "auto", label: t("replays.bestThisComputerHas") },
   { id: "h264_nvenc", label: t("replays.nvidiaNvenc") },

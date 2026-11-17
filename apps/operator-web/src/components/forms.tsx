@@ -213,8 +213,8 @@ export function TeamSelect({ id, teams, value, onChange, emptyLabel, invalid, ex
   const options = useMemo(
     () =>
       teams
-        .filter((t) => !t.archived || t.id === value)
-        .map((t) => ({ key: t.id, label: t.name, keywords: t.shortName, icon: <TeamLogo assetId={t.logoAssetId} size={20} name={t.name} />, hint: t.id === exclude ? "already the other team" : t.shortName })),
+        .filter((tm) => !tm.archived || tm.id === value)
+        .map((tm) => ({ key: tm.id, label: tm.name, keywords: tm.shortName, icon: <TeamLogo assetId={tm.logoAssetId} size={20} name={tm.name} />, hint: tm.id === exclude ? t("common.form.alreadyOtherTeam") : tm.shortName })),
     [teams, value, exclude],
   );
   return <Combobox id={id} options={options} value={value} onChange={onChange} placeholder={t("common.form.searchTeams")} emptyLabel={emptyLabel} invalid={invalid} disabled={disabled} />;

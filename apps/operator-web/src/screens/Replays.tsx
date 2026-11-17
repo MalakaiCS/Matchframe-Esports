@@ -122,7 +122,7 @@ export function ReplaysScreen() {
     <div className="page">
       <div className="page-head">
         <h1 className="page-title">{t("replays.replaysProduction")}</h1>
-        <ActionButton variant="primary" action={() => api.post<{ to: string; detail: string | null }>("/api/v1/program/return-live")} success={(tRow) => `Program → ${tRow.to.replace(/_/g, " ").toLowerCase()}${tRow.detail ? ` (${tRow.detail})` : ""}`} disabledReason={programReason ?? (programMode === "LIVE" ? t("replays.programIsAlreadyLive") : null)}>{t("replays.returnLive")}</ActionButton>
+        <ActionButton variant="primary" action={() => api.post<{ to: string; detail: string | null }>("/api/v1/program/return-live")} success={(tRow) => `${t("live.programTo", { to: tRow.to.replace(/_/g, " ").toLowerCase() })}${tRow.detail ? ` (${tRow.detail})` : ""}`} disabledReason={programReason ?? (programMode === "LIVE" ? t("replays.programIsAlreadyLive") : null)}>{t("replays.returnLive")}</ActionButton>
       </div>
       <p className="page-intro">{t("replays.replaysPlayByThemselvesBetween")}</p>
       <div className="grid-2">
@@ -159,7 +159,7 @@ export function ReplaysScreen() {
                     <ActionButton
                       variant="primary"
                       action={() => api.post<ReplayItem>("/api/v1/replays/bookmarks", { label, preRollMs: pre * 1000, postRollMs: post * 1000, capture })}
-                      success={(it) => `Bookmarked “${it.label}”${capture ? " — capturing" : ""}`}
+                      success={(it) => `${t("replays.bookmarkedLabel", { label: it.label })}${capture ? t("replays.capturingSuffix") : ""}`}
                       onDone={() => void replays.reload()}
                       disabledReason={reason}
                     >{t("replays.bookmarkV", { v: capture ? t("replays.andCapture") : "" })}</ActionButton>

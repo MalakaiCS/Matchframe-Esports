@@ -133,7 +133,8 @@
       "noMatches": "Ничего не найдено",
       "searchCountries": "Поиск страны",
       "noCountry": "Без страны",
-      "searchTeams": "Поиск команды"
+      "searchTeams": "Поиск команды",
+      "alreadyOtherTeam": "уже другая команда"
     },
     "image": {
       "notImage": "{name} — не изображение PNG, JPEG или WebP.",
@@ -654,7 +655,9 @@
     "notCaptured": "Не захвачен",
     "sharedDelay": "{delay} (общая для обеих команд)",
     "setGameLevel": "Задать уровень игры",
-    "setCommsLevel": "Задать уровень связи"
+    "setCommsLevel": "Задать уровень связи",
+    "savedPath": "Сохранено: {path}",
+    "mutedLower": "без звука"
   },
   "control": {
     "own": {
@@ -813,7 +816,8 @@
     "cinematicCost": "Кинематографическая цена (−)",
     "switchCost": "Цена переключения (−)",
     "mainStory": "Главная история",
-    "actionCoverage": "Охват действия"
+    "actionCoverage": "Охват действия",
+    "staleness": "Устаревание (−)"
   },
   "devices": {
     "adaptersIntegrations": "Адаптеры и интеграции",
@@ -990,7 +994,11 @@
     "configured": "Настроен",
     "activeAdapter": "Активный адаптер",
     "supported": "Поддерживаются",
-    "plannedNotSupported": "Запланированы, пока не поддерживаются"
+    "plannedNotSupported": "Запланированы, пока не поддерживаются",
+    "previewSc": "Превью: {sc}",
+    "programSc": "Эфир: {sc}",
+    "alive": "жив",
+    "dead": "мёртв"
   },
   "game": {
     "mode": {
@@ -1444,7 +1452,24 @@
     "syncedFloorMinAgo": "Синхронизировано {floor} мин назад",
     "syncedSSAgo": "Синхронизировано {s} с назад",
     "syncedJustNow": "Только что синхронизировано",
-    "notSyncedYet": "Ещё не синхронизировано"
+    "notSyncedYet": "Ещё не синхронизировано",
+    "outputN": "Выход {n}",
+    "noWebAudio": "В этом окне нет Web Audio: превью здесь не воспроизвести.",
+    "notSignedInEngine": "Нет входа в движок.",
+    "engineConnectionLost": "Соединение с движком потеряно; повторная попытка.",
+    "round": "Раунд",
+    "probableHeadshotSuffix": " (вероятно, хедшот)",
+    "adapterV": "адаптер: {v}",
+    "confirmedAt": "подтверждено {at}",
+    "sceneCount": {
+      "one": "{count} сцена",
+      "few": "{count} сцены",
+      "many": "{count} сцен",
+      "other": "{count} сцены"
+    },
+    "enableAllplayersPosition": "включите allplayers_position в конфиге GSI («Подключение» → записать конфиг GSI)",
+    "confirmedWithFirstCamera": "подтверждается первой камерой (getpos); нажмите «Запустить авторежиссёра»",
+    "derivedFromIngest": "вычисляется по времени приёма; ничего делать не нужно"
   },
   "live": {
     "playsMapIntro": "Показывает интро карты {map} в эфире, затем возвращает прежнюю сцену ({shortcutLabel})",
@@ -1694,7 +1719,22 @@
     "studioModeSuffix": " · режим студии",
     "kvOutputs": "Выходы",
     "outputsDetail": "Запись {recording} · трансляция {streaming} · буфер повтора {buffer}",
-    "earlyReplays": "Ранние повторы"
+    "earlyReplays": "Ранние повторы",
+    "povWhoFailed": "POV {who}: не удалось",
+    "povWhoCancelled": "POV {who}: отменено",
+    "povWhoStatus": "POV {who}: {status}",
+    "chase": "Чейз",
+    "pinPlayer": "игрок {name}",
+    "pinSide": "сторона {side}",
+    "pinTeam": "команда {team}",
+    "pinPlayers": {
+      "one": "{count} игрок",
+      "few": "{count} игрока",
+      "many": "{count} игроков",
+      "other": "{count} игрока"
+    },
+    "readyLower": "готово",
+    "confidencePct": "Уверенность {n}%."
   },
   "nav": {
     "account": "Аккаунт",
@@ -1767,7 +1807,6 @@
     "theLiveGameAudioPicked": "Звук живой игры, выбранный в «Автоматические повторы → Звук», приглушается на время интро и затем возвращается.",
     "setUpObsMapIntro": "Настроить сцену интро карт в OBS",
     "connectObsFirstSettingsDevices": "Сначала подключите OBS (Настройки → Устройства)",
-    "isReady": "готова",
     "mapIntroScene": "Сцена интро карт",
     "backToTheSceneThe": "Возврат к сцене, с которой пришёл эфир (или в прямой эфир).",
     "mapIntroOut": "Выход из интро карты",
@@ -2023,7 +2062,13 @@
       "other": "Создание нарезки: {count} клипа"
     },
     "badgeTitleClips": "{badge} {title}: {clips}, {durationMs}{v}",
-    "noSound": "без звука"
+    "noSound": "без звука",
+    "obsSceneMade": "OBS: «{scene}» создана",
+    "obsSceneReady": "OBS: «{scene}» готова",
+    "kill": "убийство",
+    "replay": "Повтор",
+    "headshot": "хедшот",
+    "roundN": "раунд {n}"
   },
   "reasons": {
     "thisReasonCodeIsNewer": "Этот код причины новее этой консоли.",
@@ -2287,7 +2332,7 @@
     "encoder": "Кодировщик",
     "noNdiSourcesFound": "Источники NDI не найдены",
     "chooseOne": "Выберите",
-    "pressFindNdiSources": "Нажмите «Найти источники NDI»",
+    "pressFindNdiSources": "Найдите источники NDI",
     "startTheNdiSenderOn": "Сначала запустите NDI-передатчик на ПК повторов, затем найдите его здесь.",
     "theReplayPcSNdi": "NDI-источник ПК повторов",
     "encodingWithEncoder": " · кодирование: {encoder}",
@@ -2306,7 +2351,7 @@
     "cpuX264": "CPU (x264)",
     "intelQuickSync": "Intel (Quick Sync)",
     "nvidiaNvenc": "NVIDIA (NVENC)",
-    "bestThisComputerHas": "Лучший из доступных на этом компьютере",
+    "bestThisComputerHas": "Лучший доступный",
     "shownOnceRemoveItIn": "Показывается один раз. Удалите его в Настройки → Доступ, чтобы отключить ПК повторов.",
     "copyCode": "Копировать код",
     "makeAReplayPcCode": "Создать код ПК повторов",
@@ -2570,7 +2615,10 @@
     "timing": "Замер…",
     "whenThisComputerIsAt": "Когда этот компьютер идёт в такт с основным ПК, CS2 один раз отматывает назад (demo_gototick) и остаётся позади: тогда каждое пропущенное убийство известно до того, как оно произойдёт здесь. После переподключения или смены карты отматывает снова.",
     "health": "Состояние",
-    "capabilities": "Возможности"
+    "capabilities": "Возможности",
+    "bookmarkedLabel": "«{label}» отмечено",
+    "capturingSuffix": " — идёт запись",
+    "encoderCpu": "процессор (x264)"
   },
   "settings": {
     "save": "Сохранить",

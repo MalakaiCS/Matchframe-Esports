@@ -35,7 +35,7 @@ const COMPONENT_LABEL: Record<string, string> = perLocale(() => ({
   continuity: "Continuity",
   mainStory: t("control.mainStory"),
   switchCost: t("control.switchCost"),
-  stalenessPenalty: "Staleness (−)",
+  stalenessPenalty: t("control.staleness"),
   cinematicOpportunityCost: t("control.cinematicCost"),
 }));
 

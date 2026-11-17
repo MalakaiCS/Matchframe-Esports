@@ -132,7 +132,8 @@
       "noMatches": "Nenhum resultado",
       "searchCountries": "Buscar países",
       "noCountry": "Sem país",
-      "searchTeams": "Buscar times"
+      "searchTeams": "Buscar times",
+      "alreadyOtherTeam": "já é o outro time"
     },
     "image": {
       "notImage": "{name} não é uma imagem PNG, JPEG ou WebP.",
@@ -645,7 +646,9 @@
     "notCaptured": "Não capturado",
     "sharedDelay": "{delay} (compartilhado pelos dois times)",
     "setGameLevel": "Definir nível do jogo",
-    "setCommsLevel": "Definir nível das comms"
+    "setCommsLevel": "Definir nível das comms",
+    "savedPath": "Salvo: {path}",
+    "mutedLower": "mudo"
   },
   "control": {
     "own": {
@@ -803,7 +806,8 @@
     "cinematicCost": "Custo cinematográfico (−)",
     "switchCost": "Custo de troca (−)",
     "mainStory": "História principal",
-    "actionCoverage": "Cobertura da ação"
+    "actionCoverage": "Cobertura da ação",
+    "staleness": "Defasagem (−)"
   },
   "devices": {
     "adaptersIntegrations": "Adaptadores e integrações",
@@ -980,7 +984,11 @@
     "configured": "Configurado",
     "activeAdapter": "Adaptador ativo",
     "supported": "Suportados",
-    "plannedNotSupported": "Planejados, ainda sem suporte"
+    "plannedNotSupported": "Planejados, ainda sem suporte",
+    "previewSc": "Prévia: {sc}",
+    "programSc": "Programa: {sc}",
+    "alive": "vivo",
+    "dead": "morto"
   },
   "game": {
     "mode": {
@@ -1427,7 +1435,23 @@
     "syncedFloorMinAgo": "Sincronizado há {floor} min",
     "syncedSSAgo": "Sincronizado há {s} s",
     "syncedJustNow": "Sincronizado agora",
-    "notSyncedYet": "Ainda não sincronizado"
+    "notSyncedYet": "Ainda não sincronizado",
+    "outputN": "Saída {n}",
+    "noWebAudio": "Esta janela não tem Web Audio: a prévia não toca aqui.",
+    "notSignedInEngine": "Sem sessão no motor.",
+    "engineConnectionLost": "Conexão com o motor perdida; tentando de novo.",
+    "round": "Round",
+    "probableHeadshotSuffix": " (provável headshot)",
+    "adapterV": "adaptador: {v}",
+    "confirmedAt": "confirmado {at}",
+    "sceneCount": {
+      "one": "{count} cena",
+      "many": "{count} de cenas",
+      "other": "{count} cenas"
+    },
+    "enableAllplayersPosition": "ative allplayers_position na configuração GSI (Instalação → gravar configuração GSI)",
+    "confirmedWithFirstCamera": "confirmado com a primeira câmera (getpos); aperte Iniciar Diretor automático",
+    "derivedFromIngest": "derivado do tempo de ingestão; nada a fazer"
   },
   "live": {
     "playsMapIntro": "Exibe a intro de {map} no programa agora e depois volta para a cena de origem ({shortcutLabel})",
@@ -1675,7 +1699,21 @@
     "studioModeSuffix": " · modo estúdio",
     "kvOutputs": "Saídas",
     "outputsDetail": "Gravação {recording} · transmissão {streaming} · buffer de replay {buffer}",
-    "earlyReplays": "Replays antecipados"
+    "earlyReplays": "Replays antecipados",
+    "povWhoFailed": "POV {who}: falhou",
+    "povWhoCancelled": "POV {who}: cancelado",
+    "povWhoStatus": "POV {who}: {status}",
+    "chase": "Chase",
+    "pinPlayer": "jogador {name}",
+    "pinSide": "lado {side}",
+    "pinTeam": "time {team}",
+    "pinPlayers": {
+      "one": "{count} jogador",
+      "many": "{count} de jogadores",
+      "other": "{count} jogadores"
+    },
+    "readyLower": "pronto",
+    "confidencePct": "Confiança {n}%."
   },
   "nav": {
     "account": "Conta",
@@ -1748,7 +1786,6 @@
     "theLiveGameAudioPicked": "O áudio do jogo ao vivo escolhido em Replays automáticos → Som é abaixado enquanto uma intro toca e volta depois.",
     "setUpObsMapIntro": "Configurar cena de intro de mapa no OBS",
     "connectObsFirstSettingsDevices": "Conecte o OBS primeiro (Configurações → Dispositivos)",
-    "isReady": "está pronta",
     "mapIntroScene": "Cena de intro de mapa",
     "backToTheSceneThe": "De volta à cena de onde o programa veio (ou ao vivo).",
     "mapIntroOut": "Saída da intro de mapa",
@@ -2002,7 +2039,13 @@
       "other": "Criando a compilação: {count} clipes"
     },
     "badgeTitleClips": "{badge} {title}: {clips}, {durationMs}{v}",
-    "noSound": "sem som"
+    "noSound": "sem som",
+    "obsSceneMade": "OBS: “{scene}” criada",
+    "obsSceneReady": "OBS: “{scene}” está pronta",
+    "kill": "abate",
+    "replay": "Replay",
+    "headshot": "headshot",
+    "roundN": "round {n}"
   },
   "reasons": {
     "thisReasonCodeIsNewer": "Este código de motivo é mais novo que este console.",
@@ -2544,7 +2587,10 @@
     "timing": "Medindo…",
     "whenThisComputerIsAt": "Quando este computador está no tempo do PC principal, o CS2 volta uma vez (demo_gototick) e fica atrás: assim todo abate perdido é conhecido antes de acontecer aqui. Volta de novo após uma reconexão ou troca de mapa.",
     "health": "Saúde",
-    "capabilities": "Capacidades"
+    "capabilities": "Capacidades",
+    "bookmarkedLabel": "“{label}” marcado",
+    "capturingSuffix": " — capturando",
+    "encoderCpu": "a CPU (x264)"
   },
   "settings": {
     "save": "Salvar",

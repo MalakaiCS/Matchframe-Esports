@@ -10,7 +10,7 @@ export interface CapabilityMeta {
 
 export const CAPABILITY_META: Record<string, CapabilityMeta> = perLocale(() => ({
   allPlayerState: { label: t("lib.allPlayerState"), setupHint: t("lib.useASpectatorObserverClient"), group: "telemetry" },
-  playerPositions: { label: t("lib.playerPositions"), setupHint: "enable allplayers_position in the GSI config (Setup → write GSI config)", group: "telemetry" },
+  playerPositions: { label: t("lib.playerPositions"), setupHint: t("lib.enableAllplayersPosition"), group: "telemetry" },
   viewDirections: { label: t("lib.viewDirections"), setupHint: t("lib.enablePlayerForwardVectorsIn"), group: "telemetry" },
   weaponReadiness: { label: t("lib.weaponReadiness"), setupHint: t("lib.weaponAmmoComponentsInThe"), group: "telemetry" },
   exactDamageEvents: { label: t("lib.exactDamageEvents"), setupHint: t("lib.requiresAnAuthorizedServerEvent"), group: "telemetry" },
@@ -20,11 +20,11 @@ export const CAPABILITY_META: Record<string, CapabilityMeta> = perLocale(() => (
   utilityEffects: { label: t("lib.utilityEffects"), setupHint: t("lib.observeSmokesFiresOnA"), group: "utility" },
   grenadeDamageAttribution: { label: t("lib.grenadeDamageAttribution"), setupHint: t("lib.requiresExactDamageEvents"), group: "utility" },
   playerSelectionControl: { label: t("lib.playerSelection"), setupHint: t("lib.pressStartAutoDirectorOr"), group: "control" },
-  observerModeControl: { label: t("lib.observerModeControl"), setupHint: "confirmed with the first camera (getpos); press Start Auto Director", group: "control" },
+  observerModeControl: { label: t("lib.observerModeControl"), setupHint: t("lib.confirmedWithFirstCamera"), group: "control" },
   staticCameraControl: { label: t("lib.staticCameras"), setupHint: t("lib.pressStartAutoDirectorIt"), group: "control" },
   cameraPathControl: { label: t("lib.cameraPaths"), setupHint: t("lib.confirmedWithTheFirstStatic"), group: "control" },
   cameraReadback: { label: t("lib.cameraReadback"), setupHint: t("lib.needsTheCs2ConsoleStart"), group: "control" },
-  matchTimelineTime: { label: t("lib.matchTimelineTime"), setupHint: "derived from ingest timing; no action needed", group: "time" },
+  matchTimelineTime: { label: t("lib.matchTimelineTime"), setupHint: t("lib.derivedFromIngest"), group: "time" },
 }));
 
 const GRENADE_LABEL: Record<string, string> = perLocale(() => ({ he: t("lib.heGrenade"), flashbang: "Flashbang", smoke: "Smoke", molotov: "Molotov", incendiary: "Incendiary", decoy: "Decoy" }));

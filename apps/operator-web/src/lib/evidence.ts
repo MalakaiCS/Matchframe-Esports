@@ -45,7 +45,7 @@ export function describeEvent(ev: DerivedEvent, nameOf: NameOf): TimelineEntry {
       return { ...base, category: "kill", title: t("lib.nameofKillCounterDelta", { nameOf: nameOf(str(d.steamId)), delta }), detail: t("lib.cumulativeCounterChangeVictimWeapon"), notExactKill: true };
     }
     case "probable_kill_link": {
-      const hs = d.headshot === "probable" ? " (probable headshot)" : "";
+      const hs = d.headshot === "probable" ? t("lib.probableHeadshotSuffix") : "";
       return { ...base, category: "kill", title: t("lib.probableNameofNameof2Hs", { nameOf: nameOf(str(d.killer)), nameOf2: nameOf(str(d.victim)), hs }), detail: t("lib.estimatedPairingFromSimultaneousCounter"), notExactKill: true };
     }
     case "damage_taken":
@@ -54,7 +54,7 @@ export function describeEvent(ev: DerivedEvent, nameOf: NameOf): TimelineEntry {
       return { ...base, category: "round", title: t("lib.nameofRespawned", { nameOf: nameOf(str(d.steamId)) }) };
     case "round_end": {
       const winner = str(d.winnerSide);
-      const round = typeof d.roundNumber === "number" ? `Round ${d.roundNumber}` : "Round";
+      const round = typeof d.roundNumber === "number" ? t("lib.roundRoundnumber", { roundNumber: d.roundNumber }) : t("lib.round");
       return { ...base, category: "round", title: t("lib.roundWonByV", { round, v: winner ?? t("lib.unknownSide") }), detail: str(d.reason) ? t("lib.reasonReplace", { replace: String(d.reason).replace(/_/g, " ") }) : null };
     }
     case "round_phase":

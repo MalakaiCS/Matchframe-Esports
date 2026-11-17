@@ -51,7 +51,7 @@ function describeCommandResult(r: CommandResult | null | undefined, who: string)
   if (!r) return { tone: "info", text: t("live.noCommandWasIssuedFor", { who }) };
   const precision = r.precision.replace(/_/g, " ");
   if (r.status === "confirmed") return { tone: "ok", text: t("live.povWhoConfirmedPrecision", { who, precision }) };
-  if (r.status === "failed" || r.status === "cancelled") return { tone: "danger", text: `POV ${who}: ${r.status}${r.failureReason ? ` — ${r.failureReason.replace(/_/g, " ")}` : ""}${r.detail ? ` (${r.detail})` : ""}.` };
+  if (r.status === "failed" || r.status === "cancelled") return { tone: "danger", text: `${r.status === "failed" ? t("live.povWhoFailed", { who }) : t("live.povWhoCancelled", { who })}${r.failureReason ? ` — ${r.failureReason.replace(/_/g, " ")}` : ""}${r.detail ? ` (${r.detail})` : ""}.` };
   return { tone: "info", text: t("live.povWhoReplacePrecisionWaiting", { who, replace: r.status.replace(/_/g, " "), precision }) };
 }
 
@@ -63,7 +63,7 @@ async function followConfirmation(commandId: string, who: string, push: (tone: "
     if (ev) {
       const status = String(ev.detail.status);
       if (status === "confirmed") push("ok", t("live.povWhoConfirmedByTelemetry", { who, replace: String(ev.detail.precision ?? "").replace(/_/g, " ") }));
-      else push("danger", `POV ${who}: ${status}`, ev.detail.failureReason ? String(ev.detail.failureReason).replace(/_/g, " ") : undefined);
+      else push("danger", t("live.povWhoStatus", { who, status: status.replace(/_/g, " ") }), ev.detail.failureReason ? String(ev.detail.failureReason).replace(/_/g, " ") : undefined);
       return;
     }
     await new Promise((r) => setTimeout(r, 200));
@@ -206,7 +206,7 @@ function PovStatus({ snap }: { snap: OperatorSnapshot }) {
   const lastResult = [...arbiterLog].reverse().find((e) => e.kind === "result" || e.kind === "rejected" || e.kind === "external_change");
   const p = snap.pending;
   const inFlight = isInFlight(p?.status);
-  const pendingTarget = p ? (p.request.kind === "select_player" ? `${p.request.view === "chase" ? "Chase" : "POV"} · ${nameOf(p.request.steamId)}` : p.request.kind === "activate_static_camera" ? `Camera · ${p.request.camera.displayName}` : p.request.kind.replace(/_/g, " ")) : null;
+  const pendingTarget = p ? (p.request.kind === "select_player" ? `${p.request.view === "chase" ? t("live.chase") : "POV"} · ${nameOf(p.request.steamId)}` : p.request.kind === "activate_static_camera" ? t("common.shot.camera", { id: p.request.camera.displayName }) : p.request.kind.replace(/_/g, " ")) : null;
   return (
     <>
       <div className="pov">
@@ -256,7 +256,7 @@ function ActionsBar({ snap, cameras }: { snap: OperatorSnapshot; cameras: { id: 
   const holdLeft = hold && hold.until !== null && engineNow !== null ? Math.max(0, hold.until - engineNow) : null;
   const pin = snap.controls.pin;
   const nameOf = makeNameOf(s);
-  const pinText = !pin ? null : pin.kind === "player" ? `player ${nameOf(pin.steamId)}` : pin.kind === "side" ? `side ${pin.side}` : pin.kind === "team" ? `team ${pin.teamId}` : `${pin.steamIds.length} players`;
+  const pinText = !pin ? null : pin.kind === "player" ? t("live.pinPlayer", { name: nameOf(pin.steamId) }) : pin.kind === "side" ? t("live.pinSide", { side: pin.side }) : pin.kind === "team" ? t("live.pinTeam", { team: pin.teamId }) : t("live.pinPlayers", { count: pin.steamIds.length });
 
   const returnLive = async () => {
     const out: string[] = [];

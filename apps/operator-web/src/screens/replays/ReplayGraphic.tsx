@@ -27,8 +27,8 @@ interface ObsSetup {
 
 /** What the lower third says, in a line. */
 export function describeClip(c: HudReplayClip): string {
-  const what = c.clutchVersus !== null ? t("prod.text1vClutchversusClutch", { clutchVersus: c.clutchVersus }) : c.multiKill ?? (c.kills === 1 ? "kill" : null);
-  return [c.player?.name ?? "Replay", what, c.weapon?.displayName, c.headshot ? "headshot" : null, c.roundNumber !== null ? `round ${c.roundNumber}` : null].filter(Boolean).join(" · ");
+  const what = c.clutchVersus !== null ? t("prod.text1vClutchversusClutch", { clutchVersus: c.clutchVersus }) : c.multiKill ?? (c.kills === 1 ? t("prod.kill") : null);
+  return [c.player?.name ?? t("prod.replay"), what, c.weapon?.displayName, c.headshot ? t("prod.headshot") : null, c.roundNumber !== null ? t("prod.roundN", { n: c.roundNumber }) : null].filter(Boolean).join(" · ");
 }
 
 /**

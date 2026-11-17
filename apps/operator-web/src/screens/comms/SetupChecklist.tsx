@@ -39,7 +39,7 @@ export function SetupChecklist() {
             <li key={s.id} className={`comms-check-${s.state}`}>
               <div className="row">
                 <Badge tone={MARK[s.state].tone} icon={MARK[s.state].icon}>
-                  {s.label}
+                  {s.state === "done" ? t("comms.done") : s.state === "todo" ? t("comms.toDo") : t("comms.notChecked")}
                 </Badge>
                 <strong>{s.title}</strong>
               </div>

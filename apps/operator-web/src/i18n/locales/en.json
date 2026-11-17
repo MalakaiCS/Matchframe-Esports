@@ -131,7 +131,8 @@
       "noMatches": "No matches",
       "searchCountries": "Search countries",
       "noCountry": "No country",
-      "searchTeams": "Search teams"
+      "searchTeams": "Search teams",
+      "alreadyOtherTeam": "already the other team"
     },
     "image": {
       "notImage": "{name} is not a PNG, JPEG or WebP image.",
@@ -636,7 +637,9 @@
     "notCaptured": "Not captured",
     "sharedDelay": "{delay} (shared by both teams)",
     "setGameLevel": "Set game level",
-    "setCommsLevel": "Set comms level"
+    "setCommsLevel": "Set comms level",
+    "savedPath": "Saved: {path}",
+    "mutedLower": "muted"
   },
   "control": {
     "own": {
@@ -793,7 +796,8 @@
     "mainStory": "Main story",
     "actionCoverage": "Action coverage",
     "fallback": "fallback: POV / radar / hold",
-    "fallbackIssue": "fallback: POV / radar / hold — {issue}"
+    "fallbackIssue": "fallback: POV / radar / hold — {issue}",
+    "staleness": "Staleness (−)"
   },
   "devices": {
     "adaptersIntegrations": "Adapters & integrations",
@@ -970,7 +974,11 @@
     "configured": "Configured",
     "activeAdapter": "Active adapter",
     "supported": "Supported",
-    "plannedNotSupported": "Planned, not supported yet"
+    "plannedNotSupported": "Planned, not supported yet",
+    "previewSc": "Preview: {sc}",
+    "programSc": "Program: {sc}",
+    "alive": "alive",
+    "dead": "dead"
   },
   "game": {
     "mode": {
@@ -1410,7 +1418,22 @@
         "one": "{count} HUD",
         "other": "{count} HUDs"
       }
-    }
+    },
+    "outputN": "Output {n}",
+    "noWebAudio": "This window has no Web Audio: the preview can't play here.",
+    "notSignedInEngine": "Not signed in to the engine.",
+    "engineConnectionLost": "Connection to the engine lost; trying again.",
+    "round": "Round",
+    "probableHeadshotSuffix": " (probable headshot)",
+    "adapterV": "adapter: {v}",
+    "confirmedAt": "confirmed {at}",
+    "sceneCount": {
+      "one": "{count} scene",
+      "other": "{count} scenes"
+    },
+    "enableAllplayersPosition": "enable allplayers_position in the GSI config (Setup → write GSI config)",
+    "confirmedWithFirstCamera": "confirmed with the first camera (getpos); press Start Auto Director",
+    "derivedFromIngest": "derived from ingest timing; no action needed"
   },
   "live": {
     "countPlayerSWithoutA": {
@@ -1656,7 +1679,20 @@
     "studioModeSuffix": " · studio mode",
     "kvOutputs": "Outputs",
     "outputsDetail": "Recording {recording} · streaming {streaming} · replay buffer {buffer}",
-    "earlyReplays": "Early replays"
+    "earlyReplays": "Early replays",
+    "povWhoFailed": "POV {who}: failed",
+    "povWhoCancelled": "POV {who}: cancelled",
+    "povWhoStatus": "POV {who}: {status}",
+    "chase": "Chase",
+    "pinPlayer": "player {name}",
+    "pinSide": "side {side}",
+    "pinTeam": "team {team}",
+    "pinPlayers": {
+      "one": "{count} player",
+      "other": "{count} players"
+    },
+    "readyLower": "ready",
+    "confidencePct": "Confidence {n}%."
   },
   "nav": {
     "account": "Account",
@@ -1729,7 +1765,6 @@
     "theLiveGameAudioPicked": "The live game audio picked under Automatic replays → Sound is turned down while an intro plays, and put back after.",
     "setUpObsMapIntro": "Set up OBS map intro scene",
     "connectObsFirstSettingsDevices": "Connect OBS first (Settings → Devices)",
-    "isReady": "is ready",
     "mapIntroScene": "Map intro scene",
     "backToTheSceneThe": "Back to the scene the program came from (or to live).",
     "mapIntroOut": "Map intro out",
@@ -1981,7 +2016,13 @@
       "other": "Making the reel: {count} clips"
     },
     "badgeTitleClips": "{badge} {title}: {clips}, {durationMs}{v}",
-    "noSound": "no sound"
+    "noSound": "no sound",
+    "obsSceneMade": "OBS: “{scene}” made",
+    "obsSceneReady": "OBS: “{scene}” is ready",
+    "kill": "kill",
+    "replay": "Replay",
+    "headshot": "headshot",
+    "roundN": "round {n}"
   },
   "reasons": {
     "thisReasonCodeIsNewer": "This reason code is newer than this console.",
@@ -2518,7 +2559,10 @@
     "timing": "Timing…",
     "whenThisComputerIsAt": "When this computer is at the main PC's time, CS2 goes back once (demo_gototick) and stays behind: every missed kill is then known before it plays here. It goes back again after a reconnect or a map change.",
     "health": "Health",
-    "capabilities": "Capabilities"
+    "capabilities": "Capabilities",
+    "bookmarkedLabel": "Bookmarked “{label}”",
+    "capturingSuffix": " — capturing",
+    "encoderCpu": "the CPU (x264)"
   },
   "settings": {
     "save": "Save",

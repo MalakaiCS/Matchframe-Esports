@@ -30,7 +30,7 @@ export const fmtDelay = (ms: number) => `${(ms / 1000).toFixed(3)} s`;
 export function TeamPanel({ slot, people, delayMs, onChanged }: { slot: CommsSlot; people: CommsParticipant[]; delayMs: number; onChanged: () => void }) {
   const st = slotState(slot);
   const tab = slot.tab;
-  const name = slot.team?.name ?? `Team ${slot.id}`;
+  const name = slot.team?.name ?? t("comms.teamId", { id: slot.id });
   return (
     <Panel
       title={

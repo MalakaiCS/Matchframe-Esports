@@ -80,7 +80,7 @@ export function Timeline({ nameOf, limit = 120 }: { nameOf: (id: string | null |
                 ) : null}
                 {r.detail ? <span className="tl-detail">{r.detail}</span> : null}
               </span>
-              <span className="tl-ev" title={`${evidenceText(r.evidence).hint} Confidence ${Math.round(r.confidence * 100)}%.`}>
+              <span className="tl-ev" title={`${evidenceText(r.evidence).hint} ${t("live.confidencePct", { n: Math.round(r.confidence * 100) })}`}>
                 {r.evidence === "estimated" ? <EvidenceBadge evidence={r.evidence} /> : <span className="muted small">{evidenceText(r.evidence).text.toLowerCase()}</span>}
               </span>
             </li>

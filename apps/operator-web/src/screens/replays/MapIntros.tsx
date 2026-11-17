@@ -141,7 +141,7 @@ export function MapIntrosPanel() {
 
         {data && !vmix ? (
           <div className="row" aria-label={t("prod.mapIntroScene")}>
-            <ActionButton size="sm" action={() => api.post<{ scene: string; created: boolean }>(`${MAP_INTROS_PATH}/obs-setup`)} success={(r) => `OBS: “${r.scene}” ${r.created ? "made" : t("prod.isReady")}`} onDone={() => void intros.reload()} disabledReason={setupReason ?? (!data.setup.obsConnected ? t("prod.connectObsFirstSettingsDevices") : null)}>{t("prod.setUpObsMapIntro")}</ActionButton>
+            <ActionButton size="sm" action={() => api.post<{ scene: string; created: boolean }>(`${MAP_INTROS_PATH}/obs-setup`)} success={(r) => (r.created ? t("prod.obsSceneMade", { scene: r.scene }) : t("prod.obsSceneReady", { scene: r.scene }))} onDone={() => void intros.reload()} disabledReason={setupReason ?? (!data.setup.obsConnected ? t("prod.connectObsFirstSettingsDevices") : null)}>{t("prod.setUpObsMapIntro")}</ActionButton>
             <span className="muted small">{data.setup.detail}</span>
           </div>
         ) : data ? (
