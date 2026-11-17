@@ -22,11 +22,8 @@ const PENDING = new Set<string>([
   "components/SignIn.tsx",
   "screens/Account.tsx",
   "screens/Demos.tsx",
-  "screens/Maps.tsx",
-  "screens/Sponsors.tsx",
   "screens/Training.tsx",
   "screens/demos/PipelinePanels.tsx",
-  "screens/maps/CameraWalkthrough.tsx",
   "screens/training/DemoModel.tsx",
   "screens/training/TestBench.tsx",
 ]);
