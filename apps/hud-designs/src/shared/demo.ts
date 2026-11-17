@@ -7,7 +7,8 @@ import { DEMO_SILHOUETTE, DEMO_TROPHY, demoArt, demoRadar, NO_ART, SAMPLE_SPONSO
  * without a running program: freeze time → live → kills → bomb planted → defuse → round won → a
  * tactical timeout in the next freeze time → that round live with the last round's MVP (`mvp`, the
  * teams on the other sides, as after half time). `nocam` is the live round for a HUD to show the
- * observed player without a player cam; `pause` a tech pause called in freeze time.
+ * observed player without a player cam; `pause` a technical timeout called in freeze time, with the
+ * game's countdown running (4:47 left).
  */
 export const DEMO_SCENES = ["freeze", "live", "kill", "plant", "bomb", "defuse", "over", "timeout", "mvp", "nocam", "pause"] as const;
 /**
@@ -17,9 +18,10 @@ export const DEMO_SCENES = ["freeze", "live", "kill", "plant", "bomb", "defuse",
  * live round with the observed player on the right team; `edgebomb` the bomb planted with its timer
  * while the data has paused, the team tag unusable ("?"); `edgeover` the round won with Spudwrecker
  * observed and its MVP, the 32-character name's kill in the killfeed; `edgeboard` a tactical timeout
- * with the scoreboard.
+ * with the scoreboard; `edgepause` a pause with no countdown from the game (its clock frozen at the
+ * freeze time's 0:14), timed from when the HUD saw it start.
  */
-export const DEMO_TEST_SCENES = ["edge", "edgebomb", "edgeover", "edgeboard"] as const;
+export const DEMO_TEST_SCENES = ["edge", "edgebomb", "edgeover", "edgeboard", "edgepause"] as const;
 type DemoTestScene = (typeof DEMO_TEST_SCENES)[number];
 export type DemoScene = (typeof DEMO_SCENES)[number] | DemoTestScene;
 
@@ -133,7 +135,7 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
   const roundHistory: HudState["roundHistory"] = Array.from({ length: 16 }, (_, i) => ({ roundNumber: i + 1, winner: i % 3 === 2 ? "right" : i < 9 ? "left" : i % 2 ? "right" : "left", reason: "elimination" }));
   if (scene === "freeze" || scene === "timeout" || scene === "pause") {
     phase = scene === "timeout" ? "timeout_t" : scene === "pause" ? "paused" : "freezetime";
-    clock = scene === "timeout" ? 23 : 14;
+    clock = scene === "timeout" ? 23 : scene === "pause" ? 287 : 14;
     ct = ct.map((p) => ({ ...p, activeWeapon: p.secondary }));
   }
   // The next round's freeze time, with the team on T in a tactical timeout (one of three used).
@@ -203,7 +205,7 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     timeline: { profile: "live", delayMs: 0 },
     dataAgeMs: 0,
     stale: false,
-    match: { mapName: "de_mirage", mapDisplayName: "Mirage", roundNumber: scene === "timeout" || scene === "mvp" ? 18 : 17, phase, phaseEndsInSec: clock, clockRunning: live || scene === "freeze" || scene === "timeout", paused: scene === "pause", regulationRounds: 24 },
+    match: { mapName: "de_mirage", mapDisplayName: "Mirage", roundNumber: scene === "timeout" || scene === "mvp" ? 18 : 17, phase, phaseEndsInSec: clock, clockRunning: live || scene === "freeze" || scene === "timeout" || scene === "pause", paused: scene === "pause", regulationRounds: 24 },
     left,
     right,
     observed: { ...(ct.find((p) => p.observed) ?? t.find((p) => p.observed) ?? observed), observed: true },
@@ -234,7 +236,7 @@ const EDGE_NAMES = {
 
 /** A test scene (DEMO_TEST_SCENES): the `kill`, `bomb`, `over` or `freeze` scene with the edges described there. */
 function edgeScene(scene: DemoTestScene, opts: DemoOptions): HudState {
-  const s = demoScene(scene === "edgebomb" ? "bomb" : scene === "edgeover" ? "over" : scene === "edgeboard" ? "timeout" : "kill", opts);
+  const s = demoScene(scene === "edgebomb" ? "bomb" : scene === "edgeover" ? "over" : scene === "edgeboard" ? "timeout" : scene === "edgepause" ? "pause" : "kill", opts);
   const names = new Map<string, string>();
   const rename = (team: HudTeam, list: string[]) =>
     team.players.map((p, i) => {
@@ -278,6 +280,8 @@ function edgeScene(scene: DemoTestScene, opts: DemoOptions): HudState {
     ...s,
     stale: scene === "edgebomb",
     dataAgeMs: scene === "edgebomb" ? 6500 : 0,
+    // No countdown from the game: the freeze time's clock stands still at 0:14.
+    match: scene === "edgepause" ? { ...s.match, phaseEndsInSec: 14, clockRunning: false } : s.match,
     left: { ...s.left, name: "NORTHERN LIGHTS ESPORTS", shortName: "NLE", logoUrl: demoLogo("left"), players: players.slice(0, left.length) },
     right: { ...s.right, shortName: scene === "edgebomb" ? "?" : "RHB", logoUrl: null, players: players.slice(left.length) },
     observed,

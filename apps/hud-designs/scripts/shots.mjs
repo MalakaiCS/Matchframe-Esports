@@ -9,8 +9,9 @@
 // --backdrop <image> puts a picture behind the HUD instead of the gradient (e.g. a darkened game frame
 // for side-by-side comparisons; the picture stays wherever it is, it is only served to the page).
 // `?radar=mirage` pages get Mirage's real radar image from assets/radars at /demo-radar/.
-// --scenes <a,b,…> takes those scenes instead of the usual eleven (e.g. --scenes edge,edgebomb,edgeboard,
-// the test states with long names, knives in hand, a team without a logo, paused data).
+// --scenes <a,b,…> takes those scenes instead of the usual eleven (e.g. --scenes edge,edgebomb,edgeover,
+// edgeboard,edgepause, the test states with long names, knives in hand, a team without a logo, paused
+// data, a pause with no countdown).
 // --icons <dir> serves an icon pack folder (an engine's <dataDir>/icon-pack: <name>.svg and pack.json)
 // at /icon-pack/ and tells the demo which icons there are (?iconpack=…), as a loaded icon pack would.
 import { createServer } from "node:http";
