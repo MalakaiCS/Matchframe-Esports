@@ -1,6 +1,7 @@
 import { fork, spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { totalmem } from "node:os";
 import { delimiter, extname, isAbsolute, join, resolve, sep } from "node:path";
 import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, net, Notification, powerMonitor, protocol, safeStorage, shell } from "electron";
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron";
@@ -14,6 +15,7 @@ import { OverlayManager } from "./hud/overlays.ts";
 import { OverlayStore } from "./hud/store.ts";
 import type { Library } from "./hud/types.ts";
 import { hlaeInfo, startCs2, type PreparedLaunch } from "./game-launch.ts";
+import { engineExecArgv, parsePerformanceMessage } from "./low-spec.ts";
 import { DEVICE_ACTION, HIGHLIGHT_KEY_ACTIONS, MAP_INTRO_KEY_ACTIONS, ReplayHotkeys, TEAM_KEY_ACTIONS, type ReplayKeyAction, type ReplayKeys } from "./replay-hotkeys.ts";
 import { createRollback, type Rollback } from "./rollback.ts";
 import { createTray, type ProgramTray } from "./tray.ts";
@@ -89,6 +91,8 @@ let masterKey: string | null = null;
 const stopRequested = new WeakSet<ChildProcess>();
 /** Windows is logging off or shutting down (Electron sends no before-quit then): what stops now is not a crash. */
 let sessionEnding = false;
+/** Low-spec mode's frame cap for the desktop HUD windows, as the engine last said (ADR-078). */
+let hudFrameCap: number | null = null;
 
 /** Small program preferences (not engine settings): `<userData>/program-settings.json`. */
 interface ProgramSettings {
@@ -103,6 +107,8 @@ interface ProgramSettings {
   replayHotkeys: Partial<ReplayKeys>;
   /** Send crash reports (ADR-077); off unless the operator turns it on. */
   crashReports: boolean;
+  /** The engine's low-spec mode as it last said (ADR-078): the engine starts with a memory cap when on. */
+  lowSpec: boolean;
 }
 const programSettingsFile = () => join(app.getPath("userData"), "program-settings.json");
 function readProgramSettings(): ProgramSettings {
@@ -115,9 +121,10 @@ function readProgramSettings(): ProgramSettings {
       networkAccess: raw.networkAccess === true,
       replayHotkeys: raw.replayHotkeys && typeof raw.replayHotkeys === "object" ? raw.replayHotkeys : {},
       crashReports: raw.crashReports === true,
+      lowSpec: raw.lowSpec === true,
     };
   } catch {
-    return { autoDownloadUpdates: true, updateChannel: "stable", hlaePath: null, networkAccess: false, replayHotkeys: {}, crashReports: false };
+    return { autoDownloadUpdates: true, updateChannel: "stable", hlaePath: null, networkAccess: false, replayHotkeys: {}, crashReports: false, lowSpec: false };
   }
 }
 function writeProgramSettings(patch: Partial<ProgramSettings>): void {
@@ -353,7 +360,9 @@ function startEngine(): void {
   if (key) env.MATCHFRAME_SECRET_KEY = key;
   masterKey = key ?? null;
   Object.assign(env, cloudReleaseConfig(env));
-  const execArgv = isDev ? ["--import", "tsx"] : [];
+  // Low-spec mode (ADR-078): the engine starts with a memory cap (the setting as the engine last said).
+  const { execArgv, heapCapMb } = engineExecArgv(isDev ? ["--import", "tsx"] : [], readProgramSettings().lowSpec, totalmem());
+  if (heapCapMb !== null) env.MATCHFRAME_ENGINE_HEAP_CAP_MB = String(heapCapMb);
   const child = fork(enginePath, [], { env, execPath: process.execPath, execArgv, stdio: ["ignore", "pipe", "pipe", "ipc"] });
   engine = child;
   const startedAt = Date.now();
@@ -381,6 +390,13 @@ function startEngine(): void {
       // A refusal, not a crash: no crash report for this exit.
       stopRequested.add(child);
       void showNewerDataRefusal(m.message ?? "Your data is from a newer version of MatchFrame.");
+    }
+    // Low-spec mode on or off: the desktop HUD windows' frame rate now, the memory cap from the next engine start.
+    const perf = parsePerformanceMessage(m);
+    if (perf) {
+      if (readProgramSettings().lowSpec !== perf.lowSpec) writeProgramSettings({ lowSpec: perf.lowSpec });
+      hudFrameCap = perf.frameCap;
+      overlays?.setFrameCap(perf.frameCap);
     }
   });
   child.on("exit", (code, signal) => {
@@ -692,6 +708,7 @@ function setUpDesktopHuds(): void {
   });
   overlays = om;
   om.init();
+  om.setFrameCap(hudFrameCap);
   const hk = new HotkeyManager({ store, reserved: [EMERGENCY_HOTKEY, SAVE_VIEW_HOTKEY], onToggle: () => om.toggleAll(), onEmergencyHide: () => void toggleEmergencyHide(), log: (msg) => console.error(`[hud] ${msg}`) });
   hotkeys = hk;
   registerHudIpc({

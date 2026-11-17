@@ -1437,3 +1437,11 @@ body,
 .vx-flag.is-sim {
   box-shadow: inset 0 0 0 2px var(--vx-red);
 }
+
+/* Low-spec mode (HudState.lowSpec): the round, bomb and defuse bars step with each update instead of
+   gliding (their short linear transitions ran all the time, drawing every display frame). */
+html.mf-low-spec .vx-band-fill,
+html.mf-low-spec .vx-bomb-fill,
+html.mf-low-spec .vx-defuse-fill {
+  transition: none;
+}

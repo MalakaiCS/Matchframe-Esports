@@ -1633,12 +1633,13 @@ export class AutoReplay {
       return giveBack(`the replay folder can't be written (${err instanceof Error ? err.message : String(err)})`);
     }
     const limit = seq.kind === "highlights" ? HIGHLIGHTS_RENDER_MAX_MS : this.renderWaitMs;
-    // Smooth slow motion only when the file will still be ready in time (interpolating frames costs about half a second each at 1080p on a CPU).
-    const cost = st.slowSmooth ? this.smoothCost(clips.map(({ c }) => c), seq.slowMode) : null;
+    // Smooth slow motion only when the file will still be ready in time (interpolating frames costs about half a second each at 1080p on a CPU),
+    // and never in low-spec mode (ADR-078): one PC can't spare the CPU while CS2 and OBS run.
+    const cost = st.slowSmooth && !this.e.lowSpec.on ? this.smoothCost(clips.map(({ c }) => c), seq.slowMode) : null;
     const smooth = !!cost && cost.frames > 0 && this.renderGuessMs + cost.ms <= limit;
     const slowNote = cost && cost.frames > 0 && !smooth ? `; blended, not interpolated: Smooth slow motion would take about ${Math.round(cost.ms / 1000)} s here` : "";
     const started = this.e.now();
-    const job = this.renderer({ ffmpeg, version: this.e.ffmpeg.status().version, encoder, clips: clips.map(({ c }) => ({ file: c.item.clip!.media.path!, startMs: null, durationMs: c.playMs, slow: this.slowSpecOf(c, c.playMs, smooth, seq.slowMode) })), fadeMs, audioFadeMs: st.audioFadeMs, outFile: file });
+    const job = this.renderer({ ffmpeg, version: this.e.ffmpeg.status().version, encoder, clips: clips.map(({ c }) => ({ file: c.item.clip!.media.path!, startMs: null, durationMs: c.playMs, slow: this.slowSpecOf(c, c.playMs, smooth, seq.slowMode) })), fadeMs, audioFadeMs: st.audioFadeMs, outFile: file, light: this.e.lowSpec.on });
     let done: RenderedBreak | null = null;
     let failed: string | null = null;
     job.done.then(

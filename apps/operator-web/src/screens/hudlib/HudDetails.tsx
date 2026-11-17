@@ -8,9 +8,11 @@ import { useToast } from "../../components/toasts.tsx";
 import { Button, Checkbox, CopyButton, Details, Field, JsonEditor, KV, Note, parseJsonOr, Tabs } from "../../components/ui.tsx";
 import { fmtAgo, fmtTime } from "../../lib/format.ts";
 import type { HudDisplayStatus } from "../../lib/hudLibrary.ts";
-import { compareVersions, defaultVariant, formFields, KIND_LABEL, LOW_FPS, resolutionLabel, STUTTER_MS, stutters, VARIANT_LABEL, variantUrl, withQuery } from "../../lib/hudLibrary.ts";
+import { compareVersions, defaultVariant, formFields, hudLowFps, KIND_LABEL, resolutionLabel, STUTTER_MS, stutters, VARIANT_LABEL, variantUrl, withQuery } from "../../lib/hudLibrary.ts";
+import { useLowSpec } from "../../lib/lowSpec.ts";
+import { Link } from "../../router.tsx";
 import type { HudActionReasons, HudActions } from "./HudCard.tsx";
-import { OutputIndicators } from "./HudCard.tsx";
+import { OutputIndicators, Thumbnail } from "./HudCard.tsx";
 import type { PlayerRow, TeamRow } from "../../api/types.ts";
 import { useApi } from "../../lib/hooks.ts";
 import { useLive } from "../../state/live.ts";
@@ -73,9 +75,24 @@ export function HudDetails(p: Props) {
 
 function LivePreview({ entry, variant }: { entry: HudLibraryEntry; variant: HudVariant }) {
   const [checker, setChecker] = useState(true);
+  // Low-spec mode (ADR-078): no running HUD in the console unless asked for.
+  const lowSpec = useLowSpec()?.lowSpec === true;
+  const [showLive, setShowLive] = useState(false);
   const url = variantUrl(entry, variant);
   const r = entry.designResolution;
   if (!url) return <Note tone="neutral">This HUD has no output to preview.</Note>;
+  if (lowSpec && !showLive)
+    return (
+      <div className="hud-preview-wrap" data-testid="hud-preview-paused">
+        <Thumbnail entry={entry} className="hud-preview-still" />
+        <div className="row hud-preview-foot">
+          <Button size="sm" onClick={() => setShowLive(true)}>
+            Show live preview
+          </Button>
+          <span className="muted small">Live preview off in low-spec mode · {resolutionLabel(entry)}</span>
+        </div>
+      </div>
+    );
   return (
     <div className="hud-preview-wrap">
       <div className="hud-preview" style={{ aspectRatio: `${r.width} / ${r.height}` }}>
@@ -577,6 +594,7 @@ function Hotkeys({ bridge, desktopReason }: { bridge: DesktopHudBridge | null; d
 
 /** An output that stopped drawing for a moment, or drew too few frames, in the last minute: where the lag comes from, and what helps. */
 function StutterNote({ entry, outputs }: { entry: HudLibraryEntry; outputs: Record<HudOutputMode, number> }) {
+  const lowSpec = useLowSpec()?.lowSpec === true;
   const obs = outputs.obs ? entry.smoothness.obs : undefined;
   const desktop = outputs.desktop ? entry.smoothness.desktop : undefined;
   const bad = [stutters(obs) ? (["OBS browser source", obs!] as const) : null, stutters(desktop) ? (["desktop HUD", desktop!] as const) : null].filter((x) => x !== null);
@@ -591,7 +609,8 @@ function StutterNote({ entry, outputs }: { entry: HudLibraryEntry; outputs: Reco
             </>
           ) : (
             <>
-              The {where} drew only <strong className="num">{s.fps}</strong> frames a second (under {LOW_FPS}) at its slowest in the last minute.
+              The {where} drew only <strong className="num">{s.fps}</strong> frames a second (under {hudLowFps(s.frameCap)}
+              {s.frameCap ? `, with low-spec mode's cap of ${s.frameCap}` : ""}) at its slowest in the last minute.
             </>
           )}{" "}
           The game data reaches it on time: the computer drawing the HUD is too busy.
@@ -599,12 +618,26 @@ function StutterNote({ entry, outputs }: { entry: HudLibraryEntry; outputs: Reco
       ))}
       {stutters(obs) ? (
         <p className="small" style={{ margin: "0 0 6px" }}>
-          In OBS: <strong>Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration</strong>, then restart OBS, and <strong>Settings → Video → Common FPS Values</strong> 60. In the browser source's properties, leave <strong>Use custom frame rate</strong> off and <strong>Shutdown source when not visible</strong> off.
+          In OBS: <strong>Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration</strong>, then restart OBS, and <strong>Settings → Video → Common FPS Values</strong> 60.{" "}
+          {lowSpec ? (
+            <>
+              Low-spec mode sets <strong>Use custom frame rate</strong> to 30 on the browser sources MatchFrame made; set it on your own sources too. Leave <strong>Shutdown source when not visible</strong> off.
+            </>
+          ) : (
+            <>
+              In the browser source's properties, leave <strong>Use custom frame rate</strong> off and <strong>Shutdown source when not visible</strong> off.
+            </>
+          )}
         </p>
       ) : null}
       {stutters(desktop) ? (
-        <p className="small" style={{ margin: 0 }}>
+        <p className="small" style={{ margin: "0 0 6px" }}>
           Run CS2 in Fullscreen Windowed, and cap its frame rate (for example <code>fps_max 240</code>) so it leaves the computer room to draw the HUD.
+        </p>
+      ) : null}
+      {!lowSpec ? (
+        <p className="small" style={{ margin: 0 }}>
+          CS2, OBS and MatchFrame on one computer? <Link to="/settings">Settings → General → Performance → Low-spec mode</Link> caps HUDs at 30 fps and lightens MatchFrame&apos;s own work.
         </p>
       ) : null}
     </Note>

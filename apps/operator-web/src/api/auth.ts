@@ -30,6 +30,8 @@ declare global {
       openTs3Folder?: (which: "plugins" | "package") => Promise<string | null>;
       /** Choose a folder on this computer (Storage); null when cancelled. */
       pickDirectory?: (title: string) => Promise<string | null>;
+      /** Restarts the engine this program runs (local mode); false when it doesn't run one. */
+      restartEngine?: () => Promise<boolean>;
       /** Let other computers on the network reach this computer's engine (restarts it). */
       network?: {
         get(): Promise<{ networkAccess: boolean; local: boolean } | null>;

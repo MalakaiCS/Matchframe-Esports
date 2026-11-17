@@ -68,7 +68,12 @@ ${o.testDataBadge ? '<div id="mf-test">TEST DATA</div>' : ""}
  *   only); window.__mfOverlay.status() reports the state for automated checks;
  * - times its own frames (the HUD frame shares its main thread) and reports every 5 s how smoothly
  *   it draws where it runs: frames a second, the longest pause, pauses over 100 ms, and how long its
- *   tasks wait (an imported HUD that can't keep up gets fewer game-data updates).
+ *   tasks wait (an imported HUD that can't keep up gets fewer game-data updates);
+ * - Low-spec mode (ADR-078, `frameCap` in the control message): requestAnimationFrame in this page and
+ *   in the HUD's frame (same origin) runs at most `frameCap` times a second, on the display frames
+ *   nearest a steady grid, waiting on a timer in between (no wake-up every display frame). CSS
+ *   animations are the compositor's and are not capped here: MatchFrame HUDs drop the continuous
+ *   ones themselves (HudState.lowSpec).
  */
 export const WRAPPER_JS = String.raw`(function () {
   "use strict";
@@ -119,6 +124,96 @@ export const WRAPPER_JS = String.raw`(function () {
     stage.style.visibility = st.hidden ? "hidden" : "visible";
   }
 
+  // Low-spec mode's frame cap (fps null: no cap). One schedule for this page and the HUD frame: they
+  // share a main thread, and two grids of 30 would interleave into 60 frames a second.
+  var has = function (o, k) {
+    return Object.prototype.hasOwnProperty.call(o, k);
+  };
+  var limiter = { fps: null, due: 0, pending: false, entries: [], nativeRaf: window.requestAnimationFrame.bind(window) };
+  function capRun(t) {
+    var interval = limiter.fps ? 1000 / limiter.fps : 0;
+    // The clock, not the frame time: a frame's time can be most of a frame earlier than now.
+    var now = performance.now();
+    if (interval && now + 4 < limiter.due) {
+      limiter.nativeRaf(capRun);
+      return;
+    }
+    limiter.pending = false;
+    // The next frame is due one interval later on the grid (from now when far behind): the display
+    // frames nearest it are used, so the average holds at any refresh rate.
+    if (interval) limiter.due = limiter.due + interval > now ? limiter.due + interval : now + interval;
+    var live = [];
+    for (var i = 0; i < limiter.entries.length; i++) {
+      var en = limiter.entries[i];
+      try {
+        // A HUD frame removed or navigated away: its window is done.
+        if (!en.w.closed && en.w.document && en.w.document.defaultView === en.w) live.push(en);
+      } catch (e) {}
+    }
+    limiter.entries = live;
+    for (var j = 0; j < live.length; j++) {
+      var q = live[j].queue;
+      live[j].queue = {};
+      // This frame's callbacks: one cancelled by an earlier one of the same frame doesn't run.
+      live[j].running = q;
+      for (var id in q) {
+        if (!has(q, id)) continue;
+        try {
+          // Each window's callbacks get the frame time on its own clock.
+          q[id](t + live[j].offset);
+        } catch (err) {
+          setTimeout(function () {
+            throw err;
+          }, 0);
+        }
+      }
+      live[j].running = null;
+    }
+  }
+  function capSchedule() {
+    if (limiter.pending) return;
+    limiter.pending = true;
+    var wait = limiter.fps ? limiter.due - 4 - performance.now() : 0;
+    if (wait > 1) setTimeout(function () { limiter.nativeRaf(capRun); }, wait);
+    else limiter.nativeRaf(capRun);
+  }
+  function capWindow(w) {
+    if (!w || w.__mfFrameCap) return;
+    var en;
+    try {
+      var origin = performance.timeOrigin && w.performance.timeOrigin ? performance.timeOrigin - w.performance.timeOrigin : 0;
+      // Ids far above the browser's own, so a cancel of one requested before this was set up still works.
+      en = { w: w, queue: {}, running: null, nextId: 1000000000, offset: origin, nativeCancel: w.cancelAnimationFrame.bind(w) };
+    } catch (e) {
+      return;
+    }
+    w.requestAnimationFrame = function (cb) {
+      var id = en.nextId++;
+      en.queue[id] = cb;
+      capSchedule();
+      return id;
+    };
+    w.cancelAnimationFrame = function (id) {
+      if (has(en.queue, id)) delete en.queue[id];
+      else if (en.running && has(en.running, id)) delete en.running[id];
+      else en.nativeCancel(id);
+    };
+    w.__mfFrameCap = true;
+    limiter.entries.push(en);
+  }
+  function setFrameCap(fps) {
+    var next = typeof fps === "number" && fps > 0 ? fps : null;
+    if (next === limiter.fps) return;
+    limiter.fps = next;
+    limiter.due = 0;
+    if (next) {
+      capWindow(window);
+      try {
+        if (frame && frame.contentWindow) capWindow(frame.contentWindow);
+      } catch (e) {}
+    }
+  }
+
   function createFrame() {
     if (frame) return;
     var f = document.createElement("iframe");
@@ -128,6 +223,10 @@ export const WRAPPER_JS = String.raw`(function () {
     f.setAttribute("referrerpolicy", "no-referrer");
     f.addEventListener("load", function () {
       if (frame === f) st.frameLoaded = true;
+      // The HUD page is from this origin: its animation frames follow the cap too.
+      try {
+        if (limiter.fps) capWindow(f.contentWindow);
+      } catch (e) {}
     });
     f.src = cfg.frame;
     st.frameLoaded = false;
@@ -156,6 +255,7 @@ export const WRAPPER_JS = String.raw`(function () {
     st.hidden = !!msg.hidden;
     st.stopped = !!msg.stopped;
     st.testData = !!msg.testData;
+    setFrameCap(msg.frameCap);
     document.documentElement.className = document.documentElement.className.replace(/\s*mf-test-data/g, "") + (st.testData ? " mf-test-data" : "");
     applyHidden();
     if (st.stopped) {
@@ -203,7 +303,7 @@ export const WRAPPER_JS = String.raw`(function () {
       waits.sort(function (a, b) { return a - b; });
       var lag = waits.length ? Math.round(waits[Math.floor(waits.length * 0.9)]) : 0;
       try {
-        ctl.send(JSON.stringify({ type: "perf", fps: Math.round(perf.frames / secs), worstMs: Math.round(perf.worst), pauses: perf.pauses, lagMs: lag }));
+        ctl.send(JSON.stringify({ type: "perf", fps: Math.round(perf.frames / secs), worstMs: Math.round(perf.worst), pauses: perf.pauses, lagMs: lag, frameCap: limiter.fps }));
       } catch (e) {}
     }
     perf.frames = 0;
@@ -263,7 +363,7 @@ export const WRAPPER_JS = String.raw`(function () {
   window.__mfOverlay = {
     setEdit: setEdit,
     status: function () {
-      return { connected: st.connected, frameLoaded: st.frameLoaded, stopped: st.stopped, hidden: st.hidden, reloadSeq: st.reloadSeq, mode: cfg.mode, editing: st.editing, scale: st.scale, designResolution: { width: cfg.width, height: cfg.height } };
+      return { connected: st.connected, frameLoaded: st.frameLoaded, stopped: st.stopped, hidden: st.hidden, reloadSeq: st.reloadSeq, mode: cfg.mode, editing: st.editing, scale: st.scale, designResolution: { width: cfg.width, height: cfg.height }, frameCap: limiter.fps };
     }
   };
 

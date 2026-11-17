@@ -1,5 +1,6 @@
 import { BrowserWindow, screen, session } from "electron";
 import type { Display, Event as ElectronEvent, WebContents } from "electron";
+import { applyFrameRate } from "../low-spec.ts";
 import { applyPlacementPatch, boundsPasses, placementAfterDisplayChange, resolvePlacement, toDisplayInfo } from "./placement.ts";
 import type { DisplayLike } from "./placement.ts";
 import type { OverlayStore } from "./store.ts";
@@ -119,8 +120,27 @@ export class OverlayManager {
   private pushQueued = false;
   private disabled: string | null = null;
   private started = false;
+  /** Low-spec mode's frame cap (ADR-078), or null. */
+  private frameCap: number | null = null;
 
   constructor(private readonly d: OverlayManagerDeps) {}
+
+  /**
+   * Low-spec mode's frame cap for every HUD window, open now and opened later (Electron's setFrameRate;
+   * the output page caps its own drawing too, from the engine's control message).
+   */
+  setFrameCap(fps: number | null): void {
+    this.frameCap = fps;
+    const contents = [...this.overlays.values()].map((o) => o.win).concat([...this.previews.values()].flatMap((s) => [...s].map((p) => p.win)));
+    applyFrameRate(
+      contents.filter((w) => !w.isDestroyed()).map((w) => w.webContents),
+      fps,
+    );
+  }
+
+  get currentFrameCap(): number | null {
+    return this.frameCap;
+  }
 
   /** After app ready: session hardening and display tracking. */
   init(): void {
@@ -277,6 +297,7 @@ export class OverlayManager {
     });
     wc.on("did-finish-load", () => {
       if (o.httpError) return this.fail(o, o.httpError, true);
+      if (this.frameCap !== null) applyFrameRate([wc], this.frameCap);
       o.status = "running";
       o.error = null;
       this.showIfWanted(o);
@@ -536,6 +557,7 @@ export class OverlayManager {
     win.webContents.on("did-navigate", (_e, _url, code) => (p.httpError = code >= 400 ? `HTTP ${code}` : null));
     win.webContents.on("did-finish-load", () => {
       p.status = p.httpError ? "error" : "running";
+      if (this.frameCap !== null) applyFrameRate([win.webContents], this.frameCap);
       this.changed();
     });
     win.webContents.on("did-fail-load", (_e, code, _d, _u, isMainFrame) => {

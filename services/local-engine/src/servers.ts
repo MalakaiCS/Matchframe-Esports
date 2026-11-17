@@ -34,6 +34,8 @@ import { registerIntegrationRoutes } from "./routes/integrations.ts";
 import { registerCloudRoutes } from "./routes/cloud.ts";
 import { registerCamRoutes } from "./routes/cams.ts";
 import { registerCommsRoutes } from "./routes/comms.ts";
+import { registerPerformanceRoutes } from "./routes/performance.ts";
+import { isLoopbackAddress } from "./low-spec.ts";
 import { CAM_PAGE_JS, CAMS_JS, COMPAT_CAMS_JS, camPage, injectCompatCams } from "./hud/cams-runtime.ts";
 import { COMMS_OVERLAY_JS, commsOverlayPage } from "./comms/overlay.ts";
 import { STRIP_JS, stripPage } from "./comms/strip.ts";
@@ -43,12 +45,13 @@ import type { HubClient } from "./http/ws-hub.ts";
 import { WsHub } from "./http/ws-hub.ts";
 
 
-/** A HUD output page's frame report: frames a second, longest pause (ms), pauses over 100 ms. */
+/** A HUD output page's frame report: frames a second, longest pause (ms), pauses over 100 ms, the frame cap it drew under. */
 interface PerfReport {
   at: number;
   fps: number;
   worstMs: number;
   pauses: number;
+  frameCap: number | null;
 }
 /** Frame reports are kept this long. */
 const PERF_KEEP_MS = 60_000;
@@ -132,6 +135,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   registerCloudRoutes(router, e);
   registerCamRoutes(router, e);
   registerCommsRoutes(router, e);
+  registerPerformanceRoutes(router, e);
   router.get("/api/v1/openapi.json", { permission: "public" }, () => router.openapi({ title: "MatchFrame Esports local API", version: APP_VERSION }));
 
   // ------------------------------------------------------------------ GSI ingest server
@@ -178,6 +182,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     e.emitRawGsi(payload, false);
     e.session.ingestGsi(payload, sourceId, receivedAt, text);
     e.feed.notePacket(receivedAt);
+    // Game data from a loopback address: CS2 runs on this computer (Low-spec mode's suggestion).
+    e.lowSpec.noteGameData(isLoopbackAddress(req.socket.remoteAddress));
   });
 
   // ------------------------------------------------------------------ operator hub
@@ -213,6 +219,8 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     cloud: cloudSummary(e),
     /** Bumped when account sync changed teams, players, matches or HUDs here (the console reloads those lists). */
     dataVersion: e.cloudSync.version,
+    /** Low-spec mode (ADR-078): on, its frame cap, the one-time suggestion, deferred work. Details: GET /api/v1/performance. */
+    performance: { lowSpec: e.lowSpec.on, frameCap: e.lowSpec.frameCap(), suggestion: e.lowSpec.suggestion(), deferring: e.lowSpec.deferHeavy() },
   });
   const operatorHub = new WsHub({
     onConnect: (c) => operatorHub.sendTo(c, env("state.snapshot", operatorSnapshot()), { snapshot: true }),
@@ -370,6 +378,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
     if (hudPending) clearTimeout(hudPending);
     hudPending = null;
     lastHudPush = now;
+    if (e.lowSpec.on) return pushHudLean(now);
     const built = new Map<string, HudState | null>();
     for (const c of overlayHub.clients) {
       const outputId = String(c.meta.outputId);
@@ -378,6 +387,33 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       if (!built.has(key)) built.set(key, e.hudState(outputId, variant));
       const state = built.get(key);
       if (state) overlayHub.sendTo(c, { topic: "hud.snapshot", sequence: ++hudSeq, sentAt: Date.now(), payload: state }, { snapshot: c.needsSnapshot });
+    }
+  };
+  /**
+   * Low-spec mode (ADR-078): each output's state is serialized once per push, and a client whose last
+   * state was the same (but for `dataAgeMs`, which grows every time) gets nothing; at least every
+   * HUD_RESEND_MS it gets the state again, so `dataAgeMs` stays roughly current.
+   */
+  const HUD_RESEND_MS = 5000;
+  const pushHudLean = (now: number) => {
+    const built = new Map<string, { same: string; dataAgeMs: number | null } | null>();
+    for (const c of overlayHub.clients) {
+      const outputId = String(c.meta.outputId);
+      const variant = c.meta.variant ? String(c.meta.variant) : undefined;
+      const key = `${outputId}\u0000${variant ?? ""}`;
+      if (!built.has(key)) {
+        const state = e.hudState(outputId, variant);
+        built.set(key, state ? { same: JSON.stringify({ ...state, dataAgeMs: null }), dataAgeMs: state.dataAgeMs } : null);
+      }
+      const b = built.get(key);
+      if (!b) continue;
+      if (!c.needsSnapshot && c.meta.lastHud === b.same && now - Number(c.meta.lastHudAt ?? 0) < HUD_RESEND_MS) continue;
+      // The top-level dataAgeMs is the first one in the text (the keys before it hold no such key).
+      const payload = b.dataAgeMs === null ? b.same : b.same.replace('"dataAgeMs":null', `"dataAgeMs":${b.dataAgeMs}`);
+      if (overlayHub.sendText(c, `{"topic":"hud.snapshot","sequence":${++hudSeq},"sentAt":${Date.now()},"payload":${payload}}`, { snapshot: c.needsSnapshot })) {
+        c.meta.lastHud = b.same;
+        c.meta.lastHudAt = now;
+      }
     }
   };
   e.onHudUpdate((_outputId, urgent) => pushHud(urgent));
@@ -391,28 +427,39 @@ export async function startServers(e: Engine): Promise<RunningServers> {
   // The output pages report how smoothly they draw where they run (every 5 s); kept for a minute.
   const runtimeHub = new WsHub({
     onMessage: (c, msg) => {
-      const m = msg as { type?: unknown; fps?: unknown; worstMs?: unknown; pauses?: unknown; lagMs?: unknown } | null;
+      const m = msg as { type?: unknown; fps?: unknown; worstMs?: unknown; pauses?: unknown; lagMs?: unknown; frameCap?: unknown } | null;
       if (m?.type !== "perf" || c.meta.embedded) return;
       const num = (v: unknown, max: number) => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(max, Math.round(v))) : null);
       const fps = num(m.fps, 1000);
       const worstMs = num(m.worstMs, 60_000);
       const pauses = num(m.pauses, 10_000);
       if (fps === null || worstMs === null || pauses === null) return;
+      // The frame cap the page drew under (Low-spec mode; pages before it don't say).
+      const frameCap = num(m.frameCap, 1000) || null;
+      e.lowSpec.noteOutputPerf(c.meta.mode as HudOutputMode, { fps, worstMs, frameCap });
       // An imported HUD's game data is paced by how long its pages' tasks wait (output pages before 0.9.2 don't say).
       const lagMs = num(m.lagMs, 60_000);
       const hudId = String(c.meta.hudId);
       if (lagMs !== null && e.hudLibrary.runtimeConfig(hudId)?.runtime === "compat") compat.noteLoad(hudId, c, lagMs);
       const now = Date.now();
       const kept = ((c.meta.perf as PerfReport[] | undefined) ?? []).filter((r) => now - r.at < PERF_KEEP_MS);
-      kept.push({ at: now, fps, worstMs, pauses });
+      kept.push({ at: now, fps, worstMs, pauses, frameCap });
       c.meta.perf = kept;
       if (worstMs >= HUD_STALL_MS) e.directorLog.info("hud stall", { hud: c.meta.hudId, mode: c.meta.mode, worstMs, pauses, fps });
     },
   });
   const sendControl = (c: HubClient) => {
     const ctl = e.hudLibrary.control(String(c.meta.hudId));
-    if (ctl) runtimeHub.sendTo(c, { ...ctl, testData: e.simulationRunning }, { snapshot: true });
+    if (ctl) runtimeHub.sendTo(c, { ...ctl, testData: e.simulationRunning, frameCap: e.lowSpec.frameCap() }, { snapshot: true });
   };
+  // Low-spec mode on or off: every output page gets its frame cap, and its frame reports start again
+  // (a minute of reports under another cap would read as stutter).
+  const offLowSpec = e.lowSpec.onChange(() => {
+    for (const c of runtimeHub.clients) {
+      c.meta.perf = [];
+      sendControl(c);
+    }
+  });
   let lastTestData = e.simulationRunning;
   e.hudLibrary.attachRuntime({
     action: (hudId, key, value) => compat.action(hudId, key, value),
@@ -430,10 +477,13 @@ export async function startServers(e: Engine): Promise<RunningServers> {
         const reports = ((c.meta.perf as PerfReport[] | undefined) ?? []).filter((r) => now - r.at < PERF_KEEP_MS);
         if (!reports.length) continue;
         const mode = c.meta.mode as HudOutputMode;
-        const mine = { fps: Math.min(...reports.map((r) => r.fps)), worstPauseMs: Math.max(...reports.map((r) => r.worstMs)), pauses: reports.reduce((n, r) => n + r.pauses, 0) };
+        // The frame cap of its latest report (Low-spec mode), said only when there is one.
+        const cap = reports[reports.length - 1]!.frameCap;
+        const mine: HudOutputSmoothness = { fps: Math.min(...reports.map((r) => r.fps)), worstPauseMs: Math.max(...reports.map((r) => r.worstMs)), pauses: reports.reduce((n, r) => n + r.pauses, 0), ...(cap ? { frameCap: cap } : {}) };
         const prev = out[mode];
         // The worst of each mode's outputs: the fewest frames, the longest pause.
-        out[mode] = prev ? { fps: Math.min(prev.fps, mine.fps), worstPauseMs: Math.max(prev.worstPauseMs, mine.worstPauseMs), pauses: Math.max(prev.pauses, mine.pauses) } : mine;
+        const frameCap = prev?.frameCap ?? mine.frameCap;
+        out[mode] = prev ? { fps: Math.min(prev.fps, mine.fps), worstPauseMs: Math.max(prev.worstPauseMs, mine.worstPauseMs), pauses: Math.max(prev.pauses, mine.pauses), ...(frameCap ? { frameCap } : {}) } : mine;
       }
       return out;
     },
@@ -677,6 +727,7 @@ export async function startServers(e: Engine): Promise<RunningServers> {
       if (hudPending) clearTimeout(hudPending);
       if (operatorPending) clearTimeout(operatorPending);
       offLibrary();
+      offLowSpec();
       await compat.close();
       e.hudLibrary.attachRuntime(null);
       operatorHub.closeAll();

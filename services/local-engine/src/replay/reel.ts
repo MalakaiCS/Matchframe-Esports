@@ -302,7 +302,11 @@ export class HighlightReels {
         const partial = join(work, "reel.mp4");
         const filterFile = join(work, "filter.txt");
         writeFileSync(filterFile, graph.filter);
-        const video = (await this.hasX264(ffmpeg)) ? ["-c:v", "libx264", "-preset", "medium", "-crf", "18", "-profile:v", "high"] : encoderArgs(await this.e.ffmpeg.pickEncoder("auto"), fmt.fps, 16);
+        // Low-spec mode (ADR-078): the encode waits for the live round to end, then uses a lighter preset.
+        await this.e.lowSpec.whenHeavyAllowed({ cancelled: () => slot.cancelled, onWait: () => (job.step = "Waiting for the live round to end (low-spec mode)") });
+        if (slot.cancelled) throw new Error("cancelled");
+        const light = this.e.lowSpec.on;
+        const video = (await this.hasX264(ffmpeg)) ? ["-c:v", "libx264", "-preset", light ? "veryfast" : "medium", "-crf", "18", "-profile:v", "high"] : encoderArgs(await this.e.ffmpeg.pickEncoder("auto"), fmt.fps, 16, light);
         const args = [
           "-hide_banner",
           "-nostdin",

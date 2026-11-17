@@ -5,6 +5,7 @@ import type { HudOutputEntry, HudPackage, MatchRow, OutputDraft, PublishedOutput
 import { ActionButton, Async, Badge, Checkbox, CopyButton, Details, EmptyState, Field, JsonEditor, KV, Panel, parseJsonOr } from "../../components/ui.tsx";
 import { fmtMs, fmtTime, MISSING } from "../../lib/format.ts";
 import { useApi } from "../../lib/hooks.ts";
+import { useLowSpec } from "../../lib/lowSpec.ts";
 import { usePermission } from "../../state/session.tsx";
 
 export const HUD_VARIANTS = ["live", "compact", "replay", "veto", "pre-match", "break", "post-map", "post-series", "studio"] as const;
@@ -148,7 +149,10 @@ function DraftEditor({ entry, packages, matches, onSaved }: { entry: HudOutputEn
 function OutputDetail({ entry, packages, matches, reload }: { entry: HudOutputEntry; packages: HudPackage[]; matches: MatchRow[]; reload: () => void }) {
   const reason = usePermission("hud.publish");
   const [rollbackTo, setRollbackTo] = useState<string>("");
-  const [showFrame, setShowFrame] = useState(true);
+  // Low-spec mode (ADR-078): the on-air preview stays off until shown.
+  const lowSpec = useLowSpec()?.lowSpec === true;
+  const [frameChoice, setShowFrame] = useState<boolean | null>(null);
+  const showFrame = frameChoice ?? !lowSpec;
   const [frameKey, setFrameKey] = useState(0);
   const pub = entry.published;
   const id = entry.draft.outputId;

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { HudClient } from "@matchframe/hud-sdk";
 import type { HudState } from "@matchframe/hud-sdk";
 import { DEMO_PLAYS, DEMO_SCENES, DEMO_TEST_SCENES, demoReplay, demoScene as sampleScene, type DemoOptions, type DemoPlay, type DemoScene } from "./demo.ts";
+import "./lowspec.css";
 
 export interface HudFeed {
   state: HudState | null;
@@ -54,6 +55,12 @@ export function useHud(): HudFeed {
     client.start();
     return () => client.stop();
   }, [scene]);
+  // Low-spec mode (HudState.lowSpec, ADR-078; `?lowspec=1` on demo pages): html.mf-low-spec drops the
+  // expensive effects (shared/lowspec.css and each HUD's own rules).
+  const lowSpec = feed.state?.lowSpec === true || params.get("lowspec") === "1";
+  useEffect(() => {
+    document.documentElement.classList.toggle("mf-low-spec", lowSpec);
+  }, [lowSpec]);
   return feed;
 }
 

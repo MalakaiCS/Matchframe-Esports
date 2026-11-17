@@ -5,6 +5,7 @@ import { api, ApiError, describeError } from "../api/index.ts";
 import { desktopHud } from "../api/desktop.ts";
 import { AutoDirectorCard } from "../components/AutoDirectorCard.tsx";
 import { Icon } from "../components/icons.tsx";
+import { LowSpecSuggestion } from "../components/LowSpec.tsx";
 import { useToast } from "../components/toasts.tsx";
 import { Button, ConfirmDialog, EmptyState, ErrorBox, Loading, Modal, Note } from "../components/ui.tsx";
 import { useApi, usePersistentState } from "../lib/hooks.ts";
@@ -335,6 +336,7 @@ export function HudLibraryScreen() {
         </Note>
       ) : null}
       {desktopReason && bridge ? <Note tone="neutral">{desktopReason}. The library, OBS browser sources and previews still work.</Note> : null}
+      <LowSpecSuggestion />
       <AutoDirectorCard />
       <div className="hudlib-cards">
         <HudOptions library={lib.data} onChanged={() => void lib.reload()} />

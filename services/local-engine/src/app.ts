@@ -36,7 +36,10 @@ import { CleanRadars } from "./hud/clean-radar.ts";
 import { HudLibraryService, libraryHudId, libraryOutputId } from "./hud/library.ts";
 import { HudPackageManager } from "./hud/packages.ts";
 import { migrateLegacyHuds, type LegacyHudMigration } from "./hud/compat-migration.ts";
-import { brandedFolder } from "./brand.ts";
+import { brandedFolder, legacySpelling } from "./brand.ts";
+import { heapCapFromEnv, LowSpecMode, ObsFrameCap } from "./low-spec.ts";
+import { PROVISION_SOURCE } from "./routes/live.ts";
+import { OVERLAY_SOURCE } from "./comms/overlay.ts";
 import { OutputService } from "./hud/outputs.ts";
 import { DelayBuffer } from "./live/delay.ts";
 import { KillfeedBuilder } from "./live/killfeed.ts";
@@ -50,7 +53,7 @@ import { ObsAutomation } from "./live/obs-auto.ts";
 import { ReplayLink } from "./replay/link.ts";
 import { checkFolder, StorageFolders } from "./storage.ts";
 import { ReplayTwin } from "./replay/twin.ts";
-import { ReplayGraphic } from "./replay/graphic.ts";
+import { GRAPHIC_SOURCE, ReplayGraphic } from "./replay/graphic.ts";
 import { HighlightStore } from "./replay/highlights.ts";
 import { HighlightsOnAir } from "./replay/highlights-air.ts";
 import { MapIntros } from "./replay/map-intro.ts";
@@ -231,6 +234,10 @@ export class Engine {
   readonly reels: HighlightReels;
   readonly graphics: GraphicsDirector;
   readonly obsAuto: ObsAutomation;
+  /** Low-spec mode (one PC, ADR-078): lighter HUDs, a frame cap, deferred background work. */
+  readonly lowSpec: LowSpecMode;
+  /** Low-spec mode's frame cap on the browser sources MatchFrame made in OBS. */
+  readonly obsFrameCap: ObsFrameCap;
   /** Each match's thumbnails, "Up next" screen and stingers (and OBS's stinger transitions). */
   readonly matchArt: MatchArt;
   /** Team Comms (ADR-065): both teams' TeamSpeak voices per person, delayed and mixed. */
@@ -292,6 +299,16 @@ export class Engine {
     if (this.migration.to !== this.migration.from) this.logger.info("database migrated", this.migration);
     this.secrets = new SecretStore(join(cfg.dataDir, "secrets.json"));
     this.settings = new SettingsRepo(this.db);
+    this.lowSpec = new LowSpecMode({
+      settings: this.settings,
+      // A real round in play: game data (not the simulation, not stale) in the round's live phase.
+      roundLive: () => {
+        const st = this.session.state();
+        return !!st && !st.simulated && !st.sources[0]?.stale && st.roundPhase === "live";
+      },
+      heapCapMb: heapCapFromEnv(),
+      logger: this.logger,
+    });
     this.audit = new AuditRepo(this.db);
     this.teams = new DocumentRepo(this.db, "team", Team);
     this.players = new DocumentRepo(this.db, "player", Player);
@@ -357,6 +374,18 @@ export class Engine {
       this.logger.warn("OBS disconnected; program marked DEGRADED");
     });
     this.obs.on("connected", () => this.ruleEngine.resetWatermark());
+    // The browser sources MatchFrame makes, under either spelling it finds them by (brand.ts). Not the
+    // speaker strip: it is only in the comms recording, and its timing offset is measured frame by
+    // frame from that recording (ADR-068), which a 30 fps cap would coarsen.
+    const mfSources = [PROVISION_SOURCE, GRAPHIC_SOURCE, OVERLAY_SOURCE].flatMap((n) => [n, legacySpelling(n)]);
+    this.obsFrameCap = new ObsFrameCap({ obs: this.obs, settings: this.settings, names: () => mfSources, frameCap: () => this.lowSpec.frameCap(), logger: this.logger });
+    this.obsFrameCap.attach();
+    this.lowSpec.obsStatus = () => this.obsFrameCap.status();
+    this.lowSpec.onChange(() => {
+      // HudState.lowSpec at once; the output pages' frame cap goes with their control message (servers.ts).
+      this.refreshHuds(true);
+      void this.obsFrameCap.apply();
+    });
     // The program follows OBS back to the live scene: put there by hand (after a replay played by
     // hand, say), or found there after OBS reconnected. Otherwise it stayed in a replay or DEGRADED,
     // and automatic replays waited for the live scene that was already on air.
@@ -432,12 +461,14 @@ export class Engine {
 
     this.pythonSetup = new PythonSetup({ settings: this.settings, logger: this.logger, dataDir: cfg.dataDir, workersDir: cfg.workersDir, fromEnv: cfg.pythonPath });
     this.workers = new PythonWorkerRunner(() => this.pythonSetup.interpreter(), cfg.workersDir);
-    this.training = new TrainingService({ workers: this.workers, dataDir: cfg.dataDir, demoJobs: this.demoJobs, settings: this.settings, session: this.session, logger: this.logger });
+    this.training = new TrainingService({ workers: this.workers, dataDir: cfg.dataDir, demoJobs: this.demoJobs, settings: this.settings, session: this.session, logger: this.logger, lowSpec: this.lowSpec });
     const broadcastLive = () => {
       const st = this.session.state();
       return !!st && !st.simulated && !st.sources[0]?.stale;
     };
     this.demos = new DemoLibrary(this.demoJobs, this.settings, this.workers, this.logger, cfg.dataDir, broadcastLive);
+    // Low-spec mode: demo hashing and processing wait while a round is live (also with "pause during live" off).
+    this.demos.deferHeavy = () => this.lowSpec.deferHeavy();
     this.datasetStorage = new DatasetStorage({ settings: this.settings, secrets: this.secrets, repo: this.demoJobs, runner: this.workers, library: this.demos, logger: this.logger, isLive: broadcastLive });
     this.povModel = new PovModelService({ settings: this.settings, session: this.session, builtinDir: cfg.builtinModelsDir, modelsDir: this.training.modelsDir, registry: () => this.training.registry(), logger: this.logger });
     this.bench = new DirectorBench({ workers: this.workers, repo: this.demoJobs, maps: this.maps, settings: this.settings, logger: this.logger, dataDir: cfg.dataDir, isLive: broadcastLive, povModel: this.povModel, directorConfig: () => this.session.director.config });
@@ -455,7 +486,7 @@ export class Engine {
       },
     });
     this.ffmpeg = new FfmpegTool({ dataDir: cfg.dataDir, logger: this.logger });
-    this.replayFeed = new ReplayFeed({ settings: this.settings, logger: this.logger, dataDir: cfg.dataDir, ffmpeg: this.ffmpeg, dir: () => this.replayStorage("feed") });
+    this.replayFeed = new ReplayFeed({ settings: this.settings, logger: this.logger, dataDir: cfg.dataDir, ffmpeg: this.ffmpeg, dir: () => this.replayStorage("feed"), light: () => this.lowSpec.on });
     this.hlaeCamera = new HlaeCameraServer({
       settings: this.settings,
       logger: this.logger,
@@ -845,6 +876,7 @@ export class Engine {
       radarUtility: this.settings.get("hud.radarUtility", true),
       allowUnverifiedRadar: this.settings.get("hud.allowUnverifiedRadar", false),
       art: this.hudArtForHuds(),
+      lowSpec: this.lowSpec.on,
       cleanRadarUrl: (mapName, frame) => this.cleanRadars.url(this.maps.get(mapName), frame),
     };
   }

@@ -4,6 +4,7 @@ import type { CamPlayerView, CamStatusView } from "../../api/types.ts";
 import { ActionButton, Async, Badge, Checkbox, CopyButton, Details, Field, Mono, Note, Panel } from "../../components/ui.tsx";
 import { CamPreview } from "../../lib/camPreview.ts";
 import { useApi } from "../../lib/hooks.ts";
+import { useLowSpec } from "../../lib/lowSpec.ts";
 import { Link } from "../../router.tsx";
 import { usePermission } from "../../state/session.tsx";
 
@@ -32,12 +33,12 @@ function Preview({ preview, steamId }: { preview: CamPreview; steamId: string })
   return <div ref={holder} className="cam-preview-tile" aria-label="Camera preview" />;
 }
 
-function PlayerCard({ p, preview, onChanged }: { p: CamPlayerView; preview: CamPreview; onChanged: () => void }) {
+function PlayerCard({ p, preview, onChanged }: { p: CamPlayerView; preview: CamPreview | null; onChanged: () => void }) {
   const reason = usePermission("hud.publish");
   const st = STATE[p.state];
   return (
     <div className={`cam-card ${p.onAir ? "is-on" : ""}`}>
-      {p.state === "offline" ? <div className="cam-preview-tile cam-preview-none">Not sending yet</div> : <Preview preview={preview} steamId={p.steamId} />}
+      {p.state === "offline" ? <div className="cam-preview-tile cam-preview-none">Not sending yet</div> : preview ? <Preview preview={preview} steamId={p.steamId} /> : <div className="cam-preview-tile cam-preview-none">Preview off</div>}
       <div className="cam-card-body">
         <div className="cam-card-head">
           <strong>{p.name}</strong>
@@ -85,10 +86,15 @@ export function WebCams() {
   const cams = useApi<CamStatusView>("/api/v1/cams", { refreshMs: 1000 });
   const [preview] = useState(() => new CamPreview());
   const [delaySec, setDelaySec] = useState<string | null>(null);
+  // Low-spec mode (ADR-078): no live previews unless asked for.
+  const lowSpec = useLowSpec()?.lowSpec === true;
+  const [previewChoice, setPreviewChoice] = useState<boolean | null>(null);
+  const showPreviews = previewChoice ?? !lowSpec;
   useEffect(() => {
+    if (!showPreviews) return;
     preview.start();
     return () => preview.stop();
-  }, [preview]);
+  }, [preview, showPreviews]);
   const save = (patch: Partial<Pick<CamStatusView, "enabled" | "delayMs" | "quality" | "autoApprove">>) => api.put<CamStatusView>("/api/v1/cams/settings", patch).then((r) => cams.setData(r));
 
   return (
@@ -163,13 +169,13 @@ export function WebCams() {
               </div>
             </Panel>
             {c.enabled ? (
-              <Panel title="Players" subtitle={`${live} of ${c.players.length} sending`}>
+              <Panel title="Players" subtitle={`${live} of ${c.players.length} sending`} actions={<Checkbox checked={showPreviews} onChange={setPreviewChoice} label="Live previews" hint={lowSpec ? "Off by default in low-spec mode" : "Each cam as it arrives"} />}>
                 {c.players.length === 0 ? (
                   <p className="small muted">The players appear here from the current match (Matches) or, without one, from the game data.</p>
                 ) : (
                   <div className="cam-grid">
                     {c.players.map((p) => (
-                      <PlayerCard key={p.steamId} p={p} preview={preview} onChanged={() => void cams.reload()} />
+                      <PlayerCard key={p.steamId} p={p} preview={showPreviews ? preview : null} onChanged={() => void cams.reload()} />
                     ))}
                   </div>
                 )}

@@ -59,6 +59,32 @@ client.ackSponsor(sponsorId, zone); // proof of delivery for sponsor reporting
 
 Honour the flags in the state: show a SIMULATION marker when `state.simulated` is true, dim or freeze when `state.stale` is true, and render `null` values as unknown (not zero).
 
+**Low-spec mode** (`state.lowSpec`, ADR-078; absent from older engines, treat as false): the operator runs CS2, OBS and MatchFrame on one computer and turned on **Settings → General → Performance → Low-spec mode (one PC)**. While it is true, draw lighter:
+
+- no `filter: blur()` and no `backdrop-filter`;
+- no large soft shadows (`box-shadow` or `drop-shadow` with a blur of more than a few pixels); thin inset lines used as borders are fine;
+- no animation that runs continuously (`animation-iteration-count: infinite`, a pulsing bomb, a spinning logo, a looping ticker). One-off entrances and exits may stay;
+- no short transition that smooths a value you update several times a second (a fuse bar with `transition: transform 100ms linear`, radar dots gliding between updates): it never stops, so the HUD draws every display frame. Let such bars and dots step with each update.
+
+The usual way is a class on the root, with your heavy rules undone under it:
+
+```js
+client = new HudClient({ url, onState: (state) => {
+  document.documentElement.classList.toggle("low-spec", state.lowSpec === true);
+  render(state);
+} });
+```
+
+```css
+html.low-spec .panel { box-shadow: none; }
+html.low-spec *, html.low-spec *::before, html.low-spec *::after {
+  animation-iteration-count: 1 !important;   /* looping animations play once */
+  backdrop-filter: none !important;
+}
+```
+
+The Sample CS2 HUD does exactly this (`app.js`, `styles.css`). You don't cap the frame rate yourself: while low-spec mode is on, the output page MatchFrame wraps your HUD in runs `requestAnimationFrame` in your page at most 30 times a second, and the OBS browser sources MatchFrame made are set to 30 fps. CSS animations and transitions are drawn by the browser's compositor and are not capped by the page, which is why looping ones should stop. Imported hud.json-format HUDs don't receive `HudState` and get the frame cap only.
+
 **Minimap** (`state.radar`, permission `radar.public`): `players`, `bomb` and `utility` carry 0–1 coordinates on the background. In mode `"image"`, `backgroundUrl` is a radar image (the built-in one for the map, served at `/overlay-api/radar-image/<map>`, or an operator-calibrated image); in mode `"schematic"` it is a JSON outline (`cells`, `polygons`, `regions`) at `/overlay-api/radar/<map>`; in mode `"none"` draw nothing. Player markers have `side`, `alive`, `observed`, `flashed`, `hasBomb`, `label` (observer slot) and `yawDeg`; utility has `type`, `side` (thrower) and `radius`. `cleanUrl` is MatchFrame's clean radar for the map (an SVG at `/overlay-api/radar-clean/<map>/<frame>?v=…`: navy floor, light walls, red bombsites, transparent around the map), drawn from MatchFrame's map data in the same image frame as `backgroundUrl`, so the same 0–1 coordinates place markers on either; it is `null` when the map has no map-pack geometry.
 
 **HUD images** (`state.art`, set by the operator in HUD Library → HUD images): `art.defaultPlayers.ct` / `.t` are picture URLs for players without their own `avatarUrl`, by the side they play (player n of a team in observer-slot order takes picture n, cycling); `art.maps[<mapName>]` has a `logoUrl` and an `imageUrl` for series and veto tiles; `art.icons.dead` replaces your own dead-player mark; `art.icons.trophy` is the event's trophy for a HUD with a place for it (absent from older engines). Every value can be empty or `null`; keep your own look then. The URLs are on the overlay origin (`/assets/<id>`), so the HUD's CSP allows them.

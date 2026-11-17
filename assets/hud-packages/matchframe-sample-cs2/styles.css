@@ -531,3 +531,16 @@ body {
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
+
+/* Low-spec mode (state.lowSpec: CS2, OBS and MatchFrame on one computer): app.js sets html.low-spec.
+   No large soft shadows, and the bomb ping plays once instead of looping. */
+html.low-spec .scorebug,
+html.low-spec .minimap {
+  box-shadow: none;
+}
+html.low-spec .kill {
+  box-shadow: inset 0 -3px 0 var(--kill-accent, transparent);
+}
+html.low-spec .minimap .bomb .ping {
+  animation-iteration-count: 1;
+}

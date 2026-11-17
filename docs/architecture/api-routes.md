@@ -384,6 +384,9 @@ Generated from the engine's router (`Router.routeList()`); regenerate when route
 | POST | `/api/v1/comms/calibration/clear` | program.control |
 | PUT | `/api/v1/comms/calibration` | program.control |
 | POST | `/api/v1/comms/calibration/apply` | program.control |
+| GET | `/api/v1/performance` | state.read |
+| PUT | `/api/v1/performance` | settings.manage |
+| POST | `/api/v1/performance/suggestion/dismiss` | settings.manage |
 | GET | `/api/v1/openapi.json` | public |
 
 ## WebSockets

@@ -40,38 +40,44 @@ export interface FfmpegStatus {
   canDownload: boolean;
 }
 
-/** ffmpeg's arguments for one encoder at `fps` (a keyframe every second, so clips cut on the second). */
-export function encoderArgs(encoder: Encoder, fps: number, bitrateMbps: number): string[] {
+/**
+ * ffmpeg's arguments for one encoder at `fps` (a keyframe every second, so clips cut on the second).
+ * `light` (Low-spec mode, ADR-078): the encoder's fastest preset, leaving the CPU and the GPU's
+ * encoder to CS2 and OBS on the same computer (same bitrate; a little less picture per bit).
+ */
+export function encoderArgs(encoder: Encoder, fps: number, bitrateMbps: number, light = false): string[] {
   const gop = String(Math.max(1, Math.round(fps)));
   const b = `${bitrateMbps}M`;
   const keys = ["-g", gop, "-bf", "0", "-force_key_frames", "expr:gte(t,n_forced*1)"];
   switch (encoder) {
     case "h264_nvenc":
-      return ["-c:v", "h264_nvenc", "-preset", "p4", "-tune", "ll", "-rc", "cbr", "-b:v", b, "-maxrate", b, "-bufsize", `${bitrateMbps * 2}M`, "-forced-idr", "1", ...keys];
+      return ["-c:v", "h264_nvenc", "-preset", light ? "p1" : "p4", "-tune", "ll", "-rc", "cbr", "-b:v", b, "-maxrate", b, "-bufsize", `${bitrateMbps * 2}M`, "-forced-idr", "1", ...keys];
     case "h264_qsv":
+      // veryfast is already Quick Sync's fastest preset.
       return ["-c:v", "h264_qsv", "-preset", "veryfast", "-b:v", b, "-maxrate", b, ...keys];
     case "h264_amf":
-      return ["-c:v", "h264_amf", "-usage", "lowlatency", "-rc", "cbr", "-b:v", b, ...keys];
+      return ["-c:v", "h264_amf", "-usage", "lowlatency", ...(light ? ["-quality", "speed"] : []), "-rc", "cbr", "-b:v", b, ...keys];
     case "libx264":
-      return ["-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency", "-crf", "20", "-maxrate", b, "-bufsize", `${bitrateMbps * 2}M`, "-keyint_min", gop, "-sc_threshold", "0", ...keys];
+      return ["-c:v", "libx264", "-preset", light ? "ultrafast" : "veryfast", "-tune", "zerolatency", "-crf", "20", "-maxrate", b, "-bufsize", `${bitrateMbps * 2}M`, "-keyint_min", gop, "-sc_threshold", "0", ...keys];
   }
 }
 
 /**
  * ffmpeg's video arguments for a rendered break (replay/render.ts): a fast preset that still looks
  * good, quality-based rather than a fixed bitrate (a short local file), no B-frames, a keyframe a
- * second (the render adds one at each clip's start).
+ * second (the render adds one at each clip's start). `light` (Low-spec mode): the fastest preset.
  */
-export function renderArgs(encoder: Encoder, fps: number): string[] {
+export function renderArgs(encoder: Encoder, fps: number, light = false): string[] {
   const gop = ["-g", String(Math.max(1, Math.round(fps)))];
   switch (encoder) {
     case "h264_nvenc":
-      return ["-c:v", "h264_nvenc", "-preset", "p4", "-tune", "hq", "-rc", "vbr", "-cq", "19", "-b:v", "0", "-maxrate", "40M", "-bufsize", "80M", "-bf", "0", "-forced-idr", "1", ...gop];
+      return ["-c:v", "h264_nvenc", "-preset", light ? "p1" : "p4", "-tune", "hq", "-rc", "vbr", "-cq", "19", "-b:v", "0", "-maxrate", "40M", "-bufsize", "80M", "-bf", "0", "-forced-idr", "1", ...gop];
     case "h264_qsv":
-      return ["-c:v", "h264_qsv", "-preset", "faster", "-global_quality", "20", "-bf", "0", ...gop];
+      return ["-c:v", "h264_qsv", "-preset", light ? "veryfast" : "faster", "-global_quality", "20", "-bf", "0", ...gop];
     case "h264_amf":
       return ["-c:v", "h264_amf", "-quality", "speed", "-rc", "cqp", "-qp_i", "18", "-qp_p", "20", "-bf", "0", ...gop];
     case "libx264":
+      // Already x264's fastest preset, in low-spec mode too.
       return ["-c:v", "libx264", "-preset", "ultrafast", "-tune", "fastdecode", "-crf", "18", "-bf", "0", "-forced-idr", "1", ...gop];
   }
 }

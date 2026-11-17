@@ -5,6 +5,7 @@ import type { LiveSession } from "../live/session.ts";
 import type { ModelLoadResult } from "../live/model-runtime.ts";
 import { loadContactModel } from "../live/model-runtime.ts";
 import type { Logger } from "../logger.ts";
+import type { LowSpecMode } from "../low-spec.ts";
 import type { WorkerRunner } from "./library.ts";
 
 export interface TrainingStep {
@@ -49,7 +50,16 @@ export class TrainingService {
   readonly runs: TrainingRun[] = [];
 
   constructor(
-    private readonly deps: { workers: WorkerRunner; dataDir: string; demoJobs: DemoJobRepo; settings: SettingsRepo; session: LiveSession; logger: Logger },
+    private readonly deps: {
+      workers: WorkerRunner;
+      dataDir: string;
+      demoJobs: DemoJobRepo;
+      settings: SettingsRepo;
+      session: LiveSession;
+      logger: Logger;
+      /** Low-spec mode (ADR-078): each step waits while a round is live. */
+      lowSpec?: Pick<LowSpecMode, "whenHeavyAllowed">;
+    },
   ) {}
 
   get modelsDir(): string {
@@ -83,6 +93,10 @@ export class TrainingService {
   }
 
   private async step(run: TrainingRun, name: TrainingStep["name"], args: string[], pick: (r: Record<string, unknown>) => Record<string, unknown>): Promise<Record<string, unknown>> {
+    // Low-spec mode: the next step starts once the live round is over (a step already running finishes).
+    let waited = false;
+    await this.deps.lowSpec?.whenHeavyAllowed({ onWait: () => ((waited = true), (run.progress = { message: "Waiting for the live round to end (low-spec mode)" })) });
+    if (waited) run.progress = null;
     const s: TrainingStep = { name, status: "running", summary: null };
     run.steps.push(s);
     try {
