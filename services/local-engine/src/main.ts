@@ -3,6 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Engine } from "./app.ts";
 import { loadConfig, pathList } from "./config.ts";
+import { NewerDatabaseError } from "./db/database.ts";
 import { startServers } from "./servers.ts";
 
 function repoPath(...parts: string[]): string | null {
@@ -80,7 +81,11 @@ export async function main(): Promise<void> {
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain || process.env.MATCHFRAME_ENGINE_MAIN === "1") {
   main().catch((e) => {
-    process.stderr.write(`MatchFrame engine failed to start: ${e instanceof Error ? e.message : String(e)}\n`);
-    process.exit(1);
+    const message = e instanceof Error ? e.message : String(e);
+    process.stderr.write(`MatchFrame engine failed to start: ${message}\n`);
+    // Data saved by a newer version (ADR-076): the program shows this to the operator and does not
+    // start the engine again (another start can't help).
+    if (e instanceof NewerDatabaseError && process.send) process.send({ type: "fatal", reason: "newer-database", message }, () => process.exit(1));
+    else process.exit(1);
   });
 }
