@@ -12,6 +12,7 @@ import { AutoReplaysPanel, ReplayPcPanel } from "./replays/AutoReplays.tsx";
 import { GraphicsPanel, ObsAutomationPanel } from "./replays/ProductionAutomation.tsx";
 import { HighlightReelPanel } from "./replays/HighlightReel.tsx";
 import { HighlightsOnAirPanel } from "./replays/HighlightsOnAir.tsx";
+import { MapIntrosPanel } from "./replays/MapIntros.tsx";
 import { ReplayGraphicPanel } from "./replays/ReplayGraphic.tsx";
 import { StoragePanel } from "./replays/Storage.tsx";
 
@@ -137,6 +138,7 @@ export function ReplaysScreen() {
         <GraphicsPanel />
         <ReplayGraphicPanel />
         <HighlightsOnAirPanel />
+        <MapIntrosPanel />
         <HighlightReelPanel />
         <StoragePanel />
       </div>

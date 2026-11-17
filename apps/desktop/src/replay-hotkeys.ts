@@ -11,20 +11,25 @@ import { acceleratorArg, acceleratorKey } from "./hud/validate.ts";
  *
  * Highlights on air (ADR-063): Play highlights and Stop highlights (highlights_play, highlights_stop;
  * suggested Ctrl+Shift+F9 and F10), also off until set. Skip and Hold are the replays' keys.
+ *
+ * Map intros (ADR-079): Play map intro (map_intro_play: the current map's intro; suggested
+ * Ctrl+Shift+F4), off until set like the others.
  */
 
-export const REPLAY_KEY_ACTIONS = ["skip", "hold", "stop", "highlights", "highlightsStop", "swapTeams"] as const;
+export const REPLAY_KEY_ACTIONS = ["skip", "hold", "stop", "highlights", "highlightsStop", "swapTeams", "mapIntro"] as const;
 export type ReplayKeyAction = (typeof REPLAY_KEY_ACTIONS)[number];
 export type ReplayKeys = Record<ReplayKeyAction, string | null>;
 
-export const SUGGESTED_REPLAY_KEYS: Record<ReplayKeyAction, string> = { skip: "CommandOrControl+Shift+F5", hold: "CommandOrControl+Shift+F6", stop: "CommandOrControl+Shift+F7", highlights: "CommandOrControl+Shift+F9", highlightsStop: "CommandOrControl+Shift+F10", swapTeams: "CommandOrControl+Shift+F11" };
-const NAMES: Record<ReplayKeyAction, string> = { skip: "Skip", hold: "Hold / Resume", stop: "Stop and go live", highlights: "Play highlights", highlightsStop: "Stop highlights", swapTeams: "Swap teams" };
+export const SUGGESTED_REPLAY_KEYS: Record<ReplayKeyAction, string> = { skip: "CommandOrControl+Shift+F5", hold: "CommandOrControl+Shift+F6", stop: "CommandOrControl+Shift+F7", highlights: "CommandOrControl+Shift+F9", highlightsStop: "CommandOrControl+Shift+F10", swapTeams: "CommandOrControl+Shift+F11", mapIntro: "CommandOrControl+Shift+F4" };
+const NAMES: Record<ReplayKeyAction, string> = { skip: "Skip", hold: "Hold / Resume", stop: "Stop and go live", highlights: "Play highlights", highlightsStop: "Stop highlights", swapTeams: "Swap teams", mapIntro: "Play map intro" };
 /** The engine's control-surface action each hotkey runs. */
-export const DEVICE_ACTION: Record<ReplayKeyAction, string> = { skip: "replay_skip", hold: "replay_hold", stop: "replay_stop", highlights: "highlights_play", highlightsStop: "highlights_stop", swapTeams: "teams_swap" };
+export const DEVICE_ACTION: Record<ReplayKeyAction, string> = { skip: "replay_skip", hold: "replay_hold", stop: "replay_stop", highlights: "highlights_play", highlightsStop: "highlights_stop", swapTeams: "teams_swap", mapIntro: "map_intro_play" };
 /** The highlights' hotkeys (their notifications say Highlights). */
 export const HIGHLIGHT_KEY_ACTIONS: readonly ReplayKeyAction[] = ["highlights", "highlightsStop"];
 /** Swap teams: the active match's two teams change sides on the HUDs (teams_swap; suggested Ctrl+Shift+F11). */
 export const TEAM_KEY_ACTIONS: readonly ReplayKeyAction[] = ["swapTeams"];
+/** Play map intro (its notifications say Map intro). */
+export const MAP_INTRO_KEY_ACTIONS: readonly ReplayKeyAction[] = ["mapIntro"];
 
 export interface ReplayKeysState {
   keys: ReplayKeys;
@@ -41,7 +46,7 @@ export interface ShortcutRegistry {
   unregister(accelerator: string): void;
 }
 
-const none = <T>(v: T): Record<ReplayKeyAction, T> => ({ skip: v, hold: v, stop: v, highlights: v, highlightsStop: v, swapTeams: v });
+const none = <T>(v: T): Record<ReplayKeyAction, T> => ({ skip: v, hold: v, stop: v, highlights: v, highlightsStop: v, swapTeams: v, mapIntro: v });
 
 /** For comparing two keys: CommandOrControl is Ctrl on Windows and Linux, Cmd on a Mac. */
 const keyOf = (accel: string, platform: string = process.platform) => acceleratorKey(accel.replace(/\b(CommandOrControl|CmdOrCtrl)\b/gi, platform === "darwin" ? "Command" : "Control"));
