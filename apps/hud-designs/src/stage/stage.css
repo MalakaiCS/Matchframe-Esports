@@ -115,6 +115,13 @@ body,
   opacity: 0.85;
 }
 
+/* Antonio's tall ascent puts its digits (and capitals) 0.07 em below the middle of their line box:
+   this lifts big numbers so their visible height is what gets centred. */
+.st-digits {
+  position: relative;
+  top: -0.07em;
+}
+
 /* Text that shrinks to fit (FitText): its box's width, never wider; an ellipsis only past 70 %. */
 .st-fit {
   display: block;
@@ -286,6 +293,7 @@ body,
   width: 400px;
 }
 .st-event {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -304,8 +312,39 @@ body,
   min-width: 0;
   max-width: 50%;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* With a trophy the two texts keep 40 px clear of the middle on each side. */
+.st-event.has-trophy .st-event-l,
+.st-event.has-trophy .st-event-r {
+  max-width: calc(50% - 40px);
+}
+/* The trophy (HUD images): centred on the line, standing on its bottom edge and rising above it, at
+   most 46 px tall and 64 px wide with its shape kept (the reference's cup is about 43 px tall). */
+.st-trophy {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 64px;
+  height: 46px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: st-fade 0.4s ease-out both;
+}
+.st-trophy img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+/* Labels (simulation, paused data, replay) step right of a trophy rising above the line. */
+.st-stage.has-trophy .st-labels {
+  left: calc(50% + 40px);
+  transform: none;
 }
 .st-sb {
   position: relative;
@@ -375,14 +414,28 @@ body,
 .st-sb-pips i.is-won {
   background: var(--st-ink);
 }
+/* The score: centred over the side-colour line under it (a fixed 46 px, as the reference has it). */
 .st-sb-score {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 106px;
+  width: 46px;
   display: flex;
+  align-items: center;
   justify-content: center;
   padding: 0 0 4px;
   font-size: 54px;
   font-weight: 700;
   line-height: 1;
+  white-space: nowrap;
+}
+.st-sb-right .st-sb-score {
+  left: auto;
+  right: 106px;
+}
+.st-ink {
+  position: relative;
 }
 .st-sb-num {
   display: inline-block;
@@ -630,6 +683,20 @@ body,
   align-items: flex-end;
   gap: 0;
 }
+/* The killfeed's place: under the sponsor plate (y 129) whether or not a sponsor shows; at the top
+   on the compact page, which has none. */
+.st-feed {
+  position: absolute;
+  top: 97px;
+  right: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.st-stage.is-compact .st-feed {
+  position: static;
+}
 .st-sponsor {
   display: flex;
   align-items: center;
@@ -840,7 +907,7 @@ body,
   display: flex;
   flex-direction: column;
   flex: none;
-  width: 92px;
+  width: 104px;
   min-width: 0;
   padding: 3px 0 0 8px;
 }
@@ -903,15 +970,16 @@ body,
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: 42px 26px;
+  column-gap: 6px;
   min-width: 0;
-  padding: 0 6px 0 12px;
+  padding: 0 6px 0 8px;
   transition:
     opacity 0.2s,
     transform 0.3s var(--st-out);
 }
 .st-card-right .st-card-gear {
   grid-template-columns: auto minmax(0, 1fr);
-  padding: 0 12px 0 6px;
+  padding: 0 8px 0 6px;
 }
 .st-card-guns {
   grid-column: 1;
@@ -921,7 +989,7 @@ body,
   gap: 6px;
   min-width: 0;
   overflow: hidden;
-  padding-top: 12px;
+  padding-top: 2px;
   color: #ffffff;
 }
 .st-card-right .st-card-guns {
@@ -936,15 +1004,15 @@ body,
   min-width: 0;
   object-fit: contain;
 }
+/* The health, its digits centred in the top row (42 px) like the weapon beside it. */
 .st-card-hp {
   grid-column: 2;
   grid-row: 1;
   min-width: 44px;
-  padding-top: 4px;
   text-align: right;
   font-size: 39px;
   font-weight: 700;
-  line-height: 38px;
+  line-height: 42px;
 }
 .st-card-right .st-card-hp {
   grid-column: 1;
@@ -991,11 +1059,12 @@ body,
 .st-armor {
   color: #eef2f7;
 }
-/* Round kills: small marks along the card's top edge, inside it, over the weapon column. */
+/* Round kills: diamonds sitting on the card's top edge over the weapon column (an overlay: above the
+   observed frame, moving nothing; five stay within the card's width and the gap above it). */
 .st-card-rk {
   position: absolute !important;
-  top: 4px;
-  z-index: 2;
+  top: -7px;
+  z-index: 4;
   display: flex;
   align-items: center;
   gap: 1px;
@@ -1003,16 +1072,16 @@ body,
   animation: st-fade 0.25s both;
 }
 .st-card-left .st-card-rk {
-  left: 164px;
+  left: 172px;
 }
 .st-card-right .st-card-rk {
-  right: 164px;
+  right: 172px;
   flex-direction: row-reverse;
 }
 .st-rk {
   display: block;
-  width: 10px;
-  height: 10px;
+  width: 13px;
+  height: 13px;
 }
 /* Dead: the card shrinks to the name and photo with a skull beside it. */
 .st-card-skull {
@@ -1031,10 +1100,10 @@ body,
     transform 0.35s var(--st-out) 0.1s;
 }
 .st-card-left .st-card-skull {
-  left: 152px;
+  left: 164px;
 }
 .st-card-right .st-card-skull {
-  right: 152px;
+  right: 164px;
 }
 .st-card-skull.is-art img {
   width: 42px;
@@ -1044,10 +1113,10 @@ body,
 }
 .st-card.is-dead .st-card-shape {
   background: rgba(58, 62, 70, 0.88);
-  clip-path: inset(0 calc(100% - 208px) 0 0);
+  clip-path: inset(0 calc(100% - 220px) 0 0);
 }
 .st-card-right.is-dead .st-card-shape {
-  clip-path: inset(0 0 0 calc(100% - 208px));
+  clip-path: inset(0 0 0 calc(100% - 220px));
 }
 .st-card.is-dead .st-card-slot {
   background: #6a6f78;
@@ -1079,7 +1148,7 @@ body,
   position: absolute !important;
   top: 0;
   bottom: 0;
-  width: 156px;
+  width: 144px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1229,9 +1298,6 @@ body,
   font-size: 26px;
   line-height: 26px;
 }
-.st-mvp-stats .mf-icon {
-  margin-top: -3px;
-}
 .st-mvp-sep {
   width: 1px;
   height: 20px;
@@ -1254,9 +1320,6 @@ body,
 }
 .st-mvp-right .st-mvp-hp {
   flex-direction: row-reverse;
-}
-.st-mvp-hp .mf-icon {
-  margin-top: -3px;
 }
 @keyframes st-mvp-in {
   from {
@@ -1394,12 +1457,12 @@ body,
   gap: 2px;
   flex: none;
   padding: 4px 2px 0 0;
-  font-size: 17px;
+  font-size: 16px;
 }
 .st-obs-kad i,
 .st-obs-kad .mf-icon,
 .st-obs-kad .st-ico {
-  margin-left: 4px;
+  margin-left: 3px;
   font-style: normal;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.7);
@@ -1445,7 +1508,7 @@ body,
   flex: 1;
   min-width: 0;
   display: block;
-  padding: 1px 8px 0 10px;
+  padding: 1px 6px 0 8px;
   line-height: 36px;
   overflow: hidden;
   font-size: 27px;
@@ -1459,10 +1522,12 @@ body,
   align-items: center;
   justify-content: center;
   flex: none;
+  gap: 2px;
   min-width: 60px;
-  padding: 4px 8px 0 4px;
+  padding: 0 8px 0 4px;
   font-size: 30px;
   font-weight: 700;
+  line-height: 1;
 }
 .st-obs-hp.is-low {
   color: #ff8a8f;

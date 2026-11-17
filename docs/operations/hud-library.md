@@ -10,7 +10,7 @@ MatchFrame opens into the **HUD Library**: the HUDs installed on this computer, 
    - the **MatchFrame Broadcast HUD** (built in);
    - the **MatchFrame Sample CS2 HUD**, a small package to copy and learn from;
    - the **Pro CS2 HUD**, a full broadcast HUD adapted from an open-source CS2 React HUD template (its source in `apps/hud-template` is a starter kit for your own);
-   - **Vector**, **Lineup** and **Stage**, MatchFrame's own broadcast HUDs. Vector puts the teams in columns at the sides; Lineup puts all ten players in one row along the bottom; Stage has a tournament-stage layout on royal-blue panels: five player cards filled with the side colour in each bottom corner, the round MVP's tall card, the observed player's cam (or picture) between them, the series strip over the minimap, and a full-width scoreboard with each team's economy, loss bonus and timeouts in freeze time and timeouts. Their source is in `apps/hud-designs`.
+   - **Vector**, **Lineup** and **Stage**, MatchFrame's own broadcast HUDs. Vector puts the teams in columns at the sides; Lineup puts all ten players in one row along the bottom; Stage has a tournament-stage layout on royal-blue panels: five player cards filled with the side colour in each bottom corner, the round MVP's tall card, the observed player's cam (or picture) between them, the series strip over the minimap, and a full-width scoreboard with each team's economy, loss bonus and timeouts during tactical timeouts and tech or match pauses (freeze time keeps the cards), and a trophy from HUD images in the middle of the event line. Their source is in `apps/hud-designs`.
 
      ![Vector HUD](../screenshots/hud/hud-vector.jpg)
      ![Lineup HUD](../screenshots/hud/hud-lineup.jpg)
@@ -55,16 +55,17 @@ Every bundled HUD shows a minimap (top left) and a killfeed (top right), each in
 
 - **Player pictures:** up to five for the Counter-Terrorists and five for the Terrorists. A player without their own photo (Players → photo) shows the picture for the side they play: player 1 of a team in observer-slot order takes picture 1, player 2 picture 2, and so on; with fewer pictures they repeat.
 - **Dead player icon:** replaces the HUD's own mark for a dead player.
+- **Trophy:** shown by a HUD with a place for it (the Stage HUD: centred in the event line over the score bar, rising above it). A PNG, WebP or SVG with a transparent background looks best. Add only a trophy image you have the right to use.
 - **Maps:** a logo and a picture for each map MatchFrame knows, shown on series and veto tiles.
 
 PNG, JPG, WebP, SVG or GIF, up to 20 MB each. **Upload** (or **Replace**) and **Remove** save at once, and running HUDs (desktop, previews, OBS) show the change straight away, without a reload. Who uses what:
 
-| HUD | Player pictures | Map logos and pictures | Dead player icon |
-|---|---|---|---|
-| Vector, Lineup | player cards and the observed player | series tiles | dead players' cards |
-| Stage | player cards, the round MVP card, the scoreboard's rows and the observed player without a cam | series strip (the live map's picture behind it) | dead players' cards |
-| MatchFrame Broadcast HUD (Classic, Minimal, Arena) | observed player | series strip, pre-match, break, post-series and veto screens | player panels, in place of the skull |
-| Pro CS2 HUD | player rows and observed player | series maps in freeze time | player rows, where the health was |
+| HUD | Player pictures | Map logos and pictures | Dead player icon | Trophy |
+|---|---|---|---|---|
+| Vector, Lineup | player cards and the observed player | series tiles | dead players' cards | not shown |
+| Stage | player cards, the round MVP card, the scoreboard's rows and the observed player without a cam | series strip (the live map's picture behind it) | dead players' cards | the middle of the event line (setting **Trophy in the event line**) |
+| MatchFrame Broadcast HUD (Classic, Minimal, Arena) | observed player | series strip, pre-match, break, post-series and veto screens | player panels, in place of the skull | not shown |
+| Pro CS2 HUD | player rows and observed player | series maps in freeze time | player rows, where the health was | not shown |
 
 Imported hud.json-format HUDs keep their own pictures, and the Sample CS2 HUD does not use them. HUD images are saved on this computer (the setting `hud.art`); account sync does not share them yet, so add them on each computer that runs HUDs. HUD packages read them from `state.art` ([extensions](../extensions.md)).
 

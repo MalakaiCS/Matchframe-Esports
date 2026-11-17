@@ -10,7 +10,7 @@ import { ScoreBar } from "./ScoreBar.tsx";
 import { Scoreboard } from "./Scoreboard.tsx";
 import { TopLeft } from "./TopLeft.tsx";
 import { TopRight } from "./TopRight.tsx";
-import { colorOf, mix, readSettings, scoreboardPhase, sideColor } from "./util.ts";
+import { colorOf, mix, readSettings, scoreboardPhase, sideColor, trophyOf } from "./util.ts";
 
 /** The `replay` entry point: the replay graphic only (for the replay scene). */
 const REPLAY_LAYER = isReplayLayer();
@@ -30,9 +30,10 @@ function useStageScale(): number {
 /**
  * Stage HUD: the series strip and minimap top left; the event line, score bar and players-alive
  * badge top centre; sponsor slot and killfeed top right; five player cards in each bottom corner
- * and the observed player's cam and name bar between them. In freeze time, timeouts and other
- * breaks the cards make way for a full-width scoreboard bar along the bottom. The `compact` entry
- * point keeps the score bar, killfeed and observed player.
+ * and the observed player's cam and name bar between them. In a tactical timeout and a tech or
+ * match pause the cards make way for a full-width scoreboard bar along the bottom (freeze time and
+ * half time keep the cards). The `compact` entry point keeps the score bar, killfeed and observed
+ * player.
  */
 export default function App() {
   const { state, receivedAt } = useHud();
@@ -65,7 +66,7 @@ export default function App() {
   } as CSSProperties;
   return (
     <IconPackProvider pack={state.art.iconPack}>
-      <div className={`st-stage panel-${settings.panelColor} ${board ? "is-board" : "is-live"} ${compact ? "is-compact" : ""} ${state.stale ? "is-stale" : ""}`} style={vars} data-phase={phase}>
+      <div className={`st-stage panel-${settings.panelColor} ${board ? "is-board" : "is-live"} ${compact ? "is-compact" : ""} ${state.stale ? "is-stale" : ""} ${!compact && trophyOf(state, settings) ? "has-trophy" : ""}`} style={vars} data-phase={phase}>
         {compact ? null : <TopLeft state={state} settings={settings} />}
         <ScoreBar state={state} receivedAt={receivedAt} settings={settings} compact={compact} boardOn={board && settings.showScoreboard && !compact} />
         <TopRight state={state} settings={settings} compact={compact} />

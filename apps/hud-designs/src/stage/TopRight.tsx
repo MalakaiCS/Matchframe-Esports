@@ -3,7 +3,7 @@ import type { HudKillfeedEntry, HudState } from "@matchframe/hud-sdk";
 import { useNow } from "../shared/useHud.ts";
 import { FitText } from "./bits.tsx";
 import { Blinded, DeadMark, Headshot, Weapon } from "./icons.tsx";
-import { DEMO, type Settings } from "./util.ts";
+import { DEMO, DEMO_NO_SPONSOR, type Settings } from "./util.ts";
 
 type Placement = NonNullable<HudState["sponsors"][string]>;
 
@@ -13,7 +13,8 @@ type Placement = NonNullable<HudState["sponsors"][string]>;
  */
 export function SponsorSpot({ sponsor, className }: { sponsor: Placement | null | undefined; className: string }) {
   if (!sponsor) {
-    if (!DEMO) return null;
+    // Demo pages show where the sponsor goes (`?sponsor=none`: nothing, as live with none scheduled).
+    if (!DEMO || DEMO_NO_SPONSOR) return null;
     return (
       <div className={`st-sponsor ${className} is-demo`}>
         <span className="st-sponsor-name">YOUR SPONSOR</span>
@@ -82,13 +83,21 @@ const Killfeed = memo(function Killfeed({ state, rows }: { state: HudState; rows
   );
 });
 
-/** Top right: the sponsor slot (top bar placement), and the killfeed under it. */
+/**
+ * Top right: the sponsor slot (top bar placement), and the killfeed at its own place under it, which
+ * stays put whether a sponsor is on, scheduled later or none (the compact page has no sponsor: its
+ * killfeed sits at the top).
+ */
 export function TopRight({ state, settings, compact }: { state: HudState; settings: Settings; compact: boolean }) {
   const sponsor = !compact && settings.showSponsors ? <SponsorSpot sponsor={state.sponsors.top_bar} className="st-sponsor-top" /> : null;
   return (
     <div className="st-topright">
       {sponsor}
-      {settings.showKillfeed ? <Killfeed state={state} rows={settings.killfeedRows} /> : null}
+      {settings.showKillfeed ? (
+        <div className="st-feed">
+          <Killfeed state={state} rows={settings.killfeedRows} />
+        </div>
+      ) : null}
     </div>
   );
 }

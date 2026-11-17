@@ -90,6 +90,7 @@ describe("HUD images screen", () => {
     expect(third.disabled).toBe(true);
     expect(third.title).toBe("Add CT player 2's picture first");
     expect(screen.getByLabelText("Upload Dead player icon")).toBeTruthy();
+    expect(screen.getByLabelText("Upload Trophy")).toBeTruthy();
     expect(screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"))).toEqual(expect.arrayContaining(["Dust II", "Mirage"]));
     expect((within(slot("Mirage logo")).getByRole("img") as HTMLImageElement).getAttribute("src")).toBe(`/assets/${ID(2)}`);
     expect(within(slot("Mirage picture")).queryByRole("img")).toBeNull();
@@ -111,6 +112,18 @@ describe("HUD images screen", () => {
     await waitFor(() => expect(e.art().maps).toEqual({ de_dust2: { logo: null, image: ID(9) } }));
     fireEvent.change(screen.getByLabelText("Upload Dead player icon"), { target: { files: [picture("skull.svg")] } });
     await waitFor(() => expect(e.art().icons.dead).toBe(ID(10)));
+  });
+
+  it("uploads, previews and removes the trophy, leaving the dead player icon as it is", async () => {
+    const e = engine({ defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: ID(1) } });
+    renderScreen();
+    expect(await screen.findByText(/The trophy shows where a HUD has a place for it/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Upload Trophy"), { target: { files: [picture("cup.png")] } });
+    await waitFor(() => expect(e.art().icons).toEqual({ dead: ID(1), trophy: ID(7) }));
+    expect((within(slot("Trophy")).getByRole("img") as HTMLImageElement).getAttribute("src")).toBe(`/assets/${ID(7)}`);
+    fireEvent.click(screen.getByRole("button", { name: "Remove Trophy" }));
+    await waitFor(() => expect(e.art().icons).toEqual({ dead: ID(1), trophy: null }));
+    expect(within(slot("Trophy")).queryByRole("img")).toBeNull();
   });
 
   it("removes a picture (the next ones move up) and refuses files that are not pictures", async () => {

@@ -18,7 +18,8 @@ const PICTURE_TYPES = ".png,.jpg,.jpeg,.webp,.svg,.gif";
 export interface HudArtSetting {
   defaultPlayers: { ct: string[]; t: string[] };
   maps: Record<string, { logo: string | null; image: string | null }>;
-  icons: { dead: string | null };
+  /** `trophy` is absent from older engines. */
+  icons: { dead: string | null; trophy?: string | null };
 }
 
 export interface HudArtResponse {
@@ -64,7 +65,7 @@ function ImageSlot({ label, hint, assetId, shape, onPick, onRemove, reason }: { 
 
 /**
  * HUD images (from the HUD Library): default player pictures for each side, the dead-player icon,
- * and a logo and picture per map. Every MatchFrame HUD uses them where it has no picture of its own;
+ * the trophy, and a logo and picture per map. Every MatchFrame HUD uses them where it has no picture of its own;
  * each change is saved at once and reaches running HUDs straight away.
  */
 export function HudImagesScreen() {
@@ -159,15 +160,23 @@ export function HudImagesScreen() {
               </section>
             </div>
           </Panel>
-          <Panel title="Marks" subtitle="Replaces a HUD's own mark.">
+          <Panel title="Marks" subtitle="The dead player icon replaces a HUD's own mark. The trophy shows where a HUD has a place for it (the Stage HUD's event line, centred over the score bar); a PNG, WebP or SVG with a transparent background looks best.">
             <div className="hudimg-row">
               <ImageSlot
                 label="Dead player icon"
                 assetId={art!.icons.dead}
                 shape="square"
                 reason={reasonFor("dead")}
-                onPick={(f) => upload("dead", f, (a, id) => ({ ...a, icons: { dead: id } }))}
-                onRemove={() => remove("dead", (a) => ({ ...a, icons: { dead: null } }))}
+                onPick={(f) => upload("dead", f, (a, id) => ({ ...a, icons: { ...a.icons, dead: id } }))}
+                onRemove={() => remove("dead", (a) => ({ ...a, icons: { ...a.icons, dead: null } }))}
+              />
+              <ImageSlot
+                label="Trophy"
+                assetId={art!.icons.trophy ?? null}
+                shape="portrait"
+                reason={reasonFor("trophy")}
+                onPick={(f) => upload("trophy", f, (a, id) => ({ ...a, icons: { ...a.icons, trophy: id } }))}
+                onRemove={() => remove("trophy", (a) => ({ ...a, icons: { ...a.icons, trophy: null } }))}
               />
             </div>
           </Panel>

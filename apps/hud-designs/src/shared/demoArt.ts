@@ -109,6 +109,24 @@ export function demoArt(): HudArt {
   };
 }
 
+/**
+ * The demo's trophy (`?trophy=1`): a generic two-handled cup on a plinth, drawn from plain shapes for
+ * MatchFrame (no event's trophy), gold with a lighter rim, transparent around it.
+ */
+export const DEMO_TROPHY = uri(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 80">` +
+    `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a8781e"/><stop offset="0.35" stop-color="#f6d77a"/><stop offset="0.6" stop-color="#e2b345"/><stop offset="1" stop-color="#94661a"/></linearGradient></defs>` +
+    `<path d="M14 13c-10 0-10 19 5 21M46 13c10 0 10 19-5 21" fill="none" stroke="url(#g)" stroke-width="4" stroke-linecap="round"/>` +
+    `<path d="M12 9h36v10c0 14-8 23-18 23S12 33 12 19z" fill="url(#g)"/>` +
+    `<rect x="10" y="6" width="40" height="5" rx="1.5" fill="#fbe7a6"/>` +
+    `<path d="M27 42h6l1 9h-8z" fill="url(#g)"/>` +
+    `<rect x="22" y="50" width="16" height="4" rx="1" fill="#fbe7a6"/>` +
+    `<path d="M19 54h22l3 8H16z" fill="url(#g)"/>` +
+    `<rect x="13" y="62" width="34" height="14" rx="1.5" fill="#6b4a12"/>` +
+    `<rect x="20" y="66" width="20" height="6" rx="1" fill="url(#g)"/>` +
+    `</svg>`,
+);
+
 /** A plain black head-and-shoulders silhouette, like a game's default player picture (test scenes). */
 export const DEMO_SILHOUETTE = uri(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140">` +

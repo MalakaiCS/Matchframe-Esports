@@ -42,6 +42,43 @@ export function FitText({ text, className = "", min = 0.7 }: { text: string; cla
   );
 }
 
+let inkCanvas: CanvasRenderingContext2D | null | undefined;
+
+/**
+ * Text moved sideways so its visible glyphs, not its advance box, are centred where it is placed
+ * (Antonio's "1" is narrow and sits to the left of its box): measured with the text's own font, again
+ * once the web fonts are in.
+ */
+export function InkCentred({ text, className = "" }: { text: string; className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const place = () => {
+      inkCanvas ??= document.createElement("canvas").getContext("2d");
+      if (!inkCanvas) return;
+      const cs = getComputedStyle(el);
+      inkCanvas.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const m = inkCanvas.measureText(text);
+      el.style.left = `${(m.width / 2 - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2).toFixed(2)}px`;
+    };
+    place();
+    let live = true;
+    const again = () => live && place();
+    void document.fonts?.ready.then(again);
+    document.fonts?.addEventListener?.("loadingdone", again);
+    return () => {
+      live = false;
+      document.fonts?.removeEventListener?.("loadingdone", again);
+    };
+  }, [text]);
+  return (
+    <span ref={ref} className={`st-ink ${className}`}>
+      {text}
+    </span>
+  );
+}
+
 /** A neutral mark for a team with neither a logo nor a usable tag (MatchFrame's own shield). */
 export function NeutralMark() {
   return (

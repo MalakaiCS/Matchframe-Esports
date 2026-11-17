@@ -16,8 +16,8 @@ export const VARIANT = params.get("variant") ?? "live";
 const DEMO = params.get("demo");
 /** How long each scene of `?demo=cycle` stays (ms). */
 const CYCLE_MS = Number(params.get("every") ?? 3500);
-/** Demo extras: `?bo=5` (best of), `?art=1` (sample HUD images), `?radar=1` (sample radar), `?logo=1` (sample team emblems). */
-const DEMO_OPTS: DemoOptions = { bestOf: params.has("bo") ? Number(params.get("bo")) || undefined : undefined, art: params.get("art") === "1", radar: params.get("radar") === "mirage" ? "mirage" : params.get("radar") === "1", logo: params.get("logo") === "1", sponsor: params.get("sponsor") === "1", iconPack: (params.get("iconpack") ?? "").split(",").filter(Boolean) };
+/** Demo extras: `?bo=5` (best of), `?art=1` (sample HUD images), `?radar=1` (sample radar), `?logo=1` (sample team emblems), `?trophy=1` (a sample trophy). */
+const DEMO_OPTS: DemoOptions = { bestOf: params.has("bo") ? Number(params.get("bo")) || undefined : undefined, art: params.get("art") === "1", radar: params.get("radar") === "mirage" ? "mirage" : params.get("radar") === "1", logo: params.get("logo") === "1", sponsor: params.get("sponsor") === "1", trophy: params.get("trophy") === "1", score: /^\d{1,2}-\d{1,2}$/.test(params.get("score") ?? "") ? (params.get("score")!.split("-").map(Number) as [number, number]) : undefined, iconPack: (params.get("iconpack") ?? "").split(",").filter(Boolean) };
 const demoScene = (s: DemoScene) => sampleScene(s, DEMO_OPTS);
 /** `?demo=replay&play=<3k|kill|ace|clutch|manual|none>&logo=1`: the replay layer with a sample clip on air. */
 const PLAY = ((DEMO_PLAYS as readonly string[]).includes(params.get("play") ?? "") ? params.get("play") : "3k") as DemoPlay;

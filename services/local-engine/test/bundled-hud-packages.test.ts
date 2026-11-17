@@ -68,7 +68,7 @@ describe("bundled HUD packages", () => {
     // The top bar and scoreboard sponsor slots read state.sponsors.
     expect(m.permissions).toContain("sponsors");
     const schema = normalizeSettingsSchema((m as { settingsSchema?: Record<string, unknown> }).settingsSchema ?? {});
-    for (const key of ["ctColor", "tColor", "showRadar", "showKillfeed", "killfeedRows", "showSponsors", "showScoreboard", "showMvp"]) expect(schema[key]).toBeDefined();
+    for (const key of ["ctColor", "tColor", "showRadar", "showKillfeed", "killfeedRows", "showSponsors", "showScoreboard", "showMvp", "showTrophy"]) expect(schema[key]).toBeDefined();
     // Out-of-range killfeed rows are refused by the settings form.
     expect(() => validateSettings(schema, { killfeedRows: 9 })).toThrow();
     // The page loads the HUD server's player cams script before its own (the observed player's cam).

@@ -1,5 +1,5 @@
 import type { HudKillfeedEntry, HudPlayer, HudSeriesMap, HudSide, HudState, HudTeam, HudWeapon } from "@matchframe/hud-sdk";
-import { DEMO_SILHOUETTE, demoArt, demoRadar, NO_ART, SAMPLE_SPONSOR_BANNER, SAMPLE_SPONSOR_PLATE } from "./demoArt.ts";
+import { DEMO_SILHOUETTE, DEMO_TROPHY, demoArt, demoRadar, NO_ART, SAMPLE_SPONSOR_BANNER, SAMPLE_SPONSOR_PLATE } from "./demoArt.ts";
 
 /**
  * Built-in sample states (fictional teams and players) for `?demo=<scene>`: thumbnails,
@@ -7,16 +7,17 @@ import { DEMO_SILHOUETTE, demoArt, demoRadar, NO_ART, SAMPLE_SPONSOR_BANNER, SAM
  * without a running program: freeze time → live → kills → bomb planted → defuse → round won → a
  * tactical timeout in the next freeze time → that round live with the last round's MVP (`mvp`, the
  * teams on the other sides, as after half time). `nocam` is the live round for a HUD to show the
- * observed player without a player cam.
+ * observed player without a player cam; `pause` a tech pause called in freeze time.
  */
-export const DEMO_SCENES = ["freeze", "live", "kill", "plant", "bomb", "defuse", "over", "timeout", "mvp", "nocam"] as const;
+export const DEMO_SCENES = ["freeze", "live", "kill", "plant", "bomb", "defuse", "over", "timeout", "mvp", "nocam", "pause"] as const;
 /**
  * Test states for a HUD's edges (`?demo=edge` …, not in the cycle): long names (ten capitals, 16 and
  * 32 characters, twelve W's, a long team name), knives, grenades and pistols in hand next to bought
  * guns, a pistol-only player, a team without a logo, black-silhouette default pictures. `edge` is a
  * live round with the observed player on the right team; `edgebomb` the bomb planted with its timer
- * while the data has paused, the team tag unusable ("?"); `edgeover` the round won with the
- * 32-character name as its MVP; `edgeboard` freeze time with the scoreboard.
+ * while the data has paused, the team tag unusable ("?"); `edgeover` the round won with Spudwrecker
+ * observed and its MVP, the 32-character name's kill in the killfeed; `edgeboard` a tactical timeout
+ * with the scoreboard.
  */
 export const DEMO_TEST_SCENES = ["edge", "edgebomb", "edgeover", "edgeboard"] as const;
 type DemoTestScene = (typeof DEMO_TEST_SCENES)[number];
@@ -31,6 +32,10 @@ export interface DemoOptions {
   logo?: boolean;
   /** The made-up SAMPLE CO sponsor in the top bar and scoreboard slots (`?sponsor=1`). */
   sponsor?: boolean;
+  /** The map score instead of the scene's (`?score=13-1`: left, right), e.g. to check one- and two-digit scores. */
+  score?: [number, number];
+  /** The demo trophy in HUD images (`?trophy=1`). */
+  trophy?: boolean;
   /** Icon names of an icon pack served at /icon-pack/ (`?iconpack=ak47,awp,…`; scripts/shots.mjs --icons). */
   iconPack?: string[];
 }
@@ -126,8 +131,8 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
   const feed: HudKillfeedEntry[] = [];
   let scoreLeft = 9;
   const roundHistory: HudState["roundHistory"] = Array.from({ length: 16 }, (_, i) => ({ roundNumber: i + 1, winner: i % 3 === 2 ? "right" : i < 9 ? "left" : i % 2 ? "right" : "left", reason: "elimination" }));
-  if (scene === "freeze" || scene === "timeout") {
-    phase = scene === "timeout" ? "timeout_t" : "freezetime";
+  if (scene === "freeze" || scene === "timeout" || scene === "pause") {
+    phase = scene === "timeout" ? "timeout_t" : scene === "pause" ? "paused" : "freezetime";
     clock = scene === "timeout" ? 23 : 14;
     ct = ct.map((p) => ({ ...p, activeWeapon: p.secondary }));
   }
@@ -177,12 +182,15 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
   t.forEach((p, i) => (t[i] = { ...p, observed: p.steamId === observed.steamId }));
   // A player who has dropped out of the game data (disconnected): life unknown.
   if (scene === "nocam") t[3] = { ...t[3]!, alive: null, health: null };
-  const series = demoSeries([1, 3, 5, 7].includes(opts.bestOf ?? 3) ? (opts.bestOf ?? 3) : 3, [scoreLeft, 7]);
+  if (opts.score) scoreLeft = opts.score[0];
+  const scoreRight = opts.score?.[1] ?? 7;
+  const series = demoSeries([1, 3, 5, 7].includes(opts.bestOf ?? 3) ? (opts.bestOf ?? 3) : 3, [scoreLeft, scoreRight]);
   if (opts.bestOf && ![1, 3, 5, 7].includes(opts.bestOf)) series.bestOf = opts.bestOf;
-  const art = { ...(opts.art ? demoArt() : NO_ART), iconPack: opts.iconPack?.length ? { names: opts.iconPack, base: "/icon-pack/" } : null };
+  const base = opts.art ? demoArt() : NO_ART;
+  const art = { ...base, icons: { ...base.icons, trophy: opts.trophy ? DEMO_TROPHY : null }, iconPack: opts.iconPack?.length ? { names: opts.iconPack, base: "/icon-pack/" } : null };
   const left = { ...team("left", L, "Northern Lights", "NRL", scoreLeft, 0, ct), seriesWins: series.left, logoUrl: opts.logo ? demoLogo("left") : null };
-  const right = { ...team("right", R, "Red Harbour", "RHB", 7, scene === "timeout" || scene === "mvp" ? 3 : 2, t), seriesWins: series.right, logoUrl: opts.logo ? demoLogo("right") : null, timeoutsRemaining: scene === "timeout" || scene === "mvp" ? 2 : 3 };
-  const live = !(scene === "freeze" || scene === "over" || scene === "timeout");
+  const right = { ...team("right", R, "Red Harbour", "RHB", scoreRight, scene === "timeout" || scene === "mvp" ? 3 : 2, t), seriesWins: series.right, logoUrl: opts.logo ? demoLogo("right") : null, timeoutsRemaining: scene === "timeout" || scene === "mvp" ? 2 : 3 };
+  const live = !(scene === "freeze" || scene === "over" || scene === "timeout" || scene === "pause");
   // Round 17's key player, kept from its end: nova's two kills and the defuse round's damage.
   const nova = ct[0]!;
   const lastRound: HudState["lastRound"] = roundHistory.some((r) => r.roundNumber === 17) ? { roundNumber: 17, winnerSide: L, mvp: { steamId: nova.steamId, kills: 2, damage: 200, health: 76, armor: 100, helmet: true } } : null;
@@ -195,7 +203,7 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     timeline: { profile: "live", delayMs: 0 },
     dataAgeMs: 0,
     stale: false,
-    match: { mapName: "de_mirage", mapDisplayName: "Mirage", roundNumber: scene === "timeout" || scene === "mvp" ? 18 : 17, phase, phaseEndsInSec: clock, clockRunning: live || scene === "freeze" || scene === "timeout", paused: false, regulationRounds: 24 },
+    match: { mapName: "de_mirage", mapDisplayName: "Mirage", roundNumber: scene === "timeout" || scene === "mvp" ? 18 : 17, phase, phaseEndsInSec: clock, clockRunning: live || scene === "freeze" || scene === "timeout", paused: scene === "pause", regulationRounds: 24 },
     left,
     right,
     observed: { ...(ct.find((p) => p.observed) ?? t.find((p) => p.observed) ?? observed), observed: true },
@@ -226,7 +234,7 @@ const EDGE_NAMES = {
 
 /** A test scene (DEMO_TEST_SCENES): the `kill`, `bomb`, `over` or `freeze` scene with the edges described there. */
 function edgeScene(scene: DemoTestScene, opts: DemoOptions): HudState {
-  const s = demoScene(scene === "edgebomb" ? "bomb" : scene === "edgeover" ? "over" : scene === "edgeboard" ? "freeze" : "kill", opts);
+  const s = demoScene(scene === "edgebomb" ? "bomb" : scene === "edgeover" ? "over" : scene === "edgeboard" ? "timeout" : "kill", opts);
   const names = new Map<string, string>();
   const rename = (team: HudTeam, list: string[]) =>
     team.players.map((p, i) => {
@@ -255,12 +263,12 @@ function edgeScene(scene: DemoTestScene, opts: DemoOptions): HudState {
     feed.push(kill("k3", left[0], right[3], "m4a1_silencer", false));
   }
   if (scene === "edgeover") {
-    // The last kill and the round's MVP are the 32-character name's.
+    // The last kill is the 32-character name's; the round's MVP is Spudwrecker.
     const last = feed[feed.length - 1]!;
     feed[feed.length - 1] = { ...last, killer: { steamId: left[2]!.steamId, name: left[2]!.name, side: left[2]!.side } };
     left[2] = { ...left[2]!, roundKills: 1 };
     left[0] = { ...left[0]!, roundKills: 1 };
-    lastRound = { roundNumber: 17, winnerSide: s.left.side!, mvp: { steamId: left[2]!.steamId, kills: 1, damage: 131, health: 31, armor: 64, helmet: true } };
+    lastRound = { roundNumber: 17, winnerSide: s.left.side!, mvp: { steamId: left[0]!.steamId, kills: 1, damage: 176, health: 76, armor: 100, helmet: true } };
   }
   const observedId = scene === "edge" ? right[1]!.steamId : scene === "edgebomb" ? left[2]!.steamId : s.observed?.steamId;
   const mark = (p: HudPlayer) => ({ ...p, observed: p.steamId === observedId });

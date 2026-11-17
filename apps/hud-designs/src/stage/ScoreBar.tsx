@@ -1,11 +1,11 @@
-import { memo, useRef } from "react";
+import { memo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { HudState, HudTeam } from "@matchframe/hud-sdk";
 import { aliveCount, clockText, isLive, roundWinner, secondsLeft, seriesBoxCount, seriesWon } from "../shared/format.ts";
 import { BombState, DeadMark, Paused } from "./icons.tsx";
 import { useNow } from "../shared/useHud.ts";
-import { TeamLogo, TimeoutPips } from "./bits.tsx";
-import { colorOf, teamVars, timeoutTeam, type Settings } from "./util.ts";
+import { FitText, InkCentred, TeamLogo, TimeoutPips } from "./bits.tsx";
+import { colorOf, teamVars, timeoutTeam, trophyOf, type Settings } from "./util.ts";
 
 /** CS2's bomb fuse (s). */
 const BOMB_SECONDS = 40;
@@ -101,25 +101,42 @@ function Half({ team, color, align, pips, won }: { team: HudTeam; color: string;
         <TeamLogo team={team} />
       </span>
       <SeriesPips count={pips} won={won} />
+      {/* The score centred over its side-colour line, on the digits' visible box. */}
       <span className="st-sb-score">
         <span key={team.score ?? 0} className="st-sb-num">
-          {team.score ?? 0}
+          <InkCentred text={String(team.score ?? 0)} />
         </span>
       </span>
     </div>
   );
 }
 
-/** The event line over the score bar: the event on the left, the stage or match on the right. */
+/**
+ * The event line over the score bar: the event on the left, the stage or match on the right and, when
+ * one is set, the trophy in the middle, standing on the line's bottom edge and rising above it; the
+ * two texts keep clear of it (shrinking a little before an ellipsis).
+ */
 function EventLine({ state, settings }: { state: HudState; settings: Settings }) {
+  const [broken, setBroken] = useState<string | null>(null);
   const left = settings.eventTitle || state.event.name || "";
   const stage = [state.event.stage, state.event.matchTitle].filter((x): x is string => !!x).join(" · ");
   const right = settings.stageTitle || stage || (state.series.bestOf ? `BEST OF ${state.series.bestOf}` : "");
-  if (!left && !right) return null;
+  const trophy = trophyOf(state, settings);
+  const cup = trophy && trophy !== broken ? trophy : null;
+  if (!left && !right && !cup) return null;
   return (
-    <div className="st-event">
-      <span className="st-event-l">{left}</span>
-      <span className="st-event-r">{right}</span>
+    <div className={`st-event ${cup ? "has-trophy" : ""}`}>
+      <span className="st-event-l">
+        <FitText text={left} min={0.8} />
+      </span>
+      {cup ? (
+        <span className="st-trophy" aria-hidden>
+          <img src={cup} alt="" onError={() => setBroken(cup)} />
+        </span>
+      ) : null}
+      <span className="st-event-r">
+        <FitText text={right} min={0.8} />
+      </span>
     </div>
   );
 }

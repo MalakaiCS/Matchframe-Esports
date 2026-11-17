@@ -93,11 +93,11 @@ export function Observed({ state, color, shown }: { state: HudState; color: stri
           </span>
           <div className="st-obs-bar">
             <span className="st-obs-slot">{slotKey(p.slot)}</span>
-            <FitText text={p.name} className="st-obs-name" />
+            <FitText text={p.name} className="st-obs-name" min={0.62} />
             <Kad p={p} />
             <span className={`st-obs-hp ${(p.health ?? 100) <= 20 ? "is-low" : ""}`}>
               <Health size={16} />
-              {p.alive === false ? 0 : (p.health ?? "–")}
+              <b className="st-digits">{p.alive === false ? 0 : (p.health ?? "–")}</b>
             </span>
           </div>
         </div>

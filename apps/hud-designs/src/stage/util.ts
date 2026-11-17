@@ -20,6 +20,8 @@ export const DEFAULTS = {
   showObserved: true,
   showScoreboard: true,
   showMvp: true,
+  /** The trophy from HUD images in the middle of the event line (shown only when one is set). */
+  showTrophy: true,
   showMoney: true,
 };
 export type Settings = typeof DEFAULTS;
@@ -50,9 +52,13 @@ export function readSettings(s: Record<string, unknown>): Settings {
     showObserved: bool("showObserved"),
     showScoreboard: bool("showScoreboard"),
     showMvp: bool("showMvp"),
+    showTrophy: bool("showTrophy"),
     showMoney: bool("showMoney"),
   };
 }
+
+/** The trophy from HUD images when the setting shows it (older engines send none). */
+export const trophyOf = (state: HudState, settings: Settings): string | null => (settings.showTrophy ? (state.art?.icons?.trophy ?? null) : null);
 
 /** A team's colour: its own, else the colour of the side it plays. */
 export const colorOf = (team: HudTeam, settings: Settings): string => teamColor(team, settings as unknown as Record<string, unknown>, { ct: settings.ctColor, t: settings.tColor });
@@ -112,10 +118,10 @@ export const teamVars = (color: string): CSSProperties =>
 export const teamName = (team: HudTeam, settings: Settings): string => (settings.teamNames === "short" ? team.shortName || team.name : team.name || team.shortName);
 
 /**
- * Whether the full-width scoreboard replaces the player cards: freeze time, timeouts, pauses,
- * half time and warm-up (the same split as the Lineup HUD: everything but a round under way or just won).
+ * Whether the full-width scoreboard replaces the player cards: only in a tactical timeout and a tech
+ * or match pause (the owner: "only on timeouts and tech pauses/match pauses"). Freeze time, half time
+ * and warm-up keep the cards and the observed player.
  */
-/** The full-width scoreboard is up only in timeouts and tech or match pauses (the owner: "only on timeouts and tech pauses/match pauses"), never in freeze time. */
 export const scoreboardPhase = (phase: HudPhase, paused = false): boolean => paused || phase === "paused" || phase === "timeout_ct" || phase === "timeout_t";
 
 /** The team that called the timeout under way, if any. */
@@ -156,4 +162,7 @@ export const slotKey = (slot: number | null): string => (slot === null ? "" : St
 export const cash = (n: number | null | undefined): string => (n === null || n === undefined ? "–" : `$${n.toLocaleString("en-US")}`);
 
 /** The page runs one of the built-in demo scenes. */
-export const DEMO = new URLSearchParams(location.search).has("demo");
+const QUERY = new URLSearchParams(typeof location === "undefined" ? "" : location.search);
+export const DEMO = QUERY.has("demo");
+/** Demo pages without the sponsor stand-in (`?sponsor=none`), as live with no sponsor scheduled. */
+export const DEMO_NO_SPONSOR = QUERY.get("sponsor") === "none";

@@ -165,6 +165,13 @@
       "group": "Elements",
       "description": "The last round's key player in a tall card in their team's list: at the round's end and the first seconds of the next round."
     },
+    "showTrophy": {
+      "type": "boolean",
+      "label": "Trophy in the event line",
+      "default": true,
+      "group": "Elements",
+      "description": "The trophy from HUD images (HUD Library → HUD images → Marks) centred in the line over the score bar; nothing shows until one is uploaded."
+    },
     "showMoney": {
       "type": "boolean",
       "label": "Player money",

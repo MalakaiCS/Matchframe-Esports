@@ -3,7 +3,7 @@ import type { HudArt } from "@matchframe/hud-sdk";
 
 /**
  * HUD images (HUD Library → HUD images): pictures the operator uploads for every MatchFrame HUD —
- * default player pictures by side, a logo and a picture per map, and a dead-player icon. Stored as
+ * default player pictures by side, a logo and a picture per map, a dead-player icon and a trophy. Stored as
  * asset ids (POST /api/v1/assets) in the program setting `hud.art`, on this computer only.
  */
 export const HUD_ART_KEY = "hud.art";
@@ -21,11 +21,12 @@ export const HudArtSetting = z.object({
     .record(z.string().regex(/^[a-z0-9_]{1,64}$/, "map names are like de_mirage"), z.object({ logo: HudArtAsset.nullable().default(null), image: HudArtAsset.nullable().default(null) }))
     .refine((m) => Object.keys(m).length <= HUD_ART_MAX_MAPS, `at most ${HUD_ART_MAX_MAPS} maps`)
     .default({}),
-  icons: z.object({ dead: HudArtAsset.nullable().default(null) }).default({ dead: null }),
+  /** The dead player's icon; the trophy (a HUD that has a place for it shows it, e.g. the Stage HUD's event line). */
+  icons: z.object({ dead: HudArtAsset.nullable().default(null), trophy: HudArtAsset.nullable().default(null) }).default({ dead: null, trophy: null }),
 });
 export type HudArtSetting = z.infer<typeof HudArtSetting>;
 
-export const emptyHudArt = (): HudArtSetting => ({ defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null } });
+export const emptyHudArt = (): HudArtSetting => ({ defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null, trophy: null } });
 
 /** The stored setting without empty map entries (an unreadable value counts as none). */
 export function normalizeHudArt(value: unknown): HudArtSetting {
@@ -37,7 +38,7 @@ export function normalizeHudArt(value: unknown): HudArtSetting {
 
 /** Every asset id the setting refers to. */
 export function hudArtAssets(a: HudArtSetting): string[] {
-  return [...a.defaultPlayers.ct, ...a.defaultPlayers.t, ...Object.values(a.maps).flatMap((m) => [m.logo, m.image]), a.icons.dead].filter((id): id is string => !!id);
+  return [...a.defaultPlayers.ct, ...a.defaultPlayers.t, ...Object.values(a.maps).flatMap((m) => [m.logo, m.image]), a.icons.dead, a.icons.trophy].filter((id): id is string => !!id);
 }
 
 /** What HUDs receive: overlay-server addresses of the pictures. */
@@ -46,6 +47,6 @@ export function hudArtState(a: HudArtSetting, url: (assetId: string) => string |
   return {
     defaultPlayers: { ct: a.defaultPlayers.ct.map(u).filter((x): x is string => !!x), t: a.defaultPlayers.t.map(u).filter((x): x is string => !!x) },
     maps: Object.fromEntries(Object.entries(a.maps).map(([name, m]) => [name, { logoUrl: u(m.logo), imageUrl: u(m.image) }])),
-    icons: { dead: u(a.icons.dead) },
+    icons: { dead: u(a.icons.dead), trophy: u(a.icons.trophy) },
   };
 }

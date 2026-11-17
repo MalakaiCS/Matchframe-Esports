@@ -53,7 +53,7 @@ export function registerHudLibraryRoutes(r: Router, e: Engine): void {
     const missing = hudArtAssets(req.body).filter((id) => !existsSync(join(assetDir(e), id)));
     if (missing.length) throw new HttpError(400, `upload the picture first (unknown: ${missing.join(", ")})`, "unknown_asset");
     const saved = e.setHudArt(req.body);
-    e.audit.record(req.principal!.label, "hud.art", null, { players: { ct: saved.defaultPlayers.ct.length, t: saved.defaultPlayers.t.length }, maps: Object.keys(saved.maps), dead: !!saved.icons.dead });
+    e.audit.record(req.principal!.label, "hud.art", null, { players: { ct: saved.defaultPlayers.ct.length, t: saved.defaultPlayers.t.length }, maps: Object.keys(saved.maps), dead: !!saved.icons.dead, trophy: !!saved.icons.trophy });
     return hudArt();
   });
 

@@ -149,7 +149,9 @@ describe("upgrade from 0.11.0", () => {
       expect(r.status, asset).toBe(200);
       expect(Buffer.from(await r.arrayBuffer()).subarray(1, 4).toString()).toBe("PNG");
     }
-    expect(e.hudArtSetting()).toEqual(before.settings["hud.art"]);
+    // HUD images as they were; the trophy slot (added later) starts empty.
+    const art = before.settings["hud.art"] as { icons: Record<string, unknown> };
+    expect(e.hudArtSetting()).toEqual({ ...art, icons: { ...art.icons, trophy: null } });
   });
 
   it("brings the imported HUD up to date: new id and folder, runtime compat, its settings and token kept", async () => {

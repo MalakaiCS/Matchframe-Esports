@@ -124,7 +124,7 @@ const Card = memo(function Card(p: CardProps) {
       </span>
       <span className="st-card-gear">
         <span className="st-card-guns">{p.main ? <Weapon weapon={p.main} className="st-gun" /> : null}</span>
-        <span className={`st-card-hp ${p.health <= 20 ? "is-low" : ""}`}>{dead ? "" : p.health}</span>
+        <span className={`st-card-hp st-digits ${p.health <= 20 ? "is-low" : ""}`}>{dead ? "" : p.health}</span>
         <span className="st-card-util">
           <Nades list={p.nades} size={19} />
         </span>
@@ -178,14 +178,14 @@ const MvpCard = memo(function MvpCard(p: MvpProps) {
         <span className="st-mvp-round">ROUND {p.roundNumber} STATS</span>
         <span className="st-mvp-stats">
           <Kills size={21} />
-          <b>{p.kills}</b>
+          <b className="st-digits">{p.kills}</b>
           <i className="st-mvp-sep" />
-          <span className="st-mvp-dmg">DMG</span>
-          <b>{p.damage}</b>
+          <span className="st-mvp-dmg st-digits">DMG</span>
+          <b className="st-digits">{p.damage}</b>
         </span>
         <span className="st-mvp-hp">
           <Health size={19} />
-          <b>{p.health}</b>
+          <b className="st-digits">{p.health}</b>
           {p.armor > 0 ? <Armor helmet={p.helmet} size={21} /> : null}
         </span>
       </span>

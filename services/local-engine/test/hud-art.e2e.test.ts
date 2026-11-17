@@ -52,7 +52,7 @@ describe("HUD images and the clean radar (real HTTP/WS servers)", () => {
 
   it("lists the maps MatchFrame knows and starts empty", async () => {
     const r = (await (await api("/api/v1/hud/art")).json()) as { art: unknown; maps: { mapName: string; displayName: string }[] };
-    expect(r.art).toEqual({ defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null } });
+    expect(r.art).toEqual({ defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null, trophy: null } });
     expect(r.maps.map((m) => m.mapName)).toEqual(expect.arrayContaining(["de_ancient", "de_anubis", "de_cache", "de_dust2", "de_inferno", "de_mirage", "de_nuke", "de_overpass", "de_train", "de_vertigo"]));
     expect(r.maps.find((m) => m.mapName === "de_dust2")?.displayName).toBe("Dust II");
     expect(r.maps.some((m) => m.mapName === "de_synthetic")).toBe(false);
@@ -64,7 +64,7 @@ describe("HUD images and the clean radar (real HTTP/WS servers)", () => {
     ws.on("message", (d) => states.push((JSON.parse(String(d)) as { payload: HudState }).payload));
     await new Promise((r) => ws.once("message", r));
     // No icon pack loaded on this computer: the HUDs keep their own icons.
-    expect(states[0]!.art).toEqual({ defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null }, iconPack: null });
+    expect(states[0]!.art).toEqual({ defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null, trophy: null }, iconPack: null });
 
     const put = (art: unknown) => api("/api/v1/hud/art", { method: "PUT", body: JSON.stringify(art) });
     expect((await put({ icons: { dead: "../../secrets.json" } })).status).toBe(400);
@@ -99,7 +99,33 @@ describe("HUD images and the clean radar (real HTTP/WS servers)", () => {
     const viewer = engine.secrets.issue("viewer", "viewer test");
     expect((await fetch(`http://127.0.0.1:${ports.api}/api/v1/hud/art`, { method: "PUT", headers: { authorization: `Bearer ${viewer.token}`, "content-type": "application/json" }, body: "{}" })).status).toBe(403);
     // Cleared again.
-    expect(((await (await put({})).json()) as { art: unknown }).art).toEqual({ defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null } });
+    expect(((await (await put({})).json()) as { art: unknown }).art).toEqual({ defaultPlayers: { ct: [], t: [] }, maps: {}, icons: { dead: null, trophy: null } });
+  });
+
+  it("serves the trophy to HUDs and takes it away again", async () => {
+    const ws = new WebSocket(`ws://127.0.0.1:${ports.overlay}/overlay-ws?output=main&t=${engine.outputs.token("main")}`);
+    const states: HudState[] = [];
+    ws.on("message", (d) => states.push((JSON.parse(String(d)) as { payload: HudState }).payload));
+    await new Promise((r) => ws.once("message", r));
+    expect(states[0]!.art.icons.trophy).toBeNull();
+    const put = (art: unknown) => api("/api/v1/hud/art", { method: "PUT", body: JSON.stringify(art) });
+    // Only uploaded pictures, as for the other slots.
+    expect((await put({ icons: { trophy: "../trophy.png" } })).status).toBe(400);
+    expect((await put({ icons: { trophy: await upload("cup.webm", Buffer.from("webm")) } })).status).toBe(400);
+
+    const trophy = await upload("trophy.png", png(42));
+    const saved = await put({ icons: { dead: null, trophy } });
+    expect(saved.status).toBe(200);
+    expect(((await saved.json()) as { art: { icons: unknown } }).art.icons).toEqual({ dead: null, trophy });
+    await expect.poll(() => states.at(-1)?.art.icons.trophy ?? null).toBe(`/assets/${trophy}`);
+    const pic = await fetch(`http://127.0.0.1:${ports.overlay}/assets/${trophy}`);
+    expect(pic.status).toBe(200);
+    expect(pic.headers.get("content-type")).toContain("image/png");
+
+    // Removed: HUDs get null and keep their event line as it was.
+    expect((await put({ icons: { dead: null, trophy: null } })).status).toBe(200);
+    await expect.poll(() => states.at(-1)?.art.icons.trophy).toBeNull();
+    ws.close();
   });
 
   it("serves the clean radar in the frame of the radar background, with round damage on players", async () => {
