@@ -2,7 +2,7 @@ import { memo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { HudPhase, HudState, HudTeam } from "@matchframe/hud-sdk";
 import { aliveCount, clockText, isLive, roundWinner, secondsLeft, seriesBoxCount, seriesWon } from "../shared/format.ts";
-import { BombState, DeadMark } from "./icons.tsx";
+import { BombState, DeadMark, Paused } from "./icons.tsx";
 import { useNow } from "../shared/useHud.ts";
 import { FitText, InkCentred, TeamLogo, TimeoutPips } from "./bits.tsx";
 import { colorOf, pauseSeconds, teamVars, timeoutTeam, trophyOf, type Settings } from "./util.ts";
@@ -62,9 +62,9 @@ const mss = (sec: number): string => `${Math.floor(sec / 60)}:${String(Math.floo
 /**
  * The pause's timer (m:ss): CS2's own countdown when it gives one (the paused phase's clock running,
  * or seen going down from one update to the next), else the time since the pause began (from when
- * this callout appeared: it mounts with the pause).
+ * the pause showed: it mounts with the pause).
  */
-const PauseTimer = memo(function PauseTimer({ phase, sec, running, receivedAt }: { phase: HudPhase; sec: number | null; running: boolean; receivedAt: number }) {
+const PauseTimer = memo(function PauseTimer({ phase, sec, running, receivedAt, className }: { phase: HudPhase; sec: number | null; running: boolean; receivedAt: number; className: string }) {
   const now = useNow(250);
   const start = useRef<number | null>(null);
   start.current ??= now;
@@ -74,7 +74,7 @@ const PauseTimer = memo(function PauseTimer({ phase, sec, running, receivedAt }:
   if (sec !== null && last.current !== null && sec < last.current) falling.current = true;
   last.current = sec;
   const t = pauseSeconds({ phase, sec, running, falling: falling.current, receivedAt, now, startedAt: start.current });
-  return <span className={`st-tocall-sec st-pause-sec is-${t.kind}`}>{mss(t.sec)}</span>;
+  return <span className={`${className} is-${t.kind}`}>{mss(t.sec)}</span>;
 });
 
 /** The fuse bar's fill, draining with the bomb (10 Hz); remembers where it stopped for the exit. */
@@ -172,7 +172,7 @@ const REASON: [string, string][] = [
  * Under the bar: players alive, the round's winner, a timeout or a pause (one at a time). With the
  * freeze-time scoreboard up, a timeout shows over the scoreboard instead.
  */
-function UnderBar({ state, receivedAt, settings, colors, boardOn }: { state: HudState; receivedAt: number; settings: Settings; colors: { left: string; right: string }; boardOn: boolean }) {
+function UnderBar({ state, settings, colors, boardOn }: { state: HudState; settings: Settings; colors: { left: string; right: string }; boardOn: boolean }) {
   const p = state.match.phase;
   const winner = roundWinner(state);
   const timeout = timeoutTeam(state);
@@ -215,17 +215,8 @@ function UnderBar({ state, receivedAt, settings, colors, boardOn }: { state: Hud
       </div>
     );
   }
-  // A tech or match pause: PAUSED with its timer, in the timeout callout's style and size.
-  if (state.match.paused || p === "paused") {
-    return (
-      <div key="paused" className="st-under st-pausecall">
-        <PauseTimer phase={p} sec={state.match.phaseEndsInSec} running={state.match.clockRunning} receivedAt={receivedAt} />
-        <span className="st-tocall-mark">
-          <b>PAUSED</b>
-        </span>
-      </div>
-    );
-  }
+  // A tech or match pause shows in the score bar's centre only (the PC mark over its timer): nothing under the bar.
+  if (state.match.paused || p === "paused") return null;
   // Players alive: once someone has gone down in the round (5 VS 5 adds nothing).
   const down = aliveCount(state.left) < state.left.players.length || aliveCount(state.right) < state.right.players.length;
   if (settings.showAlive && isLive(p) && down) {
@@ -253,6 +244,8 @@ export function ScoreBar({ state, receivedAt, settings, compact, boardOn }: { st
   const m = state.match;
   const colors = { left: colorOf(state.left, settings), right: colorOf(state.right, settings) };
   const mode = centreMode(state);
+  // The engine reports a timeout as paused too: a timeout keeps its TIMEOUT label and clock.
+  const pausedHold = (m.paused || m.phase === "paused") && m.phase !== "timeout_ct" && m.phase !== "timeout_t";
   const pips = seriesBoxCount(state.series.bestOf);
   const ct = state.left.side === "CT" ? colors.left : state.right.side === "CT" ? colors.right : settings.ctColor;
   const b = state.bomb;
@@ -263,10 +256,20 @@ export function ScoreBar({ state, receivedAt, settings, compact, boardOn }: { st
         <Half team={state.left} color={colors.left} align="left" pips={pips} won={seriesWon(state, "left")} />
         <Half team={state.right} color={colors.right} align="right" pips={pips} won={seriesWon(state, "right")} />
         <div className={`st-sb-centre is-${mode}`} style={mode === "defuse" || mode === "defused" ? teamVars(ct) : undefined}>
-          <span className="st-sb-clockbox">
-            <span className={`st-sb-round ${m.paused || m.phase === "paused" || m.phase.startsWith("timeout") ? "is-hold" : ""}`}>{roundLabel(state)}</span>
-            <Clock sec={m.phaseEndsInSec} running={m.clockRunning && (!m.paused || m.phase === "paused")} receivedAt={receivedAt} warn={m.phase === "live"} />
-          </span>
+          {/* A tech or match pause: the PC mark where "ROUND n" sits, over the pause's timer (the owner: "the Paused on the scorebug … the pc graphic"). */}
+          {pausedHold ? (
+            <span className="st-sb-clockbox is-paused">
+              <span className="st-sb-round st-sb-pausemark" role="img" aria-label="Paused">
+                <Paused size={22} />
+              </span>
+              <PauseTimer phase={m.phase} sec={m.phaseEndsInSec} running={m.clockRunning} receivedAt={receivedAt} className="st-clock st-pause-sec" />
+            </span>
+          ) : (
+            <span className="st-sb-clockbox">
+              <span className={`st-sb-round ${m.phase.startsWith("timeout") ? "is-hold" : ""}`}>{roundLabel(state)}</span>
+              <Clock sec={m.phaseEndsInSec} running={m.clockRunning && !m.paused} receivedAt={receivedAt} warn={m.phase === "live"} />
+            </span>
+          )}
           {/* The bomb in the clock's place: its glyph where "ROUND n" sits, the fuse's countdown (or the state) where the clock sits. */}
           <span className="st-sb-bomb">
             <span className="st-sb-bomb-glyph">{mode !== "clock" ? <BombState state={mode === "bomb" ? "planted" : mode === "defuse" ? "defusing" : mode} size={18} /> : null}</span>
@@ -275,7 +278,7 @@ export function ScoreBar({ state, receivedAt, settings, compact, boardOn }: { st
         </div>
       </div>
       <FuseBar state={state} receivedAt={receivedAt} mode={mode} ct={ct} />
-      <UnderBar state={state} receivedAt={receivedAt} settings={settings} colors={colors} boardOn={boardOn} />
+      <UnderBar state={state} settings={settings} colors={colors} boardOn={boardOn} />
     </div>
   );
 }
