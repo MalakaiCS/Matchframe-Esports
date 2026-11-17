@@ -7,14 +7,16 @@ import { fmtMs, fmtTime, MISSING } from "../../lib/format.ts";
 import { useApi } from "../../lib/hooks.ts";
 import { useLowSpec } from "../../lib/lowSpec.ts";
 import { usePermission } from "../../state/session.tsx";
+import { perLocale, t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 
 export const HUD_VARIANTS = ["live", "compact", "replay", "veto", "pre-match", "break", "post-map", "post-series", "studio"] as const;
-const PROFILES = [
-  { id: "program", label: "Program (full)" },
-  { id: "clean", label: "Clean (no sponsors/cues)" },
-  { id: "caster", label: "Caster" },
-  { id: "preview", label: "Preview" },
-] as const;
+const PROFILES = perLocale(() => ([
+  { id: "program", label: t("huds.programFull") },
+  { id: "clean", label: t("huds.cleanNoSponsorsCues") },
+  { id: "caster", label: t("huds.caster") },
+  { id: "preview", label: t("huds.preview") },
+] as const));
 
 export function previewUrl(url: string): string {
   return url + (url.includes("?") ? "&" : "?") + "preview=1";
@@ -26,19 +28,19 @@ function PublicStatePreview({ outputId }: { outputId: string }) {
     <Async state={st}>
       {(h) =>
         !h ? (
-          <p className="muted small">Not published, so there is no public state yet.</p>
+          <p className="muted small">{t("huds.notPublishedSoThereIs")}</p>
         ) : (
           <KV
             items={[
-              ["Source", h.simulated ? "simulation" : "live"],
-              ["Data", h.stale ? <Badge key="d" tone="danger">Stale</Badge> : `age ${fmtMs(h.dataAgeMs)}`],
-              ["Timeline", `${h.timeline.profile}${h.timeline.profile === "delayed" ? ` (${fmtMs(h.timeline.delayMs)})` : ""}`],
-              ["Match", `${h.match.mapDisplayName ?? h.match.mapName ?? MISSING} · round ${h.match.roundNumber ?? MISSING} · ${h.match.phase}`],
-              ["Teams", `${h.left.name} ${h.left.score ?? MISSING} – ${h.right.score ?? MISSING} ${h.right.name}`],
-              ["Observed", h.observed?.name ?? "none"],
-              ["Radar", h.radar.available ? `${h.radar.mode}${h.radar.calibrationVerified ? " (verified)" : ""}` : `unavailable — ${h.radar.reason ?? "?"}`],
-              ["Killfeed", `${h.killfeed.mode} (${h.killfeed.entries.length})`],
-              ["Cues / annotations", `${h.cues.length} / ${h.annotations.length}`],
+              [t("huds.source"), h.simulated ? t("huds.simulation") : t("huds.live2")],
+              [t("huds.data"), h.stale ? <Badge key="d" tone="danger">{t("huds.stale")}</Badge> : t("huds.ageDataagems", { dataAgeMs: fmtMs(h.dataAgeMs) })],
+              [t("huds.timeline"), `${h.timeline.profile}${h.timeline.profile === "delayed" ? ` (${fmtMs(h.timeline.delayMs)})` : ""}`],
+              [t("huds.match"), t("huds.vRoundV2Phase", { v: h.match.mapDisplayName ?? h.match.mapName ?? MISSING, v2: h.match.roundNumber ?? MISSING, phase: h.match.phase })],
+              [t("huds.teams"), `${h.left.name} ${h.left.score ?? MISSING} – ${h.right.score ?? MISSING} ${h.right.name}`],
+              [t("huds.observed"), h.observed?.name ?? t("common.none")],
+              [t("huds.radar"), h.radar.available ? `${h.radar.mode}${h.radar.calibrationVerified ? " (verified)" : ""}` : t("huds.unavailableV", { v: h.radar.reason ?? "?" })],
+              [t("huds.killfeed"), `${h.killfeed.mode} (${h.killfeed.entries.length})`],
+              [t("huds.cuesAnnotations"), `${h.cues.length} / ${h.annotations.length}`],
             ]}
           />
         )
@@ -63,10 +65,10 @@ function DraftEditor({ entry, packages, matches, onSaved }: { entry: HudOutputEn
   return (
     <>
       <div className="form-grid">
-        <Field label="Name">
+        <Field label={t("huds.name")}>
           <input value={d.name} onChange={(e) => set({ name: e.target.value })} />
         </Field>
-        <Field label="HUD package">
+        <Field label={t("huds.hudPackage")}>
           <select value={d.packageId} onChange={(e) => set({ packageId: e.target.value })}>
             {packages.map((p) => (
               <option key={p.id} value={p.id}>
@@ -75,7 +77,7 @@ function DraftEditor({ entry, packages, matches, onSaved }: { entry: HudOutputEn
             ))}
           </select>
         </Field>
-        <Field label="Variant">
+        <Field label={t("huds.variant")}>
           <select value={d.variant} onChange={(e) => set({ variant: e.target.value as OutputDraft["variant"] })}>
             {variants.map((v) => (
               <option key={v} value={v}>
@@ -84,7 +86,7 @@ function DraftEditor({ entry, packages, matches, onSaved }: { entry: HudOutputEn
             ))}
           </select>
         </Field>
-        <Field label="Preset">
+        <Field label={t("huds.preset")}>
           <select value={d.presetId ?? ""} onChange={(e) => set({ presetId: e.target.value || null })}>
             {presets.map((p) => (
               <option key={p.id} value={p.id}>
@@ -93,7 +95,7 @@ function DraftEditor({ entry, packages, matches, onSaved }: { entry: HudOutputEn
             ))}
           </select>
         </Field>
-        <Field label="Profile">
+        <Field label={t("huds.profile")}>
           <select value={d.profile} onChange={(e) => set({ profile: e.target.value as OutputDraft["profile"] })}>
             {PROFILES.map((p) => (
               <option key={p.id} value={p.id}>
@@ -102,20 +104,20 @@ function DraftEditor({ entry, packages, matches, onSaved }: { entry: HudOutputEn
             ))}
           </select>
         </Field>
-        <Field label="Timeline">
+        <Field label={t("huds.timeline")}>
           <select value={d.timelineProfile} onChange={(e) => set({ timelineProfile: e.target.value as OutputDraft["timelineProfile"] })}>
-            <option value="live">Live</option>
-            <option value="delayed">Delayed</option>
+            <option value="live">{t("huds.live")}</option>
+            <option value="delayed">{t("huds.delayed")}</option>
           </select>
         </Field>
         {d.timelineProfile === "delayed" ? (
-          <Field label="Delay (ms)" hint="Never shows data ahead of the delayed program">
+          <Field label={t("huds.delayMs")} hint={t("huds.neverShowsDataAheadOf")}>
             <input type="number" min={0} step={500} value={d.delayMs} onChange={(e) => set({ delayMs: Number(e.target.value) })} />
           </Field>
         ) : null}
-        <Field label="Match">
+        <Field label={t("huds.match")}>
           <select value={d.matchId ?? ""} onChange={(e) => set({ matchId: e.target.value || null })}>
-            <option value="">Active match</option>
+            <option value="">{t("huds.activeMatch")}</option>
             {matches.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.title ?? m.id}
@@ -124,23 +126,21 @@ function DraftEditor({ entry, packages, matches, onSaved }: { entry: HudOutputEn
           </select>
         </Field>
       </div>
-      <Details summary="Output settings (JSON)">
-        <JsonEditor label="Passed to the HUD as state.settings" value={settingsText} onChange={setSettingsText} rows={6} />
+      <Details summary={t("huds.outputSettingsJson")}>
+        <JsonEditor label={t("huds.passedToTheHudAs")} value={settingsText} onChange={setSettingsText} rows={6} />
       </Details>
       <div className="form-actions">
         <ActionButton
           variant="primary"
           action={() => {
-            if (!parsed.ok) throw new Error(`Settings JSON is invalid: ${parsed.error}`);
+            if (!parsed.ok) throw new Error(t("huds.settingsJsonIsInvalidError", { error: parsed.error }));
             const { id: _id, outputId: _o, publishedRevision: _p, ...rest } = d;
             return api.patch(`/api/v1/hud/outputs/${seg(d.outputId)}`, { ...rest, settings: parsed.value });
           }}
-          success="Draft saved (not on air until published)"
+          success={t("huds.draftSavedNotOnAir")}
           onDone={onSaved}
-          disabledReason={reason ?? (parsed.ok ? null : "Fix the settings JSON first")}
-        >
-          Save draft
-        </ActionButton>
+          disabledReason={reason ?? (parsed.ok ? null : t("huds.fixTheSettingsJsonFirst"))}
+        >{t("huds.saveDraft")}</ActionButton>
       </div>
     </>
   );
@@ -160,104 +160,92 @@ function OutputDetail({ entry, packages, matches, reload }: { entry: HudOutputEn
     <div className="stack">
       <Panel
         title={entry.draft.name}
-        subtitle={pub ? `Revision ${pub.revision} on air · published ${fmtTime(pub.publishedAt)} by ${pub.publishedBy}` : "Not published yet"}
+        subtitle={pub ? t("huds.revisionRevisionOnAirPublished", { revision: pub.revision, publishedAt: fmtTime(pub.publishedAt), publishedBy: pub.publishedBy }) : t("huds.notPublishedYet")}
         actions={
           <>
-            {entry.dirty ? <Badge tone="warn">Unpublished changes</Badge> : null}
+            {entry.dirty ? <Badge tone="warn">{t("huds.unpublishedChanges")}</Badge> : null}
             <ActionButton
               variant="primary"
               action={() => api.post<PublishedOutput>(`/api/v1/hud/outputs/${seg(id)}/publish`)}
-              success={(p) => `Published revision ${p.revision} — on air now`}
+              success={(p) => t("huds.publishedRevisionRevisionOnAir", { revision: p.revision })}
               onDone={() => {
                 reload();
                 setFrameKey((k) => k + 1);
               }}
-              disabledReason={reason ?? (entry.dirty ? null : "Nothing to publish: the draft matches the published revision")}
-              confirm={{ title: `Publish “${entry.draft.name}”?`, body: "The browser source switches to this draft immediately. You can roll back to any earlier revision." }}
-            >
-              Publish draft
-            </ActionButton>
+              disabledReason={reason ?? (entry.dirty ? null : t("huds.nothingToPublishTheDraft"))}
+              confirm={{ title: t("huds.publishName", { name: entry.draft.name }), body: t("huds.theBrowserSourceSwitchesTo") }}
+            >{t("huds.publishDraft")}</ActionButton>
           </>
         }
       >
         <div className="url-box">
-          <input readOnly value={entry.url} aria-label="Output URL" onFocus={(e) => e.target.select()} />
-          <CopyButton text={entry.url} label="Copy URL" size="md" />
+          <input readOnly value={entry.url} aria-label={t("huds.outputUrl")} onFocus={(e) => e.target.select()} />
+          <CopyButton text={entry.url} label={t("huds.copyUrl")} size="md" />
         </div>
-        <p className="small muted">Add this URL to OBS as a browser source. It only receives this output's public HUD state.</p>
-        <Details summary="Roll back to an earlier revision">
+        <p className="small muted">{t("huds.addThisUrlToObs")}</p>
+        <Details summary={t("huds.rollBackToAnEarlier")}>
           <div className="row-end">
-            <Field label="Revision">
+            <Field label={t("huds.revision")}>
               <select value={rollbackTo} onChange={(e) => setRollbackTo(e.target.value)}>
-                <option value="">Choose…</option>
+                <option value="">{t("huds.choose")}</option>
                 {entry.revisions.map((r) => (
                   <option key={r.revision} value={r.revision} disabled={r.revision === pub?.revision}>
                     r{r.revision} · {fmtTime(r.publishedAt)} · {r.publishedBy}
-                    {r.revision === pub?.revision ? " (on air)" : ""}
+                    {r.revision === pub?.revision ? t("huds.onAir2") : ""}
                   </option>
                 ))}
               </select>
             </Field>
             <ActionButton
               action={() => api.post<PublishedOutput>(`/api/v1/hud/outputs/${seg(id)}/rollback`, { revision: Number(rollbackTo) })}
-              success={(p) => `Rolled back: revision ${rollbackTo} republished as r${p.revision}`}
+              success={(p) => t("huds.rolledBackRevisionRollbacktoRepublished", { rollbackTo, revision: p.revision })}
               onDone={() => {
                 reload();
                 setFrameKey((k) => k + 1);
               }}
-              disabledReason={reason ?? (rollbackTo ? null : "Choose a revision")}
-              confirm={{ title: `Roll back to revision ${rollbackTo}?`, body: "Republishes that revision's content as a new revision. On air immediately." }}
-            >
-              Roll back
-            </ActionButton>
+              disabledReason={reason ?? (rollbackTo ? null : t("huds.chooseARevision"))}
+              confirm={{ title: t("huds.rollBackToRevisionRollbackto", { rollbackTo }), body: t("huds.republishesThatRevisionSContent") }}
+            >{t("huds.rollBack")}</ActionButton>
           </div>
         </Details>
-        <Details summary="Output ID and token">
+        <Details summary={t("huds.outputIdAndToken")}>
           <div className="row">
-            <span className="small">
-              Output ID <code>{id}</code>
-            </span>
+            <span className="small"><T k="huds.outputIdCode" values={{ code: <code>{id}</code> }} /></span>
             <ActionButton
               size="sm"
               action={() => api.post<{ url: string }>(`/api/v1/hud/outputs/${seg(id)}/rotate-token`)}
-              success="Token rotated — update the OBS browser source with the new URL"
+              success={t("huds.tokenRotatedUpdateTheObs")}
               onDone={reload}
               disabledReason={reason}
-              confirm={{ title: "Rotate this output's token?", body: "Existing browser sources using the old URL stop receiving data immediately. Copy the new URL into OBS afterwards.", confirmLabel: "Rotate token", danger: true }}
-            >
-              Rotate token
-            </ActionButton>
+              confirm={{ title: t("huds.rotateThisOutputSToken"), body: t("huds.existingBrowserSourcesUsingThe"), confirmLabel: t("huds.rotateToken"), danger: true }}
+            >{t("huds.rotateToken")}</ActionButton>
           </div>
         </Details>
       </Panel>
       <div className="grid-2">
-        <Panel title="Draft" subtitle="Not on air until you publish">
+        <Panel title={t("huds.draft")} subtitle={t("huds.notOnAirUntilYou")}>
           <DraftEditor entry={entry} packages={packages} matches={matches} onSaved={reload} />
         </Panel>
         <Panel
-          title="On-air preview"
+          title={t("huds.onAirPreview")}
           className="gb-start"
           actions={
             <>
-              <Checkbox checked={showFrame} onChange={setShowFrame} label="Show" />
-              <button className="link-btn" onClick={() => setFrameKey((k) => k + 1)}>
-                Reload
-              </button>
+              <Checkbox checked={showFrame} onChange={setShowFrame} label={t("huds.show")} />
+              <button className="link-btn" onClick={() => setFrameKey((k) => k + 1)}>{t("huds.reload")}</button>
             </>
           }
         >
           {showFrame && pub ? (
             <div className="preview-frame">
-              <iframe key={frameKey} title={`Preview of ${id}`} src={previewUrl(entry.url)} sandbox="allow-scripts allow-same-origin" />
+              <iframe key={frameKey} title={t("huds.previewOfId", { id })} src={previewUrl(entry.url)} sandbox="allow-scripts allow-same-origin" />
             </div>
           ) : (
-            <EmptyState title={pub ? "Preview hidden" : "Not published"}>{pub ? "Turn on Show to load the browser-source page." : "Publish the draft to get an on-air revision."}</EmptyState>
+            <EmptyState title={pub ? t("huds.previewHidden") : t("huds.notPublished")}>{pub ? t("huds.turnOnShowToLoad") : t("huds.publishTheDraftToGet")}</EmptyState>
           )}
-          <p className="small muted" title="If it shows “HUD renderer build not found”, the built-in HUD renderer has not been built on this machine.">
-            Shows the published revision, not the draft.
-          </p>
-          <Details summary="Public HUD state">
-            <p className="small muted">Exactly what the browser source receives.</p>
+          <p className="small muted" title={t("huds.ifItShowsHudRenderer")}>{t("huds.showsThePublishedRevisionNot")}</p>
+          <Details summary={t("huds.publicHudState")}>
+            <p className="small muted">{t("huds.exactlyWhatTheBrowserSource")}</p>
             <PublicStatePreview outputId={id} />
           </Details>
         </Panel>
@@ -280,11 +268,11 @@ export function OutputsTab() {
         const entry = list.find((o) => o.draft.outputId === selected) ?? list[0];
         return (
           <div className="grid-1-2">
-            <Panel title="Outputs" subtitle="One browser source each">
+            <Panel title={t("huds.outputs")} subtitle={t("huds.oneBrowserSourceEach")}>
               <ul className="select-list">
                 {list.map((o) => (
                   <li key={o.draft.outputId}>
-                    <button className={o.draft.outputId === entry?.draft.outputId ? "is-selected" : ""} onClick={() => setSelected(o.draft.outputId)} title={`Output ID ${o.draft.outputId}${o.published ? ` · revision ${o.published.revision} on air` : ""}`}>
+                    <button className={o.draft.outputId === entry?.draft.outputId ? "is-selected" : ""} onClick={() => setSelected(o.draft.outputId)} title={t("huds.outputIdOutputidV", { outputId: o.draft.outputId, v: o.published ? t("huds.revisionRevisionOnAir", { revision: o.published.revision }) : "" })}>
                       <span style={{ flex: 1 }}>
                         <strong>{o.draft.name}</strong>
                         <span className="muted small">
@@ -292,38 +280,36 @@ export function OutputsTab() {
                           · {o.draft.variant} · {o.draft.profile}
                         </span>
                       </span>
-                      {!o.published ? <Badge>Not published</Badge> : o.dirty ? <Badge tone="warn">Changed</Badge> : null}
+                      {!o.published ? <Badge>{t("huds.notPublished")}</Badge> : o.dirty ? <Badge tone="warn">{t("huds.changed")}</Badge> : null}
                     </button>
                   </li>
                 ))}
               </ul>
-              <Details summary="New output">
+              <Details summary={t("huds.newOutput")}>
                 <div className="form-grid">
-                  <Field label="Output ID" hint="a–z, 0–9, dash">
+                  <Field label={t("huds.outputId")} hint={t("huds.aZ09Dash")}>
                     <input value={newId} onChange={(e) => setNewId(e.target.value.toLowerCase())} placeholder="caster-left" />
                   </Field>
-                  <Field label="Name">
-                    <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Caster desk" />
+                  <Field label={t("huds.name")}>
+                    <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t("huds.casterDesk")} />
                   </Field>
                 </div>
                 <div className="form-actions">
                   <ActionButton
                     action={() => api.post<OutputDraft>("/api/v1/hud/outputs", { outputId: newId, name: newName })}
-                    success={(o) => `Output ${o.outputId} created (publish it to go on air)`}
+                    success={(o) => t("huds.outputOutputidCreatedPublishIt", { outputId: o.outputId })}
                     onDone={(o) => {
                       setSelected(o.outputId);
                       setNewId("");
                       setNewName("");
                       void outputs.reload();
                     }}
-                    disabledReason={reason ?? (/^[a-z0-9-]{2,40}$/.test(newId) && newName.trim() ? null : "Enter an ID (2–40 characters: a–z, 0–9, dash) and a name")}
-                  >
-                    Create output
-                  </ActionButton>
+                    disabledReason={reason ?? (/^[a-z0-9-]{2,40}$/.test(newId) && newName.trim() ? null : t("huds.enterAnId240"))}
+                  >{t("huds.createOutput")}</ActionButton>
                 </div>
               </Details>
             </Panel>
-            {entry ? <OutputDetail entry={entry} packages={packages.data ?? []} matches={matches.data ?? []} reload={() => void outputs.reload()} /> : <EmptyState title="No outputs">Create an output to get a browser-source URL.</EmptyState>}
+            {entry ? <OutputDetail entry={entry} packages={packages.data ?? []} matches={matches.data ?? []} reload={() => void outputs.reload()} /> : <EmptyState title={t("huds.noOutputs2")}>{t("huds.createAnOutputToGet")}</EmptyState>}
           </div>
         );
       }}

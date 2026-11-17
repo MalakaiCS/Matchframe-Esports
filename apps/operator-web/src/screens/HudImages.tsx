@@ -8,6 +8,8 @@ import { useApi } from "../lib/hooks.ts";
 import { Link } from "../router.tsx";
 import { usePermission } from "../state/session.tsx";
 import { IconPackPanel } from "./IconPack.tsx";
+import { t } from "../i18n/index.ts";
+import { T } from "../i18n/T.tsx";
 import "../styles/hud-library.css";
 
 export const HUD_ART_PATH = "/api/v1/hud/art";
@@ -33,7 +35,7 @@ function ImageSlot({ label, hint, assetId, shape, onPick, onRemove, reason }: { 
   const url = assetUrl(assetId);
   return (
     <div className={`hudimg-slot ${url ? "is-set" : ""}`} data-slot={label}>
-      <div className={`hudimg-preview is-${shape}`}>{url ? <img src={url} alt={`${label} preview`} /> : <span>{hint ?? "None"}</span>}</div>
+      <div className={`hudimg-preview is-${shape}`}>{url ? <img src={url} alt={t("images.labelPreview", { label })} /> : <span>{hint ?? t("images.none")}</span>}</div>
       <span className="hudimg-label">{label}</span>
       <div className="hudimg-actions">
         <input
@@ -41,7 +43,7 @@ function ImageSlot({ label, hint, assetId, shape, onPick, onRemove, reason }: { 
           type="file"
           accept={PICTURE_TYPES}
           className="sr-only"
-          aria-label={`Upload ${label}`}
+          aria-label={t("images.uploadLabel", { label })}
           disabled={!!reason}
           onChange={(e) => {
             const f = e.target.files?.[0];
@@ -49,14 +51,12 @@ function ImageSlot({ label, hint, assetId, shape, onPick, onRemove, reason }: { 
             if (f) onPick(f);
           }}
         />
-        <Button size="sm" onClick={() => input.current?.click()} disabledReason={reason} title="PNG, JPG, WebP, SVG or GIF">
+        <Button size="sm" onClick={() => input.current?.click()} disabledReason={reason} title={t("images.pngJpgWebpSvgOr")}>
           <Icon name="upload" size={14} />
-          {url ? "Replace" : "Upload"}
+          {url ? t("images.replace") : t("images.upload")}
         </Button>
         {url ? (
-          <Button size="sm" variant="ghost" onClick={onRemove} disabledReason={reason} aria-label={`Remove ${label}`}>
-            Remove
-          </Button>
+          <Button size="sm" variant="ghost" onClick={onRemove} disabledReason={reason} aria-label={t("images.removeLabel", { label })}>{t("images.remove")}</Button>
         ) : null}
       </div>
     </div>
@@ -87,17 +87,17 @@ export function HudImagesScreen() {
     }
   };
   const remove = (key: string, change: (a: HudArtSetting) => HudArtSetting) => {
-    if (art) void save(key, "HUD images not saved", async () => change(art));
+    if (art) void save(key, t("images.hudImagesNotSaved"), async () => change(art));
   };
   const upload = (key: string, f: File, place: (a: HudArtSetting, assetId: string) => HudArtSetting) => {
     if (!art) return;
     if (!/\.(png|jpe?g|webp|svg|gif)$/i.test(f.name)) {
-      toast.push("danger", `${f.name} is not a picture`, "Use a PNG, JPG, WebP, SVG or GIF file.");
+      toast.push("danger", t("images.nameIsNotAPicture", { name: f.name }), t("images.useAPngJpgWebp"));
       return;
     }
-    void save(key, `Uploading ${f.name} failed`, async () => place(art, (await uploadAsset(f)).assetId));
+    void save(key, t("images.uploadingNameFailed", { name: f.name }), async () => place(art, (await uploadAsset(f)).assetId));
   };
-  const reasonFor = (key: string, extra: string | null = null) => editReason ?? (busy === key ? "Saving…" : busy ? "Saving another picture…" : extra);
+  const reasonFor = (key: string, extra: string | null = null) => editReason ?? (busy === key ? t("editor.saving") : busy ? t("images.savingAnotherPicture") : extra);
 
   const playerSlots = (side: "ct" | "t") => {
     const ids = art?.defaultPlayers[side] ?? [];
@@ -110,7 +110,7 @@ export function HudImagesScreen() {
           label={label}
           assetId={ids[i] ?? null}
           shape="portrait"
-          reason={reasonFor(key, i > ids.length ? `Add ${side === "ct" ? "CT" : "T"} player ${ids.length + 1}'s picture first` : null)}
+          reason={reasonFor(key, i > ids.length ? t("images.addPlayerPictureFirst", { side: side === "ct" ? "CT" : "T", n: ids.length + 1 }) : null)}
           onPick={(f) =>
             upload(key, f, (a, id) => {
               const list = [...a.defaultPlayers[side]];
@@ -133,37 +133,34 @@ export function HudImagesScreen() {
   return (
     <div className="page hudimg" data-testid="hud-images">
       <div className="page-head">
-        <h1 className="page-title">HUD images</h1>
-        <Link to="/" className="btn btn-ghost btn-sm">
-          <Icon name="chevronLeft" size={14} />
-          HUD Library
-        </Link>
+        <h1 className="page-title">{t("images.hudImages")}</h1>
+        <Link to="/" className="btn btn-ghost btn-sm"><T k="images.iconHudLibrary" values={{ icon: <Icon name="chevronLeft" size={14} /> }} /></Link>
       </div>
-      <Note tone="info">Every MatchFrame HUD uses these when a player, map or mark has no picture of its own. Add only images you have the right to use.</Note>
+      <Note tone="info">{t("images.everyMatchframeHudUsesThese")}</Note>
       {!res.data ? (
         res.error ? (
           <ErrorBox error={res.error} onRetry={() => void res.reload()} />
         ) : (
-          <Loading label="Loading HUD images…" />
+          <Loading label={t("images.loadingHudImages")} />
         )
       ) : (
         <>
-          <Panel title="Player pictures" subtitle="For players without their own photo, by the side they play: player 1 of a team (observer slot order) takes picture 1, and so on; with fewer pictures they repeat.">
+          <Panel title={t("images.playerPictures")} subtitle={t("images.forPlayersWithoutTheirOwn")}>
             <div className="hudimg-sides">
-              <section aria-label="CT player pictures" className="hudimg-side is-ct">
+              <section aria-label={t("images.ctPlayerPictures")} className="hudimg-side is-ct">
                 <h3>Counter-Terrorists</h3>
                 <div className="hudimg-row">{playerSlots("ct")}</div>
               </section>
-              <section aria-label="T player pictures" className="hudimg-side is-t">
-                <h3>Terrorists</h3>
+              <section aria-label={t("images.tPlayerPictures")} className="hudimg-side is-t">
+                <h3>{t("images.terrorists")}</h3>
                 <div className="hudimg-row">{playerSlots("t")}</div>
               </section>
             </div>
           </Panel>
-          <Panel title="Marks" subtitle="The dead player icon replaces a HUD's own mark. The trophy shows where a HUD has a place for it (the Stage HUD's event line, centred over the score bar); a PNG, WebP or SVG with a transparent background looks best.">
+          <Panel title={t("images.marks")} subtitle={t("images.theDeadPlayerIconReplaces")}>
             <div className="hudimg-row">
               <ImageSlot
-                label="Dead player icon"
+                label={t("images.deadPlayerIcon")}
                 assetId={art!.icons.dead}
                 shape="square"
                 reason={reasonFor("dead")}
@@ -171,7 +168,7 @@ export function HudImagesScreen() {
                 onRemove={() => remove("dead", (a) => ({ ...a, icons: { ...a.icons, dead: null } }))}
               />
               <ImageSlot
-                label="Trophy"
+                label={t("images.trophy")}
                 assetId={art!.icons.trophy ?? null}
                 shape="portrait"
                 reason={reasonFor("trophy")}
@@ -181,7 +178,7 @@ export function HudImagesScreen() {
             </div>
           </Panel>
           <IconPackPanel />
-          <Panel title="Maps" subtitle="Shown on series and veto tiles: a logo and a picture for each map.">
+          <Panel title={t("images.maps")} subtitle={t("images.shownOnSeriesAndVeto")}>
             <div className="hudimg-maps">
               {res.data.maps.map((m) => (
                 <section key={m.mapName} className="hudimg-map" aria-label={m.displayName}>
@@ -195,7 +192,7 @@ export function HudImagesScreen() {
               ))}
             </div>
           </Panel>
-          <p className="muted small">HUD images are saved on this computer (account sync does not share them yet). Imported HUDs (hud.json format) keep their own pictures.</p>
+          <p className="muted small">{t("images.hudImagesAreSavedOn")}</p>
         </>
       )}
     </div>

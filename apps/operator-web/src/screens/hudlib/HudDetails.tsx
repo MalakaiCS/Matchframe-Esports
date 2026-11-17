@@ -17,6 +17,8 @@ import type { PlayerRow, TeamRow } from "../../api/types.ts";
 import { useApi } from "../../lib/hooks.ts";
 import { useLive } from "../../state/live.ts";
 import { hudPath, useRun } from "./actions.ts";
+import { t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 
 export type DetailsTab = "overview" | "appearance" | "outputs";
 
@@ -31,7 +33,7 @@ interface Props {
   desktopReason: string | null;
   editReason: string | null;
   tab: DetailsTab;
-  onTab(t: DetailsTab): void;
+  onTab(tRow: DetailsTab): void;
   onClose(): void;
   onChanged(): void;
   actions: HudActions;
@@ -45,20 +47,20 @@ interface Props {
 export function HudDetails(p: Props) {
   const { entry } = p;
   return (
-    <section className="hud-details" aria-label={`${entry.name} details`} data-testid="hud-details">
+    <section className="hud-details" aria-label={t("hudlib.nameDetails", { name: entry.name })} data-testid="hud-details">
       <div className="hud-details-tabs">
         <Tabs<DetailsTab>
-          label="HUD details"
+          label={t("hudlib.hudDetails")}
           value={p.tab}
           onChange={p.onTab}
           tabs={[
-            { id: "overview", label: "Overview" },
-            { id: "appearance", label: "Appearance" },
-            { id: "outputs", label: "Outputs" },
+            { id: "overview", label: t("hudlib.overview") },
+            { id: "appearance", label: t("hudlib.appearance") },
+            { id: "outputs", label: t("hudlib.outputs") },
           ]}
         />
         <span className="hud-details-name">{entry.name}</span>
-        <button type="button" className="icon-btn" aria-label="Close details" title="Close details" onClick={p.onClose}>
+        <button type="button" className="icon-btn" aria-label={t("hudlib.closeDetails")} title={t("hudlib.closeDetails")} onClick={p.onClose}>
           <Icon name="close" size={16} />
         </button>
       </div>
@@ -80,26 +82,24 @@ function LivePreview({ entry, variant }: { entry: HudLibraryEntry; variant: HudV
   const [showLive, setShowLive] = useState(false);
   const url = variantUrl(entry, variant);
   const r = entry.designResolution;
-  if (!url) return <Note tone="neutral">This HUD has no output to preview.</Note>;
+  if (!url) return <Note tone="neutral">{t("hudlib.thisHudHasNoOutput")}</Note>;
   if (lowSpec && !showLive)
     return (
       <div className="hud-preview-wrap" data-testid="hud-preview-paused">
         <Thumbnail entry={entry} className="hud-preview-still" />
         <div className="row hud-preview-foot">
-          <Button size="sm" onClick={() => setShowLive(true)}>
-            Show live preview
-          </Button>
-          <span className="muted small">Live preview off in low-spec mode · {resolutionLabel(entry)}</span>
+          <Button size="sm" onClick={() => setShowLive(true)}>{t("hudlib.showLivePreview")}</Button>
+          <span className="muted small">{t("hudlib.livePreviewOffInLow", { entry: resolutionLabel(entry) })}</span>
         </div>
       </div>
     );
   return (
     <div className="hud-preview-wrap">
       <div className="hud-preview" style={{ aspectRatio: `${r.width} / ${r.height}` }}>
-        <iframe key={`${url}-${checker}`} title={`${entry.name} preview`} src={withQuery(url, { mode: "preview", embed: "1", checker: checker ? "1" : undefined })} sandbox="allow-scripts allow-same-origin" referrerPolicy="no-referrer" />
+        <iframe key={`${url}-${checker}`} title={t("hudlib.namePreview", { name: entry.name })} src={withQuery(url, { mode: "preview", embed: "1", checker: checker ? "1" : undefined })} sandbox="allow-scripts allow-same-origin" referrerPolicy="no-referrer" />
       </div>
       <div className="row hud-preview-foot">
-        <Checkbox checked={checker} onChange={setChecker} label="Checkerboard" hint="Shows transparent areas as a checkerboard" />
+        <Checkbox checked={checker} onChange={setChecker} label={t("hudlib.checkerboard")} hint={t("hudlib.showsTransparentAreasAsA")} />
         <span className="muted small">
           {resolutionLabel(entry)} · {VARIANT_LABEL[variant]}
         </span>
@@ -122,68 +122,64 @@ function Overview(p: Props) {
       </div>
       <div className="hud-overview-info stack">
       <section>
-        <h3 className="hud-section-title">Package</h3>
+        <h3 className="hud-section-title">{t("hudlib.package")}</h3>
         <KV
           items={[
-            ["Id", <code key="id">{entry.id}</code>],
-            ["Version", entry.previousVersion ? `${entry.version} (previous ${entry.previousVersion})` : entry.version],
-            ["Author", entry.author || "—"],
-            ["Licence", entry.licence || "—"],
-            ["Game", "Counter-Strike 2"],
-            ["Category", entry.category ?? "—"],
-            ["Tags", entry.tags.length ? entry.tags.join(", ") : "—"],
-            ["Source", KIND_LABEL[entry.kind]],
-            ["Format", entry.runtime === "compat" ? "Imported HUD, hud.json format (runs in the HUD compatibility layer: raw game data, MatchFrame's teams and players, its panel as settings)" : "MatchFrame HUD"],
-            ["Design size", resolutionLabel(entry)],
-            ["Installed", fmtTime(entry.installedAt)],
-            ["Last used", entry.lastUsedAt ? fmtAgo(entry.lastUsedAt) : "Never"],
+            [t("hudlib.id"), <code key="id">{entry.id}</code>],
+            [t("hudlib.version"), entry.previousVersion ? t("hudlib.versionPreviousPreviousversion", { version: entry.version, previousVersion: entry.previousVersion }) : entry.version],
+            [t("hudlib.author"), entry.author || "—"],
+            [t("hudlib.licence"), entry.licence || "—"],
+            [t("hudlib.game"), "Counter-Strike 2"],
+            [t("hudlib.category"), entry.category ?? "—"],
+            [t("hudlib.tags"), entry.tags.length ? entry.tags.join(", ") : "—"],
+            [t("hudlib.source"), KIND_LABEL[entry.kind]],
+            [t("hudlib.format"), entry.runtime === "compat" ? t("hudlib.importedHudHudJsonFormat") : t("hudlib.matchframeHud")],
+            [t("hudlib.designSize"), resolutionLabel(entry)],
+            [t("hudlib.installed"), fmtTime(entry.installedAt)],
+            [t("hudlib.lastUsed"), entry.lastUsedAt ? fmtAgo(entry.lastUsedAt) : t("hudlib.never")],
           ]}
         />
         {canRollback ? (
           <div className="row">
-            <Button size="sm" disabledReason={p.editReason} onClick={() => void run("Roll back", () => api.post(`${hudPath(entry.id)}/rollback`), `${entry.name} is back on version ${entry.previousVersion}`).then(p.onChanged)}>
-              Roll back to {entry.previousVersion}
-            </Button>
+            <Button size="sm" disabledReason={p.editReason} onClick={() => void run(t("hudlib.rollBack"), () => api.post(`${hudPath(entry.id)}/rollback`), t("hudlib.nameIsBackOnVersion", { name: entry.name, previousVersion: entry.previousVersion })).then(p.onChanged)}>{t("hudlib.rollBackToPreviousversion", { previousVersion: entry.previousVersion })}</Button>
           </div>
         ) : null}
       </section>
       <section>
-        <h3 className="hud-section-title">Folder</h3>
+        <h3 className="hud-section-title">{t("hudlib.folder")}</h3>
         {entry.folder ? (
           <div className="hud-folder">
             <code title={entry.folder}>{entry.folder}</code>
-            <Button size="sm" onClick={p.actions.openFolder} disabledReason={p.reasons.openFolder ?? null}>
-              <Icon name="folder" size={14} /> Open Folder
-            </Button>
+            <Button size="sm" onClick={p.actions.openFolder} disabledReason={p.reasons.openFolder ?? null}><T k="hudlib.iconOpenFolder" values={{ icon: <Icon name="folder" size={14} /> }} /></Button>
           </div>
         ) : (
-          <p className="muted">Part of the program (no folder).</p>
+          <p className="muted">{t("hudlib.partOfTheProgramNo")}</p>
         )}
       </section>
       <section>
-        <h3 className="hud-section-title">Variants</h3>
+        <h3 className="hud-section-title">{t("hudlib.variants")}</h3>
         <ul className="hud-variants">
           {entry.variants.map((v) => (
             <li key={v} className={v === variant ? "is-selected" : ""}>
               <button type="button" className="link-btn" onClick={() => setVariant(v)} aria-pressed={v === variant}>
                 {VARIANT_LABEL[v]}
               </button>
-              {entry.urls[v] ? <CopyButton text={entry.urls[v]!} label="Copy URL" /> : <span className="muted small">not implemented</span>}
+              {entry.urls[v] ? <CopyButton text={entry.urls[v]!} label={t("hudlib.copyUrl")} /> : <span className="muted small">{t("hudlib.notImplemented")}</span>}
             </li>
           ))}
         </ul>
       </section>
       {entry.views.length ? (
         <section>
-          <h3 className="hud-section-title">HUD pages</h3>
-          <p className="muted small">This HUD's own pages. Add each one you use as another OBS Browser Source, and show it when you need it.</p>
-          <ul className="hud-variants" aria-label="HUD pages">
+          <h3 className="hud-section-title">{t("hudlib.hudPages")}</h3>
+          <p className="muted small">{t("hudlib.thisHudSOwnPages")}</p>
+          <ul className="hud-variants" aria-label={t("hudlib.hudPages")}>
             {entry.views.map((v) => (
               <li key={v.id}>
                 <span>
                   {v.label} <span className="muted small mono">{v.id}</span>
                 </span>
-                <CopyButton text={v.url} label="Copy URL" />
+                <CopyButton text={v.url} label={t("hudlib.copyUrl")} />
               </li>
             ))}
           </ul>
@@ -202,13 +198,13 @@ function PlayerPicker({ label, hint, value, onChange, disabled }: { label: strin
   const live = useLive((s) => s.snapshot?.state?.players ?? null);
   const options = new Map<string, string>();
   for (const p of players.data ?? []) if (p.steamId) options.set(p.steamId, p.displayName);
-  for (const p of live ?? []) if (p.steamId && !options.has(p.steamId)) options.set(p.steamId, `${p.name} (in game)`);
+  for (const p of live ?? []) if (p.steamId && !options.has(p.steamId)) options.set(p.steamId, t("hudlib.nameInGame", { name: p.name }));
   const v = typeof value === "string" ? value : "";
   if (v && !options.has(v)) options.set(v, v);
   return (
     <Field label={label} hint={hint}>
       <select value={v} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
-        <option value="">None</option>
+        <option value="">{t("hudlib.none")}</option>
         {[...options].map(([id, name]) => (
           <option key={id} value={id}>
             {name}
@@ -225,10 +221,10 @@ function TeamPicker({ label, hint, value, onChange, disabled }: { label: string;
   return (
     <Field label={label} hint={hint}>
       <select value={v} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
-        <option value="">None</option>
-        {(teams.data ?? []).map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
+        <option value="">{t("hudlib.none")}</option>
+        {(teams.data ?? []).map((tRow) => (
+          <option key={tRow.id} value={tRow.id}>
+            {tRow.name}
           </option>
         ))}
       </select>
@@ -242,24 +238,22 @@ function ImagesInput({ label, hint, value, onChange, disabled }: { label: string
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
-    <Field label={label} hint={hint ?? "PNG, JPG, WebP, SVG or GIF; up to 20."}>
+    <Field label={label} hint={hint ?? t("hudlib.pngJpgWebpSvgOr")}>
       <div className="row">
         {ids.map((id, i) => (
           <span key={`${id}-${i}`} className="row">
             <img className="thumb" src={assetUrl(id)!} alt={`${label} ${i + 1}`} />
-            <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onChange(ids.filter((_, j) => j !== i))} aria-label={`Remove image ${i + 1}`}>
-              Remove
-            </Button>
+            <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onChange(ids.filter((_, j) => j !== i))} aria-label={t("hudlib.removeImageV", { v: i + 1 })}>{t("hudlib.remove2")}</Button>
           </span>
         ))}
         <label className={`btn btn-sm ${disabled || busy || ids.length >= 20 ? "is-disabled" : ""}`}>
-          {busy ? "Uploading…" : "Add images"}
+          {busy ? t("hudlib.uploading") : t("hudlib.addImages")}
           <input
             type="file"
             multiple
             accept=".png,.jpg,.jpeg,.webp,.svg,.gif"
             className="sr-only"
-            aria-label={`Add ${label}`}
+            aria-label={t("hudlib.addLabel", { label })}
             disabled={disabled || busy || ids.length >= 20}
             onChange={async (e) => {
               const files = [...(e.target.files ?? [])];
@@ -289,7 +283,7 @@ function ImagesInput({ label, hint, value, onChange, disabled }: { label: string
 function ActionButtons({ hudId, name, label, field, disabled }: { hudId: string; name: string; label: string; field: HudSettingField; disabled: boolean }) {
   const run = useRun();
   return (
-    <Field label={label} hint={field.description ?? "Sends the action to the HUD straight away."}>
+    <Field label={label} hint={field.description ?? t("hudlib.sendsTheActionToThe")}>
       <div className="row">
         {(field.options ?? []).map((o) => (
           <Button key={o.value} size="sm" disabled={disabled} onClick={() => void run(o.label, () => api.post(`${hudPath(hudId)}/action`, { key: name, value: o.value }), `${o.label}: sent`)}>
@@ -326,7 +320,7 @@ function SettingInput({ hudId, name, field, value, onChange, disabled }: { hudId
       <Field label={label} hint={hint}>
         <span className="color-input">
           <input type="color" value={typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : "#000000"} onChange={(e) => onChange(e.target.value)} disabled={disabled} />
-          <input value={typeof value === "string" ? value : ""} onChange={(e) => onChange(e.target.value)} disabled={disabled} spellCheck={false} aria-label={`${label} (hex)`} />
+          <input value={typeof value === "string" ? value : ""} onChange={(e) => onChange(e.target.value)} disabled={disabled} spellCheck={false} aria-label={t("hudlib.labelHex", { label })} />
         </span>
       </Field>
     );
@@ -386,10 +380,10 @@ function Appearance({ entry, editReason, onChanged }: { entry: HudLibraryEntry; 
     setBusy(true);
     try {
       await api.put(`${hudPath(entry.id)}/settings`, { settings, ...(entry.presets.length ? { presetId } : {}) });
-      toast.push("ok", "Settings saved", "Every output of this HUD shows the change now.");
+      toast.push("ok", t("hudlib.settingsSaved"), t("hudlib.everyOutputOfThisHud"));
       onChanged();
     } catch (e) {
-      toast.push("danger", "Saving settings failed", describeError(e));
+      toast.push("danger", t("hudlib.savingSettingsFailed"), describeError(e));
     } finally {
       setBusy(false);
     }
@@ -403,9 +397,9 @@ function Appearance({ entry, editReason, onChanged }: { entry: HudLibraryEntry; 
   const disabled = !!editReason || busy;
   return (
     <div className="stack">
-      <p className="muted">Saved per HUD on this computer. Saving applies the change live to the desktop HUD, OBS sources and previews; nothing reloads.</p>
+      <p className="muted">{t("hudlib.savedPerHudOnThis")}</p>
       {entry.presets.length ? (
-        <Field label="Preset" hint="A look the HUD's author prepared; your settings below apply on top.">
+        <Field label={t("hudlib.preset")} hint={t("hudlib.aLookTheHudS")}>
           <select value={presetId ?? ""} onChange={(e) => setPresetId(e.target.value || null)} disabled={disabled}>
             {entry.presets.map((pr) => (
               <option key={pr.id} value={pr.id}>
@@ -415,7 +409,7 @@ function Appearance({ entry, editReason, onChanged }: { entry: HudLibraryEntry; 
           </select>
         </Field>
       ) : null}
-      {fields.length === 0 ? <Note tone="neutral">This HUD has no settings form. Advanced settings can still be edited as JSON below.</Note> : null}
+      {fields.length === 0 ? <Note tone="neutral">{t("hudlib.thisHudHasNoSettings")}</Note> : null}
       {groups.map(([group, list]) => (
         <fieldset key={group || "_"} className="settings-group">
           {group ? <legend>{group}</legend> : null}
@@ -425,28 +419,22 @@ function Appearance({ entry, editReason, onChanged }: { entry: HudLibraryEntry; 
         </fieldset>
       ))}
       <div className="row">
-        <Button variant="primary" disabledReason={editReason ?? (busy ? "Saving…" : dirty ? null : "No changes to save")} onClick={() => void save(draft)}>
-          Save settings
-        </Button>
+        <Button variant="primary" disabledReason={editReason ?? (busy ? t("hudlib.saving") : dirty ? null : t("hudlib.noChangesToSave"))} onClick={() => void save(draft)}>{t("hudlib.saveSettings")}</Button>
         <Button
-          disabledReason={editReason ?? (busy ? "Saving…" : null)}
+          disabledReason={editReason ?? (busy ? t("hudlib.saving") : null)}
           onClick={() => {
             const d = defaultsOf(entry.settingsSchema);
             setDraft(d);
             setJson(JSON.stringify(d, null, 2));
           }}
-        >
-          Reset to defaults
-        </Button>
-        {dirty ? <span className="muted small">Unsaved changes</span> : null}
+        >{t("hudlib.resetToDefaults")}</Button>
+        {dirty ? <span className="muted small">{t("hudlib.unsavedChanges")}</span> : null}
       </div>
-      <Details summary="Advanced: edit as JSON">
-        <JsonEditor label="Settings (JSON)" value={json} onChange={setJson} rows={10} />
+      <Details summary={t("hudlib.advancedEditAsJson")}>
+        <JsonEditor label={t("hudlib.settingsJson")} value={json} onChange={setJson} rows={10} />
         {!parsed.ok ? <p className="text-danger small">{parsed.error}</p> : null}
         <div className="row">
-          <Button disabledReason={editReason ?? (!parsed.ok ? "Fix the JSON first" : busy ? "Saving…" : null)} onClick={() => parsed.ok && (setDraft(parsed.value), void save(parsed.value))}>
-            Save JSON
-          </Button>
+          <Button disabledReason={editReason ?? (!parsed.ok ? t("hudlib.fixTheJsonFirst") : busy ? t("hudlib.saving") : null)} onClick={() => parsed.ok && (setDraft(parsed.value), void save(parsed.value))}>{t("hudlib.saveJson")}</Button>
         </div>
       </Details>
     </div>
@@ -478,15 +466,13 @@ function DesktopControls({ entry, overlay, bridge, desktopReason, actions, reaso
     if (overlay) setPos({ x: String(overlay.bounds.x), y: String(overlay.bounds.y) });
   }, [overlay?.bounds.x, overlay?.bounds.y]);
 
-  if (desktopReason || !bridge) return <Note tone="neutral">{desktopReason ?? "Desktop HUDs need the MatchFrame program."}</Note>;
+  if (desktopReason || !bridge) return <Note tone="neutral">{desktopReason ?? t("hudlib.desktopHudsNeedTheMatchframe")}</Note>;
   if (!overlay?.open)
     return (
       <div className="stack">
-        <p className="muted">A separate transparent window over the game: always on top, click-through and never takes keyboard focus. Use the game's Fullscreen Windowed (borderless) mode; exclusive fullscreen is not supported.</p>
+        <p className="muted">{t("hudlib.aSeparateTransparentWindowOver")}</p>
         <div className="row">
-          <Button variant="primary" onClick={actions.launch} disabledReason={reasons.launch ?? null}>
-            <Icon name="play" size={14} /> Launch Transparent HUD
-          </Button>
+          <Button variant="primary" onClick={actions.launch} disabledReason={reasons.launch ?? null}><T k="hudlib.iconLaunchTransparentHud" values={{ icon: <Icon name="play" size={14} /> }} /></Button>
         </div>
       </div>
     );
@@ -496,18 +482,18 @@ function DesktopControls({ entry, overlay, bridge, desktopReason, actions, reaso
     <div className="stack">
       <div className="row">
         <Button onClick={() => void run(overlay.visible ? "Hide" : "Show", () => bridge.setVisible(entry.id, !overlay.visible))}>
-          <Icon name={overlay.visible ? "eyeOff" : "eye"} size={14} /> {overlay.visible ? "Hide" : "Show"}
+          <Icon name={overlay.visible ? "eyeOff" : "eye"} size={14} /> {overlay.visible ? t("hudlib.hide") : t("hudlib.show")}
         </Button>
-        <Button variant={overlay.editing ? "warn" : "secondary"} disabledReason={overlay.locked ? "Unlock the position first" : null} onClick={() => void run("Edit mode", () => bridge.setEditing(entry.id, !overlay.editing))} aria-pressed={overlay.editing}>
-          {overlay.editing ? "Done editing" : "Edit position"}
+        <Button variant={overlay.editing ? "warn" : "secondary"} disabledReason={overlay.locked ? t("hudlib.unlockThePositionFirst") : null} onClick={() => void run(t("hudlib.editMode"), () => bridge.setEditing(entry.id, !overlay.editing))} aria-pressed={overlay.editing}>
+          {overlay.editing ? t("hudlib.doneEditing") : t("hudlib.editPosition")}
         </Button>
-        <Button onClick={actions.closeDesktop}>Close</Button>
+        <Button onClick={actions.closeDesktop}>{t("hudlib.close")}</Button>
       </div>
-      {overlay.editing ? <Note tone="warn" title="Edit mode">The HUD window can be dragged now and catches the mouse. Click Done editing to make it click-through again.</Note> : null}
-      {overlay.status === "error" ? <Note tone="danger">{overlay.error ?? "The desktop HUD window failed to load."}</Note> : null}
-      <Field label="Monitor">
-        <select value={overlay.displayId ?? ""} onChange={(e) => configure("Move to monitor", { displayId: Number(e.target.value), fit: "display" })}>
-          {overlay.displayId === null ? <option value="">Unknown</option> : null}
+      {overlay.editing ? <Note tone="warn" title={t("hudlib.editMode")}>{t("hudlib.theHudWindowCanBe")}</Note> : null}
+      {overlay.status === "error" ? <Note tone="danger">{overlay.error ?? t("hudlib.theDesktopHudWindowFailed")}</Note> : null}
+      <Field label={t("hudlib.monitor")}>
+        <select value={overlay.displayId ?? ""} onChange={(e) => configure(t("hudlib.moveToMonitor"), { displayId: Number(e.target.value), fit: "display" })}>
+          {overlay.displayId === null ? <option value="">{t("common.unknown")}</option> : null}
           {displays.map((d) => (
             <option key={d.id} value={d.id}>
               {displayLabel(d)}
@@ -516,17 +502,15 @@ function DesktopControls({ entry, overlay, bridge, desktopReason, actions, reaso
         </select>
       </Field>
       <div className="row hud-scale-row">
-        <Field label="Scale (%)">
+        <Field label={t("hudlib.scale")}>
           <input type="number" min={10} max={400} step={5} defaultValue={scalePct} key={scalePct} onBlur={(e) => Number(e.target.value) !== scalePct && configure("Scale", { scale: Math.min(4, Math.max(0.1, Number(e.target.value) / 100)) })} style={{ width: 90 }} />
         </Field>
-        <Button size="sm" onClick={() => configure("Fit to monitor", { fit: "display" })}>
-          Fit to monitor
-        </Button>
-        <Button size="sm" onClick={() => configure("Actual size", { fit: "native" })}>
+        <Button size="sm" onClick={() => configure(t("hudlib.fitToMonitor"), { fit: "display" })}>{t("hudlib.fitToMonitor")}</Button>
+        <Button size="sm" onClick={() => configure(t("hudlib.actualSize"), { fit: "native" })}>
           100 %
         </Button>
       </div>
-      <p className="muted small hud-hint">Scales the design size {resolutionLabel(entry)} evenly; the HUD is never stretched.</p>
+      <p className="muted small hud-hint">{t("hudlib.scalesTheDesignSizeEntry", { entry: resolutionLabel(entry) })}</p>
       <div className="row">
         <Field label="X">
           <input type="number" value={pos.x} onChange={(e) => setPos({ ...pos, x: e.target.value })} onBlur={() => Number(pos.x) !== overlay.bounds.x && configure("Move", { bounds: { x: Math.round(Number(pos.x)) } })} style={{ width: 90 }} disabled={overlay.locked} />
@@ -534,13 +518,11 @@ function DesktopControls({ entry, overlay, bridge, desktopReason, actions, reaso
         <Field label="Y">
           <input type="number" value={pos.y} onChange={(e) => setPos({ ...pos, y: e.target.value })} onBlur={() => Number(pos.y) !== overlay.bounds.y && configure("Move", { bounds: { y: Math.round(Number(pos.y)) } })} style={{ width: 90 }} disabled={overlay.locked} />
         </Field>
-        <span className="muted small num">
-          {overlay.bounds.width}×{overlay.bounds.height} window
-        </span>
+        <span className="muted small num">{t("hudlib.widthHeightWindow", { width: overlay.bounds.width, height: overlay.bounds.height })}</span>
       </div>
-      <Checkbox checked={overlay.locked} onChange={(v) => configure(v ? "Lock" : "Unlock", { locked: v })} label="Lock position and size" hint="Prevents edit mode and moves until unlocked" />
+      <Checkbox checked={overlay.locked} onChange={(v) => configure(v ? "Lock" : "Unlock", { locked: v })} label={t("hudlib.lockPositionAndSize")} hint={t("hudlib.preventsEditModeAndMoves")} />
       {entry.variants.length > 1 ? (
-        <Field label="Variant">
+        <Field label={t("hudlib.variant2")}>
           <select value={overlay.variant} onChange={(e) => configure("Variant", { variant: e.target.value as HudVariant })}>
             {entry.variants.map((v) => (
               <option key={v} value={v} disabled={!entry.urls[v]}>
@@ -550,7 +532,7 @@ function DesktopControls({ entry, overlay, bridge, desktopReason, actions, reaso
           </select>
         </Field>
       ) : null}
-      <p className="muted small">Position, size and scale are remembered for this HUD on this computer.</p>
+      <p className="muted small">{t("hudlib.positionSizeAndScaleAre")}</p>
     </div>
   );
 }
@@ -573,20 +555,18 @@ function Hotkeys({ bridge, desktopReason }: { bridge: DesktopHudBridge | null; d
   const changed = draft.toggle !== state.toggle || draft.emergencyHide !== state.emergencyHide;
   return (
     <section>
-      <h3 className="hud-section-title">Hotkeys</h3>
-      <p className="muted small">Work while the game has focus. Use Electron accelerator names, for example CommandOrControl+Shift+H.</p>
+      <h3 className="hud-section-title">{t("hudlib.hotkeys")}</h3>
+      <p className="muted small">{t("hudlib.workWhileTheGameHas")}</p>
       <div className="row">
-        <Field label="Show / hide desktop HUD" hint={state.registered.toggle ? "Registered" : "Not registered: another program may use it"}>
+        <Field label={t("hudlib.showHideDesktopHud")} hint={state.registered.toggle ? t("hudlib.registered") : t("hudlib.notRegisteredAnotherProgramMay")}>
           <input value={draft.toggle} onChange={(e) => setDraft({ ...draft, toggle: e.target.value })} spellCheck={false} />
         </Field>
-        <Field label="Emergency hide (all HUD graphics, OBS too)" hint={state.registered.emergencyHide ? "Registered" : "Not registered: another program may use it"}>
+        <Field label={t("hudlib.emergencyHideAllHudGraphics")} hint={state.registered.emergencyHide ? t("hudlib.registered") : t("hudlib.notRegisteredAnotherProgramMay")}>
           <input value={draft.emergencyHide} onChange={(e) => setDraft({ ...draft, emergencyHide: e.target.value })} spellCheck={false} />
         </Field>
       </div>
       <div className="row">
-        <Button size="sm" disabledReason={changed ? null : "No changes"} onClick={() => void run("Hotkeys", () => bridge.setHotkeys(draft), "Hotkeys saved").then((h) => h && setState(h))}>
-          Save hotkeys
-        </Button>
+        <Button size="sm" disabledReason={changed ? null : t("hudlib.noChanges")} onClick={() => void run("Hotkeys", () => bridge.setHotkeys(draft), t("hudlib.hotkeysSaved")).then((h) => h && setState(h))}>{t("hudlib.saveHotkeys")}</Button>
       </div>
     </section>
   );
@@ -597,48 +577,29 @@ function StutterNote({ entry, outputs }: { entry: HudLibraryEntry; outputs: Reco
   const lowSpec = useLowSpec()?.lowSpec === true;
   const obs = outputs.obs ? entry.smoothness.obs : undefined;
   const desktop = outputs.desktop ? entry.smoothness.desktop : undefined;
-  const bad = [stutters(obs) ? (["OBS browser source", obs!] as const) : null, stutters(desktop) ? (["desktop HUD", desktop!] as const) : null].filter((x) => x !== null);
+  const bad = [stutters(obs) ? ([t("hudlib.obsBrowserSource"), obs!] as const) : null, stutters(desktop) ? ([t("hudlib.desktopHud2"), desktop!] as const) : null].filter((x) => x !== null);
   if (!bad.length) return null;
   return (
-    <Note tone="warn" title="The HUD is stuttering where it is drawn">
+    <Note tone="warn" title={t("hudlib.theHudIsStutteringWhere")}>
       {bad.map(([where, s]) => (
-        <p key={where} className="small" style={{ margin: "0 0 6px" }}>
-          {s.worstPauseMs >= STUTTER_MS ? (
-            <>
-              The {where} stopped drawing for up to <strong className="num">{s.worstPauseMs} ms</strong> ({s.pauses} times in the last minute, {s.fps} fps).
-            </>
+        <p key={where} className="small" style={{ margin: "0 0 6px" }}><T k="hudlib.vTheGameDataReaches" values={{ v: s.worstPauseMs >= STUTTER_MS ? (
+            <><T k="hudlib.theWhereStoppedDrawingFor" values={{ where, strong: <strong className="num">{t("hudlib.worstpausemsMs", { worstPauseMs: s.worstPauseMs })}</strong>, pauses: s.pauses, fps: s.fps }} /></>
           ) : (
-            <>
-              The {where} drew only <strong className="num">{s.fps}</strong> frames a second (under {hudLowFps(s.frameCap)}
-              {s.frameCap ? `, with low-spec mode's cap of ${s.frameCap}` : ""}) at its slowest in the last minute.
-            </>
-          )}{" "}
-          The game data reaches it on time: the computer drawing the HUD is too busy.
-        </p>
+            <><T k="hudlib.theWhereDrewOnlyStrong" values={{ where, strong: <strong className="num">{s.fps}</strong>, frameCap: hudLowFps(s.frameCap), v: s.frameCap ? t("hudlib.withLowSpecModeS", { frameCap: s.frameCap }) : "" }} /></>
+          ) }} /></p>
       ))}
       {stutters(obs) ? (
-        <p className="small" style={{ margin: "0 0 6px" }}>
-          In OBS: <strong>Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration</strong>, then restart OBS, and <strong>Settings → Video → Common FPS Values</strong> 60.{" "}
-          {lowSpec ? (
-            <>
-              Low-spec mode sets <strong>Use custom frame rate</strong> to 30 on the browser sources MatchFrame made; set it on your own sources too. Leave <strong>Shutdown source when not visible</strong> off.
-            </>
+        <p className="small" style={{ margin: "0 0 6px" }}><T k="hudlib.inObsSettingsAdvancedSources" values={{ v: lowSpec ? (
+            <><T k="hudlib.lowSpecModeSetsUse" tags={{ b: (c) => <strong>{c}</strong> }} /></>
           ) : (
-            <>
-              In the browser source's properties, leave <strong>Use custom frame rate</strong> off and <strong>Shutdown source when not visible</strong> off.
-            </>
-          )}
-        </p>
+            <><T k="hudlib.inTheBrowserSourceS" tags={{ b: (c) => <strong>{c}</strong> }} /></>
+          ) }} tags={{ b: (c) => <strong>{c}</strong> }} /></p>
       ) : null}
       {stutters(desktop) ? (
-        <p className="small" style={{ margin: "0 0 6px" }}>
-          Run CS2 in Fullscreen Windowed, and cap its frame rate (for example <code>fps_max 240</code>) so it leaves the computer room to draw the HUD.
-        </p>
+        <p className="small" style={{ margin: "0 0 6px" }}><T k="hudlib.runCs2InFullscreenWindowed" tags={{ code: (c) => <code>{c}</code> }} /></p>
       ) : null}
       {!lowSpec ? (
-        <p className="small" style={{ margin: 0 }}>
-          CS2, OBS and MatchFrame on one computer? <Link to="/settings">Settings → General → Performance → Low-spec mode</Link> caps HUDs at 30 fps and lightens MatchFrame&apos;s own work.
-        </p>
+        <p className="small" style={{ margin: 0 }}><T k="hudlib.cs2ObsAndMatchframeOn" tags={{ link: (c) => <Link to="/settings">{c}</Link> }} /></p>
       ) : null}
     </Note>
   );
@@ -655,18 +616,16 @@ function Outputs(p: Props) {
     <div className="stack">
       <OutputIndicators outputs={p.outputs} smoothness={entry.smoothness} />
       <StutterNote entry={entry} outputs={p.outputs} />
-      {newer ? <Note tone="neutral">This HUD was rolled back to an older version.</Note> : null}
+      {newer ? <Note tone="neutral">{t("hudlib.thisHudWasRolledBack")}</Note> : null}
       <section>
-        <h3 className="hud-section-title">Desktop HUD</h3>
+        <h3 className="hud-section-title">{t("hudlib.desktopHud")}</h3>
         <DesktopControls {...p} />
       </section>
       <section>
-        <h3 className="hud-section-title">OBS browser source</h3>
-        <p className="muted small">
-          Add a Browser Source with this URL, width <strong className="num">{r.width}</strong> and height <strong className="num">{r.height}</strong>, above your Game Capture. The page has a transparent background and shows only the HUD.
-        </p>
+        <h3 className="hud-section-title">{t("hudlib.obsBrowserSource")}</h3>
+        <p className="muted small"><T k="hudlib.addABrowserSourceWith" values={{ strong: <strong className="num">{r.width}</strong>, strong2: <strong className="num">{r.height}</strong> }} /></p>
         {entry.variants.length > 1 ? (
-          <Field label="Variant">
+          <Field label={t("hudlib.variant2")}>
             <select value={variant} onChange={(e) => setVariant(e.target.value as HudVariant)}>
               {entry.variants.map((v) => (
                 <option key={v} value={v} disabled={!entry.urls[v]}>
@@ -679,32 +638,26 @@ function Outputs(p: Props) {
         {url ? (
           <div className="hud-url">
             <code title={url}>{url}</code>
-            <CopyButton text={url} label="Copy URL" />
+            <CopyButton text={url} label={t("hudlib.copyUrl")} />
           </div>
         ) : (
-          <Note tone="neutral">No OBS output for this variant.</Note>
+          <Note tone="neutral">{t("hudlib.noObsOutputForThis")}</Note>
         )}
         <div className="row">
-          <span className="muted small">The address contains this HUD's access key. If it leaks, make a new one; sources with the old address stop working.</span>
+          <span className="muted small">{t("hudlib.theAddressContainsThisHud")}</span>
           <Button
             size="sm"
             disabledReason={p.editReason}
-            onClick={() => void run("New access key", () => api.post(`${hudPath(entry.id)}/rotate-token`), "New access key made: update the URL in OBS").then(p.onChanged)}
-          >
-            New access key
-          </Button>
+            onClick={() => void run(t("hudlib.newAccessKey"), () => api.post(`${hudPath(entry.id)}/rotate-token`), t("hudlib.newAccessKeyMadeUpdate")).then(p.onChanged)}
+          >{t("hudlib.newAccessKey")}</Button>
         </div>
       </section>
       <section>
-        <h3 className="hud-section-title">Preview window</h3>
+        <h3 className="hud-section-title">{t("hudlib.previewWindow")}</h3>
         <div className="row">
-          <Button onClick={p.actions.preview} disabledReason={p.reasons.preview ?? null}>
-            <Icon name="eye" size={14} /> Open preview window
-          </Button>
+          <Button onClick={p.actions.preview} disabledReason={p.reasons.preview ?? null}><T k="hudlib.iconOpenPreviewWindow" values={{ icon: <Icon name="eye" size={14} /> }} /></Button>
           {p.overlay?.previews ? (
-            <Button disabledReason={desktopReason} onClick={() => bridge && void bridge.closePreviews(entry.id)}>
-              Close previews ({p.overlay.previews})
-            </Button>
+            <Button disabledReason={desktopReason} onClick={() => bridge && void bridge.closePreviews(entry.id)}>{t("hudlib.closePreviewsPreviews", { previews: p.overlay.previews })}</Button>
           ) : null}
         </div>
       </section>

@@ -222,7 +222,8 @@ describe("Players", () => {
     at("/players/p_mal/edit");
     mount(<PlayerEditorScreen />);
     await screen.findByDisplayValue("Malakai");
-    choose(screen.getByLabelText("Team"), "Northern Lights", "north");
+    // The team list loads separately from the player: wait until it offers the team.
+    await waitFor(() => choose(screen.getByLabelText("Team"), "Northern Lights", "north"));
     fireEvent.click(screen.getByRole("button", { name: "Save and Exit" }));
     await waitFor(() => expect(window.location.pathname).toBe("/players"));
     expect(calls.find((c) => c.method === "PATCH")!.body).toEqual({ changes: { teamId: "t_nl" }, expected: { teamId: "t_lite" } });

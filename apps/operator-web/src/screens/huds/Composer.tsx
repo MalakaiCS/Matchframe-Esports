@@ -6,17 +6,19 @@ import { ActionButton, Async, Badge, Button, Checkbox, Details, Field, Panel } f
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
 import { previewUrl } from "./Outputs.tsx";
+import { perLocale, t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 
 /** Layout elements of the built-in HUD. `hideKey` is the settings flag the renderer honours. */
-export const COMPOSER_ELEMENTS = [
-  { id: "scoreboard", label: "Scoreboard", hideKey: "hide.scoreboard", box: [660, 0, 600, 92] },
-  { id: "history", label: "Round history", hideKey: "hide.history", box: [610, 96, 700, 40] },
-  { id: "radar", label: "Radar", hideKey: "hide.radar", box: [24, 24, 320, 320] },
-  { id: "killfeed", label: "Killfeed", hideKey: "hide.killfeed", box: [1436, 24, 460, 210] },
-  { id: "players-left", label: "Players (left)", hideKey: "hide.players", box: [0, 690, 430, 390] },
-  { id: "players-right", label: "Players (right)", hideKey: "hide.players", box: [1490, 690, 430, 390] },
-  { id: "observed", label: "Observed player", hideKey: "hide.observed", box: [660, 910, 600, 150] },
-] as const;
+export const COMPOSER_ELEMENTS = perLocale(() => ([
+  { id: "scoreboard", label: t("huds.scoreboard"), hideKey: "hide.scoreboard", box: [660, 0, 600, 92] },
+  { id: "history", label: t("huds.roundHistory"), hideKey: "hide.history", box: [610, 96, 700, 40] },
+  { id: "radar", label: t("huds.radar"), hideKey: "hide.radar", box: [24, 24, 320, 320] },
+  { id: "killfeed", label: t("huds.killfeed"), hideKey: "hide.killfeed", box: [1436, 24, 460, 210] },
+  { id: "players-left", label: t("huds.playersLeft"), hideKey: "hide.players", box: [0, 690, 430, 390] },
+  { id: "players-right", label: t("huds.playersRight"), hideKey: "hide.players", box: [1490, 690, 430, 390] },
+  { id: "observed", label: t("huds.observedPlayer"), hideKey: "hide.observed", box: [660, 910, 600, 150] },
+] as const));
 
 export type LayoutOffsets = Record<string, { dx: number; dy: number }>;
 
@@ -100,9 +102,9 @@ function Editor({ entry, reload, underlay }: { entry: HudOutputEntry; reload: ()
 
   return (
     <div className="grid-2-1">
-      <Panel title="Layout (1920×1080)" subtitle="Drag elements or use the arrow keys (Shift moves 10 px). Dashed elements are hidden.">
+      <Panel title={t("huds.layout19201080")} subtitle={t("huds.dragElementsOrUseThe")}>
         <div className="stage" ref={stageRef} onPointerMove={onMove} onPointerUp={() => (drag.current = null)}>
-          {underlay && entry.published ? <iframe title="Published output" src={previewUrl(entry.url)} sandbox="allow-scripts allow-same-origin" tabIndex={-1} style={{ opacity: 0.55, pointerEvents: "none" }} /> : null}
+          {underlay && entry.published ? <iframe title={t("huds.publishedOutput")} src={previewUrl(entry.url)} sandbox="allow-scripts allow-same-origin" tabIndex={-1} style={{ opacity: 0.55, pointerEvents: "none" }} /> : null}
           {COMPOSER_ELEMENTS.map((el) => {
             const [x, y, w, h] = el.box;
             const o = off(el.id);
@@ -113,7 +115,7 @@ function Editor({ entry, reload, underlay }: { entry: HudOutputEntry; reload: ()
                 role="button"
                 tabIndex={0}
                 aria-pressed={selected === el.id}
-                aria-label={`${el.label}${isHidden ? " (hidden)" : ""}, offset ${o.dx}, ${o.dy}`}
+                aria-label={t("huds.labelVOffsetDxDy", { label: el.label, v: isHidden ? " (hidden)" : "", dx: o.dx, dy: o.dy })}
                 className={`stage-el ${isHidden ? "is-hidden" : ""} ${selected === el.id ? "is-selected" : ""}`}
                 style={{ left: `${((x + o.dx) / 1920) * 100}%`, top: `${((y + o.dy) / 1080) * 100}%`, width: `${(w / 1920) * 100}%`, height: `${(h / 1080) * 100}%` }}
                 onPointerDown={(e) => onDown(e, el.id)}
@@ -121,62 +123,52 @@ function Editor({ entry, reload, underlay }: { entry: HudOutputEntry; reload: ()
                 onFocus={() => setSelected(el.id)}
               >
                 {el.label}
-                {isHidden ? " · hidden" : ""}
+                {isHidden ? t("huds.hidden") : ""}
               </div>
             );
           })}
         </div>
       </Panel>
-      <Panel title={sel.label} subtitle="Selected element" className="gb-start">
-        <Checkbox checked={!hidden[sel.hideKey]} onChange={(v) => setHidden({ ...hidden, [sel.hideKey]: !v })} label="Visible" hint={`Settings flag ${sel.hideKey}`} />
-        {sel.hideKey === "hide.players" ? <p className="small muted">Both player panels share one visibility flag in the built-in HUD.</p> : null}
+      <Panel title={sel.label} subtitle={t("huds.selectedElement")} className="gb-start">
+        <Checkbox checked={!hidden[sel.hideKey]} onChange={(v) => setHidden({ ...hidden, [sel.hideKey]: !v })} label={t("huds.visible")} hint={t("huds.settingsFlagHidekey", { hideKey: sel.hideKey })} />
+        {sel.hideKey === "hide.players" ? <p className="small muted">{t("huds.bothPlayerPanelsShareOne")}</p> : null}
         <div className="form-grid" style={{ marginTop: 8 }}>
-          <Field label="Offset X (px)">
+          <Field label={t("huds.offsetXPx")}>
             <input type="number" value={off(sel.id).dx} onChange={(e) => move(sel.id, Number(e.target.value), off(sel.id).dy)} />
           </Field>
-          <Field label="Offset Y (px)">
+          <Field label={t("huds.offsetYPx")}>
             <input type="number" value={off(sel.id).dy} onChange={(e) => move(sel.id, off(sel.id).dx, Number(e.target.value))} />
           </Field>
         </div>
         <div className="form-actions">
-          <Button size="sm" variant="ghost" onClick={() => move(sel.id, 0, 0)}>
-            Reset position
-          </Button>
+          <Button size="sm" variant="ghost" onClick={() => move(sel.id, 0, 0)}>{t("huds.resetPosition")}</Button>
         </div>
         <div className="gb-section">
-          <h3 className="gb-section-title">Whole output</h3>
-          <Checkbox checked={reducedMotion} onChange={setReducedMotion} label="Reduced motion" hint="Settings flag reducedMotion" />
+          <h3 className="gb-section-title">{t("huds.wholeOutput")}</h3>
+          <Checkbox checked={reducedMotion} onChange={setReducedMotion} label={t("huds.reducedMotion")} hint={t("huds.settingsFlagReducedmotion")} />
           <div className="form-actions">
             <ActionButton
               variant="primary"
               action={() => api.patch(`/api/v1/hud/outputs/${seg(entry.draft.outputId)}`, { settings: next })}
-              success="Layout saved to the draft"
+              success={t("huds.layoutSavedToTheDraft")}
               onDone={reload}
-              disabledReason={reason ?? (changed ? null : "No layout changes")}
-            >
-              Save to draft
-            </ActionButton>
+              disabledReason={reason ?? (changed ? null : t("huds.noLayoutChanges"))}
+            >{t("huds.saveToDraft")}</ActionButton>
             <ActionButton
               action={() => api.post<PublishedOutput>(`/api/v1/hud/outputs/${seg(entry.draft.outputId)}/publish`)}
-              success={(p) => `Published revision ${p.revision}`}
+              success={(p) => t("huds.publishedRevisionRevision", { revision: p.revision })}
               onDone={reload}
-              disabledReason={reason ?? (changed ? "Save to draft first" : entry.dirty ? null : "Draft already published")}
-              confirm={{ title: "Publish the draft?", body: "The browser source switches immediately; roll back from the Outputs tab if needed." }}
-            >
-              Publish draft
-            </ActionButton>
+              disabledReason={reason ?? (changed ? t("huds.saveToDraftFirst") : entry.dirty ? null : t("huds.draftAlreadyPublished"))}
+              confirm={{ title: t("huds.publishTheDraft"), body: t("huds.theBrowserSourceSwitchesImmediately") }}
+            >{t("huds.publishDraft")}</ActionButton>
           </div>
-          {entry.dirty ? <p className="small text-warn">The draft has unpublished changes.</p> : null}
-          <Details summary="Settings that will be written">
+          {entry.dirty ? <p className="small text-warn">{t("huds.theDraftHasUnpublishedChanges")}</p> : null}
+          <Details summary={t("huds.settingsThatWillBeWritten")}>
             <pre className="json-view">{JSON.stringify(next, null, 2)}</pre>
           </Details>
-          <Details summary="What the preview can do">
-            <p className="small muted">
-              <strong>Implemented:</strong> element visibility (<code>hide.*</code>), reduced motion and position offsets (<code>settings.layout</code>), all applied by the built-in renderer, saved to the draft and published with revisions and rollback.
-            </p>
-            <p className="small muted">
-              <strong>Not yet implemented (Full Suite):</strong> resize and scale handles, new layers (text, images, video), data bindings to HUD state fields, per-variant layouts, multi-step undo, and rendering the unpublished draft in the live preview (the underlay shows the published revision).
-            </p>
+          <Details summary={t("huds.whatThePreviewCanDo")}>
+            <p className="small muted"><T k="huds.implementedElementVisibilityHideReduced" tags={{ b: (c) => <strong>{c}</strong>, code: (c) => <code>{c}</code> }} /></p>
+            <p className="small muted"><T k="huds.notYetImplementedFullSuite" tags={{ b: (c) => <strong>{c}</strong> }} /></p>
           </Details>
         </div>
       </Panel>
@@ -195,7 +187,7 @@ export function ComposerTab() {
         return (
           <>
             <div className="gb-toolbar">
-              <Field label="Output">
+              <Field label={t("huds.output")}>
                 <select value={entry?.draft.outputId ?? ""} onChange={(e) => setSelected(e.target.value)}>
                   {list.map((o) => (
                     <option key={o.draft.outputId} value={o.draft.outputId}>
@@ -204,12 +196,10 @@ export function ComposerTab() {
                   ))}
                 </select>
               </Field>
-              <Badge tone="info" title="The composer is a preview: see “What the preview can do”">
-                Preview
-              </Badge>
-              <Checkbox checked={underlay} onChange={setUnderlay} label="Show published output underneath" />
+              <Badge tone="info" title={t("huds.theComposerIsAPreview")}>{t("huds.preview")}</Badge>
+              <Checkbox checked={underlay} onChange={setUnderlay} label={t("huds.showPublishedOutputUnderneath")} />
             </div>
-            {entry ? <Editor key={entry.draft.outputId} entry={entry} reload={() => void outputs.reload()} underlay={underlay} /> : <p className="muted">No outputs.</p>}
+            {entry ? <Editor key={entry.draft.outputId} entry={entry} reload={() => void outputs.reload()} underlay={underlay} /> : <p className="muted">{t("huds.noOutputs")}</p>}
           </>
         );
       }}
