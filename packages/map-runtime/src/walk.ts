@@ -256,9 +256,29 @@ export class WalkGraph {
    */
   distancesTo(goal: Vec3, from: readonly Vec3[], maxUnits = 6000): (number | null)[] {
     const g = this.snap(goal);
+    return this.search(g ? [{ node: g.node, d: 0 }] : [], g?.offset ?? 0, from, maxUnits);
+  }
+
+  /**
+   * How far each of `from` has to walk to reach the nearest of `goals` (an area, such as a bombsite's
+   * cells): as distancesTo, in one search from all of them. Goals that can't be placed are left out;
+   * with none placed, every answer is null.
+   */
+  distancesToNearest(goals: readonly Vec3[], from: readonly Vec3[], maxUnits = 6000): (number | null)[] {
+    const seeds = new Map<number, number>();
+    for (const p of goals) {
+      const g = this.snap(p);
+      const had = g ? seeds.get(g.node) : undefined;
+      if (g && (had === undefined || g.offset < had)) seeds.set(g.node, g.offset);
+    }
+    return this.search([...seeds].map(([node, d]) => ({ node, d })), 0, from, maxUnits);
+  }
+
+  /** One search back from `seeds` (each node with its start distance); `extra` is added to every answer. */
+  private search(seeds: readonly { node: number; d: number }[], extra: number, from: readonly Vec3[], maxUnits: number): (number | null)[] {
     const sources = from.map((p) => this.snap(p));
-    const out: (number | null)[] = sources.map((s) => (s && g ? Infinity : null));
-    if (!g) return out;
+    const out: (number | null)[] = sources.map((s) => (s && seeds.length ? Infinity : null));
+    if (!seeds.length) return out;
     let waiting = 0;
     const want = new Map<number, number[]>();
     sources.forEach((s, i) => {
@@ -318,9 +338,11 @@ export class WalkGraph {
       this.heapN[i] = lastN;
       return top;
     };
-    this.dist[g.node] = 0;
-    this.stamp[g.node] = ep;
-    push(g.node, 0);
+    for (const sd of seeds) {
+      this.dist[sd.node] = sd.d;
+      this.stamp[sd.node] = ep;
+      push(sd.node, sd.d);
+    }
     while (size > 0 && waiting > 0) {
       const d0 = this.heapD[0]!;
       const u = pop();
@@ -329,7 +351,7 @@ export class WalkGraph {
       this.settled[u] = ep;
       const hit = want.get(u);
       if (hit) {
-        for (const i of hit) out[i] = d0 + g.offset + sources[i]!.offset;
+        for (const i of hit) out[i] = d0 + extra + sources[i]!.offset;
         waiting--;
       }
       for (let e = this.inStart[u]!; e < this.inStart[u + 1]!; e++) {

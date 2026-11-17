@@ -9931,6 +9931,17 @@
                       }
                     ]
                   },
+                  "early": {
+                    "type": "boolean"
+                  },
+                  "earlyMaxSec": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 10
+                  },
+                  "earlyBackToLive": {
+                    "type": "boolean"
+                  },
                   "cutBack": {
                     "type": "string",
                     "enum": [

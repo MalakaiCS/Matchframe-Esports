@@ -66,6 +66,23 @@ describe("walking distance on a free-space grid", () => {
     expect(many[1]).toBeCloseTo(200, -1);
     expect(many[2]!).toBeLessThan(30);
   });
+
+  it("walks to the nearest of many goals (an area) in one search", () => {
+    const w = WalkGraph.build(flat(60, 60));
+    const area = [at(500, 100), at(500, 300), at(500, 500)];
+    const d = w.distancesToNearest(area, [at(100, 300), at(100, 520), at(500, 300)]);
+    // (Each to its nearest goal: about 400 units, the grid's steps and placing adding a little.)
+    for (const x of [d[0]!, d[1]!]) {
+      expect(x).toBeGreaterThan(390);
+      expect(x).toBeLessThan(430);
+    }
+    expect(d[2]!).toBeLessThan(30);
+    // Goals off the grid are left out; with none placed, every answer is null.
+    const one = w.distancesToNearest([at(500, 300, 400), at(500, 100)], [at(100, 100)])[0]!;
+    expect(one).toBeGreaterThan(390);
+    expect(one).toBeLessThan(430);
+    expect(w.distancesToNearest([at(500, 300, 400)], [at(100, 100)])).toEqual([null]);
+  });
 });
 
 describe("walking distance on CS2's maps", () => {

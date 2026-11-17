@@ -1114,6 +1114,10 @@ export interface AutoReplaySettings {
   cutBack?: "clock" | "before_round";
   /** The round clock (seconds left) the cut back to live starts by: 110 = 1:50. */
   cutBackClockSec?: number;
+  /** Early replays (ADR-083): start before a decided round ends, at most this many seconds before (5–10), back to live if it heats up. */
+  early?: boolean;
+  earlyMaxSec?: number;
+  earlyBackToLive?: boolean;
   /** From one replay to the next: a fade or a cut. */
   between?: "fade" | "cut";
   fadeMs?: number;
@@ -1293,6 +1297,8 @@ export interface AutoReplayResponse {
     preparing?: { kind: "break" | "test" | "highlights"; progress: number; clips: number } | null;
     /** The last rendered run: how long its file took, or why its clips played through the scenes. */
     render?: { at: string; kind: "break" | "test" | "highlights"; clips: number; rendered: boolean; ms: number | null; encoder: string | null; detail: string } | null;
+    /** Early replays (ADR-083): the live round's decision as it builds, early replays on air, or why they went back to live. */
+    early?: { state: "watching" | "decided" | "waiting" | "on_air" | "back"; detail: string } | null;
   };
 }
 export interface ReplayPcResponse {
