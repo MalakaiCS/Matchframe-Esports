@@ -163,7 +163,17 @@
       "label": "Round MVP card",
       "default": true,
       "group": "Elements",
-      "description": "The last round's key player in a tall card in their team's list: at the round's end and the first seconds of the next round."
+      "description": "The last round's key player in a tall card in their team's list, growing out of their card 5 seconds into freeze time and back after the first seconds of the round (below)."
+    },
+    "mvpLiveSeconds": {
+      "type": "number",
+      "label": "Hide the round MVP after (seconds of the round)",
+      "default": 8,
+      "min": 5,
+      "max": 10,
+      "step": 1,
+      "group": "Elements",
+      "description": "How many seconds into the live round the round MVP card stays before it shrinks back into the player's card."
     },
     "showTrophy": {
       "type": "boolean",

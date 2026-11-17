@@ -33,6 +33,8 @@ const TRANSITIONS = [
 /** When the break's replays end: by a time on the next round's clock (seconds left), or before it starts. */
 const CUT_BACK = [112, 110, 105, 100, 95, 90] as const;
 const FADES = [300, 500, 750, 1000] as const;
+/** Early replays (ADR-083): at most this many seconds before the round's end (never more than 10). */
+const EARLY_SEC = [10, 9, 8, 7, 6, 5] as const;
 /** A rendered break's sound fade in and out (ms). */
 const AUDIO_FADES = [0, 300, 400, 500] as const;
 /** The replay media sources' volume: as set in OBS (null), or in dB. */
@@ -108,6 +110,35 @@ export function AutoReplaysPanel() {
           hint={`In the break after a round: from a few seconds after it ends until ${st?.cutBack === "before_round" ? "just before the next round starts" : `the next round's clock reads ${clock(st?.cutBackClockSec ?? 110)}`}, one transition to the replays and one back to live. They never start once the next round is live.`}
           onChange={(v) => void save({ enabled: v })}
         />
+        <Checkbox
+          checked={st?.early ?? true}
+          disabled={off}
+          label="Start replays early when the round is decided"
+          hint="The bomb is planted and no CT can reach it and defuse in time, or no T can plant before the round clock ends, and no duel is on or about to start. Never with more than 10 s left on the bomb or the round clock."
+          onChange={(v) => void save({ early: v })}
+        />
+        {st?.early !== false ? (
+          <>
+            <div className="form-grid">
+              <Field label="At most" hint="Before the bomb goes off, or before the round clock ends. 10 s is the most.">
+                <select value={String(st?.earlyMaxSec ?? 10)} disabled={off} onChange={(e) => void save({ earlyMaxSec: Number(e.target.value) })}>
+                  {EARLY_SEC.map((n) => (
+                    <option key={n} value={String(n)}>
+                      {`${n} seconds early${n === 10 ? " (recommended)" : ""}`}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <Checkbox
+              checked={st?.earlyBackToLive ?? true}
+              disabled={off}
+              label="Back to live if the round isn't over after all"
+              hint="While early replays are on air: a CT back within reach of a defuse, a duel, a kill, or a T within reach of a plant."
+              onChange={(v) => void save({ earlyBackToLive: v })}
+            />
+          </>
+        ) : null}
         <div className="form-grid">
           <Field label="Replays per break" hint="The best clips of the round that fit in the break; the rest are left.">
             <select value={st?.perBreak ?? 4} disabled={off} onChange={(e) => void save({ perBreak: Number(e.target.value) })}>

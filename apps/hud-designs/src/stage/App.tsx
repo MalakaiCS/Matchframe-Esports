@@ -72,8 +72,8 @@ export default function App() {
         <TopRight state={state} settings={settings} compact={compact} />
         {compact ? null : (
           <>
-            <TeamCards state={state} team={state.left} color={colorOf(state.left, settings)} align="left" settings={settings} shown={!board || !settings.showScoreboard} />
-            <TeamCards state={state} team={state.right} color={colorOf(state.right, settings)} align="right" settings={settings} shown={!board || !settings.showScoreboard} />
+            <TeamCards state={state} receivedAt={receivedAt} team={state.left} color={colorOf(state.left, settings)} align="left" settings={settings} shown={!board || !settings.showScoreboard} />
+            <TeamCards state={state} receivedAt={receivedAt} team={state.right} color={colorOf(state.right, settings)} align="right" settings={settings} shown={!board || !settings.showScoreboard} />
             {settings.showScoreboard ? <Scoreboard state={state} receivedAt={receivedAt} settings={settings} shown={board} /> : null}
           </>
         )}

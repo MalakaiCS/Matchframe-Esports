@@ -19,9 +19,12 @@ export const DEMO_SCENES = ["freeze", "live", "kill", "plant", "bomb", "defuse",
  * while the data has paused, the team tag unusable ("?"); `edgeover` the round won with Spudwrecker
  * observed and its MVP, the 32-character name's kill in the killfeed; `edgeboard` a tactical timeout
  * with the scoreboard; `edgepause` a pause with no countdown from the game (its clock frozen at the
- * freeze time's 0:14), timed from when the HUD saw it start.
+ * freeze time's 0:14), timed from when the HUD saw it start; `edgemvp` freeze time 7 s in with
+ * Spudwrecker's round MVP card up. For the MVP card's timing and animation (scripts/shots.mjs
+ * --frames over,mvpfreeze,mvplive@…): `mvpfreeze` is round 18's freeze time from its first second
+ * (15 s, the last round's MVP to come in at 5 s), `mvplive` that round live from 1:55.
  */
-export const DEMO_TEST_SCENES = ["edge", "edgebomb", "edgeover", "edgeboard", "edgepause"] as const;
+export const DEMO_TEST_SCENES = ["edge", "edgebomb", "edgeover", "edgeboard", "edgepause", "edgemvp", "mvpfreeze", "mvplive"] as const;
 type DemoTestScene = (typeof DEMO_TEST_SCENES)[number];
 export type DemoScene = (typeof DEMO_SCENES)[number] | DemoTestScene;
 
@@ -118,6 +121,11 @@ const kill = (id: string, killer: HudPlayer, victim: HudPlayer, weapon: string, 
 });
 
 export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
+  if (scene === "mvpfreeze" || scene === "mvplive") {
+    const s = demoScene("mvp", opts);
+    const freeze = scene === "mvpfreeze";
+    return { ...s, match: { ...s.match, phase: freeze ? "freezetime" : "live", phaseEndsInSec: freeze ? 15 : 115, clockRunning: true } };
+  }
   if ((DEMO_TEST_SCENES as readonly string[]).includes(scene)) return edgeScene(scene as DemoTestScene, opts);
   // `ct` is the left team and `t` the right one; in the `mvp` scene they have swapped sides.
   const swapped = scene === "mvp";
@@ -144,7 +152,7 @@ export function demoScene(scene: DemoScene, opts: DemoOptions = {}): HudState {
     roundHistory.push({ roundNumber: 17, winner: "left", reason: "ct_win_defuse" });
   }
   // That round under way, a few seconds in: everyone alive, the last round's MVP still up.
-  if (scene === "mvp") clock = 103;
+  if (scene === "mvp") clock = 112;
   if (scene === "kill" || scene === "plant" || scene === "bomb" || scene === "defuse" || scene === "over") {
     feed.push(kill("k1", ct[0]!, t[2]!, "m4a1_silencer", true), kill("k2", t[1]!, ct[3]!, "ak47", false, { assister: { steamId: t[0]!.steamId, name: "ember", side: "T" } }));
     t[2] = { ...dead(t[2]!), roundDamage: 42 };
@@ -236,7 +244,7 @@ const EDGE_NAMES = {
 
 /** A test scene (DEMO_TEST_SCENES): the `kill`, `bomb`, `over` or `freeze` scene with the edges described there. */
 function edgeScene(scene: DemoTestScene, opts: DemoOptions): HudState {
-  const s = demoScene(scene === "edgebomb" ? "bomb" : scene === "edgeover" ? "over" : scene === "edgeboard" ? "timeout" : scene === "edgepause" ? "pause" : "kill", opts);
+  const s = demoScene(scene === "edgebomb" ? "bomb" : scene === "edgeover" ? "over" : scene === "edgeboard" ? "timeout" : scene === "edgepause" ? "pause" : scene === "edgemvp" ? "mvp" : "kill", opts);
   const names = new Map<string, string>();
   const rename = (team: HudTeam, list: string[]) =>
     team.players.map((p, i) => {
@@ -281,7 +289,7 @@ function edgeScene(scene: DemoTestScene, opts: DemoOptions): HudState {
     stale: scene === "edgebomb",
     dataAgeMs: scene === "edgebomb" ? 6500 : 0,
     // No countdown from the game: the freeze time's clock stands still at 0:14.
-    match: scene === "edgepause" ? { ...s.match, phaseEndsInSec: 14, clockRunning: false } : s.match,
+    match: scene === "edgepause" ? { ...s.match, phaseEndsInSec: 14, clockRunning: false } : scene === "edgemvp" ? { ...s.match, phase: "freezetime", phaseEndsInSec: 8, clockRunning: true } : s.match,
     left: { ...s.left, name: "NORTHERN LIGHTS ESPORTS", shortName: "NLE", logoUrl: demoLogo("left"), players: players.slice(0, left.length) },
     right: { ...s.right, shortName: scene === "edgebomb" ? "?" : "RHB", logoUrl: null, players: players.slice(left.length) },
     observed,

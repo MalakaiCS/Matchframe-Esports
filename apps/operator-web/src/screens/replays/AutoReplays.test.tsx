@@ -127,10 +127,30 @@ describe("Automatic replays panel", () => {
     await waitFor(() => expect(order.value).toBe("best"));
   });
 
+  it("starts replays early when the round is decided (ADR-083): on, at most 10 s early (5–10, never more), back to live if it heats up", async () => {
+    const calls = serve({ "GET /api/v1/replays/auto": auto });
+    wrap(<AutoReplaysPanel />);
+    const early = (await screen.findByLabelText(/Start replays early when the round is decided/)) as HTMLInputElement;
+    await waitFor(() => expect(early.disabled).toBe(false));
+    expect(early.checked).toBe(true);
+    expect(early.closest("label")!.title).toMatch(/Never with more than 10 s left on the bomb or the round clock/);
+    const most = screen.getByLabelText(/^At most/) as HTMLSelectElement;
+    expect([...most.options].map((o) => o.value)).toEqual(["10", "9", "8", "7", "6", "5"]);
+    expect(most.selectedOptions[0]!.textContent).toBe("10 seconds early (recommended)");
+    fireEvent.change(most, { target: { value: "7" } });
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ earlyMaxSec: 7 }));
+    const back = screen.getByLabelText(/Back to live if the round isn't over after all/) as HTMLInputElement;
+    expect(back.checked).toBe(true);
+    fireEvent.click(back);
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ earlyBackToLive: false }));
+    fireEvent.click(early);
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ early: false }));
+  });
+
   it("goes back to live by 1:50 on the next round's clock by default, or another time, or before the round starts; fades between replays", async () => {
     const calls = serve({ "GET /api/v1/replays/auto": { ...auto, status: { ...auto.status, twin: { scene: "MatchFrame Replay B", input: "MatchFrame Replay Clip B", ready: true, detail: "", checkedAt: null } } } });
     wrap(<AutoReplaysPanel />);
-    const back = (await screen.findByLabelText(/Back to live/)) as HTMLSelectElement;
+    const back = (await screen.findByRole("combobox", { name: /Back to live/ })) as HTMLSelectElement;
     await waitFor(() => expect(back.disabled).toBe(false));
     expect(back.selectedOptions[0]!.textContent).toBe("By 1:50 on the round clock (recommended)");
     expect([...back.options].map((o) => o.textContent).at(-1)).toBe("Before the round starts");

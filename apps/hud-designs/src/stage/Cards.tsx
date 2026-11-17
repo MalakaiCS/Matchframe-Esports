@@ -1,9 +1,10 @@
-import { memo } from "react";
+import { memo, useEffect, useReducer, useRef, useState } from "react";
 import type { HudPlayer, HudState, HudTeam } from "@matchframe/hud-sdk";
 import { deadIcon, playerPicture } from "../shared/art.ts";
+import { secondsLeft } from "../shared/format.ts";
 import { FitText, Photo } from "./bits.tsx";
 import { Armor, Bomb, DeadMark, Deaths, Disconnected, Dollar, Grenade, Health, Kills, Kit, RoundKillMark, Weapon } from "./icons.tsx";
-import { mvpShowing, slotKey, slotOrder, teamName, teamVars, type Settings } from "./util.ts";
+import { MVP_CLOCK, mvpClock, mvpNextChange, mvpUp, slotKey, slotOrder, teamName, teamVars, type Settings } from "./util.ts";
 import { mainWeaponName } from "./weapons.ts";
 
 const NADE_ORDER = ["smoke", "flash", "hegrenade", "molotov", "incgrenade", "decoy"];
@@ -86,6 +87,8 @@ interface CardProps {
   flashed: number;
   showMoney: boolean;
   index: number;
+  /** Above the round MVP card while it grows ("in") or shrinks back ("out"): the card moves with its top edge. */
+  shift: MvpAnim;
 }
 
 /**
@@ -100,7 +103,7 @@ const Card = memo(function Card(p: CardProps) {
   const dead = !p.alive;
   const hp = dead ? 0 : Math.max(0, Math.min(100, p.health));
   return (
-    <div className={`st-card st-card-${p.align} ${dead ? "is-dead" : ""} ${p.offline && !dead ? "is-offline" : ""} ${p.observed ? "is-observed" : ""}`} style={{ ...teamVars(p.color), ["--i" as string]: p.index }}>
+    <div className={`st-card st-card-${p.align} ${dead ? "is-dead" : ""} ${p.offline && !dead ? "is-offline" : ""} ${p.observed ? "is-observed" : ""} ${p.shift ? `is-mvp-${p.shift}` : ""}`} style={{ ...teamVars(p.color), ["--i" as string]: p.index }}>
       <span className="st-card-shape" aria-hidden>
         <i className="st-card-trail" style={{ transform: `scaleX(${hp / 100})` }} />
         <i className="st-card-fill" style={{ transform: `scaleX(${hp / 100})` }} />
@@ -145,7 +148,14 @@ const Card = memo(function Card(p: CardProps) {
   );
 });
 
+/** The round MVP card's animation under way: growing out of the player's card, or back into it. */
+type MvpAnim = "in" | "out" | null;
+/** How long the MVP card takes to grow or shrink (the stylesheet's st-mvp-* animations fit in it). */
+const MVP_ANIM_MS = 450;
+const MVP_ANIM_MS_LOW = 220;
+
 interface MvpProps {
+  anim: MvpAnim;
   name: string;
   slot: string;
   picture: string | null;
@@ -167,7 +177,7 @@ interface MvpProps {
  */
 const MvpCard = memo(function MvpCard(p: MvpProps) {
   return (
-    <div className={`st-mvp st-mvp-${p.align}`} style={teamVars(p.color)}>
+    <div className={`st-mvp st-mvp-${p.align} ${p.anim ? `is-${p.anim}` : ""}`} style={teamVars(p.color)}>
       <span className="st-mvp-body" aria-hidden />
       <span className="st-mvp-pic">
         <Photo url={p.picture} />
@@ -194,7 +204,7 @@ const MvpCard = memo(function MvpCard(p: MvpProps) {
   );
 });
 
-function cardProps(state: HudState, p: HudPlayer, color: string, align: "left" | "right", showMoney: boolean, index: number): CardProps {
+function cardProps(state: HudState, p: HudPlayer, color: string, align: "left" | "right", showMoney: boolean, index: number, shift: MvpAnim): CardProps {
   const alive = p.alive !== false;
   return {
     name: p.name,
@@ -220,25 +230,77 @@ function cardProps(state: HudState, p: HudPlayer, color: string, align: "left" |
     flashed: Math.round((p.flashed ?? 0) * 10) / 10,
     showMoney,
     index,
+    shift,
   };
+}
+
+type RoundMvp = NonNullable<NonNullable<HudState["lastRound"]>["mvp"]> & { roundNumber: number };
+
+/**
+ * The previous round's MVP while their card should be up (mvpClock / mvpUp: from 5 s into freeze time
+ * to the setting's seconds into the round), on the phase clock as it runs here, with a timer for the
+ * exact moment it comes in or goes between updates. Each output gets its own (delayed) state, so the
+ * card follows that output's timeline.
+ */
+function useRoundMvp(state: HudState, receivedAt: number, settings: Settings): RoundMvp | null {
+  const [, wake] = useReducer((n: number) => n + 1, 0);
+  const clock = useRef(MVP_CLOCK);
+  clock.current = mvpClock(clock.current, state.match);
+  const m = state.match;
+  const running = m.clockRunning && !m.paused;
+  const remaining = secondsLeft(m.phaseEndsInSec, running, receivedAt, performance.now());
+  const mvp = settings.showMvp ? (state.lastRound?.mvp ?? null) : null;
+  const next = mvp && running ? mvpNextChange(clock.current, m, remaining, settings.mvpLiveSeconds) : null;
+  useEffect(() => {
+    if (next === null) return;
+    const t = setTimeout(wake, Math.max(0, next * 1000) + 15);
+    return () => clearTimeout(t);
+  });
+  return mvp && mvpUp(clock.current, m, remaining, settings.mvpLiveSeconds) ? { ...mvp, roundNumber: state.lastRound!.roundNumber } : null;
+}
+
+/**
+ * What the team's column shows of the MVP card: the player whose card is tall, and the animation under
+ * way. It grows when the MVP comes up and, when it goes, stays tall while it shrinks back, then hands
+ * the place back to the player's card. A page opened with the card already up shows it without one.
+ */
+function useMvpView(target: RoundMvp | null): { mvp: RoundMvp | null; anim: MvpAnim } {
+  const [view, setView] = useState<{ mvp: RoundMvp | null; anim: MvpAnim }>({ mvp: target, anim: null });
+  const id = target ? `${target.steamId}-${target.roundNumber}` : null;
+  const shownId = view.mvp ? `${view.mvp.steamId}-${view.mvp.roundNumber}` : null;
+  useEffect(() => {
+    if (target && (id !== shownId || view.anim === "out")) setView({ mvp: target, anim: "in" });
+    else if (!target && view.mvp && view.anim !== "out") setView({ mvp: view.mvp, anim: "out" });
+  }, [id, shownId, target, view]);
+  useEffect(() => {
+    if (!view.anim) return;
+    const low = document.documentElement.classList.contains("mf-low-spec");
+    const t = setTimeout(() => setView((v) => (v.anim === "out" ? { mvp: null, anim: null } : { ...v, anim: null })), low ? MVP_ANIM_MS_LOW : MVP_ANIM_MS);
+    return () => clearTimeout(t);
+  }, [view.anim, shownId]);
+  return view;
 }
 
 /**
  * One side's team tab and five cards in slot order (the right side mirrored), bottom-aligned: the
- * round MVP's tall card pushes the cards above it up and the cards below keep their places.
+ * round MVP's tall card takes its player's place, the cards below keep theirs and the cards above
+ * (and the tab) move up with its top edge as it grows, and back down as it shrinks.
  */
-export function TeamCards({ state, team, color, align, settings, shown }: { state: HudState; team: HudTeam; color: string; align: "left" | "right"; settings: Settings; shown: boolean }) {
-  const mvp = settings.showMvp && mvpShowing(state) ? state.lastRound!.mvp! : null;
+export function TeamCards({ state, receivedAt, team, color, align, settings, shown }: { state: HudState; receivedAt: number; team: HudTeam; color: string; align: "left" | "right"; settings: Settings; shown: boolean }) {
+  const roundMvp = useRoundMvp(state, receivedAt, settings);
+  const players = slotOrder(team);
+  const { mvp, anim } = useMvpView(roundMvp && players.some((p) => p.steamId === roundMvp.steamId) ? roundMvp : null);
+  const at = mvp ? players.findIndex((p) => p.steamId === mvp.steamId) : -1;
   return (
     <div className={`st-cards st-cards-${align} ${shown ? "is-on" : ""}`} style={teamVars(color)}>
-      <div className="st-tab">
+      <div className={`st-tab ${at >= 0 && anim ? `is-mvp-${anim}` : ""}`}>
         <FitText text={teamName(team, settings)} className="st-tab-name" />
       </div>
-      {slotOrder(team).map((p, i) =>
-        mvp && p.steamId === mvp.steamId ? (
-          <MvpCard key={`mvp-${p.steamId}-${state.lastRound!.roundNumber}`} name={p.name} slot={slotKey(p.slot)} picture={playerPicture(state, p)} color={color} align={align} roundNumber={state.lastRound!.roundNumber} kills={mvp.kills} damage={mvp.damage} health={mvp.health} armor={mvp.armor} helmet={mvp.helmet} />
+      {players.map((p, i) =>
+        mvp && i === at ? (
+          <MvpCard key={`mvp-${p.steamId}-${mvp.roundNumber}`} anim={anim} name={p.name} slot={slotKey(p.slot)} picture={playerPicture(state, p)} color={color} align={align} roundNumber={mvp.roundNumber} kills={mvp.kills} damage={mvp.damage} health={mvp.health} armor={mvp.armor} helmet={mvp.helmet} />
         ) : (
-          <Card key={p.steamId} {...cardProps(state, p, color, align, settings.showMoney, i)} />
+          <Card key={p.steamId} {...cardProps(state, p, color, align, settings.showMoney, i, i < at ? anim : null)} />
         ),
       )}
     </div>

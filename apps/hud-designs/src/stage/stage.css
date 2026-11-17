@@ -1206,7 +1206,6 @@ body,
   width: 308px;
   height: 214px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  animation: st-mvp-in 0.45s var(--st-out) both;
   transition:
     transform 0.4s var(--st-out),
     opacity 0.25s linear;
@@ -1222,6 +1221,14 @@ body,
 .st-mvp-right .st-mvp-body {
   left: 12px;
   right: 0;
+}
+/* The player's card colour over the body, seen only while the card grows out of it and shrinks back. */
+.st-mvp-body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--st-team-fill);
+  opacity: 0;
 }
 .st-mvp-slot {
   position: absolute;
@@ -1332,15 +1339,129 @@ body,
 .st-mvp-right .st-mvp-hp {
   flex-direction: row-reverse;
 }
-@keyframes st-mvp-in {
+/*
+ * The round MVP card grows out of the player's card in 0.45 s and shrinks back the same way
+ * (MVP_ANIM_MS in Cards.tsx): the frame opens upwards from the card's 72 px band (the cards above and
+ * the tab move with its top edge: .is-mvp-in / .is-mvp-out), the player's colour fades to the card's,
+ * the picture rises in and the text follows line by line. Out is the reverse. Transform, opacity and
+ * clip-path only; low-spec mode keeps a single short wipe.
+ */
+.st-mvp.is-in .st-mvp-body,
+.st-mvp.is-in .st-mvp-slot {
+  animation: st-mvp-open 0.3s var(--st-out) both;
+}
+.st-mvp.is-in .st-mvp-body::after {
+  animation: st-mvp-tint 0.26s ease-out 0.04s reverse both;
+}
+.st-mvp.is-in .st-mvp-pic {
+  animation: st-mvp-rise 0.28s var(--st-out) 0.12s both;
+}
+.st-mvp.is-in .st-mvp-text > * {
+  animation: st-mvp-line 0.18s var(--st-out) both;
+}
+.st-mvp.is-in .st-mvp-text > :nth-child(1) {
+  animation-delay: 0.18s;
+}
+.st-mvp.is-in .st-mvp-text > :nth-child(2) {
+  animation-delay: 0.21s;
+}
+.st-mvp.is-in .st-mvp-text > :nth-child(3) {
+  animation-delay: 0.24s;
+}
+.st-mvp.is-in .st-mvp-text > :nth-child(4) {
+  animation-delay: 0.27s;
+}
+.st-mvp.is-in .st-mvp-text > :nth-child(5) {
+  animation-delay: 0.3s;
+}
+.st-mvp.is-out .st-mvp-text > * {
+  animation: st-mvp-line 0.15s var(--st-in) reverse both;
+}
+.st-mvp.is-out .st-mvp-pic {
+  animation: st-mvp-rise 0.2s var(--st-in) 0.05s reverse both;
+}
+.st-mvp.is-out .st-mvp-body,
+.st-mvp.is-out .st-mvp-slot {
+  animation: st-mvp-open 0.3s var(--st-in) 0.15s reverse both;
+}
+.st-mvp.is-out .st-mvp-body::after {
+  animation: st-mvp-tint 0.15s ease-in 0.3s both;
+}
+.st-card.is-mvp-in,
+.st-tab.is-mvp-in {
+  animation: st-mvp-lift 0.3s var(--st-out) both;
+}
+.st-card.is-mvp-out,
+.st-tab.is-mvp-out {
+  animation: st-mvp-lift 0.3s var(--st-in) 0.15s reverse both;
+}
+@keyframes st-mvp-open {
+  from {
+    clip-path: inset(142px 0 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+@keyframes st-mvp-tint {
   from {
     opacity: 0;
-    clip-path: inset(70% 0 0 0);
   }
   to {
     opacity: 1;
-    clip-path: inset(0);
   }
+}
+@keyframes st-mvp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(36px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes st-mvp-line {
+  from {
+    opacity: 0;
+    transform: translateX(var(--st-mvp-from, -12px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.st-mvp-right {
+  --st-mvp-from: 12px;
+}
+/* The cards above start (in) or end (out) 142 px lower, where they sat over the player's card. */
+@keyframes st-mvp-lift {
+  from {
+    transform: translateY(142px);
+  }
+  to {
+    transform: none;
+  }
+}
+html.mf-low-spec .st-mvp.is-in *,
+html.mf-low-spec .st-mvp.is-in *::after,
+html.mf-low-spec .st-mvp.is-out *,
+html.mf-low-spec .st-mvp.is-out *::after {
+  animation: none;
+}
+/* Low-spec: the whole card opens upwards in one short wipe (and closes), the cards above moving with it. */
+html.mf-low-spec .st-mvp.is-in {
+  animation: st-mvp-open 0.2s var(--st-out) both;
+}
+html.mf-low-spec .st-mvp.is-out {
+  animation: st-mvp-open 0.2s var(--st-in) reverse both;
+}
+html.mf-low-spec .st-card.is-mvp-in,
+html.mf-low-spec .st-tab.is-mvp-in,
+html.mf-low-spec .st-card.is-mvp-out,
+html.mf-low-spec .st-tab.is-mvp-out {
+  animation-duration: 0.2s;
+  animation-delay: 0s;
 }
 
 /* ------------------------------------------------------------ bottom centre: observed player */
