@@ -4,7 +4,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { App, resolveRoute } from "../../App.tsx";
 import type { PublicPlan } from "../../api/types.ts";
 import { PlanCard } from "../../components/PlanCard.tsx";
-import { FEATURES } from "../../content/features.tsx";
+import { STAGE_PARTS, STAGE_SCENES, stageDemoUrl } from "../../components/stage.tsx";
+import { FEATURES, featureBySlug } from "../../content/features.tsx";
+import { CURRENT_VERSION } from "../../content/release.ts";
 import { FAQ, FAQ_CATEGORIES, filterFaq, nodeText } from "../../content/faq.tsx";
 import { HELP_ARTICLES } from "../../content/help.tsx";
 import { LEGAL_DOCS } from "../../content/legal.tsx";
@@ -13,6 +15,7 @@ import { SessionProvider } from "../../state/session.tsx";
 import { SITE, at, err, fakeFetch, makeMe, renderWithSession } from "../../test/helpers.tsx";
 import { formatLegalDate } from "../legal/Legal.tsx";
 import { PRICING_FAQ, PlanComparison, pricingFaq } from "../Pricing.tsx";
+import { RELEASES } from "./Changelog.tsx";
 import { Contact } from "./Contact.tsx";
 import { Faq } from "./Faq.tsx";
 import { Status } from "./Status.tsx";
@@ -30,6 +33,7 @@ const ALLOWED = new Set(["/v1/site", "/v1/plans", "/v1/health"]);
 const PUBLIC_PATHS = [
   "/",
   "/features",
+  "/stage-hud",
   ...FEATURES.map((f) => `/features/${f.slug}`),
   "/how-it-works",
   "/requirements",
@@ -55,6 +59,9 @@ function renderApp() {
   );
 }
 
+/** Organisers and sponsors the site must never name (the Stage HUD is "a tournament-stage layout"). */
+const ORGANISERS = /\b(ESL|IEM|DHL|Intel|Predator|Zowie|BLAST|PGL|Major)\b/;
+
 describe("public pages, signed out", () => {
   it.each(PUBLIC_PATHS)("%s renders with a title and only public API calls", async (path) => {
     at(path);
@@ -70,6 +77,10 @@ describe("public pages, signed out", () => {
     });
     for (const c of f.calls) expect(ALLOWED.has(c.url.split("?")[0]!)).toBe(true);
     expect(f.count("GET", "/v1/auth/me")).toBe(0);
+    // Sharing tags follow the page.
+    expect(document.querySelector('meta[property="og:title"]')?.getAttribute("content")).toBe(document.title);
+    // No tournament organiser's or sponsor's name anywhere on the public site.
+    expect(document.body.textContent).not.toMatch(ORGANISERS);
   });
 
   it("sets a distinct document title per page", async () => {
@@ -122,12 +133,12 @@ describe("public pages, signed out", () => {
     expect(screen.getByText("Do all the modes use the same hours?")).toBeTruthy();
   });
 
-  it("the Observer page explains and compares the four modes", async () => {
+  it("the Auto Director page explains and compares the four Observer modes", async () => {
     at("/features/auto-director");
     fakeFetch(publicApi);
     renderApp();
-    expect(await screen.findByRole("heading", { level: 1, name: "Observer (auto director)" })).toBeTruthy();
-    const modes = screen.getByRole("region", { name: "The four modes" });
+    expect(await screen.findByRole("heading", { level: 1, name: "Auto Director" })).toBeTruthy();
+    const modes = screen.getByRole("region", { name: "The Observer modes" });
     expect(within(modes).getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual(["Off", "Observer", "Observer & Cinematics", "Full Action Observer"]);
     expect(within(modes).getByText(/catch smokes, flashes, molotovs and incendiaries, and HE grenades as they land/)).toBeTruthy();
     const table = screen.getByRole("table", { name: "What each Observer mode does" });
@@ -149,6 +160,79 @@ describe("public pages, signed out", () => {
     fakeFetch(publicApi);
     renderApp();
     expect(await screen.findByRole("heading", { name: "Page not found" })).toBeTruthy();
+  });
+
+  it.each([
+    ["/features/multi-pc", "/features/program"],
+    ["/features/obs-replays", "/features/replays"],
+    ["/features/cameras", "/features/auto-director"],
+    ["/features/demo-pipeline", "/features/auto-director"],
+  ])("the earlier feature page %s moves to %s", async (from, to) => {
+    at(from);
+    fakeFetch(publicApi);
+    renderApp();
+    await waitFor(() => expect(window.location.pathname).toBe(to));
+    expect(await screen.findByRole("heading", { level: 1, name: featureBySlug(to.split("/").pop()!)!.title })).toBeTruthy();
+  });
+
+  it("puts the Stage HUD front and centre on the home page", async () => {
+    at("/");
+    fakeFetch(publicApi);
+    renderApp();
+    expect(await screen.findByRole("heading", { level: 1, name: "Broadcast-grade CS2 production" })).toBeTruthy();
+    const hero = screen.getByRole("img", { name: /^The Stage HUD during a live round/ });
+    expect(hero.getAttribute("srcset")).toMatch(/stage-live-2400\.webp 2400w/);
+    expect(hero.getAttribute("fetchpriority")).toBe("high");
+    expect(screen.getAllByRole("link", { name: "See plans" })[0]!.getAttribute("href")).toBe("/pricing");
+    expect(screen.getAllByRole("link", { name: "Download for Windows" })[0]!.getAttribute("href")).toBe("/signup?next=%2Fdownload");
+    // The live demo is on the page, with its scene buttons.
+    expect(within(screen.getByRole("group", { name: "Stage HUD demo scene" })).getAllByRole("button").map((b) => b.textContent)).toEqual(STAGE_SCENES.map((s) => s.label));
+    expect(screen.getByText(new RegExp(`Version ${CURRENT_VERSION.replace(/\./g, "\\.")}`))).toBeTruthy();
+  });
+
+  it("the Stage HUD page's demo switches scenes and loads only the HUD's own demo page", async () => {
+    at("/stage-hud");
+    fakeFetch(publicApi);
+    renderApp();
+    expect(await screen.findByRole("heading", { level: 1, name: "A tournament-stage layout for your CS2 broadcast" })).toBeTruthy();
+    const frame = () => document.querySelector<HTMLIFrameElement>(".stage-demo iframe")!;
+    // No IntersectionObserver in jsdom: the frame loads at once, on the live round.
+    expect(frame().getAttribute("src")).toBe("/demo/stage/index.html?demo=kill&art=1&radar=1&logo=1&trophy=1&sponsor=1");
+    expect(frame().getAttribute("title")).toBe("Stage HUD live demo: Live round");
+    fireEvent.click(screen.getByRole("button", { name: "Timeout scoreboard" }));
+    expect(screen.getByRole("button", { name: "Timeout scoreboard" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Live round" }).getAttribute("aria-pressed")).toBe("false");
+    expect(frame().getAttribute("src")).toMatch(/^\/demo\/stage\/index\.html\?demo=timeout&/);
+    expect(screen.getByText(/full-width scoreboard: equipment value, loss bonus/)).toBeTruthy();
+    // Nothing the HUD's screenshot scripts serve (Mirage's radar image, an icon pack) is asked for.
+    for (const s of STAGE_SCENES) expect(stageDemoUrl(s.id)).not.toMatch(/radar=mirage|iconpack/);
+    // What's on screen: every numbered mark has its entry in the list.
+    expect(document.querySelectorAll(".anatomy-mark")).toHaveLength(STAGE_PARTS.length);
+    expect(within(document.querySelector<HTMLElement>(".anatomy-list")!).getAllByRole("listitem")).toHaveLength(STAGE_PARTS.length);
+  });
+
+  it("runs the demo in the HUD's low-spec mode for people who prefer reduced motion", async () => {
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("reduce"), media: q, addEventListener() {}, removeEventListener() {} }));
+    at("/stage-hud");
+    fakeFetch(publicApi);
+    renderApp();
+    await screen.findByRole("heading", { level: 1 });
+    expect(document.querySelector(".stage-demo iframe")!.getAttribute("src")).toMatch(/&lowspec=1$/);
+  });
+
+  it("states the current version as the website's changelog does", () => {
+    expect(RELEASES[0]!.version).toBe(CURRENT_VERSION);
+  });
+
+  it("marks multi-angle replays as experimental and says builds are unsigned for now", async () => {
+    const replays = featureBySlug("replays")!;
+    expect(nodeText(replays.what)).toMatch(/Multi-angle replays \(experimental\)/);
+    at("/requirements");
+    fakeFetch(publicApi);
+    renderApp();
+    await screen.findByRole("heading", { level: 1, name: "System requirements" });
+    expect(screen.getAllByText(/Signed builds are coming/).length).toBeGreaterThan(0);
+    expect(screen.getByText(new RegExp(`MatchFrame Esports ${CURRENT_VERSION.replace(/\./g, "\\.")}`))).toBeTruthy();
   });
 });
 

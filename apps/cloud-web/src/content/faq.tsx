@@ -1,6 +1,7 @@
 import { Children, isValidElement } from "react";
 import type { ReactNode } from "react";
 import { listNames } from "../lib/format.ts";
+import { CURRENT_VERSION } from "./release.ts";
 import { Link } from "../router.tsx";
 
 export type FaqCategory = "general" | "program" | "director" | "huds" | "account" | "billing" | "privacy" | "troubleshooting";
@@ -63,7 +64,7 @@ export const FAQ: FaqItem[] = [
     q: "What is MatchFrame?",
     a: (
       <p>
-        MatchFrame is a Windows program for producing Counter-Strike 2 broadcasts. It runs the HUDs you add to OBS, the Observer (an auto director that can drive the observer camera), OBS and replay control, and the administration of matches, vetoes and sponsors. This website manages the account behind it: plans, auto-director hours, invoices, your team and linked computers.
+        MatchFrame Esports is a Windows program for producing Counter-Strike 2 broadcasts. It runs your HUDs (the Stage HUD and four more), the Auto Director that can drive the observer camera, automatic replays with a replay PC, map intros, Team Comms, player cams, OBS and vMix, and the administration of matches, vetoes and sponsors. This website manages the account behind it: plans, auto-director hours, invoices, your team and linked computers.
       </p>
     ),
   },
@@ -74,7 +75,7 @@ export const FAQ: FaqItem[] = [
     a: (
       <>
         <p>
-          MatchFrame is in early access. The program is built and tested with synthetic game data, a labelled simulation, real OBS and real CS2 demos, and the Windows installer is smoke-tested. Real CS2 telemetry ingest and real observer camera control haven't yet been verified on a real CS2 client.
+          MatchFrame is in early access. Every version is tested automatically with synthetic game data, a labelled simulation, real OBS and real CS2 demos, and the Windows installer is smoke-tested on a Windows runner. Our tests haven't yet verified real CS2 telemetry ingest and real observer camera control on a real CS2 client, and features marked experimental, such as multi-angle replays, are new.
         </p>
         <p>Run the in-program setup checklist and a rehearsal before going live: automatic camera control stays blocked until its tests pass on your setup.</p>
       </>
@@ -92,7 +93,7 @@ export const FAQ: FaqItem[] = [
     q: "Do I need an account or an internet connection to use the program?",
     a: (
       <p>
-        No, not to start. The program opens straight into the HUD Library, and HUDs, the desktop HUD, OBS outputs, manual direction, replays, match administration and the simulation work without an account or internet. To use the Observer's camera-moving modes on live matches, sign in under Settings → Account with the same email and password as this website; they use auto-director hours. After signing in the program works offline for up to seven days after each check, so a LAN without internet is fine. See <Link to="/how-it-works#offline">what works offline</Link>.
+        No, not to start. The program opens straight into the HUD Library, and HUDs, the desktop HUD, OBS outputs, manual direction, replays, map intros, Team Comms, match administration and the simulation work without an account or internet. To use the Auto Director's camera-moving modes on live matches, player cams or account sync, sign in under Settings → Account with the same email and password as this website; the camera-moving modes use auto-director hours. After signing in the program works offline for up to seven days after each check, so a LAN without internet is fine. See <Link to="/how-it-works#offline">what works offline</Link>.
       </p>
     ),
   },
@@ -116,7 +117,7 @@ export const FAQ: FaqItem[] = [
     q: "What do I need to run the program?",
     a: (
       <p>
-        A 64-bit Windows 10 or 11 computer, OBS Studio 30 or later (its built-in WebSocket server is used) and a Counter-Strike 2 observer or spectator client. See the full <Link to="/requirements">system requirements</Link>.
+        A 64-bit Windows 10 or 11 computer, OBS Studio 30 or later (its built-in WebSocket server is used) or vMix, and a Counter-Strike 2 observer or spectator client. For replays of every kill, a second PC with CS2. See the full <Link to="/requirements">system requirements</Link>.
       </p>
     ),
   },
@@ -126,7 +127,27 @@ export const FAQ: FaqItem[] = [
     q: "Why does Windows show a SmartScreen warning?",
     a: (
       <p>
-        The installer isn't code-signed yet, so Windows SmartScreen shows "Windows protected your PC". Check the SHA-256 checksum shown next to the download first, then choose <strong>More info → Run anyway</strong>. See <Link to="/help/installing-the-program">downloading and installing the program</Link>.
+        The installer isn't code-signed yet, so Windows SmartScreen may show "Windows protected your PC". Check the SHA-256 checksum shown next to the download first, then choose <strong>More info → Run anyway</strong>. Signed builds are coming: the release workflow is ready to sign as soon as the certificate is in place. See <Link to="/help/installing-the-program">downloading and installing the program</Link>.
+      </p>
+    ),
+  },
+  {
+    id: "updates",
+    category: "program",
+    q: "Which version is current, and how do updates work?",
+    a: (
+      <p>
+        The current version is {CURRENT_VERSION}. You install the program once; after that it updates itself from our GitHub releases. Updates download in the background and install when you restart, never on their own during a broadcast. In Settings → General → Program choose the <strong>Stable</strong> channel (released versions) or <strong>Beta</strong> (earlier access, possibly with problems), and turn off automatic downloads on event day if you like. See the <Link to="/changelog">changelog</Link>.
+      </p>
+    ),
+  },
+  {
+    id: "go-back",
+    category: "program",
+    q: "Can I go back to a previous version?",
+    a: (
+      <p>
+        Yes. Settings → General → Program → <strong>Go back to a previous version</strong> lists earlier Stable versions, checks the installer you pick and tells you what happens to your data first. The program keeps a copy of your data before each update; if the older version can't read today's data, the copy it can read is restored, and changes since then are lost. If there's no copy that version can read, it refuses rather than risk your data. Going back this way works for versions from 0.13.0 on.
       </p>
     ),
   },
@@ -156,7 +177,7 @@ export const FAQ: FaqItem[] = [
     q: "Can we use more than one computer?",
     a: (
       <p>
-        Yes. Extra operator positions connect to your production computer over the local network with role tokens issued in the program. Each computer that runs automatic direction is linked to your organisation, up to your plan's computer limit. See <Link to="/features/multi-pc">multi-PC operation</Link>.
+        Yes. A replay PC films every kill for replays between rounds, and extra operator positions connect to your production computer over the local network with role tokens issued in the program. Computers signed in to your organisation share teams, players, matches and imported HUDs, up to your plan's computer limit. See <Link to="/how-it-works#setups">one PC, two PCs or a crew</Link>.
       </p>
     ),
   },
@@ -187,8 +208,8 @@ export const FAQ: FaqItem[] = [
   {
     id: "replace-observer",
     category: "director",
-    q: "Does the Observer replace a human observer?",
-    a: <p>It's designed to work with one. The Observer explains every shot it picks, the operator can take the camera back at any moment (manual takeover sticks until automation is resumed), and an emergency stop is always one key away. It also starts disarmed every time the program starts.</p>,
+    q: "Does the Auto Director replace a human observer?",
+    a: <p>It's designed to work with one. The Auto Director explains every shot it picks, the operator can take the camera back at any moment (manual takeover sticks until automation is resumed), and an emergency stop is always one key away. It also starts disarmed every time the program starts.</p>,
   },
   {
     id: "modes",
@@ -196,7 +217,7 @@ export const FAQ: FaqItem[] = [
     q: "What are the Observer modes?",
     a: (
       <>
-        <p>The Observer is MatchFrame's auto director, and it has four modes:</p>
+        <p>The Auto Director, MatchFrame's automatic observer, has four Observer modes:</p>
         <ul>
           <li>
             <strong>Off:</strong> MatchFrame never moves the camera; shot suggestions stay visible in Live Control. Uses no hours.
@@ -212,7 +233,7 @@ export const FAQ: FaqItem[] = [
           </li>
         </ul>
         <p>
-          The three camera-moving modes use auto-director hours at the same rate on live matches. See <Link to="/features/auto-director">the Observer</Link> for a full comparison.
+          The three camera-moving modes use auto-director hours at the same rate on live matches. See <Link to="/features/auto-director">the Auto Director</Link> for a full comparison.
         </p>
       </>
     ),
@@ -234,7 +255,7 @@ export const FAQ: FaqItem[] = [
     q: "Why won't the director move the camera yet?",
     a: (
       <p>
-        Automatic camera control stays blocked until the in-program setup tests pass on your observer client: the player-selection test for player cuts, and the static camera test plus operator-validated cameras for cinematics and nade cameras. Until then the Observer stays in Off: it suggests shots in Live Control but never moves the camera. See <Link to="/features/cameras">observer camera control</Link>.
+        Automatic camera control stays blocked until the in-program setup tests pass on your observer client: the player-selection test for player cuts, and the static camera test plus operator-validated cameras for cinematics and nade cameras. Until then the Observer stays in Off: it suggests shots in Live Control but never moves the camera. See <Link to="/features/auto-director#cameras">how the Auto Director moves the camera</Link>.
       </p>
     ),
   },
@@ -247,16 +268,26 @@ export const FAQ: FaqItem[] = [
 
   // ------------------------------------------------------------------ huds
   {
+    id: "stage-hud",
+    category: "huds",
+    q: "What is the Stage HUD?",
+    a: (
+      <p>
+        A tournament-stage layout in MatchFrame's own look: side-coloured player cards in the bottom corners, the observed player's cam between them, the score bar and event line top centre, the round MVP card, and a full-width scoreboard in timeouts and pauses. It comes with the program on every plan. <Link to="/stage-hud">Try it live in your browser</Link>.
+      </p>
+    ),
+  },
+  {
     id: "own-hud",
     category: "huds",
     q: "Can I use my own HUD design?",
-    a: <p>Yes. The program ships with Classic, Minimal and Arena presets and their variants (pre-match, veto, live, post-map, standings and bracket), and you can import your own HUD package. Every output has a draft and a published revision, so changes only go on air when you publish them.</p>,
+    a: <p>Yes. Besides the Stage, Vector, Lineup, MatchFrame Broadcast and Pro CS2 HUDs, you can import HUDs in the hud.json format or MatchFrame HUD packages, as a ZIP or a folder, in the HUD Library. Imported HUDs and their settings are shared with your organisation's other computers.</p>,
   },
   {
     id: "add-to-obs",
     category: "huds",
     q: "How do I add a HUD to OBS?",
-    a: <p>In HUDs &amp; Composer, publish an output and copy its URL. In OBS, add a Browser Source with that URL at 1920×1080. The program can also create the source for you once OBS is connected.</p>,
+    a: <p>In the HUD Library, choose Copy OBS Browser URL on the HUD and add a Browser Source with that address in OBS at 1920×1080. The program can also create the source for you once OBS is connected. To see it over the game on this computer, choose Launch Transparent HUD.</p>,
   },
   {
     id: "obs-version",
@@ -270,7 +301,7 @@ export const FAQ: FaqItem[] = [
     q: "How do replays work?",
     a: (
       <p>
-        Enable the replay buffer in OBS. In the program you bookmark moments, approve them in a queue and play them out through a media source, then return live. See <Link to="/features/obs-replays">OBS control and replays</Link>.
+        With a replay PC, a second computer with its own CS2 watches a few seconds behind and films every kill it has time for. Between rounds the program plays the best clips back to back, slowed at the kill, and can start early once the round is decided. On one PC, it replays big plays from the OBS replay buffer. You can also bookmark, approve and play clips yourself. See <Link to="/features/replays">replays</Link>.
       </p>
     ),
   },
@@ -368,7 +399,17 @@ export const FAQ: FaqItem[] = [
     q: "What data do you keep about my broadcasts?",
     a: (
       <p>
-        Only what billing needs: the linked computer, and when and for how long the Observer controlled the camera (with the map and match label you gave it). Telemetry, HUD content and recordings stay on your computers. See the <Link to="/security">security overview</Link> and the <Link to="/legal/privacy">privacy policy</Link>.
+        For billing: the linked computer, and when and for how long the Auto Director controlled the camera (with the map and match label you gave it). With account sync on, your teams, players, matches and imported HUDs, so your computers can share them. Crash reports only if you turn them on. Player cams pass through our relay without being stored. Game data, replays and recordings stay on your computers. See the <Link to="/security">security overview</Link> and the <Link to="/legal/privacy">privacy policy</Link>.
+      </p>
+    ),
+  },
+  {
+    id: "crash-reports",
+    category: "privacy",
+    q: "Does the program send crash reports?",
+    a: (
+      <p>
+        Only if you turn them on in Settings → General → Program → Send crash reports. Then a crash sends the support file (with passwords, keys and tokens removed) and the error to MatchFrame support, and you get a reference such as CR-XXXX-XXXX to quote. While it's off, the program asks once after a crash whether to send it. Reports are kept for 90 days.
       </p>
     ),
   },

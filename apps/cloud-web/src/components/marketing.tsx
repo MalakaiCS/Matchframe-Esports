@@ -1,15 +1,45 @@
 import type { ReactNode } from "react";
 import { Link } from "../router.tsx";
+import { useSession } from "../state/session.tsx";
 import { Icon } from "./icons.tsx";
 import type { IconName } from "./icons.tsx";
 
-/** Real screenshots of the program, shipped in public/images (WebP, two widths). */
-export type ShotName = "live-control" | "huds-outputs" | "matches-veto" | "setup" | "maps-cameras" | "hud-broadcast";
+/** The download is in the signed-in area (/download, GitHub releases behind it): signed out, sign up first and land there. */
+export function downloadHref(signedIn: boolean): string {
+  return signedIn ? "/download" : `/signup?next=${encodeURIComponent("/download")}`;
+}
 
-const BIG: Record<ShotName, number> = { "live-control": 1600, "huds-outputs": 1600, "matches-veto": 1600, setup: 1600, "maps-cameras": 1600, "hud-broadcast": 1280 };
+export function DownloadButton({ className = "btn btn-primary btn-lg", children = "Download for Windows" }: { className?: string; children?: ReactNode }) {
+  const { me } = useSession();
+  return (
+    <Link to={downloadHref(!!me)} className={className}>
+      <Icon name="download" size={18} /> {children}
+    </Link>
+  );
+}
 
-export function Screenshot({ name, alt, caption, eager, chrome = true }: { name: ShotName; alt: string; caption?: ReactNode; eager?: boolean; chrome?: boolean }) {
-  const big = BIG[name];
+/**
+ * Our own pictures in public/images (WebP, 16:9, each at the widths listed): real screenshots of the
+ * program's console (a scratch engine running the built-in simulation) and renders of the Stage HUD
+ * from its own demo scenes (fictional teams, a sample sponsor).
+ */
+const SHOTS = {
+  "console-live-control": [800, 1600],
+  "console-auto-replays": [800, 1600],
+  "console-map-intros": [800, 1600],
+  "console-hud-library": [800, 1600],
+  "stage-live": [960, 1600, 2400],
+  "stage-timeout": [800, 1600],
+  "stage-mvp": [800, 1600],
+  "stage-bomb": [800, 1600],
+  "stage-pause": [800, 1600],
+} as const;
+export type ShotName = keyof typeof SHOTS;
+
+/** A program screen in a window frame (`chrome`), or a HUD render on its own. */
+export function Screenshot({ name, alt, caption, eager, chrome = !name.startsWith("stage-"), sizes = "(min-width: 1100px) 620px, (min-width: 720px) 80vw, 100vw" }: { name: ShotName; alt: string; caption?: ReactNode; eager?: boolean; chrome?: boolean; sizes?: string }) {
+  const widths: readonly number[] = SHOTS[name];
+  const big = widths[widths.length - 1]!;
   return (
     <figure className="shot">
       <div className={`shot-frame${chrome ? "" : " shot-frame-plain"}`}>
@@ -21,13 +51,14 @@ export function Screenshot({ name, alt, caption, eager, chrome = true }: { name:
           </span>
         )}
         <img
-          src={`/images/${name}-${big}.webp`}
-          srcSet={`/images/${name}-800.webp 800w, /images/${name}-${big}.webp ${big}w`}
-          sizes="(min-width: 1100px) 620px, (min-width: 720px) 80vw, 100vw"
+          src={`/images/${name}-${widths.length > 2 ? widths[1] : big}.webp`}
+          srcSet={widths.map((w) => `/images/${name}-${w}.webp ${w}w`).join(", ")}
+          sizes={sizes}
           alt={alt}
           width={big}
           height={Math.round((big * 9) / 16)}
           loading={eager ? "eager" : "lazy"}
+          fetchPriority={eager ? "high" : undefined}
           decoding="async"
         />
       </div>

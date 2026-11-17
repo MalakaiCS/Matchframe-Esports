@@ -97,10 +97,28 @@ runs as the unprivileged `node` user and has a health check on `/v1/health`.
 
 ```sh
 pnpm install
+pnpm --filter @matchframe/hud-designs build      # the Stage HUD for the website's live demo
 pnpm --filter @matchframe/cloud-web build
 pnpm --filter @matchframe/cloud-api bundle       # services/cloud-api/dist/server.mjs
 DATABASE_URL=postgres://… MF_CLOUD_WEB_DIR=apps/cloud-web/dist node services/cloud-api/dist/server.mjs
 ```
+
+### The Stage HUD demo
+
+The home page and `/stage-hud` show the real Stage HUD running its built-in demo scenes (fictional
+teams, a sample sponsor, a made-up minimap) in a frame. The website build copies it from
+`apps/hud-designs/dist/stage` to `apps/cloud-web/dist/demo/stage/` (the page, its hashed
+`assets/` and the font and icon licences; not the package's manifest, thumbnail or README, and
+without the program-only player-cam script), so **build `@matchframe/hud-designs` before the
+website**: the website build stops with a message when the Stage HUD hasn't been built. The
+Dockerfile does both, and installs `apps/hud-renderer` and `apps/hud-template` too, whose files the
+HUDs use. `pnpm build` at the root builds them in the right order.
+
+The demo adds about 950 kB to the image: one 557 kB script (196 kB gzipped), 38 kB of CSS, the
+Antonio font and the weapon icons, loaded only when a visitor scrolls to the demo. The API lets
+only pages under `/demo/` be framed, and only by the site itself (`X-Frame-Options: SAMEORIGIN`,
+`frame-ancestors 'self'`); every other page still refuses to be framed, and `demo/*/assets/` get
+the same year-long cache as the site's own `assets/`.
 
 For a quick local trial, `pnpm cloud` runs from source with an in-process PGlite database
 (`MF_CLOUD_PGLITE_DIR` to keep data) and `MF_DEV_LOG_EMAILS=1` prints emails to the console.

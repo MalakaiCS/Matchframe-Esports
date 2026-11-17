@@ -38,6 +38,7 @@ const Computers = lazyPage(() => import("./pages/org/Computers.tsx").then((m) =>
 const Team = lazyPage(() => import("./pages/org/Team.tsx").then((m) => m.Team));
 const Account = lazyPage(() => import("./pages/Account.tsx").then((m) => m.Account));
 const HowItWorks = lazyPage(() => import("./pages/site/HowItWorks.tsx").then((m) => m.HowItWorks));
+const StageHud = lazyPage(() => import("./pages/site/StageHud.tsx").then((m) => m.StageHud));
 const Requirements = lazyPage(() => import("./pages/site/Requirements.tsx").then((m) => m.Requirements));
 const UseCases = lazyPage(() => import("./pages/site/UseCases.tsx").then((m) => m.UseCases));
 const HelpCentre = lazyPage(() => import("./pages/site/Help.tsx").then((m) => m.HelpCentre));
@@ -80,6 +81,7 @@ export const ROUTES: RouteDef[] = [
   { path: "/", layout: "site", render: () => <Home /> },
   { path: "/features", layout: "site", render: () => <Features /> },
   { path: "/features/:feature", layout: "site", render: (p) => <FeatureDetail slug={p.feature!} /> },
+  { path: "/stage-hud", layout: "site", render: () => <StageHud /> },
   { path: "/how-it-works", layout: "site", render: () => <HowItWorks /> },
   { path: "/requirements", layout: "site", render: () => <Requirements /> },
   { path: "/use-cases", layout: "site", render: () => <UseCases /> },

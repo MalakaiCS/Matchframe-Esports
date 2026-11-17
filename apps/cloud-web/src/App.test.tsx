@@ -38,7 +38,7 @@ describe("app routing and sessions", () => {
     expect(screen.getAllByRole("link", { name: "Sign in" }).length).toBeGreaterThan(0);
   });
 
-  it("probes the session on public pages when the hint is set, and shows Dashboard", async () => {
+  it("probes the session on public pages when the hint is set, and shows Dashboard and the download", async () => {
     window.localStorage.setItem("matchframe.signedIn", "1");
     at("/");
     const f = fakeFetch({ "GET /v1/auth/me": { body: makeMe() } });
@@ -47,7 +47,9 @@ describe("app routing and sessions", () => {
         <App />
       </SessionProvider>,
     );
-    expect(await screen.findByRole("link", { name: "Open your dashboard" })).toBeTruthy();
+    expect(await screen.findByRole("link", { name: "Dashboard" })).toBeTruthy();
+    // Signed in, the home page's Download buttons go straight to the download page.
+    for (const a of screen.getAllByRole("link", { name: "Download for Windows" })) expect(a.getAttribute("href")).toBe("/download");
     expect(f.count("GET", "/v1/auth/me")).toBe(1);
   });
 
@@ -61,7 +63,9 @@ describe("app routing and sessions", () => {
       </SessionProvider>,
     );
     await waitFor(() => expect(window.localStorage.getItem("matchframe.signedIn")).toBeNull());
-    expect(screen.getAllByRole("link", { name: "Create account" }).length).toBe(2);
+    expect(screen.getAllByRole("link", { name: "Create account" }).length).toBe(1);
+    // Signed out, Download asks for an account first and comes back to the download page.
+    for (const a of screen.getAllByRole("link", { name: "Download for Windows" })) expect(a.getAttribute("href")).toBe("/signup?next=%2Fdownload");
   });
 
   it("opens the remembered organisation from /dashboard", async () => {

@@ -1,10 +1,9 @@
 import { Icon } from "../../components/icons.tsx";
-import { CheckList, CtaBand, PageHero, Screenshot, SectionHead } from "../../components/marketing.tsx";
-import { EARLY_ACCESS, FEATURES, featureBySlug } from "../../content/features.tsx";
+import { CheckList, CtaBand, DownloadButton, PageHero, Screenshot, SectionHead } from "../../components/marketing.tsx";
+import { EARLY_ACCESS, FEATURES, MOVED_FEATURES, featureBySlug } from "../../content/features.tsx";
 import type { Feature } from "../../content/features.tsx";
 import { useTitle } from "../../lib/hooks.ts";
-import { Link } from "../../router.tsx";
-import { useSession } from "../../state/session.tsx";
+import { Link, Redirect } from "../../router.tsx";
 import { NotFound } from "./NotFound.tsx";
 
 function EarlyAccessNote() {
@@ -16,9 +15,26 @@ function EarlyAccessNote() {
   );
 }
 
+/** A capability without a screenshot: its icon, name and tags on the stage background (decorative: the text beside it says it all). */
+function FeaturePanel({ f }: { f: Feature }) {
+  return (
+    <div className="feature-panel" aria-hidden="true">
+      <span className="feature-panel-icon">
+        <Icon name={f.icon} size={40} />
+      </span>
+      <p className="feature-panel-title">{f.title}</p>
+      <ul>
+        {(f.tags ?? f.highlights).map((h) => (
+          <li key={h}>{h}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function FeatureSection({ f, reverse }: { f: Feature; reverse: boolean }) {
   return (
-    <section className={`spotlight${reverse ? " is-reverse" : ""}${f.shot ? "" : " spotlight-noshot"}`} id={f.slug} aria-labelledby={`${f.slug}-title`}>
+    <section className={`spotlight${reverse ? " is-reverse" : ""}`} id={f.slug} aria-labelledby={`${f.slug}-title`}>
       <div className="spotlight-text">
         <p className="eyebrow eyebrow-icon">
           <Icon name={f.icon} size={18} /> {f.title}
@@ -35,39 +51,42 @@ function FeatureSection({ f, reverse }: { f: Feature; reverse: boolean }) {
           </Link>
         </p>
       </div>
-      <div className="spotlight-media">
-        {f.shot ? (
-          <Screenshot name={f.shot.name} alt={f.shot.alt} caption={f.shot.caption} />
-        ) : (
-          <div className="feature-panel" aria-hidden="true">
-            <Icon name={f.icon} size={56} />
-            <p>{f.tagline}</p>
-          </div>
-        )}
-      </div>
+      <div className="spotlight-media">{f.shot ? <Screenshot name={f.shot.name} alt={f.shot.alt} caption={f.shot.caption} /> : <FeaturePanel f={f} />}</div>
     </section>
   );
 }
 
 export function Features() {
-  useTitle("Features", "MatchFrame features: HUDs for OBS, the Observer auto director with four modes, manual takeover and emergency stop, observer camera control, grenade tracking, OBS control and replays, match administration, the demo pipeline and multi-PC operation.");
-  const { me } = useSession();
+  useTitle("Features", "MatchFrame features: the Stage HUD and four more HUDs, the Auto Director with Observer modes, replays of every kill with slow motion, map intros, Team Comms, player cams, match administration, OBS, vMix and Stream Deck, low-spec mode and safe updates.");
   return (
     <>
-      <PageHero eyebrow="Product" title="Everything the production desk needs, in one program" lead="MatchFrame runs on your Windows production computer and brings the broadcast together: graphics, camera direction, replays and the running order. This website only manages the account, plan and hours behind it.">
-        {me ? (
-          <Link to="/download" className="btn btn-primary btn-lg">
-            Download for Windows
-          </Link>
-        ) : (
-          <Link to="/signup" className="btn btn-primary btn-lg">
-            Create a free account
-          </Link>
-        )}
-        <Link to="/how-it-works" className="btn btn-secondary btn-lg">
-          How it works
+      <PageHero eyebrow="Features" title="Everything your CS2 broadcast needs, in one program" lead="MatchFrame runs on your Windows production PC: HUDs, camera direction, replays, intros, comms and the running order. This website only manages the account, plan and hours behind it.">
+        <DownloadButton />
+        <Link to="/pricing" className="btn btn-secondary btn-lg">
+          See plans
         </Link>
       </PageHero>
+
+      <section className="stage-band" aria-labelledby="stage-band-title">
+        <div className="wrap stage-band-grid">
+          <div className="stage-band-text">
+            <p className="eyebrow">Front and centre</p>
+            <h2 id="stage-band-title" className="display-2">
+              The Stage HUD
+            </h2>
+            <p>A tournament-stage layout in MatchFrame's own look: side-coloured player cards, the round MVP card, a full-width pause scoreboard and a trophy on the event line. Try it live in your browser.</p>
+            <div className="stage-band-actions">
+              <Link to="/stage-hud#stage-demo" className="btn btn-primary">
+                <Icon name="play" size={18} /> Try the live demo
+              </Link>
+              <Link to="/stage-hud" className="btn btn-on-dark">
+                What's on screen
+              </Link>
+            </div>
+          </div>
+          <Screenshot name="stage-live" alt="The Stage HUD during a live round, with fictional teams: side-coloured player cards in the bottom corners, the score bar and event line top centre, the minimap top left and the killfeed top right." sizes="(min-width: 1100px) 640px, 100vw" />
+        </div>
+      </section>
 
       <nav className="jump" aria-label="Features on this page">
         <div className="wrap">
@@ -85,10 +104,12 @@ export function Features() {
         <EarlyAccessNote />
       </div>
 
-      <div className="wrap section spotlights">
-        {FEATURES.map((f, i) => (
-          <FeatureSection key={f.slug} f={f} reverse={i % 2 === 1} />
-        ))}
+      <div className="section">
+        <div className="wrap spotlights">
+          {FEATURES.map((f, i) => (
+            <FeatureSection key={f.slug} f={f} reverse={i % 2 === 1} />
+          ))}
+        </div>
       </div>
 
       <section className="section section-alt" aria-labelledby="next-title">
@@ -100,7 +121,7 @@ export function Features() {
                 <Icon name="windows" />
               </span>
               <h3 className="feature-title">System requirements</h3>
-              <p>Windows 10 or 11 (64-bit), a CS2 observer client and OBS Studio 30 or later.</p>
+              <p>Windows 10 or 11 (64-bit), a CS2 observer client, and OBS Studio 30 or later or vMix.</p>
               <Link to="/requirements" className="link-arrow">
                 See requirements <Icon name="arrow" size={18} />
               </Link>
@@ -110,7 +131,7 @@ export function Features() {
                 <Icon name="offline" />
               </span>
               <h3 className="feature-title">Offline-first</h3>
-              <p>Only automatic direction on live matches needs an account and hours. Everything else works offline.</p>
+              <p>Only the Auto Director's camera-moving modes on live matches need an account and hours. Everything else works offline.</p>
               <Link to="/how-it-works#offline" className="link-arrow">
                 What works offline <Icon name="arrow" size={18} />
               </Link>
@@ -129,18 +150,10 @@ export function Features() {
         </div>
       </section>
 
-      <CtaBand title="Try it on your next rehearsal" text="The built-in simulation lets your crew practise with HUDs, replays and the director before a real match, clearly labelled as simulated everywhere.">
-        {me ? (
-          <Link to="/download" className="btn btn-primary btn-lg">
-            Download the program
-          </Link>
-        ) : (
-          <Link to="/signup" className="btn btn-primary btn-lg">
-            Get started free
-          </Link>
-        )}
+      <CtaBand title="Try it on your next rehearsal" text="The built-in simulation lets your crew practise with HUDs, replays and the Auto Director before a real match, clearly labelled as simulated everywhere.">
+        <DownloadButton />
         <Link to="/pricing" className="btn btn-on-dark btn-lg">
-          See pricing
+          See plans
         </Link>
       </CtaBand>
     </>
@@ -149,8 +162,9 @@ export function Features() {
 
 export function FeatureDetail({ slug }: { slug: string }) {
   const f = featureBySlug(slug);
-  useTitle(f ? f.title : "Feature not found", f?.summary);
-  const { me } = useSession();
+  const moved = MOVED_FEATURES[slug];
+  useTitle(f ? f.title : moved ? "Features" : "Feature not found", f?.summary);
+  if (moved) return <Redirect to={`/features/${moved}`} />;
   if (!f) return <NotFound />;
   const others = FEATURES.filter((x) => x.slug !== f.slug);
   return (
@@ -203,6 +217,15 @@ export function FeatureDetail({ slug }: { slug: string }) {
           )}
         </div>
         <aside className="feature-side" aria-label={`About ${f.title}`}>
+          {f.slug === "huds" && (
+            <div className="side-card side-card-stage">
+              <p className="side-card-title">Stage HUD</p>
+              <p className="small">A tournament-stage layout, live in your browser.</p>
+              <Link to="/stage-hud" className="link-arrow small">
+                Try the live demo <Icon name="arrow" size={16} />
+              </Link>
+            </div>
+          )}
           <div className="side-card">
             <p className="side-card-title">What you need</p>
             <CheckList items={f.needs} />
@@ -221,6 +244,9 @@ export function FeatureDetail({ slug }: { slug: string }) {
           <nav className="side-card" aria-label="Other features">
             <p className="side-card-title">Other features</p>
             <ul className="side-links">
+              <li>
+                <Link to="/stage-hud">Stage HUD</Link>
+              </li>
               {others.map((o) => (
                 <li key={o.slug}>
                   <Link to={`/features/${o.slug}`}>{o.title}</Link>
@@ -232,15 +258,7 @@ export function FeatureDetail({ slug }: { slug: string }) {
       </div>
       <div className="section-gap" />
       <CtaBand title="See it on your own setup" text="Download the program, run the setup checklist and rehearse with the built-in simulation.">
-        {me ? (
-          <Link to="/download" className="btn btn-primary btn-lg">
-            Download the program
-          </Link>
-        ) : (
-          <Link to="/signup" className="btn btn-primary btn-lg">
-            Create a free account
-          </Link>
-        )}
+        <DownloadButton />
         <Link to="/features" className="btn btn-on-dark btn-lg">
           All features
         </Link>

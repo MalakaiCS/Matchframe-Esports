@@ -723,25 +723,63 @@ kbd {
   }
 }
 
+/* A capability without a screenshot: its icon, name and highlights on the stage background. */
 .feature-panel {
   display: grid;
-  place-items: center;
-  gap: 12px;
-  aspect-ratio: 16 / 9;
-  padding: var(--sp-5);
+  align-content: center;
+  justify-items: start;
+  gap: 14px;
+  /* No aspect-ratio: with a min-height it would set a minimum width wider than a phone. */
+  min-height: clamp(240px, 28vw, 350px);
+  padding: clamp(20px, 4vw, 40px);
   border-radius: 12px;
-  text-align: center;
   color: #dcebff;
   background:
-    radial-gradient(400px 220px at 70% 0%, rgba(24, 195, 255, 0.35), transparent 70%),
+    radial-gradient(420px 240px at 85% 0%, rgba(61, 126, 230, 0.42), transparent 70%),
+    radial-gradient(300px 200px at 0% 100%, rgba(19, 184, 240, 0.18), transparent 70%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 48px),
     linear-gradient(160deg, var(--stage), var(--stage-2));
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: var(--shadow-lg);
 }
 
-.feature-panel p {
-  max-width: 34ch;
+.feature-panel-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(180deg, #1d449a, #163780);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 10px 30px rgba(29, 68, 154, 0.45);
+}
+
+.feature-panel-title {
   margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 760;
+  color: #fff;
+}
+
+.feature-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 36em;
+}
+
+.feature-panel li {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: var(--fs-sm);
   font-weight: 600;
+  color: #e3edff;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .check-list {

@@ -20,25 +20,26 @@ export type NavItem = NavLink | NavMenu;
 export const isMenu = (n: NavItem): n is NavMenu => "groups" in n;
 
 export const HEADER_NAV: NavItem[] = [
+  { to: "/stage-hud", label: "Stage HUD" },
   {
     label: "Product",
-    match: ["/features", "/how-it-works", "/requirements"],
+    match: ["/features", "/how-it-works", "/requirements", "/use-cases", "/changelog"],
     groups: [
       {
         title: "Features",
-        links: [{ to: "/features", label: "All features", description: "Everything the program does" }, ...FEATURES.map((f) => ({ to: `/features/${f.slug}`, label: f.nav }))],
+        links: [{ to: "/features", label: "All features", description: "Everything the program does" }, { to: "/stage-hud", label: "Stage HUD", description: "Try it live in your browser" }, ...FEATURES.map((f) => ({ to: `/features/${f.slug}`, label: f.nav }))],
       },
       {
         title: "Learn",
         links: [
-          { to: "/how-it-works", label: "How it works", description: "Program, account and hours" },
-          { to: "/requirements", label: "System requirements", description: "Windows, CS2, OBS and network" },
+          { to: "/how-it-works", label: "How it works", description: "One PC, two PCs or a crew" },
+          { to: "/requirements", label: "System requirements", description: "Windows, CS2, OBS or vMix" },
+          { to: "/use-cases", label: "Use cases", description: "Who MatchFrame is for" },
           { to: "/changelog", label: "Changelog", description: "What's new" },
         ],
       },
     ],
   },
-  { to: "/use-cases", label: "Use cases" },
   { to: "/pricing", label: "Pricing" },
   {
     label: "Resources",
@@ -62,6 +63,7 @@ export const FOOTER_COLUMNS: { title: string; links: NavLink[] }[] = [
   {
     title: "Product",
     links: [
+      { to: "/stage-hud", label: "Stage HUD" },
       { to: "/features", label: "Features" },
       { to: "/how-it-works", label: "How it works" },
       { to: "/requirements", label: "System requirements" },

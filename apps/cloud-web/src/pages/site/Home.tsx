@@ -1,14 +1,17 @@
 import { api } from "../../api/index.ts";
 import { Icon } from "../../components/icons.tsx";
-import { CheckList, CtaBand, FeatureGrid, Screenshot, SectionHead, Spotlight, Steps } from "../../components/marketing.tsx";
+import type { IconName } from "../../components/icons.tsx";
+import { CheckList, CtaBand, DownloadButton, Screenshot, SectionHead, Spotlight } from "../../components/marketing.tsx";
 import { PlanCard } from "../../components/PlanCard.tsx";
+import { StageDemo } from "../../components/stage.tsx";
 import { FaqList, faqById } from "../../content/faq.tsx";
 import type { FaqItem } from "../../content/faq.tsx";
+import { FEATURES } from "../../content/features.tsx";
+import { CURRENT_VERSION } from "../../content/release.ts";
 import { useResource, useTitle } from "../../lib/hooks.ts";
 import { Link } from "../../router.tsx";
-import { useSession } from "../../state/session.tsx";
 
-const HOME_FAQ = ["need-account", "what-is-an-hour", "limit", "replace-observer"].map(faqById).filter((f): f is FaqItem => !!f);
+const HOME_FAQ = ["need-account", "what-is-an-hour", "updates", "replace-observer"].map(faqById).filter((f): f is FaqItem => !!f);
 
 function PlanTeaser() {
   const plans = useResource("plans", api.plans);
@@ -16,7 +19,7 @@ function PlanTeaser() {
   return (
     <section className="section" aria-labelledby="plans-title">
       <div className="wrap">
-        <SectionHead id="plans-title" eyebrow="Pricing" title="Start free. Pay for automation when you need it." lead="Every plan includes the full program. Plans differ in auto-director hours, linked computers and team size. No overage charges, ever." center />
+        <SectionHead id="plans-title" eyebrow="Pricing" title="Start free. Pay for automation when you need it." lead="Every plan includes the whole program: every HUD, replays, map intros, Team Comms and player cams. Plans differ in auto-director hours, linked computers and team size. No overage charges, ever." center />
         {list.length > 0 && (
           <div className="plan-grid plan-grid-teaser">
             {list.map((p, i) => (
@@ -44,136 +47,173 @@ function PlanTeaser() {
   );
 }
 
+/** The three ways to set up, from How it works. */
+const SETUPS: { icon: IconName; title: string; text: string; to: string }[] = [
+  { icon: "cpu", title: "One PC", text: "CS2, OBS and MatchFrame on one computer. Low-spec mode keeps the HUD light while the game runs.", to: "/how-it-works#one-pc" },
+  { icon: "replay", title: "Two PCs", text: "Add a replay PC that watches a few seconds behind and films every kill for replays between rounds.", to: "/how-it-works#two-pc" },
+  { icon: "network", title: "A crew", text: "Producers, replay and graphics operators connect to the production computer from their own PCs.", to: "/how-it-works#crew" },
+];
+
 export function Home() {
-  useTitle("", "MatchFrame is the Windows program for Counter-Strike 2 broadcasts: HUDs for OBS, the Observer auto director with manual takeover, observer camera control, replays and match administration.");
-  const { me } = useSession();
+  useTitle("", "MatchFrame Esports: broadcast-grade CS2 production for Windows. The Stage HUD and four more HUDs, an Auto Director that cuts before the fight, replays of every kill, map intros and Team Comms, in one program.");
   return (
     <>
-      <section className="hero">
-        <div className="wrap hero-grid">
-          <div className="hero-copy">
-            <p className="hero-eyebrow">
-              <span className="tally-dot" aria-hidden="true" /> Early access · Broadcast production for Counter-Strike 2
-            </p>
-            <h1 tabIndex={-1} data-page-heading>
-              Run your whole CS2 broadcast from one Windows program
-            </h1>
-            <p className="hero-lead">HUDs for OBS, the Observer auto director designed to drive the observer camera, replays and match administration, together on your production PC. You stay in control of every shot.</p>
-            <div className="hero-cta">
-              {me ? (
-                <Link to="/dashboard" className="btn btn-primary btn-lg">
-                  Open your dashboard
-                </Link>
-              ) : (
-                <Link to="/signup" className="btn btn-primary btn-lg">
-                  Create account
-                </Link>
-              )}
-              <Link to="/features" className="btn btn-on-dark btn-lg">
-                Explore the program
-              </Link>
+      <section className="hero hero-stage" aria-labelledby="home-title">
+        <div className="wrap hero-stage-copy">
+          <p className="hero-eyebrow">
+            <span className="tally-dot" aria-hidden="true" /> Early access · Windows · Counter-Strike 2
+          </p>
+          <h1 id="home-title" tabIndex={-1} data-page-heading>
+            Broadcast-grade CS2 production
+          </h1>
+          <p className="hero-lead">The Stage HUD, an Auto Director that cuts before the fight and replays of every kill, run from one Windows program.</p>
+          <div className="hero-cta">
+            <DownloadButton />
+            <Link to="/pricing" className="btn btn-on-dark btn-lg">
+              See plans
+            </Link>
+          </div>
+          <ul className="hero-points">
+            <li>
+              <Icon name="check" size={16} /> Free plan, no card needed
+            </li>
+            <li>
+              <Icon name="windows" size={16} /> Windows 10 and 11
+            </li>
+            <li>
+              <Icon name="clock" size={16} /> Version {CURRENT_VERSION}
+            </li>
+          </ul>
+        </div>
+        <div className="hero-stage-media">
+          <figure className="stage-monitor">
+            <div className="stage-monitor-frame">
+              <img
+                src="/images/stage-live-1600.webp"
+                srcSet="/images/stage-live-960.webp 960w, /images/stage-live-1600.webp 1600w, /images/stage-live-2400.webp 2400w"
+                sizes="(min-width: 1480px) 1400px, calc(100vw - 32px)"
+                width={2400}
+                height={1350}
+                alt="The Stage HUD during a live round: the series strip and minimap top left, the event line with a trophy and the score bar top centre, a sponsor slot and the killfeed top right, five blue cards bottom left, five gold cards bottom right and the observed player's cam between them."
+                fetchPriority="high"
+                decoding="async"
+              />
             </div>
-            <ul className="hero-points">
-              <li>
-                <Icon name="check" size={16} /> Free plan, no card needed
-              </li>
-              <li>
-                <Icon name="windows" size={16} /> Windows 10 and 11
-              </li>
-              <li>
-                <Icon name="offline" size={16} /> Works offline
-              </li>
-            </ul>
-          </div>
-          <div className="hero-media">
-            <Screenshot name="live-control" eager alt="The Live Control screen of the MatchFrame program: player cards for both teams, what is on air, the Observer mode and controls, the director's reasons, and Stop automation in the top bar." caption="Live Control in the MatchFrame program. Real screenshot; the match data is simulated." />
-          </div>
+            <figcaption>
+              The Stage HUD, rendered from its own demo scene: fictional teams, a sample sponsor. <Link to="/stage-hud">Explore the Stage HUD</Link>
+            </figcaption>
+          </figure>
         </div>
       </section>
 
       <section className="strip" aria-label="Highlights">
         <div className="wrap strip-grid">
           <p>
-            <strong>Manual takeover</strong> at any moment
+            <strong>Five HUDs</strong> for OBS or over the game
           </p>
           <p>
-            <strong>Emergency stop</strong> from anywhere in Windows
+            <strong>Auto Director</strong> with manual takeover
           </p>
           <p>
-            <strong>Multi-PC</strong> operator positions
+            <strong>Replays</strong> of every kill with a replay PC
           </p>
           <p>
-            <strong>Offline-first</strong>: only live automation uses hours
+            <strong>Works offline</strong>: only live automation uses hours
           </p>
         </div>
       </section>
 
-      <section className="section" aria-labelledby="how-title">
+      <section className="section section-stage" aria-labelledby="demo-title">
         <div className="wrap">
-          <SectionHead id="how-title" eyebrow="How it works" title="On air in three steps" lead="The program does the broadcast work. This website keeps the account, plan and hours behind it." center />
-          <Steps
-            items={[
-              { icon: "download", title: "Download the program", text: <p>Create a free account, download the Windows installer and check its SHA-256 checksum. The in-program setup checklist walks you through CS2, OBS and your first HUD.</p> },
-              { icon: "link", title: "Sign in to the program", text: <p>Start the program and sign in with the same email and password as this website. It uses your organisation's plan and hours, and works offline for up to seven days after each check.</p> },
-              { icon: "card", title: "Choose a plan or buy hours", text: <p>Start on the Free plan. Move to a larger plan for more auto-director hours, computers and team members, or top up with hour packs.</p> },
-            ]}
-          />
+          <SectionHead id="demo-title" eyebrow="Live demo" title="Try the Stage HUD in your browser" lead="This is the HUD itself, not a video. Switch scenes to see the bomb timer, the round MVP card and the pause scoreboard come in." center />
+          <StageDemo />
           <p className="center-text section-foot">
-            <Link to="/how-it-works" className="link-arrow">
-              Read the full getting-started guide <Icon name="arrow" size={18} />
+            <Link to="/stage-hud" className="link-arrow link-on-dark">
+              What's on screen, and the settings <Icon name="arrow" size={18} />
             </Link>
           </p>
         </div>
       </section>
 
-      <section className="section section-alt" aria-labelledby="features-title">
+      <section className="section" aria-labelledby="areas-title">
         <div className="wrap">
-          <SectionHead id="features-title" eyebrow="The program" title="Everything the production desk needs" lead="Built for tournament crews who want broadcast-quality coverage without a room full of tools." center />
+          <SectionHead id="areas-title" eyebrow="The program" title="Everything the production desk needs" lead="One program on your production PC brings the broadcast together. This website keeps the account, plan and hours behind it." center />
+          <ul className="area-grid">
+            {FEATURES.map((f) => (
+              <li key={f.slug} className="area">
+                <span className="feature-icon">
+                  <Icon name={f.icon} />
+                </span>
+                <h3 className="feature-title">
+                  <Link to={`/features/${f.slug}`} className="area-link">
+                    {f.title}
+                  </Link>
+                </h3>
+                <p className="feature-text">{f.tagline}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="section section-alt" aria-labelledby="inside-title">
+        <div className="wrap">
+          <SectionHead id="inside-title" eyebrow="Inside the program" title="Real screens, from the program itself" center />
           <div className="spotlights">
             <Spotlight
-              id="home-huds"
-              eyebrow="HUDs for OBS"
-              title="Broadcast graphics as browser sources"
-              shot={<Screenshot name="hud-broadcast" alt="A MatchFrame HUD over the game view: scoreboard with team names and round timer, player cards on both sides, the observed player's panel and a minimap." caption="Built-in HUD, Classic preset. Simulated match data." />}
-            >
-              <p>Add one URL per output to OBS. Presets and variants cover pre-match, veto, live, post-map, standings and brackets, or import your own HUD package.</p>
-              <CheckList items={["Draft and publish revisions; roll back instantly", "Per-output access tokens and broadcast delay", "Cues and annotations go on air immediately"]} />
-            </Spotlight>
-            <Spotlight
               id="home-director"
-              eyebrow="Observer (auto director)"
+              eyebrow="Auto Director"
               title="An automatic observer you stay in charge of"
-              reverse
-              shot={<Screenshot name="live-control" alt="Live Control with the Observer directing in Observer & Cinematics: what is on air, the shot the director wants and the reasons for it." caption="The Observer explains each shot it picks. Simulated match data." />}
+              shot={<Screenshot name="console-live-control" alt="Live Control: both simulated teams, the Auto Director on air in Observer & Cinematics with its checks passed, the shot on air and the Observer modes." caption="Live Control. Real screenshot; the match data is simulated." />}
             >
-              <p>The Observer is designed to anticipate fights and utility, switch POVs, add cinematic shots and show you why. On the top plan, nade cameras catch the utility as it lands. Take the camera back with one click; emergency stop works from anywhere in Windows.</p>
-              <CheckList items={["Off, Observer, Observer & Cinematics and Full Action Observer", "Starts disarmed every time", "Never cut off mid-map when hours run out"]} />
+              <p>It cuts to a fight before it starts, takes short looks at the hunters in a clutch and tells the buy story in freeze time. Every shot shows its reasons. Take the camera back with one click; the emergency stop works from anywhere in Windows.</p>
+              <CheckList items={["Off, Observer, Observer & Cinematics and Full Action Observer", "Cinematic team, plant and defuse shots, smooth with HLAE", "Nade cameras on the top plan"]} />
             </Spotlight>
             <Spotlight
-              id="home-admin"
-              eyebrow="Match administration"
-              title="Matches, vetoes and sponsors in one place"
-              shot={<Screenshot name="matches-veto" alt="The Matches & Veto screen: a veto board with bans, picks and side choices, the result and a history of decisions." caption="Veto board with captain links. Simulated teams." />}
+              id="home-replays"
+              eyebrow="Replays"
+              title="Every kill filmed, the best ones on air"
+              reverse
+              shot={<Screenshot name="console-auto-replays" alt="Automatic replays: play replays by themselves, start early when the round is decided, the best 4 clips per break, fades, and the replay PC's NDI feed." caption="Automatic replays. Real screenshot." />}
             >
-              <p>Run events, teams and series, let captains veto from their own link, and schedule sponsor slots with delivery acknowledgements.</p>
+              <p>A replay PC watches a few seconds behind and films each kill. Between rounds the best clips play back to back, slowed at the kill, and they can start early once the round is decided.</p>
+              <CheckList items={["Slow motion at the kill, on by default", "Highlights on air and a highlight reel in one click", <>Multi-angle replays <span className="badge">Experimental</span></>]} />
+            </Spotlight>
+            <Spotlight
+              id="home-huds"
+              eyebrow="HUD Library"
+              title="Five HUDs ready, or bring your own"
+              shot={<Screenshot name="console-hud-library" alt="The HUD Library with Lineup, MatchFrame Broadcast, Pro CS2, Stage and Vector HUDs, each ready to launch over the game or add to OBS." caption="The HUD Library. Real screenshot." />}
+            >
+              <p>Stage, Vector, Lineup, the MatchFrame Broadcast HUD and the Pro CS2 HUD, as OBS browser sources or a transparent window over CS2. Import hud.json HUDs, add your pictures, a trophy and an icon pack.</p>
+              <p>
+                <Link to="/features/huds" className="link-arrow">
+                  All about the HUDs <Icon name="arrow" size={18} />
+                </Link>
+              </p>
             </Spotlight>
           </div>
-          <FeatureGrid
-            columns={3}
-            items={[
-              { icon: "camera", title: "Observer camera control", text: "Player cuts, validated cinematic cameras and nade cameras through one control channel, gated by setup tests on your client." },
-              { icon: "replay", title: "Replays and OBS", text: "Bookmark moments, approve them in a queue and play them out through OBS, then return live." },
-              { icon: "network", title: "Multi-PC positions", text: "Extra operators connect to the production computer with role-scoped tokens." },
-              { icon: "grenade", title: "Grenade tracking", text: "All six grenade types from both teams, with predictions kept apart from confirmed events." },
-              { icon: "stop", title: "Safety built in", text: "Single writer for the camera, sticky manual takeover and a global emergency stop." },
-              { icon: "model", title: "Demo-trained models", text: "Train models from CS2 demos and evaluate them in shadow mode, away from the live camera." },
-            ]}
-          />
-          <p className="center-text section-foot">
-            <Link to="/features" className="link-arrow">
-              See everything the program does <Icon name="arrow" size={18} />
-            </Link>
-          </p>
+        </div>
+      </section>
+
+      <section className="section" aria-labelledby="setups-title">
+        <div className="wrap">
+          <SectionHead id="setups-title" eyebrow="How it works" title="One PC, two PCs or a whole crew" lead="Start on one computer and grow into a production network without changing tools." center />
+          <ul className="tile-grid">
+            {SETUPS.map((s) => (
+              <li key={s.title} className="tile">
+                <span className="feature-icon">
+                  <Icon name={s.icon} />
+                </span>
+                <h3 className="feature-title">{s.title}</h3>
+                <p>{s.text}</p>
+                <Link to={s.to} className="link-arrow">
+                  How to set it up <span className="visually-hidden">({s.title})</span>
+                  <Icon name="arrow" size={18} />
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -193,18 +233,10 @@ export function Home() {
         </div>
       </section>
 
-      <CtaBand title="Ready for your next broadcast?" text="Create a free account, download the program and rehearse with the built-in simulation before you go live.">
-        {me ? (
-          <Link to="/download" className="btn btn-primary btn-lg">
-            Download the program
-          </Link>
-        ) : (
-          <Link to="/signup" className="btn btn-primary btn-lg">
-            Create your free account
-          </Link>
-        )}
-        <Link to="/contact?topic=sales" className="btn btn-on-dark btn-lg">
-          Talk to us
+      <CtaBand title="Ready for your next broadcast?" text="Download the program and rehearse with the built-in simulation before you go live. The Free plan includes every HUD and a few auto-director hours.">
+        <DownloadButton />
+        <Link to="/pricing" className="btn btn-on-dark btn-lg">
+          See plans
         </Link>
       </CtaBand>
     </>

@@ -1,0 +1,546 @@
+/* Public site: the Stage HUD hero, live demo and showcase, and the overhauled feature pages.
+   Uses the tokens in styles.css; the Stage HUD's royal blue (#1d449a) is the accent here. */
+
+/* The HUD's own backdrop on the site: dark navy with a royal-blue glow and a faint monitor grid
+   (the same as the renders in public/images/stage-*). */
+:root {
+  --stage-royal: #1d449a;
+  --stage-royal-2: #163780;
+  --stage-backdrop:
+    radial-gradient(60% 60% at 50% 42%, rgba(46, 96, 230, 0.3), transparent 70%),
+    radial-gradient(40% 40% at 88% 8%, rgba(255, 176, 64, 0.1), transparent 70%),
+    radial-gradient(48% 60% at 6% 96%, rgba(24, 150, 255, 0.18), transparent 70%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 5%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 8.9%),
+    linear-gradient(180deg, #0b1224 0%, #080c18 55%, #05070e 100%);
+}
+
+/* ------------------------------------------------------------------ home hero */
+
+.hero-stage {
+  padding: var(--sp-7) 0 var(--sp-6);
+  background:
+    radial-gradient(1100px 520px at 50% 75%, rgba(29, 68, 154, 0.55), transparent 70%),
+    radial-gradient(700px 360px at 92% -10%, rgba(19, 184, 240, 0.22), transparent 62%),
+    radial-gradient(700px 360px at -10% 20%, rgba(255, 75, 58, 0.12), transparent 60%),
+    linear-gradient(180deg, var(--stage), var(--stage-2));
+}
+
+.hero-stage-copy {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero-stage h1 {
+  max-width: 18ch;
+  font-size: clamp(36px, 4.6vw + 14px, 72px);
+}
+
+.hero-stage .hero-lead {
+  max-width: 46ch;
+}
+
+.hero-stage .hero-cta,
+.hero-stage .hero-points {
+  justify-content: center;
+}
+
+.hero-stage-media {
+  width: min(1400px, 100% - 32px);
+  margin: var(--sp-7) auto 0;
+}
+
+.stage-monitor {
+  margin: 0;
+}
+
+.stage-monitor-frame {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #070b14;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 40px 120px rgba(0, 0, 0, 0.55),
+    0 0 90px rgba(46, 96, 230, 0.25);
+}
+
+.stage-monitor-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.stage-monitor figcaption {
+  margin-top: 12px;
+  font-size: var(--fs-xs);
+  color: #b1bcd0;
+  text-align: center;
+}
+
+.stage-monitor figcaption a,
+.link-on-dark {
+  color: #9fd8ff;
+}
+
+/* ------------------------------------------------------------------ dark sections with the HUD */
+
+.section-stage {
+  color: #eef3fb;
+  background:
+    radial-gradient(900px 420px at 50% 0%, rgba(29, 68, 154, 0.45), transparent 70%),
+    linear-gradient(180deg, var(--stage-2), var(--stage));
+}
+
+.section-stage .eyebrow,
+.page-hero-stage .eyebrow,
+.stage-band .eyebrow {
+  color: #7fd3ff;
+}
+
+.section-stage .section-lead {
+  color: #c6d2e6;
+}
+
+.section-stage a:focus-visible,
+.section-stage button:focus-visible,
+.page-hero-stage a:focus-visible,
+.stage-band a:focus-visible,
+.side-card-stage a:focus-visible {
+  outline-color: #9fd8ff;
+}
+
+/* ------------------------------------------------------------------ live demo */
+
+.stage-demo {
+  max-width: 1160px;
+  margin: 0 auto;
+}
+
+.stage-demo-scenes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.stage-scene {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e6eefb;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.stage-scene:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.stage-scene[aria-pressed="true"] {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: linear-gradient(180deg, var(--stage-royal), var(--stage-royal-2));
+  box-shadow: 0 6px 20px rgba(29, 68, 154, 0.5);
+}
+
+.stage-demo-screen {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--stage-backdrop);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 30px 90px rgba(0, 0, 0, 0.5);
+}
+
+.stage-demo-poster,
+.stage-demo-screen iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.stage-demo-poster {
+  object-fit: cover;
+}
+
+.stage-demo-screen iframe {
+  opacity: 0;
+  background: transparent;
+  color-scheme: normal;
+}
+
+.stage-demo-screen.is-ready iframe {
+  opacity: 1;
+}
+
+.stage-demo-screen.is-ready .stage-demo-poster {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stage-demo-screen iframe {
+    transition: opacity 0.3s ease;
+  }
+}
+
+.stage-demo-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-top: 14px;
+}
+
+.stage-demo-text {
+  margin: 0;
+  max-width: 78ch;
+  color: #d3deef;
+  font-size: var(--fs-sm);
+}
+
+.stage-demo-text strong {
+  color: #fff;
+}
+
+.stage-demo-foot .link-arrow {
+  color: #9fd8ff;
+}
+
+.stage-demo-note {
+  margin: 10px 0 0;
+  font-size: var(--fs-xs);
+  color: #a9b6cb;
+}
+
+/* ------------------------------------------------------------------ home: feature areas */
+
+.area-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+
+@media (min-width: 900px) {
+  .area-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.area {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--sp-5);
+}
+
+.area:hover {
+  border-color: color-mix(in srgb, var(--brand) 55%, var(--line));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .area {
+    transition:
+      border-color 0.15s ease,
+      transform 0.15s ease;
+  }
+  .area:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.area-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* The whole card is the link's target. */
+.area-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.area-link:focus-visible {
+  outline: none;
+}
+
+.area:has(.area-link:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+ul.tile-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ------------------------------------------------------------------ /stage-hud */
+
+.page-hero-stage {
+  color: #eef3fb;
+  border-bottom: 0;
+  background:
+    radial-gradient(900px 380px at 85% 0%, rgba(29, 68, 154, 0.6), transparent 70%),
+    radial-gradient(600px 300px at 0% 100%, rgba(19, 184, 240, 0.16), transparent 70%),
+    linear-gradient(180deg, var(--stage), var(--stage-2));
+}
+
+.page-hero-stage .page-hero-lead {
+  color: #cdd7e6;
+}
+
+.page-hero-stage .crumbs a {
+  color: #b9c8de;
+}
+
+.anatomy {
+  display: grid;
+  gap: var(--sp-6);
+}
+
+.anatomy-figure {
+  margin: 0;
+}
+
+.anatomy-frame {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    var(--shadow-lg);
+}
+
+.anatomy-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.anatomy-mark,
+.anatomy-num {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  font-weight: 800;
+  color: #0a0f18;
+  background: #ffd24a;
+  box-shadow:
+    0 0 0 2px #0a0f18,
+    0 0 0 4px rgba(255, 210, 74, 0.45);
+}
+
+.anatomy-mark {
+  position: absolute;
+  width: clamp(16px, 2.3vw, 30px);
+  height: clamp(16px, 2.3vw, 30px);
+  font-size: clamp(9px, 1.15vw, 15px);
+  transform: translate(-50%, -50%);
+}
+
+.anatomy-figure figcaption {
+  margin-top: 10px;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
+.anatomy-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-4) var(--sp-6);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+
+.anatomy-list li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.anatomy-num {
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+}
+
+.anatomy-list strong {
+  display: block;
+}
+
+.anatomy-list span:not(.anatomy-num) {
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+
+.state-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-6) var(--sp-5);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+}
+
+.state .feature-title {
+  margin-top: 14px;
+}
+
+.settings-layout {
+  display: grid;
+  gap: var(--sp-6);
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .settings-layout {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+}
+
+.panel-compare {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.panel-compare figure {
+  margin: 0;
+}
+
+.panel-compare img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    var(--shadow);
+}
+
+.panel-compare figcaption {
+  margin-top: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  text-align: center;
+}
+
+.settings-list {
+  margin: 0;
+}
+
+.stage-more {
+  margin: var(--sp-6) auto 0;
+  max-width: 760px;
+  text-align: center;
+}
+
+.stage-more .check-list {
+  text-align: left;
+  width: fit-content;
+  max-width: 100%;
+  margin: 14px auto;
+}
+
+/* ------------------------------------------------------------------ /features: the Stage HUD band */
+
+.stage-band {
+  color: #eef3fb;
+  padding: var(--sp-7) 0;
+  background:
+    radial-gradient(800px 360px at 80% 50%, rgba(29, 68, 154, 0.55), transparent 70%),
+    linear-gradient(180deg, var(--stage-2), var(--stage));
+}
+
+.stage-band-grid {
+  display: grid;
+  gap: var(--sp-6);
+  align-items: center;
+}
+
+@media (min-width: 960px) {
+  .stage-band-grid {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  }
+}
+
+.stage-band-text p:not(.eyebrow) {
+  color: #cdd7e6;
+  font-size: var(--fs-md);
+}
+
+.stage-band-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.stage-band .shot-frame-plain,
+.state .shot-frame-plain {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ------------------------------------------------------------------ /how-it-works: the setups */
+
+.setups {
+  display: grid;
+  gap: var(--sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+
+.setup-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setup-card .display-3 {
+  margin-top: 8px;
+}
+
+.setup-card .check-list {
+  margin-bottom: auto;
+  font-size: var(--fs-sm);
+}
+
+.setup-card .link-arrow {
+  margin-top: 12px;
+}
+
+.side-card-stage {
+  color: #eef3fb;
+  border-color: transparent;
+  background:
+    radial-gradient(260px 160px at 100% 0%, rgba(61, 126, 230, 0.5), transparent 70%),
+    linear-gradient(160deg, var(--stage), var(--stage-2));
+}
+
+.side-card-stage .link-arrow {
+  color: #9fd8ff;
+}
