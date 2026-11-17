@@ -20,6 +20,8 @@ export const DEFAULTS = {
   showObserved: true,
   showScoreboard: true,
   showMvp: true,
+  /** Seconds into the live round after which the round MVP card goes (5–10). */
+  mvpLiveSeconds: 8,
   /** The trophy from HUD images in the middle of the event line (shown only when one is set). */
   showTrophy: true,
   showMoney: true,
@@ -52,6 +54,7 @@ export function readSettings(s: Record<string, unknown>): Settings {
     showObserved: bool("showObserved"),
     showScoreboard: bool("showScoreboard"),
     showMvp: bool("showMvp"),
+    mvpLiveSeconds: Math.max(5, Math.min(10, typeof s.mvpLiveSeconds === "number" && Number.isFinite(s.mvpLiveSeconds) ? Math.round(s.mvpLiveSeconds) : DEFAULTS.mvpLiveSeconds)),
     showTrophy: bool("showTrophy"),
     showMoney: bool("showMoney"),
   };
@@ -132,24 +135,67 @@ export function timeoutTeam(state: HudState): HudTeam | null {
   return state.left.side === side ? state.left : state.right.side === side ? state.right : null;
 }
 
-/** CS2's round time (s) until a longer one is seen: the MVP card stays this long into a round. */
+/** The previous round's MVP card comes in this many seconds into freeze time. */
+export const MVP_IN_SECONDS = 5;
+/** CS2's freeze time and round time, assumed for a page opened part-way through one it never saw begin. */
+const FREEZE_SECONDS = 15;
 const ROUND_SECONDS = 115;
-let roundSeconds = ROUND_SECONDS;
-/** How long the previous round's MVP card stays once the next round is live (the reference shows it at 1:40). */
-const MVP_LIVE_SECONDS = 15;
+const BREAKS: ReadonlySet<HudPhase> = new Set(["timeout_ct", "timeout_t", "paused"]);
+
+/** What the MVP timing remembers between updates: the phase seen last and this round's lengths. */
+export interface MvpClock {
+  phase: HudPhase | null;
+  round: number | null;
+  /** This round's freeze time and round time (s), from the first countdown seen in each. */
+  freezeLength: number | null;
+  liveLength: number | null;
+  /** The lengths seen begin last time, for a page that missed this phase's start. */
+  knownFreeze: number | null;
+  knownLive: number | null;
+}
+export const MVP_CLOCK: MvpClock = { phase: null, round: null, freezeLength: null, liveLength: null, knownFreeze: null, knownLive: null };
 
 /**
- * Whether the previous round's MVP card shows: at the round's end, in freeze time (when the cards are
- * up), and the first seconds of the next round; never during a bomb plant or later in the round.
+ * Learns this round's freeze time and round time from the phase clock: the first countdown seen in the
+ * phase (15 or 20 s of freeze, 1:55 of round as a rule). A page that did not see the phase begin
+ * (opened part-way through, or back from a timeout it missed the start of) takes at least the length
+ * it saw last time, else CS2's default, so elapsed time is never under-counted. A timeout in freeze
+ * time keeps the round's freeze length. Pure: returns the new clock (the same input twice changes nothing).
  */
-export function mvpShowing(state: HudState): boolean {
-  const m = state.match;
-  if (!state.lastRound?.mvp) return false;
-  if (m.phase === "live" && m.phaseEndsInSec !== null) {
-    roundSeconds = Math.max(roundSeconds, Math.ceil(m.phaseEndsInSec));
-    return roundSeconds - m.phaseEndsInSec < MVP_LIVE_SECONDS;
+export function mvpClock(c: MvpClock, m: Pick<HudState["match"], "phase" | "phaseEndsInSec" | "roundNumber">): MvpClock {
+  let n: MvpClock = c.round === m.roundNumber ? { ...c } : { ...c, round: m.roundNumber, freezeLength: null, liveLength: null };
+  const sec = m.phaseEndsInSec;
+  if (sec !== null && sec > 0) {
+    const first = Math.ceil(sec - 1e-6);
+    if (m.phase === "freezetime" && n.freezeLength === null) {
+      const sawStart = c.phase !== null && c.phase !== "freezetime" && !BREAKS.has(c.phase);
+      n = sawStart ? { ...n, freezeLength: first, knownFreeze: first } : { ...n, freezeLength: Math.max(c.knownFreeze ?? FREEZE_SECONDS, first) };
+    }
+    if (m.phase === "live" && n.liveLength === null) {
+      n = c.phase === "freezetime" ? { ...n, liveLength: first, knownLive: first } : { ...n, liveLength: Math.max(c.knownLive ?? ROUND_SECONDS, first) };
+    }
   }
-  return m.phase === "over" || m.phase === "freezetime";
+  return { ...n, phase: m.phase };
+}
+
+/**
+ * Whether the previous round's MVP card is up, with `remaining` the phase clock now: from 5 s into
+ * freeze time (elapsed = the freeze length less the time left) through to `liveSeconds` into the live
+ * round. Never at the round's end, in warm-up, during a timeout or pause, or later in a round.
+ */
+export function mvpUp(c: MvpClock, m: Pick<HudState["match"], "phase" | "paused">, remaining: number | null, liveSeconds: number): boolean {
+  if (m.paused || remaining === null) return false;
+  if (m.phase === "freezetime" && c.freezeLength !== null) return c.freezeLength - remaining >= MVP_IN_SECONDS;
+  if (m.phase === "live" && c.liveLength !== null) return c.liveLength - remaining < liveSeconds;
+  return false;
+}
+
+/** Seconds of phase clock until mvpUp next changes on its own (in, or out), or null when it won't. */
+export function mvpNextChange(c: MvpClock, m: Pick<HudState["match"], "phase" | "paused">, remaining: number | null, liveSeconds: number): number | null {
+  if (m.paused || remaining === null) return null;
+  if (m.phase === "freezetime" && c.freezeLength !== null && c.freezeLength - remaining < MVP_IN_SECONDS) return remaining - (c.freezeLength - MVP_IN_SECONDS);
+  if (m.phase === "live" && c.liveLength !== null && c.liveLength - remaining < liveSeconds) return remaining - (c.liveLength - liveSeconds);
+  return null;
 }
 
 /** Players of a team in observer-slot order (at most five). */
