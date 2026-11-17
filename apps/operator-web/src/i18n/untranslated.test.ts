@@ -25,12 +25,10 @@ const PENDING = new Set<string>([
   "components/SignIn.tsx",
   "screens/Account.tsx",
   "screens/Demos.tsx",
-  "screens/Events.tsx",
   "screens/HudImages.tsx",
   "screens/Huds.tsx",
   "screens/IconPack.tsx",
   "screens/Maps.tsx",
-  "screens/Matches.tsx",
   "screens/Sponsors.tsx",
   "screens/Teams.tsx",
   "screens/Training.tsx",
@@ -42,10 +40,6 @@ const PENDING = new Set<string>([
   "screens/huds/Outputs.tsx",
   "screens/huds/Packages.tsx",
   "screens/maps/CameraWalkthrough.tsx",
-  "screens/matches/MatchArt.tsx",
-  "screens/matches/MatchEditor.tsx",
-  "screens/matches/Results.tsx",
-  "screens/matches/Veto.tsx",
   "screens/teams/PlayerEditor.tsx",
   "screens/teams/TeamEditor.tsx",
   "screens/training/DemoModel.tsx",
@@ -59,7 +53,7 @@ const OUT_OF_SCOPE: Record<string, string> = {
   "components/icons.tsx": "the brand badge's alt text is the product name",
 };
 
-const USER_PROPS = new Set(["title", "label", "placeholder", "aria-label", "alt", "hint", "subtitle", "summary", "success", "confirmLabel", "disabledReason", "reasonLabel", "description", "emptyLabel", "tooltip", "caption", "heading", "help", "message", "body", "text", "submitLabel"]);
+const USER_PROPS = new Set(["title", "label", "placeholder", "aria-label", "alt", "hint", "subtitle", "summary", "success", "confirmLabel", "disabledReason", "reasonLabel", "description", "emptyLabel", "tooltip", "caption", "heading", "help", "message", "body", "text", "submitLabel", "backLabel", "error"]);
 const OBJECT_PROPS = new Set(["title", "body", "confirmLabel", "reasonLabel", "label", "message", "hint"]);
 
 /** Names kept as they are in every language (brands, products, game terms the scene uses in English). */
