@@ -9,9 +9,9 @@ WORKDIR /src
 RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 COPY . .
 # The website's live Stage HUD demo (/demo/stage/) is the HUD built by apps/hud-designs, which also
-# uses files from apps/hud-renderer and apps/hud-template (resolved from their own node_modules):
-# install all three, build the HUDs, then the website build copies the Stage HUD into its output.
-RUN pnpm install --frozen-lockfile --filter "@matchframe/cloud-api..." --filter "@matchframe/cloud-web..." --filter "@matchframe/hud-renderer..." --filter "@matchframe/hud-template..."
+# uses files from apps/hud-renderer (resolved from its own node_modules): install both, build the
+# HUDs, then the website build copies the Stage HUD into its output.
+RUN pnpm install --frozen-lockfile --filter "@matchframe/cloud-api..." --filter "@matchframe/cloud-web..." --filter "@matchframe/hud-renderer..."
 RUN pnpm --filter @matchframe/hud-designs build && pnpm --filter @matchframe/cloud-web build && pnpm --filter @matchframe/cloud-api bundle
 
 FROM node:22.22.0-bookworm-slim

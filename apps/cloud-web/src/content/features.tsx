@@ -128,9 +128,9 @@ export const FEATURES: Feature[] = [
     nav: "HUDs",
     icon: "hud",
     tagline: "Broadcast HUDs for OBS and over the game, led by the Stage HUD.",
-    summary: "Five broadcast HUDs come with the program: Stage, Vector, Lineup, the MatchFrame Broadcast HUD and the Pro CS2 HUD. Run any of them as an OBS browser source or as a transparent window over CS2, import hud.json HUDs, and add your own pictures, trophy and icon pack.",
+    summary: "Four broadcast HUDs come with the program: Stage, Vector, Lineup and the MatchFrame Broadcast HUD. Run any of them as an OBS browser source or as a transparent window over CS2, import hud.json HUDs, and add your own pictures, trophy and icon pack.",
     highlights: ["Stage HUD: a tournament-stage layout with the round MVP card", "OBS browser source or a transparent window over the game", "Import hud.json HUDs and MatchFrame HUD packages"],
-    shot: { name: "console-hud-library", alt: "The HUD Library in the MatchFrame program: Lineup, MatchFrame Broadcast, Pro CS2, Stage and Vector HUDs as cards with their thumbnails, each ready with Launch Transparent HUD and its OBS, preview and settings buttons.", caption: "The HUD Library in the program. Real screenshot; the match data is simulated." },
+    shot: { name: "console-hud-library", alt: "The HUD Library in the MatchFrame program: Lineup, MatchFrame Broadcast, Stage and Vector HUDs as cards with their thumbnails, each ready with Launch Transparent HUD and its OBS, preview and settings buttons.", caption: "The HUD Library in the program. Real screenshot; the match data is simulated." },
     what: (
       <>
         <p>The program opens on the HUD Library: the HUDs installed on this computer, each with its settings, a preview, its OBS browser-source address and a button to show it over the game. HUDs, their settings and test data work without an account.</p>
@@ -145,7 +145,7 @@ export const FEATURES: Feature[] = [
             <strong>Vector</strong> puts each team down its side of the screen; <strong>Lineup</strong> puts all ten players in one row along the bottom.
           </li>
           <li>
-            <strong>MatchFrame Broadcast HUD</strong> with its Classic, Minimal and Arena presets, and the <strong>Pro CS2 HUD</strong>, adapted from an open-source (MIT) CS2 HUD template.
+            <strong>MatchFrame Broadcast HUD</strong> with its Classic, Minimal and Arena presets.
           </li>
           <li>
             <strong>Import</strong> HUDs in the hud.json format (they run unchanged in a compatibility layer) or MatchFrame HUD packages, as a ZIP or a folder.
@@ -165,7 +165,7 @@ export const FEATURES: Feature[] = [
     status: <>HUDs are rendered and checked automatically in Chromium, the browser engine OBS uses for browser sources. Imported HUDs run in a compatibility layer; tell us if one doesn't look right.</>,
     faqs: [
       { q: "Do HUDs use auto-director hours?", a: <p>No. HUDs work on every plan, including Free, and without an account.</p> },
-      { q: "Can I use my own HUD design?", a: <p>Yes. Import a hud.json HUD or a MatchFrame HUD package with Add HUD in the HUD Library. The Pro CS2 HUD's source is a starter kit for your own.</p> },
+      { q: "Can I use my own HUD design?", a: <p>Yes. Import a hud.json HUD or a MatchFrame HUD package with Add HUD in the HUD Library. The package format is documented, with a small working example to start from.</p> },
       { q: "Can players' faces be shown?", a: <p>Yes: add player pictures to your players, or default pictures in HUD images. With <Link to="/features/player-cams">player cams</Link> on air, the Stage HUD shows the observed player's camera.</p> },
       { q: "Why aren't CS2's own icons included?", a: <p>They belong to Valve and aren't licensed for a paid product. MatchFrame's HUDs come with their own icons; with the icon pack you can load CS2's icons on your own computer for your own broadcast.</p> },
     ],

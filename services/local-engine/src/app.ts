@@ -33,7 +33,7 @@ import { HUD_ART_KEY, hudArtState, normalizeHudArt, type HudArtSetting } from ".
 /** Settings key of the default player picture (Settings → General). */
 export const DEFAULT_PLAYER_PICTURE_KEY = "players.defaultPicture";
 import { CleanRadars } from "./hud/clean-radar.ts";
-import { HudLibraryService, libraryHudId, libraryOutputId } from "./hud/library.ts";
+import { HudLibraryService, libraryHudId, libraryOutputId, RETIRED_SAMPLE_HUDS } from "./hud/library.ts";
 import { HudPackageManager } from "./hud/packages.ts";
 import { migrateLegacyHuds, type LegacyHudMigration } from "./hud/compat-migration.ts";
 import { brandedFolder, legacySpelling } from "./brand.ts";
@@ -1438,6 +1438,7 @@ export class Engine {
   async init(): Promise<void> {
     this.refreshGsiConfig();
     this.hudLibrary.installSamples(this.cfg.sampleHudsDirs);
+    this.hudLibrary.retireSamples(RETIRED_SAMPLE_HUDS, "matchframe-default");
     this.configureReplay();
     this.onKill((k) => this.onAir.noteKill(k, this.playRound()));
     this.replayTwin.init();

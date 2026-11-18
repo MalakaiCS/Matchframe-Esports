@@ -19,7 +19,7 @@ All three load the **same runtime URL** and therefore show the same match state 
 - Installed HUDs live in the engine data folder, which is Electron's per-user application data folder for the program: `%APPDATA%\MatchFrame Esports\huds\<hud-id>\<version>\` (one folder per HUD, one subfolder per installed version, previous version kept for rollback). The importer copies files there; the original ZIP or folder can be moved or deleted afterwards.
 - Library metadata (kind, settings, token, stopped flag, last used) is in the engine's SQLite database (`hud_library` table, migration). Per-HUD settings are separate per HUD and survive restarts.
 - Desktop overlay placement (display, bounds, scale, lock) and hotkeys are program settings: `%APPDATA%\MatchFrame Esports\program\hud-overlays.json`.
-- Nothing here needs the internet or an account. The bundled sample HUD (`assets/hud-packages/matchframe-sample-cs2`, shipped as `resources/sample-huds`) is installed into the library on first start, once (removing it is respected).
+- Nothing here needs the internet or an account. The bundled HUDs (Vector, Lineup and Stage from `apps/hud-designs`, shipped as `resources/sample-huds`) are installed into the library on first start, once (removing one is respected). The Pro CS2 HUD and the MatchFrame Sample CS2 HUD left in 0.13.3 (ADR-085): the engine removes them where the program installed them, and moves broadcast outputs that used one to the built-in HUD.
 
 ## Package format
 

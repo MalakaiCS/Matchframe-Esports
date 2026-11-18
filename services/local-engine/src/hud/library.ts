@@ -18,6 +18,9 @@ export const ON_CONFLICT = ["fail", "replace", "copy"] as const;
 
 /** Output id a library HUD uses on the HUD state socket (`/overlay-ws?output=hud:<id>`). */
 export const libraryOutputId = (hudId: string) => `hud:${hudId}`;
+
+/** Bundled HUDs a program update took out (ADR-085): the Pro CS2 HUD and the MatchFrame Sample CS2 HUD. */
+export const RETIRED_SAMPLE_HUDS = ["matchframe.pro-cs2", "matchframe.sample-cs2"] as const;
 export const libraryHudId = (outputId: string): string | null => (outputId.startsWith("hud:") ? outputId.slice(4) : null);
 
 /** What changed in the library; the HUD server pushes control messages, snapshots or closes sockets. */
@@ -724,6 +727,33 @@ export class HudLibraryService {
   }
 
   // ---------------------------------------------------------------------------- bundled samples
+
+  /**
+   * HUDs the program no longer brings (ADR-085), removed where the program installed them: rows
+   * of kind "sample" only, so a HUD the user imported under the same id stays. Broadcast outputs
+   * that use one move to the built-in HUD first (republished), so nothing on air points at a HUD
+   * that is gone. Returns the ids removed.
+   */
+  retireSamples(ids: readonly string[], fallbackId: string): string[] {
+    const removed: string[] = [];
+    for (const id of ids) {
+      if (!this.d.packages.get(id) || this.row(id)?.kind !== "sample") continue;
+      try {
+        for (const o of this.d.outputs.list()) {
+          if (o.draft.packageId !== id && o.published?.data.packageId !== id) continue;
+          this.d.outputs.drafts.update(o.draft.outputId, { packageId: fallbackId, presetId: "classic", settings: {} });
+          this.d.outputs.publish(o.draft.outputId, "system");
+          this.d.logger.info("output moved off a retired HUD", { output: o.draft.outputId, from: id, to: fallbackId });
+        }
+        this.remove(id);
+        removed.push(id);
+        this.d.logger.info("retired bundled HUD removed", { id });
+      } catch (err) {
+        this.d.logger.warn("retired bundled HUD not removed", { id, error: err instanceof Error ? err.message : String(err) });
+      }
+    }
+    return removed;
+  }
 
   /**
    * Installs each bundled sample package once. Each sample folder is a package (it has

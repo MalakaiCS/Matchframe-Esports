@@ -72,13 +72,13 @@ async function run(cloud) {
   assert(await local.win.evaluate(() => document.querySelectorAll("nav a").length >= 10), "the console opens without signing in, with the full sidebar");
   await waitFor(() => local.win.evaluate(() => !!document.querySelector('[data-link="open"]')));
   const huds = await waitFor(() => local.win.evaluate(() => [...document.querySelectorAll("article[data-hud]")].map((c) => c.getAttribute("data-hud"))).then((l) => (l.length >= 3 ? l : null)));
-  assert(huds.includes("matchframe.sample-cs2") && huds.includes("matchframe.pro-cs2"), `bundled HUDs installed (${huds.join(", ")})`);
+  assert(["matchframe.stage", "matchframe.vector", "matchframe.lineup"].every((id) => huds.includes(id)) && !huds.includes("matchframe.pro-cs2") && !huds.includes("matchframe.sample-cs2"), `bundled HUDs installed (${huds.join(", ")})`);
   const radarImage = await fetch("http://127.0.0.1:39412/overlay-api/radar-image/de_dust2");
   assert(radarImage.status === 200 && (radarImage.headers.get("content-type") ?? "").startsWith("image/png"), `built-in radar images served (${radarImage.status})`);
   if (out) await local.win.screenshot({ path: `${out}-library.png` });
   // Launch Transparent HUD with the desktop switch on its row.
-  await local.win.click('[data-hud="matchframe.sample-cs2"] .hud-launch');
-  await waitFor(async () => (await local.win.evaluate(() => window.matchframe.hud.overlays())).some((o) => o.hudId === "matchframe.sample-cs2" && o.status === "running"), 30000);
+  await local.win.click('[data-hud="matchframe.stage"] .hud-launch');
+  await waitFor(async () => (await local.win.evaluate(() => window.matchframe.hud.overlays())).some((o) => o.hudId === "matchframe.stage" && o.status === "running"), 30000);
   const overlay = await local.app.evaluate(({ BrowserWindow }) => {
     const w = BrowserWindow.getAllWindows().find((x) => x[Symbol.for("matchframe.hud-window")]?.kind === "overlay");
     const t = w[Symbol.for("matchframe.hud-window")];

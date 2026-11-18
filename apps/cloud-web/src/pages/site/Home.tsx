@@ -109,7 +109,7 @@ export function Home() {
       <section className="strip" aria-label="Highlights">
         <div className="wrap strip-grid">
           <p>
-            <strong>Five HUDs</strong> for OBS or over the game
+            <strong>Four HUDs</strong> for OBS or over the game
           </p>
           <p>
             <strong>Auto Director</strong> with manual takeover
@@ -182,10 +182,10 @@ export function Home() {
             <Spotlight
               id="home-huds"
               eyebrow="HUD Library"
-              title="Five HUDs ready, or bring your own"
-              shot={<Screenshot name="console-hud-library" alt="The HUD Library with Lineup, MatchFrame Broadcast, Pro CS2, Stage and Vector HUDs, each ready to launch over the game or add to OBS." caption="The HUD Library. Real screenshot." />}
+              title="Four HUDs ready, or bring your own"
+              shot={<Screenshot name="console-hud-library" alt="The HUD Library with Lineup, MatchFrame Broadcast, Stage and Vector HUDs, each ready to launch over the game or add to OBS." caption="The HUD Library. Real screenshot." />}
             >
-              <p>Stage, Vector, Lineup, the MatchFrame Broadcast HUD and the Pro CS2 HUD, as OBS browser sources or a transparent window over CS2. Import hud.json HUDs, add your pictures, a trophy and an icon pack.</p>
+              <p>Stage, Vector, Lineup and the MatchFrame Broadcast HUD, as OBS browser sources or a transparent window over CS2. Import hud.json HUDs, add your pictures, a trophy and an icon pack.</p>
               <p>
                 <Link to="/features/huds" className="link-arrow">
                   All about the HUDs <Icon name="arrow" size={18} />

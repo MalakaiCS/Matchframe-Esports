@@ -1,4 +1,4 @@
-Third-party licence: the weapon and equipment icons (from the Pro CS2 HUD's icon set)
+Third-party licence: the weapon and equipment icons (from an open-source CS2 HUD template's icon set)
 Applies to: the killfeed's weapon silhouettes in the built-in HUD's page
 Listed with the program's other third-party components in THIRD_PARTY_NOTICES.md.
 The licence text below is reproduced unchanged.

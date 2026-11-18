@@ -18,7 +18,6 @@ Each MatchFrame HUD draws it in its own style:
 |---|---|---|
 | Vector | Top left, the team colour behind the rewind mark | Bottom left: team-colour block with the logo, the player on a dark body, a team-colour badge for 2K–ACE or a clutch |
 | Lineup | Top centre, where the score bar is, with the round on a white tab | Bottom centre: the player on a near-black bar with the team's edge, a white badge, the play on a team-colour strip |
-| Pro CS2 | Top centre, where the match bar is | Bottom centre, where the observed player is: dark panels, the side colour, a stats row (weapon, headshot, killed, round) |
 | Broadcast (built in) | Top left | Bottom left, in the preset's style (Classic, Minimal, Arena) |
 
 Imported hud.json-format HUDs have no replay graphic of their own. With one of them on air, the built-in Broadcast HUD's replay graphic is used.

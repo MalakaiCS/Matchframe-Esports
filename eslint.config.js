@@ -59,8 +59,8 @@ export default tseslint.config(
     languageOptions: { sourceType: "script", globals: { document: "readonly", window: "readonly" } },
   },
   {
-    // Example and bundled HUD packages run in the browser.
-    files: ["examples/**/*.js", "assets/hud-packages/**/*.js"],
+    // Example HUD packages and the overlay check's test HUD run in the browser.
+    files: ["examples/**/*.js", "scripts/fixtures/**/*.js"],
     languageOptions: { globals: { document: "readonly", location: "readonly", URLSearchParams: "readonly", performance: "readonly", WebSocket: "readonly" } },
   },
 );

@@ -281,7 +281,7 @@ export const FAQ: FaqItem[] = [
     id: "own-hud",
     category: "huds",
     q: "Can I use my own HUD design?",
-    a: <p>Yes. Besides the Stage, Vector, Lineup, MatchFrame Broadcast and Pro CS2 HUDs, you can import HUDs in the hud.json format or MatchFrame HUD packages, as a ZIP or a folder, in the HUD Library. Imported HUDs and their settings are shared with your organisation's other computers.</p>,
+    a: <p>Yes. Besides the Stage, Vector, Lineup and MatchFrame Broadcast HUDs, you can import HUDs in the hud.json format or MatchFrame HUD packages, as a ZIP or a folder, in the HUD Library. Imported HUDs and their settings are shared with your organisation's other computers.</p>,
   },
   {
     id: "add-to-obs",

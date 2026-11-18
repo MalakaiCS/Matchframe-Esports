@@ -134,7 +134,7 @@ export function StageHud() {
             ))}
           </ul>
           <div className="stage-more">
-            <p>Prefer another look? Vector, Lineup, the MatchFrame Broadcast HUD and the Pro CS2 HUD come with the program too, and you can import hud.json HUDs.</p>
+            <p>Prefer another look? Vector, Lineup and the MatchFrame Broadcast HUD come with the program too, and you can import hud.json HUDs.</p>
             <CheckList items={["Every HUD on every plan, Free included", "No account needed for HUDs", "Fictional names and a sample sponsor in the demo only"]} />
             <Link to="/features/huds" className="link-arrow">
               All the HUDs <Icon name="arrow" size={18} />

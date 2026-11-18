@@ -4,7 +4,7 @@ Extension points that exist today: HUD packages, the read-only HUD SDK, the loca
 
 ## 1. HUD packages
 
-A HUD package is a folder or zip with a `manifest.json` at its root (or inside one top-level folder) plus static web files: HTML, compiled JavaScript, CSS, fonts, images. Two working examples: [`assets/hud-packages/matchframe-sample-cs2/`](../assets/hud-packages/matchframe-sample-cs2) (the sample HUD bundled with the program: scorebug, players, bomb, observed player, a settings form) and [`examples/hud-minimal/`](../examples/hud-minimal) (a score bug in ~40 lines). Packages are installed in the **HUD Library** (`docs/operations/hud-library.md`) and run as a transparent desktop HUD, a preview or an OBS browser source; the design is ADR-020 (`docs/architecture/hud-library.md`).
+A HUD package is a folder or zip with a `manifest.json` at its root (or inside one top-level folder) plus static web files: HTML, compiled JavaScript, CSS, fonts, images. Working examples: [`examples/hud-minimal/`](../examples/hud-minimal) (a score bug in ~40 lines) and the program's own Vector, Lineup and Stage HUDs in [`apps/hud-designs/`](../apps/hud-designs) (React, built into packages with a settings form; `package-files/<hud>/manifest.json`). Packages are installed in the **HUD Library** (`docs/operations/hud-library.md`) and run as a transparent desktop HUD, a preview or an OBS browser source; the design is ADR-020 (`docs/architecture/hud-library.md`).
 
 ### Manifest (`HudManifest`, `packages/contracts/src/hud.ts`; JSON Schema in `packages/contracts/schema/HudManifest.schema.json`)
 
@@ -83,7 +83,7 @@ html.low-spec *, html.low-spec *::before, html.low-spec *::after {
 }
 ```
 
-The Sample CS2 HUD does exactly this (`app.js`, `styles.css`). You don't cap the frame rate yourself: while low-spec mode is on, the output page MatchFrame wraps your HUD in runs `requestAnimationFrame` in your page at most 30 times a second, and the OBS browser sources MatchFrame made are set to 30 fps. CSS animations and transitions are drawn by the browser's compositor and are not capped by the page, which is why looping ones should stop. Imported hud.json-format HUDs don't receive `HudState` and get the frame cap only.
+The Vector, Lineup and Stage HUDs do the same with the class `mf-low-spec` (`apps/hud-designs/src/shared/useHud.ts` and `lowspec.css`). You don't cap the frame rate yourself: while low-spec mode is on, the output page MatchFrame wraps your HUD in runs `requestAnimationFrame` in your page at most 30 times a second, and the OBS browser sources MatchFrame made are set to 30 fps. CSS animations and transitions are drawn by the browser's compositor and are not capped by the page, which is why looping ones should stop. Imported hud.json-format HUDs don't receive `HudState` and get the frame cap only.
 
 **Minimap** (`state.radar`, permission `radar.public`): `players`, `bomb` and `utility` carry 0–1 coordinates on the background. In mode `"image"`, `backgroundUrl` is a radar image (the built-in one for the map, served at `/overlay-api/radar-image/<map>`, or an operator-calibrated image); in mode `"schematic"` it is a JSON outline (`cells`, `polygons`, `regions`) at `/overlay-api/radar/<map>`; in mode `"none"` draw nothing. Player markers have `side`, `alive`, `observed`, `flashed`, `hasBomb`, `label` (observer slot) and `yawDeg`; utility has `type`, `side` (thrower) and `radius`. `cleanUrl` is MatchFrame's clean radar for the map (an SVG at `/overlay-api/radar-clean/<map>/<frame>?v=…`: navy floor, light walls, red bombsites, transparent around the map), drawn from MatchFrame's map data in the same image frame as `backgroundUrl`, so the same 0–1 coordinates place markers on either; it is `null` when the map has no map-pack geometry.
 
@@ -97,7 +97,7 @@ The Sample CS2 HUD does exactly this (`app.js`, `styles.css`). You don't cap the
 
 **Players** (`state.left.players`, `state.right.players`, `state.observed`): besides health, armour, money, weapons and grenades, `roundKills`, `kills`/`deaths`/`assists`, `roundDamage` (damage dealt this round, as the game reports it; `null` when it doesn't) and `adr` (only with validated damage totals, else `null`).
 
-**Killfeed** (`state.killfeed.entries`, the current round): `killer`, `victim`, `weapon` (e.g. `"weapon_ak47"`), `headshot`, `assister` and `attackerBlind`. Game state integration reports no kill events, so `kind: "probable"` entries are paired from counter changes (the weapon is the killer's weapon in hand) and `kind: "elimination"` has no killer; any field can be `null`. Keep each row on screen for a few seconds after it first arrives (the bundled HUDs use 5–7 s). The Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2/app.js`) shows both in plain JavaScript.
+**Killfeed** (`state.killfeed.entries`, the current round): `killer`, `victim`, `weapon` (e.g. `"weapon_ak47"`), `headshot`, `assister` and `attackerBlind`. Game state integration reports no kill events, so `kind: "probable"` entries are paired from counter changes (the weapon is the killer's weapon in hand) and `kind: "elimination"` has no killer; any field can be `null`. Keep each row on screen for a few seconds after it first arrives (the bundled HUDs use 5–7 s). The Vector, Lineup and Stage HUDs show both (`apps/hud-designs/src`).
 
 **Cues** (`state.cues`): graphics put up by the operator (HUD → Cues), automation rules, the rundown or the program itself, each `{ id, kind, title, subtitle, data }`, listed while on air. A cue changed in place keeps its `id`. While the Auto Director has the camera the program sends `economy`, `mvp`, `player`, `clutch` and `buy_type` (HUD graphics, ADR-029). Operator and rule cues can have any `kind`: draw one you don't know as a lower third with its title and subtitle, or leave it out, but leave out `buy_type` unless you draw it as below.
 
@@ -122,7 +122,7 @@ It is `null` when nothing is on air or the operator turned the graphic off.
 
 Draw it only on your `replay` entry point: the page for the replay scene, transparent but for the graphic. Read `variant=replay` from your page's address, not `state.variant`, which is `replay` for live outputs too while a replay is on air. Never draw it on the live HUD.
 
-The SDK's `ReplayGraphicSequencer` times it: feed it every state's `clip`, and it says when the tag and the lower third come in (a moment after a clip starts), swap per clip and go out. `multiKillTag` and `replayBadge` name the play. Vector, Lineup, the Pro CS2 HUD and the built-in HUD are examples (`?demo=replay&play=3k|kill|ace|clutch` shows each without a running program).
+The SDK's `ReplayGraphicSequencer` times it: feed it every state's `clip`, and it says when the tag and the lower third come in (a moment after a clip starts), swap per clip and go out. `multiKillTag` and `replayBadge` name the play. Vector, Lineup and the built-in HUD are examples (`?demo=replay&play=3k|kill|ace|clutch` shows each without a running program).
 
 ## 2. Local API
 

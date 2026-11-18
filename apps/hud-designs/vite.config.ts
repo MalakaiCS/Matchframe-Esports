@@ -2,7 +2,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import { svgComponent } from "../hud-template/svg-plugin.ts";
+import { svgComponent } from "../hud-renderer/svg-plugin.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 

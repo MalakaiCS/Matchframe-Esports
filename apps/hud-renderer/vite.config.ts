@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 // The weapon silhouettes for the killfeed are the Pro CS2 HUD's icon set (third-party MIT, see
 // public/third-party-licenses and THIRD_PARTY_NOTICES.md), rendered
 // inline with the same small SVG plugin.
-import { svgComponent } from "../hud-template/svg-plugin.ts";
+import { svgComponent } from "./svg-plugin.ts";
 
 // Built HUD is served by the engine's overlay server under /hud/ (entry page at /overlay/:id/:variant).
 export default defineConfig({

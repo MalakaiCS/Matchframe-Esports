@@ -4,7 +4,7 @@ type Svg = ComponentType<SVGProps<SVGSVGElement>>;
 
 /** Weapon silhouettes by id ("ak47", "awp", …): the Pro CS2 HUD's icon set (third-party, MIT; see THIRD_PARTY_NOTICES.md). */
 const WEAPONS: Record<string, Svg> = Object.fromEntries(
-  Object.entries(import.meta.glob<Svg>("../../../hud-template/src/assets/weapons/*.svg", { query: "?react", import: "default", eager: true })).map(([path, svg]) => [path.replace(/^.*\/(.+)\.svg$/, "$1"), svg]),
+  Object.entries(import.meta.glob<Svg>("../assets/weapons/*.svg", { query: "?react", import: "default", eager: true })).map(([path, svg]) => [path.replace(/^.*\/(.+)\.svg$/, "$1"), svg]),
 );
 
 export const weaponId = (name: string): string => name.replace(/^weapon_/, "");

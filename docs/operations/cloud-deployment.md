@@ -111,8 +111,8 @@ teams, a sample sponsor, a made-up minimap) in a frame. The website build copies
 `assets/` and the font and icon licences; not the package's manifest, thumbnail or README, and
 without the program-only player-cam script), so **build `@matchframe/hud-designs` before the
 website**: the website build stops with a message when the Stage HUD hasn't been built. The
-Dockerfile does both, and installs `apps/hud-renderer` and `apps/hud-template` too, whose files the
-HUDs use. `pnpm build` at the root builds them in the right order.
+Dockerfile does both, and installs `apps/hud-renderer` too, whose files (weapon icons, the SVG
+build step) the HUDs use. `pnpm build` at the root builds them in the right order.
 
 The demo adds about 950 kB to the image: one 557 kB script (196 kB gzipped), 38 kB of CSS, the
 Antonio font and the weapon icons, loaded only when a visitor scrolls to the demo. The API lets

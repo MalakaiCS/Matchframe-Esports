@@ -31,10 +31,6 @@ extraResources:
   - from: ../hud-renderer/dist
     to: hud-renderer
   # HUD packages installed into the HUD Library on first start (each subfolder is one package).
-  - from: ../../assets/hud-packages
-    to: sample-huds
-  - from: ../hud-template/dist
-    to: sample-huds/matchframe-pro-cs2
   - from: ../hud-designs/dist/vector
     to: sample-huds/matchframe-vector
   - from: ../hud-designs/dist/lineup

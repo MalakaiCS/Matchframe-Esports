@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { normalizeSettingsSchema, validateSettings } from "../src/hud/library.ts";
@@ -6,10 +6,8 @@ import { readDirectory, validateManifest } from "../src/hud/packages.ts";
 
 const repo = join(import.meta.dirname, "..", "..", "..");
 
-/** The HUD packages installed into the library on first start: the sample package, the Pro CS2 HUD, Vector, Lineup and Stage. */
+/** The HUD packages installed into the library on first start: Vector, Lineup and Stage (the Pro CS2 and Sample CS2 HUDs left in 0.13.3, ADR-085). */
 const folders = [
-  ...readdirSync(join(repo, "assets", "hud-packages")).map((n) => join(repo, "assets", "hud-packages", n)),
-  join(repo, "apps", "hud-template", "package-files"),
   join(repo, "apps", "hud-designs", "package-files", "vector"),
   join(repo, "apps", "hud-designs", "package-files", "lineup"),
   join(repo, "apps", "hud-designs", "package-files", "stage"),
@@ -18,7 +16,7 @@ const folders = [
 describe("bundled HUD packages", () => {
   it.each(folders)("%s has a valid manifest whose settings form and defaults validate", (folder) => {
     const files = new Map<string, Uint8Array>([["manifest.json", readFileSync(join(folder, "manifest.json"))]]);
-    // The Pro CS2 HUD's page is built into dist/; the manifest check only needs the entry file to exist.
+    // The page is built into dist/; the manifest check only needs the entry file to exist.
     files.set("index.html", existsSync(join(folder, "index.html")) ? readFileSync(join(folder, "index.html")) : new TextEncoder().encode("<!doctype html>"));
     const m = validateManifest(files);
     const raw = (m as { settingsSchema?: Record<string, unknown> }).settingsSchema ?? {};
@@ -30,14 +28,10 @@ describe("bundled HUD packages", () => {
     expect(existsSync(join(folder, "thumbnail.webp"))).toBe(true);
   });
 
-  it.skipIf(!existsSync(join(repo, "apps", "hud-template", "dist", "manifest.json")))("the built Pro CS2 HUD package (apps/hud-template/dist) installs as is", () => {
-    const files = readDirectory(join(repo, "apps", "hud-template", "dist"));
-    const m = validateManifest(files);
-    expect(m.id).toBe("matchframe.pro-cs2");
-    for (const name of ["index.html", "thumbnail.webp", "third-party-licenses/hud-template-MIT.txt", "OFL-Montserrat.txt", "README.md"]) expect(files.has(name)).toBe(true);
-    const html = new TextDecoder().decode(files.get("index.html"));
-    // Relative asset paths: installed packages are served under /huds/<id>/.
-    expect(html).toMatch(/src="\.\/assets\//);
+  it("the program bundles no other HUD folders: the Pro CS2 and Sample CS2 HUDs are gone", () => {
+    expect(existsSync(join(repo, "apps", "hud-template"))).toBe(false);
+    expect(existsSync(join(repo, "assets", "hud-packages"))).toBe(false);
+    expect(readFileSync(join(repo, "apps", "desktop", "electron-builder.yml"), "utf8")).not.toMatch(/hud-template|hud-packages/);
   });
 
   for (const hud of ["vector", "lineup", "stage"])

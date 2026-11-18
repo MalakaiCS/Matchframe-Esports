@@ -51,9 +51,7 @@ The program ships MatchFrame's own TeamSpeak 3 client plugin (`native/ts3-matchf
 
 | Package | Contents and origin | Licence |
 |---|---|---|
-| MatchFrame Sample CS2 HUD (`assets/hud-packages/matchframe-sample-cs2`) | Original code and artwork; weapon icons from the CS2 HUD template below (`images/weapons`); Inter font files | Code MIT; weapon icons MIT (`third-party-licenses/weapon-icons-MIT.txt`); Inter SIL OFL 1.1 (`fonts/OFL.txt`) |
-| MatchFrame Pro CS2 HUD (`apps/hud-template`) | Adapted from the CS2 HUD template below; Montserrat font files | Template code MIT (`third-party-licenses/hud-template-MIT.txt`); MatchFrame's changes MIT; Montserrat SIL OFL 1.1 (© 2011 The Montserrat Project Authors) |
-| MatchFrame Vector, Lineup and Stage HUDs (`apps/hud-designs`) | Original MatchFrame code; weapon icons from the CS2 HUD template below (shared with the HUD renderer); Montserrat and Inter font files (Vector), Barlow Condensed font files (Lineup), Antonio font files (Stage) | Code MIT; weapon icons MIT (`third-party-licenses/weapon-icons-MIT.txt` in each package); fonts SIL OFL 1.1 (`OFL-fonts.txt` in each package; Vector also `OFL-Montserrat.txt`, Stage `OFL-Antonio.txt`) |
+| MatchFrame Vector, Lineup and Stage HUDs (`apps/hud-designs`) | Original MatchFrame code; weapon icons from the CS2 HUD template below (shared with the HUD renderer, `apps/hud-renderer/src/assets/weapons`); Montserrat and Inter font files (Vector), Barlow Condensed font files (Lineup), Antonio font files (Stage) | Code MIT; weapon icons MIT (`third-party-licenses/weapon-icons-MIT.txt` in each package); fonts SIL OFL 1.1 (`OFL-fonts.txt` in each package; Vector also `OFL-Montserrat.txt`, Stage `OFL-Antonio.txt`) |
 
 ## Counter-Strike 2 icons (not shipped)
 
@@ -63,17 +61,14 @@ MatchFrame ships none of Counter-Strike 2's own HUD icons: they are Valve's artw
 
 **cs2-react-hud** by Lexogrine (https://github.com/lexogrine/cs2-react-hud), Copyright (c) 2021 Lexogrine, MIT licence. MatchFrame uses:
 
-- **HUD code and styles:** the Pro CS2 HUD (`apps/hud-template`) is adapted from it.
-- **Weapon and equipment icons:** the template's icon set, in the Pro CS2 HUD, the Vector, Lineup and Stage HUDs, the Sample CS2 HUD (`images/weapons`) and the MatchFrame Broadcast HUD's killfeed (HUD renderer).
+- **Weapon and equipment icons:** the template's icon set (`apps/hud-renderer/src/assets/weapons`), in the Vector, Lineup and Stage HUDs and the MatchFrame Broadcast HUD's killfeed (HUD renderer). The Pro CS2 HUD, adapted from the template's code and styles, left the program in 0.13.3 (ADR-085).
 - **Radar images:** `assets/radars`, flat radar drawings of eight CS2 maps (Ancient, Dust II, Inferno, Mirage, Nuke, Overpass, Train, Vertigo) with their world-to-image calibration, from commit `4ec8eea6f0935193b44ec5a000f230fccdaa1c15`, `src/HUD/Radar/LexoRadar/maps/<map>/radar.png` and `index.ts`. They are the template author's own drawings of the map layouts; the maps themselves are Valve's. Every HUD's minimap shows them.
 
 The licence text, unchanged and with its copyright line, ships in a `third-party-licenses` folder next to the files it covers:
 
 | Shipped location (installed program) | Source in this repository | Covers |
 |---|---|---|
-| `sample-huds/matchframe-pro-cs2/third-party-licenses/hud-template-MIT.txt` | `apps/hud-template/package-files/third-party-licenses/` | The Pro CS2 HUD's code, styles and icons |
 | `sample-huds/matchframe-vector/third-party-licenses/weapon-icons-MIT.txt`, `sample-huds/matchframe-lineup/third-party-licenses/weapon-icons-MIT.txt`, `sample-huds/matchframe-stage/third-party-licenses/weapon-icons-MIT.txt` | `apps/hud-designs/package-files/third-party-licenses/` | The weapon icons in Vector, Lineup and Stage |
-| `sample-huds/matchframe-sample-cs2/third-party-licenses/weapon-icons-MIT.txt` | `assets/hud-packages/matchframe-sample-cs2/third-party-licenses/` | `images/weapons` |
 | `hud-renderer/third-party-licenses/weapon-icons-MIT.txt` | `apps/hud-renderer/public/third-party-licenses/` | The Broadcast HUD's killfeed icons |
 | `radars/third-party-licenses/radar-images-MIT.txt` | `assets/radars/third-party-licenses/` | The radar images and `radars.json` calibration |
 

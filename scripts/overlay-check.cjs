@@ -35,8 +35,14 @@ if (!exe || !reportFile) {
 }
 const isWin = process.platform === "win32";
 const PORTS = { gsi: "39610", api: "39611", overlay: "39612" };
-const SAMPLE = "matchframe.sample-cs2";
-const PRO = "matchframe.pro-cs2";
+/**
+ * The HUD the window checks run on: a test fixture (scripts/fixtures/overlay-check-hud, the former
+ * Sample CS2 HUD) imported at the start, since the program no longer ships it (ADR-085).
+ */
+const SAMPLE = "test.overlay-check";
+const FIXTURE_HUD = resolve(__dirname, "fixtures", "overlay-check-hud");
+/** The HUDs the program installs into the library itself. */
+const BUNDLED = ["matchframe.stage", "matchframe.vector", "matchframe.lineup"];
 const TAG = "matchframe.hud-window";
 const checks = [];
 const info = {};
@@ -202,9 +208,15 @@ async function run(app) {
   const library = async () => (await api("/api/v1/hud/library")).body;
   const lib = await waitFor(async () => {
     const l = await library();
-    return l?.huds?.some((h) => h.id === SAMPLE) ? l : null;
+    return BUNDLED.every((id) => l?.huds?.some((h) => h.id === id)) ? l : null;
   });
-  check("bundled HUDs installed (sample and Pro CS2)", lib.huds.some((h) => h.id === SAMPLE && h.status !== "error") && lib.huds.some((h) => h.id === PRO && h.status !== "error"), lib.huds.map((h) => `${h.id}:${h.status}`));
+  check(
+    "bundled HUDs installed (Stage, Vector, Lineup; no Pro CS2 or Sample CS2 HUD)",
+    BUNDLED.every((id) => lib.huds.some((h) => h.id === id && h.status !== "error")) && !lib.huds.some((h) => h.id === "matchframe.pro-cs2" || h.id === "matchframe.sample-cs2"),
+    lib.huds.map((h) => `${h.id}:${h.status}`),
+  );
+  const imported = await api("/api/v1/hud/library/import-folder", { method: "POST", body: JSON.stringify({ path: FIXTURE_HUD, onConflict: "replace" }) });
+  check("the check's test HUD imported", imported.status === 200 && imported.body?.id === SAMPLE, { status: imported.status, body: imported.body });
   const sim = await api("/api/v1/simulation/start", { method: "POST", body: JSON.stringify({ startOffsetSec: 25 }) });
   check("test data started", sim.status === 200, sim.status);
 

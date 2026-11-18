@@ -88,7 +88,7 @@ async function boot(cloud: FakeSyncCloud, device: FakeDevice, opts: { linked?: b
       mapPackDir: null,
       workersDir: null,
       pythonPath: null,
-      sampleHudsDirs: opts.samples ? [join(import.meta.dirname, "..", "..", "..", "assets", "hud-packages")] : [],
+      sampleHudsDirs: opts.samples ? [join(import.meta.dirname, "..", "..", "..", "examples", "hud-minimal")] : [],
       cloudUrl: cloud.base,
       cloudPublicKeys: null,
       cloudEnforcement: "off",
