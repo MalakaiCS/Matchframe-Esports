@@ -31,7 +31,7 @@ export const REQUIREMENT_GROUPS: RequirementGroup[] = [
     rows: [
       ["Client", "A CS2 observer or spectator client (including GOTV) on the production computer."],
       ["Game State Integration", "The program writes the config file for you (gamestate_integration_matchframe.cfg) with a secret token, and can start CS2 for you."],
-      ["Camera control", <>For the Auto Director, start CS2 from the program in the Observer tools mode (<code>-tools -netconport</code>; needs the free CS2 Workshop Tools), optionally with HLAE for smooth camera moves. The keyboard adapter needs the CS2 window to be focused.</>],
+      ["Camera control", <>For the Auto Director, start CS2 from the program in the Observer tools mode (<code>-tools -netconport</code>; needs the free CS2 Workshop Tools), optionally with HLAE for smooth camera moves (the program downloads HLAE and keeps it up to date for you). The keyboard adapter needs the CS2 window to be focused.</>],
       ["Cameras", "Built-in cameras for the main map pool, checked against each map's geometry; add your own with getpos in Maps & Cameras. The static camera test must pass on your CS2 build."],
     ],
   },

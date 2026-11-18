@@ -11,6 +11,28 @@ interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "0.13.2",
+    title: "Seven languages, and HLAE set up for you",
+    summary: "The whole program in Portuguese (Brazil), Spanish, German, French, Polish and Russian, and HLAE downloaded and kept up to date by the program.",
+    sections: [
+      {
+        heading: "Languages",
+        items: [
+          "Settings → General → Language: Português (Brasil), Español, Deutsch, Français, Polski or Русский, or follow Windows. Changes at once, without a restart.",
+          "Every screen of the program is translated. The HUDs' on-air text stays English.",
+        ],
+      },
+      {
+        heading: "HLAE",
+        items: [
+          "Get HLAE downloads the latest HLAE from its official releases, checks it and sets it up. Nothing to install by hand.",
+          "Kept up to date: a newer HLAE is installed when the program starts or before Start CS2, never while CS2 is running.",
+          "When a CS2 update breaks HLAE, the program looks for a fixed HLAE at once and starts CS2 again with it.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.13.1",
     title: "Early replays and the round MVP animation",
     summary: "Replays start up to 10 seconds early when the round is decided, and the Stage HUD's round MVP card animates in and out on new timing.",
