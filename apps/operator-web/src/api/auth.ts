@@ -11,7 +11,24 @@ export interface HlaeInfo {
   path: string | null;
   ok: boolean;
   problem: string | null;
+  /** The program's own HLAE (ADR-084); absent from programs before 0.13.2. */
+  status?: HlaeStatus;
 }
+
+export interface HlaeStatus {
+  managed: { version: string; dir: string; exe: string; installedAt: string } | null;
+  inUse: boolean;
+  autoUpdate: boolean;
+  busy: "checking" | "downloading" | "installing" | null;
+  busyVersion: string | null;
+  percent: number | null;
+  latest: string | null;
+  checkedAt: string | null;
+  error: string | null;
+}
+
+/** `{ ok, value | error }` from the program's HLAE actions. */
+export type HlaeResult = { ok: true; value: HlaeInfo & { result?: string } } | { ok: false; error: string };
 
 declare global {
   interface Window {
@@ -49,6 +66,9 @@ declare global {
       hlae?: {
         info(): Promise<HlaeInfo | null>;
         choose(): Promise<HlaeInfo | null>;
+        get?(): Promise<HlaeResult>;
+        check?(): Promise<HlaeResult>;
+        setAutoUpdate?(on: boolean): Promise<HlaeInfo | null>;
       };
       /** Crash reports (see lib/crashReports.ts). */
       crashReports?: {

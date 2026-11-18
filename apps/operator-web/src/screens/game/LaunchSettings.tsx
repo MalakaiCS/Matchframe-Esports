@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActionButton, Badge, Button, ConfirmDialog, Field, Note } from "../../components/ui.tsx";
+import { ActionButton, Badge, Button, Checkbox, ConfirmDialog, Field, Note } from "../../components/ui.tsx";
 import { HLAE_WARNING, LAUNCH_MODES, setLaunchProfile, useGameConsole, useHlae, type GameConsoleStatus, type GameLaunchMode } from "../../lib/game.ts";
 import { usePermission } from "../../state/session.tsx";
 import { t } from "../../i18n/index.ts";
@@ -32,6 +32,61 @@ export function consoleLine(st: GameConsoleStatus | undefined): { tone: "ok" | "
   if (!st || st.console === "off") return null;
   if (st.console === "connected") return { tone: st.lastApplyError ? "warn" : "ok", text: t("game.console.connected"), title: st.lastApplyError ? t("game.console.notSent", { error: st.lastApplyError }) : t("game.console.live", { port: st.port }) };
   return { tone: "neutral", text: t("game.console.waiting"), title: st.lastError ? t("game.console.waitingTitleError", { port: st.port, error: st.lastError }) : t("game.console.waitingTitle", { port: st.port }) };
+}
+
+/** Where HLAE comes from: the program's own, got and kept up to date by it (ADR-084), or a chosen HLAE.exe. */
+export function HlaeSetup({ hlae, reason }: { hlae: ReturnType<typeof useHlae>; reason: string | null }) {
+  const info = hlae.info;
+  const st = info?.status;
+  const inUse = !!st?.inUse && !!info?.ok;
+  const busyLine =
+    st?.busy === "checking"
+      ? t("game.hlae.checking")
+      : st?.busy === "downloading"
+        ? st.percent !== null
+          ? t("game.hlae.downloading", { version: st.busyVersion ?? "", percent: st.percent })
+          : t("game.hlae.downloadingNoPercent", { version: st.busyVersion ?? "" })
+        : st?.busy === "installing"
+          ? t("game.hlae.installing", { version: st.busyVersion ?? "" })
+          : null;
+  const where = !info
+    ? t("game.launch.hlaeInProgram")
+    : inUse && st?.managed
+      ? t("game.hlae.managed", { version: st.managed.version })
+      : info.ok
+        ? t("game.hlae.chosen", { path: info.path ?? "" })
+        : (info.problem ?? t("game.launch.hlaeInProgram"));
+  return (
+    <div className="stack hlae-setup">
+      <span className={info?.ok ? "text-ok" : "muted"}>{where}</span>
+      {busyLine ? (
+        <span className="muted small" role="status">
+          {busyLine}
+        </span>
+      ) : st?.error ? (
+        <span className="text-warn small">{st.error}</span>
+      ) : null}
+      <div className="row">
+        {hlae.get && !inUse ? (
+          <ActionButton variant={info?.ok ? "secondary" : "primary"} action={() => hlae.get!()} success={(r) => t("game.hlae.installed", { version: r.status?.managed?.version ?? "" })} disabledReason={reason}>
+            {t("game.hlae.get")}
+          </ActionButton>
+        ) : null}
+        {hlae.check && inUse ? (
+          <ActionButton action={() => hlae.check!()} success={(m) => m || null} disabledReason={reason}>
+            {t("game.hlae.check")}
+          </ActionButton>
+        ) : null}
+        {hlae.choose ? (
+          <Button onClick={() => void hlae.choose!()} disabledReason={reason}>
+            {t("game.chooseHlae")}
+          </Button>
+        ) : null}
+      </div>
+      {inUse && st && hlae.setAutoUpdate ? <Checkbox checked={st.autoUpdate} disabled={!!reason} label={t("game.hlae.autoUpdate")} onChange={(v) => void hlae.setAutoUpdate!(v)} /> : null}
+      {hlae.get ? <p className="muted small">{inUse ? t("game.hlae.autoUpdateHint") : t("game.hlae.getHint")}</p> : null}
+    </div>
+  );
 }
 
 /** Settings → Setup → Start CS2: launch mode, console port, extra launch options and HLAE. */
@@ -98,14 +153,7 @@ export function LaunchSettings() {
               ))}
             </ul>
           </Note>
-          <div className="row">
-            <span className={hlae.info?.ok ? "text-ok" : "muted"}>{hlae.info?.ok ? `HLAE: ${hlae.info.path}` : (hlae.info?.problem ?? t("game.launch.hlaeInProgram"))}</span>
-            {hlae.choose ? (
-              <Button onClick={() => void hlae.choose!()} disabledReason={reason}>
-                {t("game.chooseHlae")}
-              </Button>
-            ) : null}
-          </div>
+          <HlaeSetup hlae={hlae} reason={reason} />
         </div>
       ) : null}
       <div className="row">

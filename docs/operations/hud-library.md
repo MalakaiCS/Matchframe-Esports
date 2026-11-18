@@ -90,13 +90,13 @@ Every bundled HUD shows the map's radar image (the bundled radars for Ancient, D
 
 ## Start CS2
 
-**Start CS2** on the Counter-Strike 2 card writes the game data (GSI) config into the CS2 folder and starts CS2 in the launch mode chosen next to it. Change the console port, add launch options (for example `-novid`) and choose HLAE in **Settings → Setup → Start CS2**.
+**Start CS2** on the Counter-Strike 2 card writes the game data (GSI) config into the CS2 folder and starts CS2 in the launch mode chosen next to it. Change the console port, add launch options (for example `-novid`) and get or choose HLAE in **Settings → Setup → Start CS2**.
 
 | Mode | Starts CS2 with | What you get | Needs |
 |---|---|---|---|
 | **Standard** | Steam, your launch options | Game data for the HUDs. Works on any server. | CS2 |
 | **Observer tools** | Steam, `-tools -netconport 2121` | MatchFrame connects to CS2's console on this computer: camera control for the Observer (the *Direct (console)* adapter is selected if none was) and the game options below. | The free **CS2 Workshop Tools** (Steam → Counter-Strike 2 → DLC) |
-| **Observer tools + HLAE** | HLAE, `-steam -insecure -tools -netconport 2121` | Also HLAE's options: no flash, team colours in the kill feed or no game kill feed, no end-of-match screen. | CS2 Workshop Tools, [HLAE](https://www.advancedfx.org/) (choose `HLAE.exe`), Steam running |
+| **Observer tools + HLAE** | HLAE, `-steam -insecure -tools -netconport 2121` | Also HLAE's options: no flash, team colours in the kill feed or no game kill feed, no end-of-match screen. | CS2 Workshop Tools, [HLAE](https://www.advancedfx.org/) (**Get HLAE**, or choose an `HLAE.exe`), Steam running |
 
 Game options (console modes; sent every time the console connects, and straight away when changed):
 
@@ -117,9 +117,19 @@ The card shows **Console connected** once CS2 is up. If it keeps showing *Consol
 
 - Insecure CS2 cannot join VAC-secured servers. The match server must allow insecure observers (`tv_secure_bypass 1`), or use LAN or demos.
 - Never join matchmaking or a VAC-secured server while HLAE is loaded: HLAE's developers warn that this can get the account VAC banned.
-- CS2 updates often break HLAE until HLAE ships an update. Standard and Observer tools keep working; install the latest HLAE when HLAE fails to start CS2.
+- CS2 updates often break HLAE until HLAE ships an update. Standard and Observer tools keep working in the meantime.
 
-HLAE is a separate download (MIT licence) and is not included with MatchFrame. MatchFrame never changes server settings and sends only the fixed console lines listed above.
+**Getting HLAE (0.13.2).** In **Settings → Setup → Start CS2**, with the HLAE mode selected:
+
+- **Get HLAE** downloads the latest HLAE from its official releases on GitHub (`advancedfx/advancedfx`), checks the file against the SHA-256 GitHub gives for it, unpacks it into the program's data folder (`hlae-program\<version>`) and uses its `HLAE.exe`. CS2 must be closed.
+- **Keep HLAE up to date** (on): while the program's HLAE is the one used, MatchFrame looks for a newer release when the program starts and before **Start CS2** (at most every 30 minutes). Never while CS2 is running, so never during a match.
+- **When HLAE fails to start CS2** (usually a CS2 update it doesn't know yet), MatchFrame looks for a newer HLAE straight away. If there is one, it installs it and starts CS2 once more. If there isn't, it says so: HLAE can take a few days to catch up with a CS2 update, and the Standard mode works until then.
+- **Check for a newer HLAE** asks GitHub now.
+- The version before stays in the data folder; older ones are removed.
+- **Choose HLAE.exe…** still uses an HLAE you installed yourself. MatchFrame doesn't update that one; **Get HLAE** switches back to the program's own.
+- **If Windows Security removes part of HLAE** (its injector is sometimes flagged), MatchFrame says which file went missing: allow it in Windows Security, then press **Get HLAE** again.
+
+HLAE is made by the advancedfx team (MIT licence for its own code). It is not in MatchFrame's installer: the program fetches it from HLAE's own releases. MatchFrame never changes server settings and sends only the fixed console lines listed above.
 
 ## Add a HUD
 
@@ -233,7 +243,7 @@ The header shows the game-data state. If CS2 stops sending data (game closed, ma
 | Hotkey not working | Registration failure in the HUD's details; choose another combination |
 | HUD laggy or choppy in OBS (an amber OBS indicator) | OBS **Settings → Advanced → Sources → Enable Browser Source Hardware Acceleration** on, OBS restarted; the browser source's *Shutdown source when not visible* off, and *Use custom frame rate* off (or on at 30 with Low-spec mode). CS2, OBS and MatchFrame on one computer: **Settings → General → Performance → Low-spec mode** |
 | Console never connects | CS2 Workshop Tools installed; CS2 started with Start CS2 (not already running); the same console port in Setup and in CS2's launch options |
-| HLAE could not start CS2 | Latest HLAE installed (CS2 updates break older versions); Steam running; the HLAE folder still has `x64\AfxHookSource2.dll` |
+| HLAE could not start CS2 | With **Get HLAE**, MatchFrame looks for a newer HLAE and tries once more by itself; if none is out yet, use the Standard mode until HLAE catches up. With your own HLAE: install the latest. Also: Steam running; the HLAE folder still has `x64\AfxHookSource2.dll` |
 | Update stuck or failing | **Settings → General → Program** shows the error; **Check for updates** again, or download the installer from the website and install over the current version (HUDs and settings are kept) |
 
 ## What is verified automatically, and what needs a manual check

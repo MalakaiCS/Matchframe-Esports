@@ -14,7 +14,8 @@ import { registerHudIpc } from "./hud/ipc.ts";
 import { OverlayManager } from "./hud/overlays.ts";
 import { OverlayStore } from "./hud/store.ts";
 import type { Library } from "./hud/types.ts";
-import { hlaeInfo, startCs2, type PreparedLaunch } from "./game-launch.ts";
+import { hlaeInfo, processRunning, startCs2, type LaunchResult, type PreparedLaunch } from "./game-launch.ts";
+import { createHlaeManager, launchWithHlae, type HlaeManager, type ManagedHlae } from "./hlae-manager.ts";
 import { engineExecArgv, parsePerformanceMessage } from "./low-spec.ts";
 import { DEVICE_ACTION, HIGHLIGHT_KEY_ACTIONS, MAP_INTRO_KEY_ACTIONS, ReplayHotkeys, TEAM_KEY_ACTIONS, type ReplayKeyAction, type ReplayKeys } from "./replay-hotkeys.ts";
 import { createRollback, type Rollback } from "./rollback.ts";
@@ -86,6 +87,17 @@ let hotkeys: HotkeyManager | null = null;
 let tray: ProgramTray | null = null;
 let updater: Updater | null = null;
 let rollback: Rollback | null = null;
+/** The program's own HLAE (ADR-084): Get HLAE, and newer versions when CS2 updates break the old one. */
+const hlae: HlaeManager = createHlaeManager({
+  root: join(app.getPath("userData"), "hlae-program"),
+  fetch: (url, init) => net.fetch(url, init),
+  read: () => {
+    const s = readProgramSettings();
+    return { hlaePath: s.hlaePath, hlaeManaged: s.hlaeManaged, hlaeAutoUpdate: s.hlaeAutoUpdate };
+  },
+  write: (patch) => writeProgramSettings(patch),
+  cs2Running: () => processRunning("cs2.exe"),
+});
 let replayKeys: ReplayHotkeys | null = null;
 /** The credential key handed to the engine (kept so crash reports can be checked for it). */
 let masterKey: string | null = null;
@@ -101,8 +113,12 @@ interface ProgramSettings {
   autoDownloadUpdates: boolean;
   /** Stable (default) or Beta: GitHub prereleases too (ADR-076). */
   updateChannel: UpdateChannel;
-  /** HLAE.exe for the Start CS2 HLAE mode (chosen by the operator on this computer). */
+  /** HLAE.exe for the Start CS2 HLAE mode (chosen by the operator, or the program's own HLAE). */
   hlaePath: string | null;
+  /** The HLAE the program downloaded (ADR-084), in `<userData>/hlae-program/<version>`. */
+  hlaeManaged: ManagedHlae | null;
+  /** Look for a newer HLAE when the program starts and before Start CS2 (ADR-084); on unless turned off. */
+  hlaeAutoUpdate: boolean;
   /** The engine listens on the network (a replay PC or another operator position connects), not only on this computer. */
   networkAccess: boolean;
   /** Global hotkeys for the replays playing (replay-hotkeys.ts); off unless set. */
@@ -122,6 +138,8 @@ function readProgramSettings(): ProgramSettings {
       autoDownloadUpdates: raw.autoDownloadUpdates !== false,
       updateChannel: parseChannel(raw.updateChannel),
       hlaePath: typeof raw.hlaePath === "string" ? raw.hlaePath : null,
+      hlaeManaged: parseManagedHlae(raw.hlaeManaged),
+      hlaeAutoUpdate: raw.hlaeAutoUpdate !== false,
       networkAccess: raw.networkAccess === true,
       replayHotkeys: raw.replayHotkeys && typeof raw.replayHotkeys === "object" ? raw.replayHotkeys : {},
       crashReports: raw.crashReports === true,
@@ -129,8 +147,12 @@ function readProgramSettings(): ProgramSettings {
       language: parseLanguagePref(raw.language),
     };
   } catch {
-    return { autoDownloadUpdates: true, updateChannel: "stable", hlaePath: null, networkAccess: false, replayHotkeys: {}, crashReports: false, lowSpec: false, language: "system" };
+    return { autoDownloadUpdates: true, updateChannel: "stable", hlaePath: null, hlaeManaged: null, hlaeAutoUpdate: true, networkAccess: false, replayHotkeys: {}, crashReports: false, lowSpec: false, language: "system" };
   }
+}
+function parseManagedHlae(v: unknown): ManagedHlae | null {
+  const m = v && typeof v === "object" ? (v as Record<string, unknown>) : null;
+  return m && typeof m.version === "string" && typeof m.dir === "string" && typeof m.exe === "string" ? { version: m.version, dir: m.dir, exe: m.exe, installedAt: typeof m.installedAt === "string" ? m.installedAt : "" } : null;
 }
 function writeProgramSettings(patch: Partial<ProgramSettings>): void {
   mkdirSync(app.getPath("userData"), { recursive: true });
@@ -836,12 +858,49 @@ ipcMain.handle("mf:launch-cs2", async (event) => {
   if (connection.mode !== "local") return { ok: false, message: t("engine.launchRemote") };
   try {
     const prepared = await engineRequest<PreparedLaunch>("POST", "/api/v1/game/prepare-launch");
-    return await startCs2(prepared, { hlaePath: readProgramSettings().hlaePath, openExternal: (url) => shell.openExternal(url) });
+    return await launchWithHlaeUpdates(prepared);
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : String(e) };
   }
 });
-ipcMain.handle("mf:hlae-info", (event) => (fromApp(event) ? hlaeInfo(readProgramSettings().hlaePath) : null));
+/** Start CS2; with the program's HLAE, a newer one first when there is one, and again after a failure (ADR-084). */
+function launchWithHlaeUpdates(prepared: PreparedLaunch): Promise<LaunchResult> {
+  return launchWithHlae({
+    hlaeMode: prepared.plan.mode === "hlae",
+    manager: hlae,
+    start: () => {
+      const s = readProgramSettings();
+      return startCs2(prepared, { hlaePath: s.hlaePath, hlaeVersion: hlae.inUse() ? (s.hlaeManaged?.version ?? null) : null, openExternal: (url) => shell.openExternal(url) });
+    },
+  });
+}
+function hlaeState() {
+  return { ...hlaeInfo(readProgramSettings().hlaePath), status: hlae.status() };
+}
+ipcMain.handle("mf:hlae-info", (event) => (fromApp(event) ? hlaeState() : null));
+// Get HLAE / check for a newer one / keep it up to date (ADR-084): `{ ok, value | error }`.
+ipcMain.handle("mf:hlae-get", async (event) => {
+  if (!fromApp(event) || fromApp(event, "/connect") || connection.mode !== "local") return { ok: false, error: "not allowed" };
+  try {
+    await hlae.get();
+    return { ok: true, value: hlaeState() };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+});
+ipcMain.handle("mf:hlae-check", async (event) => {
+  if (!fromApp(event) || fromApp(event, "/connect") || connection.mode !== "local") return { ok: false, error: "not allowed" };
+  const u = await hlae.update({ force: true, manual: true });
+  if (!u.updated && u.reason === "error") return { ok: false, error: u.error };
+  if (!u.updated && u.reason === "cs2_running") return { ok: false, error: t("hlae.cs2Running") };
+  const result = u.updated ? t("hlae.updated", { from: u.from ?? "?", to: u.to }) : u.reason === "latest" ? t("hlae.latest", { version: u.version ?? "?" }) : undefined;
+  return { ok: true, value: { ...hlaeState(), result } };
+});
+ipcMain.handle("mf:hlae-auto", (event, on: unknown) => {
+  if (!fromApp(event) || fromApp(event, "/connect") || typeof on !== "boolean") return null;
+  hlae.setAutoUpdate(on);
+  return hlaeState();
+});
 // Replay hotkeys (replay-hotkeys.ts): `{ ok, value | error }`, as the desktop HUD calls.
 ipcMain.handle("mf:replay-hotkeys", (event) => (fromApp(event) && replayKeys ? { ok: true, value: replayKeys.state() } : { ok: false, error: "not available" }));
 ipcMain.handle("mf:replay-hotkeys-set", (event, patch: unknown) => {
@@ -861,10 +920,11 @@ ipcMain.handle("mf:pick-directory", async (event, title: unknown) => {
 ipcMain.handle("mf:hlae-choose", async (event) => {
   if (!fromApp(event) || !win) return null;
   const r = await dialog.showOpenDialog(win, { title: t("dialog.chooseHlae"), properties: ["openFile"], filters: [{ name: "HLAE", extensions: ["exe"] }] });
-  if (r.canceled || !r.filePaths[0]) return hlaeInfo(readProgramSettings().hlaePath);
+  if (r.canceled || !r.filePaths[0]) return hlaeState();
   const info = hlaeInfo(r.filePaths[0]);
-  if (info.ok) writeProgramSettings({ hlaePath: info.path });
-  return info;
+  if (!info.ok) return { ...info, status: hlae.status() };
+  writeProgramSettings({ hlaePath: info.path });
+  return hlaeState();
 });
 // Read by the preload script when the console loads (remote mode disables desktop HUDs).
 ipcMain.on("mf:hud-availability", (event) => {
@@ -1007,6 +1067,13 @@ if (!app.requestSingleInstanceLock()) {
       beforeInstall: () => console.log("installing the downloaded update"),
       log: (msg) => console.log(msg),
     });
+    // A newer HLAE in the background once the program is up (ADR-084), so Start CS2 rarely waits for one.
+    setTimeout(() => {
+      void hlae.update().then((u) => {
+        if (u.updated) console.log(`HLAE updated from ${u.from ?? "?"} to ${u.to}`);
+        else if (u.reason === "error") console.error(`could not check for a newer HLAE: ${u.error}`);
+      });
+    }, 20_000);
     rollback = createRollback({
       currentVersion: app.getVersion(),
       dataDir: dataDir(),

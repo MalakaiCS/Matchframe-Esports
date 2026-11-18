@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { HlaeInfo } from "../api/auth.ts";
+import type { HlaeInfo, HlaeResult } from "../api/auth.ts";
 import { api } from "../api/index.ts";
 import { useApi } from "./hooks.ts";
 import { perLocale, t } from "../i18n/index.ts";
@@ -67,19 +67,67 @@ export function setConsoleOptions(patch: Partial<ConsoleOptions>): Promise<GameC
   return api.put<GameConsoleStatus>("/api/v1/game/console-options", patch);
 }
 
-/** HLAE.exe chosen on this computer (program only). */
-export function useHlae(): { info: HlaeInfo | null; choose: (() => Promise<void>) | null } {
+/** HLAE on this computer (program only): the program's own, kept up to date (ADR-084), or one chosen. */
+export function useHlae(): {
+  info: HlaeInfo | null;
+  choose: (() => Promise<void>) | null;
+  /** Get HLAE: the latest release, downloaded and checked. Throws with the reason. */
+  get: (() => Promise<HlaeInfo>) | null;
+  /** Check for a newer HLAE now; resolves with what happened. */
+  check: (() => Promise<string>) | null;
+  setAutoUpdate: ((on: boolean) => Promise<void>) | null;
+} {
   const bridge = window.matchframe?.hlae;
   const [info, setInfo] = useState<HlaeInfo | null>(null);
-  useEffect(() => {
-    if (bridge) void bridge.info().then(setInfo);
+  const [working, setWorking] = useState(false);
+  const refresh = useCallback(async () => {
+    if (bridge) setInfo(await bridge.info());
   }, [bridge]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+  // While a download runs (here or from Start CS2), follow its progress.
+  const busy = working || !!info?.status?.busy;
+  useEffect(() => {
+    if (!busy) return;
+    const id = setInterval(() => void refresh(), 700);
+    return () => clearInterval(id);
+  }, [busy, refresh]);
   const choose = useCallback(async () => {
     if (!bridge) return;
     const r = await bridge.choose();
     if (r) setInfo(r);
   }, [bridge]);
-  return { info, choose: bridge ? choose : null };
+  const act = useCallback(
+    async (fn: () => Promise<HlaeResult>) => {
+      setWorking(true);
+      try {
+        const r = await fn();
+        await refresh();
+        if (!r.ok) throw new Error(r.error);
+        return r.value;
+      } finally {
+        setWorking(false);
+      }
+    },
+    [refresh],
+  );
+  const get = useCallback(() => act(() => bridge!.get!()), [act, bridge]);
+  const check = useCallback(async () => (await act(() => bridge!.check!())).result ?? "", [act, bridge]);
+  const setAutoUpdate = useCallback(
+    async (on: boolean) => {
+      const r = await bridge?.setAutoUpdate?.(on);
+      if (r) setInfo(r);
+    },
+    [bridge],
+  );
+  return {
+    info,
+    choose: bridge ? choose : null,
+    get: bridge?.get ? get : null,
+    check: bridge?.check ? check : null,
+    setAutoUpdate: bridge?.setAutoUpdate ? setAutoUpdate : null,
+  };
 }
 
 /** Why Start CS2 can't run here, or null. */

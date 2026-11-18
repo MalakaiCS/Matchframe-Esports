@@ -100,7 +100,7 @@
     "unreachable": "{origin} ist nicht erreichbar: {error}. Prüfe, ob MatchFrame dort läuft und MATCHFRAME_HOST auf seine Netzwerkadresse gesetzt ist und ob die Firewall Port {port} erlaubt."
   },
   "launch": {
-    "hlaeNotChosen": "HLAE.exe ist noch nicht gewählt (lade HLAE von advancedfx.org herunter).",
+    "hlaeNotChosen": "HLAE ist noch nicht eingerichtet: Klicke auf „HLAE holen“ (Einstellungen → Einrichtung → CS2 starten) oder wähle ein HLAE.exe, das du schon hast.",
     "hlaeWrongFile": "Wähle die Datei HLAE.exe aus dem HLAE-Ordner.",
     "hlaeMoved": "HLAE.exe liegt nicht mehr unter {path}. Wähle sie erneut.",
     "hlaeNoHook": "Diesem HLAE fehlt der CS2-Hook (x64\\AfxHookSource2.dll). Installiere das neueste HLAE.",
@@ -112,9 +112,32 @@
     "cs2Missing": "cs2.exe wurde unter {path} nicht gefunden. Prüfe den CS2-Ordner unter Einstellungen → Einrichtung.",
     "startSteam": "Starte zuerst Steam: HLAE startet cs2.exe direkt und braucht ein laufendes Steam.",
     "hlaeFailed": "HLAE konnte CS2 nicht starten (Exit-Code {code}). Nach einem CS2-Update braucht oft auch HLAE ein Update: Installiere das neueste HLAE und versuche es erneut.",
+    "hlaeFailedManaged": "HLAE {version} konnte CS2 nicht starten (Exit-Code {code}).",
     "hlaeStarting": "CS2 startet mit HLAE (insecure). MatchFrame verbindet sich mit der Konsole auf Port {port}, sobald sie bereit ist.",
     "steamStarting": "CS2 startet über Steam.",
     "steamStartingTools": "CS2 startet über Steam mit der Konsole auf Port {port} (benötigt die CS2 Workshop Tools)."
+  },
+  "hlae": {
+    "updated": "HLAE von {from} auf {to} aktualisiert.",
+    "retried": "HLAE {from} konnte CS2 nicht starten, deshalb hat MatchFrame HLAE {to} installiert und CS2 erneut gestartet.",
+    "noNewer": "Ein neueres HLAE als {version} gibt es noch nicht. Nach einem CS2-Update kann HLAE ein paar Tage brauchen: Starte CS2 bis dahin im Modus Standard (Einstellungen → Einrichtung → CS2 starten).",
+    "checkFailed": "MatchFrame konnte nicht nach einem neueren HLAE suchen: {error}",
+    "latest": "HLAE {version} ist die neueste Version.",
+    "cs2Running": "Schließe zuerst CS2: HLAE wird nur installiert oder aktualisiert, während CS2 nicht läuft.",
+    "noRelease": "GitHub hat das neueste HLAE-Release nicht geliefert.",
+    "noZip": "Das neueste HLAE-Release ({version}) hat keine HLAE-ZIP zum Herunterladen. Lade HLAE von advancedfx.org herunter und wähle dessen HLAE.exe.",
+    "noDigest": "GitHub hat keine Prüfsumme für den Download von HLAE {version} geliefert, deshalb lässt er sich nicht prüfen. Lade HLAE von advancedfx.org herunter und wähle dessen HLAE.exe.",
+    "tooLarge": "Der Download von HLAE {version} ist viel größer als erwartet und wurde deshalb nicht installiert.",
+    "noGithub": "GitHub war für HLAE nicht erreichbar: {error}",
+    "rateLimited": "GitHub begrenzt gerade die Anfragen aus diesem Netzwerk. Versuche es in einer Stunde erneut.",
+    "githubHttp": "GitHub hat auf die Frage nach dem neuesten HLAE-Release mit {status} geantwortet.",
+    "downloadFailed": "HLAE {version} wurde nicht heruntergeladen (HTTP {status}).",
+    "downloadStopped": "Der Download von HLAE {version} wurde abgebrochen: {error}",
+    "checksumMismatch": "Der Download von HLAE {version} passt nicht zur Prüfsumme von GitHub und wurde deshalb nicht installiert.",
+    "badZip": "Die ZIP von HLAE {version} ließ sich nicht öffnen: {error}",
+    "unsafeZip": "Die ZIP von HLAE {version} enthält eine Datei außerhalb ihres Ordners ({name}) und wurde deshalb nicht installiert.",
+    "missingFiles": "Die ZIP von HLAE {version} enthält kein HLAE.exe mit x64\\AfxHookSource2.dll daneben und wurde deshalb nicht installiert.",
+    "removed": "Ein Teil von HLAE {version} fehlt nach dem Entpacken ({file}). Windows-Sicherheit oder ein anderer Virenschutz hat ihn vielleicht entfernt: Erlaube ihn dort und klicke dann erneut auf „HLAE holen“."
   },
   "rollback": {
     "fresh": "Auf diesem Rechner gibt es noch keine MatchFrame-Daten, es gibt also nichts wiederherzustellen.",

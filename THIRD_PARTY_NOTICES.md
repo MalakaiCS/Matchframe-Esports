@@ -8,7 +8,7 @@ MatchFrame Esports is original software. This file lists third-party components 
 |---|---|---|---|
 | zod | 4.6.7 | MIT | contracts, engine |
 | ws | 8.22.0 | MIT | engine WebSockets |
-| fflate | 0.8.2 | MIT | HUD package archive import; .xlsx team and player imports and templates |
+| fflate | 0.8.2 | MIT | HUD package archive import; .xlsx team and player imports and templates; unpacking HLAE (desktop) |
 | obs-websocket-js | 5.0.8 | MIT | OBS adapter |
 | ↳ @msgpack/msgpack | 2.8.0 | ISC | obs-websocket-js |
 | ↳ crypto-js | 4.2.0 | MIT | obs-websocket-js |
@@ -36,6 +36,8 @@ MatchFrame Esports is original software. This file lists third-party components 
 **NDI®** is a registered trademark of Vizrt NV. The program ships the NDI runtime only as part of the grandi addon, unmodified, with its licence files, for receiving NDI sources (the replay feed) and sending audio-only NDI sources (Team Comms). More about NDI: https://ndi.video.
 
 **ffmpeg** is not shipped. For the replay feed, the program downloads one fixed build on request (Windows): ffmpeg 7.1, the essentials build by gyan.dev (https://www.gyan.dev/ffmpeg/builds/, from https://github.com/GyanD/codexffmpeg/releases/tag/7.1), checked against its SHA-256 before use, and keeps it with its licence (GPL v3) in the data folder (`tools/ffmpeg`). Its source: https://github.com/FFmpeg/FFmpeg/commit/b08d7969c5. An ffmpeg already on the PATH is used instead when there is no download.
+
+**HLAE** (Half-Life Advanced Effects, https://www.advancedfx.org/) is not shipped. On the operator's request (**Get HLAE**, ADR-084), the program downloads the latest official release ZIP from https://github.com/advancedfx/advancedfx/releases, checks it against the SHA-256 GitHub gives for the file, and unpacks it unchanged into the data folder (`hlae-program/<version>`), with the licence files the release carries. HLAE's own code is MIT-licensed (© advancedfx.org); parts it includes from other projects keep their own licences, listed in its release.
 
 Operator UI dependencies are listed in `apps/operator-web/package.json` and included in `pnpm licenses list --prod` output.
 

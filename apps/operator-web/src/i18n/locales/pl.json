@@ -1741,12 +1741,26 @@
       "extra": "Dodatkowe opcje uruchamiania",
       "extraHint": "Opcjonalnie, na przykład -novid -fullscreen. Tryb uruchamiania sam ustawia -tools, -netconport, -insecure i -steam.",
       "insecure": "HLAE uruchamia CS2 w trybie insecure",
-      "hlaeInProgram": "HLAE.exe można wybrać w programie MatchFrame.",
+      "hlaeInProgram": "HLAE można pobrać lub wybrać w programie MatchFrame.",
       "saved": "Zapisano ustawienia uruchamiania",
       "save": "Zapisz ustawienia uruchamiania",
       "savedHlae": "Zapisano ustawienia uruchamiania (HLAE)"
     },
     "chooseHlae": "Wybierz HLAE.exe…",
+    "hlae": {
+      "get": "Pobierz HLAE",
+      "getHint": "Pobierz HLAE ściąga najnowszy HLAE z oficjalnych wydań na GitHubie (advancedfx), sprawdza go i dba o aktualizacje. HLAE jest darmowy (licencja MIT) i tworzy go zespół advancedfx, nie MatchFrame.",
+      "managed": "HLAE {version}, aktualizowany przez MatchFrame",
+      "chosen": "HLAE: {path}",
+      "check": "Sprawdź, czy jest nowszy HLAE",
+      "checking": "Sprawdzanie, czy jest nowszy HLAE…",
+      "downloading": "Pobieranie HLAE {version}… {percent}%",
+      "downloadingNoPercent": "Pobieranie HLAE {version}…",
+      "installing": "Instalowanie HLAE {version}…",
+      "installed": "HLAE {version} jest gotowy",
+      "autoUpdate": "Aktualizuj HLAE",
+      "autoUpdateHint": "MatchFrame szuka nowszego HLAE przy starcie programu, przed Uruchom CS2 i od razu, gdy HLAE nie uruchomi CS2. Nigdy, gdy CS2 działa. Poprzednia wersja zostaje na tym komputerze."
+    },
     "start": "Uruchom CS2",
     "card": {
       "checking": "Sprawdzanie…",

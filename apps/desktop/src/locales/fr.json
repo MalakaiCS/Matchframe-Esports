@@ -101,7 +101,7 @@
     "unreachable": "Impossible de joindre {origin} : {error}. Vérifiez que MatchFrame y tourne avec MATCHFRAME_HOST réglé sur son adresse réseau, et que le pare-feu autorise le port {port}."
   },
   "launch": {
-    "hlaeNotChosen": "HLAE.exe n'est pas encore choisi (téléchargez HLAE sur advancedfx.org).",
+    "hlaeNotChosen": "HLAE n'est pas encore configuré : cliquez sur Obtenir HLAE (Paramètres → Configuration → Lancer CS2) ou choisissez un HLAE.exe que vous avez déjà.",
     "hlaeWrongFile": "Choisissez le fichier HLAE.exe dans le dossier de HLAE.",
     "hlaeMoved": "HLAE.exe n'est plus dans {path}. Choisissez-le à nouveau.",
     "hlaeNoHook": "Ce HLAE n'a pas de hook CS2 (x64\\AfxHookSource2.dll). Installez la dernière version de HLAE.",
@@ -113,9 +113,32 @@
     "cs2Missing": "cs2.exe est introuvable dans {path}. Vérifiez le dossier CS2 dans Paramètres → Configuration.",
     "startSteam": "Lancez d'abord Steam : HLAE démarre cs2.exe directement et a besoin de Steam.",
     "hlaeFailed": "HLAE n'a pas pu lancer CS2 (code de sortie {code}). Après une mise à jour de CS2, HLAE doit souvent être mis à jour aussi : installez la dernière version de HLAE et réessayez.",
+    "hlaeFailedManaged": "HLAE {version} n'a pas pu lancer CS2 (code de sortie {code}).",
     "hlaeStarting": "Lancement de CS2 avec HLAE (insecure). MatchFrame se connecte à sa console sur le port {port} dès qu'elle est prête.",
     "steamStarting": "Lancement de CS2 via Steam.",
     "steamStartingTools": "Lancement de CS2 via Steam avec la console sur le port {port} (nécessite les CS2 Workshop Tools)."
+  },
+  "hlae": {
+    "updated": "HLAE mis à jour de {from} vers {to}.",
+    "retried": "HLAE {from} n'a pas pu lancer CS2 : MatchFrame a donc installé HLAE {to} et relancé CS2.",
+    "noNewer": "Aucun HLAE plus récent que {version} n'est encore sorti. Après une mise à jour de CS2, HLAE peut mettre quelques jours à suivre : d'ici là, lancez CS2 en mode Standard (Paramètres → Configuration → Lancer CS2).",
+    "checkFailed": "MatchFrame n'a pas pu chercher un HLAE plus récent : {error}",
+    "latest": "HLAE {version} est la dernière version.",
+    "cs2Running": "Fermez d'abord CS2 : HLAE n'est installé ou mis à jour que lorsque CS2 ne tourne pas.",
+    "noRelease": "GitHub n'a pas donné la dernière publication de HLAE.",
+    "noZip": "La dernière publication de HLAE ({version}) n'a pas de ZIP HLAE à télécharger. Téléchargez HLAE sur advancedfx.org et choisissez son HLAE.exe.",
+    "noDigest": "GitHub n'a pas donné de somme de contrôle pour le téléchargement de HLAE {version} : il ne peut donc pas être vérifié. Téléchargez HLAE sur advancedfx.org et choisissez son HLAE.exe.",
+    "tooLarge": "Le téléchargement de HLAE {version} est bien plus gros que prévu : il n'a donc pas été installé.",
+    "noGithub": "Impossible de joindre GitHub pour HLAE : {error}",
+    "rateLimited": "GitHub limite les requêtes de ce réseau. Réessayez dans une heure.",
+    "githubHttp": "GitHub a répondu {status} à la demande de la dernière publication de HLAE.",
+    "downloadFailed": "HLAE {version} n'a pas été téléchargé (HTTP {status}).",
+    "downloadStopped": "Le téléchargement de HLAE {version} s'est arrêté : {error}",
+    "checksumMismatch": "Le téléchargement de HLAE {version} ne correspond pas à la somme de contrôle de GitHub : il n'a donc pas été installé.",
+    "badZip": "Le ZIP de HLAE {version} n'a pas pu être ouvert : {error}",
+    "unsafeZip": "Le ZIP de HLAE {version} contient un fichier hors de son dossier ({name}) : il n'a donc pas été installé.",
+    "missingFiles": "Le ZIP de HLAE {version} ne contient pas de HLAE.exe avec x64\\AfxHookSource2.dll à côté : il n'a donc pas été installé.",
+    "removed": "Une partie de HLAE {version} a disparu après la décompression ({file}). La Sécurité Windows ou un autre antivirus l'a peut-être supprimée : autorisez-la là-bas, puis cliquez de nouveau sur Obtenir HLAE."
   },
   "rollback": {
     "fresh": "Il n'y a pas encore de données MatchFrame sur cet ordinateur, il n'y a donc rien à restaurer.",

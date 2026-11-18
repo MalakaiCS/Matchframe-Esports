@@ -17,6 +17,7 @@
     "electron-builder": "26.18.0",
     "electron-updater": "6.8.10",
     "esbuild": "0.28.2",
+    "fflate": "0.8.2",
     "tsx": "4.23.15"
   }
 }

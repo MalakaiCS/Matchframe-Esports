@@ -101,7 +101,7 @@
     "unreachable": "Não foi possível acessar {origin}: {error}. Verifique se o MatchFrame roda lá com MATCHFRAME_HOST definido para o endereço de rede e se o firewall permite a porta {port}."
   },
   "launch": {
-    "hlaeNotChosen": "O HLAE.exe ainda não foi escolhido (baixe o HLAE em advancedfx.org).",
+    "hlaeNotChosen": "O HLAE ainda não está configurado: clique em Obter HLAE (Configurações → Instalação → Iniciar CS2) ou escolha um HLAE.exe que você já tenha.",
     "hlaeWrongFile": "Escolha o arquivo HLAE.exe da pasta do HLAE.",
     "hlaeMoved": "O HLAE.exe não está mais em {path}. Escolha-o de novo.",
     "hlaeNoHook": "Este HLAE não tem o hook do CS2 (x64\\AfxHookSource2.dll). Instale o HLAE mais recente.",
@@ -113,9 +113,32 @@
     "cs2Missing": "O cs2.exe não foi encontrado em {path}. Verifique a pasta do CS2 em Configurações → Instalação.",
     "startSteam": "Abra a Steam primeiro: o HLAE inicia o cs2.exe diretamente e precisa da Steam aberta.",
     "hlaeFailed": "O HLAE não conseguiu iniciar o CS2 (código de saída {code}). Depois de uma atualização do CS2, o HLAE costuma precisar de atualização também: instale o HLAE mais recente e tente de novo.",
+    "hlaeFailedManaged": "O HLAE {version} não conseguiu iniciar o CS2 (código de saída {code}).",
     "hlaeStarting": "Iniciando o CS2 com o HLAE (insecure). O MatchFrame se conecta ao console dele na porta {port} quando estiver pronto.",
     "steamStarting": "Iniciando o CS2 pela Steam.",
     "steamStartingTools": "Iniciando o CS2 pela Steam com o console na porta {port} (requer as CS2 Workshop Tools)."
+  },
+  "hlae": {
+    "updated": "HLAE atualizado de {from} para {to}.",
+    "retried": "O HLAE {from} não conseguiu iniciar o CS2, então a MatchFrame instalou o HLAE {to} e iniciou o CS2 de novo.",
+    "noNewer": "Ainda não saiu um HLAE mais recente que o {version}. Depois de uma atualização do CS2, o HLAE pode levar alguns dias para acompanhar: até lá, inicie o CS2 no modo Padrão (Configurações → Instalação → Iniciar CS2).",
+    "checkFailed": "A MatchFrame não conseguiu procurar um HLAE mais recente: {error}",
+    "latest": "O HLAE {version} é o mais recente.",
+    "cs2Running": "Feche o CS2 primeiro: o HLAE só é instalado ou atualizado com o CS2 fechado.",
+    "noRelease": "O GitHub não informou a versão mais recente do HLAE.",
+    "noZip": "A versão mais recente do HLAE ({version}) não tem um ZIP do HLAE para baixar. Baixe o HLAE em advancedfx.org e escolha o HLAE.exe dele.",
+    "noDigest": "O GitHub não informou o checksum do download do HLAE {version}, então ele não pode ser verificado. Baixe o HLAE em advancedfx.org e escolha o HLAE.exe dele.",
+    "tooLarge": "O download do HLAE {version} é muito maior que o esperado, então não foi instalado.",
+    "noGithub": "Não foi possível acessar o GitHub para o HLAE: {error}",
+    "rateLimited": "O GitHub está limitando pedidos desta rede. Tente de novo em uma hora.",
+    "githubHttp": "O GitHub respondeu {status} ao pedido da versão mais recente do HLAE.",
+    "downloadFailed": "O HLAE {version} não foi baixado (HTTP {status}).",
+    "downloadStopped": "O download do HLAE {version} parou: {error}",
+    "checksumMismatch": "O download do HLAE {version} não confere com o checksum do GitHub, então não foi instalado.",
+    "badZip": "Não foi possível abrir o ZIP do HLAE {version}: {error}",
+    "unsafeZip": "O ZIP do HLAE {version} tem um arquivo fora da pasta dele ({name}), então não foi instalado.",
+    "missingFiles": "O ZIP do HLAE {version} não tem um HLAE.exe com x64\\AfxHookSource2.dll ao lado, então não foi instalado.",
+    "removed": "Parte do HLAE {version} sumiu depois de descompactar ({file}). A Segurança do Windows ou outro antivírus pode ter removido: permita lá e clique em Obter HLAE de novo."
   },
   "rollback": {
     "fresh": "Ainda não há dados do MatchFrame neste computador, então não há nada para restaurar.",

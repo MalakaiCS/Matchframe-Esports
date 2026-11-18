@@ -1741,12 +1741,26 @@
       "extra": "Дополнительные параметры запуска",
       "extraHint": "Необязательно, например -novid -fullscreen. Режим запуска сам добавляет -tools, -netconport, -insecure и -steam.",
       "insecure": "HLAE запускает CS2 в режиме insecure",
-      "hlaeInProgram": "HLAE.exe можно выбрать в программе MatchFrame.",
+      "hlaeInProgram": "HLAE можно скачать или выбрать в программе MatchFrame.",
       "saved": "Параметры запуска сохранены",
       "save": "Сохранить параметры запуска",
       "savedHlae": "Параметры запуска сохранены (HLAE)"
     },
     "chooseHlae": "Выбрать HLAE.exe…",
+    "hlae": {
+      "get": "Скачать HLAE",
+      "getHint": "«Скачать HLAE» загружает последнюю версию HLAE из официальных релизов на GitHub (advancedfx), проверяет её и поддерживает в актуальном состоянии. HLAE бесплатен (лицензия MIT), его делает команда advancedfx, а не MatchFrame.",
+      "managed": "HLAE {version}, MatchFrame обновляет его сама",
+      "chosen": "HLAE: {path}",
+      "check": "Проверить новую версию HLAE",
+      "checking": "Проверка новой версии HLAE…",
+      "downloading": "Загрузка HLAE {version}… {percent}%",
+      "downloadingNoPercent": "Загрузка HLAE {version}…",
+      "installing": "Установка HLAE {version}…",
+      "installed": "HLAE {version} готов",
+      "autoUpdate": "Обновлять HLAE автоматически",
+      "autoUpdateHint": "MatchFrame ищет новую версию HLAE при запуске программы, перед «Запустить CS2» и сразу, если HLAE не смог запустить CS2. Никогда, пока CS2 запущена. Предыдущая версия остаётся на этом компьютере."
+    },
     "start": "Запустить CS2",
     "card": {
       "checking": "Проверка…",

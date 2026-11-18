@@ -30,6 +30,8 @@ export interface PreparedLaunch {
 export interface LaunchResult {
   ok: boolean;
   message: string;
+  /** HLAE ran and stopped with an error: usually a CS2 update it doesn't know yet. */
+  hlaeFailed?: boolean;
 }
 
 export interface HlaeInfo {
@@ -81,7 +83,11 @@ export function processRunning(image: string): Promise<boolean> {
 
 const GSI_NOTE = (p: PreparedLaunch) => (p.gsi.error ? t("launch.gsiNote", { error: p.gsi.error }) : "");
 
-export async function startCs2(prepared: PreparedLaunch, opts: { hlaePath: string | null; openExternal: (url: string) => Promise<void> }): Promise<LaunchResult> {
+export async function startCs2(
+  prepared: PreparedLaunch,
+  /** `hlaeVersion`: the program's own HLAE is the one used (ADR-084), so a failure is reported without "install the latest". */
+  opts: { hlaePath: string | null; hlaeVersion?: string | null; openExternal: (url: string) => Promise<void> },
+): Promise<LaunchResult> {
   const { plan } = prepared;
   if (await processRunning("cs2.exe")) {
     if (plan.mode === "standard" && prepared.gsi.unchanged) return { ok: true, message: t("launch.alreadyRunning") };
@@ -114,7 +120,10 @@ export async function startCs2(prepared: PreparedLaunch, opts: { hlaePath: strin
         resolve(c);
       });
     });
-    if (code !== 0 && code !== null) return { ok: false, message: `${t("launch.hlaeFailed", { code })}${GSI_NOTE(prepared)}` };
+    if (code !== 0 && code !== null) {
+      const failed = opts.hlaeVersion ? t("launch.hlaeFailedManaged", { version: opts.hlaeVersion, code }) : t("launch.hlaeFailed", { code });
+      return { ok: false, hlaeFailed: true, message: `${failed}${GSI_NOTE(prepared)}` };
+    }
     return { ok: true, message: `${t("launch.hlaeStarting", { port: plan.netconPort })}${GSI_NOTE(prepared)}` };
   }
 

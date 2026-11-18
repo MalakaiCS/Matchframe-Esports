@@ -1701,12 +1701,26 @@
       "extra": "Extra launch options",
       "extraHint": "Optional, for example -novid -fullscreen. The launch mode sets -tools, -netconport, -insecure and -steam itself.",
       "insecure": "HLAE runs CS2 insecure",
-      "hlaeInProgram": "HLAE.exe can be chosen in the MatchFrame program.",
+      "hlaeInProgram": "HLAE can be got or chosen in the MatchFrame program.",
       "saved": "Launch settings saved",
       "save": "Save launch settings",
       "savedHlae": "Launch settings saved (HLAE)"
     },
     "chooseHlae": "Choose HLAE.exe…",
+    "hlae": {
+      "get": "Get HLAE",
+      "getHint": "Get HLAE downloads the latest HLAE from its official releases on GitHub (advancedfx), checks it and keeps it up to date. HLAE is free (MIT licence) and made by the advancedfx team, not by MatchFrame.",
+      "managed": "HLAE {version}, kept up to date by MatchFrame",
+      "chosen": "HLAE: {path}",
+      "check": "Check for a newer HLAE",
+      "checking": "Checking for a newer HLAE…",
+      "downloading": "Downloading HLAE {version}… {percent}%",
+      "downloadingNoPercent": "Downloading HLAE {version}…",
+      "installing": "Installing HLAE {version}…",
+      "installed": "HLAE {version} is ready",
+      "autoUpdate": "Keep HLAE up to date",
+      "autoUpdateHint": "MatchFrame looks for a newer HLAE when the program starts, before Start CS2, and straight away if HLAE fails to start CS2. Never while CS2 is running. The version before stays on this computer."
+    },
     "start": "Start CS2",
     "card": {
       "checking": "Checking…",

@@ -1721,12 +1721,26 @@
       "extra": "Opções de inicialização extras",
       "extraHint": "Opcional, por exemplo -novid -fullscreen. O modo de inicialização define -tools, -netconport, -insecure e -steam por conta própria.",
       "insecure": "O HLAE roda o CS2 insecure",
-      "hlaeInProgram": "O HLAE.exe pode ser escolhido no programa MatchFrame.",
+      "hlaeInProgram": "O HLAE pode ser obtido ou escolhido no programa MatchFrame.",
       "saved": "Configurações de inicialização salvas",
       "save": "Salvar configurações de inicialização",
       "savedHlae": "Configurações de inicialização salvas (HLAE)"
     },
     "chooseHlae": "Escolher HLAE.exe…",
+    "hlae": {
+      "get": "Obter HLAE",
+      "getHint": "Obter HLAE baixa o HLAE mais recente das versões oficiais no GitHub (advancedfx), verifica o arquivo e o mantém atualizado. O HLAE é gratuito (licença MIT) e feito pela equipe advancedfx, não pela MatchFrame.",
+      "managed": "HLAE {version}, mantido atualizado pela MatchFrame",
+      "chosen": "HLAE: {path}",
+      "check": "Procurar HLAE mais recente",
+      "checking": "Procurando HLAE mais recente…",
+      "downloading": "Baixando o HLAE {version}… {percent}%",
+      "downloadingNoPercent": "Baixando o HLAE {version}…",
+      "installing": "Instalando o HLAE {version}…",
+      "installed": "HLAE {version} pronto",
+      "autoUpdate": "Manter o HLAE atualizado",
+      "autoUpdateHint": "A MatchFrame procura um HLAE mais recente quando o programa abre, antes de Iniciar CS2 e na hora se o HLAE não conseguir iniciar o CS2. Nunca com o CS2 aberto. A versão anterior fica neste computador."
+    },
     "start": "Iniciar CS2",
     "card": {
       "checking": "Verificando…",

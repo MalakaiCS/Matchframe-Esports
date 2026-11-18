@@ -29,10 +29,13 @@ contextBridge.exposeInMainWorld("matchframe", {
   },
   /** Start CS2 with the launch mode set in the engine (Steam, or HLAE). */
   launchCs2: (): Promise<{ ok: boolean; message: string }> => ipcRenderer.invoke("mf:launch-cs2"),
-  /** HLAE.exe for the HLAE launch mode, chosen with a file dialog on this computer. */
+  /** HLAE.exe for the HLAE launch mode: the program's own, kept up to date (ADR-084), or one chosen with a file dialog. */
   hlae: {
-    info: (): Promise<{ path: string | null; ok: boolean; problem: string | null } | null> => ipcRenderer.invoke("mf:hlae-info"),
-    choose: (): Promise<{ path: string | null; ok: boolean; problem: string | null } | null> => ipcRenderer.invoke("mf:hlae-choose"),
+    info: (): Promise<unknown> => ipcRenderer.invoke("mf:hlae-info"),
+    choose: (): Promise<unknown> => ipcRenderer.invoke("mf:hlae-choose"),
+    get: (): Promise<unknown> => ipcRenderer.invoke("mf:hlae-get"),
+    check: (): Promise<unknown> => ipcRenderer.invoke("mf:hlae-check"),
+    setAutoUpdate: (on: boolean): Promise<unknown> => ipcRenderer.invoke("mf:hlae-auto", on),
   },
   /** Automatic updates (apps/desktop/src/updater.ts). */
   updates: {
