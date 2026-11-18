@@ -9,39 +9,40 @@
     <link rel="stylesheet" href="/connect/connect.css" />
   </head>
   <body>
+    <!-- The text is English until the program sends it in the chosen language (connect.js, data-i18n). -->
     <div class="titlebar" aria-hidden="true">MatchFrame Esports</div>
     <main class="card">
-      <h1>Connection settings</h1>
-      <p class="muted">Choose where the MatchFrame engine runs. HUD outputs, the director and camera control always run on the production computer.</p>
+      <h1 data-i18n="title">Connection settings</h1>
+      <p class="muted" data-i18n="intro">Choose where the MatchFrame engine runs. HUD outputs, the director and camera control always run on the production computer.</p>
       <form id="form" autocomplete="off">
         <label class="option">
           <input type="radio" name="mode" value="local" checked />
           <span>
-            <strong>This computer runs the production</strong>
-            <span class="muted">MatchFrame runs its engine here (single-PC setups, or the production PC in a multi-PC setup).</span>
+            <strong data-i18n="localTitle">This computer runs the production</strong>
+            <span class="muted" data-i18n="localBody">MatchFrame runs its engine here (single-PC setups, or the production PC in a multi-PC setup).</span>
           </span>
         </label>
         <label class="option">
           <input type="radio" name="mode" value="remote" />
           <span>
-            <strong>Connect to the production computer</strong>
-            <span class="muted">Use this computer as an extra operator position for the MatchFrame engine on another computer.</span>
+            <strong data-i18n="remoteTitle">Connect to the production computer</strong>
+            <span class="muted" data-i18n="remoteBody">Use this computer as an extra operator position for the MatchFrame engine on another computer.</span>
           </span>
         </label>
         <fieldset id="remote" disabled>
-          <label>Production computer address
+          <label><span data-i18n="address">Production computer address</span>
             <input id="url" placeholder="192.168.1.20 or http://192.168.1.20:37211" spellcheck="false" />
           </label>
-          <label>Access token
-            <input id="token" type="password" placeholder="Issued on the production computer: Devices &amp; Integrations → Tokens" />
+          <label><span data-i18n="token">Access token</span>
+            <input id="token" type="password" placeholder="Issued on the production computer: Devices &amp; Integrations → Tokens" data-i18n-placeholder="tokenPlaceholder" />
           </label>
-          <p class="muted small">Use a role token (for example <em>observer</em> or <em>producer</em>), not the production computer's owner token. On the production computer, MatchFrame must listen on its network address (<code>MATCHFRAME_HOST</code>) and the firewall must allow it.</p>
-          <button type="button" id="test">Test connection</button>
+          <p class="muted small" data-i18n-rich="tokenNote">Use a role token (for example <em>observer</em> or <em>producer</em>), not the production computer's owner token. On the production computer, MatchFrame must listen on its network address (<code>MATCHFRAME_HOST</code>) and the firewall must allow it.</p>
+          <button type="button" id="test" data-i18n="test">Test connection</button>
         </fieldset>
         <p id="status" role="status" class="status"></p>
         <div class="actions">
-          <button type="submit" class="primary" id="save">Save and connect</button>
-          <button type="button" id="cancel">Cancel</button>
+          <button type="submit" class="primary" id="save" data-i18n="save">Save and connect</button>
+          <button type="button" id="cancel" data-i18n="cancel">Cancel</button>
         </div>
       </form>
       <p class="muted small" id="version"></p>

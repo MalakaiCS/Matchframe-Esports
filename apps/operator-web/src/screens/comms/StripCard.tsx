@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import type { PortraitCrop, StripSettings } from "./types.ts";
+import { t } from "../../i18n/index.ts";
 
 /**
  * One card of the recording's speaker strip as the console previews it: the same clipped-corner
@@ -34,8 +35,8 @@ function inset(pts: Pt[], d: number): Pt[] {
   return lines.map((b, j) => {
     const a = lines[(j - 1 + n) % n]!;
     const cr = a[1][0] * b[1][1] - a[1][1] * b[1][0];
-    const t = ((b[0][0] - a[0][0]) * b[1][1] - (b[0][1] - a[0][1]) * b[1][0]) / cr;
-    return [a[0][0] + a[1][0] * t, a[0][1] + a[1][1] * t];
+    const tRow = ((b[0][0] - a[0][0]) * b[1][1] - (b[0][1] - a[0][1]) * b[1][0]) / cr;
+    return [a[0][0] + a[1][0] * tRow, a[0][1] + a[1][1] * tRow];
   });
 }
 
@@ -98,7 +99,7 @@ export function StripCard({ name, pictureUrl, crop, speaking, settings, size }: 
   }, [pictureUrl]);
   const at = placePortrait(g.box, nat ?? { w: 1, h: 1 }, nat ? crop : { x: 50, y: 50, zoom: 1 });
   return (
-    <svg className={`strip-card ${speaking ? "is-speaking" : ""}`} width={g.w} height={g.h} viewBox={`0 0 ${g.w} ${g.h}`} role="img" aria-label={`${name}: ${speaking ? "speaking (colour, active frame)" : "silent (grayscale, grey frame)"}`}>
+    <svg className={`strip-card ${speaking ? "is-speaking" : ""}`} width={g.w} height={g.h} viewBox={`0 0 ${g.w} ${g.h}`} role="img" aria-label={`${name}: ${speaking ? t("comms.speakingColourActiveFrame") : t("comms.silentGrayscaleGreyFrame")}`}>
       <defs>
         <clipPath id={`${id}c`}>
           <path d={g.inner} />

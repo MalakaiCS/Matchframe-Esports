@@ -5,6 +5,8 @@ import { ActionButton, Async, Badge, Checkbox, Details, Field, KV, Note } from "
 import { fmtBytes, fmtTime } from "../../lib/format.ts";
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
+import { t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 
 /** Python for the demo pipeline: set up from here into the program's data folder. */
 export function PythonPanel({ onChange }: { onChange: () => void }) {
@@ -21,40 +23,36 @@ export function PythonPanel({ onChange }: { onChange: () => void }) {
       {(p) => (
         <>
           <div className="row">
-            {p.available ? <Badge tone="ok">Ready</Badge> : <Badge tone="warn">Not set up</Badge>}
-            <span className="small muted mono">{p.interpreter ?? "No Python chosen"}</span>
+            {p.available ? <Badge tone="ok">{t("demos.ready")}</Badge> : <Badge tone="warn">{t("demos.notSetUp")}</Badge>}
+            <span className="small muted mono">{p.interpreter ?? t("demos.noPythonChosen")}</span>
           </div>
-          <p className="small muted">
-            Reading demos needs Python 3.11 or newer with the pipeline's packages. <b>Set up</b> finds Python on this computer and installs the packages into the program's own folder (<span className="mono">{p.envDir}</span>), not into your Python. It takes a few minutes and needs the internet.
-          </p>
-          {p.setup.state === "failed" ? <Note tone="warn" title="Setup failed">{p.setup.error}</Note> : null}
+          <p className="small muted"><T k="demos.readingDemosNeedsPython3" values={{ span: <span className="mono">{p.envDir}</span> }} tags={{ b: (c) => <b>{c}</b> }} /></p>
+          {p.setup.state === "failed" ? <Note tone="warn" title={t("demos.setupFailed")}>{p.setup.error}</Note> : null}
           {running || p.setup.log.length ? (
-            <Details summary={running ? `${p.setup.step ?? "Working"}…` : `Last setup: ${p.setup.state}${p.setup.finishedAt ? ` · ${fmtTime(p.setup.finishedAt)}` : ""}`} open={running}>
+            <Details summary={running ? `${p.setup.step ?? t("demos.working")}…` : t("demos.lastSetupStateV", { state: p.setup.state, v: p.setup.finishedAt ? ` · ${fmtTime(p.setup.finishedAt)}` : "" })} open={running}>
               <pre className="small mono gc-log">{p.setup.log.slice(-10).join("\n")}</pre>
             </Details>
           ) : null}
           {check ? (
             check.ok ? (
-              <Note tone="ok">Python {check.python} with every package: {Object.entries(check.packages).map(([k, v]) => `${k} ${v}`).join(", ")}.</Note>
+              <Note tone="ok">{t("demos.pythonPythonWithEveryPackage", { python: check.python, join: Object.entries(check.packages).map(([k, v]) => `${k} ${v}`).join(", ") })}</Note>
             ) : (
-              <Note tone="warn">Python {check.python}{check.python_ok ? "" : " (3.11 or newer needed)"}; missing: {check.missing.join(", ") || "nothing"}. Press Set up to install them.</Note>
+              <Note tone="warn">{t("demos.pythonPythonVMissingV2", { python: check.python, v: check.python_ok ? "" : t("demos.text311OrNewerNeeded"), v2: check.missing.join(", ") || t("demos.nothing") })}</Note>
             )
           ) : null}
           <div className="form-actions">
-            <ActionButton variant="primary" action={() => api.post<PythonStatus["setup"]>("/api/v1/demos/python/setup")} success="Setting up Python…" onDone={() => void st.reload()} disabledReason={reason ?? (running ? "Setup is running" : null)}>
-              {p.available ? "Set up again" : "Set up Python"}
+            <ActionButton variant="primary" action={() => api.post<PythonStatus["setup"]>("/api/v1/demos/python/setup")} success={t("demos.settingUpPython")} onDone={() => void st.reload()} disabledReason={reason ?? (running ? t("demos.setupIsRunning") : null)}>
+              {p.available ? t("demos.setUpAgain") : t("demos.setUpPython")}
             </ActionButton>
-            <ActionButton action={() => api.post<PythonCheck>("/api/v1/demos/python/check")} success={(r) => (r.ok ? "Python is ready" : "Packages missing")} onDone={(r) => setCheck(r ?? null)} disabledReason={reason ?? (p.available ? null : "Set up Python first")}>
-              Check
-            </ActionButton>
+            <ActionButton action={() => api.post<PythonCheck>("/api/v1/demos/python/check")} success={(r) => (r.ok ? t("demos.pythonIsReady") : t("demos.packagesMissing"))} onDone={(r) => setCheck(r ?? null)} disabledReason={reason ?? (p.available ? null : t("demos.setUpPythonFirst"))}>{t("demos.check")}</ActionButton>
           </div>
-          <Details summary="Use another Python">
+          <Details summary={t("demos.useAnotherPython")}>
             <div className="row-end">
-              <Field label="Python interpreter (python.exe)">
+              <Field label={t("demos.pythonInterpreterPythonExe")}>
                 <input className="mono" value={path} onChange={(e) => setPath(e.target.value)} placeholder="C:\\Python312\\python.exe" />
               </Field>
-              <ActionButton size="sm" action={() => api.put("/api/v1/demos/python", { path: path.trim() || null })} success="Python interpreter saved" onDone={() => { void st.reload(); onChange(); }} disabledReason={reason}>
-                {path.trim() ? "Use this Python" : "Use the program's own"}
+              <ActionButton size="sm" action={() => api.put("/api/v1/demos/python", { path: path.trim() || null })} success={t("demos.pythonInterpreterSaved")} onDone={() => { void st.reload(); onChange(); }} disabledReason={reason}>
+                {path.trim() ? t("demos.useThisPython") : t("demos.useTheProgramSOwn")}
               </ActionButton>
             </div>
           </Details>
@@ -79,51 +77,49 @@ export function CloudStoragePanel({ demos, onConfigChange }: { demos: DemoConfig
     <Async state={st}>
       {(s) => (
         <>
-          <p className="small muted">
-            Each demo's data (rounds, kills, positions, utility, and the POV labels: who gets a kill, dies or starts a multi-frag in the next seconds) is uploaded here. That's about 20–40 MB a match instead of a 300 MB demo.
-          </p>
+          <p className="small muted">{t("demos.eachDemoSDataRounds")}</p>
           <div className="grid-2">
             <div className="gc-form">
-              <Field label="Server address">
-                <input className="mono" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} placeholder="174.0.0.1 or ftp.example.com" />
+              <Field label={t("demos.serverAddress")}>
+                <input className="mono" value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} placeholder={t("demos.text174001Or")} />
               </Field>
-              <Field label="Port">
+              <Field label={t("demos.port")}>
                 <input type="number" min={1} max={65535} value={form.port} onChange={(e) => setForm({ ...form, port: Number(e.target.value) || 21 })} />
               </Field>
-              <Field label="User name">
+              <Field label={t("demos.userName")}>
                 <input className="mono" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} autoComplete="off" />
               </Field>
-              <Field label="Password" hint={s.hasPassword ? "Saved (encrypted on this computer). Leave empty to keep it." : "Saved encrypted on this computer, never shown again."}>
+              <Field label={t("demos.password")} hint={s.hasPassword ? t("demos.savedEncryptedOnThisComputer2") : t("demos.savedEncryptedOnThisComputer")}>
                 <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={s.hasPassword ? "••••••••" : ""} autoComplete="new-password" />
               </Field>
             </div>
             <div className="gc-form">
-              <Field label="Folder on the server">
+              <Field label={t("demos.folderOnTheServer")}>
                 <input className="mono" value={form.remoteDir} onChange={(e) => setForm({ ...form, remoteDir: e.target.value })} />
               </Field>
-              <Field label="Connection" hint={form.secure === "plain" ? "Unencrypted: the password and the data cross the internet readable. Use only if the server has no FTPS." : "Encrypted FTP (FTPS). The server's certificate is trusted at the first good test and checked after that."}>
+              <Field label={t("demos.connection")} hint={form.secure === "plain" ? t("demos.unencryptedThePasswordAndThe") : t("demos.encryptedFtpFtpsTheServer")}>
                 <select value={form.secure} onChange={(e) => setForm({ ...form, secure: e.target.value as "ftps" | "plain" })}>
-                  <option value="ftps">Encrypted (FTPS)</option>
-                  <option value="plain">Unencrypted FTP</option>
+                  <option value="ftps">{t("demos.encryptedFtps")}</option>
+                  <option value="plain">{t("demos.unencryptedFtp")}</option>
                 </select>
               </Field>
               <KV
                 items={[
-                  ["Uploaded", `${s.uploaded} match${s.uploaded === 1 ? "" : "es"} · ${fmtBytes(s.uploadedBytes)}`],
-                  ["Waiting", String(s.pending)],
-                  ["Now", s.current ? `${s.current.step === "features" ? "Building POV labels" : "Uploading"} · ${Math.round(s.current.progress * 100)}%` : "—"],
-                  ["Certificate", s.settings.fingerprint ? `trusted (${s.settings.fingerprint.slice(0, 16)}…)` : s.settings.secure === "ftps" ? "trusted at the first test" : "none (unencrypted)"],
+                  [t("demos.uploaded"), `${t("editor.count.matches", { count: s.uploaded })} · ${fmtBytes(s.uploadedBytes)}`],
+                  [t("demos.waiting"), String(s.pending)],
+                  [t("demos.now"), s.current ? `${s.current.step === "features" ? t("demos.buildingPovLabels") : t("demos.uploading")} · ${Math.round(s.current.progress * 100)}%` : "—"],
+                  [t("demos.certificate"), s.settings.fingerprint ? t("demos.trustedSlice", { slice: s.settings.fingerprint.slice(0, 16) }) : s.settings.secure === "ftps" ? t("demos.trustedAtTheFirstTest") : t("demos.noneUnencrypted")],
                 ]}
               />
             </div>
           </div>
           {s.lastError ? (
-            <Note tone="warn" title="Last upload failed">
+            <Note tone="warn" title={t("demos.lastUploadFailed")}>
               {s.lastError.message}
-              {s.nextTryAt ? ` Trying again ${fmtTime(s.nextTryAt)}.` : ""}
+              {s.nextTryAt ? t("demos.tryingAgainNexttryat", { nextTryAt: fmtTime(s.nextTryAt) }) : ""}
             </Note>
           ) : null}
-          <Checkbox checked={s.settings.enabled} onChange={(v) => void api.put("/api/v1/demos/cloud-storage", { enabled: v }).then(() => st.reload())} disabled={!!reason || !s.settings.host || !s.hasPassword} label="Upload datasets automatically" hint="One at a time, never during a live broadcast." />
+          <Checkbox checked={s.settings.enabled} onChange={(v) => void api.put("/api/v1/demos/cloud-storage", { enabled: v }).then(() => st.reload())} disabled={!!reason || !s.settings.host || !s.hasPassword} label={t("demos.uploadDatasetsAutomatically")} hint={t("demos.oneAtATimeNever")} />
           <Checkbox
             checked={removeAfterUpload}
             disabled={!!reason || !demos}
@@ -131,23 +127,15 @@ export function CloudStoragePanel({ demos, onConfigChange }: { demos: DemoConfig
               if (!demos) return;
               void api.put("/api/v1/demos/config", { retention: { ...demos.config.retention, policy: v ? "remove_after_upload" : "quarantine_then_remove" } }).then(onConfigChange);
             }}
-            label="Delete each demo once its data is uploaded"
-            hint={`For demos dropped into the ingest folder from now on: moved to quarantine once the upload is checked, deleted ${demos?.config.retention.quarantineDays ?? 7} days later (Library settings → quarantine days).`}
+            label={t("demos.deleteEachDemoOnceIts")}
+            hint={t("demos.forDemosDroppedIntoThe", { v: demos?.config.retention.quarantineDays ?? 7 })}
           />
           <div className="form-actions">
-            <ActionButton variant="primary" action={save} success="Storage settings saved" onDone={() => { setForm((f) => ({ ...f, password: "" })); void st.reload(); }} disabledReason={reason ?? (form.host.trim() && form.username.trim() ? null : "Enter the address and user name")}>
-              Save
-            </ActionButton>
-            <ActionButton action={async () => { await save(); return api.post<{ secure: boolean; fingerprint: string | null }>("/api/v1/demos/cloud-storage/test"); }} success={(r) => (r.secure ? "Connected, encrypted. Test file written and removed." : "Connected (unencrypted). Test file written and removed.")} onDone={() => { setForm((f) => ({ ...f, password: "" })); void st.reload(); }} disabledReason={reason ?? (form.host.trim() && form.username.trim() ? null : "Enter the address and user name")}>
-              Save and test connection
-            </ActionButton>
-            <ActionButton size="sm" variant="ghost" action={() => api.post<CloudStorageStatus>("/api/v1/demos/cloud-storage/upload-now")} success="Upload started" onDone={() => void st.reload()} disabledReason={reason ?? (s.settings.enabled ? null : "Turn on automatic uploads first")}>
-              Upload now
-            </ActionButton>
+            <ActionButton variant="primary" action={save} success={t("demos.storageSettingsSaved")} onDone={() => { setForm((f) => ({ ...f, password: "" })); void st.reload(); }} disabledReason={reason ?? (form.host.trim() && form.username.trim() ? null : t("demos.enterTheAddressAndUser"))}>{t("demos.save")}</ActionButton>
+            <ActionButton action={async () => { await save(); return api.post<{ secure: boolean; fingerprint: string | null }>("/api/v1/demos/cloud-storage/test"); }} success={(r) => (r.secure ? t("demos.connectedEncryptedTestFileWritten") : t("demos.connectedUnencryptedTestFileWritten"))} onDone={() => { setForm((f) => ({ ...f, password: "" })); void st.reload(); }} disabledReason={reason ?? (form.host.trim() && form.username.trim() ? null : t("demos.enterTheAddressAndUser"))}>{t("demos.saveAndTestConnection")}</ActionButton>
+            <ActionButton size="sm" variant="ghost" action={() => api.post<CloudStorageStatus>("/api/v1/demos/cloud-storage/upload-now")} success={t("demos.uploadStarted")} onDone={() => void st.reload()} disabledReason={reason ?? (s.settings.enabled ? null : t("demos.turnOnAutomaticUploadsFirst"))}>{t("demos.uploadNow")}</ActionButton>
             {s.settings.fingerprint ? (
-              <ActionButton size="sm" variant="ghost" action={() => api.post<CloudStorageStatus>("/api/v1/demos/cloud-storage/forget-certificate")} success="Certificate forgotten: the next test trusts the server's current one" onDone={() => void st.reload()} disabledReason={reason} confirm={{ title: "Trust a new certificate?", body: "Only if you know the storage server's certificate changed (a new server or a renewed certificate). The next connection test trusts whatever certificate the server shows.", confirmLabel: "Forget certificate" }}>
-                Forget certificate
-              </ActionButton>
+              <ActionButton size="sm" variant="ghost" action={() => api.post<CloudStorageStatus>("/api/v1/demos/cloud-storage/forget-certificate")} success={t("demos.certificateForgottenTheNextTest")} onDone={() => void st.reload()} disabledReason={reason} confirm={{ title: t("demos.trustANewCertificate"), body: t("demos.onlyIfYouKnowThe"), confirmLabel: t("demos.forgetCertificate") }}>{t("demos.forgetCertificate")}</ActionButton>
             ) : null}
           </div>
         </>

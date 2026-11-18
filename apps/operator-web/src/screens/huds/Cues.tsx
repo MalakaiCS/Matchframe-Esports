@@ -6,6 +6,8 @@ import { fmtMs } from "../../lib/format.ts";
 import { useApi } from "../../lib/hooks.ts";
 import { useNow } from "../../state/live.ts";
 import { usePermission } from "../../state/session.tsx";
+import { t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 
 export function CuesTab() {
   const cues = useApi<HudCue[]>("/api/v1/hud/cues", { refreshMs: 2000 });
@@ -19,9 +21,9 @@ export function CuesTab() {
   const [target, setTarget] = useState<string[]>([]);
   return (
     <div className="grid-2">
-      <Panel title="Show a cue" subtitle="Lower thirds, caster cards and other short graphics">
+      <Panel title={t("huds.showACue")} subtitle={t("huds.lowerThirdsCasterCardsAnd")}>
         <div className="form-grid">
-          <Field label="Kind">
+          <Field label={t("huds.kind")}>
             <input list="cue-kinds" value={kind} onChange={(e) => setKind(e.target.value)} />
             <datalist id="cue-kinds">
               {["lower_third", "caster_card", "announcement", "sponsor_show", "stat_card"].map((k) => (
@@ -29,20 +31,18 @@ export function CuesTab() {
               ))}
             </datalist>
           </Field>
-          <Field label="Title">
+          <Field label={t("huds.title")}>
             <input value={title} onChange={(e) => setTitle(e.target.value)} />
           </Field>
-          <Field label="Subtitle">
+          <Field label={t("huds.subtitle")}>
             <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
           </Field>
-          <Field label="Duration (s)" hint="Empty = until cleared">
+          <Field label={t("huds.durationS")} hint={t("huds.emptyUntilCleared")}>
             <input type="number" min={1} value={duration} onChange={(e) => setDuration(e.target.value)} />
           </Field>
         </div>
         <fieldset style={{ marginTop: 10 }}>
-          <legend>
-            Outputs <span className="muted small">(none selected = all)</span>
-          </legend>
+          <legend><T k="huds.outputsNoneSelectedAll" tags={{ span: (c) => <span className="muted small">{c}</span> }} /></legend>
           <div className="row">
             {(outputs.data ?? []).map((o) => (
               <label key={o.draft.outputId} className="check">
@@ -56,28 +56,26 @@ export function CuesTab() {
           <ActionButton
             variant="primary"
             action={() => api.post<HudCue>("/api/v1/hud/cues", { kind, title, subtitle: subtitle || null, durationMs: duration ? Number(duration) * 1000 : null, outputs: target.length ? target : null })}
-            success={(c) => `Cue “${c.title}” on air`}
+            success={(c) => t("huds.cueTitleOnAir", { title: c.title })}
             onDone={() => void cues.reload()}
-            disabledReason={reason ?? (title.trim() && kind.trim() ? null : "Enter a kind and a title")}
-          >
-            Show cue
-          </ActionButton>
+            disabledReason={reason ?? (title.trim() && kind.trim() ? null : t("huds.enterAKindAndA"))}
+          >{t("huds.showCue")}</ActionButton>
         </div>
       </Panel>
-      <Panel title="Active cues" className="gb-start">
+      <Panel title={t("huds.activeCues")} className="gb-start">
         <Async state={cues}>
           {(list) => {
             const active = list.filter((c) => c.untilMs === null || c.untilMs > now);
             return active.length === 0 ? (
-              <EmptyState title="No active cues">Cues from here, automation rules and rundown takes stay listed until they expire or are cleared.</EmptyState>
+              <EmptyState title={t("huds.noActiveCues")}>{t("huds.cuesFromHereAutomationRules")}</EmptyState>
             ) : (
               <table className="table table-compact">
                 <thead>
                   <tr>
-                    <th>Cue</th>
-                    <th>Kind</th>
-                    <th>Outputs</th>
-                    <th>Remaining</th>
+                    <th>{t("huds.cue")}</th>
+                    <th>{t("huds.kind")}</th>
+                    <th>{t("huds.outputs")}</th>
+                    <th>{t("huds.remaining")}</th>
                     <th />
                   </tr>
                 </thead>
@@ -89,12 +87,10 @@ export function CuesTab() {
                         {c.subtitle ? <div className="small muted">{c.subtitle}</div> : null}
                       </td>
                       <td>{c.kind}</td>
-                      <td>{c.outputs?.join(", ") ?? "all"}</td>
-                      <td>{c.untilMs === null ? "until cleared" : fmtMs(c.untilMs - now)}</td>
+                      <td>{c.outputs?.join(", ") ?? t("huds.all")}</td>
+                      <td>{c.untilMs === null ? t("huds.untilCleared") : fmtMs(c.untilMs - now)}</td>
                       <td>
-                        <ActionButton size="sm" action={() => api.del(`/api/v1/hud/cues/${seg(c.id)}`)} success="Cue cleared" onDone={() => void cues.reload()} disabledReason={reason}>
-                          Clear
-                        </ActionButton>
+                        <ActionButton size="sm" action={() => api.del(`/api/v1/hud/cues/${seg(c.id)}`)} success={t("huds.cueCleared")} onDone={() => void cues.reload()} disabledReason={reason}>{t("huds.clear")}</ActionButton>
                       </td>
                     </tr>
                   ))}

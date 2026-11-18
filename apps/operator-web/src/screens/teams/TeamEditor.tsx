@@ -10,6 +10,8 @@ import { useApi } from "../../lib/hooks.ts";
 import { useLocation } from "../../router.tsx";
 import { usePermission } from "../../state/session.tsx";
 import { NoSteamIdBadge, PlayerAvatar, roleText } from "../Teams.tsx";
+import { t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 import "../../styles/records.css";
 
 type TeamDraft = {
@@ -36,11 +38,9 @@ function ColourField({ id, label, value, fallback, onChange }: { id: string; lab
       <div className="row">
         <input id={id} type="color" value={value ?? fallback} onChange={(e) => onChange(e.target.value)} />
         {value ? (
-          <button type="button" className="link-btn" onClick={() => onChange(null)}>
-            Clear
-          </button>
+          <button type="button" className="link-btn" onClick={() => onChange(null)}>{t("teams.clear")}</button>
         ) : (
-          <span className="small muted">Not set</span>
+          <span className="small muted">{t("teams.notSet")}</span>
         )}
       </div>
     </FormField>
@@ -54,7 +54,7 @@ function ExtraFields({ value, onChange }: { value: Record<string, string>; onCha
   const [v, setV] = useState("");
   return (
     <div className="ff">
-      <span className="ff-label">Extra fields for HUDs</span>
+      <span className="ff-label">{t("teams.extraFieldsForHuds")}</span>
       {entries.length ? (
         <table className="table table-compact kv-table">
           <tbody>
@@ -62,7 +62,7 @@ function ExtraFields({ value, onChange }: { value: Record<string, string>; onCha
               <tr key={key}>
                 <td className="mono">{key}</td>
                 <td>
-                  <input aria-label={`Value of ${key}`} value={val} onChange={(e) => onChange({ ...value, [key]: e.target.value })} />
+                  <input aria-label={t("teams.valueOfKey", { key })} value={val} onChange={(e) => onChange({ ...value, [key]: e.target.value })} />
                 </td>
                 <td>
                   <button
@@ -73,31 +73,27 @@ function ExtraFields({ value, onChange }: { value: Record<string, string>; onCha
                       delete next[key];
                       onChange(next);
                     }}
-                  >
-                    Remove
-                  </button>
+                  >{t("teams.remove")}</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       ) : (
-        <span className="small muted">None. Some HUDs read extra values such as a sponsor line.</span>
+        <span className="small muted">{t("teams.noneSomeHudsReadExtra")}</span>
       )}
       <div className="row">
-        <input aria-label="New field name" placeholder="Name" value={k} onChange={(e) => setK(e.target.value)} style={{ width: 160 }} />
-        <input aria-label="New field value" placeholder="Value" value={v} onChange={(e) => setV(e.target.value)} />
+        <input aria-label={t("teams.newFieldName")} placeholder={t("teams.name")} value={k} onChange={(e) => setK(e.target.value)} style={{ width: 160 }} />
+        <input aria-label={t("teams.newFieldValue")} placeholder={t("teams.value")} value={v} onChange={(e) => setV(e.target.value)} />
         <Button
           size="sm"
-          disabledReason={k.trim() ? null : "Enter a name"}
+          disabledReason={k.trim() ? null : t("teams.enterAName")}
           onClick={() => {
             onChange({ ...value, [k.trim()]: v });
             setK("");
             setV("");
           }}
-        >
-          Add field
-        </Button>
+        >{t("teams.addField")}</Button>
       </div>
     </div>
   );
@@ -109,10 +105,10 @@ function AssignPlayerDialog({ team, players, teams, onClose, onDone }: { team: T
   const [role, setRole] = useState("player");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const teamName = (id: string | null) => (id ? (teams.find((t) => t.id === id)?.name ?? "another team") : null);
+  const teamName = (id: string | null) => (id ? (teams.find((tRow) => tRow.id === id)?.name ?? t("teams.anotherTeam")) : null);
   const options = players
     .filter((p) => p.teamId !== team.id)
-    .map((p) => ({ key: p.id, label: p.displayName, keywords: `${p.firstName} ${p.lastName} ${p.steamId ?? ""}`, icon: <PlayerAvatar assetId={p.avatarAssetId} name={p.displayName} size={20} />, hint: p.teamId ? `on ${teamName(p.teamId)}: moves here` : "unassigned" }));
+    .map((p) => ({ key: p.id, label: p.displayName, keywords: `${p.firstName} ${p.lastName} ${p.steamId ?? ""}`, icon: <PlayerAvatar assetId={p.avatarAssetId} name={p.displayName} size={20} />, hint: p.teamId ? t("teams.onTeamidMovesHere", { teamId: teamName(p.teamId) }) : t("teams.unassigned2") }));
   const chosen = players.find((p) => p.id === playerId);
   const assign = async () => {
     if (!chosen) return;
@@ -129,29 +125,27 @@ function AssignPlayerDialog({ team, players, teams, onClose, onDone }: { team: T
   };
   return (
     <Modal
-      title={`Assign a player to ${team.name}`}
+      title={t("teams.assignAPlayerToName", { name: team.name })}
       onClose={onClose}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabled={busy} disabledReason={chosen ? null : "Choose a player"} onClick={() => void assign()}>
-            Assign player
-          </Button>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
+          <Button variant="primary" disabled={busy} disabledReason={chosen ? null : t("teams.chooseAPlayer")} onClick={() => void assign()}>{t("teams.assignPlayer")}</Button>
         </>
       }
     >
-      <FormField label="Player" htmlFor="assign-player">
-        <Combobox id="assign-player" options={options} value={playerId} onChange={setPlayerId} placeholder="Search players" />
+      <FormField label={t("teams.player")} htmlFor="assign-player">
+        <Combobox id="assign-player" options={options} value={playerId} onChange={setPlayerId} placeholder={t("teams.searchPlayers")} />
       </FormField>
-      <FormField label="Role" htmlFor="assign-role" hint="Teams can have more than five players; substitutes and coaches are listed too.">
+      <FormField label={t("teams.role")} htmlFor="assign-role" hint={t("teams.teamsCanHaveMoreThan")}>
         <select id="assign-role" value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="player">Player</option>
-          <option value="substitute">Substitute</option>
+          <option value="player">{t("teams.player")}</option>
+          <option value="substitute">{t("teams.substitute")}</option>
           <option value="stand_in">Stand-in</option>
-          <option value="coach">Coach</option>
+          <option value="coach">{t("teams.coach")}</option>
         </select>
       </FormField>
-      {chosen?.teamId ? <Note tone="info">{chosen.displayName} leaves {teamName(chosen.teamId)}; that team's roster history keeps the earlier membership.</Note> : null}
+      {chosen?.teamId ? <Note tone="info">{t("teams.displaynameLeavesTeamidThatTeam", { displayName: chosen.displayName, teamId: teamName(chosen.teamId) })}</Note> : null}
       {error ? <ErrorBox error={error} /> : null}
     </Modal>
   );
@@ -166,7 +160,7 @@ export function TeamEditorScreen() {
 function TeamEditorLoader({ id }: { id: string }) {
   const team = useApi<TeamDetail>(`/api/v1/teams/${seg(id)}`);
   if (team.data === undefined) {
-    return <div className="page">{team.error ? <ErrorBox error={team.error} onRetry={() => void team.reload()} /> : <Loading label="Loading team…" />}</div>;
+    return <div className="page">{team.error ? <ErrorBox error={team.error} onRetry={() => void team.reload()} /> : <Loading label={t("teams.loadingTeam")} />}</div>;
   }
   return <TeamEditor team={team.data} reload={() => void team.reload()} />;
 }
@@ -191,8 +185,8 @@ function TeamEditor({ team, reload }: { team: TeamDetail | null; reload?: () => 
     setErrors({});
     setConflict([]);
     if (!d.draft.name.trim()) {
-      setErrors({ name: "Enter a team name" });
-      throw new Error("Enter a team name");
+      setErrors({ name: t("teams.enterATeamName") });
+      throw new Error(t("teams.enterATeamName"));
     }
     savedName.current = d.draft.name.trim();
     try {
@@ -223,11 +217,9 @@ function TeamEditor({ team, reload }: { team: TeamDetail | null; reload?: () => 
   const image: ImageValue = { assetId: d.draft.logoAssetId, staged };
 
   return (
-    <EditorShell title={team ? `Edit ${team.name}` : "Add Team"} backTo="/teams" backLabel="Teams" crumbs={[team ? team.name : "Add Team"]} editor={editor} saveDisabledReason={reason}>
+    <EditorShell title={team ? t("teams.editName", { name: team.name }) : t("teams.addTeam")} backTo="/teams" backLabel={t("teams.teams")} crumbs={[team ? team.name : t("teams.addTeam")]} editor={editor} saveDisabledReason={reason}>
       {conflict.length ? (
-        <Note tone="warn" title="Changed elsewhere">
-          {conflict.map((c) => ({ name: "Team name", shortName: "Short name", countryCode: "Country", logoAssetId: "Logo" })[c] ?? c).join(", ")} changed on another screen or computer while you were editing.{" "}
-          <Button
+        <Note tone="warn" title={t("teams.changedElsewhere")}><T k="teams.joinChangedOnAnotherScreen2" values={{ join: conflict.map((c) => ({ name: t("teams.teamName"), shortName: t("teams.shortName"), countryCode: t("teams.country"), logoAssetId: t("teams.logo") })[c] ?? c).join(", "), button: <Button
             size="sm"
             onClick={() => {
               d.reload(conflict as (keyof TeamDraft)[]);
@@ -235,26 +227,22 @@ function TeamEditor({ team, reload }: { team: TeamDetail | null; reload?: () => 
               setErrors({});
               reload?.();
             }}
-          >
-            Use the current values
-          </Button>{" "}
-          or keep yours: reload, then save again.
-        </Note>
+          >{t("teams.useTheCurrentValues")}</Button> }} /></Note>
       ) : null}
       <section className="form-stack">
-        <FormField label="Team name" htmlFor="team-name" required error={errors.name} hint="For example LITE Esports">
+        <FormField label={t("teams.teamName")} htmlFor="team-name" required error={errors.name} hint={t("teams.forExampleLiteEsports")}>
           <input id="team-name" value={d.draft.name} maxLength={80} aria-invalid={!!errors.name || undefined} onChange={(e) => d.set({ name: e.target.value })} autoFocus={!team} />
         </FormField>
-        <FormField label="Short name" htmlFor="team-short" error={errors.shortName} hint="Up to 12 characters, for example LITE. Made from the name when left empty.">
+        <FormField label={t("teams.shortName")} htmlFor="team-short" error={errors.shortName} hint={t("teams.upTo12CharactersFor")}>
           <input id="team-short" value={d.draft.shortName} maxLength={12} aria-invalid={!!errors.shortName || undefined} onChange={(e) => d.set({ shortName: e.target.value })} />
         </FormField>
-        <FormField label="Country" htmlFor="team-country" error={errors.countryCode}>
+        <FormField label={t("teams.country")} htmlFor="team-country" error={errors.countryCode}>
           <CountrySelect id="team-country" value={d.draft.countryCode} onChange={(countryCode) => d.set({ countryCode })} invalid={!!errors.countryCode} />
         </FormField>
-        <FormField label="Logo" htmlFor="team-logo" error={errors.logoAssetId}>
+        <FormField label={t("teams.logo")} htmlFor="team-logo" error={errors.logoAssetId}>
           <ImageField
             id="team-logo"
-            label="Logo"
+            label={t("teams.logo")}
             kind="logo"
             value={image}
             disabledReason={reason}
@@ -268,25 +256,19 @@ function TeamEditor({ team, reload }: { team: TeamDetail | null; reload?: () => 
       {team ? (
         <section className="assigned">
           <div className="assigned-head">
-            <h2 className="section-title">
-              Assigned Players <span className="muted">{team.roster.length}</span>
-            </h2>
+            <h2 className="section-title"><T k="teams.assignedPlayersSpan" values={{ span: <span className="muted">{team.roster.length}</span> }} /></h2>
             <div className="row">
-              <Button size="sm" onClick={() => setAssigning(true)} disabledReason={reason}>
-                Assign Existing Player
-              </Button>
-              <Button size="sm" variant="primary" onClick={() => editor.leaveTo(`/players/new?teamId=${seg(team.id)}&returnTo=${seg(`/teams/${team.id}/edit`)}`)} disabledReason={reason}>
-                Add Player
-              </Button>
+              <Button size="sm" onClick={() => setAssigning(true)} disabledReason={reason}>{t("teams.assignExistingPlayer")}</Button>
+              <Button size="sm" variant="primary" onClick={() => editor.leaveTo(`/players/new?teamId=${seg(team.id)}&returnTo=${seg(`/teams/${team.id}/edit`)}`)} disabledReason={reason}>{t("teams.addPlayer")}</Button>
             </div>
           </div>
           {team.roster.length === 0 ? (
-            <p className="muted">No players yet. Assign saved players or add a new one; substitutes and more than five players are fine.</p>
+            <p className="muted">{t("teams.noPlayersYetAssignSaved")}</p>
           ) : (
             <ul className="tiles">
               {team.roster.map((m) => (
                 <li key={m.id}>
-                  <button type="button" className="tile" onClick={() => editor.leaveTo(`/players/${seg(m.playerId)}/edit?returnTo=${seg(`/teams/${team.id}/edit`)}`)} title={`Edit ${m.player?.displayName ?? "player"}`}>
+                  <button type="button" className="tile" onClick={() => editor.leaveTo(`/players/${seg(m.playerId)}/edit?returnTo=${seg(`/teams/${team.id}/edit`)}`)} title={t("teams.editV", { v: m.player?.displayName ?? "player" })}>
                     <PlayerAvatar assetId={m.player?.avatarAssetId} name={m.player?.displayName ?? "?"} size={56} />
                     <span className="tile-name">{m.player?.displayName ?? m.playerId}</span>
                     {m.role !== "player" ? <Badge>{roleText(m.role)}</Badge> : null}
@@ -298,13 +280,13 @@ function TeamEditor({ team, reload }: { team: TeamDetail | null; reload?: () => 
           )}
         </section>
       ) : (
-        <p className="small muted">After the team is saved, its editor lists the assigned players and lets you assign or add players.</p>
+        <p className="small muted">{t("teams.afterTheTeamIsSaved")}</p>
       )}
-      <Details summary="Additional details: colours, region and HUD fields" className="additional">
+      <Details summary={t("teams.additionalDetailsColoursRegionAnd")} className="additional">
         <div className="form-grid">
-          <ColourField id="team-primary" label="Primary colour" value={d.draft.primaryColor} fallback="#2f7cf6" onChange={(primaryColor) => d.set({ primaryColor })} />
-          <ColourField id="team-secondary" label="Secondary colour" value={d.draft.secondaryColor} fallback="#ffffff" onChange={(secondaryColor) => d.set({ secondaryColor })} />
-          <FormField label="Region" htmlFor="team-region">
+          <ColourField id="team-primary" label={t("teams.primaryColour")} value={d.draft.primaryColor} fallback="#2f7cf6" onChange={(primaryColor) => d.set({ primaryColor })} />
+          <ColourField id="team-secondary" label={t("teams.secondaryColour")} value={d.draft.secondaryColor} fallback="#ffffff" onChange={(secondaryColor) => d.set({ secondaryColor })} />
+          <FormField label={t("teams.region")} htmlFor="team-region">
             <input id="team-region" value={d.draft.region ?? ""} maxLength={40} onChange={(e) => d.set({ region: e.target.value || null })} />
           </FormField>
         </div>

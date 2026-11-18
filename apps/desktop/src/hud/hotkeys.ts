@@ -1,4 +1,5 @@
 import { globalShortcut } from "electron";
+import { t } from "../i18n.ts";
 import type { OverlayStore } from "./store.ts";
 import type { HotkeyConfig, HotkeyState } from "./types.ts";
 import { acceleratorArg, acceleratorKey } from "./validate.ts";
@@ -48,12 +49,12 @@ export class HotkeyManager {
   /** Changes hotkeys (validated by the caller's patch check) and re-registers them. */
   set(patch: Partial<HotkeyConfig>): HotkeyState {
     const next = { ...this.config, ...patch };
-    next.toggle = acceleratorArg(next.toggle, "toggle");
-    next.emergencyHide = acceleratorArg(next.emergencyHide, "emergency hide");
-    if (acceleratorKey(next.toggle) === acceleratorKey(next.emergencyHide)) throw new Error("The toggle and emergency hide hotkeys must be different.");
+    next.toggle = acceleratorArg(next.toggle, t("hotkeys.toggle"));
+    next.emergencyHide = acceleratorArg(next.emergencyHide, t("hotkeys.emergencyHide"));
+    if (acceleratorKey(next.toggle) === acceleratorKey(next.emergencyHide)) throw new Error(t("hotkeys.mustDiffer"));
     for (const r of this.d.reserved) {
-      for (const [name, accel] of [["toggle", next.toggle], ["emergency hide", next.emergencyHide]] as const) {
-        if (acceleratorKey(accel) === acceleratorKey(r)) throw new Error(`The ${name} hotkey ${accel} is already one of the program's own hotkeys (emergency stop, save the CS2 view).`);
+      for (const [name, accel] of [[t("hotkeys.toggle"), next.toggle], [t("hotkeys.emergencyHide"), next.emergencyHide]] as const) {
+        if (acceleratorKey(accel) === acceleratorKey(r)) throw new Error(t("hotkeys.reserved", { name, key: accel }));
       }
     }
     const wasActive = this.active;

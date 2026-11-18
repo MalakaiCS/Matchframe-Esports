@@ -1,4 +1,5 @@
 import type { SetupStatus } from "../api/types.ts";
+import { t } from "../i18n/index.ts";
 
 export interface ChecklistItem {
   id: string;
@@ -16,15 +17,15 @@ export function setupChecklist(s: SetupStatus): ChecklistItem[] {
   const vc = s.verifiedControl;
   const scenesMapped = Object.values(s.obs.programScenes ?? {}).filter(Boolean).length;
   return [
-    item("cs2", "CS2 found", !!s.cs2Install, s.cs2Install ? s.cs2Install.installDir : "Detect it or enter the folder.", "step-detect"),
-    item("payload", "Real game data received", s.realPayloadReceived, s.realPayloadReceived ? `${s.packets} packets · build ${s.gameBuild ?? "?"}` : s.simulated ? "Ignored while the simulation runs." : "Write the GSI config, then restart CS2.", "step-payload"),
-    item("allplayers", "All-player telemetry", s.telemetry.allPlayerState === "supported", `allplayers: ${s.telemetry.allPlayerState}, positions: ${s.telemetry.playerPositions}`, "step-capabilities", s.simulated),
-    item("adapter", "Camera control adapter set", s.control.adapter !== "none", `adapter: ${s.control.adapter}`, "step-adapter", s.control.adapter === "simulation"),
-    item("selection", "Player selection verified", !!vc.playerSelectionControl, vc.playerSelectionControl ? `verified ${vc.playerSelectionControl.at} (build ${vc.playerSelectionControl.build ?? "?"})` : "Run the test with live game data.", "step-selection"),
-    item("camera", "Static camera confirmed", !!vc.staticCameraControl, vc.staticCameraControl ? `confirmed ${vc.staticCameraControl.at}` : "Optional: run the camera test.", "step-camera"),
-    item("obs", "OBS connected", s.obs.connected, s.obs.connected ? `${s.obs.scenes} scenes` : "Connect obs-websocket (v5).", "step-obs"),
-    item("scenes", "Program scenes mapped", scenesMapped >= 1, `${scenesMapped} of 4 mapped`, "step-scenes"),
-    item("hud", "HUD URL ready", !!s.hudUrl, "Add it to OBS as a browser source.", "step-hud"),
+    item("cs2", t("lib.cs2Found"), !!s.cs2Install, s.cs2Install ? s.cs2Install.installDir : t("lib.detectItOrEnterThe"), "step-detect"),
+    item("payload", t("lib.realGameDataReceived"), s.realPayloadReceived, s.realPayloadReceived ? t("lib.packetsPacketsBuildV", { packets: s.packets, v: s.gameBuild ?? "?" }) : s.simulated ? t("lib.ignoredWhileTheSimulationRuns") : t("lib.writeTheGsiConfigThen"), "step-payload"),
+    item("allplayers", t("lib.allPlayerTelemetry"), s.telemetry.allPlayerState === "supported", t("lib.allplayersAllplayerstatePositionsPlayerp", { allPlayerState: s.telemetry.allPlayerState, playerPositions: s.telemetry.playerPositions }), "step-capabilities", s.simulated),
+    item("adapter", t("lib.cameraControlAdapterSet"), s.control.adapter !== "none", t("lib.adapterV", { v: s.control.adapter }), "step-adapter", s.control.adapter === "simulation"),
+    item("selection", t("lib.playerSelectionVerified"), !!vc.playerSelectionControl, vc.playerSelectionControl ? t("lib.verifiedAtBuildV", { at: vc.playerSelectionControl.at, v: vc.playerSelectionControl.build ?? "?" }) : t("lib.runTheTestWithLive"), "step-selection"),
+    item("camera", t("lib.staticCameraConfirmed"), !!vc.staticCameraControl, vc.staticCameraControl ? t("lib.confirmedAt", { at: vc.staticCameraControl.at }) : t("lib.optionalRunTheCameraTest"), "step-camera"),
+    item("obs", t("lib.obsConnected"), s.obs.connected, s.obs.connected ? t("lib.sceneCount", { count: s.obs.scenes }) : t("lib.connectObsWebsocketV5"), "step-obs"),
+    item("scenes", t("lib.programScenesMapped"), scenesMapped >= 1, t("lib.scenesmappedOf4Mapped", { scenesMapped }), "step-scenes"),
+    item("hud", t("lib.hudUrlReady"), !!s.hudUrl, t("lib.addItToObsAs"), "step-hud"),
   ];
 }
 

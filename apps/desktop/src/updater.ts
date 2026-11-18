@@ -1,6 +1,7 @@
 import { app } from "electron";
 import { autoUpdater } from "electron-updater";
 import type { ProgressInfo, UpdateInfo } from "electron-updater";
+import { t } from "./i18n.ts";
 import { compareVersions, fitsChannel, updaterSettings, type UpdateChannel } from "./versions.ts";
 
 /**
@@ -63,7 +64,7 @@ export function createUpdater(opts: {
   saveChannel(channel: UpdateChannel): void;
   beforeInstall(): void;
 }): Updater {
-  const disabledReason = !app.isPackaged ? "Development builds don't update themselves." : process.env.MATCHFRAME_DISABLE_UPDATES === "1" ? "Updates are turned off on this computer (MATCHFRAME_DISABLE_UPDATES)." : null;
+  const disabledReason = !app.isPackaged ? t("updates.devBuild") : process.env.MATCHFRAME_DISABLE_UPDATES === "1" ? t("updates.turnedOff") : null;
   let st: UpdateState = {
     status: disabledReason ? "disabled" : "idle",
     currentVersion: app.getVersion(),

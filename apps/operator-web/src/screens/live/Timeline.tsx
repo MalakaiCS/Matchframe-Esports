@@ -7,16 +7,17 @@ import type { TimelineCategory } from "../../lib/evidence.ts";
 import { describeEvent } from "../../lib/evidence.ts";
 import { fmtMatchTime } from "../../lib/format.ts";
 import { liveStore, useLive } from "../../state/live.ts";
+import { perLocale, t } from "../../i18n/index.ts";
 
-const FILTERS: { id: TimelineCategory | "all"; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "kill", label: "Kills & deaths" },
-  { id: "round", label: "Round" },
-  { id: "bomb", label: "Bomb" },
-  { id: "observer", label: "Observer" },
-  { id: "damage", label: "Damage" },
-  { id: "system", label: "System" },
-];
+const FILTERS: { id: TimelineCategory | "all"; label: string }[] = perLocale(() => ([
+  { id: "all", label: t("live.all") },
+  { id: "kill", label: t("live.killsDeaths") },
+  { id: "round", label: t("live.round") },
+  { id: "bomb", label: t("live.bomb") },
+  { id: "observer", label: t("live.observer") },
+  { id: "damage", label: t("live.damage") },
+  { id: "system", label: t("live.system") },
+]));
 
 function roundOf(attemptId: string | null): string | null {
   const m = attemptId ? /r(\d+)/.exec(attemptId) : null;
@@ -52,34 +53,34 @@ export function Timeline({ nameOf, limit = 120 }: { nameOf: (id: string | null |
 
   return (
     <div className="timeline">
-      <div className="chips-row" role="group" aria-label="Timeline filter">
+      <div className="chips-row" role="group" aria-label={t("live.timelineFilter")}>
         {FILTERS.map((f) => (
           <button key={f.id} className={`chip-toggle ${filter === f.id ? "is-on" : ""}`} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
             {f.label}
           </button>
         ))}
       </div>
-      {loadError ? <p className="text-warn small">History could not be loaded ({loadError}); showing live events only.</p> : null}
+      {loadError ? <p className="text-warn small">{t("live.historyCouldNotBeLoaded", { loadError })}</p> : null}
       {rows.length === 0 ? (
-        <EmptyState title="No match events yet">Rounds, deaths, bomb and POV changes show up here.</EmptyState>
+        <EmptyState title={t("live.noMatchEventsYet")}>{t("live.roundsDeathsBombAndPov")}</EmptyState>
       ) : (
         <ol className="tl-list">
           {rows.map((r) => (
             <li key={r.id} className={`tl-item cat-${r.category}`}>
-              <span className="tl-time" title="Canonical match time (ingest-based)">
+              <span className="tl-time" title={t("live.canonicalMatchTimeIngestBased")}>
                 {roundOf(r.roundAttemptId) ? <span className="tl-round">{roundOf(r.roundAttemptId)}</span> : null}
                 {fmtMatchTime(r.matchTimeMs)}
               </span>
               <span className="tl-main">
                 <span className="tl-title">{r.title}</span>
                 {r.notExactKill ? (
-                  <Badge tone="warn" title="This source does not report exact kill events (killer/victim/weapon). This entry is derived or estimated.">
+                  <Badge tone="warn" title={t("live.thisSourceDoesNotReport")}>
                     NOT EXACT
                   </Badge>
                 ) : null}
                 {r.detail ? <span className="tl-detail">{r.detail}</span> : null}
               </span>
-              <span className="tl-ev" title={`${evidenceText(r.evidence).hint} Confidence ${Math.round(r.confidence * 100)}%.`}>
+              <span className="tl-ev" title={`${evidenceText(r.evidence).hint} ${t("live.confidencePct", { n: Math.round(r.confidence * 100) })}`}>
                 {r.evidence === "estimated" ? <EvidenceBadge evidence={r.evidence} /> : <span className="muted small">{evidenceText(r.evidence).text.toLowerCase()}</span>}
               </span>
             </li>
@@ -88,7 +89,7 @@ export function Timeline({ nameOf, limit = 120 }: { nameOf: (id: string | null |
       )}
       {utility.length > 0 ? (
         <details className="tl-utility">
-          <summary>Utility tracker history ({utility.length} events at page load)</summary>
+          <summary>{t("live.utilityTrackerHistoryCountEvents", { count: utility.length })}</summary>
           <ul className="small">
             {utility
               .slice(-40)

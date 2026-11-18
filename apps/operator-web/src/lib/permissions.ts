@@ -1,3 +1,4 @@
+import { perLocale, t } from "../i18n/index.ts";
 /**
  * Client-side mirror of the engine's role → permission table (services/local-engine/src/auth.ts).
  * Used only to explain disabled controls; the engine remains the authority and enforces every call.
@@ -34,16 +35,16 @@ export function can(role: string | null | undefined, p: Permission): boolean {
 }
 
 export function permissionReason(role: string | null | undefined, p: Permission): string | null {
-  return can(role, p) ? null : `Your role (${role ?? "none"}) lacks ${p}`;
+  return can(role, p) ? null : t("lib.yourRoleVLacksP", { v: role ?? "none", p });
 }
 
-export const ROLE_DESCRIPTIONS: Record<string, string> = {
-  owner: "Full control (local operator).",
-  producer: "Metadata, HUD publishing, program, replays and director control.",
-  observer: "Camera and director control (e.g. a Stream Deck / Companion on the observer desk).",
-  graphics: "Metadata and HUD publishing.",
-  replay: "Replay queue control.",
-  analyst: "Demo library and training.",
-  viewer: "Read-only state.",
-  captain: "Scoped veto link for one team in one match. Never reads production telemetry.",
-};
+export const ROLE_DESCRIPTIONS: Record<string, string> = perLocale(() => ({
+  owner: t("lib.fullControlLocalOperator"),
+  producer: t("lib.metadataHudPublishingProgramReplays"),
+  observer: t("lib.cameraAndDirectorControlE"),
+  graphics: t("lib.metadataAndHudPublishing"),
+  replay: t("lib.replayQueueControl"),
+  analyst: t("lib.demoLibraryAndTraining"),
+  viewer: t("lib.readOnlyState"),
+  captain: t("lib.scopedVetoLinkForOne"),
+}));

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { api } from "../api/index.ts";
+import { t } from "../i18n/index.ts";
 import type { CloudStatus } from "../api/types.ts";
 import { useApi } from "../lib/hooks.ts";
 import { Link } from "../router.tsx";
@@ -39,12 +40,12 @@ export const GAMES: { id: string; label: string; available: boolean }[] = [
 
 function GameSelect() {
   return (
-    <label className="toolbar-game" title="Game: MatchFrame supports Counter-Strike 2. Other games are listed but not available yet.">
-      <span className="sr-only">Game</span>
-      <select value="cs2" onChange={() => undefined} aria-label="Game">
+    <label className="toolbar-game" title={t("shell.top.gameTitle")}>
+      <span className="sr-only">{t("shell.top.game")}</span>
+      <select value="cs2" onChange={() => undefined} aria-label={t("shell.top.game")}>
         {GAMES.map((g) => (
           <option key={g.id} value={g.id} disabled={!g.available}>
-            {g.available ? g.label : `${g.label} (not available yet)`}
+            {g.available ? g.label : t("shell.top.notYet", { game: g.label })}
           </option>
         ))}
       </select>
@@ -58,9 +59,9 @@ function AccountChip() {
   const user = st.data?.signIn.user ?? null;
   const signedIn = st.data?.signIn.state === "signed_in" && !!user;
   return (
-    <Link to="/settings/account" className="topbar-account" title={signedIn ? `Signed in as ${user!.email}${st.data?.device?.orgName ? ` (${st.data.device.orgName})` : ""}` : "Not signed in. Signing in is optional; the Auto Director needs it on live matches."} data-account={signedIn ? "signed-in" : "signed-out"}>
+    <Link to="/settings/account" className="topbar-account" title={signedIn ? (st.data?.device?.orgName ? t("shell.top.signedInAsOrg", { email: user!.email, org: st.data.device.orgName }) : t("shell.top.signedInAs", { email: user!.email })) : t("shell.top.notSignedIn")} data-account={signedIn ? "signed-in" : "signed-out"}>
       <Icon name="account" size={16} />
-      <span className="topbar-account-label">{signedIn ? `Hi, ${user!.displayName || user!.email.split("@")[0]}` : "Sign in"}</span>
+      <span className="topbar-account-label">{signedIn ? t("shell.top.hi", { name: user!.displayName || user!.email.split("@")[0] }) : t("shell.top.signIn")}</span>
       <Icon name="chevronRight" size={14} />
     </Link>
   );
@@ -89,25 +90,25 @@ export function TopBar({ crumbs = [] }: { crumbs?: string[] }) {
   // Console link first; once it is up, the pill reports the game-data connection instead.
   const [linkTone, linkText]: [Tone, string] =
     status === "connecting"
-      ? ["info", "Connecting…"]
+      ? ["info", t("shell.top.connecting")]
       : status === "reconnecting"
-        ? ["warn", info.nextRetryInMs ? `Reconnecting in ${Math.ceil(info.nextRetryInMs / 1000)} s` : "Reconnecting"]
+        ? ["warn", info.nextRetryInMs ? t("shell.top.reconnectingIn", { s: Math.ceil(info.nextRetryInMs / 1000) }) : t("shell.top.reconnecting")]
         : status === "unauthorized"
-          ? ["danger", "Token rejected"]
+          ? ["danger", t("shell.top.tokenRejected")]
           : status === "closed" || status === "idle"
-            ? ["danger", "Offline"]
+            ? ["danger", t("shell.top.offline")]
             : feedStale
-              ? ["warn", "Console feed stale"]
+              ? ["warn", t("shell.top.feedStale")]
               : snap?.simulated
-                ? ["sim", "Simulation feed"]
+                ? ["sim", t("shell.top.simFeed")]
                 : !src
-                  ? ["neutral", "Waiting for CS2"]
+                  ? ["neutral", t("shell.top.waitingCs2")]
                   : src.stale
-                    ? ["danger", "CS2 data stale"]
-                    : ["ok", "CS2 connected"];
+                    ? ["danger", t("shell.top.cs2Stale")]
+                    : ["ok", t("shell.top.cs2Connected")];
   const linkTitle = [
-    status === "open" ? "Console connected to the engine." : (info.lastError ?? "Console not connected to the engine."),
-    src ? `Telemetry ${src.stale ? "stale" : "fresh"}: ${src.packetsReceived} packets, build ${src.gameBuild ?? "?"}, age ${age === null ? "?" : fmtMs(age)}; ${src.packetsRejected} rejected, ${src.sequenceGaps} gaps.` : "No CS2 game state received yet.",
+    status === "open" ? t("shell.top.consoleConnected") : (info.lastError ?? t("shell.top.consoleNotConnected")),
+    src ? t(src.stale ? "shell.top.telemetryStale" : "shell.top.telemetryFresh", { packets: src.packetsReceived, build: src.gameBuild ?? "?", age: age === null ? "?" : fmtMs(age), rejected: src.packetsRejected, gaps: src.sequenceGaps }) : t("shell.top.noGameState"),
   ].join(" ");
 
   const dataMode: "test" | "live" | "none" = snap?.simulated ? "test" : src && !src.stale ? "live" : "none";
@@ -115,12 +116,12 @@ export function TopBar({ crumbs = [] }: { crumbs?: string[] }) {
   const health = snap?.director?.controlHealth ?? null;
   const healthInfo = health ? CONTROL_HEALTH_TEXT[health] : null;
   const own = ownershipView(snap?.ownership, snap?.resumeInMs);
-  const modeLabel = !snap ? "Observer" : snap.mode === "advisory" || snap.mode === "automatic" || snap.mode === "assisted" ? (snap.observerMode === "off" ? "Observer off" : OBSERVER_MODE_INFO[snap.observerMode].label) : MODE_INFO[snap.mode].label;
+  const modeLabel = !snap ? t("shell.top.observer") : snap.mode === "advisory" || snap.mode === "automatic" || snap.mode === "assisted" ? (snap.observerMode === "off" ? t("shell.top.observerOff") : OBSERVER_MODE_INFO[snap.observerMode].label) : MODE_INFO[snap.mode].label;
   const ownTone: Tone = own.kind === "manual" || own.kind === "unknown" ? "neutral" : own.tone;
 
   return (
     <header className="topbar">
-      <div className="topbar-page" aria-label="Current page">
+      <div className="topbar-page" aria-label={t("shell.top.currentPage")}>
         <span className="topbar-title">{crumbs[0] ?? ""}</span>
         {crumbs.length > 1 ? <span className="topbar-subtitle">{crumbs.at(-1)}</span> : null}
       </div>
@@ -131,48 +132,48 @@ export function TopBar({ crumbs = [] }: { crumbs?: string[] }) {
           {linkText}
           {status === "reconnecting" || status === "closed" ? (
             <button className="chip-btn" onClick={reconnectLive}>
-              Retry now
+              {t("shell.top.retryNow")}
             </button>
           ) : null}
         </Pill>
         {dataMode === "test" ? (
-          <Pill dot="sim" tone="sim" title="Test data: the labelled simulation is running (synthetic data on a synthetic map). It does not certify any real integration." className="chip-data" data-data="test">
-            <span className="chip-strong">Test data</span>
-            <span className="chip-meta">SIMULATION</span>
+          <Pill dot="sim" tone="sim" title={t("shell.top.testDataTitle")} className="chip-data" data-data="test">
+            <span className="chip-strong">{t("shell.top.testData")}</span>
+            <span className="chip-meta">{t("shell.top.simulationTag")}</span>
           </Pill>
         ) : dataMode === "live" ? (
-          <Pill dot="ok" title="Live data from CS2 game state integration." className="chip-data" data-data="live">
-            <span className="chip-strong">Live data</span>
+          <Pill dot="ok" title={t("shell.top.liveDataTitle")} className="chip-data" data-data="live">
+            <span className="chip-strong">{t("shell.top.liveData")}</span>
           </Pill>
         ) : (
-          <Pill dot="neutral" title="No game data is arriving. Connect CS2 in Settings → Setup, or run test data from the HUD Library." className="chip-data" data-data="none">
-            <span className="chip-meta">No data</span>
+          <Pill dot="neutral" title={t("shell.top.noDataTitle")} className="chip-data" data-data="none">
+            <span className="chip-meta">{t("shell.top.noData")}</span>
           </Pill>
         )}
       </div>
 
       <div className="topbar-stop">
-        <Pill dot={ownTone} tone={own.kind === "emergency" || own.kind === "resuming" ? own.tone : "neutral"} title={`${own.detail}${healthInfo ? ` Control: ${healthInfo.text.toLowerCase()}. ${healthInfo.hint}` : ""}`} className="chip-ownership">
+        <Pill dot={ownTone} tone={own.kind === "emergency" || own.kind === "resuming" ? own.tone : "neutral"} title={`${own.detail}${healthInfo ? ` ${t("shell.top.control", { state: healthInfo.text.toLowerCase(), hint: healthInfo.hint })}` : ""}`} className="chip-ownership">
           <span className="chip-strong">{modeLabel}</span>
           <span className="chip-meta">{own.badge}</span>
           {own.actions.includes("resume") ? (
-            <ActionButton size="sm" variant={snap?.observerMode === "off" ? "secondary" : "primary"} action={() => api.post("/api/v1/observer/resume", { countdownMs: 3000 })} success="Automation resumes in 3 s (cancel to stay manual)" disabledReason={directorReason ?? (snap?.observerMode === "off" ? "The Observer is Off: choose an Observer mode in Live Control first" : null)} inlineError={false}>
-              Resume automation
+            <ActionButton size="sm" variant={snap?.observerMode === "off" ? "secondary" : "primary"} action={() => api.post("/api/v1/observer/resume", { countdownMs: 3000 })} success={t("shell.top.resumeSuccess")} disabledReason={directorReason ?? (snap?.observerMode === "off" ? t("shell.top.observerIsOff") : null)} inlineError={false}>
+              {t("shell.top.resume")}
             </ActionButton>
           ) : null}
           {own.actions.includes("cancel_resume") ? (
-            <ActionButton size="sm" variant="warn" action={() => api.post("/api/v1/observer/cancel-resume")} success="Resume cancelled — staying manual" disabledReason={directorReason} inlineError={false}>
-              Cancel
+            <ActionButton size="sm" variant="warn" action={() => api.post("/api/v1/observer/cancel-resume")} success={t("shell.top.cancelSuccess")} disabledReason={directorReason} inlineError={false}>
+              {t("common.cancel")}
             </ActionButton>
           ) : null}
           {own.actions.includes("clear_emergency") ? (
-            <ActionButton size="sm" action={() => api.post("/api/v1/observer/clear-emergency-stop")} success="Emergency stop cleared — still manual until you resume" disabledReason={directorReason} inlineError={false}>
-              Clear stop
+            <ActionButton size="sm" action={() => api.post("/api/v1/observer/clear-emergency-stop")} success={t("shell.top.clearSuccess")} disabledReason={directorReason} inlineError={false}>
+              {t("shell.top.clearStop")}
             </ActionButton>
           ) : null}
           {own.actions.includes("takeover") ? (
-            <ActionButton size="sm" action={() => api.post("/api/v1/observer/takeover")} success="Manual takeover: you own the camera" disabledReason={cameraReason} inlineError={false}>
-              Take over
+            <ActionButton size="sm" action={() => api.post("/api/v1/observer/takeover")} success={t("shell.top.takeoverSuccess")} disabledReason={cameraReason} inlineError={false}>
+              {t("shell.top.takeOver")}
             </ActionButton>
           ) : null}
         </Pill>
@@ -180,13 +181,13 @@ export function TopBar({ crumbs = [] }: { crumbs?: string[] }) {
           variant="danger"
           className="btn-stop"
           action={emergencyStop}
-          success="Emergency stop engaged: automation stopped"
+          success={t("shell.top.stopSuccess")}
           disabledReason={cameraReason}
           inlineError={false}
           aria-keyshortcuts="F8"
-          title={`Stop all automated camera control now (${STOP_SHORTCUT_LABEL})`}
+          title={t("shell.top.stopTitle", { key: STOP_SHORTCUT_LABEL })}
         >
-          <Icon name="stop" /> Stop automation <kbd>{STOP_SHORTCUT_LABEL}</kbd>
+          <Icon name="stop" /> {t("shell.top.stop")} <kbd>{STOP_SHORTCUT_LABEL}</kbd>
         </ActionButton>
         <AccountChip />
       </div>
@@ -201,14 +202,14 @@ export function OfflineBanner() {
   if (status === "unauthorized")
     return (
       <div className="banner tone-danger" role="alert">
-        <strong>Token rejected.</strong> The engine rejected this console's token (rotated or revoked). Restart the MatchFrame program, or update the token in File → Connection settings.
+        <strong>{t("shell.offline.tokenRejected")}</strong> {t("shell.offline.tokenRejectedBody")}
       </div>
     );
   return (
     <div className="banner tone-warn" role="alert">
-      <strong>{status === "closed" ? "Disconnected." : "Reconnecting…"}</strong> Live data is paused{info.lastError ? ` (${info.lastError})` : ""}. Values on screen may be out of date; the view resyncs from the next engine snapshot.
+      <strong>{status === "closed" ? t("shell.offline.disconnected") : t("shell.offline.reconnecting")}</strong> {info.lastError ? t("shell.offline.pausedError", { error: info.lastError }) : t("shell.offline.paused")}
       <Button size="sm" onClick={reconnectLive}>
-        Reconnect now
+        {t("shell.offline.reconnectNow")}
       </Button>
     </div>
   );

@@ -9,6 +9,8 @@ import { Link } from "../router.tsx";
 import { usePermission } from "../state/session.tsx";
 import "../styles/group-b.css";
 import { HUD_VARIANTS } from "./huds/Outputs.tsx";
+import { t } from "../i18n/index.ts";
+import { T } from "../i18n/T.tsx";
 
 const KINDS: RundownCue["kind"][] = ["intro", "caster_card", "match_preview", "veto", "live_match", "break", "highlights", "results", "closing", "custom"];
 
@@ -19,15 +21,18 @@ export function programModeForCue(kind: RundownCue["kind"]): "LIVE" | "BREAK" | 
   return "STUDIO";
 }
 
-/** "REPLAY_PREPARED" → "replay prepared". */
+/** A program mode in words ("REPLAY_PREPARED" → "Replay prepared"). */
 function modeWord(s: string): string {
-  return s.replace(/_/g, " ").toLowerCase();
+  const key = `shell.programMode.${s}`;
+  const w = t(key);
+  return w === key ? s.replace(/_/g, " ").toLowerCase() : w;
 }
 
-/** "caster_card" → "Caster card". */
+/** A cue kind ("caster_card" → "Caster card"), or a program mode, in words. */
 function sentence(s: string): string {
-  const t = modeWord(s);
-  return t.charAt(0).toUpperCase() + t.slice(1);
+  const key = `studio.cueKind.${s}`;
+  const w = t(key);
+  return w === key ? modeWord(s) : w;
 }
 
 interface Position {
@@ -45,10 +50,10 @@ function CueForm({ initial, onSubmit, submitLabel, scenes }: { initial: CueDraft
   return (
     <>
       <div className="form-grid">
-        <Field label="Title">
+        <Field label={t("studio.title")}>
           <input value={d.title} onChange={(e) => set({ title: e.target.value })} />
         </Field>
-        <Field label="Kind" hint={`Takes program to ${modeWord(programModeForCue(d.kind))}`}>
+        <Field label={t("studio.kind")} hint={t("studio.takesProgramToModeword", { modeWord: modeWord(programModeForCue(d.kind)) })}>
           <select value={d.kind} onChange={(e) => set({ kind: e.target.value as RundownCue["kind"] })}>
             {KINDS.map((k) => (
               <option key={k} value={k}>
@@ -57,12 +62,12 @@ function CueForm({ initial, onSubmit, submitLabel, scenes }: { initial: CueDraft
             ))}
           </select>
         </Field>
-        <Field label="Duration (s)">
+        <Field label={t("studio.durationS")}>
           <input type="number" min={0} value={d.durationSec ?? ""} onChange={(e) => set({ durationSec: e.target.value === "" ? null : Number(e.target.value) })} />
         </Field>
-        <Field label="HUD variant">
+        <Field label={t("studio.hudVariant")}>
           <select value={d.hudVariant ?? ""} onChange={(e) => set({ hudVariant: e.target.value || null })}>
-            <option value="">None</option>
+            <option value="">{t("studio.none")}</option>
             {HUD_VARIANTS.map((v) => (
               <option key={v} value={v}>
                 {v}
@@ -70,7 +75,7 @@ function CueForm({ initial, onSubmit, submitLabel, scenes }: { initial: CueDraft
             ))}
           </select>
         </Field>
-        <Field label="OBS scene">
+        <Field label={t("studio.obsScene")}>
           <input list="rundown-scenes" value={d.obsScene ?? ""} onChange={(e) => set({ obsScene: e.target.value || null })} />
           <datalist id="rundown-scenes">
             {scenes.map((s) => (
@@ -78,19 +83,19 @@ function CueForm({ initial, onSubmit, submitLabel, scenes }: { initial: CueDraft
             ))}
           </datalist>
         </Field>
-        <Field label="Automation">
+        <Field label={t("studio.automation")}>
           <select value={d.automation} onChange={(e) => set({ automation: e.target.value as RundownCue["automation"] })}>
-            <option value="manual">Manual take</option>
-            <option value="auto_next">Auto-advance next after take</option>
+            <option value="manual">{t("studio.manualTake")}</option>
+            <option value="auto_next">{t("studio.autoAdvanceNextAfterTake")}</option>
           </select>
         </Field>
       </div>
-      <Field label="Notes" hint="Shown as the HUD cue subtitle" className="mt">
+      <Field label={t("studio.notes")} hint={t("studio.shownAsTheHudCue")} className="mt">
         <input value={d.notes} onChange={(e) => set({ notes: e.target.value })} />
       </Field>
       <div className="form-actions">
-        <Checkbox checked={d.ready} onChange={(v) => set({ ready: v })} label="Ready" />
-        <ActionButton variant="primary" action={() => onSubmit(d)} success={`${submitLabel}: ${d.title}`} onDone={() => setD(EMPTY)} disabledReason={reason ?? (d.title.trim() ? null : "Enter a title")}>
+        <Checkbox checked={d.ready} onChange={(v) => set({ ready: v })} label={t("studio.ready")} />
+        <ActionButton variant="primary" action={() => onSubmit(d)} success={`${submitLabel}: ${d.title}`} onDone={() => setD(EMPTY)} disabledReason={reason ?? (d.title.trim() ? null : t("studio.enterATitle"))}>
           {submitLabel}
         </ActionButton>
       </div>
@@ -123,29 +128,29 @@ export function StudioScreen() {
 
   const take = async () => {
     const c = nextCue;
-    if (!c) throw new Error("No next cue");
+    if (!c) throw new Error(t("studio.noNextCue"));
     const steps: string[] = [];
     const mode = programModeForCue(c.kind);
     const current = program.data?.mode as ProgramMode | undefined;
     if (mode === "LIVE") {
       if (current !== "LIVE") {
-        const t = await api.post<ProgramTransition>("/api/v1/program/return-live");
-        steps.push(`program → ${modeWord(t.to)}${t.confirmed ? "" : " (not confirmed by mixer)"}`);
-      } else steps.push("program already live");
+        const tRow = await api.post<ProgramTransition>("/api/v1/program/return-live");
+        steps.push(`${t("studio.programTo", { mode: modeWord(tRow.to) })}${tRow.confirmed ? "" : t("studio.notConfirmedByMixer")}`);
+      } else steps.push(t("studio.programAlreadyLive"));
     } else {
-      const t = await api.post<ProgramTransition>("/api/v1/program/cues", { mode });
-      steps.push(`program → ${modeWord(t.to)}${t.confirmed ? "" : " (not confirmed by mixer)"}${t.detail ? `: ${t.detail}` : ""}`);
+      const tRow = await api.post<ProgramTransition>("/api/v1/program/cues", { mode });
+      steps.push(`${t("studio.programTo", { mode: modeWord(tRow.to) })}${tRow.confirmed ? "" : t("studio.notConfirmedByMixer")}${tRow.detail ? `: ${tRow.detail}` : ""}`);
     }
     if (c.obsScene && obs.data?.state.connected) {
       const r = await api.post<{ confirmed: boolean }>("/api/v1/obs/program", { scene: c.obsScene });
-      steps.push(`OBS scene ${c.obsScene}${r.confirmed ? "" : " (not confirmed)"}`);
+      steps.push(t("studio.obsSceneObssceneV", { obsScene: c.obsScene, v: r.confirmed ? "" : t("studio.notConfirmed") }));
     }
     if (c.kind !== "live_match") {
       await api.post("/api/v1/hud/cues", { kind: c.kind, title: c.title, subtitle: c.notes || null, durationMs: c.durationSec ? c.durationSec * 1000 : null, data: { rundownCueId: c.id, hudVariant: c.hudVariant } });
-      steps.push("HUD cue shown");
+      steps.push(t("studio.hudCueShown"));
     }
     await savePosition({ onAir: c.id, next: after(c.id) });
-    return `${c.title} on air: ${steps.join(" · ")}`;
+    return t("studio.titleOnAirJoin", { title: c.title, join: steps.join(" · ") });
   };
 
   const move = async (c: RundownCue, dir: -1 | 1) => {
@@ -159,7 +164,7 @@ export function StudioScreen() {
       await api.post("/api/v1/rundown/reorder", { ids });
       await cues.reload();
     } catch (e) {
-      toast.push("danger", "Reorder failed", String(e instanceof Error ? e.message : e));
+      toast.push("danger", t("studio.reorderFailed"), String(e instanceof Error ? e.message : e));
     }
   };
 
@@ -169,43 +174,39 @@ export function StudioScreen() {
     programReason ??
     hudReason ??
     settingsReason ??
-    (!nextCue ? "No next cue: add cues or press Next" : !nextCue.ready ? `“${nextCue.title}” is not marked ready` : unmapped ? `No OBS scene is mapped for ${modeWord(unmapped)}: map it in Setup → Program scene mapping` : null);
+    (!nextCue ? t("studio.noNextCueAddCues") : !nextCue.ready ? t("studio.titleIsNotMarkedReady", { title: nextCue.title }) : unmapped ? t("studio.noObsSceneIsMapped", { unmapped: modeWord(unmapped) }) : null);
 
   return (
     <div className="page">
       <div className="page-head">
-        <h1 className="page-title">Studio &amp; Rundown</h1>
+        <h1 className="page-title">{t("studio.studioRundown")}</h1>
       </div>
       <div className="grid-2-1">
         <div className="stack">
           <Panel
-            title="Rundown"
-            subtitle="Take puts the next cue on air (program mode and HUD cue)"
+            title={t("studio.rundown")}
+            subtitle={t("studio.takePutsTheNextCue")}
             actions={
               <>
-                <ActionButton action={() => savePosition({ onAir: position.onAir, next: after(position.next) })} success="Next cue advanced" disabledReason={settingsReason ?? (list.length ? null : "No cues")}>
-                  Next ▸
-                </ActionButton>
-                <ActionButton variant="primary" size="lg" action={take} success={(m) => m} disabledReason={takeReason}>
-                  Take
-                </ActionButton>
+                <ActionButton action={() => savePosition({ onAir: position.onAir, next: after(position.next) })} success={t("studio.nextCueAdvanced")} disabledReason={settingsReason ?? (list.length ? null : t("studio.noCues"))}>{t("studio.next2")}</ActionButton>
+                <ActionButton variant="primary" size="lg" action={take} success={(m) => m} disabledReason={takeReason}>{t("studio.take")}</ActionButton>
               </>
             }
           >
             <Async state={cues}>
               {() =>
                 list.length === 0 ? (
-                  <EmptyState title="Empty rundown">Add the show's segments below, mark them ready, then use Next and Take.</EmptyState>
+                  <EmptyState title={t("studio.emptyRundown")}>{t("studio.addTheShowSSegments")}</EmptyState>
                 ) : (
                   <table className="table table-compact">
                     <thead>
                       <tr>
                         <th>#</th>
-                        <th>Cue</th>
-                        <th>Kind</th>
-                        <th>Duration</th>
+                        <th>{t("studio.cue")}</th>
+                        <th>{t("studio.kind")}</th>
+                        <th>{t("studio.duration")}</th>
                         <th>HUD / OBS</th>
-                        <th>Ready</th>
+                        <th>{t("studio.ready")}</th>
                         <th />
                       </tr>
                     </thead>
@@ -217,23 +218,21 @@ export function StudioScreen() {
                               <CueForm
                                 initial={c}
                                 scenes={scenes}
-                                submitLabel="Save cue"
+                                submitLabel={t("studio.saveCue")}
                                 onSubmit={async (d) => {
                                   await api.patch(`/api/v1/rundown/${seg(c.id)}`, d);
                                   setEditing(null);
                                   await cues.reload();
                                 }}
                               />
-                              <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>
-                                Cancel
-                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>{t("common.cancel")}</Button>
                             </td>
                           </tr>
                         ) : (
                           <tr key={c.id} className={c.id === position.next ? "is-selected" : ""}>
                             <td>{i + 1}</td>
                             <td>
-                              <strong>{c.title}</strong> {c.id === position.onAir ? <Badge tone="danger" icon="●">On air</Badge> : null} {c.id === position.next ? <Badge tone="accent">Next</Badge> : null}
+                              <strong>{c.title}</strong> {c.id === position.onAir ? <Badge tone="danger" icon="●">{t("studio.onAir")}</Badge> : null} {c.id === position.next ? <Badge tone="accent">{t("studio.next")}</Badge> : null}
                               {c.notes ? <div className="small muted">{c.notes}</div> : null}
                             </td>
                             <td className="small">
@@ -255,29 +254,23 @@ export function StudioScreen() {
                                     void api
                                       .patch(`/api/v1/rundown/${seg(c.id)}`, { ready: e.target.checked })
                                       .then(() => cues.reload())
-                                      .catch((err) => toast.push("danger", "Update failed", String(err)))
+                                      .catch((err) => toast.push("danger", t("studio.updateFailed"), String(err)))
                                   }
                                 />
-                                {c.ready ? "Ready" : "Not ready"}
+                                {c.ready ? t("studio.ready") : t("studio.notReady2")}
                               </label>
                             </td>
                             <td>
                               <div className="cell-actions">
-                                <ActionButton size="sm" action={() => savePosition({ onAir: position.onAir, next: c.id })} success={`Next: ${c.title}`} disabledReason={settingsReason}>
-                                  Set next
-                                </ActionButton>
-                                <Button size="sm" variant="ghost" onClick={() => setEditing(c.id)} disabledReason={writeReason}>
-                                  Edit
-                                </Button>
-                                <Button size="sm" variant="ghost" aria-label={`Move ${c.title} up`} disabled={i === 0 || !!writeReason} onClick={() => void move(c, -1)}>
+                                <ActionButton size="sm" action={() => savePosition({ onAir: position.onAir, next: c.id })} success={t("studio.nextTitle", { title: c.title })} disabledReason={settingsReason}>{t("studio.setNext")}</ActionButton>
+                                <Button size="sm" variant="ghost" onClick={() => setEditing(c.id)} disabledReason={writeReason}>{t("studio.edit")}</Button>
+                                <Button size="sm" variant="ghost" aria-label={t("studio.moveTitleUp", { title: c.title })} disabled={i === 0 || !!writeReason} onClick={() => void move(c, -1)}>
                                   ↑
                                 </Button>
-                                <Button size="sm" variant="ghost" aria-label={`Move ${c.title} down`} disabled={i === list.length - 1 || !!writeReason} onClick={() => void move(c, 1)}>
+                                <Button size="sm" variant="ghost" aria-label={t("studio.moveTitleDown", { title: c.title })} disabled={i === list.length - 1 || !!writeReason} onClick={() => void move(c, 1)}>
                                   ↓
                                 </Button>
-                                <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/rundown/${seg(c.id)}`)} success="Cue deleted" onDone={() => void cues.reload()} disabledReason={writeReason} confirm={{ title: `Delete cue “${c.title}”?`, danger: true, confirmLabel: "Delete" }}>
-                                  Delete
-                                </ActionButton>
+                                <ActionButton size="sm" variant="ghost" action={() => api.del(`/api/v1/rundown/${seg(c.id)}`)} success={t("studio.cueDeleted")} onDone={() => void cues.reload()} disabledReason={writeReason} confirm={{ title: t("studio.deleteCueTitle", { title: c.title }), danger: true, confirmLabel: t("studio.delete") }}>{t("studio.delete")}</ActionButton>
                               </div>
                             </td>
                           </tr>
@@ -289,11 +282,11 @@ export function StudioScreen() {
               }
             </Async>
           </Panel>
-          <Panel title="Add cue">
+          <Panel title={t("studio.addCue")}>
             <CueForm
               initial={EMPTY}
               scenes={scenes}
-              submitLabel="Add cue"
+              submitLabel={t("studio.addCue")}
               onSubmit={async (d) => {
                 await api.post("/api/v1/rundown", { ...d, order: (list[list.length - 1]?.order ?? 0) + 1 });
                 await cues.reload();
@@ -301,59 +294,51 @@ export function StudioScreen() {
             />
           </Panel>
         </div>
-        <Panel title="Program" className="gb-start" actions={program.data ? <Badge tone={program.data.mode === "LIVE" ? "ok" : program.data.mode === "DEGRADED" ? "danger" : "info"}>{program.data.mode.replace("_", " ")}</Badge> : null}>
+        <Panel title={t("studio.program")} className="gb-start" actions={program.data ? <Badge tone={program.data.mode === "LIVE" ? "ok" : program.data.mode === "DEGRADED" ? "danger" : "info"}>{program.data.mode.replace("_", " ")}</Badge> : null}>
           <Async state={program}>
             {(p) => (
               <>
                 <ul className="status-list">
                   <li>
-                    <span className="muted">On air</span>
+                    <span className="muted">{t("studio.onAir")}</span>
                     <span>{onAirCue ? onAirCue.title : MISSING}</span>
                   </li>
                   <li>
-                    <span className="muted">Next</span>
-                    <span>{nextCue ? `${nextCue.title}${nextCue.ready ? "" : " (not ready)"}` : MISSING}</span>
+                    <span className="muted">{t("studio.next")}</span>
+                    <span>{nextCue ? `${nextCue.title}${nextCue.ready ? "" : t("studio.notReady")}` : MISSING}</span>
                   </li>
                 </ul>
                 <div className="row" style={{ marginTop: 12 }}>
-                  <ActionButton action={() => api.post<ProgramTransition>("/api/v1/program/cues", { mode: "STUDIO" })} success={(t) => `Program → ${modeWord(t.to)}`} onDone={() => void program.reload()} disabledReason={programReason ?? (p.scenes.STUDIO ? null : "Map a studio scene in Setup first")}>
-                    Studio
-                  </ActionButton>
-                  <ActionButton action={() => api.post<ProgramTransition>("/api/v1/program/cues", { mode: "BREAK" })} success={(t) => `Program → ${modeWord(t.to)}`} onDone={() => void program.reload()} disabledReason={programReason ?? (p.scenes.BREAK ? null : "Map a break scene in Setup first")}>
-                    Break
-                  </ActionButton>
-                  <ActionButton variant="primary" action={() => api.post<ProgramTransition>("/api/v1/program/return-live")} success={(t) => `Program → ${modeWord(t.to)}${t.detail ? ` (${t.detail})` : ""}`} onDone={() => void program.reload()} disabledReason={programReason ?? (p.mode === "LIVE" ? "Already live" : null)}>
-                    Return live
-                  </ActionButton>
+                  <ActionButton action={() => api.post<ProgramTransition>("/api/v1/program/cues", { mode: "STUDIO" })} success={(tRow) => t("live.programTo", { to: modeWord(tRow.to) })} onDone={() => void program.reload()} disabledReason={programReason ?? (p.scenes.STUDIO ? null : t("studio.mapAStudioSceneIn"))}>{t("studio.studio")}</ActionButton>
+                  <ActionButton action={() => api.post<ProgramTransition>("/api/v1/program/cues", { mode: "BREAK" })} success={(tRow) => t("live.programTo", { to: modeWord(tRow.to) })} onDone={() => void program.reload()} disabledReason={programReason ?? (p.scenes.BREAK ? null : t("studio.mapABreakSceneIn"))}>{t("studio.break")}</ActionButton>
+                  <ActionButton variant="primary" action={() => api.post<ProgramTransition>("/api/v1/program/return-live")} success={(tRow) => `${t("live.programTo", { to: modeWord(tRow.to) })}${tRow.detail ? ` (${tRow.detail})` : ""}`} onDone={() => void program.reload()} disabledReason={programReason ?? (p.mode === "LIVE" ? t("studio.alreadyLive") : null)}>{t("studio.returnLive")}</ActionButton>
                 </div>
                 {!p.scenes.STUDIO || !p.scenes.BREAK ? (
-                  <p className="small text-warn">
-                    Studio and Break only switch when an OBS scene is mapped for them. <Link to="/settings/setup#step-scenes">Map scenes in Setup</Link>
-                  </p>
+                  <p className="small text-warn"><T k="studio.studioAndBreakOnlySwitch" tags={{ link: (c) => <Link to="/settings/setup#step-scenes">{c}</Link> }} /></p>
                 ) : null}
-                <Details summary="Scenes and owner">
+                <Details summary={t("studio.scenesAndOwner")}>
                   <KV
                     items={[
-                      ["Owner", `${p.owner.kind} (${p.owner.holder})`],
-                      ["Live", p.scenes.LIVE ?? MISSING],
-                      ["Studio", p.scenes.STUDIO ?? MISSING],
-                      ["Break", p.scenes.BREAK ?? MISSING],
-                      ["Replay", p.scenes.REPLAY ?? MISSING],
-                      ["Highlights", p.scenes.HIGHLIGHTS ?? MISSING],
+                      [t("studio.owner"), `${p.owner.kind} (${p.owner.holder})`],
+                      [t("studio.live"), p.scenes.LIVE ?? MISSING],
+                      [t("studio.studio"), p.scenes.STUDIO ?? MISSING],
+                      [t("studio.break"), p.scenes.BREAK ?? MISSING],
+                      [t("studio.replay"), p.scenes.REPLAY ?? MISSING],
+                      [t("studio.highlights"), p.scenes.HIGHLIGHTS ?? MISSING],
                     ]}
                   />
                 </Details>
-                <Details summary="Recent transitions">
+                <Details summary={t("studio.recentTransitions")}>
                   <ul className="list-plain small">
                     {p.history
                       .slice(-8)
                       .reverse()
-                      .map((t, i) => (
+                      .map((tRow, i) => (
                         <li key={i}>
-                          {fmtTime(t.at)} · {sentence(t.from)} → <strong>{sentence(t.to)}</strong> · {t.owner} {t.confirmed ? "" : <Badge tone="warn">Unconfirmed</Badge>} {t.detail ? <span className="muted">({t.detail})</span> : null}
+                          {fmtTime(tRow.at)} · {sentence(tRow.from)} → <strong>{sentence(tRow.to)}</strong> · {tRow.owner} {tRow.confirmed ? "" : <Badge tone="warn">{t("studio.unconfirmed")}</Badge>} {tRow.detail ? <span className="muted">({tRow.detail})</span> : null}
                         </li>
                       ))}
-                    {p.history.length === 0 ? <li className="muted">No transitions yet.</li> : null}
+                    {p.history.length === 0 ? <li className="muted">{t("studio.noTransitionsYet")}</li> : null}
                   </ul>
                 </Details>
               </>

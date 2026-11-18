@@ -6,6 +6,7 @@ import { ActionButton, Async, Button, EmptyState, Field, Panel } from "../compon
 import { useApi } from "../lib/hooks.ts";
 import { useMapSuggestions } from "../lib/maps.ts";
 import { usePermission } from "../state/session.tsx";
+import { t } from "../i18n/index.ts";
 import "../styles/group-a.css";
 
 type Draft = Omit<EventRecord, "id"> & { id?: string };
@@ -21,25 +22,25 @@ function EventForm({ initial, onSaved, onCancel }: { initial: Draft; onSaved: ()
   return (
     <>
       <div className="form-grid">
-        <Field label="Event name">
+        <Field label={t("matches.eventName")}>
           <input value={d.name} onChange={(e) => set({ name: e.target.value })} />
         </Field>
-        <Field label="Time zone">
-          <input value={d.timeZone} onChange={(e) => set({ timeZone: e.target.value })} placeholder="e.g. Europe/Berlin" title="IANA time zone name, e.g. Europe/Berlin" />
+        <Field label={t("matches.timeZone")}>
+          <input value={d.timeZone} onChange={(e) => set({ timeZone: e.target.value })} placeholder={t("matches.eGEuropeBerlin")} title={t("matches.ianaTimeZoneNameE")} />
         </Field>
-        <Field label="Starts">
+        <Field label={t("matches.starts")}>
           <input type="date" value={d.startsOn ?? ""} onChange={(e) => set({ startsOn: e.target.value || null })} />
         </Field>
-        <Field label="Ends">
+        <Field label={t("matches.ends")}>
           <input type="date" value={d.endsOn ?? ""} onChange={(e) => set({ endsOn: e.target.value || null })} />
         </Field>
-        <Field label="Primary colour">
+        <Field label={t("matches.primaryColour")}>
           <input type="color" value={d.brandPrimary} onChange={(e) => set({ brandPrimary: e.target.value })} />
         </Field>
-        <Field label="Secondary colour">
+        <Field label={t("matches.secondaryColour")}>
           <input type="color" value={d.brandSecondary} onChange={(e) => set({ brandSecondary: e.target.value })} />
         </Field>
-        <AssetUpload label="Event logo" value={d.logoAssetId} onChange={(id) => set({ logoAssetId: id })} disabledReason={reason} />
+        <AssetUpload label={t("matches.eventLogo")} value={d.logoAssetId} onChange={(id) => set({ logoAssetId: id })} disabledReason={reason} />
       </div>
       <MapPoolEditor value={d.mapPool} onChange={(m) => set({ mapPool: m })} suggestions={suggestions} />
       <div className="form-actions">
@@ -49,19 +50,17 @@ function EventForm({ initial, onSaved, onCancel }: { initial: Draft; onSaved: ()
             const { id, ...body } = d;
             return id ? api.patch<EventRecord>(`/api/v1/events/${seg(id)}`, body) : api.post<EventRecord>("/api/v1/events", body);
           }}
-          success={(e) => (isEdit ? `Event “${e.name}” updated` : `Event “${e.name}” created`)}
+          success={(e) => (isEdit ? t("matches.eventNameUpdated", { name: e.name }) : t("matches.eventNameCreated", { name: e.name }))}
           onDone={() => {
             if (!isEdit) setD(EMPTY);
             onSaved();
           }}
-          disabledReason={reason ?? (d.name.trim() ? null : "Enter an event name")}
+          disabledReason={reason ?? (d.name.trim() ? null : t("matches.enterAnEventName"))}
         >
-          {isEdit ? "Save event" : "Create event"}
+          {isEdit ? t("matches.saveEvent") : t("matches.createEvent")}
         </ActionButton>
         {onCancel ? (
-          <Button variant="ghost" onClick={onCancel}>
-            Cancel
-          </Button>
+          <Button variant="ghost" onClick={onCancel}>{t("common.cancel")}</Button>
         ) : null}
       </div>
     </>
@@ -81,18 +80,16 @@ function EventRow({ ev, onEdit }: { ev: EventRecord; onEdit: () => void }) {
           </span>
         </div>
       </td>
-      <td className="small">{ev.startsOn || ev.endsOn ? `${ev.startsOn ?? "?"} → ${ev.endsOn ?? "?"}` : <span className="muted">No dates</span>}</td>
+      <td className="small">{ev.startsOn || ev.endsOn ? `${ev.startsOn ?? "?"} → ${ev.endsOn ?? "?"}` : <span className="muted">{t("matches.noDates")}</span>}</td>
       <td>
-        <span className="row" title={`Primary ${ev.brandPrimary} · secondary ${ev.brandSecondary}`}>
-          <span className="ga-swatch" style={{ background: ev.brandPrimary }} aria-label={`Primary colour ${ev.brandPrimary}`} role="img" />
-          <span className="ga-swatch" style={{ background: ev.brandSecondary }} aria-label={`Secondary colour ${ev.brandSecondary}`} role="img" />
+        <span className="row" title={t("matches.primaryBrandprimarySecondaryBrandseconda", { brandPrimary: ev.brandPrimary, brandSecondary: ev.brandSecondary })}>
+          <span className="ga-swatch" style={{ background: ev.brandPrimary }} aria-label={t("matches.primaryColourBrandprimary", { brandPrimary: ev.brandPrimary })} role="img" />
+          <span className="ga-swatch" style={{ background: ev.brandSecondary }} aria-label={t("matches.secondaryColourBrandsecondary", { brandSecondary: ev.brandSecondary })} role="img" />
         </span>
       </td>
-      <td className="small">{ev.mapPool.length ? <span title={ev.mapPool.join(", ")}>{ev.mapPool.length} maps</span> : <span className="muted">—</span>}</td>
+      <td className="small">{ev.mapPool.length ? <span title={ev.mapPool.join(", ")}>{t("matches.countMaps", { count: ev.mapPool.length })}</span> : <span className="muted">—</span>}</td>
       <td style={{ textAlign: "right" }}>
-        <Button size="sm" variant="ghost" onClick={onEdit} aria-label={`Edit ${ev.name}`}>
-          Edit
-        </Button>
+        <Button size="sm" variant="ghost" onClick={onEdit} aria-label={t("matches.editName", { name: ev.name })}>{t("matches.edit")}</Button>
       </td>
     </tr>
   );
@@ -105,14 +102,14 @@ export function EventsScreen() {
   return (
     <div className="page">
       <div className="page-head">
-        <h1 className="page-title">Tournaments</h1>
+        <h1 className="page-title">{t("matches.tournaments")}</h1>
         <Button variant={creating ? "secondary" : "primary"} onClick={() => setCreating(!creating)}>
-          {creating ? "Cancel" : "New event"}
+          {creating ? t("common.cancel") : t("matches.newEvent")}
         </Button>
       </div>
-      <p className="page-intro">Tournaments and other events. An event sets the branding and default map pool that its matches and HUDs use.</p>
+      <p className="page-intro">{t("matches.tournamentsAndOtherEventsAn")}</p>
       {creating ? (
-        <Panel title="New event">
+        <Panel title={t("matches.newEvent")}>
           <EventForm
             initial={EMPTY}
             onSaved={() => {
@@ -122,21 +119,19 @@ export function EventsScreen() {
           />
         </Panel>
       ) : null}
-      <Panel title="Events">
+      <Panel title={t("matches.events")}>
         <Async state={events}>
           {(list) =>
             list.length === 0 ? (
-              <EmptyState title="No events yet">
-                Create the event first, then add teams and matches.
-              </EmptyState>
+              <EmptyState title={t("matches.noEventsYet")}>{t("matches.createTheEventFirstThen")}</EmptyState>
             ) : (
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Event</th>
-                    <th>Dates</th>
-                    <th>Colours</th>
-                    <th>Map pool</th>
+                    <th>{t("matches.event")}</th>
+                    <th>{t("matches.dates")}</th>
+                    <th>{t("matches.colours")}</th>
+                    <th>{t("matches.mapPool")}</th>
                     <th />
                   </tr>
                 </thead>

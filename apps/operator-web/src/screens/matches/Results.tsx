@@ -4,6 +4,7 @@ import type { MapInstance, MapResultResponse, MatchDetail, PlayerRow, StatCorrec
 import { ActionButton, Badge, Checkbox, Field, Note } from "../../components/ui.tsx";
 import { fmtTime, MISSING } from "../../lib/format.ts";
 import { usePermission } from "../../state/session.tsx";
+import { t } from "../../i18n/index.ts";
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -27,41 +28,39 @@ function MapResultRow({ match, mi, teamA, teamB, onSaved }: { match: MatchDetail
       <td>
         <strong>{mi.mapName}</strong>
         <div className="small muted">
-          {mi.isDecider ? "Decider" : mi.pickedByTeamId ? `Pick: ${mi.pickedByTeamId === match.teamAId ? teamA : teamB}` : ""}
-          {mi.startingCtTeamId ? ` · CT start: ${mi.startingCtTeamId === match.teamAId ? teamA : teamB}` : ""}
+          {mi.isDecider ? t("matches.decider") : mi.pickedByTeamId ? t("matches.pickV", { v: mi.pickedByTeamId === match.teamAId ? teamA : teamB }) : ""}
+          {mi.startingCtTeamId ? t("matches.ctStartV", { v: mi.startingCtTeamId === match.teamAId ? teamA : teamB }) : ""}
         </div>
       </td>
       <td>
-        {mi.status === "live" ? <Badge tone="info">Live</Badge> : capitalize(mi.status)}
-        {winner ? <div className="small muted">Winner: {winner}</div> : null}
+        {mi.status === "live" ? <Badge tone="info">{t("matches.live")}</Badge> : capitalize(mi.status)}
+        {winner ? <div className="small muted">{t("matches.winnerWinner", { winner })}</div> : null}
       </td>
       <td>
         <div className="row">
-          <input type="number" min={0} aria-label={`${teamA} score on ${mi.mapName}`} value={a} onChange={(e) => setA(Number(e.target.value))} style={{ width: 64 }} />
+          <input type="number" min={0} aria-label={t("matches.teamaScoreOnMapname", { teamA, mapName: mi.mapName })} value={a} onChange={(e) => setA(Number(e.target.value))} style={{ width: 64 }} />
           <span>–</span>
-          <input type="number" min={0} aria-label={`${teamB} score on ${mi.mapName}`} value={b} onChange={(e) => setB(Number(e.target.value))} style={{ width: 64 }} />
-          <Checkbox checked={completed} onChange={setCompleted} label="Map finished" hint="Ties and unfinished maps never advance the series" />
-          <select aria-label="Forfeit winner" value={forfeit} onChange={(e) => setForfeit(e.target.value)}>
-            <option value="">No forfeit</option>
-            <option value={match.teamAId}>Forfeit → {teamA}</option>
-            <option value={match.teamBId}>Forfeit → {teamB}</option>
+          <input type="number" min={0} aria-label={t("matches.teambScoreOnMapname", { teamB, mapName: mi.mapName })} value={b} onChange={(e) => setB(Number(e.target.value))} style={{ width: 64 }} />
+          <Checkbox checked={completed} onChange={setCompleted} label={t("matches.mapFinished")} hint={t("matches.tiesAndUnfinishedMapsNever")} />
+          <select aria-label={t("matches.forfeitWinner")} value={forfeit} onChange={(e) => setForfeit(e.target.value)}>
+            <option value="">{t("matches.noForfeit")}</option>
+            <option value={match.teamAId}>{t("matches.forfeitTeama", { teamA })}</option>
+            <option value={match.teamBId}>{t("matches.forfeitTeamb", { teamB })}</option>
           </select>
           <ActionButton
             size="sm"
             variant="primary"
             action={() => api.post<MapResultResponse>(`/api/v1/matches/${seg(match.id)}/maps/${seg(mi.id)}/result`, { scoreA: a, scoreB: b, completed, ...(forfeit ? { forfeitWinnerTeamId: forfeit } : {}) })}
-            success={(r) => `Result saved · series ${r.series.a}–${r.series.b}`}
+            success={(r) => t("matches.resultSavedSeriesAB", { a: r.series.a, b: r.series.b })}
             onDone={(r) => {
               setNote(r.note);
               onSaved();
             }}
             disabledReason={reason}
-          >
-            Save result
-          </ActionButton>
+          >{t("matches.saveResult")}</ActionButton>
         </div>
         {note ? (
-          <Note tone="warn" title="Series not advanced">
+          <Note tone="warn" title={t("matches.seriesNotAdvanced")}>
             {note}
           </Note>
         ) : null}
@@ -71,17 +70,15 @@ function MapResultRow({ match, mi, teamA, teamB, onSaved }: { match: MatchDetail
 }
 
 export function MapResults({ match, teamA, teamB, onSaved }: { match: MatchDetail; teamA: string; teamB: string; onSaved: () => void }) {
-  if (match.maps.length === 0) return <p className="muted small">No maps yet: the picks and the decider in the veto become the match's maps when it is saved.</p>;
+  if (match.maps.length === 0) return <p className="muted small">{t("matches.noMapsYetThePicks")}</p>;
   return (
     <table className="table table-compact">
       <thead>
         <tr>
           <th>#</th>
-          <th>Map</th>
-          <th>Status</th>
-          <th>
-            Round score ({teamA} – {teamB})
-          </th>
+          <th>{t("matches.map")}</th>
+          <th>{t("matches.status")}</th>
+          <th>{t("matches.roundScoreTeamaTeamb", { teamA, teamB })}</th>
         </tr>
       </thead>
       <tbody>
@@ -107,17 +104,17 @@ export function Corrections({ match, players }: { match: MatchDetail; players: P
   const name = (sid: string | null) => players.find((p) => p.steamId === sid)?.displayName ?? sid ?? "team/match";
   return (
     <>
-      <p className="small muted">Corrections keep the source value, the round they apply from and an audit trail. Applied at once.</p>
+      <p className="small muted">{t("matches.correctionsKeepTheSourceValue")}</p>
       {list.length ? (
         <table className="table table-compact">
           <thead>
             <tr>
-              <th>Field</th>
-              <th>Player</th>
-              <th>Source → corrected</th>
-              <th>From round</th>
-              <th>Reason</th>
-              <th>By / at</th>
+              <th>{t("matches.field")}</th>
+              <th>{t("matches.player")}</th>
+              <th>{t("matches.sourceCorrected")}</th>
+              <th>{t("matches.fromRound")}</th>
+              <th>{t("matches.reason")}</th>
+              <th>{t("matches.byAt")}</th>
             </tr>
           </thead>
           <tbody>
@@ -128,7 +125,7 @@ export function Corrections({ match, players }: { match: MatchDetail; players: P
                 <td>
                   {c.sourceValue ?? MISSING} → <strong>{c.correctedValue ?? MISSING}</strong>
                 </td>
-                <td>{c.effectiveFromRound ?? "all"}</td>
+                <td>{c.effectiveFromRound ?? t("matches.all2")}</td>
                 <td className="small">{c.reason}</td>
                 <td className="small">
                   {c.operator} · {fmtTime(c.createdAt)}
@@ -139,7 +136,7 @@ export function Corrections({ match, players }: { match: MatchDetail; players: P
         </table>
       ) : null}
       <div className="form-grid" style={{ marginTop: 8 }}>
-        <Field label="Field">
+        <Field label={t("matches.field")}>
           <input list="corr-fields" value={field} onChange={(e) => setField(e.target.value)} />
           <datalist id="corr-fields">
             {["kills", "deaths", "assists", "adr", "score", "mvps"].map((f) => (
@@ -147,9 +144,9 @@ export function Corrections({ match, players }: { match: MatchDetail; players: P
             ))}
           </datalist>
         </Field>
-        <Field label="Player">
+        <Field label={t("matches.player")}>
           <select value={steamId} onChange={(e) => setSteamId(e.target.value)}>
-            <option value="">Not player-specific</option>
+            <option value="">{t("matches.notPlayerSpecific")}</option>
             {players
               .filter((p) => p.steamId)
               .map((p) => (
@@ -159,9 +156,9 @@ export function Corrections({ match, players }: { match: MatchDetail; players: P
               ))}
           </select>
         </Field>
-        <Field label="Map">
+        <Field label={t("matches.map")}>
           <select value={mapId} onChange={(e) => setMapId(e.target.value)}>
-            <option value="">Whole match</option>
+            <option value="">{t("matches.wholeMatch")}</option>
             {match.maps.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.order}. {m.mapName}
@@ -169,16 +166,16 @@ export function Corrections({ match, players }: { match: MatchDetail; players: P
             ))}
           </select>
         </Field>
-        <Field label="Source value">
+        <Field label={t("matches.sourceValue")}>
           <input type="number" value={src} onChange={(e) => setSrc(e.target.value)} />
         </Field>
-        <Field label="Corrected value">
+        <Field label={t("matches.correctedValue")}>
           <input type="number" value={corr} onChange={(e) => setCorr(e.target.value)} />
         </Field>
-        <Field label="Effective from round">
-          <input type="number" value={round} onChange={(e) => setRound(e.target.value)} placeholder="All" />
+        <Field label={t("matches.effectiveFromRound")}>
+          <input type="number" value={round} onChange={(e) => setRound(e.target.value)} placeholder={t("matches.all")} />
         </Field>
-        <Field label="Reason (audited)">
+        <Field label={t("matches.reasonAudited")}>
           <input value={why} onChange={(e) => setWhy(e.target.value)} />
         </Field>
       </div>
@@ -195,15 +192,13 @@ export function Corrections({ match, players }: { match: MatchDetail; players: P
               reason: why,
             })
           }
-          success="Correction recorded"
+          success={t("matches.correctionRecorded")}
           onDone={(c) => {
             setList([...list, c]);
             setWhy("");
           }}
-          disabledReason={reason ?? (field.trim() && why.trim().length >= 3 ? null : "Enter a field and a reason (≥3 characters)")}
-        >
-          Record correction
-        </ActionButton>
+          disabledReason={reason ?? (field.trim() && why.trim().length >= 3 ? null : t("matches.enterAFieldAndA"))}
+        >{t("matches.recordCorrection")}</ActionButton>
       </div>
     </>
   );

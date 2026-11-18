@@ -6,24 +6,25 @@ import { Button, Checkbox, CopyButton, Details, Field, Note, Panel } from "../..
 import { usePermission } from "../../state/session.tsx";
 import { StripCard } from "./StripCard.tsx";
 import type { CommsView, PortraitCrop, StripAnchor, StripSettings, StripStatus } from "./types.ts";
+import { perLocale, t } from "../../i18n/index.ts";
 
 type Reload = () => void;
 
-const ANCHORS: [StripAnchor, string][] = [
-  ["bottom-center", "Bottom centre"],
-  ["bottom-left", "Bottom left"],
-  ["bottom-right", "Bottom right"],
-  ["top-center", "Top centre"],
-  ["top-left", "Top left"],
-  ["top-right", "Top right"],
-];
+const ANCHORS: [StripAnchor, string][] = perLocale(() => ([
+  ["bottom-center", t("comms.bottomCentre")],
+  ["bottom-left", t("comms.bottomLeft")],
+  ["bottom-right", t("comms.bottomRight")],
+  ["top-center", t("comms.topCentre")],
+  ["top-left", t("comms.topLeft")],
+  ["top-right", t("comms.topRight")],
+]));
 
-const PICTURE: Record<StripStatus["cards"][number]["picture"], string> = {
-  own: "roster picture",
-  "hud-default": "HUD images' default picture",
-  placeholder: "placeholder picture (Team Comms, else the default player picture)",
-  silhouette: "MatchFrame's silhouette",
-};
+const PICTURE: Record<StripStatus["cards"][number]["picture"], string> = perLocale(() => ({
+  own: t("comms.rosterPicture"),
+  "hud-default": t("comms.hudImagesDefaultPicture"),
+  placeholder: t("comms.placeholderPictureTeamCommsElse"),
+  silhouette: t("comms.matchframeSSilhouette"),
+}));
 
 /**
  * The recording's speaker strip (ADR-068): the cards as they are now (who is lit), its look and
@@ -39,7 +40,7 @@ export function StripPanel({ view, onChanged }: { view: CommsView; onChanged: Re
       await api.put("/api/v1/comms/strip", patch);
       onChanged();
     } catch (e) {
-      toast.push("danger", "Not saved", describeError(e));
+      toast.push("danger", t("comms.notSaved"), describeError(e));
     }
   };
   const lit = new Set(st.speaking);
@@ -62,34 +63,32 @@ export function StripPanel({ view, onChanged }: { view: CommsView; onChanged: Re
     </Field>
   );
   return (
-    <Panel title="Speaker strip (recording only)" subtitle="The included people of the recording's team, grey while silent, in colour with a green frame while their voice is in the recording. Never on the public output.">
+    <Panel title={t("comms.speakerStripRecordingOnly")} subtitle={t("comms.theIncludedPeopleOfThe")}>
       <div className="stack-sm">
-        <div className="strip-preview" aria-label="Speaker strip now">
+        <div className="strip-preview" aria-label={t("comms.speakerStripNow")}>
           {st.cards.length === 0 ? (
-            <p className="muted small">No cards: {view.recorder.settings.teamId ? "nobody of the recording team is included in the recording." : "choose the recording team."}</p>
+            <p className="muted small">{t("comms.noCardsV", { v: view.recorder.settings.teamId ? t("comms.nobodyOfTheRecordingTeam") : t("comms.chooseTheRecordingTeam") })}</p>
           ) : (
             st.cards.map((c) => (
               <figure key={c.id} className="strip-preview-card">
                 <StripCard name={c.name} pictureUrl={c.pictureUrl} crop={c.crop} speaking={lit.has(c.name)} settings={s} size={72} />
                 <figcaption className="small">
                   {c.name}
-                  {lit.has(c.name) ? " · speaking" : ""}
+                  {lit.has(c.name) ? t("comms.speaking") : ""}
                 </figcaption>
               </figure>
             ))
           )}
         </div>
         {st.warning ? <Note tone="warn">{st.warning}</Note> : null}
-        <p className="small">
-          {st.pages ? `${st.pages} strip page${st.pages === 1 ? "" : "s"} connected (OBS's is one).` : "No strip page connected: set up the recording scene in OBS."} Address for the recording scene only (its own token):
-        </p>
+        <p className="small">{t("comms.vAddressForTheRecording", { v: st.pages ? t("comms.stripPagesConnected", { count: st.pages }) : t("comms.noStripPageConnectedSet") })}</p>
         <div className="row">
-          <input readOnly value={st.url} aria-label="Speaker strip address" spellCheck={false} />
+          <input readOnly value={st.url} aria-label={t("comms.speakerStripAddress")} spellCheck={false} />
           <CopyButton text={st.url} />
         </div>
         <div className="row-end">
-          <Field label="Anchor">
-            <select aria-label="Anchor" value={s.anchor} disabled={!!reason} onChange={(e) => void save({ anchor: e.target.value as StripAnchor })}>
+          <Field label={t("comms.anchor")}>
+            <select aria-label={t("comms.anchor")} value={s.anchor} disabled={!!reason} onChange={(e) => void save({ anchor: e.target.value as StripAnchor })}>
               {ANCHORS.map(([v, l]) => (
                 <option key={v} value={v}>
                   {l}
@@ -97,31 +96,31 @@ export function StripPanel({ view, onChanged }: { view: CommsView; onChanged: Re
               ))}
             </select>
           </Field>
-          {num("offsetX", "Across (px)", -1920, 1920)}
-          {num("offsetY", "From the edge (px)", 0, 1080)}
-          {num("cardPx", "Card size (px)", 48, 400)}
-          {num("gapPx", "Spacing (px)", 0, 200)}
-          {num("borderPx", "Frame (px)", 1, 30)}
+          {num("offsetX", t("comms.acrossPx"), -1920, 1920)}
+          {num("offsetY", t("comms.fromTheEdgePx"), 0, 1080)}
+          {num("cardPx", t("comms.cardSizePx"), 48, 400)}
+          {num("gapPx", t("comms.spacingPx"), 0, 200)}
+          {num("borderPx", t("comms.framePx"), 1, 30)}
         </div>
         <div className="row-end">
-          <Field label="Speaking colour">
-            <input type="color" aria-label="Speaking colour" value={s.activeColor.toLowerCase()} disabled={!!reason} onChange={(e) => void save({ activeColor: e.target.value.toUpperCase() })} />
+          <Field label={t("comms.speakingColour")}>
+            <input type="color" aria-label={t("comms.speakingColour")} value={s.activeColor.toLowerCase()} disabled={!!reason} onChange={(e) => void save({ activeColor: e.target.value.toUpperCase() })} />
           </Field>
-          <Field label="Silent colour">
-            <input type="color" aria-label="Silent colour" value={s.idleColor.toLowerCase()} disabled={!!reason} onChange={(e) => void save({ idleColor: e.target.value.toUpperCase() })} />
+          <Field label={t("comms.silentColour")}>
+            <input type="color" aria-label={t("comms.silentColour")} value={s.idleColor.toLowerCase()} disabled={!!reason} onChange={(e) => void save({ idleColor: e.target.value.toUpperCase() })} />
           </Field>
-          {num("releaseMs", "Release (ms)", 0, 3000, "Lit this long after the voice stops.")}
-          {num("attackMs", "Attack (ms)", 0, 500, "Speaking this long before it lights.")}
-          {num("timingOffsetMs", "Timing offset (ms)", -1000, 2000, "Later (+) or earlier (−) than the comms, as measured in a recording.")}
+          {num("releaseMs", t("comms.releaseMs"), 0, 3000, t("comms.litThisLongAfterThe"))}
+          {num("attackMs", t("comms.attackMs"), 0, 500, t("comms.speakingThisLongBeforeIt"))}
+          {num("timingOffsetMs", t("comms.timingOffsetMs"), -1000, 2000, t("comms.laterOrEarlierThanThe"))}
         </div>
         <div className="row">
-          <Checkbox checked={s.labels} disabled={!!reason} label="Names under the portraits" hint="Off by default." onChange={(v) => void save({ labels: v })} />
-          <Checkbox checked={s.useHudDefaults} disabled={!!reason} label="HUD images' default player pictures" hint="For mapped players without a picture." onChange={(v) => void save({ useHudDefaults: v })} />
+          <Checkbox checked={s.labels} disabled={!!reason} label={t("comms.namesUnderThePortraits")} hint={t("comms.offByDefault")} onChange={(v) => void save({ labels: v })} />
+          <Checkbox checked={s.useHudDefaults} disabled={!!reason} label={t("comms.hudImagesDefaultPlayerPictures")} hint={t("comms.forMappedPlayersWithoutA")} onChange={(v) => void save({ useHudDefaults: v })} />
         </div>
-        <AssetUpload label="Placeholder silhouette (anyone without a portrait)" value={s.placeholderAssetId} disabledReason={reason} onChange={(id) => void save({ placeholderAssetId: id })} />
-        <Details summary="Portrait crops">
+        <AssetUpload label={t("comms.placeholderSilhouetteAnyoneWithoutA")} value={s.placeholderAssetId} disabledReason={reason} onChange={(id) => void save({ placeholderAssetId: id })} />
+        <Details summary={t("comms.portraitCrops")}>
           <div className="stack-sm">
-            {st.cards.length === 0 ? <p className="muted small">The recording team's included people appear here.</p> : null}
+            {st.cards.length === 0 ? <p className="muted small">{t("comms.theRecordingTeamSIncluded")}</p> : null}
             {st.cards.map((c) => (
               <CropEditor key={c.cropKey} name={c.name} picture={PICTURE[c.picture]} pictureUrl={c.pictureUrl} crop={c.crop} cropKey={c.cropKey} settings={s} disabledReason={reason} onChanged={onChanged} />
             ))}
@@ -142,7 +141,7 @@ function CropEditor({ name, picture, pictureUrl, crop, cropKey, settings, disabl
       await api.put("/api/v1/comms/strip/crop", { key: cropKey, crop: next });
       onChanged();
     } catch (e) {
-      toast.push("danger", "Crop not saved", describeError(e));
+      toast.push("danger", t("comms.cropNotSaved"), describeError(e));
     }
   };
   const slider = (k: keyof PortraitCrop, label: string, min: number, max: number, step: number) => (
@@ -157,12 +156,10 @@ function CropEditor({ name, picture, pictureUrl, crop, cropKey, settings, disabl
       <div className="stack-sm">
         <strong>{name}</strong>
         <span className="muted small">{picture}</span>
-        {slider("x", "Across", 0, 100, 1)}
-        {slider("y", "Down", 0, 100, 1)}
-        {slider("zoom", "Zoom", 1, 3, 0.05)}
-        <Button size="sm" variant="ghost" disabledReason={disabledReason} onClick={() => void put(null)}>
-          Reset crop
-        </Button>
+        {slider("x", t("comms.crop.across"), 0, 100, 1)}
+        {slider("y", t("comms.crop.down"), 0, 100, 1)}
+        {slider("zoom", t("comms.crop.zoom"), 1, 3, 0.05)}
+        <Button size="sm" variant="ghost" disabledReason={disabledReason} onClick={() => void put(null)}>{t("comms.resetCrop")}</Button>
       </div>
     </div>
   );

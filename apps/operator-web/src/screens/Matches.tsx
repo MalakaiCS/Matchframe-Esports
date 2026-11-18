@@ -9,6 +9,7 @@ import { useApi } from "../lib/hooks.ts";
 import { sortRows, useListState, useRestoreScroll } from "../lib/listState.ts";
 import { navigate } from "../router.tsx";
 import { usePermission } from "../state/session.tsx";
+import { perLocale, t } from "../i18n/index.ts";
 import "../styles/group-a.css";
 import "../styles/records.css";
 
@@ -21,11 +22,11 @@ export function shortNameOf(name: string): string {
   return s.toUpperCase();
 }
 
-const GROUPS: { id: MatchGroup; label: string; empty: string }[] = [
-  { id: "current", label: "Current", empty: "No match is in progress. A match moves here when its veto or its first map starts (set its status, or record a map result)." },
-  { id: "future", label: "Future", empty: "No upcoming matches. Create a match to prepare a fixture in advance." },
-  { id: "ended", label: "Ended", empty: "No completed or cancelled matches yet." },
-];
+const GROUPS: { id: MatchGroup; label: string; none: string; empty: string }[] = perLocale(() => ([
+  { id: "current", label: t("matches.current"), none: t("matches.noCurrentMatches"), empty: t("matches.noMatchIsInProgress") },
+  { id: "future", label: t("matches.future"), none: t("matches.noFutureMatches"), empty: t("matches.noUpcomingMatchesCreateA") },
+  { id: "ended", label: t("matches.ended"), none: t("matches.noEndedMatches"), empty: t("matches.noCompletedOrCancelledMatches") },
+]));
 
 function when(iso: string | null): string {
   if (!iso) return "";
@@ -37,7 +38,7 @@ function TeamCell({ team, right }: { team: TeamRow | undefined; right?: boolean 
   return (
     <span className={`match-team ${right ? "is-right" : ""}`}>
       <TeamLogo assetId={team?.logoAssetId} size={28} name={team?.name ?? "?"} />
-      <span className="match-team-name">{team?.name ?? <span className="muted">Deleted team</span>}</span>
+      <span className="match-team-name">{team?.name ?? <span className="muted">{t("matches.deletedTeam")}</span>}</span>
     </span>
   );
 }
@@ -51,7 +52,7 @@ export function MatchesScreen() {
   const events = useApi<EventRecord[]>("/api/v1/events");
   const selection = useSelection();
   const [deleting, setDeleting] = useState<string[] | null>(null);
-  const teamById = useMemo(() => new Map((teams.data ?? []).map((t) => [t.id, t])), [teams.data]);
+  const teamById = useMemo(() => new Map((teams.data ?? []).map((tRow) => [tRow.id, tRow])), [teams.data]);
   const eventName = (id: string | null) => (id ? (events.data ?? []).find((e) => e.id === id)?.name : undefined);
   const all = matches.data ?? [];
   const tab = (state.filters.tab as MatchGroup) || (all.some((m) => m.group === "current") ? "current" : "future");
@@ -77,44 +78,36 @@ export function MatchesScreen() {
   return (
     <div className="page list-page">
       <ListHeader
-        title="Matches"
+        title={t("matches.matches")}
         actions={
           <>
             {selected.length ? (
-              <Button variant="danger" onClick={() => setDeleting(selected)} disabledReason={reason}>
-                Delete {selected.length} selected
-              </Button>
+              <Button variant="danger" onClick={() => setDeleting(selected)} disabledReason={reason}>{t("matches.deleteCountSelected", { count: selected.length })}</Button>
             ) : null}
-            <Button variant="primary" onClick={() => navigate("/matches/new")} disabledReason={reason}>
-              Create Match
-            </Button>
+            <Button variant="primary" onClick={() => navigate("/matches/new")} disabledReason={reason}>{t("matches.createMatch")}</Button>
           </>
         }
       >
-        <SearchBox label="Search matches" placeholder="Search teams, title or tournament" value={state.search} onChange={(search) => update({ search })} />
-        <Checkbox checked={!!state.filters.archived} onChange={(v) => update({ filters: { ...state.filters, archived: v ? "1" : "" } })} label="Show archived" />
+        <SearchBox label={t("matches.searchMatches")} placeholder={t("matches.searchTeamsTitleOrTournament")} value={state.search} onChange={(search) => update({ search })} />
+        <Checkbox checked={!!state.filters.archived} onChange={(v) => update({ filters: { ...state.filters, archived: v ? "1" : "" } })} label={t("matches.showArchived")} />
         <span className="active-summary">
           {active ? (
             <>
-              <Badge tone="ok" icon="●">
-                Active for HUD
-              </Badge>{" "}
+              <Badge tone="ok" icon="●">{t("matches.activeForHud")}</Badge>{" "}
               {label(active)}{" "}
-              <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/live/deactivate-match")} success="No match is active now" onDone={() => void matches.reload()} disabledReason={programReason}>
-                Deactivate
-              </ActionButton>
+              <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/live/deactivate-match")} success={t("matches.noMatchIsActiveNow")} onDone={() => void matches.reload()} disabledReason={programReason}>{t("matches.deactivate")}</ActionButton>
             </>
           ) : (
-            <span className="muted small">No match is active for the HUDs.</span>
+            <span className="muted small">{t("matches.noMatchIsActiveFor")}</span>
           )}
         </span>
       </ListHeader>
       <Tabs
-        label="Match groups"
+        label={t("matches.matchGroups")}
         value={tab}
-        onChange={(t) => {
+        onChange={(tRow) => {
           selection.clear();
-          update({ filters: { ...state.filters, tab: t } });
+          update({ filters: { ...state.filters, tab: tRow } });
         }}
         tabs={GROUPS.map((g) => ({ id: g.id, label: `${g.label} (${counts[g.id]})` }))}
       />
@@ -122,33 +115,29 @@ export function MatchesScreen() {
         {() =>
           all.length === 0 ? (
             <EmptyState
-              title="No matches yet"
+              title={t("matches.noMatchesYet")}
               action={
-                <Button variant="primary" onClick={() => navigate("/matches/new")} disabledReason={reason}>
-                  Create Match
-                </Button>
+                <Button variant="primary" onClick={() => navigate("/matches/new")} disabledReason={reason}>{t("matches.createMatch")}</Button>
               }
-            >
-              Create a match between two saved teams, set its format and map veto, then make it active for the broadcast.
-            </EmptyState>
+            >{t("matches.createAMatchBetweenTwo")}</EmptyState>
           ) : rows.length === 0 ? (
-            <EmptyState title={state.search ? "No matches match the search" : `No ${GROUPS.find((g) => g.id === tab)!.label.toLowerCase()} matches`}>{state.search ? "Change the search." : GROUPS.find((g) => g.id === tab)!.empty}</EmptyState>
+            <EmptyState title={state.search ? t("matches.noMatchesMatchTheSearch") : GROUPS.find((g) => g.id === tab)!.none}>{state.search ? t("matches.changeTheSearch") : GROUPS.find((g) => g.id === tab)!.empty}</EmptyState>
           ) : (
             <div className="table-wrap">
               <table className="table records-table matches-table">
                 <thead>
                   <tr>
                     <th className="col-check">
-                      <SelectAll visible={visibleIds} selection={selection} label="Select all matches shown" />
+                      <SelectAll visible={visibleIds} selection={selection} label={t("matches.selectAllMatchesShown")} />
                     </th>
-                    <SortHeader label="Team 1" k="teamA" sort={state.sort} onSort={(sort) => update({ sort })} />
-                    <th className="col-score">Series</th>
-                    <SortHeader label="Team 2" k="teamB" sort={state.sort} onSort={(sort) => update({ sort })} />
-                    <SortHeader label="Format" k="format" sort={state.sort} onSort={(sort) => update({ sort })} />
-                    <SortHeader label="Date and time" k="when" sort={state.sort} onSort={(sort) => update({ sort })} />
-                    <SortHeader label="Tournament" k="event" sort={state.sort} onSort={(sort) => update({ sort })} />
+                    <SortHeader label={t("matches.team1")} k="teamA" sort={state.sort} onSort={(sort) => update({ sort })} />
+                    <th className="col-score">{t("matches.series")}</th>
+                    <SortHeader label={t("matches.team2")} k="teamB" sort={state.sort} onSort={(sort) => update({ sort })} />
+                    <SortHeader label={t("matches.format")} k="format" sort={state.sort} onSort={(sort) => update({ sort })} />
+                    <SortHeader label={t("matches.dateAndTime")} k="when" sort={state.sort} onSort={(sort) => update({ sort })} />
+                    <SortHeader label={t("matches.tournament")} k="event" sort={state.sort} onSort={(sort) => update({ sort })} />
                     <th className="col-actions">
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{t("matches.actions")}</span>
                     </th>
                   </tr>
                 </thead>
@@ -156,7 +145,7 @@ export function MatchesScreen() {
                   {rows.map((m) => (
                     <tr key={m.id} className={`${selection.has(m.id) ? "is-selected" : ""} ${m.active ? "is-active" : ""}`}>
                       <td className="col-check">
-                        <input type="checkbox" aria-label={`Select ${label(m)}`} checked={selection.has(m.id)} onChange={() => selection.toggle(m.id)} />
+                        <input type="checkbox" aria-label={t("matches.selectM", { m: label(m) })} checked={selection.has(m.id)} onChange={() => selection.toggle(m.id)} />
                       </td>
                       <td>
                         <TeamCell team={teamById.get(m.teamAId)} />
@@ -172,35 +161,27 @@ export function MatchesScreen() {
                         <TeamCell team={teamById.get(m.teamBId)} />
                       </td>
                       <td>BO{m.format.bestOf}</td>
-                      <td>{when(m.scheduledAt) || <span className="muted">Not scheduled</span>}</td>
+                      <td>{when(m.scheduledAt) || <span className="muted">{t("matches.notScheduled")}</span>}</td>
                       <td>
                         {eventName(m.eventId) ?? <span className="muted">—</span>}
                         {m.title ? <div className="small muted">{m.title}</div> : null}
-                        {m.archived ? <Badge>Archived</Badge> : null}
+                        {m.archived ? <Badge>{t("matches.archived")}</Badge> : null}
                       </td>
                       <td className="col-actions">
                         {m.active ? (
-                          <Badge tone="ok" icon="●" title="HUDs and live state use this match">
-                            Active
-                          </Badge>
+                          <Badge tone="ok" icon="●" title={t("matches.hudsAndLiveStateUse")}>{t("matches.active")}</Badge>
                         ) : (
                           <ActionButton
                             size="sm"
                             action={() => api.post(`/api/v1/matches/${seg(m.id)}/activate`)}
-                            success={`${label(m)} is now the active match`}
+                            success={t("matches.mIsNowTheActive", { m: label(m) })}
                             onDone={() => void matches.reload()}
-                            disabledReason={programReason ?? (m.archived ? "Restore the match first" : null)}
-                            confirm={{ title: `Make ${label(m)} active?`, body: active ? `HUDs and live state switch to this match now; ${label(active)} stops being active. Its status and tab do not change.` : "HUDs and live state switch to this match now. Its status and tab do not change.", confirmLabel: "Make Active" }}
-                          >
-                            Make Active
-                          </ActionButton>
+                            disabledReason={programReason ?? (m.archived ? t("matches.restoreTheMatchFirst") : null)}
+                            confirm={{ title: t("matches.makeMActive", { m: label(m) }), body: active ? t("matches.hudsAndLiveStateSwitch2", { active: label(active) }) : t("matches.hudsAndLiveStateSwitch"), confirmLabel: t("matches.makeActive") }}
+                          >{t("matches.makeActive")}</ActionButton>
                         )}
-                        <Button size="sm" onClick={() => navigate(`/matches/${seg(m.id)}/edit`)} aria-label={`Edit ${label(m)}`}>
-                          Edit
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setDeleting([m.id])} disabledReason={reason} aria-label={`Delete ${label(m)}`}>
-                          Delete
-                        </Button>
+                        <Button size="sm" onClick={() => navigate(`/matches/${seg(m.id)}/edit`)} aria-label={t("matches.editM", { m: label(m) })}>{t("matches.edit")}</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setDeleting([m.id])} disabledReason={reason} aria-label={t("matches.deleteM", { m: label(m) })}>{t("matches.delete")}</Button>
                       </td>
                     </tr>
                   ))}

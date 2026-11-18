@@ -4,7 +4,7 @@ import { contextBridge, ipcRenderer } from "electron";
  * Narrow, read-mostly bridge. No Node APIs, filesystem or arbitrary IPC reach the renderer. The main
  * process answers only frames from the program's own `app://matchframe` origin.
  */
-const boot = (ipcRenderer.sendSync("mf:bootstrap") ?? null) as { engineOrigin: string; connectionMode: "local" | "remote" } | null;
+const boot = (ipcRenderer.sendSync("mf:bootstrap") ?? null) as { engineOrigin: string; connectionMode: "local" | "remote"; language?: string; systemLanguages?: string[] } | null;
 const hudAvailability = (ipcRenderer.sendSync("mf:hud-availability") ?? { available: false, reason: null }) as { available: boolean; reason: string | null };
 
 /** `mf:hud-*` (and `mf:replay-hotkeys*`, `mf:rollback-*`) replies are `{ ok, value | error }`; errors become plain Error messages. */
@@ -21,6 +21,12 @@ contextBridge.exposeInMainWorld("matchframe", {
   platform: process.platform,
   /** The window has no system title bar: the console's header is the drag region (window buttons drawn over its right end). */
   customTitleBar: true,
+  /** Settings → General → Language (ADR-082): the program keeps it, and its tray, dialogs and notifications follow it. */
+  language: {
+    pref: boot?.language ?? "system",
+    system: boot?.systemLanguages ?? [],
+    set: (pref: string): Promise<unknown> => ipcRenderer.invoke("mf:language-set", pref),
+  },
   /** Start CS2 with the launch mode set in the engine (Steam, or HLAE). */
   launchCs2: (): Promise<{ ok: boolean; message: string }> => ipcRenderer.invoke("mf:launch-cs2"),
   /** HLAE.exe for the HLAE launch mode, chosen with a file dialog on this computer. */

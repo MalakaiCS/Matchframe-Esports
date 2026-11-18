@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { api, describeError } from "../api/index.ts";
 import type { LowSpecStatus } from "../api/types.ts";
+import { t } from "../i18n/index.ts";
+import { T } from "../i18n/T.tsx";
 import { useApi } from "../lib/hooks.ts";
 import { useLowSpec } from "../lib/lowSpec.ts";
 import { Link } from "../router.tsx";
@@ -11,17 +13,17 @@ import { ActionButton, Checkbox, KV, Note, Panel } from "./ui.tsx";
 export const setLowSpec = (on: boolean) => api.put<LowSpecStatus>("/api/v1/performance", { lowSpec: on });
 
 function engineMemory(st: LowSpecStatus, canRestart: boolean): string {
-  const used = `${st.engine.heapUsedMb} MB in use`;
-  if (!st.lowSpec) return `${used} (no cap)`;
-  if (st.engine.heapCapMb !== null) return `Capped at ${st.engine.heapCapMb} MB (${used})`;
-  return canRestart ? `The cap applies from the engine's next start (${used})` : `Set by the MatchFrame program when it starts the engine (${used})`;
+  const used = t("settings.perf.inUse", { mb: st.engine.heapUsedMb });
+  if (!st.lowSpec) return t("settings.perf.noCap", { used });
+  if (st.engine.heapCapMb !== null) return t("settings.perf.capped", { mb: st.engine.heapCapMb, used });
+  return canRestart ? t("settings.perf.capNextStart", { used }) : t("settings.perf.capByProgram", { used });
 }
 
 function obsLine(st: LowSpecStatus): string {
-  if (!st.lowSpec) return "Unchanged";
-  if (st.obs.error) return `Could not set every source: ${st.obs.error}`;
-  if (!st.obs.connected) return "Not connected: set when OBS connects";
-  return st.obs.sources.length ? `30 fps on ${st.obs.sources.join(", ")}` : "No browser source made by MatchFrame: set your own to 30 fps";
+  if (!st.lowSpec) return t("settings.perf.unchanged");
+  if (st.obs.error) return t("settings.perf.obsError", { error: st.obs.error });
+  if (!st.obs.connected) return t("settings.perf.obsNotConnected");
+  return st.obs.sources.length ? t("settings.perf.obsSources", { sources: st.obs.sources.join(", ") }) : t("settings.perf.obsNone");
 }
 
 /**
@@ -50,21 +52,21 @@ export function PerformancePanel() {
     }
   };
   return (
-    <Panel title="Performance" subtitle="For productions where CS2, OBS and MatchFrame all run on one PC">
+    <Panel title={t("settings.perf.title")} subtitle={t("settings.perf.subtitle")}>
       <div className="stack" data-testid="performance-panel">
-        <Checkbox checked={on} disabled={reason !== null || saving || !st} onChange={(v) => void save(v)} label={<strong>Low-spec mode (one PC)</strong>} hint={reason ?? "Lighter HUDs, a 30 fps cap, capped memory and background work held during live rounds"} />
+        <Checkbox checked={on} disabled={reason !== null || saving || !st} onChange={(v) => void save(v)} label={<strong>{t("settings.perf.lowSpec")}</strong>} hint={reason ?? t("settings.perf.lowSpecHint")} />
         <ul className="small muted" style={{ margin: 0, paddingLeft: 18 }}>
-          <li>HUD outputs and the desktop HUD draw at most 30 frames a second. MatchFrame&apos;s HUDs drop blur, large shadows and looping animations; imported HUDs get the frame cap only.</li>
-          <li>Browser sources MatchFrame made in OBS are set to 30 fps. For your own: the source&apos;s properties, Use custom frame rate, FPS 30.</li>
-          <li>The engine sends HUDs only what changed, starts with a memory cap, holds demo hashing and processing, training and highlight reels while a round is live, and encodes replays with lighter presets.</li>
-          <li>The console shows no live previews or animated thumbnails (a button still opens a preview).</li>
+          <li>{t("settings.perf.what1")}</li>
+          <li>{t("settings.perf.what2")}</li>
+          <li>{t("settings.perf.what3")}</li>
+          <li>{t("settings.perf.what4")}</li>
         </ul>
         {st ? (
           <KV
             items={[
-              ["Engine memory", engineMemory(st, canRestart)],
-              ["OBS browser sources", obsLine(st)],
-              ["Background work", st.deferring ? "Waiting for the live round to end" : st.lowSpec ? "Runs between rounds" : "Runs as set in the Demo Library"],
+              [t("settings.perf.engineMemory"), engineMemory(st, canRestart)],
+              [t("settings.perf.obsSourcesLabel"), obsLine(st)],
+              [t("settings.perf.background"), st.deferring ? t("settings.perf.bgWaiting") : st.lowSpec ? t("settings.perf.bgBetween") : t("settings.perf.bgAsSet")],
             ]}
           />
         ) : null}
@@ -73,15 +75,15 @@ export function PerformancePanel() {
             <ActionButton
               size="sm"
               action={async () => {
-                if (!(await mf!.restartEngine!())) throw new Error("The program did not restart the engine.");
+                if (!(await mf!.restartEngine!())) throw new Error(t("settings.perf.restartFailed"));
                 return true;
               }}
-              success="Engine restarting with the memory cap" confirm={{ title: "Restart the engine now?", body: "HUD outputs reconnect by themselves within seconds. Camera automation stays off until you resume it.", confirmLabel: "Restart engine" }}>
-              Restart engine now
+              success={t("settings.perf.restarting")} confirm={{ title: t("settings.perf.restartTitle"), body: t("settings.perf.restartBody"), confirmLabel: t("settings.perf.restartEngine") }}>
+              {t("settings.perf.restartNow")}
             </ActionButton>
           </div>
         ) : null}
-        {!on && summary?.suggestion ? <Note tone="info" title="Suggested">{summary.suggestion.reason}</Note> : null}
+        {!on && summary?.suggestion ? <Note tone="info" title={t("settings.perf.suggested")}>{summary.suggestion.reason}</Note> : null}
         {error ? <Note tone="warn">{error}</Note> : null}
       </div>
     </Panel>
@@ -100,18 +102,18 @@ export function LowSpecSuggestion() {
   if (!s || summary.lowSpec || done) return null;
   return (
     <div data-testid="low-spec-suggestion">
-      <Note tone="info" title="One PC?">
+      <Note tone="info" title={t("settings.perf.onePc")}>
         <p style={{ margin: "0 0 8px" }}>
-          {s.reason} <strong>Low-spec mode</strong> caps HUD outputs at 30 fps, lightens MatchFrame&apos;s HUDs and holds MatchFrame&apos;s background work during live rounds.
+          {s.reason} <T k="settings.perf.suggestion" />
         </p>
         <div className="row">
-          <ActionButton size="sm" variant="primary" action={() => setLowSpec(true)} success="Low-spec mode on" onDone={() => setDone(true)} disabledReason={reason}>
-            Turn on low-spec mode
+          <ActionButton size="sm" variant="primary" action={() => setLowSpec(true)} success={t("settings.perf.on")} onDone={() => setDone(true)} disabledReason={reason}>
+            {t("settings.perf.turnOn")}
           </ActionButton>
           <ActionButton size="sm" variant="ghost" action={() => api.post<LowSpecStatus>("/api/v1/performance/suggestion/dismiss")} success={null} onDone={() => setDone(true)} disabledReason={reason}>
-            Dismiss
+            {t("shell.status.dismiss")}
           </ActionButton>
-          <Link to="/settings">What it does</Link>
+          <Link to="/settings">{t("settings.perf.whatItDoes")}</Link>
         </div>
       </Note>
     </div>

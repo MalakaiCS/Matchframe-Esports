@@ -2,15 +2,17 @@ import type { PlayerState } from "@matchframe/contracts";
 import { Badge } from "../../components/ui.tsx";
 import { fmtMoney, grenadeAbbr, MISSING, weaponName } from "../../lib/format.ts";
 import { slotKey } from "../../lib/players.ts";
+import { perLocale, t } from "../../i18n/index.ts";
 
 export type PovRole = "confirmed" | "pending" | "desired";
 
-const LIFE: Record<string, { text: string; tone: "ok" | "danger" | "warn" | "neutral" }> = {
-  alive: { text: "ALIVE", tone: "ok" },
-  dead: { text: "DEAD", tone: "danger" },
-  disconnected: { text: "DISCONNECTED", tone: "warn" },
-  unknown: { text: "LIFE ?", tone: "neutral" },
-};
+/** Shown in a badge, which sets the capitals. */
+const LIFE: Record<string, { text: string; tone: "ok" | "danger" | "warn" | "neutral" }> = perLocale(() => ({
+  alive: { text: t("live.life.alive"), tone: "ok" },
+  dead: { text: t("live.life.dead"), tone: "danger" },
+  disconnected: { text: t("live.life.disconnected"), tone: "warn" },
+  unknown: { text: t("live.life.unknown"), tone: "neutral" },
+}));
 
 function n(v: number | null | undefined): string {
   return typeof v === "number" ? String(v) : MISSING;
@@ -28,7 +30,7 @@ export function RosterCard({ p, roles, onRequest, disabledReason, busy }: { p: P
   const hasBomb = p.weapons.some((w) => /c4/i.test(w.name));
   const w = p.activeWeapon;
   const dead = p.lifeState === "dead";
-  const reason = disabledReason ?? (dead ? "Player is dead — their POV cannot be selected" : null);
+  const reason = disabledReason ?? (dead ? t("live.playerIsDeadTheirPov") : null);
   const key = slotKey(p.observerKey);
   const hp = p.health;
   const flashed = typeof p.flashed === "number" && p.flashed > 0.05 ? p.flashed : null;
@@ -39,8 +41,8 @@ export function RosterCard({ p, roles, onRequest, disabledReason, busy }: { p: P
       onClick={(e) => onRequest(e.shiftKey)}
       aria-disabled={reason !== null || busy}
       disabled={busy}
-      title={reason ?? `Request this player's POV on the observer client${key ? ` (key ${key})` : ""}. Shift-click for the chase view. This card shows telemetry, not a video feed.`}
-      aria-label={`${p.name}, ${p.side ?? "no side"}, ${life.text}. ${reason ?? "Activate to request this POV."}`}
+      title={reason ?? (key ? t("live.requestThisPovKey", { key }) : t("live.requestThisPov"))}
+      aria-label={`${p.name}, ${p.side ?? t("live.noSide")}, ${life.text}. ${reason ?? t("live.activateToRequestThisPov")}`}
     >
       <div className="pcard-head">
         <span className="pcard-slot" aria-hidden>
@@ -51,33 +53,31 @@ export function RosterCard({ p, roles, onRequest, disabledReason, busy }: { p: P
       </div>
       {missing ? (
         <div className="pcard-missing">
-          <Badge tone="warn" icon="?">
-            TELEMETRY MISSING
-          </Badge>
-          <span>The source does not report this player's vitals.</span>
+          <Badge tone="warn" icon="?">{t("live.telemetryMissing")}</Badge>
+          <span>{t("live.theSourceDoesNotReport")}</span>
         </div>
       ) : (
         <>
           <div className="pcard-vitals">
-            <div className="hpbar" title={hp === null ? "Health not reported" : `Health ${hp}`}>
+            <div className="hpbar" title={hp === null ? t("live.healthNotReported") : t("live.healthHp", { hp })}>
               <div className={`hpbar-fill ${hp !== null && hp <= 25 ? "is-low" : ""}`} style={{ width: `${hp ?? 0}%` }} />
               <span className="hpbar-text">HP {n(hp)}</span>
             </div>
-            <span className="pcard-armor" title="Armor (H = helmet)">
+            <span className="pcard-armor" title={t("live.armorHHelmet")}>
               AR {n(p.armor)}
               {p.helmet ? "+H" : ""}
             </span>
           </div>
           <div className="pcard-row">
-            <span className="pcard-weapon" title={w ? `${w.name} (${w.state})` : "Active weapon not reported"}>
+            <span className="pcard-weapon" title={w ? `${w.name} (${w.state})` : t("live.activeWeaponNotReported")}>
               {w ? weaponName(w.name) : MISSING}
               {w && w.ammoClip !== null ? <span className="pcard-ammo">{` ${w.ammoClip}/${n(w.ammoReserve)}`}</span> : null}
-              {w?.state === "reloading" ? <Badge tone="info">RELOADING</Badge> : null}
+              {w?.state === "reloading" ? <Badge tone="info">{t("live.reloading")}</Badge> : null}
             </span>
             <span className="pcard-money">{fmtMoney(p.money)}</span>
           </div>
           <div className="pcard-row pcard-util">
-            <span title="Grenades carried">{grenades.map((g) => grenadeAbbr(g.name)).join(" ")}</span>
+            <span title={t("live.grenadesCarried")}>{grenades.map((g) => grenadeAbbr(g.name)).join(" ")}</span>
             <span>
               {hasBomb ? <Badge tone="warn">C4</Badge> : null}
               {p.defuseKit ? <Badge tone="info">KIT</Badge> : null}
@@ -86,9 +86,9 @@ export function RosterCard({ p, roles, onRequest, disabledReason, busy }: { p: P
         </>
       )}
       <div className="pcard-foot">
-        <span className="pcard-stats" title="Kills / assists / deaths (cumulative counters)">
+        <span className="pcard-stats" title={t("live.killsAssistsDeathsCumulativeCounters")}>
           K {n(p.matchStats.kills)} · A {n(p.matchStats.assists)} · D {n(p.matchStats.deaths)}
-          {typeof p.roundKills === "number" && p.roundKills > 0 ? ` · ${p.roundKills}K this round` : ""}
+          {typeof p.roundKills === "number" && p.roundKills > 0 ? t("live.roundkillsKThisRound", { roundKills: p.roundKills }) : ""}
         </span>
         <span className="pcard-flags">
           {flashed !== null ? (
@@ -107,9 +107,7 @@ export function RosterCard({ p, roles, onRequest, disabledReason, busy }: { p: P
             </Badge>
           ) : null}
           {roles.includes("desired") && !roles.includes("confirmed") ? (
-            <Badge tone="accent" icon="★">
-              DIRECTOR PICK
-            </Badge>
+            <Badge tone="accent" icon="★">{t("live.directorPick")}</Badge>
           ) : null}
         </span>
       </div>

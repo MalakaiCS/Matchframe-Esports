@@ -1,4 +1,5 @@
 import type { ControlHealth, OwnershipState } from "@matchframe/contracts";
+import { formatNumber, perLocale, t } from "../i18n/index.ts";
 
 export type OwnershipKind = "unknown" | "emergency" | "resuming" | "manual" | "automation" | "device" | "remote";
 export type OwnershipAction = "clear_emergency" | "resume" | "cancel_resume" | "takeover";
@@ -17,12 +18,12 @@ export interface OwnershipView {
  * manual (sticky) > director automation > device/remote holders.
  */
 export function ownershipView(o: OwnershipState | null | undefined, resumeInMs: number | null | undefined): OwnershipView {
-  if (!o) return { kind: "unknown", badge: "Ownership unknown", detail: "Waiting for the engine", tone: "neutral", actions: [] };
+  if (!o) return { kind: "unknown", badge: t("control.own.unknown"), detail: t("control.own.unknownDetail"), tone: "neutral", actions: [] };
   if (o.emergencyStopped) {
     return {
       kind: "emergency",
-      badge: "Emergency stop",
-      detail: "Automation halted. The camera stays where it is until an operator acts. Clear the stop, then resume automation explicitly.",
+      badge: t("control.own.emergency"),
+      detail: t("control.own.emergencyDetail"),
       tone: "danger",
       actions: ["clear_emergency"],
     };
@@ -30,35 +31,35 @@ export function ownershipView(o: OwnershipState | null | undefined, resumeInMs: 
   if (resumeInMs !== null && resumeInMs !== undefined) {
     return {
       kind: "resuming",
-      badge: `Resuming in ${(resumeInMs / 1000).toFixed(1)} s`,
-      detail: "Automation will take the camera when the countdown ends. Cancel to stay manual.",
+      badge: t("control.own.resuming", { s: formatNumber(resumeInMs / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }),
+      detail: t("control.own.resumingDetail"),
       tone: "warn",
       actions: ["cancel_resume"],
     };
   }
   if (o.owner === "director" && !o.manualSticky) {
-    return { kind: "automation", badge: "Automatic", detail: "The Observer is directing the camera automatically.", tone: "ok", actions: ["takeover"] };
+    return { kind: "automation", badge: t("control.own.automatic"), detail: t("control.own.automaticDetail"), tone: "ok", actions: ["takeover"] };
   }
   if (o.owner === "device") {
-    return { kind: "device", badge: "Device control", detail: `A control device (${o.holder ?? "unknown"}) owns the camera.`, tone: "warn", actions: ["takeover", "resume"] };
+    return { kind: "device", badge: t("control.own.device"), detail: t("control.own.deviceDetail", { holder: o.holder ?? t("control.own.unknownHolder") }), tone: "warn", actions: ["takeover", "resume"] };
   }
   if (o.owner === "remote") {
-    return { kind: "remote", badge: "Remote control", detail: `A remote client (${o.holder ?? "unknown"}) owns the camera.`, tone: "warn", actions: ["takeover", "resume"] };
+    return { kind: "remote", badge: t("control.own.remote"), detail: t("control.own.remoteDetail", { holder: o.holder ?? t("control.own.unknownHolder") }), tone: "warn", actions: ["takeover", "resume"] };
   }
   return {
     kind: "manual",
-    badge: "Manual",
-    detail: `${o.holder ?? "The operator"} owns the camera. Manual control is sticky: automation only returns after an explicit resume.`,
+    badge: t("control.own.manual"),
+    detail: t("control.own.manualDetail", { holder: o.holder ?? t("control.own.theOperator") }),
     tone: "warn",
     actions: ["resume"],
   };
 }
 
-export const CONTROL_HEALTH_TEXT: Record<ControlHealth, { text: string; tone: "ok" | "info" | "warn" | "danger" | "neutral"; hint: string }> = {
-  armed: { text: "Armed", tone: "ok", hint: "Automation may execute cuts." },
-  degraded: { text: "Degraded", tone: "warn", hint: "Control works with reduced confidence (e.g. transport-only confirmation)." },
-  paused: { text: "Paused", tone: "info", hint: "Automation paused (hold active)." },
-  manual_owned: { text: "Manual", tone: "warn", hint: "The operator owns the camera; decisions are recommendations." },
-  disarmed: { text: "Disarmed", tone: "neutral", hint: "Automation is not armed (advisory mode or manual ownership)." },
-  emergency_stopped: { text: "Emergency stop", tone: "danger", hint: "Emergency stop is active." },
-};
+export const CONTROL_HEALTH_TEXT: Record<ControlHealth, { text: string; tone: "ok" | "info" | "warn" | "danger" | "neutral"; hint: string }> = perLocale(() => ({
+  armed: { text: t("control.health.armed"), tone: "ok", hint: t("control.health.armedHint") },
+  degraded: { text: t("control.health.degraded"), tone: "warn", hint: t("control.health.degradedHint") },
+  paused: { text: t("control.health.paused"), tone: "info", hint: t("control.health.pausedHint") },
+  manual_owned: { text: t("control.health.manual"), tone: "warn", hint: t("control.health.manualHint") },
+  disarmed: { text: t("control.health.disarmed"), tone: "neutral", hint: t("control.health.disarmedHint") },
+  emergency_stopped: { text: t("control.health.emergency"), tone: "danger", hint: t("control.health.emergencyHint") },
+}));

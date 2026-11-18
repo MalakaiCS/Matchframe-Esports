@@ -6,6 +6,7 @@ import type { UnsavedGuard } from "../lib/unsaved.ts";
 import { Link, navigate } from "../router.tsx";
 import { useToast } from "./toasts.tsx";
 import { Button, Modal } from "./ui.tsx";
+import { t } from "../i18n/index.ts";
 
 export interface Editor {
   saving: boolean;
@@ -66,20 +67,18 @@ export function useEditor({ dirty, backTo, save, onDiscard, savedMessage }: { di
 
   const dialog = guard.pending ? (
     <Modal
-      title="Discard unsaved changes?"
+      title={t("editor.discardUnsavedChanges")}
       onClose={guard.keepEditing}
       footer={
         <>
-          <Button onClick={guard.keepEditing}>Keep editing</Button>
+          <Button onClick={guard.keepEditing}>{t("editor.keepEditing")}</Button>
           <Button
             variant="danger"
             onClick={() => {
               onDiscard?.();
               guard.discard();
             }}
-          >
-            Discard changes
-          </Button>
+          >{t("editor.discardChanges")}</Button>
           <Button
             variant="primary"
             disabled={saving}
@@ -88,13 +87,11 @@ export function useEditor({ dirty, backTo, save, onDiscard, savedMessage }: { di
               guard.keepEditing();
               void runSave(() => go?.());
             }}
-          >
-            Save and continue
-          </Button>
+          >{t("editor.saveAndContinue")}</Button>
         </>
       }
     >
-      <p>You have changes on this page that are not saved. Save them, discard them, or keep editing.</p>
+      <p>{t("editor.youHaveChangesOnThis")}</p>
     </Modal>
   ) : null;
 
@@ -109,7 +106,7 @@ export function EditorShell({ title, subtitle, backTo, backLabel, crumbs, editor
   return (
     <div className="page editor-page">
       <header className="editor-head">
-        <nav className="editor-crumbs" aria-label="Breadcrumb">
+        <nav className="editor-crumbs" aria-label={t("editor.breadcrumb")}>
           <Link
             to={backTo}
             className="editor-back"
@@ -136,19 +133,15 @@ export function EditorShell({ title, subtitle, backTo, backLabel, crumbs, editor
         <footer className="editor-foot">
           <div className="editor-foot-msg" aria-live="polite">
             {editor.saveError ? (
-              <span className="ff-error" role="alert">
-                Not saved: {editor.saveError}
-              </span>
+              <span className="ff-error" role="alert">{t("editor.notSavedSaveerror", { saveError: editor.saveError })}</span>
             ) : (
               footerNote
             )}
           </div>
-          <Button onClick={editor.cancel} disabled={editor.saving}>
-            Cancel
-          </Button>
+          <Button onClick={editor.cancel} disabled={editor.saving}>{t("common.cancel")}</Button>
           <Button variant="primary" disabled={editor.saving} disabledReason={saveDisabledReason ?? null} aria-busy={editor.saving} onClick={editor.saveAndExit}>
             {editor.saving ? <span className="spinner" aria-hidden /> : null}
-            {editor.saving ? "Saving…" : "Save and Exit"}
+            {editor.saving ? t("editor.saving") : t("editor.saveAndExit")}
           </Button>
         </footer>
       </div>

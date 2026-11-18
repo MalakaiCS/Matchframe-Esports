@@ -1,20 +1,30 @@
-/** Formatting helpers. Null/undefined always render as an explicit placeholder, never as 0. */
+import { formatDate, formatMoney, formatNumber, perLocale, t } from "../i18n/index.ts";
+
+/** Formatting helpers, in the console's language (ADR-082). Null/undefined always render as an explicit placeholder, never as 0. */
 
 export const MISSING = "—";
 
+/** A number with a fixed number of decimals in the console's language (no thousands separators: 1234.5 / 1234,5). */
+const fixed = (v: number, digits: number) => formatNumber(v, { minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false });
+
 export function fmtNum(v: number | null | undefined, digits = 0): string {
-  return typeof v === "number" && Number.isFinite(v) ? v.toFixed(digits) : MISSING;
+  return typeof v === "number" && Number.isFinite(v) ? fixed(v, digits) : MISSING;
 }
 
 export function fmtPct(v: number | null | undefined, digits = 0): string {
-  return typeof v === "number" && Number.isFinite(v) ? `${(v * 100).toFixed(digits)}%` : MISSING;
+  return typeof v === "number" && Number.isFinite(v) ? formatNumber(v, { style: "percent", minimumFractionDigits: digits, maximumFractionDigits: digits }) : MISSING;
 }
 
 export function fmtMs(ms: number | null | undefined): string {
   if (typeof ms !== "number" || !Number.isFinite(ms)) return MISSING;
-  if (Math.abs(ms) < 1000) return `${Math.round(ms)} ms`;
-  if (Math.abs(ms) < 60_000) return `${(ms / 1000).toFixed(1)} s`;
-  return `${Math.floor(ms / 60_000)} min ${Math.round((ms % 60_000) / 1000)} s`;
+  if (Math.abs(ms) < 1000) return t("common.unit.ms", { n: fixed(Math.round(ms), 0) });
+  if (Math.abs(ms) < 60_000) return t("common.unit.s", { n: fixed(ms / 1000, 1) });
+  return t("common.unit.minSec", { m: Math.floor(ms / 60_000), s: Math.round((ms % 60_000) / 1000) });
+}
+
+/** Seconds and the unit in the console's language ("0.5 s", "0,5 с"): `digits` decimals, or as many as needed. */
+export function fmtSec(sec: number, digits?: number): string {
+  return t("common.unit.s", { n: digits === undefined ? formatNumber(sec, { maximumFractionDigits: 3, useGrouping: false }) : fixed(sec, digits) });
 }
 
 /** Hours and minutes from seconds ("12 h 05 min", "45 min", "-1 h 00 min"). */
@@ -22,8 +32,8 @@ export function fmtHours(sec: number | null | undefined): string {
   if (typeof sec !== "number" || !Number.isFinite(sec)) return MISSING;
   const sign = sec < 0 ? "-" : "";
   const m = Math.floor(Math.abs(sec) / 60);
-  if (m < 60) return `${sign}${m} min`;
-  return `${sign}${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`;
+  if (m < 60) return sign + t("common.unit.min", { n: m });
+  return sign + t("common.unit.hMin", { h: Math.floor(m / 60), m: String(m % 60).padStart(2, "0") });
 }
 
 /** m:ss clock from seconds. */
@@ -52,27 +62,28 @@ export function fmtBytes(b: number | null | undefined): string {
 }
 
 export function fmtMoney(v: number | null | undefined): string {
-  return typeof v === "number" && Number.isFinite(v) ? `$${v.toLocaleString("en-US")}` : MISSING;
+  return typeof v === "number" && Number.isFinite(v) ? formatMoney(v, "USD") : MISSING;
 }
 
 export function fmtTime(iso: string | null | undefined): string {
   if (!iso) return MISSING;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  return formatDate(d, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
 export function fmtAgo(iso: string | null | undefined, now = Date.now()): string {
   if (!iso) return MISSING;
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return iso;
-  const s = Math.round((now - t) / 1000);
-  if (s < 60) return `${s}s ago`;
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
+  const at = Date.parse(iso);
+  if (Number.isNaN(at)) return iso;
+  const s = Math.round((now - at) / 1000);
+  if (s < 60) return t("common.ago.s", { n: s });
+  if (s < 3600) return t("common.ago.m", { n: Math.floor(s / 60) });
+  if (s < 86400) return t("common.ago.h", { n: Math.floor(s / 3600) });
+  return t("common.ago.d", { n: Math.floor(s / 86400) });
 }
 
+/** CS2's guns by the names the game and the scene use in every language. */
 const WEAPON_NAMES: Record<string, string> = {
   ak47: "AK-47",
   m4a1: "M4A4",
@@ -108,22 +119,26 @@ const WEAPON_NAMES: Record<string, string> = {
   sawedoff: "Sawed-Off",
   m249: "M249",
   negev: "Negev",
-  hegrenade: "HE",
-  flashbang: "Flash",
-  smokegrenade: "Smoke",
-  molotov: "Molotov",
-  incgrenade: "Incendiary",
-  decoy: "Decoy",
   c4: "C4",
   taser: "Zeus x27",
-  knife: "Knife",
-  knife_t: "Knife",
 };
+
+/** Utility and the knife, in the console's language. */
+const UTILITY_NAMES: Record<string, string> = perLocale(() => ({
+  hegrenade: "HE",
+  flashbang: t("common.grenade.flashbang"),
+  smokegrenade: t("common.grenade.smoke"),
+  molotov: t("common.grenade.molotov"),
+  incgrenade: t("common.grenade.incendiary"),
+  decoy: t("common.grenade.decoy"),
+  knife: t("common.weapon.knife"),
+  knife_t: t("common.weapon.knife"),
+}));
 
 export function weaponName(raw: string | null | undefined): string {
   if (!raw) return MISSING;
   const k = raw.replace(/^weapon_/, "");
-  return WEAPON_NAMES[k] ?? k.replace(/_/g, " ");
+  return UTILITY_NAMES[k] ?? WEAPON_NAMES[k] ?? k.replace(/_/g, " ");
 }
 
 const GRENADE_ABBR: Record<string, string> = { hegrenade: "HE", flashbang: "FL", smokegrenade: "SM", molotov: "MO", incgrenade: "IN", decoy: "DE" };
@@ -132,16 +147,16 @@ export function grenadeAbbr(raw: string): string {
   return GRENADE_ABBR[k] ?? k.slice(0, 2).toUpperCase();
 }
 
-export const GRENADE_TYPE_LABEL: Record<string, string> = {
+export const GRENADE_TYPE_LABEL: Record<string, string> = perLocale(() => ({
   he: "HE",
-  flashbang: "Flashbang",
-  smoke: "Smoke",
-  molotov: "Molotov",
-  incendiary: "Incendiary",
-  decoy: "Decoy",
-  fire_unknown: "Fire (type unknown)",
-  unknown: "Unknown",
-};
+  flashbang: t("common.grenade.flashbang"),
+  smoke: t("common.grenade.smoke"),
+  molotov: t("common.grenade.molotov"),
+  incendiary: t("common.grenade.incendiary"),
+  decoy: t("common.grenade.decoy"),
+  fire_unknown: t("common.grenade.fireUnknown"),
+  unknown: t("common.unknown"),
+}));
 
 /** "pov:<steamId>" → "POV · name", "camera:<id>" → "Camera · id", etc. */
 export function shotLabel(shotKey: string | null | undefined, nameOf: (steamId: string) => string): string {
@@ -150,19 +165,19 @@ export function shotLabel(shotKey: string | null | undefined, nameOf: (steamId: 
   const target = rest.join(":");
   switch (kind) {
     case "pov":
-      return `POV · ${nameOf(target)}`;
+      return t("common.shot.pov", { name: nameOf(target) });
     case "camera": {
       // A team shot, framed live in freeze time ("team-T", "team-CT-still").
       const team = /^team-(T|CT)(-still)?$/.exec(target);
-      if (team) return `Team shot · ${team[1] === "T" ? "Terrorists" : "Counter-Terrorists"}${team[2] ? " (still)" : ""}`;
-      return `Camera · ${target}`;
+      if (team) return t(team[2] ? "common.shot.teamStill" : "common.shot.team", { side: t(team[1] === "T" ? "common.side.t" : "common.side.ct") });
+      return t("common.shot.camera", { id: target });
     }
     case "path":
-      return `Camera path · ${target}`;
+      return t("common.shot.path", { id: target });
     case "hold":
-      return "Hold current shot";
+      return t("common.shot.hold");
     case "roaming":
-      return "Free camera (roaming)";
+      return t("common.shot.roaming");
     default:
       return shotKey;
   }

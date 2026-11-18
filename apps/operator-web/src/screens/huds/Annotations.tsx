@@ -6,6 +6,7 @@ import { ActionButton, Badge, Button, Checkbox, Field, Panel } from "../../compo
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
 import { previewUrl } from "./Outputs.tsx";
+import { t } from "../../i18n/index.ts";
 
 /** Drops points closer than `minDist` (normalized units) and caps the count at the engine limit (500). */
 export function simplifyPoints(points: [number, number][], minDist = 0.004, max = 500): [number, number][] {
@@ -57,15 +58,15 @@ export function AnnotationsTab() {
 
   return (
     <div className="grid-2-1">
-      <Panel title="Telestrator" subtitle="Drag on the stage to draw">
+      <Panel title={t("huds.telestrator")} subtitle={t("huds.dragOnTheStageTo")}>
         <div className="stage">
-          {underlay && main?.published ? <iframe title="On-air HUD underlay" src={previewUrl(main.url)} sandbox="allow-scripts allow-same-origin" tabIndex={-1} /> : null}
+          {underlay && main?.published ? <iframe title={t("huds.onAirHudUnderlay")} src={previewUrl(main.url)} sandbox="allow-scripts allow-same-origin" tabIndex={-1} /> : null}
           <svg
             ref={svgRef}
             className="stage-annot"
             viewBox="0 0 1920 1080"
             role="img"
-            aria-label={`Annotation canvas with ${items.length} drawing(s). Draw with the pointer.`}
+            aria-label={t("huds.annotationCanvasWithCountDrawing", { count: items.length })}
             onPointerDown={(e) => {
               (e.target as Element).setPointerCapture?.(e.pointerId);
               setCurrent([pos(e)]);
@@ -86,60 +87,46 @@ export function AnnotationsTab() {
           </svg>
         </div>
         <div className="row" style={{ marginTop: 10 }}>
-          <div className="seg" role="radiogroup" aria-label="Drawing tool">
-            {(["arrow", "pencil"] as const).map((t) => (
-              <button key={t} role="radio" aria-checked={tool === t} className={`seg-btn ${tool === t ? "is-on" : ""}`} onClick={() => setTool(t)}>
-                {t === "arrow" ? "Arrow" : "Pencil"}
+          <div className="seg" role="radiogroup" aria-label={t("huds.drawingTool")}>
+            {(["arrow", "pencil"] as const).map((tRow) => (
+              <button key={tRow} role="radio" aria-checked={tool === tRow} className={`seg-btn ${tool === tRow ? "is-on" : ""}`} onClick={() => setTool(tRow)}>
+                {tRow === "arrow" ? t("huds.arrow") : t("huds.pencil")}
               </button>
             ))}
           </div>
-          <Field label="Colour">
+          <Field label={t("huds.colour")}>
             <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
           </Field>
-          <Field label="Expires after (s)" hint="Empty = until cleared">
+          <Field label={t("huds.expiresAfterS")} hint={t("huds.emptyUntilCleared")}>
             <input type="number" min={1} value={expiry} onChange={(e) => setExpiry(e.target.value)} style={{ width: 110 }} />
           </Field>
-          <Checkbox checked={underlay} onChange={setUnderlay} label="Show on-air HUD underneath" />
+          <Checkbox checked={underlay} onChange={setUnderlay} label={t("huds.showOnAirHudUnderneath")} />
           <span className="spacer" />
-          <Button size="sm" variant="ghost" onClick={() => setItems(items.slice(0, -1))} disabled={items.length === 0}>
-            Undo
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setItems([])} disabled={items.length === 0}>
-            Clear canvas
-          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setItems(items.slice(0, -1))} disabled={items.length === 0}>{t("huds.undo")}</Button>
+          <Button size="sm" variant="ghost" onClick={() => setItems([])} disabled={items.length === 0}>{t("huds.clearCanvas")}</Button>
         </div>
       </Panel>
-      <Panel title="Drawings" className="gb-start" subtitle={`${items.length} of 50`} actions={onAir === null ? null : onAir ? <Badge tone="danger" icon="●">On air</Badge> : <Badge>Off air</Badge>}>
+      <Panel title={t("huds.drawings")} className="gb-start" subtitle={t("huds.countOf50", { count: items.length })} actions={onAir === null ? null : onAir ? <Badge tone="danger" icon="●">{t("huds.onAir")}</Badge> : <Badge>{t("huds.offAir")}</Badge>}>
         <div className="row">
           <ActionButton
             variant="primary"
             action={() => api.put<{ onAir: boolean; count: number }>("/api/v1/hud/annotations", { annotations: withExpiry(items), onAir: true })}
-            success={(r) => `${r.count} annotation(s) on air${expiry ? ` for ${expiry} s` : ""}`}
+            success={(r) => t("huds.countAnnotationSOnAir", { count: r.count, v: expiry ? t("huds.forExpiryS", { expiry }) : "" })}
             onDone={() => setOnAir(true)}
-            disabledReason={reason ?? (items.length ? null : "Draw something first")}
-          >
-            Put on air
-          </ActionButton>
-          <ActionButton action={() => api.put("/api/v1/hud/annotations", { annotations: items, onAir: false })} success="Draft saved; annotations taken off air" onDone={() => setOnAir(false)} disabledReason={reason}>
-            Save draft &amp; take off air
-          </ActionButton>
+            disabledReason={reason ?? (items.length ? null : t("huds.drawSomethingFirst"))}
+          >{t("huds.putOnAir")}</ActionButton>
+          <ActionButton action={() => api.put("/api/v1/hud/annotations", { annotations: items, onAir: false })} success={t("huds.draftSavedAnnotationsTakenOff")} onDone={() => setOnAir(false)} disabledReason={reason}>{t("huds.saveDraftTakeOffAir")}</ActionButton>
         </div>
-        <p className="small muted" title="Expiry uses this computer's clock (the engine runs on the same machine).">
-          Shown on every output except clean feeds.
-        </p>
+        <p className="small muted" title={t("huds.expiryUsesThisComputerS")}>{t("huds.shownOnEveryOutputExcept")}</p>
         {items.length === 0 ? (
-          <p className="muted small">Nothing drawn yet. Choose Arrow or Pencil and drag on the stage.</p>
+          <p className="muted small">{t("huds.nothingDrawnYetChooseArrow")}</p>
         ) : (
           <ul className="list-plain">
             {items.map((a, i) => (
               <li key={a.id} className="row">
                 <span className="dot" style={{ background: a.color }} aria-hidden />
-                <span style={{ flex: 1 }}>
-                  #{i + 1} {a.kind} · {a.points.length} pts
-                </span>
-                <Button size="sm" variant="ghost" onClick={() => setItems(items.filter((x) => x.id !== a.id))} aria-label={`Delete drawing ${i + 1}`}>
-                  Delete
-                </Button>
+                <span style={{ flex: 1 }}>{t("huds.vKindCountPts", { v: i + 1, kind: a.kind, count: a.points.length })}</span>
+                <Button size="sm" variant="ghost" onClick={() => setItems(items.filter((x) => x.id !== a.id))} aria-label={t("huds.deleteDrawingV", { v: i + 1 })}>{t("huds.delete")}</Button>
               </li>
             ))}
           </ul>

@@ -12,13 +12,13 @@ import { useLive } from "../../state/live.ts";
 import { usePermission } from "../../state/session.tsx";
 import { consoleLine, HlaeWarningDialog } from "../game/LaunchSettings.tsx";
 import { LIBRARY_PATH, useRun } from "./actions.ts";
+import { t } from "../../i18n/index.ts";
 
 /** For the standard launch mode (no console): only the kill feed and the names above the players from the game's HUD. */
 const GAME_HUD_COMMAND = "cl_drawhud 1; cl_draw_only_deathnotices 1; cl_drawhud_force_teamid_overhead 1";
 
 const FRAME_CAPS = [60, 120, 144, 240];
-const FRAME_CAP_HINT =
-  "fps_max: CS2 draws at most this many frames a second, leaving the graphics card room for the HUD, OBS and the encoder. On high graphics settings an uncapped CS2 takes the whole card, and imported HUDs stutter. For a 60 fps stream, 120 keeps the game smooth. Don't change: CS2's own setting.";
+const frameCapHint = () => t("game.opt.frameCapHint");
 
 /**
  * The CT and T colours for the X-ray, smokes and kill feed (HLAE): chosen here, or each team's own.
@@ -26,35 +26,35 @@ const FRAME_CAP_HINT =
  */
 function GameColours({ o, reason, save }: { o: ConsoleOptions | null; reason: string | null; save: (patch: Partial<ConsoleOptions>) => void }) {
   const [ct, setCt] = useState(o?.ctColour ?? "#3d9bff");
-  const [t, setT] = useState(o?.tColour ?? "#ff4a4a");
+  const [tCol, setT] = useState(o?.tColour ?? "#ff4a4a");
   useEffect(() => {
     if (o) [setCt, setT].forEach((set, i) => set(i ? o.tColour : o.ctColour));
   }, [o?.ctColour, o?.tColour]);
   useEffect(() => {
-    if (!o || (ct.toLowerCase() === o.ctColour.toLowerCase() && t.toLowerCase() === o.tColour.toLowerCase())) return;
-    const timer = setTimeout(() => save({ ctColour: ct, tColour: t }), 400);
+    if (!o || (ct.toLowerCase() === o.ctColour.toLowerCase() && tCol.toLowerCase() === o.tColour.toLowerCase())) return;
+    const timer = setTimeout(() => save({ ctColour: ct, tColour: tCol }), 400);
     return () => clearTimeout(timer);
-  }, [ct, t]);
+  }, [ct, tCol]);
   const off = !!reason || !o;
-  const hint = "The colours for the X-ray, smokes and the kill feed. Your CT and T colours stay with the side; each team's colour (Teams → colour) swaps with the teams at half time, and a team without one uses yours.";
+  const hint = t("game.opt.coloursHint");
   return (
     <div className="hud-option" data-option="game-colours">
       <div className="hud-option-text">
-        <span className="hud-option-label">Colours</span>
+        <span className="hud-option-label">{t("game.opt.colours")}</span>
         <span className="hud-option-hint" title={hint}>
           ?
         </span>
       </div>
       <div className="row">
-        <select aria-label="Which colours" value={o?.colourSource ?? "sides"} disabled={off} title={reason ?? hint} onChange={(e) => save({ colourSource: e.target.value as ConsoleOptions["colourSource"] })}>
-          <option value="sides">Your CT and T colours</option>
-          <option value="teams">Each team's colour</option>
+        <select aria-label={t("game.opt.whichColours")} value={o?.colourSource ?? "sides"} disabled={off} title={reason ?? hint} onChange={(e) => save({ colourSource: e.target.value as ConsoleOptions["colourSource"] })}>
+          <option value="sides">{t("game.opt.sideColours")}</option>
+          <option value="teams">{t("game.opt.teamColours")}</option>
         </select>
-        <label className="row small" title="CT side">
-          CT <input type="color" aria-label="CT colour" value={ct} disabled={off} onChange={(e) => setCt(e.target.value)} />
+        <label className="row small" title={t("game.opt.ctSide")}>
+          CT <input type="color" aria-label={t("game.opt.ctColour")} value={ct} disabled={off} onChange={(e) => setCt(e.target.value)} />
         </label>
-        <label className="row small" title="T side">
-          T <input type="color" aria-label="T colour" value={t} disabled={off} onChange={(e) => setT(e.target.value)} />
+        <label className="row small" title={t("game.opt.tSide")}>
+          T <input type="color" aria-label={t("game.opt.tColour")} value={tCol} disabled={off} onChange={(e) => setT(e.target.value)} />
         </label>
       </div>
     </div>
@@ -90,23 +90,23 @@ export function HudOptions({ library, onChanged }: { library: HudLibrary | undef
   const radarValue = radarOn ?? (radar.data ? radar.data.value !== false : null);
   const bridge = desktopHud();
   return (
-    <section className="hudlib-card hud-options" aria-label="HUD options">
+    <section className="hudlib-card hud-options" aria-label={t("hudlib.options.label")}>
       <Toggle
-        label="Test data"
+        label={t("hudlib.options.testData")}
         testId="test-data"
-        hint="Feeds every HUD with the labelled simulation (a synthetic match), without CS2. Stop it before a real match."
+        hint={t("hudlib.options.testDataHint")}
         on={simulated}
         reason={simReason}
-        onChange={(v) => void run(v ? "Run Test Data" : "Stop Test Data", () => api.post(v ? "/api/v1/simulation/start" : "/api/v1/simulation/stop", v ? { startOffsetSec: 25 } : {}), v ? "Test data running" : "Test data stopped")}
+        onChange={(v) => void run(v ? t("hudlib.options.runTestData") : t("hudlib.options.stopTestData"), () => api.post(v ? "/api/v1/simulation/start" : "/api/v1/simulation/stop", v ? { startOffsetSec: 25 } : {}), v ? t("hudlib.options.testDataRunning") : t("hudlib.options.testDataStopped"))}
       />
       <Toggle
-        label="Show HUD graphics"
+        label={t("hudlib.options.showGraphics")}
         testId="show-graphics"
-        hint="Off hides every HUD graphic at once: desktop HUDs, previews and OBS sources (the emergency hide, Ctrl+Shift+F9)."
+        hint={t("hudlib.options.showGraphicsHint")}
         on={library ? !library.hiddenAll : null}
         reason={editReason}
         onChange={(v) =>
-          void run(v ? "Show HUD graphics" : "Hide all HUD graphics", async () => {
+          void run(v ? t("hudlib.options.showGraphics") : t("hudlib.options.hideAll"), async () => {
             await api.post(`${LIBRARY_PATH}/visibility`, { hidden: !v });
             if (bridge?.available) await (v ? bridge.showAll() : bridge.hideAll()).catch(() => undefined);
             onChanged();
@@ -114,13 +114,13 @@ export function HudOptions({ library, onChanged }: { library: HudLibrary | undef
         }
       />
       <Toggle
-        label="Utility on the radar"
+        label={t("hudlib.options.radar")}
         testId="radar-utility"
-        hint="Smokes, fires and flashes confirmed by the game appear on HUD radars (never predictions)."
+        hint={t("hudlib.options.radarHint")}
         on={radarValue}
         reason={simReason}
         onChange={(v) =>
-          void run("Utility on the radar", async () => {
+          void run(t("hudlib.options.radar"), async () => {
             await api.put("/api/v1/settings/hud.radarUtility", { value: v });
             setRadarOn(v);
           })
@@ -149,20 +149,20 @@ export function GameCard() {
   const mode = g?.profile.mode ?? "standard";
   const receiving = !!src && !src.stale;
   const [line, hint] = !st
-    ? ["Checking…", ""]
+    ? [t("game.card.checking"), ""]
     : receiving
-      ? [`Receiving game data${st.gameBuild ? ` · build ${st.gameBuild}` : ""}`, "CS2 is sending game data to MatchFrame."]
+      ? [st.gameBuild ? t("game.card.receivingBuild", { build: st.gameBuild }) : t("game.card.receiving"), t("game.card.receivingHint")]
       : st.cs2Install
-        ? ["Waiting for game data", "CS2 is installed. Start it and spectate a match or play a demo; data arrives through game state integration (GSI)."]
-        : ["CS2 not found yet", "Set up CS2 in Setup: MatchFrame installs the game state integration (GSI) config into the CS2 folder."];
+        ? [t("game.card.waiting"), t("game.card.waitingHint")]
+        : [t("game.card.notFound"), t("game.card.notFoundHint")];
   const cl = consoleLine(g);
-  const launchReason = launchUnavailableReason() ?? settingsReason ?? (!g ? "Loading…" : mode === "hlae" && hlae.info && !hlae.info.ok ? hlae.info.problem : null);
+  const launchReason = launchUnavailableReason() ?? settingsReason ?? (!g ? t("common.loading") : mode === "hlae" && hlae.info && !hlae.info.ok ? hlae.info.problem : null);
   const saveMode = (m: GameLaunchMode, acknowledgeInsecure?: boolean) =>
-    g && void run("Launch mode", () => setLaunchProfile({ mode: m, netconPort: g.profile.netconPort, extraArgs: g.profile.extraArgs, ...(acknowledgeInsecure ? { acknowledgeInsecure } : {}) }).then(() => game.reload()));
-  const option = (k: keyof ConsoleOptions) => (v: boolean) => void run("Game option", () => setConsoleOptions({ [k]: v }).then(() => game.reload()));
+    g && void run(t("game.launch.mode"), () => setLaunchProfile({ mode: m, netconPort: g.profile.netconPort, extraArgs: g.profile.extraArgs, ...(acknowledgeInsecure ? { acknowledgeInsecure } : {}) }).then(() => game.reload()));
+  const option = (k: keyof ConsoleOptions) => (v: boolean) => void run(t("game.opt.option"), () => setConsoleOptions({ [k]: v }).then(() => game.reload()));
   const o = g?.options;
   return (
-    <section className="hudlib-card hud-game" aria-label="Game">
+    <section className="hudlib-card hud-game" aria-label={t("shell.top.game")}>
       <div className="hud-game-head">
         <div className="hud-game-title">
           <Icon name="gamepad" size={18} />
@@ -180,7 +180,7 @@ export function GameCard() {
         ) : null}
         <div className="row hud-game-actions">
           <label className="hud-game-mode" title={LAUNCH_MODES.find((m) => m.id === mode)?.detail}>
-            <span className="sr-only">Launch mode</span>
+            <span className="sr-only">{t("game.launch.mode")}</span>
             <select
               value={mode}
               disabled={!g || !!settingsReason}
@@ -202,7 +202,7 @@ export function GameCard() {
             disabledReason={launchReason}
             onClick={() =>
               void run(
-                "Start CS2",
+                t("game.start"),
                 async () => {
                   const r = await window.matchframe!.launchCs2!();
                   if (!r.ok) throw new Error(r.message);
@@ -213,87 +213,87 @@ export function GameCard() {
               )
             }
           >
-            <Icon name="play" size={14} /> Start CS2
+            <Icon name="play" size={14} /> {t("game.start")}
           </Button>
-          <Link to="/settings/setup#start-cs2" className="btn btn-secondary btn-md" title="Launch mode, console port, launch options, HLAE, and the game data (GSI) config">
-            <Icon name="settings" size={14} /> Setup
+          <Link to="/settings/setup#start-cs2" className="btn btn-secondary btn-md" title={t("game.card.setupTitle")}>
+            <Icon name="settings" size={14} /> {t("nav.setup")}
           </Link>
         </div>
       </div>
       {mode === "standard" ? (
-        <div className="hud-game-command" title="Paste into the CS2 console while spectating: hides the game's own HUD apart from the kill notices and the names above the players, so only your HUD shows. The Observer tools launch mode does this for you.">
+        <div className="hud-game-command" title={t("game.card.commandTitle")}>
           <code>{GAME_HUD_COMMAND}</code>
-          <CopyButton text={GAME_HUD_COMMAND} label="Copy" />
+          <CopyButton text={GAME_HUD_COMMAND} label={t("common.copy")} />
         </div>
       ) : (
-        <div className="hud-game-options" aria-label="Game options">
-          <Toggle label="Hide game HUD" testId="hide-game-hud" hint="cl_drawhud 1 and cl_draw_only_deathnotices 1: the game shows only its kill feed (and, with X-ray, the names above the players); your HUD shows the rest. Sent when the console connects." on={o ? o.hideGameHud : null} reason={cameraReason} onChange={option("hideGameHud")} />
-          <Toggle label="X-ray" testId="xray" hint="spec_show_xray, hud_showtargetid and cl_drawhud_force_teamid_overhead: players visible through walls on the observer's screen, with their names above them (also with Hide game HUD on)." on={o ? o.xray : null} reason={cameraReason} onChange={option("xray")} />
+        <div className="hud-game-options" aria-label={t("game.opt.label")}>
+          <Toggle label={t("game.opt.hideHud")} testId="hide-game-hud" hint={t("game.opt.hideHudHint")} on={o ? o.hideGameHud : null} reason={cameraReason} onChange={option("hideGameHud")} />
+          <Toggle label={t("game.opt.xray")} testId="xray" hint={t("game.opt.xrayHint")} on={o ? o.xray : null} reason={cameraReason} onChange={option("xray")} />
           <Toggle
-            label="No X-ray in clutches"
+            label={t("game.opt.clutchXray")}
             testId="clutch-xray-off"
-            hint="When one player is left against two or more, X-ray goes off until the round ends, so the viewer doesn't see where the other team is. It comes back on for the next round."
+            hint={t("game.opt.clutchXrayHint")}
             on={o ? o.clutchXrayOff : null}
-            reason={cameraReason ?? (o && !o.xray ? "X-ray is off." : null)}
+            reason={cameraReason ?? (o && !o.xray ? t("game.opt.xrayOff") : null)}
             onChange={option("clutchXrayOff")}
           />
           <Toggle
-            label="No X-ray in retakes"
+            label={t("game.opt.retakeXray")}
             testId="retake-xray-off"
-            hint="After the plant, once a CT is close to the bomb with time left to defuse and both teams still have players alive, X-ray goes off until the round ends, so the viewer doesn't see where the Ts wait. Not while the CTs save."
+            hint={t("game.opt.retakeXrayHint")}
             on={o ? o.retakeXrayOff : null}
-            reason={cameraReason ?? (o && !o.xray ? "X-ray is off." : null)}
+            reason={cameraReason ?? (o && !o.xray ? t("game.opt.xrayOff") : null)}
             onChange={option("retakeXrayOff")}
           />
           <Toggle
-            label="Run behind other windows"
+            label={t("game.opt.background")}
             testId="run-in-background"
-            hint="engine_no_focus_sleep 0 and snd_mute_losefocus 0: CS2 keeps every frame and its sound while you use MatchFrame or OBS. Off, CS2 slows down and goes silent whenever another window has focus. With CS2 in full screen (not Fullscreen Windowed), clicking another window still stops the picture."
+            hint={t("game.opt.backgroundHint")}
             on={o ? o.runInBackground : null}
             reason={cameraReason}
             onChange={option("runInBackground")}
           />
           <div className="hud-option" data-option="frame-cap">
             <div className="hud-option-text">
-              <span className="hud-option-label">Cap CS2's frame rate</span>
-              <span className="hud-option-hint" title={FRAME_CAP_HINT}>
+              <span className="hud-option-label">{t("game.opt.frameCap")}</span>
+              <span className="hud-option-hint" title={frameCapHint()}>
                 ?
               </span>
             </div>
             <select
-              aria-label="Cap CS2's frame rate"
+              aria-label={t("game.opt.frameCap")}
               value={o?.frameCap ?? ""}
               disabled={!!cameraReason || !o}
-              title={cameraReason ?? FRAME_CAP_HINT}
-              onChange={(e) => void run("Game option", () => setConsoleOptions({ frameCap: e.target.value ? Number(e.target.value) : null }).then(() => game.reload()))}
+              title={cameraReason ?? frameCapHint()}
+              onChange={(e) => void run(t("game.opt.option"), () => setConsoleOptions({ frameCap: e.target.value ? Number(e.target.value) : null }).then(() => game.reload()))}
             >
-              <option value="">Don't change</option>
+              <option value="">{t("game.opt.dontChange")}</option>
               {FRAME_CAPS.map((n) => (
                 <option key={n} value={n}>
-                  {n} fps
+                  {t("game.opt.fps", { n })}
                 </option>
               ))}
             </select>
           </div>
           {mode === "hlae" ? (
             <>
-              <Toggle label="No flash" testId="no-flash" hint="HLAE mirv_noflash 1: flashbangs don't white out the observer's screen." on={o ? o.noFlash : null} reason={cameraReason} onChange={option("noFlash")} />
+              <Toggle label={t("game.opt.noFlash")} testId="no-flash" hint={t("game.opt.noFlashHint")} on={o ? o.noFlash : null} reason={cameraReason} onChange={option("noFlash")} />
               <Toggle
-                label="X-ray colours"
+                label={t("game.opt.xrayColours")}
                 testId="xray-colours"
-                hint="HLAE mirv_colors: the players' glow through walls (X-ray), the names above them and grenade trails in the CT and T colours below. Only in your game: the players don't see it. The glow changes from the next switch of player; trails from the next grenade."
+                hint={t("game.opt.xrayColoursHint")}
                 on={o ? o.xrayColours : null}
                 reason={cameraReason}
                 onChange={option("xrayColours")}
               />
-              <Toggle label="Coloured smokes" testId="smoke-colours" hint="HLAE mirv_colors smokes: smokes in the CT and T colours below, from the next smoke thrown. Only in your game: the players don't see it." on={o ? o.smokeColours : null} reason={cameraReason} onChange={option("smokeColours")} />
-              <Toggle label="Colours in kill feed" testId="killfeed-colours" hint="HLAE mirv_deathmsg colors: CT and T names in CS2's kill feed in the CT and T colours below." on={o ? o.killfeedTeamColours : null} reason={cameraReason} onChange={option("killfeedTeamColours")} />
-              <GameColours o={o ?? null} reason={cameraReason} save={(patch) => void run("Game option", () => setConsoleOptions(patch).then(() => game.reload()))} />
-              <Toggle label="Hide end-of-match screen" testId="hide-end-of-match" hint="HLAE mirv_endofmatch 0: no end-of-match scene over the game." on={o ? o.hideEndOfMatch : null} reason={cameraReason} onChange={option("hideEndOfMatch")} />
+              <Toggle label={t("game.opt.smokes")} testId="smoke-colours" hint={t("game.opt.smokesHint")} on={o ? o.smokeColours : null} reason={cameraReason} onChange={option("smokeColours")} />
+              <Toggle label={t("game.opt.killfeedColours")} testId="killfeed-colours" hint={t("game.opt.killfeedColoursHint")} on={o ? o.killfeedTeamColours : null} reason={cameraReason} onChange={option("killfeedTeamColours")} />
+              <GameColours o={o ?? null} reason={cameraReason} save={(patch) => void run(t("game.opt.option"), () => setConsoleOptions(patch).then(() => game.reload()))} />
+              <Toggle label={t("game.opt.endOfMatch")} testId="hide-end-of-match" hint={t("game.opt.endOfMatchHint")} on={o ? o.hideEndOfMatch : null} reason={cameraReason} onChange={option("hideEndOfMatch")} />
               <Toggle
-                label="Hide CS2 kill feed"
+                label={t("game.opt.hideKillfeed")}
                 testId="hide-game-killfeed"
-                hint="HLAE mirv_deathmsg filter add block=1: CS2's own kill feed is blocked, so only your HUD's kill feed shows. With Hide game HUD on, the crosshair stays."
+                hint={t("game.opt.hideKillfeedHint")}
                 on={o ? o.hideGameKillfeed : null}
                 reason={cameraReason}
                 onChange={option("hideGameKillfeed")}
@@ -307,7 +307,7 @@ export function GameCard() {
           <span className="text-warn small">{hlae.info.problem}</span>
           {hlae.choose ? (
             <Button size="sm" onClick={() => void hlae.choose!()} disabledReason={settingsReason}>
-              Choose HLAE.exe…
+              {t("game.chooseHlae")}
             </Button>
           ) : null}
         </div>

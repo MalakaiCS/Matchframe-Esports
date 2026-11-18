@@ -7,6 +7,7 @@ import { Badge, Button } from "../../components/ui.tsx";
 import type { HudDisplayStatus } from "../../lib/hudLibrary.ts";
 import { KIND_LABEL, OUTPUT_LABEL, OUTPUT_MODES, STATUS_INFO, resolutionLabel, stutters } from "../../lib/hudLibrary.ts";
 import { useLowSpec } from "../../lib/lowSpec.ts";
+import { t } from "../../i18n/index.ts";
 
 /** Actions on one HUD, shared by the card, the list row and the details panel. */
 export interface HudActions {
@@ -118,12 +119,12 @@ export function StatusBadge({ status, detail }: { status: HudDisplayStatus; deta
 /** Desktop / OBS / Preview indicators with the number of connected outputs of each kind, amber when one stutters or draws too few frames. */
 export function OutputIndicators({ outputs, smoothness = {} }: { outputs: Record<HudOutputMode, number>; smoothness?: Partial<Record<HudOutputMode, HudOutputSmoothness>> }) {
   return (
-    <span className="hud-outputs" aria-label="Active outputs">
+    <span className="hud-outputs" aria-label={t("hudlib.card.activeOutputs")}>
       {OUTPUT_MODES.map((m) => {
         const s = outputs[m] ? smoothness[m] : undefined;
-        const timing = s ? ` · ${s.fps} fps, longest pause ${s.worstPauseMs} ms in the last minute` : "";
+        const timing = s ? ` · ${t("hudlib.card.timing", { fps: s.fps, pause: s.worstPauseMs })}` : "";
         return (
-          <span key={m} className={`hud-output ${outputs[m] ? "is-on" : ""} ${stutters(s) ? "is-stutter" : ""}`} title={`${OUTPUT_LABEL[m]}: ${outputs[m] ? `${outputs[m]} connected${timing}` : "not connected"}`} data-output={m}>
+          <span key={m} className={`hud-output ${outputs[m] ? "is-on" : ""} ${stutters(s) ? "is-stutter" : ""}`} title={`${OUTPUT_LABEL[m]}: ${outputs[m] ? `${t("hudlib.card.connected", { count: outputs[m] })}${timing}` : t("hudlib.card.notConnected")}`} data-output={m}>
             <span className="hud-output-dot" aria-hidden />
             {OUTPUT_LABEL[m]}
             {outputs[m] > 1 ? <span className="num"> {outputs[m]}</span> : null}
@@ -184,10 +185,10 @@ export function Thumbnail({ entry, className = "" }: { entry: HudLibraryEntry; c
 
 function moreItems(a: HudActions, r: HudActionReasons) {
   return [
-    { label: "Duplicate", onClick: a.duplicate, reason: r.duplicate },
-    { label: "Export ZIP", onClick: a.exportZip, reason: r.exportZip },
-    { label: "Open Folder", onClick: a.openFolder, reason: r.openFolder },
-    { label: "Remove…", onClick: a.remove, reason: r.remove, danger: true },
+    { label: t("hudlib.action.duplicate"), onClick: a.duplicate, reason: r.duplicate },
+    { label: t("hudlib.action.exportZip"), onClick: a.exportZip, reason: r.exportZip },
+    { label: t("hudlib.action.openFolder"), onClick: a.openFolder, reason: r.openFolder },
+    { label: t("hudlib.action.removeMenu"), onClick: a.remove, reason: r.remove, danger: true },
   ];
 }
 
@@ -202,7 +203,7 @@ function PrimaryAction({ overlay, actions, reasons }: Pick<HudItemProps, "overla
         }}
         disabledReason={reasons.closeDesktop ?? null}
       >
-        Close Desktop HUD
+        {t("hudlib.action.closeDesktop")}
       </Button>
     );
   return (
@@ -216,7 +217,7 @@ function PrimaryAction({ overlay, actions, reasons }: Pick<HudItemProps, "overla
       disabledReason={reasons.launch ?? null}
       className="hud-launch"
     >
-      <Icon name="play" size={14} /> Launch Transparent HUD
+      <Icon name="play" size={14} /> {t("hudlib.action.launch")}
     </Button>
   );
 }
@@ -224,12 +225,12 @@ function PrimaryAction({ overlay, actions, reasons }: Pick<HudItemProps, "overla
 function SecondaryActions({ entry, actions, reasons }: Pick<HudItemProps, "entry" | "actions" | "reasons">) {
   return (
     <div className="hud-actions-secondary">
-      <IconAction icon="eye" label="Preview" onClick={actions.preview} reason={reasons.preview} />
-      <IconAction icon="copy" label="Copy OBS Browser URL" onClick={actions.copyUrl} reason={reasons.copyUrl} />
-      <IconAction icon="settings" label="Settings" onClick={actions.settings} reason={reasons.settings} />
-      <IconAction icon="reload" label="Reload" onClick={actions.reload} reason={reasons.reload} />
-      <IconAction icon="stop" label="Stop" onClick={actions.stop} reason={reasons.stop} />
-      <MenuButton label={`More actions for ${entry.name}`} items={moreItems(actions, reasons)} />
+      <IconAction icon="eye" label={t("hudlib.action.preview")} onClick={actions.preview} reason={reasons.preview} />
+      <IconAction icon="copy" label={t("hudlib.action.copyUrl")} onClick={actions.copyUrl} reason={reasons.copyUrl} />
+      <IconAction icon="settings" label={t("hudlib.action.settings")} onClick={actions.settings} reason={reasons.settings} />
+      <IconAction icon="reload" label={t("hudlib.action.reload")} onClick={actions.reload} reason={reasons.reload} />
+      <IconAction icon="stop" label={t("hudlib.action.stop")} onClick={actions.stop} reason={reasons.stop} />
+      <MenuButton label={t("hudlib.action.more", { name: entry.name })} items={moreItems(actions, reasons)} />
     </div>
   );
 }
@@ -246,12 +247,12 @@ function Meta({ entry, shared }: { entry: HudLibraryEntry; shared?: boolean }): 
   return (
     <span className="hud-meta">
       <span>CS2</span>
-      <span>{entry.author || "Unknown author"}</span>
+      <span>{entry.author || t("hudlib.card.unknownAuthor")}</span>
       <span>v{entry.version}</span>
       {entry.kind !== "imported" ? <span>{KIND_LABEL[entry.kind]}</span> : null}
       {shared ? (
-        <span className="hud-shared" title="Shared with your organisation's other computers (Settings → Account)">
-          Shared
+        <span className="hud-shared" title={t("hudlib.card.sharedTitle")}>
+          {t("hudlib.card.shared")}
         </span>
       ) : null}
     </span>
@@ -277,7 +278,7 @@ export function HudCard(p: HudItemProps) {
         <Meta entry={entry} shared={p.shared} />
         <p className="hud-desc" title={entry.description}>
           {entry.category ? <span className="hud-category">{entry.category}</span> : null}
-          {entry.description || "No description."}
+          {entry.description || t("hudlib.card.noDescription")}
         </p>
         <OutputIndicators outputs={p.outputs} smoothness={p.entry.smoothness} />
       </div>
@@ -303,18 +304,18 @@ export function LaunchSwitch({ overlay, actions, reasons }: Pick<HudItemProps, "
       aria-checked={on}
       className={`switch hud-launch ${on ? "is-on" : ""}`}
       disabled={!!reason}
-      title={reason ?? (on ? "Desktop HUD on: click to close the window over the game" : "Launch Transparent HUD: a click-through window over the game")}
+      title={reason ?? (on ? t("hudlib.card.switchOn") : t("hudlib.card.switchOff"))}
       onClick={(e) => {
         e.stopPropagation();
         if (on) actions.closeDesktop();
         else actions.launch();
       }}
     >
-      <span className="switch-label">Desktop</span>
+      <span className="switch-label">{t("hudlib.output.desktop")}</span>
       <span className="switch-track" aria-hidden>
         <span className="switch-thumb" />
       </span>
-      <span className="sr-only">{on ? "Close the desktop HUD" : "Launch Transparent HUD"}</span>
+      <span className="sr-only">{on ? t("hudlib.card.closeDesktopHud") : t("hudlib.action.launch")}</span>
     </button>
   );
 }
@@ -334,19 +335,19 @@ export function HudRow(p: HudItemProps) {
       <StatusBadge status={p.status} detail={p.statusDetail} />
       <OutputIndicators outputs={p.outputs} smoothness={p.entry.smoothness} />
       <div className="hud-row-actions">
-        <IconAction icon="settings" label="Settings" onClick={p.actions.settings} reason={p.reasons.settings} />
-        <IconAction icon="eye" label="Preview" onClick={p.actions.preview} reason={p.reasons.preview} />
-        <IconAction icon="copy" label="Copy OBS Browser URL" onClick={p.actions.copyUrl} reason={p.reasons.copyUrl} />
+        <IconAction icon="settings" label={t("hudlib.action.settings")} onClick={p.actions.settings} reason={p.reasons.settings} />
+        <IconAction icon="eye" label={t("hudlib.action.preview")} onClick={p.actions.preview} reason={p.reasons.preview} />
+        <IconAction icon="copy" label={t("hudlib.action.copyUrl")} onClick={p.actions.copyUrl} reason={p.reasons.copyUrl} />
         <MenuButton
-          label={`More actions for ${entry.name}`}
+          label={t("hudlib.action.more", { name: entry.name })}
           items={[
-            { label: "Reload", onClick: p.actions.reload, reason: p.reasons.reload },
-            { label: "Stop", onClick: p.actions.stop, reason: p.reasons.stop },
+            { label: t("hudlib.action.reload"), onClick: p.actions.reload, reason: p.reasons.reload },
+            { label: t("hudlib.action.stop"), onClick: p.actions.stop, reason: p.reasons.stop },
             ...moreItems(p.actions, p.reasons),
           ]}
         />
         <LaunchSwitch overlay={p.overlay} actions={p.actions} reasons={p.reasons} />
-        <button type="button" className={`icon-btn hud-expand ${p.selected ? "is-open" : ""}`} aria-label={p.selected ? "Hide details" : "Show details"} title={p.selected ? "Hide details" : "Details"} aria-expanded={p.selected} onClick={(e) => (e.stopPropagation(), p.onSelect())}>
+        <button type="button" className={`icon-btn hud-expand ${p.selected ? "is-open" : ""}`} aria-label={p.selected ? t("hudlib.card.hideDetails") : t("hudlib.card.showDetails")} title={p.selected ? t("hudlib.card.hideDetails") : t("common.details")} aria-expanded={p.selected} onClick={(e) => (e.stopPropagation(), p.onSelect())}>
           <Icon name="chevronDown" size={16} />
         </button>
       </div>

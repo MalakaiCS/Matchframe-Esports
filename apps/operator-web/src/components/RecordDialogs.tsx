@@ -3,10 +3,13 @@ import { api, describeError, seg } from "../api/index.ts";
 import type { DeleteImpact, ImportPreview } from "../api/types.ts";
 import { useToast } from "./toasts.tsx";
 import { Badge, Button, Loading, Modal, Note } from "./ui.tsx";
+import { perLocale, t } from "../i18n/index.ts";
+import { T } from "../i18n/T.tsx";
 
 type Kind = "teams" | "players" | "matches";
-const NOUN: Record<Kind, [string, string]> = { teams: ["team", "teams"], players: ["player", "players"], matches: ["match", "matches"] };
-const plural = (k: Kind, n: number) => `${n} ${NOUN[k][n === 1 ? 0 : 1]}`;
+/** "3 teams", in the console's language. */
+const plural = (k: Kind, n: number) => (k === "teams" ? t("editor.count.teams", { count: n }) : k === "players" ? t("editor.count.players", { count: n }) : t("editor.count.matches", { count: n }));
+const noun = (k: Kind) => (k === "teams" ? t("editor.noun.team") : k === "players" ? t("editor.noun.player") : t("editor.noun.match"));
 
 /**
  * Delete confirmation for one or more records: names each record and what deleting it changes.
@@ -32,10 +35,10 @@ export function DeleteDialog({ kind, ids, onClose, onDone }: { kind: Kind; ids: 
     try {
       if (what === "delete") {
         await api.post(`/api/v1/${kind}/delete`, { ids: deletable.map((d) => d.id) });
-        toast.push("ok", `Deleted ${deletable.length === 1 ? deletable[0]!.label : plural(kind, deletable.length)}`);
+        toast.push("ok", t("editor.deletedWhat", { what: deletable.length === 1 ? deletable[0]!.label : plural(kind, deletable.length) }));
       } else {
         for (const b of blocked) await api.post(`/api/v1/${kind}/${seg(b.id)}/archive`, { archived: true });
-        toast.push("ok", `Archived ${blocked.length === 1 ? blocked[0]!.label : plural(kind, blocked.length)}`, "Archived records are hidden from lists; their history is kept.");
+        toast.push("ok", t("editor.archivedWhat", { what: blocked.length === 1 ? blocked[0]!.label : plural(kind, blocked.length) }), t("editor.archivedRecordsAreHiddenFrom"));
       }
       onDone();
     } catch (e) {
@@ -44,7 +47,7 @@ export function DeleteDialog({ kind, ids, onClose, onDone }: { kind: Kind; ids: 
       setBusy(false);
     }
   };
-  const title = ids.length === 1 ? `Delete ${impacts?.[0]?.label ?? NOUN[kind][0]}?` : `Delete ${plural(kind, ids.length)}?`;
+  const title = t("editor.deleteWhatQ", { what: ids.length === 1 ? (impacts?.[0]?.label ?? noun(kind)) : plural(kind, ids.length) });
   return (
     <Modal
       title={title}
@@ -52,34 +55,30 @@ export function DeleteDialog({ kind, ids, onClose, onDone }: { kind: Kind; ids: 
       wide={ids.length > 1}
       footer={
         <>
-          <Button onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
+          <Button onClick={onClose} disabled={busy}>{t("common.cancel")}</Button>
           {blocked.length ? (
-            <Button variant="warn" disabled={busy} onClick={() => void run("archive")}>
-              Archive {blocked.length === 1 ? blocked[0]!.label : `the ${blocked.length} blocked`} instead
-            </Button>
+            <Button variant="warn" disabled={busy} onClick={() => void run("archive")}>{t("editor.archiveVInstead", { v: blocked.length === 1 ? blocked[0]!.label : t("editor.theCountBlocked", { count: blocked.length }) })}</Button>
           ) : null}
           {deletable.length ? (
             <Button variant="danger" disabled={busy} onClick={() => void run("delete")}>
-              {blocked.length ? `Delete the ${plural(kind, deletable.length)} that can be deleted` : ids.length === 1 ? "Delete" : `Delete ${plural(kind, deletable.length)}`}
+              {blocked.length ? t("editor.deleteTheKindThatCan", { kind: plural(kind, deletable.length) }) : ids.length === 1 ? t("editor.delete") : t("editor.deleteKind", { kind: plural(kind, deletable.length) })}
             </Button>
           ) : null}
         </>
       }
     >
       {error ? (
-        <Note tone="danger" title="Not deleted">
+        <Note tone="danger" title={t("editor.notDeleted")}>
           {error}
         </Note>
       ) : null}
-      {!impacts && !error ? <Loading label="Checking what uses these records…" /> : null}
+      {!impacts && !error ? <Loading label={t("editor.checkingWhatUsesTheseRecords")} /> : null}
       {impacts ? (
         <ul className="impact-list">
           {impacts.map((i) => (
             <li key={i.id} className={`impact ${i.deletable ? "" : "is-blocked"}`}>
               <div className="impact-head">
-                <strong>{i.label}</strong> {i.deletable ? <Badge tone="danger">Will be deleted</Badge> : <Badge tone="warn">Cannot be deleted</Badge>}
+                <strong>{i.label}</strong> {i.deletable ? <Badge tone="danger">{t("editor.willBeDeleted")}</Badge> : <Badge tone="warn">{t("editor.cannotBeDeleted")}</Badge>}
               </div>
               {i.blockers.length ? (
                 <ul className="impact-lines">
@@ -98,14 +97,14 @@ export function DeleteDialog({ kind, ids, onClose, onDone }: { kind: Kind; ids: 
                 </ul>
               ) : i.deletable ? (
                 <ul className="impact-lines">
-                  <li>Nothing else refers to it.</li>
+                  <li>{t("editor.nothingElseRefersToIt")}</li>
                 </ul>
               ) : null}
             </li>
           ))}
         </ul>
       ) : null}
-      {blocked.length ? <p className="small muted">Archive hides a record from lists and pickers but keeps it for history (matches, rosters and results that refer to it). Deleting cannot be undone.</p> : impacts ? <p className="small muted">Deleting cannot be undone.</p> : null}
+      {blocked.length ? <p className="small muted">{t("editor.archiveHidesARecordFrom")}</p> : impacts ? <p className="small muted">{t("editor.deletingCannotBeUndone")}</p> : null}
     </Modal>
   );
 }
@@ -121,21 +120,21 @@ function saveBlob(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-const COLUMNS: Record<"teams" | "players", [string, string][]> = {
+const COLUMNS: Record<"teams" | "players", [string, string][]> = perLocale(() => ({
   teams: [
-    ["name", "Team name"],
-    ["shortName", "Short name"],
-    ["country", "Country"],
+    ["name", t("editor.teamName")],
+    ["shortName", t("editor.shortName")],
+    ["country", t("teams.country")],
   ],
   players: [
-    ["displayName", "Nickname"],
-    ["firstName", "First name"],
-    ["lastName", "Last name"],
-    ["country", "Country"],
+    ["displayName", t("teams.nickname")],
+    ["firstName", t("editor.firstName")],
+    ["lastName", t("editor.lastName")],
+    ["country", t("teams.country")],
     ["steamId", "SteamID64"],
-    ["team", "Team"],
+    ["team", t("teams.team")],
   ],
-};
+}));
 
 /**
  * Spreadsheet import: download the template, upload a filled-in .xlsx, review every row (errors
@@ -152,7 +151,7 @@ export function ImportDialog({ kind, onClose, onDone }: { kind: "teams" | "playe
   const load = async (f: File) => {
     setError(null);
     setPreview(null);
-    if (!/\.xlsx$/i.test(f.name)) return setError(`${f.name} is not an .xlsx file. Save the spreadsheet as Excel Workbook (.xlsx).`);
+    if (!/\.xlsx$/i.test(f.name)) return setError(t("editor.nameIsNotAnXlsx", { name: f.name }));
     const data = await f.arrayBuffer();
     setFile({ name: f.name, data });
     setBusy(true);
@@ -170,7 +169,7 @@ export function ImportDialog({ kind, onClose, onDone }: { kind: "teams" | "playe
     setError(null);
     try {
       const r = await api.upload<{ created: string[]; skippedRows: number[] }>(`/api/v1/import/${kind}/commit${preview.invalid ? "?skipInvalid=1" : ""}`, file.data, TYPE);
-      toast.push("ok", `Imported ${r.created.length} ${kind === "teams" ? (r.created.length === 1 ? "team" : "teams") : r.created.length === 1 ? "player" : "players"}`, r.skippedRows.length ? `Skipped rows ${r.skippedRows.join(", ")} (errors).` : undefined);
+      toast.push("ok", t("editor.importedWhat", { what: plural(kind, r.created.length) }), r.skippedRows.length ? t("editor.skippedRowsJoinErrors", { join: r.skippedRows.join(", ") }) : undefined);
       onDone();
     } catch (e) {
       setError(describeError(e));
@@ -181,16 +180,14 @@ export function ImportDialog({ kind, onClose, onDone }: { kind: "teams" | "playe
   const cols = COLUMNS[kind];
   return (
     <Modal
-      title={`Import ${kind}`}
+      title={kind === "teams" ? t("editor.importTeams") : t("editor.importPlayers")}
       wide
       onClose={onClose}
       footer={
         <>
-          <Button onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
-          <Button variant="primary" disabled={busy} disabledReason={!preview ? "Upload a filled-in template first" : preview.valid === 0 ? "No rows without errors to import" : null} onClick={() => void commit()}>
-            {preview && preview.invalid ? `Import ${preview.valid} valid row${preview.valid === 1 ? "" : "s"}, skip ${preview.invalid}` : `Import ${preview?.valid ?? ""} row${preview?.valid === 1 ? "" : "s"}`}
+          <Button onClick={onClose} disabled={busy}>{t("common.cancel")}</Button>
+          <Button variant="primary" disabled={busy} disabledReason={!preview ? t("editor.uploadAFilledInTemplate") : preview.valid === 0 ? t("editor.noRowsWithoutErrorsTo") : null} onClick={() => void commit()}>
+            {preview && preview.invalid ? t("editor.importValidSkip", { count: preview.valid, invalid: preview.invalid }) : preview ? t("editor.importRows", { count: preview.valid }) : t("editor.import")}
           </Button>
         </>
       }
@@ -205,48 +202,40 @@ export function ImportDialog({ kind, onClose, onDone }: { kind: "teams" | "playe
                 .then((d) => saveBlob(d.blob, d.filename ?? `MatchFrame ${kind} import template.xlsx`))
                 .catch((e) => setError(describeError(e)))
             }
-          >
-            Download the template
-          </Button>{" "}
+          >{t("editor.downloadTheTemplate")}</Button>{" "}
           <span className="small muted">
-            {kind === "players" ? "Import teams first: each player's Team must be an existing team's name, short name or id. Keep the SteamID64 column as Text." : "One team per row; teams that already exist are reported, not created again."}
+            {kind === "players" ? t("editor.importTeamsFirstEachPlayer") : t("editor.oneTeamPerRowTeams")}
           </span>
         </li>
         <li>
-          <input ref={input} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="sr-only" aria-label="Choose .xlsx file" onChange={(e) => e.target.files?.[0] && void load(e.target.files[0])} />
+          <input ref={input} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="sr-only" aria-label={t("editor.chooseXlsxFile")} onChange={(e) => e.target.files?.[0] && void load(e.target.files[0])} />
           <Button size="sm" variant={file ? "secondary" : "primary"} onClick={() => input.current?.click()} disabled={busy}>
-            {file ? "Choose another file" : "Upload a filled-in .xlsx"}
+            {file ? t("editor.chooseAnotherFile") : t("editor.uploadAFilledInXlsx")}
           </Button>{" "}
           {file ? <span className="small mono">{file.name}</span> : null}
         </li>
-        <li>Check the rows below, then import. Nothing is written until you import.</li>
+        <li>{t("editor.checkTheRowsBelowThen")}</li>
       </ol>
       {error ? (
-        <Note tone="danger" title="Import problem">
+        <Note tone="danger" title={t("editor.importProblem")}>
           {error}
         </Note>
       ) : null}
-      {busy && !preview ? <Loading label="Reading the spreadsheet…" /> : null}
+      {busy && !preview ? <Loading label={t("editor.readingTheSpreadsheet")} /> : null}
       {preview ? (
         <>
-          <p className="small">
-            {preview.total} row{preview.total === 1 ? "" : "s"}: <strong className="text-ok">{preview.valid} ready</strong>
-            {preview.invalid ? (
-              <>
-                , <strong className="text-danger">{preview.invalid} with errors</strong> (not imported)
-              </>
-            ) : null}
-            {preview.ignoredColumns.length ? <span className="muted"> · Ignored columns: {preview.ignoredColumns.join(", ")}</span> : null}
-          </p>
+          <p className="small"><T k="editor.rowsSummary" values={{ count: preview.total, strong: <strong className="text-ok">{t("editor.validReady", { valid: preview.valid })}</strong>, v2: preview.invalid ? (
+              <><T k="editor.strongNotImported" values={{ strong: <strong className="text-danger">{t("editor.invalidWithErrors", { invalid: preview.invalid })}</strong> }} /></>
+            ) : null, v3: preview.ignoredColumns.length ? <span className="muted">{t("editor.ignoredColumnsJoin", { join: preview.ignoredColumns.join(", ") })}</span> : null }} /></p>
           <div className="import-table-wrap">
             <table className="table table-compact import-table">
               <thead>
                 <tr>
-                  <th>Row</th>
+                  <th>{t("editor.row")}</th>
                   {cols.map(([, h]) => (
                     <th key={h}>{h}</th>
                   ))}
-                  <th>Check</th>
+                  <th>{t("editor.check")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -258,7 +247,7 @@ export function ImportDialog({ kind, onClose, onDone }: { kind: "teams" | "playe
                         {r.values[k] || <span className="muted">—</span>}
                       </td>
                     ))}
-                    <td>{r.errors.length ? <span className="text-danger">{r.errors.join(" · ")}</span> : <Badge tone="ok">Ready</Badge>}</td>
+                    <td>{r.errors.length ? <span className="text-danger">{r.errors.join(" · ")}</span> : <Badge tone="ok">{t("editor.ready")}</Badge>}</td>
                   </tr>
                 ))}
               </tbody>

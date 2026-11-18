@@ -8,6 +8,8 @@ import { useApi } from "../../lib/hooks.ts";
 import type { ArtKind } from "../../lib/match-art/make.ts";
 import { ART_ORDER, makeMatchArt, useArtJob } from "../../lib/match-art/make.ts";
 import { usePermission } from "../../state/session.tsx";
+import { t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 
 const SAVE_AS: Record<ArtKind, string> = {
   "thumb-highlights": "highlights",
@@ -46,18 +48,16 @@ export function MatchArtPanel({ matchId, teams }: { matchId: string; teams: stri
   }, [madeCount, job?.state]);
   return (
     <Panel
-      title="Thumbnails & stingers"
-      subtitle="Made for every new match from both teams' logos and colours (a ? when a team has no logo)."
+      title={t("matches.thumbnailsStingers")}
+      subtitle={t("matches.madeForEveryNewMatch")}
       actions={
-        <ActionButton size="sm" variant="primary" action={() => makeMatchArt(matchId)} disabledReason={writeReason ?? (working ? "Making them now" : null)}>
-          Make again
-        </ActionButton>
+        <ActionButton size="sm" variant="primary" action={() => makeMatchArt(matchId)} disabledReason={writeReason ?? (working ? t("matches.makingThemNow") : null)}>{t("matches.makeAgain")}</ActionButton>
       }
     >
       {job && job.state === "working" ? (
         <div className="stack" style={{ marginBottom: 12 }}>
-          <span className="small">Making {job.step.toLowerCase()}… {Math.round(job.progress * 100)} %</span>
-          <Meter value={job.progress} label="Making the match graphics" />
+          <span className="small">{t("matches.artProgress", { step: job.step, round: Math.round(job.progress * 100) })}</span>
+          <Meter value={job.progress} label={t("matches.makingTheMatchGraphics")} />
         </div>
       ) : job?.state === "failed" && job.error ? (
         <Note tone="warn" title={job.step}>
@@ -70,7 +70,7 @@ export function MatchArtPanel({ matchId, teams }: { matchId: string; teams: stri
           const stingers = a.items.filter((i) => i.kind.startsWith("stinger"));
           return (
             <>
-              {a.items.length === 0 && !working ? <p className="muted">Nothing made yet.</p> : null}
+              {a.items.length === 0 && !working ? <p className="muted">{t("matches.nothingMadeYet")}</p> : null}
               <div className="art-grid">
                 {ART_ORDER.map((kind) => {
                   const item = byKind.get(kind);
@@ -78,70 +78,56 @@ export function MatchArtPanel({ matchId, teams }: { matchId: string; teams: stri
                   // A stinger (QuickTime, PNG frames) shows its frame at the cut; download it for the video.
                   return (
                     <figure key={kind} className="art-card">
-                      <img className={`art-preview ${item.still ? "art-checker" : ""}`} src={item.still ?? item.url} alt={`${item.label} preview`} />
+                      <img className={`art-preview ${item.still ? "art-checker" : ""}`} src={item.still ?? item.url} alt={t("matches.labelPreview", { label: item.label })} />
                       <figcaption>
                         <span>
                           <strong>{item.label}</strong> <span className="muted small">{fmtBytes(item.bytes)}</span>
                         </span>
-                        <a className="btn btn-sm" href={item.url} download={fileName(teams, kind, item.url)}>
-                          Download
-                        </a>
+                        <a className="btn btn-sm" href={item.url} download={fileName(teams, kind, item.url)}>{t("matches.download")}</a>
                       </figcaption>
                     </figure>
                   );
                 })}
               </div>
-              <p className="small muted" style={{ marginTop: 8 }}>
-                Saved on this computer in <span className="mono">{a.folder}</span> <CopyButton text={a.folder} label="Copy folder" size="sm" />
-              </p>
-              <Details summary="Background picture">
-                <p className="small muted">The thumbnails and Up next screen are drawn on both teams' colours, or on a picture: a game screenshot, for example. Make them again after changing it.</p>
+              <p className="small muted" style={{ marginTop: 8 }}><T k="matches.savedOnThisComputerIn" values={{ span: <span className="mono">{a.folder}</span>, copyButton: <CopyButton text={a.folder} label={t("matches.copyFolder")} size="sm" /> }} /></p>
+              <Details summary={t("matches.backgroundPicture")}>
+                <p className="small muted">{t("matches.theThumbnailsAndUpNext")}</p>
                 <div className="row">
                   <AssetUpload
-                    label="Picture"
+                    label={t("matches.picture")}
                     value={a.settings.backgroundAssetId}
                     disabledReason={writeReason}
                     onChange={(id) => {
                       void api.put(`/api/v1/matches/${seg(matchId)}/art/settings`, { backgroundAssetId: id }).then(() => art.reload());
                     }}
                   />
-                  <ActionButton size="sm" action={() => api.post(`/api/v1/matches/${seg(matchId)}/art/background-from-obs`)} success="Took the picture on air in OBS" onDone={() => void art.reload()} disabledReason={writeReason}>
-                    Use what OBS shows now
-                  </ActionButton>
+                  <ActionButton size="sm" action={() => api.post(`/api/v1/matches/${seg(matchId)}/art/background-from-obs`)} success={t("matches.tookThePictureOnAir")} onDone={() => void art.reload()} disabledReason={writeReason}>{t("matches.useWhatObsShowsNow")}</ActionButton>
                 </div>
               </Details>
-              <h3 className="ga-section-title">Stinger transitions in OBS</h3>
-              <p className="small">
-                Once in OBS: <strong>Scene Transitions → + → Stinger</strong>, named <span className="mono">{a.obs.transitions.stinger}</span>, and a second one named <span className="mono">{a.obs.transitions["stinger-replay"]}</span> (any video file; MatchFrame replaces it). Then put this match's stingers in them. The active match's stingers go in by themselves when you activate it.
-              </p>
+              <h3 className="ga-section-title">{t("matches.stingerTransitionsInObs")}</h3>
+              <p className="small"><T k="matches.onceInObsSceneTransitions" values={{ span: <span className="mono">{a.obs.transitions.stinger}</span>, span2: <span className="mono">{a.obs.transitions["stinger-replay"]}</span> }} tags={{ b: (c) => <strong>{c}</strong> }} /></p>
               <div className="row" style={{ gap: 16 }}>
                 <ActionButton
                   variant="primary"
                   action={() => api.post<MatchArtObsResult>(`/api/v1/matches/${seg(matchId)}/art/obs`, { useStinger })}
                   onDone={setObsResult}
-                  success={(r) => (r.set.length ? `Stingers set in OBS (cut at ${a.obs.cutMs} ms)` : null)}
-                  disabledReason={programReason ?? (stingers.length ? null : "Make the stingers first")}
-                >
-                  Put the stingers in OBS
-                </ActionButton>
-                <Checkbox checked={useStinger} onChange={setUseStinger} label="Use the stinger for every scene change" hint="Makes MatchFrame Stinger OBS's current transition. Replays use the replay stinger." />
+                  success={(r) => (r.set.length ? t("matches.stingersSetInObsCut", { cutMs: a.obs.cutMs }) : null)}
+                  disabledReason={programReason ?? (stingers.length ? null : t("matches.makeTheStingersFirst"))}
+                >{t("matches.putTheStingersInObs")}</ActionButton>
+                <Checkbox checked={useStinger} onChange={setUseStinger} label={t("matches.useTheStingerForEvery")} hint={t("matches.makesMatchframeStingerObsS")} />
               </div>
               {obsResult ? (
                 <div className="stack small" style={{ marginTop: 8 }}>
                   {obsResult.set.map((s) => (
                     <span key={s.transition}>
-                      {s.confirmed ? "✓" : "⚠"} {s.transition}: {s.confirmed ? "set" : "OBS didn't confirm the change"}
+                      {s.confirmed ? "✓" : "⚠"} {s.transition}: {s.confirmed ? t("matches.set") : t("matches.obsDidnTConfirmThe")}
                     </span>
                   ))}
                   {obsResult.missing.length ? (
-                    <Note tone="warn" title="Not in OBS yet">
-                      Add {obsResult.missing.map((m) => `“${m}”`).join(" and ")} in OBS (Scene Transitions → + → Stinger), then press the button again.
-                    </Note>
+                    <Note tone="warn" title={t("matches.notInObsYet")}>{t("matches.addJoinInObsScene", { join: obsResult.missing.map((m) => `“${m}”`).join(" and ") })}</Note>
                   ) : null}
                   {obsResult.set.length ? (
-                    <span className="muted">
-                      OBS's transition: {obsResult.current ?? "unknown"} · into replays: {obsResult.replayIn || "OBS's current transition"} · back to live: {obsResult.replayOut || "OBS's current transition"}
-                    </span>
+                    <span className="muted">{t("matches.obsSTransitionVInto", { v: obsResult.current ?? t("matches.unknown"), v2: obsResult.replayIn || t("matches.obsSCurrentTransition"), v3: obsResult.replayOut || t("matches.obsSCurrentTransition") })}</span>
                   ) : null}
                 </div>
               ) : null}

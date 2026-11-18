@@ -7,6 +7,7 @@ import { ComposerTab } from "./huds/Composer.tsx";
 import { CuesTab } from "./huds/Cues.tsx";
 import { OutputsTab } from "./huds/Outputs.tsx";
 import { PackagesTab } from "./huds/Packages.tsx";
+import { t } from "../i18n/index.ts";
 
 /** HUD Library sub-pages (the broadcast tools that existed before the library). */
 function HudPage({ title, intro, children }: { title: string; intro: ReactNode; children: ReactNode }) {
@@ -24,14 +25,14 @@ function HudPage({ title, intro, children }: { title: string; intro: ReactNode; 
 export function HudOutputsScreen() {
   const [tab, setTab] = usePersistentState<"outputs" | "packages">("hudOutputsTab", "outputs");
   return (
-    <HudPage title="Broadcast outputs" intro="Named browser-source outputs with draft, publish, rollback and delay. Output changes go on air when you publish them.">
+    <HudPage title={t("huds.broadcastOutputs")} intro={t("huds.namedBrowserSourceOutputsWith")}>
       <Tabs
-        label="Broadcast output sections"
+        label={t("huds.broadcastOutputSections")}
         value={tab}
         onChange={setTab}
         tabs={[
-          { id: "outputs", label: "Outputs" },
-          { id: "packages", label: "Packages" },
+          { id: "outputs", label: t("huds.outputs") },
+          { id: "packages", label: t("huds.packages") },
         ]}
       />
       {tab === "packages" ? <PackagesTab /> : <OutputsTab />}
@@ -41,7 +42,7 @@ export function HudOutputsScreen() {
 
 export function HudCuesScreen() {
   return (
-    <HudPage title="Cues" intro="Lower thirds, caster cards and other short graphics on the broadcast outputs. Cues go on air immediately.">
+    <HudPage title={t("huds.cues")} intro={t("huds.lowerThirdsCasterCardsAnd2")}>
       <CuesTab />
     </HudPage>
   );
@@ -49,7 +50,7 @@ export function HudCuesScreen() {
 
 export function HudAnnotationsScreen() {
   return (
-    <HudPage title="Annotations" intro="Telestrator drawings on the broadcast outputs. Annotations go on air immediately.">
+    <HudPage title={t("huds.annotations")} intro={t("huds.telestratorDrawingsOnTheBroadcast")}>
       <AnnotationsTab />
     </HudPage>
   );
@@ -57,7 +58,7 @@ export function HudAnnotationsScreen() {
 
 export function HudComposerScreen() {
   return (
-    <HudPage title="Composer" intro="Arrange the built-in HUD layout in an output draft, then publish it from Broadcast outputs.">
+    <HudPage title={t("huds.composer")} intro={t("huds.arrangeTheBuiltInHud")}>
       <ComposerTab />
     </HudPage>
   );

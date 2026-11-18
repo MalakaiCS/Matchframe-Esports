@@ -7,6 +7,8 @@ import { fmtBytes, fmtMs } from "../../lib/format.ts";
 import { useApi } from "../../lib/hooks.ts";
 import { drawReelGraphics } from "../../lib/match-art/reel.ts";
 import { usePermission } from "../../state/session.tsx";
+import { t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 
 /** GET /api/v1/highlights (services/local-engine/src/routes/highlights.ts). */
 export interface HighlightsOverview {
@@ -82,7 +84,7 @@ export function HighlightReelPanel() {
   useEffect(() => {
     if (!maps.length) return setPlan(null);
     let gone = false;
-    const t = setTimeout(() => {
+    const tRow = setTimeout(() => {
       api
         .post<ReelPlan>("/api/v1/highlights/plan", choice)
         .then((p) => !gone && (setPlan(p), setPlanError(null)))
@@ -90,7 +92,7 @@ export function HighlightReelPanel() {
     }, 150);
     return () => {
       gone = true;
-      clearTimeout(t);
+      clearTimeout(tRow);
     };
     // The plan follows the choices and the clips kept.
   }, [key, mapKeys]);
@@ -106,12 +108,12 @@ export function HighlightReelPanel() {
   const exportReel = async (): Promise<ReelJob> => {
     // The plan as it is now (clips may have come in since it was shown).
     const p = await api.post<ReelPlan>("/api/v1/highlights/plan", choice);
-    if (!p.clips.length) throw new Error("No clips to put in the reel yet.");
+    if (!p.clips.length) throw new Error(t("prod.noClipsToPutIn2"));
     let graphics: Record<string, string> | undefined;
     if (burn) {
-      setDrawing(`Drawing the lower thirds (0 of ${p.clips.length})`);
+      setDrawing(t("prod.drawingTheLowerThirds0", { count: p.clips.length }));
       try {
-        graphics = await drawReelGraphics(p.clips, (n) => setDrawing(`Drawing the lower thirds (${n} of ${p.clips.length})`));
+        graphics = await drawReelGraphics(p.clips, (n) => setDrawing(t("prod.drawingTheLowerThirdsN", { n, count: p.clips.length })));
       } finally {
         setDrawing(null);
       }
@@ -122,60 +124,58 @@ export function HighlightReelPanel() {
   };
 
   return (
-    <Panel title="Highlight reel" subtitle="A map's best clips as one MP4, ready for social media." actions={running ? <Badge tone="accent">Making</Badge> : null}>
+    <Panel title={t("prod.highlightReel")} subtitle={t("prod.aMapSBestClips")} actions={running ? <Badge tone="accent">{t("prod.making")}</Badge> : null}>
       <div className="stack-sm">
-        {maps.length === 0 ? <p className="muted small">No clips yet. Clips that come into the replay queue are kept here for the current and the previous map.</p> : null}
+        {maps.length === 0 ? <p className="muted small">{t("prod.noClipsYetClipsThat")}</p> : null}
         <div className="form-grid">
-          <Field label="Map">
+          <Field label={t("prod.map")}>
             <select value={map} onChange={(e) => setMap(e.target.value)} disabled={!maps.length}>
               {maps.map((m) => (
                 <option key={m.key} value={m.current ? "" : m.key}>
-                  {`${m.current ? "This map" : "Previous map"}: ${m.displayName}${m.title ? ` (${m.title})` : ""} · ${m.played} played`}
+                  {t("prod.vDisplaynameV2PlayedPlayed", { v: m.current ? t("prod.thisMap") : t("prod.previousMap"), displayName: m.displayName, v2: m.title ? ` (${m.title})` : "", played: m.played })}
                 </option>
               ))}
             </select>
           </Field>
-          <Field label="Clips" hint="Best: by the same score as the automatic replays.">
+          <Field label={t("prod.clips")} hint={t("prod.bestByTheSameScore2")}>
             <select value={String(count)} onChange={(e) => setCount(e.target.value === "all" ? "all" : (Number(e.target.value) as Count))}>
               {COUNTS.map((c) => (
                 <option key={c} value={String(c)}>
-                  {c === "all" ? "All played clips" : `The best ${c}`}
+                  {c === "all" ? t("prod.allPlayedClips") : t("prod.theBestC", { c })}
                 </option>
               ))}
             </select>
           </Field>
-          <Field label="Crossfade (s)">
+          <Field label={t("prod.crossfadeS")}>
             <input type="number" min={0} max={2} step={0.1} value={fade} onChange={(e) => setFade(Math.max(0, Math.min(2, Number(e.target.value) || 0)))} />
           </Field>
         </div>
-        {count !== "all" ? <Checkbox checked={unplayed} onChange={setUnplayed} label="Also clips that weren't played" hint="The best of the map's other clips (the replay PC films more than a break has time for)." /> : null}
-        <Checkbox checked={burn} onChange={setBurn} label="Burn in the replay graphic" hint="Each clip gets its lower third (player, weapon, victims, 2K–ACE, clutch, round), fading in and out." />
-        <Checkbox checked={slow} onChange={setSlow} label="Slow motion at the kills" hint="Each clip slowed as automatic replays slow theirs (around each kill when theirs is off); a kill's extra angle slowed after it, the first angle at real time." />
+        {count !== "all" ? <Checkbox checked={unplayed} onChange={setUnplayed} label={t("prod.alsoClipsThatWerenT")} hint={t("prod.theBestOfTheMap")} /> : null}
+        <Checkbox checked={burn} onChange={setBurn} label={t("prod.burnInTheReplayGraphic")} hint={t("prod.eachClipGetsItsLower")} />
+        <Checkbox checked={slow} onChange={setSlow} label={t("prod.slowMotionAtTheKills")} hint={t("prod.eachClipSlowedAsAutomatic")} />
         {planError ? <Note tone="warn">{planError}</Note> : null}
         {plan && plan.clips.length ? (
-          <Details summary={`${plan.clips.length} clip${plan.clips.length === 1 ? "" : "s"}, ${len(plan.totalMs)}${plan.fadeMs ? ` with ${plan.fadeMs / 1000} s crossfades` : ""}`}>
+          <Details summary={`${t("prod.clipCount", { count: plan.clips.length })}, ${len(plan.totalMs)}${plan.fadeMs ? t("prod.withVSCrossfades", { v: plan.fadeMs / 1000 }) : ""}`}>
             <ol className="small" style={{ margin: 0, paddingLeft: 20 }}>
               {plan.clips.map((c) => (
                 <li key={c.id}>
                   R{c.roundNumber ?? "?"} · {c.label} · {fmtMs(c.outMs ?? c.durationMs)}
-                  {c.slow ? " · slow motion" : ""}
-                  {c.played || c.angle ? "" : " · not played"}
+                  {c.slow ? t("prod.slowMotion") : ""}
+                  {c.played || c.angle ? "" : t("prod.notPlayed")}
                   {c.reasons.length ? <span className="muted"> ({c.reasons.join(", ")})</span> : null}
                 </li>
               ))}
             </ol>
           </Details>
         ) : plan ? (
-          <p className="muted small">{count === "all" ? "No clip of this map has been played yet." : "No clips of this map yet."}</p>
+          <p className="muted small">{count === "all" ? t("prod.noClipOfThisMap") : t("prod.noClipsOfThisMap")}</p>
         ) : null}
         {ffmpegMissing ? (
-          <Note tone="warn" title="ffmpeg is needed">
-            {data?.ffmpeg.canDownload ? "MatchFrame can download it (about 90 MB)." : "Install it with this system's package manager (for example apt install ffmpeg)."}
+          <Note tone="warn" title={t("prod.ffmpegIsNeeded")}>
+            {data?.ffmpeg.canDownload ? t("prod.matchframeCanDownloadItAbout") : t("prod.installItWithThisSystem")}
             {data?.ffmpeg.canDownload ? (
               <div className="row" style={{ marginTop: 8 }}>
-                <ActionButton action={() => api.post("/api/v1/highlights/ffmpeg")} success="ffmpeg downloaded" onDone={() => void ov.reload()} disabledReason={settingsReason ?? (data.ffmpeg.downloading !== null ? `Downloading (${Math.round(data.ffmpeg.downloading * 100)} %)` : null)}>
-                  Download ffmpeg
-                </ActionButton>
+                <ActionButton action={() => api.post("/api/v1/highlights/ffmpeg")} success={t("prod.ffmpegDownloaded")} onDone={() => void ov.reload()} disabledReason={settingsReason ?? (data.ffmpeg.downloading !== null ? t("prod.downloadingRound", { round: Math.round(data.ffmpeg.downloading * 100) }) : null)}>{t("prod.downloadFfmpeg")}</ActionButton>
               </div>
             ) : null}
           </Note>
@@ -184,11 +184,9 @@ export function HighlightReelPanel() {
           <ActionButton
             variant="primary"
             action={exportReel}
-            success={(j) => `Making the reel: ${j.clips} clips`}
-            disabledReason={reason ?? (running ? "A reel is being made" : drawing ? drawing : ffmpegMissing ? "ffmpeg isn't installed" : !plan?.clips.length ? "No clips to put in the reel" : null)}
-          >
-            Export highlight reel
-          </ActionButton>
+            success={(j) => t("prod.makingTheReel", { count: j.clips })}
+            disabledReason={reason ?? (running ? t("prod.aReelIsBeingMade") : drawing ? drawing : ffmpegMissing ? t("prod.ffmpegIsnTInstalled") : !plan?.clips.length ? t("prod.noClipsToPutIn") : null)}
+          >{t("prod.exportHighlightReel")}</ActionButton>
           {drawing ? <span className="muted small">{drawing}</span> : null}
         </div>
         {job ? (
@@ -199,49 +197,38 @@ export function HighlightReelPanel() {
                   <span className="small">
                     {job.title}: {job.step} ({Math.round(job.progress * 100)} %)
                   </span>
-                  <Button size="sm" onClick={() => void api.post(`/api/v1/highlights/reels/${encodeURIComponent(job.id)}/cancel`).then(() => ov.reload(), (e) => toast.push("danger", "Not stopped", describeError(e)))}>
-                    Cancel
-                  </Button>
+                  <Button size="sm" onClick={() => void api.post(`/api/v1/highlights/reels/${encodeURIComponent(job.id)}/cancel`).then(() => ov.reload(), (e) => toast.push("danger", t("prod.notStopped"), describeError(e)))}>{t("common.cancel")}</Button>
                 </div>
-                <Meter value={job.progress} label="Highlight reel progress" />
+                <Meter value={job.progress} label={t("prod.highlightReelProgress")} />
               </>
             ) : job.state === "done" && job.file ? (
               <>
-                <p className="small">
-                  <Badge tone="ok">Done</Badge> {job.title}: {job.clips} clips, {len(job.durationMs)}
-                  {job.bytes ? `, ${fmtBytes(job.bytes)}` : ""}
-                </p>
+                <p className="small"><T k="prod.badgeTitleClips" values={{ badge: <Badge tone="ok">{t("prod.done")}</Badge>, title: job.title, clips: t("prod.clipCount", { count: job.clips }), durationMs: len(job.durationMs), v: job.bytes ? `, ${fmtBytes(job.bytes)}` : "" }} /></p>
                 <div className="row">
                   <Mono>{job.file}</Mono>
-                  <CopyButton text={job.file} label="Copy path" />
+                  <CopyButton text={job.file} label={t("prod.copyPath")} />
                   {open ? (
-                    <Button size="sm" onClick={() => void open(data?.folder)}>
-                      Open folder
-                    </Button>
+                    <Button size="sm" onClick={() => void open(data?.folder)}>{t("prod.openFolder")}</Button>
                   ) : null}
                 </div>
               </>
             ) : job.state === "failed" ? (
-              <Note tone="danger" title="The reel wasn't made">
+              <Note tone="danger" title={t("prod.theReelWasnTMade")}>
                 {job.error}
               </Note>
             ) : (
-              <p className="muted small">The last reel was stopped.</p>
+              <p className="muted small">{t("prod.theLastReelWasStopped")}</p>
             )}
           </div>
         ) : null}
-        <Details summary="Where reels go, and the clips kept">
-          <p className="small">
-            Reels: <Mono>{data?.folder ?? "…"}</Mono>
-          </p>
-          <p className="small muted">The replay queue deletes old clips; the current and previous map's clips are kept for reels: {fmtBytes(data?.keptBytes ?? 0)} now. Over the limit, clips that weren't played go first, then the oldest.</p>
+        <Details summary={t("prod.whereReelsGoAndThe")}>
+          <p className="small"><T k="prod.reelsMono" values={{ mono: <Mono>{data?.folder ?? "…"}</Mono> }} /></p>
+          <p className="small muted">{t("prod.theReplayQueueDeletesOld", { fmtBytes: fmtBytes(data?.keptBytes ?? 0) })}</p>
           <div className="row-end">
-            <Field label="Keep up to (GB)">
+            <Field label={t("prod.keepUpToGb")}>
               <input type="number" min={0.5} max={500} step={0.5} value={keepGb ?? 3} onChange={(e) => setKeepGb(Number(e.target.value))} style={{ width: 100 }} />
             </Field>
-            <ActionButton action={() => api.put<HighlightsOverview>("/api/v1/highlights/settings", { keepGb: keepGb ?? 3 })} success="Saved" onDone={() => void ov.reload()} disabledReason={settingsReason ?? (!keepGb || keepGb < 0.5 ? "At least 0.5 GB" : null)}>
-              Save
-            </ActionButton>
+            <ActionButton action={() => api.put<HighlightsOverview>("/api/v1/highlights/settings", { keepGb: keepGb ?? 3 })} success={t("prod.saved")} onDone={() => void ov.reload()} disabledReason={settingsReason ?? (!keepGb || keepGb < 0.5 ? t("prod.atLeast05Gb") : null)}>{t("prod.save")}</ActionButton>
           </div>
         </Details>
       </div>

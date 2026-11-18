@@ -7,19 +7,22 @@ import { useApi } from "../../lib/hooks.ts";
 import { useLowSpec } from "../../lib/lowSpec.ts";
 import { Link } from "../../router.tsx";
 import { usePermission } from "../../state/session.tsx";
+import { perLocale, t } from "../../i18n/index.ts";
+import { fmtNum } from "../../lib/format.ts";
+import { T } from "../../i18n/T.tsx";
 
-const STATE: Record<CamPlayerView["state"], { tone: "ok" | "warn" | "neutral" | "info"; label: string }> = {
-  offline: { tone: "neutral", label: "No camera" },
-  waiting_approval: { tone: "warn", label: "Waiting for you" },
-  live: { tone: "ok", label: "On air" },
-  hidden: { tone: "info", label: "Off air" },
-};
+const STATE: Record<CamPlayerView["state"], { tone: "ok" | "warn" | "neutral" | "info"; label: string }> = perLocale(() => ({
+  offline: { tone: "neutral", label: t("cams.noCamera") },
+  waiting_approval: { tone: "warn", label: t("cams.waitingForYou") },
+  live: { tone: "ok", label: t("cams.onAir") },
+  hidden: { tone: "info", label: t("cams.offAir") },
+}));
 
-const QUALITY: Record<CamStatusView["quality"], string> = {
-  low: "Low (480×270)",
-  standard: "Standard (640×360)",
-  high: "High (1280×720)",
-};
+const QUALITY: Record<CamStatusView["quality"], string> = perLocale(() => ({
+  low: t("cams.quality.low", { size: "480×270" }),
+  standard: t("cams.quality.standard", { size: "640×360" }),
+  high: t("cams.quality.high", { size: "1280×720" }),
+}));
 const BITRATE: Record<CamStatusView["quality"], string> = { low: "0.4", standard: "0.7", high: "1.8" };
 
 /** One player's preview: the cam as it arrives (not delayed). */
@@ -30,7 +33,7 @@ function Preview({ preview, steamId }: { preview: CamPreview; steamId: string })
     holder.current?.appendChild(c);
     return () => c.remove();
   }, [preview, steamId]);
-  return <div ref={holder} className="cam-preview-tile" aria-label="Camera preview" />;
+  return <div ref={holder} className="cam-preview-tile" aria-label={t("cams.cameraPreview")} />;
 }
 
 function PlayerCard({ p, preview, onChanged }: { p: CamPlayerView; preview: CamPreview | null; onChanged: () => void }) {
@@ -38,7 +41,7 @@ function PlayerCard({ p, preview, onChanged }: { p: CamPlayerView; preview: CamP
   const st = STATE[p.state];
   return (
     <div className={`cam-card ${p.onAir ? "is-on" : ""}`}>
-      {p.state === "offline" ? <div className="cam-preview-tile cam-preview-none">Not sending yet</div> : preview ? <Preview preview={preview} steamId={p.steamId} /> : <div className="cam-preview-tile cam-preview-none">Preview off</div>}
+      {p.state === "offline" ? <div className="cam-preview-tile cam-preview-none">{t("cams.notSendingYet")}</div> : preview ? <Preview preview={preview} steamId={p.steamId} /> : <div className="cam-preview-tile cam-preview-none">{t("cams.previewOff")}</div>}
       <div className="cam-card-body">
         <div className="cam-card-head">
           <strong>{p.name}</strong>
@@ -47,29 +50,21 @@ function PlayerCard({ p, preview, onChanged }: { p: CamPlayerView; preview: CamP
         <div className="small muted">{p.team || " "}</div>
         {p.state !== "offline" ? (
           <div className="small muted">
-            {p.camera ?? "Camera"} · {p.width}×{p.height} · {p.kbps} kbit/s{p.bufferedSec > 0 ? ` · ${p.bufferedSec.toFixed(1)} s buffered` : ""}
+            {p.camera ?? t("cams.camera")} · {p.width}×{p.height} · {p.kbps} kbit/s{p.bufferedSec > 0 ? t("cams.tofixedSBuffered", { toFixed: fmtNum(p.bufferedSec, 1) }) : ""}
           </div>
         ) : null}
         <div className="cam-card-actions">
           {p.state === "waiting_approval" ? (
-            <ActionButton size="sm" variant="primary" action={() => api.post(`/api/v1/cams/players/${seg(p.steamId)}/approve`)} onDone={onChanged} disabledReason={reason}>
-              Put on air
-            </ActionButton>
+            <ActionButton size="sm" variant="primary" action={() => api.post(`/api/v1/cams/players/${seg(p.steamId)}/approve`)} onDone={onChanged} disabledReason={reason}>{t("cams.putOnAir")}</ActionButton>
           ) : null}
           {p.state === "live" ? (
-            <ActionButton size="sm" action={() => api.put(`/api/v1/cams/players/${seg(p.steamId)}/hidden`, { hidden: true })} onDone={onChanged} disabledReason={reason}>
-              Take off air
-            </ActionButton>
+            <ActionButton size="sm" action={() => api.put(`/api/v1/cams/players/${seg(p.steamId)}/hidden`, { hidden: true })} onDone={onChanged} disabledReason={reason}>{t("cams.takeOffAir")}</ActionButton>
           ) : null}
           {p.state === "hidden" ? (
-            <ActionButton size="sm" action={() => api.put(`/api/v1/cams/players/${seg(p.steamId)}/hidden`, { hidden: false })} onDone={onChanged} disabledReason={reason}>
-              Put on air
-            </ActionButton>
+            <ActionButton size="sm" action={() => api.put(`/api/v1/cams/players/${seg(p.steamId)}/hidden`, { hidden: false })} onDone={onChanged} disabledReason={reason}>{t("cams.putOnAir")}</ActionButton>
           ) : null}
           {p.state !== "offline" ? (
-            <ActionButton size="sm" variant="ghost" action={() => api.post(`/api/v1/cams/players/${seg(p.steamId)}/kick`)} onDone={onChanged} disabledReason={reason} confirm={{ title: `Stop ${p.name}'s camera?`, body: "Their page shows that the production stopped their camera. They can send it again from the link." }}>
-              Stop camera
-            </ActionButton>
+            <ActionButton size="sm" variant="ghost" action={() => api.post(`/api/v1/cams/players/${seg(p.steamId)}/kick`)} onDone={onChanged} disabledReason={reason} confirm={{ title: t("cams.stopNameSCamera", { name: p.name }), body: t("cams.theirPageShowsThatThe") }}>{t("cams.stopCamera")}</ActionButton>
           ) : null}
         </div>
       </div>
@@ -101,61 +96,53 @@ export function WebCams() {
     <Async state={cams}>
       {(c) => {
         const status = !c.enabled ? (
-          <Badge>Off</Badge>
+          <Badge>{t("cams.off")}</Badge>
         ) : !c.signedIn ? (
-          <Badge tone="warn">Sign in needed</Badge>
+          <Badge tone="warn">{t("cams.signInNeeded")}</Badge>
         ) : c.websiteConnected ? (
-          <Badge tone="ok" icon="●">
-            Open on the website
-          </Badge>
+          <Badge tone="ok" icon="●">{t("cams.openOnTheWebsite")}</Badge>
         ) : (
-          <Badge tone="warn">Connecting…</Badge>
+          <Badge tone="warn">{t("cams.connecting")}</Badge>
         );
         const delay = delaySec ?? String(c.delayMs / 1000);
         const live = c.players.filter((p) => p.state !== "offline").length;
         return (
           <div className="stack">
-            <Panel title="Player cams from the website" actions={status}>
+            <Panel title={t("cams.playerCamsFromTheWebsite")} actions={status}>
               <div className="stack">
                 <Checkbox
                   checked={c.enabled}
                   disabled={!!reason}
                   onChange={(v) => void save({ enabled: v })}
-                  label="Player cams"
-                  hint="Players open a link on the MatchFrame website, pick themselves and their camera, and send it. MatchFrame shows each player's cam in your HUD when the observer is on them, delayed to match the game."
+                  label={t("cams.playerCams2")}
+                  hint={t("cams.playersOpenALinkOn")}
                 />
                 {c.enabled && !c.signedIn ? (
-                  <Note tone="warn">
-                    Player cams go through the MatchFrame website: sign this program in under <Link to="/settings/account">Settings → Account</Link>.
-                  </Note>
+                  <Note tone="warn"><T k="cams.playerCamsGoThroughThe" tags={{ link: (c) => <Link to="/settings/account">{c}</Link> }} /></Note>
                 ) : null}
                 {c.error && c.enabled ? <Note tone="warn">{c.error}</Note> : null}
                 {c.link ? (
-                  <Field label="Link for your players" hint="Send it to the players in this match (Discord, chat). Anyone with the link can send a camera as a player in the match, so only share it with them.">
+                  <Field label={t("cams.linkForYourPlayers")} hint={t("cams.sendItToThePlayers")}>
                     <div className="cam-link-row">
                       <Mono>{c.link}</Mono>
-                      <CopyButton text={c.link} label="Copy link" />
-                      <ActionButton size="sm" variant="ghost" action={() => api.post<CamStatusView>("/api/v1/cams/new-link").then((r) => cams.setData(r))} disabledReason={reason} confirm={{ title: "Make a new link?", body: "The old link stops working at once, and players on it are sent away. Send everyone the new one." }}>
-                        New link
-                      </ActionButton>
+                      <CopyButton text={c.link} label={t("cams.copyLink")} />
+                      <ActionButton size="sm" variant="ghost" action={() => api.post<CamStatusView>("/api/v1/cams/new-link").then((r) => cams.setData(r))} disabledReason={reason} confirm={{ title: t("cams.makeANewLink"), body: t("cams.theOldLinkStopsWorking") }}>{t("cams.newLink")}</ActionButton>
                     </div>
                   </Field>
                 ) : null}
                 <div className="form-grid">
-                  <Field label="Delay (seconds)" hint="Your CSTV delay (tv_delay), so faces match the game on screen. Up to 300 s.">
+                  <Field label={t("cams.delaySeconds")} hint={t("cams.yourCstvDelayTvDelay")}>
                     <div className="cam-link-row">
                       <input type="number" min={0} max={300} step={0.5} value={delay} onChange={(e) => setDelaySec(e.target.value)} disabled={!!reason} />
                       <ActionButton
                         size="sm"
                         action={() => save({ delayMs: Math.round(Math.max(0, Math.min(300, Number(delay) || 0)) * 1000) })}
                         onDone={() => setDelaySec(null)}
-                        disabledReason={reason ?? (delaySec === null ? "No change" : null)}
-                      >
-                        Set delay
-                      </ActionButton>
+                        disabledReason={reason ?? (delaySec === null ? t("cams.noChange") : null)}
+                      >{t("cams.setDelay")}</ActionButton>
                     </div>
                   </Field>
-                  <Field label="Video players send" hint={`About ${BITRATE[c.quality]} Mbit/s from each player, through the MatchFrame website.`}>
+                  <Field label={t("cams.videoPlayersSend")} hint={t("cams.aboutBitrateMbitSFrom", { BITRATE: BITRATE[c.quality] })}>
                     <select value={c.quality} disabled={!!reason} onChange={(e) => void save({ quality: e.target.value as CamStatusView["quality"] })}>
                       {(Object.keys(QUALITY) as CamStatusView["quality"][]).map((q) => (
                         <option key={q} value={q}>
@@ -165,13 +152,13 @@ export function WebCams() {
                     </select>
                   </Field>
                 </div>
-                <Checkbox checked={c.autoApprove} disabled={!!reason} onChange={(v) => void save({ autoApprove: v })} label="Put cams on air as soon as they arrive" hint="Off: each cam waits here until you put it on air (you see it first)." />
+                <Checkbox checked={c.autoApprove} disabled={!!reason} onChange={(v) => void save({ autoApprove: v })} label={t("cams.putCamsOnAirAs")} hint={t("cams.offEachCamWaitsHere")} />
               </div>
             </Panel>
             {c.enabled ? (
-              <Panel title="Players" subtitle={`${live} of ${c.players.length} sending`} actions={<Checkbox checked={showPreviews} onChange={setPreviewChoice} label="Live previews" hint={lowSpec ? "Off by default in low-spec mode" : "Each cam as it arrives"} />}>
+              <Panel title={t("cams.players")} subtitle={t("cams.liveOfCountSending", { live, count: c.players.length })} actions={<Checkbox checked={showPreviews} onChange={setPreviewChoice} label={t("cams.livePreviews")} hint={lowSpec ? t("cams.offByDefaultInLow") : t("cams.eachCamAsItArrives")} />}>
                 {c.players.length === 0 ? (
-                  <p className="small muted">The players appear here from the current match (Matches) or, without one, from the game data.</p>
+                  <p className="small muted">{t("cams.thePlayersAppearHereFrom")}</p>
                 ) : (
                   <div className="cam-grid">
                     {c.players.map((p) => (
@@ -179,23 +166,21 @@ export function WebCams() {
                     ))}
                   </div>
                 )}
-                <p className="small muted">Previews here are live (not delayed); your HUDs and OBS get each cam {c.delayMs ? `${(c.delayMs / 1000).toFixed(1)} s later` : "with no delay"}.</p>
+                <p className="small muted">{t("cams.previewsHereAreLiveNot", { v: c.delayMs ? t("cams.tofixedSLater", { toFixed: fmtNum(c.delayMs / 1000, 1) }) : t("cams.withNoDelay") })}</p>
               </Panel>
             ) : null}
             {c.enabled && c.outputs ? (
-              <Panel title="Where the cams show">
+              <Panel title={t("cams.whereTheCamsShow")}>
                 <div className="stack-sm">
-                  <p className="small">
-                    <strong>Your HUD:</strong> Imported HUDs (hud.json format) and MatchFrame's own HUD show the observed player's cam by themselves. Reload a HUD that was open before you switched player cams on.
-                  </p>
-                  <Field label="OBS browser source: the observed player's cam" hint="Fills the source; transparent when that player has no cam on air.">
+                  <p className="small"><T k="cams.yourHudImportedHudsHud" tags={{ b: (c) => <strong>{c}</strong> }} /></p>
+                  <Field label={t("cams.obsBrowserSourceTheObserved")} hint={t("cams.fillsTheSourceTransparentWhen")}>
                     <div className="cam-link-row">
                       <Mono>{c.outputs.observed}</Mono>
                       <CopyButton text={c.outputs.observed} />
                     </div>
                   </Field>
-                  <Details summary="One player's cam in OBS">
-                    <p className="small muted">Replace STEAMID with the player's SteamID64:</p>
+                  <Details summary={t("cams.onePlayerSCamIn")}>
+                    <p className="small muted">{t("cams.replaceSteamidWithThePlayer")}</p>
                     <div className="cam-link-row">
                       <Mono>{c.outputs.player}</Mono>
                       <CopyButton text={c.outputs.player} />

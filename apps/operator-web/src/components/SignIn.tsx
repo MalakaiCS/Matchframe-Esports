@@ -5,6 +5,8 @@ import { fmtTime } from "../lib/format.ts";
 import { can } from "../lib/permissions.ts";
 import { Link } from "../router.tsx";
 import { Button, Field, Note } from "./ui.tsx";
+import { t } from "../i18n/index.ts";
+import { T } from "../i18n/T.tsx";
 
 /** Messages from the website arrive as sentences; network and engine problems get the usual explanation. */
 function signInError(e: unknown): string {
@@ -33,15 +35,13 @@ function WebsiteAddress({ status, onSaved }: { status: CloudStatus; onSaved: () 
           .finally(() => setBusy(false));
       }}
     >
-      <p>Enter the address of the MatchFrame website.</p>
-      <Field label="Website address" hint="Development builds only; release builds have it built in.">
+      <p>{t("account.enterTheAddressOfThe")}</p>
+      <Field label={t("account.websiteAddress")} hint={t("account.developmentBuildsOnlyReleaseBuilds")}>
         <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://matchframe.example" spellCheck={false} autoFocus disabled={status.urlFixed} />
       </Field>
       {error ? <Note tone="danger">{error}</Note> : null}
       <div>
-        <Button type="submit" variant="primary" disabledReason={busy ? "Saving…" : url.trim() ? null : "Enter the address first"}>
-          Continue
-        </Button>
+        <Button type="submit" variant="primary" disabledReason={busy ? t("account.saving") : url.trim() ? null : t("account.enterTheAddressFirst")}>{t("account.continue")}</Button>
       </div>
     </form>
   );
@@ -53,10 +53,8 @@ function CodeSignIn({ status, onChange }: { status: CloudStatus; onChange: () =>
   if (status.linkState === "linking" && status.linking)
     return (
       <div className="stack">
-        <p>
-          On the website, open <strong>Link a computer</strong> and enter this code, or open the link and approve it:
-        </p>
-        <div className="link-code" aria-label="Link code">
+        <p><T k="account.onTheWebsiteOpenLink" tags={{ b: (c) => <strong>{c}</strong> }} /></p>
+        <div className="link-code" aria-label={t("account.linkCode")}>
           {status.linking.userCode}
         </div>
         <p>
@@ -64,9 +62,9 @@ function CodeSignIn({ status, onChange }: { status: CloudStatus; onChange: () =>
             {status.linking.verificationUriComplete}
           </a>
         </p>
-        <p className="muted">The code expires {fmtTime(status.linking.expiresAt)}. This updates by itself once it is approved.</p>
+        <p className="muted">{t("account.theCodeExpiresExpiresatThis", { expiresAt: fmtTime(status.linking.expiresAt) })}</p>
         <div>
-          <Button onClick={() => void api.post("/api/v1/cloud/link/cancel").then(onChange)}>Cancel</Button>
+          <Button onClick={() => void api.post("/api/v1/cloud/link/cancel").then(onChange)}>{t("common.cancel")}</Button>
         </div>
       </div>
     );
@@ -81,9 +79,7 @@ function CodeSignIn({ status, onChange }: { status: CloudStatus; onChange: () =>
               .then(onChange)
               .catch((e) => setError(signInError(e)))
           }
-        >
-          Get a code
-        </Button>
+        >{t("account.getACode")}</Button>
       </div>
     </div>
   );
@@ -108,9 +104,7 @@ export function SignInForm({ status, onSignedIn, onChange, autoFocus = false }: 
       <div className="stack">
         <CodeSignIn status={status} onChange={onChange} />
         <div>
-          <Button variant="ghost" onClick={() => setUseCode(false)}>
-            Sign in with email and password instead
-          </Button>
+          <Button variant="ghost" onClick={() => setUseCode(false)}>{t("account.signInWithEmailAnd")}</Button>
         </div>
       </div>
     );
@@ -146,35 +140,28 @@ export function SignInForm({ status, onSignedIn, onChange, autoFocus = false }: 
           submit(orgId);
         }}
       >
-        <p>Which organisation is this computer for? Its plan provides the auto-director hours.</p>
+        <p>{t("account.whichOrganisationIsThisComputer")}</p>
         <fieldset className="choice-list">
-          <legend className="sr-only">Organisation</legend>
+          <legend className="sr-only">{t("account.organisation")}</legend>
           {orgs.map((o) => (
             <label key={o.id} className={`choice ${orgId === o.id ? "is-selected" : ""}`}>
               <input type="radio" name="org" value={o.id} checked={orgId === o.id} onChange={() => setOrgId(o.id)} />
               <span>
                 <strong>{o.name}</strong>
-                <span className="muted">
-                  {" "}
-                  · {o.planName} plan · {o.role}
-                </span>
+                <span className="muted">{t("account.plannamePlanRole", { planName: o.planName, role: o.role })}</span>
               </span>
             </label>
           ))}
         </fieldset>
         {error ? <Note tone="danger">{error}</Note> : null}
         <div className="row">
-          <Button type="submit" variant="primary" disabledReason={busy ? "Signing in…" : orgId ? null : "Choose an organisation"}>
-            Continue
-          </Button>
+          <Button type="submit" variant="primary" disabledReason={busy ? t("account.signingIn") : orgId ? null : t("account.chooseAnOrganisation")}>{t("account.continue")}</Button>
           <Button
             onClick={() => {
               setOrgs(null);
               setPassword("");
             }}
-          >
-            Back
-          </Button>
+          >{t("account.back")}</Button>
         </div>
       </form>
     );
@@ -187,32 +174,24 @@ export function SignInForm({ status, onSignedIn, onChange, autoFocus = false }: 
         submit();
       }}
     >
-      <Field label="Email">
+      <Field label={t("account.email")}>
         <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus={autoFocus && !email} required />
       </Field>
-      <Field label="Password">
+      <Field label={t("account.password")}>
         <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus={autoFocus && !!email} required />
       </Field>
       {error ? (
-        <Note tone="danger" title="Could not sign in">
+        <Note tone="danger" title={t("account.couldNotSignIn")}>
           {error}
         </Note>
       ) : null}
       <div className="row signin-actions">
-        <Button type="submit" variant="primary" disabledReason={busy ? "Signing in…" : email.trim() && password ? null : "Enter your email and password"}>
-          {busy ? "Signing in…" : "Sign in"}
+        <Button type="submit" variant="primary" disabledReason={busy ? t("account.signingIn") : email.trim() && password ? null : t("account.enterYourEmailAndPassword")}>
+          {busy ? t("account.signingIn") : t("account.signIn")}
         </Button>
-        <a href={websiteLink(status, "/forgot-password")} target="_blank" rel="noreferrer">
-          Forgot password?
-        </a>
+        <a href={websiteLink(status, "/forgot-password")} target="_blank" rel="noreferrer">{t("account.forgotPassword")}</a>
       </div>
-      <p className="muted signin-alt">
-        No account?{" "}
-        <a href={websiteLink(status, "/signup")} target="_blank" rel="noreferrer">
-          Create one on the website
-        </a>{" "}
-        · <button type="button" className="link-btn" onClick={() => setUseCode(true)} title="Approve this computer on the website with a short code instead of a password">Sign in with a code</button>
-      </p>
+      <p className="muted signin-alt"><T k="account.noAccountCreateOneOn" values={{ button: <button type="button" className="link-btn" onClick={() => setUseCode(true)} title={t("account.approveThisComputerOnThe")}>{t("account.signInWithACode")}</button> }} tags={{ link: (c) => <a href={websiteLink(status, "/signup")} target="_blank" rel="noreferrer">{c}</a> }} /></p>
     </form>
   );
 }
@@ -257,8 +236,8 @@ export function SignInNotice({ role }: { role: string | null }) {
   }, [load, role]);
 
   useEffect(() => {
-    const t = setInterval(() => void load(), 30_000);
-    return () => clearInterval(t);
+    const tRow = setInterval(() => void load(), 30_000);
+    return () => clearInterval(tRow);
   }, [load]);
 
   const st = status?.signIn.state;
@@ -269,9 +248,6 @@ export function SignInNotice({ role }: { role: string | null }) {
   if (!status || !st || !wasSignedIn || !LOST.has(st)) return null;
   const lastError = status.lastError ? `${status.lastError.charAt(0).toUpperCase()}${status.lastError.slice(1)}. ` : "";
   return (
-    <Note tone="warn" title={st === "offline_expired" ? "MatchFrame needs to go online" : "Signed out of MatchFrame"}>
-      {st === "offline_expired" ? "Connect to the internet to keep using the Auto Director. " : lastError}
-      The HUD Library, HUDs and manual control keep working. {st === "offline_expired" ? null : <>The Auto Director needs you to sign in again under <Link to="/settings/account">Settings → Account</Link>.</>}
-    </Note>
+    <Note tone="warn" title={st === "offline_expired" ? t("account.matchframeNeedsToGoOnline") : t("account.signedOutOfMatchframe")}><T k="account.vTheHudLibraryHuds" values={{ v: st === "offline_expired" ? t("account.connectToTheInternetTo") : lastError, v2: st === "offline_expired" ? null : <><T k="account.theAutoDirectorNeedsYou" tags={{ link: (c) => <Link to="/settings/account">{c}</Link> }} /></> }} /></Note>
   );
 }

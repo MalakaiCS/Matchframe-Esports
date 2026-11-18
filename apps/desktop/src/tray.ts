@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { Menu, nativeImage, Tray } from "electron";
+import { trayMenuItems } from "./tray-menu.ts";
 
 /**
  * Notification-area (tray) icon: Show Manager, Show/Hide HUD (desktop overlays), Stop HUD (closes
@@ -37,17 +38,7 @@ export function createTray(opts: {
 
   const refresh = () => {
     if (tray.isDestroyed()) return;
-    const s = opts.state();
-    tray.setContextMenu(
-      Menu.buildFromTemplate([
-        { label: "Show Manager", click: () => opts.showManager() },
-        { type: "separator" },
-        { label: s.visible ? "Hide HUD" : "Show HUD", enabled: s.open, click: () => opts.toggleHud() },
-        { label: "Stop HUD", enabled: s.outputs, click: () => opts.stopHud() },
-        { type: "separator" },
-        { label: "Quit MatchFrame", click: () => opts.quit() },
-      ]),
-    );
+    tray.setContextMenu(Menu.buildFromTemplate(trayMenuItems(opts.state(), opts)));
   };
   refresh();
   return {

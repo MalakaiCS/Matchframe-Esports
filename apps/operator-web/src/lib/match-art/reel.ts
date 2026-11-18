@@ -1,6 +1,7 @@
 import type { HudReplayClip } from "@matchframe/hud-sdk";
 import { drawReelGraphic, REEL_GRAPHIC } from "./highlight.ts";
 import { FAMILY, loadFonts, loadImage } from "./make.ts";
+import { t } from "../../i18n/index.ts";
 
 /** PNG bytes as base64 (what the reel request carries). */
 async function base64(blob: Blob): Promise<string> {
@@ -18,7 +19,7 @@ export async function drawReelGraphics(clips: { id: string; graphic: HudReplayCl
   await loadFonts();
   const canvas = new OffscreenCanvas(REEL_GRAPHIC.width, REEL_GRAPHIC.height);
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) throw new Error("This computer can't draw the graphics (no 2D canvas).");
+  if (!ctx) throw new Error(t("matchArt.noCanvas"));
   const logos = new Map<string, Promise<HTMLImageElement | null>>();
   const out: Record<string, string> = {};
   for (const [i, c] of clips.entries()) {

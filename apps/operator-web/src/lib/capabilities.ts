@@ -1,4 +1,5 @@
 import type { Capability, SourceCapabilities, Support } from "@matchframe/contracts";
+import { perLocale, t } from "../i18n/index.ts";
 
 export interface CapabilityMeta {
   label: string;
@@ -7,33 +8,33 @@ export interface CapabilityMeta {
   group: "telemetry" | "control" | "utility" | "time";
 }
 
-export const CAPABILITY_META: Record<string, CapabilityMeta> = {
-  allPlayerState: { label: "All-player state", setupHint: "use a spectator/observer client with the allplayers GSI components", group: "telemetry" },
-  playerPositions: { label: "Player positions", setupHint: "enable allplayers_position in the GSI config (Setup → write GSI config)", group: "telemetry" },
-  viewDirections: { label: "View directions", setupHint: "enable player forward vectors in the GSI config", group: "telemetry" },
-  weaponReadiness: { label: "Weapon readiness", setupHint: "weapon/ammo components in the GSI config", group: "telemetry" },
-  exactDamageEvents: { label: "Exact damage events", setupHint: "requires an authorized server-event adapter", group: "telemetry" },
-  exactKillEvents: { label: "Exact kill events", setupHint: "requires an authorized server-event adapter", group: "telemetry" },
-  grenadeEntities: { label: "Grenade entities", setupHint: "enable the grenades GSI component and wait for a grenade to be thrown", group: "utility" },
-  grenadeLifecycle: { label: "Grenade lifecycle", setupHint: "observe grenades on a real feed", group: "utility" },
-  utilityEffects: { label: "Utility effects", setupHint: "observe smokes/fires on a real feed", group: "utility" },
-  grenadeDamageAttribution: { label: "Grenade damage attribution", setupHint: "requires exact damage events", group: "utility" },
-  playerSelectionControl: { label: "Player selection", setupHint: "press Start Auto Director, or pick a player: it is confirmed when CS2 shows that player", group: "control" },
-  observerModeControl: { label: "Observer mode control", setupHint: "confirmed with the first camera (getpos); press Start Auto Director", group: "control" },
-  staticCameraControl: { label: "Static cameras", setupHint: "press Start Auto Director: it shows a camera and checks it with getpos", group: "control" },
-  cameraPathControl: { label: "Camera paths", setupHint: "confirmed with the first static camera (the same console command)", group: "control" },
-  cameraReadback: { label: "Camera readback", setupHint: "needs the CS2 console: Start CS2 in Tools mode", group: "control" },
-  matchTimelineTime: { label: "Match timeline time", setupHint: "derived from ingest timing; no action needed", group: "time" },
-};
+export const CAPABILITY_META: Record<string, CapabilityMeta> = perLocale(() => ({
+  allPlayerState: { label: t("lib.allPlayerState"), setupHint: t("lib.useASpectatorObserverClient"), group: "telemetry" },
+  playerPositions: { label: t("lib.playerPositions"), setupHint: t("lib.enableAllplayersPosition"), group: "telemetry" },
+  viewDirections: { label: t("lib.viewDirections"), setupHint: t("lib.enablePlayerForwardVectorsIn"), group: "telemetry" },
+  weaponReadiness: { label: t("lib.weaponReadiness"), setupHint: t("lib.weaponAmmoComponentsInThe"), group: "telemetry" },
+  exactDamageEvents: { label: t("lib.exactDamageEvents"), setupHint: t("lib.requiresAnAuthorizedServerEvent"), group: "telemetry" },
+  exactKillEvents: { label: t("lib.exactKillEvents"), setupHint: t("lib.requiresAnAuthorizedServerEvent"), group: "telemetry" },
+  grenadeEntities: { label: t("lib.grenadeEntities"), setupHint: t("lib.enableTheGrenadesGsiComponent"), group: "utility" },
+  grenadeLifecycle: { label: t("lib.grenadeLifecycle"), setupHint: t("lib.observeGrenadesOnAReal"), group: "utility" },
+  utilityEffects: { label: t("lib.utilityEffects"), setupHint: t("lib.observeSmokesFiresOnA"), group: "utility" },
+  grenadeDamageAttribution: { label: t("lib.grenadeDamageAttribution"), setupHint: t("lib.requiresExactDamageEvents"), group: "utility" },
+  playerSelectionControl: { label: t("lib.playerSelection"), setupHint: t("lib.pressStartAutoDirectorOr"), group: "control" },
+  observerModeControl: { label: t("lib.observerModeControl"), setupHint: t("lib.confirmedWithFirstCamera"), group: "control" },
+  staticCameraControl: { label: t("lib.staticCameras"), setupHint: t("lib.pressStartAutoDirectorIt"), group: "control" },
+  cameraPathControl: { label: t("lib.cameraPaths"), setupHint: t("lib.confirmedWithTheFirstStatic"), group: "control" },
+  cameraReadback: { label: t("lib.cameraReadback"), setupHint: t("lib.needsTheCs2ConsoleStart"), group: "control" },
+  matchTimelineTime: { label: t("lib.matchTimelineTime"), setupHint: t("lib.derivedFromIngest"), group: "time" },
+}));
 
-const GRENADE_LABEL: Record<string, string> = { he: "HE grenade", flashbang: "Flashbang", smoke: "Smoke", molotov: "Molotov", incendiary: "Incendiary", decoy: "Decoy" };
+const GRENADE_LABEL: Record<string, string> = perLocale(() => ({ he: t("lib.heGrenade"), flashbang: t("common.grenade.flashbang"), smoke: t("common.grenade.smoke"), molotov: t("common.grenade.molotov"), incendiary: t("common.grenade.incendiary"), decoy: t("common.grenade.decoy") }));
 
 export function capabilityMeta(key: string): CapabilityMeta {
   if (key.startsWith("grenadeTypeSupport.")) {
-    const t = key.slice("grenadeTypeSupport.".length);
-    return { label: `${GRENADE_LABEL[t] ?? t} telemetry`, setupHint: `wait for a ${GRENADE_LABEL[t] ?? t} to be thrown on a real feed`, group: "utility" };
+    const tRow = key.slice("grenadeTypeSupport.".length);
+    return { label: t("lib.vTelemetry", { v: GRENADE_LABEL[tRow] ?? tRow }), setupHint: t("lib.waitForAVTo", { v: GRENADE_LABEL[tRow] ?? tRow }), group: "utility" };
   }
-  return CAPABILITY_META[key] ?? { label: key, setupHint: "see Setup", group: "telemetry" };
+  return CAPABILITY_META[key] ?? { label: key, setupHint: t("lib.seeSetup"), group: "telemetry" };
 }
 
 /** Flattens the capability report (including per-grenade-type entries) into [key, capability] rows. */
@@ -42,7 +43,7 @@ export function flattenCapabilities(caps: SourceCapabilities | null | undefined)
   const rows: [string, Capability][] = [];
   for (const [k, v] of Object.entries(caps)) {
     if (k === "grenadeTypeSupport") {
-      for (const [t, c] of Object.entries(v as Record<string, Capability>)) rows.push([`grenadeTypeSupport.${t}`, c]);
+      for (const [tRow, c] of Object.entries(v as Record<string, Capability>)) rows.push([`grenadeTypeSupport.${tRow}`, c]);
     } else rows.push([k, v as Capability]);
   }
   return rows;
@@ -68,19 +69,19 @@ export interface Gate {
  */
 export function capabilityGate(key: string, cap: Capability | null | undefined, opts: { allowPartial?: boolean; allowUnverified?: boolean; simulated?: boolean } = {}): Gate {
   const meta = capabilityMeta(key);
-  if (!cap) return { enabled: false, reason: `${meta.label}: unknown — no capability report yet (waiting for the engine)`, support: "unknown" };
+  if (!cap) return { enabled: false, reason: t("lib.labelUnknownNoCapabilityReport", { label: meta.label }), support: "unknown" };
   const firstLimitation = cap.limitations[0];
   switch (cap.support) {
     case "supported":
-      return { enabled: true, reason: opts.simulated ? `${meta.label}: supported by the SIMULATION adapter only — does not certify live control` : null, support: "supported" };
+      return { enabled: true, reason: opts.simulated ? t("lib.labelSupportedByTheSimulation", { label: meta.label }) : null, support: "supported" };
     case "partial":
-      if (opts.allowPartial === false) return { enabled: false, reason: `${meta.label}: partial — ${firstLimitation ?? meta.setupHint}`, support: "partial" };
-      return { enabled: true, reason: `${meta.label}: partial${firstLimitation ? ` — ${firstLimitation}` : ""}`, support: "partial" };
+      if (opts.allowPartial === false) return { enabled: false, reason: t("lib.labelPartialV2", { label: meta.label, v: firstLimitation ?? meta.setupHint }), support: "partial" };
+      return { enabled: true, reason: (firstLimitation ? t("lib.labelPartialV2", { label: meta.label, v: firstLimitation }) : t("lib.labelPartial", { label: meta.label })), support: "partial" };
     case "unverified":
       // A manual request is itself the check: the engine confirms it from the game's feedback.
-      if (opts.allowUnverified) return { enabled: true, reason: `${meta.label}: not confirmed on this CS2 build yet — your first request confirms it`, support: "unverified" };
-      return { enabled: false, reason: `${meta.label}: unverified — ${meta.setupHint}`, support: "unverified" };
+      if (opts.allowUnverified) return { enabled: true, reason: t("lib.labelNotConfirmedOnThis", { label: meta.label }), support: "unverified" };
+      return { enabled: false, reason: t("lib.labelUnverifiedSetuphint", { label: meta.label, setupHint: meta.setupHint }), support: "unverified" };
     case "unsupported":
-      return { enabled: false, reason: `${meta.label}: unsupported — ${firstLimitation ?? meta.setupHint}`, support: "unsupported" };
+      return { enabled: false, reason: t("lib.labelUnsupportedV", { label: meta.label, v: firstLimitation ?? meta.setupHint }), support: "unsupported" };
   }
 }

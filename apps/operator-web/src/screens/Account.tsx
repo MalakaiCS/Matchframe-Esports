@@ -11,13 +11,22 @@ import { fmtAgo, fmtHours, fmtTime, MISSING } from "../lib/format.ts";
 import { useApi } from "../lib/hooks.ts";
 import { countsText, storageText, syncedAgo } from "../lib/sync.ts";
 import { usePermission } from "../state/session.tsx";
+import { perLocale, t } from "../i18n/index.ts";
+import { T } from "../i18n/T.tsx";
 import "../styles/group-a.css";
 
-const LICENCE: Record<string, { tone: Tone; text: string }> = {
-  valid: { tone: "ok", text: "Valid" },
-  grace: { tone: "warn", text: "Offline grace" },
-  expired: { tone: "danger", text: "Expired" },
-};
+const LICENCE: Record<string, { tone: Tone; text: string }> = perLocale(() => ({
+  valid: { tone: "ok", text: t("account.valid") },
+  grace: { tone: "warn", text: t("account.offlineGrace") },
+  expired: { tone: "danger", text: t("account.expired") },
+}));
+
+/** The billing provider's subscription state, in words; an unknown state shows as sent. */
+function subscriptionText(status: string): string {
+  const key = `account.subscription.${status}`;
+  const text = t(key);
+  return text === key ? status.replace(/_/g, " ") : text;
+}
 
 function Website({ st, onChange }: { st: CloudStatus; onChange: () => void }) {
   const reason = usePermission("settings.manage");
@@ -28,28 +37,21 @@ function Website({ st, onChange }: { st: CloudStatus; onChange: () => void }) {
   return (
     <div className="ga-section">
       {st.url ? (
-        <p className="muted" style={{ margin: 0 }}>
-          <a href={st.url} target="_blank" rel="noreferrer" title={st.url}>
-            Open the website
-          </a>{" "}
-          to sign up, choose a plan, buy hours, manage team members or see usage for every computer.
-        </p>
+        <p className="muted" style={{ margin: 0 }}><T k="account.openTheWebsiteToSign" tags={{ link: (c) => <a href={st.url ?? undefined} target="_blank" rel="noreferrer" title={st.url ?? undefined}>{c}</a> }} /></p>
       ) : null}
       {st.urlFixed || signInAsksForUrl ? null : (
-        <Details summary="Website address">
+        <Details summary={t("account.websiteAddress")}>
           <div className="row-end">
-            <Field label="Website address" hint="Changing it signs this computer out.">
+            <Field label={t("account.websiteAddress")} hint={t("account.changingItSignsThisComputer")}>
               <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://app.matchframe.example" spellCheck={false} style={{ width: 320 }} />
             </Field>
             <ActionButton
               action={() => api.put("/api/v1/cloud/url", { url: url.trim() || null })}
-              success="Website address saved"
+              success={t("account.websiteAddressSaved")}
               onDone={onChange}
-              disabledReason={reason ?? (url.trim() === (st.url ?? "") ? "No change" : null)}
-              confirm={st.device ? { title: "Change the website address?", body: "This computer is signed out of its current account. You will need to sign in again." } : undefined}
-            >
-              Save address
-            </ActionButton>
+              disabledReason={reason ?? (url.trim() === (st.url ?? "") ? t("account.noChange") : null)}
+              confirm={st.device ? { title: t("account.changeTheWebsiteAddress"), body: t("account.thisComputerIsSignedOut") } : undefined}
+            >{t("account.saveAddress")}</ActionButton>
           </div>
         </Details>
       )}
@@ -62,68 +64,60 @@ function AccountPanel({ st, onChange }: { st: CloudStatus; onChange: () => void 
   const user = st.signIn.user;
   return (
     <Panel
-      title="MatchFrame account"
-      actions={st.linkState === "linked" ? <Badge tone="ok">Signed in</Badge> : st.linkState === "linking" ? <Badge tone="info">Waiting for approval</Badge> : st.linkState === "revoked" ? <Badge tone="danger">Signed out on website</Badge> : <Badge>Signed out</Badge>}
+      title={t("account.matchframeAccount")}
+      actions={st.linkState === "linked" ? <Badge tone="ok">{t("account.signedIn")}</Badge> : st.linkState === "linking" ? <Badge tone="info">{t("account.waitingForApproval")}</Badge> : st.linkState === "revoked" ? <Badge tone="danger">{t("account.signedOutOnWebsite")}</Badge> : <Badge>{t("account.signedOut")}</Badge>}
     >
       {st.device ? (
         <>
           <KV
             items={[
-              ["Signed in as", user ? `${user.displayName} (${user.email})` : MISSING],
-              ["Organisation", st.device.orgName],
-              ["Signed in", fmtTime(st.device.linkedAt)],
+              [t("account.signedInAs"), user ? `${user.displayName} (${user.email})` : MISSING],
+              [t("account.organisation"), st.device.orgName],
+              [t("account.signedIn"), fmtTime(st.device.linkedAt)],
             ]}
           />
           <div className="ga-actions">
-            <ActionButton action={() => api.post("/api/v1/cloud/refresh")} success="Licence refreshed and usage uploaded" onDone={onChange} disabledReason={reason}>
-              Refresh now
-            </ActionButton>
+            <ActionButton action={() => api.post("/api/v1/cloud/refresh")} success={t("account.licenceRefreshedAndUsageUploaded")} onDone={onChange} disabledReason={reason}>{t("account.refreshNow")}</ActionButton>
             <ActionButton
               variant="ghost"
               action={() => api.post("/api/v1/cloud/unlink")}
-              success="Signed out"
+              success={t("account.signedOut")}
               onDone={onChange}
               disabledReason={reason}
               confirm={{
-                title: "Sign out of MatchFrame?",
+                title: t("account.signOutOfMatchframe"),
                 body: st.signIn.required
-                  ? "Pending usage is uploaded first. The program keeps running until you close it; the next time it opens it asks you to sign in."
-                  : "Pending usage is uploaded first. Automatic direction on live matches stops being available until you sign in again; HUDs and manual control keep working.",
+                  ? t("account.pendingUsageIsUploadedFirst2")
+                  : t("account.pendingUsageIsUploadedFirst"),
                 danger: true,
               }}
-            >
-              Sign out
-            </ActionButton>
+            >{t("account.signOut")}</ActionButton>
           </div>
-          <Details summary="Computer details">
+          <Details summary={t("account.computerDetails")}>
             <KV
               items={[
-                ["Computer id", <code key="id">{st.device.deviceId}</code>],
-                ["Licence refreshed", st.lastRefreshAt ? fmtAgo(st.lastRefreshAt) : "not yet in this session"],
-                ["Usage uploaded", st.lastSyncAt ? fmtAgo(st.lastSyncAt) : "not yet in this session"],
+                [t("account.computerId"), <code key="id">{st.device.deviceId}</code>],
+                [t("account.licenceRefreshed"), st.lastRefreshAt ? fmtAgo(st.lastRefreshAt) : t("account.notYetInThisSession")],
+                [t("account.usageUploaded"), st.lastSyncAt ? fmtAgo(st.lastSyncAt) : t("account.notYetInThisSession")],
               ]}
             />
           </Details>
         </>
       ) : reason ? (
-        <p>{reason}. Sign in on the production computer.</p>
+        <p>{t("account.reasonSignInOnThe", { reason })}</p>
       ) : (
         <SignInForm status={st} onSignedIn={onChange} onChange={onChange} />
       )}
       {st.lastError ? (
-        <Note tone="warn" title="Last problem">
+        <Note tone="warn" title={t("account.lastProblem")}>
           {st.lastError}
         </Note>
       ) : null}
       <Website st={st} onChange={onChange} />
       {st.enforcement === "off" ? (
-        <p className="small muted" style={{ margin: "14px 0 0" }} title="MATCHFRAME_CLOUD_ENFORCEMENT=off. Release builds require signing in.">
-          Development build: automatic direction can be armed without an account.
-        </p>
+        <p className="small muted" style={{ margin: "14px 0 0" }} title={t("account.matchframeCloudEnforcementOffRelease")}>{t("account.developmentBuildAutomaticDirectionCan")}</p>
       ) : !st.signIn.required ? (
-        <p className="small muted" style={{ margin: "14px 0 0" }} title="MATCHFRAME_SIGN_IN=off (development only).">
-          Development build: signing in is not required for the Auto Director.
-        </p>
+        <p className="small muted" style={{ margin: "14px 0 0" }} title={t("account.matchframeSignInOffDevelopment")}>{t("account.developmentBuildSigningInIs")}</p>
       ) : null}
     </Panel>
   );
@@ -135,8 +129,8 @@ function HoursPanel({ st }: { st: CloudStatus }) {
   const badge = <Badge tone={gate.tone}>{gate.text}</Badge>;
   if (!ent)
     return (
-      <Panel title="Plan and hours" actions={badge}>
-        <EmptyState title="No licence on this computer">Sign in to see the plan and auto-director hours.</EmptyState>
+      <Panel title={t("account.planAndHours")} actions={badge}>
+        <EmptyState title={t("account.noLicenceOnThisComputer")}>{t("account.signInToSeeThe")}</EmptyState>
       </Panel>
     );
   const ad = ent.autoDirector;
@@ -148,42 +142,40 @@ function HoursPanel({ st }: { st: CloudStatus }) {
     </Badge>
   );
   return (
-    <Panel title="Plan and hours" actions={badge}>
+    <Panel title={t("account.planAndHours")} actions={badge}>
       <div className="hours-big">
         <span className="hours-value">{fmtHours(Math.max(0, ent.localRemainingSeconds))}</span>
-        <span className="muted"> of auto-director time left this period</span>
+        <span className="muted">{t("account.ofAutoDirectorTimeLeft")}</span>
       </div>
       <div style={{ margin: "8px 0 12px" }}>
-        <Meter value={Math.max(0, total - ent.localRemainingSeconds)} max={Math.max(1, total)} tone={ent.localRemainingSeconds <= 0 ? "danger" : ent.localRemainingSeconds < 1800 ? "warn" : "accent"} label="Hours used" />
+        <Meter value={Math.max(0, total - ent.localRemainingSeconds)} max={Math.max(1, total)} tone={ent.localRemainingSeconds <= 0 ? "danger" : ent.localRemainingSeconds < 1800 ? "warn" : "accent"} label={t("account.hoursUsed")} />
       </div>
       <KV
         items={[
-          ["Plan", `${ent.plan.name}${ent.subscriptionStatus !== "none" ? ` (${ent.subscriptionStatus.replace("_", " ")})` : ""}`],
-          ["Period", `${fmtTime(ad.periodStart)} – ${fmtTime(ad.periodEnd)}`],
-          ["Works offline until", fmtTime(ent.graceUntil)],
-          ...(ent.state !== "valid" ? ([["Licence", licBadge]] as [string, ReactNode][]) : []),
+          [t("account.plan"), `${ent.plan.name}${ent.subscriptionStatus !== "none" ? ` (${subscriptionText(ent.subscriptionStatus)})` : ""}`],
+          [t("account.period"), `${fmtTime(ad.periodStart)} – ${fmtTime(ad.periodEnd)}`],
+          [t("account.worksOfflineUntil"), fmtTime(ent.graceUntil)],
+          ...(ent.state !== "valid" ? ([[t("account.licence"), licBadge]] as [string, ReactNode][]) : []),
         ]}
       />
       {!st.gate.ok ? (
-        <Note tone={gate.tone === "danger" ? "danger" : "warn"} title="Automatic direction cannot be armed">
+        <Note tone={gate.tone === "danger" ? "danger" : "warn"} title={t("account.automaticDirectionCannotBeArmed")}>
           {st.gate.reason}
         </Note>
       ) : null}
-      <Details summary="Breakdown">
+      <Details summary={t("account.breakdown")}>
         <KV
           items={[
-            ["Included this period", fmtHours(ad.includedSeconds)],
-            ["Hour-pack and support credits", fmtHours(ad.creditSeconds)],
-            ["Used (all computers, as of the licence)", fmtHours(ad.usedSeconds)],
-            ["Used here since then", fmtHours(ad.remainingSeconds - ent.localRemainingSeconds)],
-            ["Licence", licBadge],
+            [t("account.includedThisPeriod"), fmtHours(ad.includedSeconds)],
+            [t("account.hourPackAndSupportCredits"), fmtHours(ad.creditSeconds)],
+            [t("account.usedAllComputersAsOf"), fmtHours(ad.usedSeconds)],
+            [t("account.usedHereSinceThen"), fmtHours(ad.remainingSeconds - ent.localRemainingSeconds)],
+            [t("account.licence"), licBadge],
           ]}
         />
       </Details>
-      <Details summary="How hours are counted">
-        <p className="muted small">
-          An hour counts only while the Observer (Observer, Observer &amp; Cinematics or Full Action Observer) actually controls a real camera on live telemetry, at the same rate in every mode. Observer Off, manual camera work, the simulation, stale telemetry and time with no camera control connected are free. Full Action Observer (nade cameras) needs a plan that includes it. Running out never stops a map in progress: automation hands back to manual at the next map change, and re-arming is blocked until hours are added.
-        </p>
+      <Details summary={t("account.howHoursAreCounted")}>
+        <p className="muted small">{t("account.anHourCountsOnlyWhile")}</p>
       </Details>
     </Panel>
   );
@@ -202,18 +194,18 @@ export function SharedPanel() {
     try {
       sync.setData(await api.post<CloudSyncStatus>("/api/v1/cloud/sync", { enabled: !s.enabled }));
     } catch (e) {
-      toast.push("danger", "Could not change sharing", describeError(e));
+      toast.push("danger", t("account.couldNotChangeSharing"), describeError(e));
     } finally {
       setSwitching(false);
     }
   };
-  const line = s.busy ? `${s.busy}…` : s.state === "starting" ? "Getting your organisation's data…" : syncedAgo(s.lastSyncAt);
+  const line = s.busy ? `${s.busy}…` : s.state === "starting" ? t("account.gettingYourOrganisationSData") : syncedAgo(s.lastSyncAt);
   return (
     <Panel
-      title={`Shared with ${s.orgName ?? "your organisation"}`}
+      title={t("account.sharedWithV", { v: s.orgName ?? t("account.yourOrganisation") })}
       actions={
-        <button type="button" role="switch" aria-checked={s.enabled} aria-label="Share with the organisation" className={`switch ${s.enabled ? "is-on" : ""}`} disabled={!!reason || switching} title={reason ?? (s.enabled ? "Sharing is on: click to stop sharing on this computer" : "Sharing is off: click to share again")} onClick={() => void toggle()}>
-          <span className="switch-label">{s.enabled ? "On" : "Off"}</span>
+        <button type="button" role="switch" aria-checked={s.enabled} aria-label={t("account.shareWithTheOrganisation")} className={`switch ${s.enabled ? "is-on" : ""}`} disabled={!!reason || switching} title={reason ?? (s.enabled ? t("account.sharingIsOnClickTo") : t("account.sharingIsOffClickTo"))} onClick={() => void toggle()}>
+          <span className="switch-label">{s.enabled ? t("account.on") : t("account.off")}</span>
           <span className="switch-track" aria-hidden>
             <span className="switch-thumb" />
           </span>
@@ -228,35 +220,29 @@ export function SharedPanel() {
           </p>
           {s.pending > 0 ? (
             <p className="small muted" style={{ margin: "4px 0 0" }}>
-              {s.pending === 1 ? "1 change waiting to be shared" : `${s.pending} changes waiting to be shared`}
+              {t("account.changesWaiting", { count: s.pending })}
             </p>
           ) : null}
           {s.storage ? (
             <div className="sync-storage">
-              <Meter value={s.storage.usedBytes} max={Math.max(1, s.storage.quotaBytes)} tone={s.storage.usedBytes >= s.storage.quotaBytes * 0.9 ? "warn" : "accent"} label="Shared storage" />
+              <Meter value={s.storage.usedBytes} max={Math.max(1, s.storage.quotaBytes)} tone={s.storage.usedBytes >= s.storage.quotaBytes * 0.9 ? "warn" : "accent"} label={t("account.sharedStorage")} />
               <span className="small muted">{storageText(s.storage.usedBytes, s.storage.quotaBytes)}</span>
             </div>
           ) : null}
           {s.lastError ? (
-            <Note tone="warn" title="Last problem">
+            <Note tone="warn" title={t("account.lastProblem")}>
               {s.lastError}
             </Note>
           ) : null}
           <div className="ga-actions">
-            <ActionButton action={() => api.post<CloudSyncStatus>("/api/v1/cloud/sync/now")} success={(r) => (r.lastError ? null : "Everything is shared")} onDone={(r) => sync.setData(r)} disabledReason={reason}>
-              Sync now
-            </ActionButton>
+            <ActionButton action={() => api.post<CloudSyncStatus>("/api/v1/cloud/sync/now")} success={(r) => (r.lastError ? null : t("account.everythingIsShared"))} onDone={(r) => sync.setData(r)} disabledReason={reason}>{t("account.syncNow")}</ActionButton>
           </div>
         </>
       ) : (
-        <p className="muted" style={{ margin: 0 }}>
-          Sharing is off on this computer. Changes here stay here, and changes from your organisation's other computers don't arrive.
-        </p>
+        <p className="muted" style={{ margin: 0 }}>{t("account.sharingIsOffOnThis")}</p>
       )}
-      <Details summary="What is shared">
-        <p className="muted small">
-          Teams, players, rosters, events and matches (with their maps and veto), their logos and photos, and the HUDs you imported with their settings. Every computer signed in to the organisation sees and edits the same data; when two computers change the same thing, the later change is kept. Sample HUDs, the built-in HUD, sponsors, demos and the program's own settings stay on each computer.
-        </p>
+      <Details summary={t("account.whatIsShared")}>
+        <p className="muted small">{t("account.teamsPlayersRostersEventsAnd")}</p>
       </Details>
     </Panel>
   );
@@ -265,27 +251,23 @@ export function SharedPanel() {
 function UploadState({ r }: { r: CloudUsageRecord }) {
   if (r.rejectedReason)
     return (
-      <span className="text-danger" title={r.rejectedReason}>
-        Not counted
-      </span>
+      <span className="text-danger" title={r.rejectedReason}>{t("account.notCounted")}</span>
     );
-  return r.uploadedAt ? <span className="muted">Uploaded</span> : <span>Pending</span>;
+  return r.uploadedAt ? <span className="muted">{t("account.uploaded")}</span> : <span>{t("account.pending")}</span>;
 }
 
 function UsagePanel({ st }: { st: CloudStatus }) {
   const records = useApi<{ records: CloudUsageRecord[] }>("/api/v1/cloud/usage?limit=50", { refreshMs: 15000 });
-  const empty = <p className="muted">No automatic direction recorded yet.</p>;
+  const empty = <p className="muted">{t("account.noAutomaticDirectionRecordedYet")}</p>;
   return (
     <Panel
-      title="Automatic direction on this computer"
+      title={t("account.automaticDirectionOnThisComputer")}
       actions={
         st.usage.metering ? (
-          <Badge tone="info" icon="●">
-            Metering
-          </Badge>
+          <Badge tone="info" icon="●">{t("account.metering")}</Badge>
         ) : null
       }
-      subtitle={st.usage.pendingRecords || st.usage.openSeconds ? `${st.usage.pendingRecords} waiting to upload (${fmtHours(st.usage.pendingSeconds)}) · ${fmtHours(st.usage.openSeconds)} in the current segment` : undefined}
+      subtitle={st.usage.pendingRecords || st.usage.openSeconds ? t("account.pendingrecordsWaitingToUploadPendingseco", { pendingRecords: st.usage.pendingRecords, pendingSeconds: fmtHours(st.usage.pendingSeconds), openSeconds: fmtHours(st.usage.openSeconds) }) : undefined}
     >
       <Async state={records} empty={empty}>
         {(d) =>
@@ -296,10 +278,10 @@ function UsagePanel({ st }: { st: CloudStatus }) {
               <table className="table table-compact">
                 <thead>
                   <tr>
-                    <th>Started</th>
-                    <th>Map</th>
-                    <th>Duration</th>
-                    <th>Upload</th>
+                    <th>{t("account.started")}</th>
+                    <th>{t("account.map")}</th>
+                    <th>{t("account.duration")}</th>
+                    <th>{t("account.upload")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -328,9 +310,9 @@ export function AccountScreen() {
   return (
     <div className="page">
       <div className="page-head">
-        <h1 className="page-title">Account & Hours</h1>
+        <h1 className="page-title">{t("account.accountHours")}</h1>
       </div>
-      <p className="page-intro">Your MatchFrame sign-in and the auto-director hours this computer uses.</p>
+      <p className="page-intro">{t("account.yourMatchframeSignInAnd")}</p>
       <Async state={status}>
         {(st) => (
           <div className="stack">

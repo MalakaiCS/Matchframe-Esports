@@ -9,6 +9,8 @@ import { LowSpecSuggestion } from "../components/LowSpec.tsx";
 import { useToast } from "../components/toasts.tsx";
 import { Button, ConfirmDialog, EmptyState, ErrorBox, Loading, Modal, Note } from "../components/ui.tsx";
 import { useApi, usePersistentState } from "../lib/hooks.ts";
+import { t } from "../i18n/index.ts";
+import { T } from "../i18n/T.tsx";
 import type { HudDisplayStatus, HudSort } from "../lib/hudLibrary.ts";
 import { copyText, defaultVariant, desktopReason as desktopReasonOf, filterHuds, hudStatus, NO_CATEGORY, outputCounts, resolutionLabel, SORT_LABEL, sortHuds, STATUS_INFO, STATUS_ORDER, toArrayBuffer, useDesktopOverlays, variantUrl } from "../lib/hudLibrary.ts";
 import { Link } from "../router.tsx";
@@ -42,7 +44,7 @@ function ConflictDialog({ pending, onDone, onCancel }: { pending: PendingImport;
   const [busy, setBusy] = useState<OnConflict | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { detail } = pending;
-  const cmp = detail.incomingVersion === detail.installedVersion ? "the same version as" : "a different version from";
+  const same = detail.incomingVersion === detail.installedVersion;
   const go = (how: OnConflict) => {
     setBusy(how);
     setError(null);
@@ -54,29 +56,29 @@ function ConflictDialog({ pending, onDone, onCancel }: { pending: PendingImport;
   };
   return (
     <Modal
-      title="This HUD is already installed"
+      title={t("hudlib.conflict.title")}
       onClose={onCancel}
       footer={
         <>
-          <Button onClick={onCancel}>Cancel</Button>
-          <Button onClick={() => go("copy")} disabledReason={busy ? "Importing…" : null}>
-            Import as a copy
+          <Button onClick={onCancel}>{t("common.cancel")}</Button>
+          <Button onClick={() => go("copy")} disabledReason={busy ? t("hudlib.importing") : null}>
+            {t("hudlib.conflict.copy")}
           </Button>
-          <Button variant="primary" onClick={() => go("replace")} disabledReason={detail.builtin ? "The built-in HUD cannot be replaced" : busy ? "Importing…" : null}>
-            Update to {detail.incomingVersion}
+          <Button variant="primary" onClick={() => go("replace")} disabledReason={detail.builtin ? t("hudlib.conflict.builtin") : busy ? t("hudlib.importing") : null}>
+            {t("hudlib.conflict.update", { version: detail.incomingVersion })}
           </Button>
         </>
       }
     >
       <p>
-        <strong>{pending.label}</strong> has the id <code>{detail.id}</code>, which is installed with version <strong>{detail.installedVersion}</strong>. The package is {cmp} the installed one (<strong>{detail.incomingVersion}</strong>).
+        <T k={same ? "hudlib.conflict.bodySame" : "hudlib.conflict.bodyDifferent"} values={{ name: <strong>{pending.label}</strong>, id: <code>{detail.id}</code>, installed: <strong>{detail.installedVersion}</strong>, incoming: <strong>{detail.incomingVersion}</strong> }} />
       </p>
       <ul className="muted">
         <li>
-          <strong>Update</strong> installs it over the current version, keeps its settings and reloads its outputs. You can roll back to {detail.installedVersion} from the details panel.
+          <T k="hudlib.conflict.updateExplain" values={{ version: detail.installedVersion }} />
         </li>
         <li>
-          <strong>Import as a copy</strong> installs it next to the current one with a new id.
+          <T k="hudlib.conflict.copyExplain" />
         </li>
       </ul>
       {error ? <Note tone="danger">{error}</Note> : null}
@@ -104,25 +106,25 @@ function Toolbar(p: {
     <div className="hudlib-toolbar" role="search">
       <label className="hudlib-search">
         <Icon name="search" size={16} />
-        <span className="sr-only">Search HUDs</span>
-        <input type="search" placeholder="Search by name, author or tag" value={p.q} onChange={(e) => p.setQ(e.target.value)} />
+        <span className="sr-only">{t("hudlib.toolbar.search")}</span>
+        <input type="search" placeholder={t("hudlib.toolbar.searchPlaceholder")} value={p.q} onChange={(e) => p.setQ(e.target.value)} />
       </label>
       <label className="hudlib-filter">
-        <span>Category</span>
-        <select value={p.category} onChange={(e) => p.setCategory(e.target.value)} aria-label="Category">
-          <option value="all">All</option>
+        <span>{t("hudlib.toolbar.category")}</span>
+        <select value={p.category} onChange={(e) => p.setCategory(e.target.value)} aria-label={t("hudlib.toolbar.category")}>
+          <option value="all">{t("hudlib.toolbar.all")}</option>
           {p.categories.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
           ))}
-          {p.hasUncategorised ? <option value={NO_CATEGORY}>No category</option> : null}
+          {p.hasUncategorised ? <option value={NO_CATEGORY}>{t("hudlib.toolbar.noCategory")}</option> : null}
         </select>
       </label>
       <label className="hudlib-filter">
-        <span>Status</span>
-        <select value={p.status} onChange={(e) => p.setStatus(e.target.value)} aria-label="Status">
-          <option value="all">All</option>
+        <span>{t("hudlib.toolbar.status")}</span>
+        <select value={p.status} onChange={(e) => p.setStatus(e.target.value)} aria-label={t("hudlib.toolbar.status")}>
+          <option value="all">{t("hudlib.toolbar.all")}</option>
           {STATUS_ORDER.map((s) => (
             <option key={s} value={s}>
               {STATUS_INFO[s].label}
@@ -131,8 +133,8 @@ function Toolbar(p: {
         </select>
       </label>
       <label className="hudlib-filter">
-        <span>Sort</span>
-        <select value={p.sort} onChange={(e) => p.setSort(e.target.value as HudSort)} aria-label="Sort">
+        <span>{t("hudlib.toolbar.sort")}</span>
+        <select value={p.sort} onChange={(e) => p.setSort(e.target.value as HudSort)} aria-label={t("hudlib.toolbar.sort")}>
           {(Object.keys(SORT_LABEL) as HudSort[]).map((s) => (
             <option key={s} value={s}>
               {SORT_LABEL[s]}
@@ -140,14 +142,14 @@ function Toolbar(p: {
           ))}
         </select>
       </label>
-      <div className="seg" role="group" aria-label="View">
-        <button type="button" className={`seg-btn ${p.view === "grid" ? "is-on" : ""}`} aria-pressed={p.view === "grid"} onClick={() => p.setView("grid")} title="Grid">
+      <div className="seg" role="group" aria-label={t("hudlib.toolbar.view")}>
+        <button type="button" className={`seg-btn ${p.view === "grid" ? "is-on" : ""}`} aria-pressed={p.view === "grid"} onClick={() => p.setView("grid")} title={t("hudlib.toolbar.grid")}>
           <Icon name="grid" size={16} />
-          <span className="sr-only">Grid</span>
+          <span className="sr-only">{t("hudlib.toolbar.grid")}</span>
         </button>
-        <button type="button" className={`seg-btn ${p.view === "list" ? "is-on" : ""}`} aria-pressed={p.view === "list"} onClick={() => p.setView("list")} title="List">
+        <button type="button" className={`seg-btn ${p.view === "list" ? "is-on" : ""}`} aria-pressed={p.view === "list"} onClick={() => p.setView("list")} title={t("hudlib.toolbar.list")}>
           <Icon name="list" size={16} />
-          <span className="sr-only">List</span>
+          <span className="sr-only">{t("hudlib.toolbar.list")}</span>
         </button>
       </div>
       <span className="hudlib-count muted small">{p.count}</span>
@@ -165,7 +167,7 @@ function groupByCategory(list: HudLibraryEntry[]): { key: string; title: string;
   }
   return [...map.entries()]
     .sort(([a], [b]) => (a === NO_CATEGORY ? 1 : b === NO_CATEGORY ? -1 : a.localeCompare(b)))
-    .map(([key, items]) => ({ key, title: key === NO_CATEGORY ? "Ungrouped" : key, items }));
+    .map(([key, items]) => ({ key, title: key === NO_CATEGORY ? t("hudlib.ungrouped") : key, items }));
 }
 
 /**
@@ -213,7 +215,7 @@ export function HudLibraryScreen() {
     setPending(null);
     setSelectedId(e.id);
     setTab("overview");
-    toast.push("ok", how === "replace" ? `${e.name} updated to ${e.version}` : how === "copy" ? `${e.name} imported as a copy` : `${e.name} imported`, how === "replace" ? "Its outputs reload with the new version." : "Saved in your HUD library; it keeps working if the original file is moved or deleted.");
+    toast.push("ok", how === "replace" ? t("hudlib.toast.updated", { name: e.name, version: e.version }) : how === "copy" ? t("hudlib.toast.importedCopy", { name: e.name }) : t("hudlib.toast.imported", { name: e.name }), how === "replace" ? t("hudlib.toast.updatedBody") : t("hudlib.toast.importedBody"));
     void lib.reload();
   };
 
@@ -224,7 +226,7 @@ export function HudLibraryScreen() {
     } catch (e) {
       const detail = conflictOf(e);
       if (detail) setPending({ label, detail, retry: (how) => send(how) });
-      else toast.push("danger", `Importing ${label} failed`, describeError(e));
+      else toast.push("danger", t("hudlib.toast.importFailed", { name: label }), describeError(e));
     } finally {
       setBusyImport(false);
     }
@@ -238,7 +240,7 @@ export function HudLibraryScreen() {
       const picked = await bridge.pickZip();
       if (picked) await uploadZip(picked.name, toArrayBuffer(picked.bytes));
     } catch (e) {
-      toast.push("danger", "Import HUD ZIP failed", describeError(e));
+      toast.push("danger", t("hudlib.toast.zipFailed"), describeError(e));
     }
   };
 
@@ -248,17 +250,17 @@ export function HudLibraryScreen() {
       const path = await bridge.pickFolder();
       if (path) await importWith(path.split(/[\\/]/).filter(Boolean).pop() ?? path, (onConflict) => api.post<HudLibraryEntry>(`${LIBRARY_PATH}/import-folder`, { path, onConflict }));
     } catch (e) {
-      toast.push("danger", "Import HUD Folder failed", describeError(e));
+      toast.push("danger", t("hudlib.toast.folderFailed"), describeError(e));
     }
   };
 
   // ---------------------------------------------------------------- per-HUD actions
 
   const actionsFor = (e: HudLibraryEntry): HudActions => ({
-    launch: () => void run("Launch Transparent HUD", () => launchHud(bridge, e, overlayOf.get(e.id)?.variant ?? defaultVariant(e))).then(() => lib.reload()),
-    closeDesktop: () => bridge && void run("Close Desktop HUD", () => bridge.close(e.id)),
+    launch: () => void run(t("hudlib.action.launch"), () => launchHud(bridge, e, overlayOf.get(e.id)?.variant ?? defaultVariant(e))).then(() => lib.reload()),
+    closeDesktop: () => bridge && void run(t("hudlib.action.closeDesktop"), () => bridge.close(e.id)),
     preview: () => {
-      if (bridge && local) void run("Preview", () => bridge.openPreview(e.id, { variant: defaultVariant(e), checker: true }));
+      if (bridge && local) void run(t("hudlib.action.preview"), () => bridge.openPreview(e.id, { variant: defaultVariant(e), checker: true }));
       else {
         setSelectedId(e.id);
         setTab("overview");
@@ -267,33 +269,33 @@ export function HudLibraryScreen() {
     copyUrl: () => {
       const url = variantUrl(e, defaultVariant(e));
       if (!url) return;
-      void copyText(url).then(() => toast.push("ok", "OBS Browser URL copied", `Add a Browser Source with this URL at ${resolutionLabel(e)} (width × height), above your Game Capture.`));
+      void copyText(url).then(() => toast.push("ok", t("hudlib.toast.urlCopied"), t("hudlib.toast.urlCopiedBody", { resolution: resolutionLabel(e) })));
     },
     settings: () => {
       setSelectedId(e.id);
       setTab("appearance");
     },
-    reload: () => void run("Reload", () => reloadHud(e), `${e.name} reloaded on every output`).then(() => lib.reload()),
-    stop: () => void run("Stop", () => stopHud(bridge, e), `${e.name} stopped. OBS sources stay connected but show nothing until you launch or start it again.`).then(() => lib.reload()),
-    duplicate: () => void run("Duplicate", () => api.post<HudLibraryEntry>(`${hudPath(e.id)}/duplicate`), (c) => `Duplicated as ${c.name}`).then((c) => c && (setSelectedId(c.id), void lib.reload())),
-    exportZip: () => void run("Export ZIP", () => exportHud(bridge, e), (name) => (name ? `Exported ${name}` : null)),
-    openFolder: () => bridge && void run("Open Folder", () => bridge.openHudFolder(e.id)),
+    reload: () => void run(t("hudlib.action.reload"), () => reloadHud(e), t("hudlib.toast.reloaded", { name: e.name })).then(() => lib.reload()),
+    stop: () => void run(t("hudlib.action.stop"), () => stopHud(bridge, e), t("hudlib.toast.stopped", { name: e.name })).then(() => lib.reload()),
+    duplicate: () => void run(t("hudlib.action.duplicate"), () => api.post<HudLibraryEntry>(`${hudPath(e.id)}/duplicate`), (c) => t("hudlib.toast.duplicated", { name: c.name })).then((c) => c && (setSelectedId(c.id), void lib.reload())),
+    exportZip: () => void run(t("hudlib.action.exportZip"), () => exportHud(bridge, e), (name) => (name ? t("hudlib.toast.exported", { name }) : null)),
+    openFolder: () => bridge && void run(t("hudlib.action.openFolder"), () => bridge.openHudFolder(e.id)),
     remove: () => setRemoving(e),
   });
 
   const reasonsFor = (e: HudLibraryEntry): HudActionReasons => {
     const builtin = e.kind === "builtin";
-    const err = e.status === "error" ? (e.error ?? "This HUD failed verification") : null;
+    const err = e.status === "error" ? (e.error ?? t("hudlib.reason.failedVerification")) : null;
     return {
       launch: editReason ?? desktopReason ?? err,
       closeDesktop: desktopReason,
       preview: err,
-      copyUrl: variantUrl(e, defaultVariant(e)) ? null : "This HUD has no OBS output",
+      copyUrl: variantUrl(e, defaultVariant(e)) ? null : t("hudlib.reason.noObsOutput"),
       reload: editReason ?? err,
-      stop: editReason ?? (e.stopped && !overlayOf.get(e.id) ? "Already stopped" : null),
+      stop: editReason ?? (e.stopped && !overlayOf.get(e.id) ? t("hudlib.reason.alreadyStopped") : null),
       duplicate: editReason ?? (builtin ? BUILTIN_REASON.duplicate : null),
       exportZip: builtin ? BUILTIN_REASON.export : null,
-      openFolder: builtin ? BUILTIN_REASON.folder : !bridge ? "Opening folders needs the MatchFrame program" : !local ? "The HUD folders are on the production computer" : null,
+      openFolder: builtin ? BUILTIN_REASON.folder : !bridge ? t("hudlib.reason.foldersNeedProgram") : !local ? t("hudlib.reason.foldersOnProduction") : null,
       remove: editReason ?? (builtin ? BUILTIN_REASON.remove : null),
     };
   };
@@ -318,9 +320,9 @@ export function HudLibraryScreen() {
   };
 
   const addItems = [
-    { label: "Import HUD ZIP…", onClick: () => void importZip(), reason: editReason ?? (busyImport ? "Importing…" : null) },
-    { label: "Import HUD folder…", onClick: () => void importFolder(), reason: editReason ?? (!bridge ? "Importing a folder needs the MatchFrame program" : !local ? "Folders can be imported only on the production computer; import a ZIP instead" : busyImport ? "Importing…" : null) },
-    { label: "Open HUDs folder", onClick: () => bridge && void run("Open HUDs Folder", () => bridge.openHudsFolder()), reason: !bridge ? "Opening folders needs the MatchFrame program" : !local ? "The HUD folder is on the production computer" : null },
+    { label: t("hudlib.add.zip"), onClick: () => void importZip(), reason: editReason ?? (busyImport ? t("hudlib.importing") : null) },
+    { label: t("hudlib.add.folder"), onClick: () => void importFolder(), reason: editReason ?? (!bridge ? t("hudlib.reason.folderImportNeedsProgram") : !local ? t("hudlib.reason.folderImportProduction") : busyImport ? t("hudlib.importing") : null) },
+    { label: t("hudlib.add.openFolder"), onClick: () => bridge && void run(t("hudlib.add.openFolder"), () => bridge.openHudsFolder()), reason: !bridge ? t("hudlib.reason.foldersNeedProgram") : !local ? t("hudlib.reason.folderOnProduction") : null },
   ];
   const groups = groupByCategory(shown);
   const details = (e: HudLibraryEntry) => (
@@ -329,13 +331,13 @@ export function HudLibraryScreen() {
 
   return (
     <div className="page hudlib" data-testid="hud-library">
-      <h1 className="page-title">HUD Library</h1>
+      <h1 className="page-title">{t("nav.hudLibrary")}</h1>
       {lib.data?.hiddenAll ? (
-        <Note tone="warn" title="All HUD graphics are hidden">
-          Desktop HUDs, previews and OBS sources show nothing until you turn Show HUD graphics back on (or press the emergency hide hotkey again).
+        <Note tone="warn" title={t("hudlib.hidden.title")}>
+          {t("hudlib.hidden.body")}
         </Note>
       ) : null}
-      {desktopReason && bridge ? <Note tone="neutral">{desktopReason}. The library, OBS browser sources and previews still work.</Note> : null}
+      {desktopReason && bridge ? <Note tone="neutral">{t("hudlib.desktop.stillWorks", { reason: desktopReason })}</Note> : null}
       <LowSpecSuggestion />
       <AutoDirectorCard />
       <div className="hudlib-cards">
@@ -355,13 +357,13 @@ export function HudLibraryScreen() {
         setSort={setSort}
         view={view}
         setView={setView}
-        count={lib.data ? `${huds.length} HUD${huds.length === 1 ? "" : "s"} ${local || !bridge ? "on this computer" : "on the production computer"}` : ""}
+        count={lib.data ? t(local || !bridge ? "hudlib.count.here" : "hudlib.count.production", { count: huds.length }) : ""}
         add={
           <>
-            <Link to="/hud/images" className="btn btn-secondary btn-md" title="Default player pictures, map logos and pictures, and the dead-player icon for every MatchFrame HUD">
-              <Icon name="upload" size={14} /> HUD images
+            <Link to="/hud/images" className="btn btn-secondary btn-md" title={t("hudlib.imagesTitle")}>
+              <Icon name="upload" size={14} /> {t("nav.hudImages")}
             </Link>
-            <MenuButton label="Add HUD" buttonLabel="Add HUD" icon="plus" items={addItems} />
+            <MenuButton label={t("hudlib.add.label")} buttonLabel={t("hudlib.add.label")} icon="plus" items={addItems} />
           </>
         }
       />
@@ -370,7 +372,7 @@ export function HudLibraryScreen() {
         type="file"
         accept=".zip,application/zip"
         hidden
-        aria-label="HUD package ZIP"
+        aria-label={t("hudlib.zipInput")}
         onChange={(ev) => {
           const f = ev.target.files?.[0];
           ev.target.value = "";
@@ -382,15 +384,15 @@ export function HudLibraryScreen() {
           lib.error ? (
             <ErrorBox error={lib.error} onRetry={() => void lib.reload()} />
           ) : (
-            <Loading label="Loading HUDs…" />
+            <Loading label={t("hudlib.loading")} />
           )
         ) : huds.length === 0 ? (
-          <EmptyState title="No HUDs yet" action={<Button onClick={() => void importZip()}>Import HUD ZIP</Button>}>
-            Import a HUD package (a ZIP with a manifest.json) to get started.
+          <EmptyState title={t("hudlib.empty.title")} action={<Button onClick={() => void importZip()}>{t("hudlib.empty.import")}</Button>}>
+            {t("hudlib.empty.body")}
           </EmptyState>
         ) : shown.length === 0 ? (
           <EmptyState
-            title="No HUDs match"
+            title={t("hudlib.noMatch.title")}
             action={
               <Button
                 onClick={() => {
@@ -399,11 +401,11 @@ export function HudLibraryScreen() {
                   setStatus("all");
                 }}
               >
-                Clear filters
+                {t("hudlib.noMatch.clear")}
               </Button>
             }
           >
-            Nothing matches the search and filters.
+            {t("hudlib.noMatch.body")}
           </EmptyState>
         ) : (
           groups.map((g) => {
@@ -426,7 +428,7 @@ export function HudLibraryScreen() {
                     {selectedHere ? details(selectedHere) : null}
                   </>
                 ) : (
-                  <div className="hud-list" aria-label={`${g.title} HUDs`}>
+                  <div className="hud-list" aria-label={t("hudlib.groupList", { group: g.title })}>
                     {g.items.map((e) => (
                       <div key={e.id} className={`hud-list-item ${e === selectedHere ? "is-open" : ""}`}>
                         <HudRow {...itemProps(e)} />
@@ -444,13 +446,13 @@ export function HudLibraryScreen() {
       {removing ? (
         <ConfirmDialog
           spec={{
-            title: `Remove ${removing.name}?`,
+            title: t("hudlib.remove.title", { name: removing.name }),
             body: (
               <p>
-                Removes the HUD and its settings from this computer, closes its desktop and preview windows and disconnects its OBS sources. {removing.kind === "sample" ? "Sample HUDs are not installed again automatically." : "Export it first if you want to keep a copy."}
+                {t("hudlib.remove.body")} {removing.kind === "sample" ? t("hudlib.remove.sample") : t("hudlib.remove.exportFirst")}
               </p>
             ),
-            confirmLabel: "Remove",
+            confirmLabel: t("hudlib.remove.confirm"),
             danger: true,
           }}
           onCancel={() => setRemoving(null)}
@@ -458,12 +460,12 @@ export function HudLibraryScreen() {
             const e = removing;
             setRemoving(null);
             void run(
-              "Remove",
+              t("hudlib.remove.confirm"),
               async () => {
                 if (bridge && local) await Promise.allSettled([bridge.close(e.id), bridge.closePreviews(e.id)]);
                 await api.del(hudPath(e.id));
               },
-              `${e.name} removed`,
+              t("hudlib.toast.removed", { name: e.name }),
             ).then(() => {
               if (selectedId === e.id) setSelectedId(null);
               void lib.reload();

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { api } from "../../api/index.ts";
 import { ActionButton, Async, Badge, Checkbox, Details, EmptyState, Note, Panel } from "../../components/ui.tsx";
-import { fmtTime } from "../../lib/format.ts";
+import { fmtNum, fmtSec, fmtTime } from "../../lib/format.ts";
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
+import { t } from "../../i18n/index.ts";
+import { T } from "../../i18n/T.tsx";
 
 interface BenchResult {
   datasetId: string;
@@ -52,16 +54,16 @@ function Row({ label, r, base }: { label: string; r: Totals | BenchResult; base?
     <tr>
       <td>{label}</td>
       <td>
-        {pct(r.killsShown, r.kills)} <span className="muted small">of {r.kills}</span>
+        {pct(r.killsShown, r.kills)} <span className="muted small">{t("training.ofKills", { kills: r.kills })}</span>
         {base ? diff(r.killsShown, base.killsShown, base.kills, r.kills) : null}
       </td>
       <td>{pct(r.openingKillsShown, r.openingKills)}</td>
       <td>
-        {pct(r.multiFragKillsShown, r.multiFragKills)} <span className="muted small">of {r.multiFragKills}</span>
+        {pct(r.multiFragKillsShown, r.multiFragKills)} <span className="muted small">{t("training.ofMultifragkills", { multiFragKills: r.multiFragKills })}</span>
         {base ? diff(r.multiFragKillsShown, base.multiFragKillsShown, base.multiFragKills, r.multiFragKills) : null}
       </td>
-      <td>{r.meanLeadS === null ? "—" : `${r.meanLeadS.toFixed(1)} s`}</td>
-      <td>{r.cutsPerMinute.toFixed(1)}</td>
+      <td>{r.meanLeadS === null ? "—" : fmtSec(r.meanLeadS, 1)}</td>
+      <td>{fmtNum(r.cutsPerMinute, 1)}</td>
     </tr>
   );
 }
@@ -73,35 +75,24 @@ export function TestBench() {
   const [limit, setLimit] = useState(10);
   const [compare, setCompare] = useState(true);
   return (
-    <Panel title="Director test bench" subtitle="Your read demos replayed through the director: how many kills it shows, and how early.">
+    <Panel title={t("training.directorTestBench")} subtitle={t("training.yourReadDemosReplayedThrough")}>
       <Async state={st}>
         {(s) => {
           const run = s.running ? s.current : (s.runs.at(-1) ?? null);
           return (
             <>
-              <p className="small muted">
-                Each demo is replayed as if live (players only, CS2&apos;s delay for player switches). A kill counts as shown when the killer&apos;s or the victim&apos;s POV is on air as it happens. Lead time is how long the shot had been on that player. Multi-frags are a player&apos;s second and later kills within 10 s.
-              </p>
+              <p className="small muted">{t("training.eachDemoIsReplayedAs")}</p>
               <div className="row-end">
-                <label className="small">
-                  Matches{" "}
-                  <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
+                <label className="small"><T k="training.matchesSelect" values={{ select: <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
                     {[3, 5, 10, 20, 50].map((n) => (
-                      <option key={n} value={n}>
-                        {n} newest
-                      </option>
+                      <option key={n} value={n}>{t("training.nNewest", { n })}</option>
                     ))}
-                  </select>
-                </label>
-                <Checkbox checked={compare} onChange={setCompare} label="Also without the demo-trained model and without multi-frag awareness (to compare)" />
-                <ActionButton variant="primary" action={() => api.post<BenchRun>("/api/v1/bench/run", { limit, compare })} success="Test bench started" onDone={() => void st.reload()} disabledReason={reason ?? (s.running ? "Running" : null)}>
-                  Run the test bench
-                </ActionButton>
+                  </select> }} /></label>
+                <Checkbox checked={compare} onChange={setCompare} label={t("training.alsoWithoutTheDemoTrained")} />
+                <ActionButton variant="primary" action={() => api.post<BenchRun>("/api/v1/bench/run", { limit, compare })} success={t("training.testBenchStarted")} onDone={() => void st.reload()} disabledReason={reason ?? (s.running ? t("training.running") : null)}>{t("training.runTheTestBench")}</ActionButton>
               </div>
               {s.running ? (
-                <p className="small">
-                  <Badge tone="accent">Running</Badge> {s.progress.done} of {s.progress.total} matches…
-                </p>
+                <p className="small"><T k="training.badgeDoneOfTotalMatches" values={{ badge: <Badge tone="accent">{t("training.running")}</Badge>, done: s.progress.done, total: s.progress.total }} /></p>
               ) : null}
               {run?.error ? <Note tone="warn">{run.error}</Note> : null}
               {run?.totals?.current ? (
@@ -110,14 +101,12 @@ export function TestBench() {
                     <table className="table table-compact">
                       <thead>
                         <tr>
-                          <th>
-                            {run.totals.current.matches} matches · {Math.round(run.totals.current.liveMinutes)} min live
-                          </th>
-                          <th>Kills shown</th>
-                          <th>Opening kills</th>
+                          <th>{t("training.matchesMatchesLiveminutesMinLive", { matches: run.totals.current.matches, liveMinutes: Math.round(run.totals.current.liveMinutes) })}</th>
+                          <th>{t("training.killsShown")}</th>
+                          <th>{t("training.openingKills")}</th>
                           <th>Multi-frags</th>
-                          <th>Lead</th>
-                          <th>Cuts / min</th>
+                          <th>{t("training.lead")}</th>
+                          <th>{t("training.cutsMin")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -130,17 +119,17 @@ export function TestBench() {
                       </tbody>
                     </table>
                   </div>
-                  <Details summary="Per match">
+                  <Details summary={t("training.perMatch")}>
                     <div className="table-wrap">
                       <table className="table table-compact">
                         <thead>
                           <tr>
-                            <th>Map</th>
-                            <th>Kills shown</th>
-                            <th>Opening kills</th>
+                            <th>{t("training.map")}</th>
+                            <th>{t("training.killsShown")}</th>
+                            <th>{t("training.openingKills")}</th>
                             <th>Multi-frags</th>
-                            <th>Lead</th>
-                            <th>Cuts / min</th>
+                            <th>{t("training.lead")}</th>
+                            <th>{t("training.cutsMin")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -151,11 +140,11 @@ export function TestBench() {
                       </table>
                     </div>
                   </Details>
-                  {run.povModel?.maps.length && run.results.some((x) => run.povModel!.maps.includes(x.map)) ? <p className="small muted">* A map the demo-trained model learned from: if it was this very match, its score there is optimistic.</p> : null}
-                  <p className="small muted">Run {run.finishedAt ? fmtTime(run.finishedAt) : "now"}. Differences (green / orange) compare the director as set up with the row below it.</p>
+                  {run.povModel?.maps.length && run.results.some((x) => run.povModel!.maps.includes(x.map)) ? <p className="small muted">{t("training.aMapTheDemoTrained")}</p> : null}
+                  <p className="small muted">{t("training.runVDifferencesGreenOrange", { v: run.finishedAt ? fmtTime(run.finishedAt) : t("training.now") })}</p>
                 </>
               ) : !s.running && !run ? (
-                <EmptyState title="No runs yet">Import a few demos in the Demo Library, then run the test bench. It never runs during a live broadcast.</EmptyState>
+                <EmptyState title={t("training.noRunsYet")}>{t("training.importAFewDemosIn")}</EmptyState>
               ) : null}
             </>
           );

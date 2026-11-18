@@ -32,10 +32,10 @@ export class EngineClock {
   }
 
   /** Age (ms) of data stamped with engine monotonic time `t`. */
-  ageOf(t: number | null | undefined, clientNowMs: number): number | null {
+  ageOf(tRow: number | null | undefined, clientNowMs: number): number | null {
     const now = this.engineNow(clientNowMs);
-    if (now === null || typeof t !== "number") return null;
-    return Math.max(0, now - t);
+    if (now === null || typeof tRow !== "number") return null;
+    return Math.max(0, now - tRow);
   }
 
   reset(): void {

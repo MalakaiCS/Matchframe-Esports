@@ -24,21 +24,23 @@ import { Hotkeys } from "./replays/AutoReplays.tsx";
 import { MapIntroCard } from "./live/MapIntroCard.tsx";
 import { TeamCommsCard } from "./live/TeamCommsCard.tsx";
 import { Timeline } from "./live/Timeline.tsx";
+import { perLocale, t } from "../i18n/index.ts";
+import { T } from "../i18n/T.tsx";
 
-const PHASE_LABEL: Record<string, string> = {
-  warmup: "Warmup",
-  freezetime: "Freeze time",
-  live: "Round live",
-  bomb: "Bomb planted",
-  defuse: "Defusing",
-  over: "Round over",
-  timeout_t: "T timeout",
-  timeout_ct: "CT timeout",
-  paused: "Paused",
-  halftime: "Halftime",
-  gameover: "Game over",
-  unknown: "Phase unknown",
-};
+const PHASE_LABEL: Record<string, string> = perLocale(() => ({
+  warmup: t("live.phase.warmup"),
+  freezetime: t("live.freezeTime"),
+  live: t("live.roundLive"),
+  bomb: t("live.bombPlanted"),
+  defuse: t("live.phase.defusing"),
+  over: t("live.roundOver"),
+  timeout_t: t("live.tTimeout"),
+  timeout_ct: t("live.ctTimeout"),
+  paused: t("live.phase.paused"),
+  halftime: t("live.phase.halftime"),
+  gameover: t("live.gameOver"),
+  unknown: t("live.phaseUnknown"),
+}));
 
 /** Commands still awaiting transport or observed confirmation. */
 export function isInFlight(status: string | null | undefined): boolean {
@@ -46,11 +48,11 @@ export function isInFlight(status: string | null | undefined): boolean {
 }
 
 function describeCommandResult(r: CommandResult | null | undefined, who: string): { tone: "ok" | "info" | "danger"; text: string } {
-  if (!r) return { tone: "info", text: `No command was issued for ${who} (no valid POV candidate).` };
+  if (!r) return { tone: "info", text: t("live.noCommandWasIssuedFor", { who }) };
   const precision = r.precision.replace(/_/g, " ");
-  if (r.status === "confirmed") return { tone: "ok", text: `POV ${who}: confirmed (${precision}).` };
-  if (r.status === "failed" || r.status === "cancelled") return { tone: "danger", text: `POV ${who}: ${r.status}${r.failureReason ? ` — ${r.failureReason.replace(/_/g, " ")}` : ""}${r.detail ? ` (${r.detail})` : ""}.` };
-  return { tone: "info", text: `POV ${who}: ${r.status.replace(/_/g, " ")} (${precision}) — waiting for observed confirmation.` };
+  if (r.status === "confirmed") return { tone: "ok", text: t("live.povWhoConfirmedPrecision", { who, precision }) };
+  if (r.status === "failed" || r.status === "cancelled") return { tone: "danger", text: `${r.status === "failed" ? t("live.povWhoFailed", { who }) : t("live.povWhoCancelled", { who })}${r.failureReason ? ` — ${r.failureReason.replace(/_/g, " ")}` : ""}${r.detail ? ` (${r.detail})` : ""}.` };
+  return { tone: "info", text: t("live.povWhoReplacePrecisionWaiting", { who, replace: r.status.replace(/_/g, " "), precision }) };
 }
 
 /** Waits (≤4 s) for the arbiter's observed result for a command and reports it. */
@@ -60,13 +62,13 @@ async function followConfirmation(commandId: string, who: string, push: (tone: "
     const ev = liveStore.state.arbiterLog.find((e) => e.kind === "result" && e.detail.commandId === commandId && e.detail.status !== "transport_acknowledged" && e.detail.status !== "sent");
     if (ev) {
       const status = String(ev.detail.status);
-      if (status === "confirmed") push("ok", `POV ${who}: confirmed by telemetry (${String(ev.detail.precision ?? "").replace(/_/g, " ")})`);
-      else push("danger", `POV ${who}: ${status}`, ev.detail.failureReason ? String(ev.detail.failureReason).replace(/_/g, " ") : undefined);
+      if (status === "confirmed") push("ok", t("live.povWhoConfirmedByTelemetry", { who, replace: String(ev.detail.precision ?? "").replace(/_/g, " ") }));
+      else push("danger", t("live.povWhoStatus", { who, status: status.replace(/_/g, " ") }), ev.detail.failureReason ? String(ev.detail.failureReason).replace(/_/g, " ") : undefined);
       return;
     }
     await new Promise((r) => setTimeout(r, 200));
   }
-  push("warn", `POV ${who}: no observed confirmation yet`, "Check the Point of view panel: the confirmed POV comes from source feedback.");
+  push("warn", t("live.povWhoNoObservedConfirmation", { who }), t("live.checkThePointOfView"));
 }
 
 function useActiveMatch() {
@@ -75,7 +77,7 @@ function useActiveMatch() {
   const match = useApi<MatchRow>(matchId ? `/api/v1/matches/${seg(matchId)}` : null, { refreshMs: 15000 });
   const teams = useApi<TeamRow[]>(matchId ? "/api/v1/teams" : null);
   const events = useApi<EventRecord[]>(match.data?.eventId ? "/api/v1/events" : null);
-  const team = (id: string | undefined) => teams.data?.find((t) => t.id === id) ?? null;
+  const team = (id: string | undefined) => teams.data?.find((tRow) => tRow.id === id) ?? null;
   return {
     error: active.error,
     match: match.data ?? null,
@@ -94,14 +96,14 @@ interface SideTeamsView {
   canSwap: boolean;
 }
 
-const SIDE_TEAMS_HOW: Record<NonNullable<SideTeamsView["how"]>, string> = {
-  roster: "recognised from the players' SteamID64s",
-  names: "recognised from CS2's team names",
-  players: "recognised from a few players' SteamID64s",
-  veto: "from the veto's starting side: swap if wrong",
-  assumed: "Team 1 assumed on the side shown: swap if wrong",
-  swapped: "swapped by you",
-};
+const SIDE_TEAMS_HOW: Record<NonNullable<SideTeamsView["how"]>, string> = perLocale(() => ({
+  roster: t("live.recognisedFromThePlayersSteamid64s"),
+  names: t("live.recognisedFromCs2STeam"),
+  players: t("live.recognisedFromAFewPlayers"),
+  veto: t("live.fromTheVetoSStarting"),
+  assumed: t("live.team1AssumedOnThe"),
+  swapped: t("live.swappedByYou"),
+}));
 
 interface SavePlayersResult {
   applied: boolean;
@@ -122,17 +124,13 @@ function SideTeamsLine() {
   const d = v.data;
   if (!d || !d.how || (!d.CT && !d.T)) return null;
   const summary = (r: SavePlayersResult) =>
-    r.create.length + r.move.length === 0 ? `All ${r.already} players are already saved to these teams.` : `${r.create.length} new player${r.create.length === 1 ? "" : "s"} saved, ${r.move.length} moved${r.already ? `, ${r.already} already on their team` : ""}.`;
+    r.create.length + r.move.length === 0 ? t("live.allAlreadyPlayersAreAlready", { already: r.already }) : `${t("live.playersSavedMoved", { count: r.create.length, moved: r.move.length })}${r.already ? t("live.alreadyAlreadyOnTheirTeam", { already: r.already }) : ""}.`;
   return (
     <div className="stack-sm">
-      <div className="row small" role="status" aria-label="Teams on screen">
-        <span>
-          On screen: <span className="side-ct">CT</span> <strong>{d.ctName ?? "?"}</strong> · <span className="side-t">T</span> <strong>{d.tName ?? "?"}</strong> <span className="muted">({SIDE_TEAMS_HOW[d.how]})</span>
-        </span>
+      <div className="row small" role="status" aria-label={t("live.teamsOnScreen")}>
+        <span><T k="live.onScreenCtStrongT" values={{ strong: <strong>{d.ctName ?? "?"}</strong>, strong2: <strong>{d.tName ?? "?"}</strong>, span: <span className="muted">({SIDE_TEAMS_HOW[d.how]})</span> }} tags={{ span: (c) => <span className="side-ct">{c}</span>, span2: (c) => <span className="side-t">{c}</span> }} /></span>
         {d.canSwap ? (
-          <ActionButton size="sm" variant="ghost" action={async () => v.setData(await api.post<SideTeamsView>("/api/v1/live/side-teams/swap"))} success="Teams swapped on the HUDs" disabledReason={reason}>
-            Swap teams ({shortcutLabel("F11")})
-          </ActionButton>
+          <ActionButton size="sm" variant="ghost" action={async () => v.setData(await api.post<SideTeamsView>("/api/v1/live/side-teams/swap"))} success={t("live.teamsSwappedOnTheHuds")} disabledReason={reason}>{t("live.swapTeamsShortcutlabel", { shortcutLabel: shortcutLabel("F11") })}</ActionButton>
         ) : null}
         {d.CT && d.T && d.how !== "roster" ? (
           <ActionButton
@@ -142,17 +140,15 @@ function SideTeamsLine() {
             success={(m) => m}
             disabledReason={writeReason}
             confirm={{
-              title: "Save these players to their teams?",
-              body: `The players now on CT are saved to ${d.ctName ?? "the CT team"} and the players on T to ${d.tName ?? "the T team"}, by their SteamID64: new players are added with their in-game name, saved players move to that team. From then on MatchFrame recognises the teams by their players, on every map. Check the teams on screen are right first (Swap teams if not).`,
-              confirmLabel: "Save players",
+              title: t("live.saveThesePlayersToTheir"),
+              body: t("live.thePlayersNowOnCt", { v: d.ctName ?? t("live.theCtTeam"), v2: d.tName ?? t("live.theTTeam") }),
+              confirmLabel: t("live.savePlayers"),
             }}
-          >
-            Save players to teams
-          </ActionButton>
+          >{t("live.savePlayersToTeams")}</ActionButton>
         ) : null}
       </div>
-      <Details summary="Swap teams hotkey and Stream Deck">
-        <Hotkeys keys={TEAM_KEYS} label="Team hotkeys" devices="the device action teams_swap" />
+      <Details summary={t("live.swapTeamsHotkeyAndStream")}>
+        <Hotkeys keys={TEAM_KEYS} label={t("live.teamHotkeys")} devices={t("live.theDeviceActionTeamsSwap")} />
       </Details>
     </div>
   );
@@ -168,40 +164,36 @@ function MatchHeader({ snap }: { snap: OperatorSnapshot }) {
   return (
     <div className="match-header">
       <div className="mh-block mh-match">
-        <span className="mh-label">{am.event?.name ?? "Match"}</span>
+        <span className="mh-label">{am.event?.name ?? t("live.match")}</span>
         <span className="mh-value">
           {am.match ? (
-            <span title={`Series ${am.match.seriesScoreA} – ${am.match.seriesScoreB} (BO${am.match.format.bestOf})`}>
-              {am.teamA?.name ?? "Team A"} vs {am.teamB?.name ?? "Team B"} <span className="muted">· {am.match.seriesScoreA}–{am.match.seriesScoreB}</span>
-            </span>
+            <span title={t("live.seriesSeriesscoreaSeriesscorebBoBestof", { seriesScoreA: am.match.seriesScoreA, seriesScoreB: am.match.seriesScoreB, bestOf: am.match.format.bestOf })}><T k="live.vVsV2Span" values={{ v: am.teamA?.name ?? t("live.teamA"), v2: am.teamB?.name ?? t("live.teamB"), span: <span className="muted">· {am.match.seriesScoreA}–{am.match.seriesScoreB}</span> }} /></span>
           ) : (
-            <Link to="/matches" title="Activate a match so HUDs show team names, logos and series">
-              Activate a match
-            </Link>
+            <Link to="/matches" title={t("live.activateAMatchSoHuds")}>{t("live.activateAMatch")}</Link>
           )}
         </span>
       </div>
-      <div className="mh-block" title={`${titleCase(s.mapPhase)} map phase`}>
-        <span className="mh-label">Map</span>
+      <div className="mh-block" title={t("live.mapphaseMapPhase", { mapPhase: titleCase(s.mapPhase) })}>
+        <span className="mh-label">{t("live.map")}</span>
         <span className="mh-value">{s.mapName ?? MISSING}</span>
       </div>
       <div className="mh-block mh-score">
-        <span className="mh-label">Score</span>
+        <span className="mh-label">{t("live.score")}</span>
         <span className="mh-value">
           <span className="side-ct">CT</span> <strong>{s.teams.CT.score ?? MISSING}</strong> – <strong>{s.teams.T.score ?? MISSING}</strong> <span className="side-t">T</span>
         </span>
       </div>
       <div className="mh-block">
-        <span className="mh-label">Round {s.roundNumber ?? MISSING}</span>
+        <span className="mh-label">{t("live.roundV", { v: s.roundNumber ?? MISSING })}</span>
         <span className="mh-value">
           {PHASE_LABEL[s.gamePhase] ?? s.gamePhase} <span className="mh-clock">{fmtClock(remaining)}</span>
-          {s.paused ? <Badge tone="warn">PAUSED</Badge> : null}
-          {s.bomb && (s.bomb.state === "planted" || s.bomb.state === "defusing") ? <Badge tone="danger">BOMB {s.bomb.state.toUpperCase()}{s.bomb.site ? ` ${s.bomb.site}` : ""}</Badge> : null}
+          {s.paused ? <Badge tone="warn">{t("live.phase.paused")}</Badge> : null}
+          {s.bomb && (s.bomb.state === "planted" || s.bomb.state === "defusing") ? <Badge tone="danger">{s.bomb.state === "planted" ? t("live.bombPlanted") : t("live.bombDefusing")}{s.bomb.site ? ` ${s.bomb.site}` : ""}</Badge> : null}
         </span>
       </div>
-      <div className="mh-block" title={`Observer camera mode: ${s.observer.cameraMode.replace("_", " ")}`}>
-        <span className="mh-label">Observing</span>
-        <span className="mh-value">{s.observer.observedSteamId ? nameOf(s.observer.observedSteamId) : <span className="muted">Nobody</span>}</span>
+      <div className="mh-block" title={t("live.observerCameraModeReplace", { replace: s.observer.cameraMode.replace("_", " ") })}>
+        <span className="mh-label">{t("live.observing")}</span>
+        <span className="mh-value">{s.observer.observedSteamId ? nameOf(s.observer.observedSteamId) : <span className="muted">{t("live.nobody")}</span>}</span>
       </div>
     </div>
   );
@@ -214,34 +206,34 @@ function PovStatus({ snap }: { snap: OperatorSnapshot }) {
   const lastResult = [...arbiterLog].reverse().find((e) => e.kind === "result" || e.kind === "rejected" || e.kind === "external_change");
   const p = snap.pending;
   const inFlight = isInFlight(p?.status);
-  const pendingTarget = p ? (p.request.kind === "select_player" ? `${p.request.view === "chase" ? "Chase" : "POV"} · ${nameOf(p.request.steamId)}` : p.request.kind === "activate_static_camera" ? `Camera · ${p.request.camera.displayName}` : p.request.kind.replace(/_/g, " ")) : null;
+  const pendingTarget = p ? (p.request.kind === "select_player" ? `${p.request.view === "chase" ? t("live.chase") : "POV"} · ${nameOf(p.request.steamId)}` : p.request.kind === "activate_static_camera" ? t("common.shot.camera", { id: p.request.camera.displayName }) : p.request.kind.replace(/_/g, " ")) : null;
   return (
     <>
       <div className="pov">
         <div className="pov-main">
-          <span className="pov-label">On air</span>
+          <span className="pov-label">{t("live.onAir")}</span>
           <span className="pov-value">{shotLabel(snap.currentShot, nameOf)}</span>
         </div>
         <div className="pov-side">
           <div>
-            <span className="pov-label">Director wants</span> {shotLabel(snap.director?.desiredShot, nameOf)}
+            <span className="pov-label">{t("live.directorWants")}</span> {shotLabel(snap.director?.desiredShot, nameOf)}
             {snap.director ? <span className="muted"> · {snap.director.action}</span> : null}
           </div>
           <div className={inFlight ? "pov-inflight" : undefined}>
-            <span className="pov-label">{p && !inFlight ? "Last command" : "Pending"}</span> {pendingTarget ?? <span className="muted">Nothing</span>}
+            <span className="pov-label">{p && !inFlight ? t("live.lastCommand") : t("live.pending")}</span> {pendingTarget ?? <span className="muted">{t("live.nothing")}</span>}
             {p ? <span className="muted"> · {p.status.replace(/_/g, " ")}</span> : null}
           </div>
         </div>
       </div>
-      <Details summary="Details">
+      <Details summary={t("common.details")}>
         <KV
           items={[
-            ["On air", `confirmed by source feedback (${s.observer.evidence}) · camera ${s.observer.cameraMode.replace("_", " ")}`],
-            ["Command", p ? `${p.status.replace(/_/g, " ")} · owner ${p.context.owner}${p.retries ? ` · retry ${p.retries}` : ""}` : "nothing in flight"],
-            ["Director", snap.director ? `${snap.director.action} · ${snap.director.mode}` : "no decision"],
+            [t("live.onAir"), t("live.confirmedBySource", { evidence: s.observer.evidence, camera: s.observer.cameraMode.replace("_", " ") })],
+            [t("live.kvCommand"), p ? `${p.status.replace(/_/g, " ")} · ${t("live.ownerName", { owner: p.context.owner })}${p.retries ? t("live.retryN", { n: p.retries }) : ""}` : t("live.nothingInFlight")],
+            [t("live.kvDirector"), snap.director ? `${snap.director.action} · ${snap.director.mode}` : t("live.noDecision")],
             [
-              "Last arbiter event",
-              lastResult ? `${lastResult.kind.replace(/_/g, " ")} ${String(lastResult.detail.status ?? lastResult.detail.reason ?? "")}${lastResult.detail.failureReason ? ` — ${String(lastResult.detail.failureReason).replace(/_/g, " ")}` : ""}` : "none since this console connected",
+              t("live.lastArbiterEvent"),
+              lastResult ? `${lastResult.kind.replace(/_/g, " ")} ${String(lastResult.detail.status ?? lastResult.detail.reason ?? "")}${lastResult.detail.failureReason ? ` — ${String(lastResult.detail.failureReason).replace(/_/g, " ")}` : ""}` : t("live.noneSinceConnected"),
             ],
           ]}
         />
@@ -264,20 +256,20 @@ function ActionsBar({ snap, cameras }: { snap: OperatorSnapshot; cameras: { id: 
   const holdLeft = hold && hold.until !== null && engineNow !== null ? Math.max(0, hold.until - engineNow) : null;
   const pin = snap.controls.pin;
   const nameOf = makeNameOf(s);
-  const pinText = !pin ? null : pin.kind === "player" ? `player ${nameOf(pin.steamId)}` : pin.kind === "side" ? `side ${pin.side}` : pin.kind === "team" ? `team ${pin.teamId}` : `${pin.steamIds.length} players`;
+  const pinText = !pin ? null : pin.kind === "player" ? t("live.pinPlayer", { name: nameOf(pin.steamId) }) : pin.kind === "side" ? t("live.pinSide", { side: pin.side }) : pin.kind === "team" ? t("live.pinTeam", { team: pin.teamId }) : t("live.pinPlayers", { count: pin.steamIds.length });
 
   const returnLive = async () => {
     const out: string[] = [];
     if (snap.program.mode !== "LIVE") {
-      const t = await api.post<{ to: string; confirmed: boolean; detail: string | null }>("/api/v1/program/return-live");
-      out.push(`Program → ${t.to}${t.confirmed ? "" : " (mixer not confirmed)"}${t.detail ? `: ${t.detail}` : ""}`);
+      const tRow = await api.post<{ to: string; confirmed: boolean; detail: string | null }>("/api/v1/program/return-live");
+      out.push(`${t("live.programTo", { to: tRow.to })}${tRow.confirmed ? "" : t("live.mixerNotConfirmed")}${tRow.detail ? `: ${tRow.detail}` : ""}`);
     }
     const shot = shotTarget(snap.currentShot);
     if (!shot || shot.kind !== "pov") {
       const r = await api.post<CommandResult | null>("/api/v1/observer/commands", { kind: "return_to_pov" });
-      out.push(describeCommandResult(r, "best player").text);
+      out.push(describeCommandResult(r, t("live.bestPlayer")).text);
     }
-    return out.length ? out.join(" · ") : "Already live: program is LIVE and the observer is on a POV.";
+    return out.length ? out.join(" · ") : t("live.alreadyLiveProgramIsLive");
   };
 
   return (
@@ -286,50 +278,42 @@ function ActionsBar({ snap, cameras }: { snap: OperatorSnapshot; cameras: { id: 
         <ActionButton
           variant="primary"
           action={() => api.post<{ decision: { action: string; desiredShot: string | null } | null }>("/api/v1/director/follow-action")}
-          success={(r) => (r.decision ? `Follow action: ${r.decision.action} → ${shotLabel(r.decision.desiredShot, nameOf)}` : "Follow action requested")}
+          success={(r) => (r.decision ? t("live.followActionActionDesiredshot", { action: r.decision.action, desiredShot: shotLabel(r.decision.desiredShot, nameOf) }) : t("live.followActionRequested"))}
           disabledReason={directorReason}
-        >
-          Follow action
-        </ActionButton>
-        <ActionButton action={returnLive} success={(m) => m} disabledReason={programReason ?? cameraReason} title="Program back to Live and the observer back on a player POV">
-          Return live
-        </ActionButton>
+        >{t("live.followAction")}</ActionButton>
+        <ActionButton action={returnLive} success={(m) => m} disabledReason={programReason ?? cameraReason} title={t("live.programBackToLiveAnd")}>{t("live.returnLive")}</ActionButton>
       </div>
       <div className="ctl-row">
-        <span className="ctl-label">Hold</span>
+        <span className="ctl-label">{t("live.hold")}</span>
         {hold ? (
-          <ActionButton variant="warn" action={() => api.post("/api/v1/director/release-hold")} success="Hold released" disabledReason={directorReason}>
-            Release hold {holdLeft !== null ? `(${fmtMs(holdLeft)})` : "(until released)"}
-          </ActionButton>
+          <ActionButton variant="warn" action={() => api.post("/api/v1/director/release-hold")} success={t("live.holdReleased")} disabledReason={directorReason}>{t("live.releaseHoldV", { v: holdLeft !== null ? `(${fmtMs(holdLeft)})` : t("live.untilReleased3") })}</ActionButton>
         ) : (
           <>
-            <select aria-label="Hold duration" value={holdMs} onChange={(e) => setHoldMs(e.target.value)}>
-              <option value="5000">5 s</option>
-              <option value="10000">10 s</option>
-              <option value="30000">30 s</option>
-              <option value="60000">60 s</option>
-              <option value="">Until released</option>
+            <select aria-label={t("live.holdDuration")} value={holdMs} onChange={(e) => setHoldMs(e.target.value)}>
+              <option value="5000">{t("live.text5S")}</option>
+              <option value="10000">{t("live.text10S")}</option>
+              <option value="30000">{t("live.text30S")}</option>
+              <option value="60000">{t("live.text60S")}</option>
+              <option value="">{t("live.untilReleased2")}</option>
             </select>
-            <ActionButton action={() => api.post("/api/v1/director/hold", { durationMs: holdMs ? Number(holdMs) : null })} success={`Holding ${holdMs ? `${Number(holdMs) / 1000} s` : "until released"}`} disabledReason={directorReason}>
-              Hold
-            </ActionButton>
+            <ActionButton action={() => api.post("/api/v1/director/hold", { durationMs: holdMs ? Number(holdMs) : null })} success={t("live.holdingV", { v: holdMs ? `${Number(holdMs) / 1000} s` : t("live.untilReleased") })} disabledReason={directorReason}>{t("live.hold")}</ActionButton>
           </>
         )}
       </div>
       <div className="ctl-row">
-        <span className="ctl-label">Pin</span>
-        <select aria-label="Pin target" value={pinTarget} onChange={(e) => setPinTarget(e.target.value)}>
-          <option value="">Choose…</option>
-          <optgroup label="Players">
+        <span className="ctl-label">{t("live.pin")}</span>
+        <select aria-label={t("live.pinTarget")} value={pinTarget} onChange={(e) => setPinTarget(e.target.value)}>
+          <option value="">{t("live.choose")}</option>
+          <optgroup label={t("live.players")}>
             {s.players.map((p) => (
               <option key={p.steamId} value={`player:${p.steamId}`}>
                 {p.name} ({p.side ?? "?"})
               </option>
             ))}
           </optgroup>
-          <optgroup label="Sides">
-            <option value="side:CT">CT side</option>
-            <option value="side:T">T side</option>
+          <optgroup label={t("live.sides")}>
+            <option value="side:CT">{t("live.ctSide")}</option>
+            <option value="side:T">{t("live.tSide")}</option>
           </optgroup>
         </select>
         <ActionButton
@@ -337,30 +321,24 @@ function ActionsBar({ snap, cameras }: { snap: OperatorSnapshot; cameras: { id: 
             const [kind, val] = pinTarget.split(":");
             return api.post("/api/v1/director/pin", kind === "player" ? { kind: "player", steamId: val } : { kind: "side", side: val });
           }}
-          success="Pin set"
-          disabledReason={directorReason ?? (pinTarget ? null : "Choose a player or side to pin")}
-        >
-          Pin
-        </ActionButton>
+          success={t("live.pinSet")}
+          disabledReason={directorReason ?? (pinTarget ? null : t("live.chooseAPlayerOrSide"))}
+        >{t("live.pin")}</ActionButton>
         {pin ? (
-          <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/director/pin", { kind: "none" })} success="Pin cleared" disabledReason={directorReason}>
-            Unpin {pinText}
-          </ActionButton>
+          <ActionButton size="sm" variant="ghost" action={() => api.post("/api/v1/director/pin", { kind: "none" })} success={t("live.pinCleared")} disabledReason={directorReason}>{t("live.unpinPintext", { pinText })}</ActionButton>
         ) : null}
       </div>
       <div className="ctl-row">
-        <span className="ctl-label">Cinematic</span>
-        <select aria-label="Cinematic camera" value={cinematicCam} onChange={(e) => setCinematicCam(e.target.value)} disabled={!gate.enabled}>
-          <option value="">Director picks the camera</option>
+        <span className="ctl-label">{t("live.cinematic")}</span>
+        <select aria-label={t("live.cinematicCamera")} value={cinematicCam} onChange={(e) => setCinematicCam(e.target.value)} disabled={!gate.enabled}>
+          <option value="">{t("live.directorPicksTheCamera")}</option>
           {cameras.map((c) => (
             <option key={c.id} value={c.id}>
               {c.displayName} ({c.validation})
             </option>
           ))}
         </select>
-        <ActionButton action={() => api.post("/api/v1/director/request-cinematic", cinematicCam ? { cameraId: cinematicCam } : {})} success="Cinematic requested" disabledReason={directorReason ?? (gate.enabled ? null : gate.reason)} title={gate.reason ?? undefined}>
-          Request
-        </ActionButton>
+        <ActionButton action={() => api.post("/api/v1/director/request-cinematic", cinematicCam ? { cameraId: cinematicCam } : {})} success={t("live.cinematicRequested")} disabledReason={directorReason ?? (gate.enabled ? null : gate.reason)} title={gate.reason ?? undefined}>{t("live.request")}</ActionButton>
       </div>
     </div>
   );
@@ -375,9 +353,9 @@ function ObserverModeSelect({ snap }: { snap: OperatorSnapshot }) {
     setBusyMode(m);
     try {
       await api.post("/api/v1/director/observer-mode", { mode: m });
-      toast.push("ok", `Observer: ${OBSERVER_MODE_INFO[m].label}`, m !== "off" && (snap.ownership.manualSticky || snap.ownership.owner !== "director") ? "The Observer moves the camera once it owns it: use Resume automation in the top bar." : undefined);
+      toast.push("ok", t("live.observerLabel", { label: OBSERVER_MODE_INFO[m].label }), m !== "off" && (snap.ownership.manualSticky || snap.ownership.owner !== "director") ? t("live.theObserverMovesTheCamera") : undefined);
     } catch (e) {
-      toast.push("danger", "Observer mode not changed", describeError(e));
+      toast.push("danger", t("live.observerModeNotChanged"), describeError(e));
     } finally {
       setBusyMode(null);
     }
@@ -385,7 +363,7 @@ function ObserverModeSelect({ snap }: { snap: OperatorSnapshot }) {
   const editorial = snap.mode !== "advisory" && snap.mode !== "automatic" && snap.mode !== "assisted" ? MODE_INFO[snap.mode] : null;
   return (
     <>
-      <div className="mode-select" role="radiogroup" aria-label="Observer mode">
+      <div className="mode-select" role="radiogroup" aria-label={t("live.observerMode")}>
         {OBSERVER_MODES.map((m) => {
           const locked = m === "full_action" && !fullActionAvailable;
           return (
@@ -394,19 +372,19 @@ function ObserverModeSelect({ snap }: { snap: OperatorSnapshot }) {
               role="radio"
               aria-checked={snap.observerMode === m}
               className={`mode-btn ${snap.observerMode === m ? "is-on" : ""}`}
-              title={locked ? "Full Action Observer comes with the top plan. Upgrade on the website." : OBSERVER_MODE_INFO[m].hint}
+              title={locked ? t("live.fullActionObserverComesWith") : OBSERVER_MODE_INFO[m].hint}
               disabled={directorReason !== null || busyMode !== null || locked}
               onClick={() => void setMode(m)}
             >
               {OBSERVER_MODE_INFO[m].label}
-              {OBSERVER_MODE_INFO[m].topPlan && locked ? <span className="mode-plan"> · Top plan</span> : null}
+              {OBSERVER_MODE_INFO[m].topPlan && locked ? <span className="mode-plan">{t("live.topPlan")}</span> : null}
             </button>
           );
         })}
       </div>
       <p className="small muted mode-hint">
         {OBSERVER_MODE_INFO[snap.observerMode].hint}
-        {editorial ? ` Editorial mode: ${editorial.label}.` : ""}
+        {editorial ? t("live.editorialModeLabel", { label: editorial.label }) : ""}
         {directorReason ? ` (${directorReason})` : ""}
       </p>
     </>
@@ -424,15 +402,15 @@ function DirectorPanel({ snap, threshold, nameOf }: { snap: OperatorSnapshot; th
   return (
     <>
       <DecisionExplain decision={d} nameOf={nameOf} threshold={threshold} />
-      <Details summary="Top candidates">
+      <Details summary={t("live.topCandidates")}>
         <CandidateList candidates={snap.candidates} nameOf={nameOf} currentShot={snap.currentShot} />
       </Details>
-      <Details summary="Decision details">
+      <Details summary={t("live.decisionDetails")}>
         <KV
           items={[
-            ["Control", health ? <span key="h" title={health.hint}>{health.text}</span> : <span className="muted">no decision yet</span>],
-            ["Input", `${stale ? "stale" : "fresh"} · decision input ${fmtMs(inputAge)} · data age ≈ ${fmtMs(ageEst)} · last packet ${sequenceChangedAt ? fmtMs(Math.max(0, now - sequenceChangedAt)) : MISSING} ago`],
-            ["Policy / model", d ? `${d.policyVersion} · ${d.modelVersion ?? "no learned model (baseline policy)"}` : MISSING],
+            [t("live.kvControl"), health ? <span key="h" title={health.hint}>{health.text}</span> : <span className="muted">{t("live.noDecisionYet")}</span>],
+            [t("live.kvInput"), t("live.inputDetail", { state: stale ? t("live.stale") : t("live.fresh"), input: fmtMs(inputAge), age: fmtMs(ageEst), packet: sequenceChangedAt ? fmtMs(Math.max(0, now - sequenceChangedAt)) : MISSING })],
+            [t("live.policyModel"), d ? `${d.policyVersion} · ${d.modelVersion ?? t("live.noLearnedModel")}` : MISSING],
           ]}
         />
       </Details>
@@ -449,37 +427,37 @@ function DirectorControls({ snap }: { snap: OperatorSnapshot }) {
       await api.post(path, body);
       toast.push("ok", ok);
     } catch (e) {
-      toast.push("danger", "Director control failed", describeError(e));
+      toast.push("danger", t("live.directorControlFailed"), describeError(e));
     }
   };
   return (
     <div className="dir-controls">
       <fieldset>
-        <legend>Disable cinematics</legend>
-        <Checkbox checked={c.cinematicsDisabled.round !== null} disabled={!!reason} onChange={(v) => void call("/api/v1/director/cinematics", { scope: "round", disabled: v }, v ? "Cinematics disabled for this round" : "Cinematics re-enabled for this round")} label="This round" />
-        <Checkbox checked={c.cinematicsDisabled.map !== null} disabled={!!reason} onChange={(v) => void call("/api/v1/director/cinematics", { scope: "map", disabled: v }, v ? "Cinematics disabled for this map" : "Cinematics re-enabled for this map")} label="This map" />
-        <Checkbox checked={c.cinematicsDisabled.match} disabled={!!reason} onChange={(v) => void call("/api/v1/director/cinematics", { scope: "match", disabled: v }, v ? "Cinematics disabled for the match" : "Cinematics re-enabled for the match")} label="Whole match" />
+        <legend>{t("live.disableCinematics")}</legend>
+        <Checkbox checked={c.cinematicsDisabled.round !== null} disabled={!!reason} onChange={(v) => void call("/api/v1/director/cinematics", { scope: "round", disabled: v }, v ? t("live.cinematicsDisabledForThisRound") : t("live.cinematicsReEnabledForThis2"))} label={t("live.thisRound")} />
+        <Checkbox checked={c.cinematicsDisabled.map !== null} disabled={!!reason} onChange={(v) => void call("/api/v1/director/cinematics", { scope: "map", disabled: v }, v ? t("live.cinematicsDisabledForThisMap") : t("live.cinematicsReEnabledForThis"))} label={t("live.thisMap")} />
+        <Checkbox checked={c.cinematicsDisabled.match} disabled={!!reason} onChange={(v) => void call("/api/v1/director/cinematics", { scope: "match", disabled: v }, v ? t("live.cinematicsDisabledForTheMatch") : t("live.cinematicsReEnabledForThe"))} label={t("live.wholeMatch")} />
       </fieldset>
       <fieldset>
-        <legend title="Restrict POV choices to one side (e.g. a team-specific stream)">Follow one side</legend>
-        <div className="seg" role="radiogroup" aria-label="One-side profile">
+        <legend title={t("live.restrictPovChoicesToOne")}>{t("live.followOneSide")}</legend>
+        <div className="seg" role="radiogroup" aria-label={t("live.oneSideProfile")}>
           {([null, "CT", "T"] as (Side | null)[]).map((sd) => (
-            <button key={String(sd)} role="radio" aria-checked={c.oneSide === sd} className={`seg-btn ${c.oneSide === sd ? "is-on" : ""}`} disabled={!!reason} onClick={() => void call("/api/v1/director/one-side", { side: sd }, sd ? `Following ${sd} side only` : "One-side profile off")}>
-              {sd ?? "Both sides"}
+            <button key={String(sd)} role="radio" aria-checked={c.oneSide === sd} className={`seg-btn ${c.oneSide === sd ? "is-on" : ""}`} disabled={!!reason} onClick={() => void call("/api/v1/director/one-side", { side: sd }, sd ? t("live.followingSdSideOnly", { sd }) : t("live.oneSideProfileOff"))}>
+              {sd ?? t("live.bothSides")}
             </button>
           ))}
         </div>
       </fieldset>
       <fieldset>
-        <legend>Replays</legend>
-        <Checkbox checked={c.autoReplaysDisabled} disabled={!!reason} onChange={(v) => void call("/api/v1/director/auto-replays", { disabled: v }, v ? "Automatic replay suggestions disabled" : "Automatic replay suggestions enabled")} label="Disable automatic replay suggestions" />
+        <legend>{t("live.replays")}</legend>
+        <Checkbox checked={c.autoReplaysDisabled} disabled={!!reason} onChange={(v) => void call("/api/v1/director/auto-replays", { disabled: v }, v ? t("live.automaticReplaySuggestionsDisabled") : t("live.automaticReplaySuggestionsEnabled"))} label={t("live.disableAutomaticReplaySuggestions")} />
       </fieldset>
       {reason ? <p className="small muted">{reason}</p> : null}
     </div>
   );
 }
 
-const onOff = (v: boolean | null) => (v === null ? "?" : v ? "on" : "off");
+const onOff = (v: boolean | null) => (v === null ? "?" : v ? t("common.on") : t("common.off"));
 
 function ProductionPanel({ snap }: { snap: OperatorSnapshot }) {
   const replays = useApi<ReplaysResponse>("/api/v1/replays", { refreshMs: 5000 });
@@ -493,38 +471,36 @@ function ProductionPanel({ snap }: { snap: OperatorSnapshot }) {
     <>
       <KV
         items={[
-          ["Program", <span key="p" title={`Owner: ${snap.program.owner.kind}`}>{titleCase(snap.program.mode.replace("_", " ").toLowerCase())}</span>],
-          ["OBS", snap.obs.connected ? `${snap.obs.programScene ?? MISSING} (preview ${snap.obs.previewScene ?? MISSING})${snap.obs.studioMode ? " · studio mode" : ""}` : <Link key="o" to="/settings/devices">Not connected — connect in Settings → Devices</Link>],
-          ["Replays", prov ? <span key="r" title={prov.health.detail}>{prov.health.ok ? "Ready" : `Not ready — ${prov.health.detail}`} · {approved} approved</span> : replays.data ? <Link key="r" to="/replays">No replay provider set up</Link> : MISSING],
-          ["Outputs", `Recording ${onOff(snap.obs.recording)} · streaming ${onOff(snap.obs.streaming)} · replay buffer ${onOff(snap.obs.replayBuffer)}`],
-          ...(early ? [["Early replays", early.state === "decided" || early.state === "on_air" ? <strong key="e">{early.detail}</strong> : early.detail] as [string, ReactNode]] : []),
+          [t("live.kvProgram"), <span key="p" title={t("live.ownerKind", { kind: snap.program.owner.kind })}>{titleCase(snap.program.mode.replace("_", " ").toLowerCase())}</span>],
+          ["OBS", snap.obs.connected ? `${snap.obs.programScene ?? MISSING}${t("live.previewScene", { scene: snap.obs.previewScene ?? MISSING })}${snap.obs.studioMode ? t("live.studioModeSuffix") : ""}` : <Link key="o" to="/settings/devices">{t("live.notConnectedConnectInSettings")}</Link>],
+          [t("live.replays"), prov ? <span key="r" title={prov.health.detail}>{t("live.vApprovedApproved", { v: prov.health.ok ? t("live.ready") : t("live.notReadyDetail", { detail: prov.health.detail }), approved })}</span> : replays.data ? <Link key="r" to="/replays">{t("live.noReplayProviderSetUp")}</Link> : MISSING],
+          [t("live.kvOutputs"), t("live.outputsDetail", { recording: onOff(snap.obs.recording), streaming: onOff(snap.obs.streaming), buffer: onOff(snap.obs.replayBuffer) })],
+          ...(early ? [[t("live.earlyReplays"), early.state === "decided" || early.state === "on_air" ? <strong key="e">{early.detail}</strong> : early.detail] as [string, ReactNode]] : []),
         ]}
       />
-      <Details summary={`Telemetry sources (${src.length})`}>
+      <Details summary={t("live.telemetrySourcesCount", { count: src.length })}>
         <table className="table table-compact">
           <thead>
             <tr>
-              <th>Source</th>
-              <th>Health</th>
-              <th>Packets</th>
-              <th>Rejected</th>
-              <th>Gaps</th>
-              <th>Interval</th>
-              <th>Build</th>
+              <th>{t("live.source")}</th>
+              <th>{t("live.health")}</th>
+              <th>{t("live.packets")}</th>
+              <th>{t("live.rejected")}</th>
+              <th>{t("live.gaps")}</th>
+              <th>{t("live.interval")}</th>
+              <th>{t("live.build")}</th>
             </tr>
           </thead>
           <tbody>
             {src.length === 0 ? (
               <tr>
-                <td colSpan={7} className="muted">
-                  No telemetry source yet.
-                </td>
+                <td colSpan={7} className="muted">{t("live.noTelemetrySourceYet")}</td>
               </tr>
             ) : (
               src.map((x) => (
                 <tr key={x.sourceId}>
                   <td>{x.sourceId}</td>
-                  <td>{x.stale ? "Stale" : x.connected ? "OK" : "Disconnected"}</td>
+                  <td>{x.stale ? t("live.stale") : x.connected ? "OK" : t("live.disconnected")}</td>
                   <td>{x.packetsReceived}</td>
                   <td>{x.packetsRejected}</td>
                   <td>{x.sequenceGaps}</td>
@@ -559,7 +535,7 @@ export function LiveControlScreen() {
       toast.push(d.tone === "danger" ? "danger" : d.tone === "ok" ? "ok" : "info", d.text);
       if (r && isInFlight(r.status)) void followConfirmation(r.commandId, p.name, toast.push);
     } catch (e) {
-      toast.push("danger", `POV request for ${p.name} failed`, describeError(e));
+      toast.push("danger", t("live.povRequestForNameFailed", { name: p.name }), describeError(e));
     } finally {
       setBusy(null);
     }
@@ -582,7 +558,7 @@ export function LiveControlScreen() {
       const p = st?.players.find((x) => x.observerKey === slot && !x.coach);
       if (!p) return;
       if (cardReason) {
-        toast.push("warn", `Key ${e.key}: POV request unavailable`, cardReason);
+        toast.push("warn", t("live.keyKeyPovRequestUnavailable", { key: e.key }), cardReason);
         return;
       }
       e.preventDefault();
@@ -592,28 +568,22 @@ export function LiveControlScreen() {
     return () => window.removeEventListener("keydown", onKey);
   }, [cardReason, toast, requestRef]);
 
-  if (!snap) return <div className="page"><h1 className="page-title">Live Control</h1><EmptyState title="Connecting to the engine…" /></div>;
+  if (!snap) return <div className="page"><h1 className="page-title">{t("live.liveControl")}</h1><EmptyState title={t("live.connectingToTheEngine")} /></div>;
 
   if (!snap.state) {
     return (
       <div className="page">
-        <h1 className="page-title">Live Control</h1>
+        <h1 className="page-title">{t("live.liveControl")}</h1>
         <AutoDirectorCard compact />
         <EmptyState
-          title="No game data yet"
+          title={t("live.noGameDataYet")}
           action={
             <>
-              <Link to="/settings/setup" className="btn btn-primary btn-md">
-                Open Setup
-              </Link>{" "}
-              <ActionButton action={() => api.post("/api/v1/simulation/start", { startOffsetSec: 25 })} success="Simulation started (labelled synthetic data)">
-                Start simulation
-              </ActionButton>
+              <Link to="/settings/setup" className="btn btn-primary btn-md">{t("live.openSetup")}</Link>{" "}
+              <ActionButton action={() => api.post("/api/v1/simulation/start", { startOffsetSec: 25 })} success={t("live.simulationStartedLabelledSyntheticData")}>{t("live.startSimulation")}</ActionButton>
             </>
           }
-        >
-          Connect the CS2 observer client in Setup, or start the simulation to rehearse.
-        </EmptyState>
+        >{t("live.connectTheCs2ObserverClient")}</EmptyState>
       </div>
     );
   }
@@ -633,8 +603,8 @@ export function LiveControlScreen() {
   // A coach listed with a team: left out of the HUDs and never spectated.
   const setCoach = (p: PlayerState, coach: boolean) =>
     void api.put(`/api/v1/live/players/${seg(p.steamId)}/coach`, { coach }).then(
-      () => toast.push("ok", coach ? `${p.name} is the coach` : `${p.name} is a player`, coach ? "Left out of the HUDs and never spectated." : "Back in the HUDs."),
-      (e: unknown) => toast.push("danger", "Not changed", describeError(e)),
+      () => toast.push("ok", coach ? t("live.nameIsTheCoach", { name: p.name }) : t("live.nameIsAPlayer", { name: p.name }), coach ? t("live.leftOutOfTheHuds") : t("live.backInTheHuds")),
+      (e: unknown) => toast.push("danger", t("live.notChanged"), describeError(e)),
     );
 
   const column = (side: "CT" | "T") => {
@@ -643,24 +613,19 @@ export function LiveControlScreen() {
     return (
       <div className={`roster-col side-${side}`}>
         <h2 className="roster-head">
-          <span className={`side-tag side-${side}`}>{side}</span> {s.teams[side].name ?? `${side} side`}
+          <span className={`side-tag side-${side}`}>{side}</span> {s.teams[side].name ?? t("live.sideSide", { side })}
           <span className="roster-score">{s.teams[side].score ?? MISSING}</span>
         </h2>
-        {team.length === 0 ? <p className="muted small">No {side} players reported.</p> : null}
+        {team.length === 0 ? <p className="muted small">{t("live.noSidePlayersReported", { side })}</p> : null}
         {team.map((p) => (
-          <RosterCard key={p.steamId} p={p} roles={rolesOf(p)} onRequest={(chase) => (cardReason ? toast.push("warn", "POV request unavailable", cardReason) : void request(p, chase))} disabledReason={cardReason} busy={busy === p.steamId} />
+          <RosterCard key={p.steamId} p={p} roles={rolesOf(p)} onRequest={(chase) => (cardReason ? toast.push("warn", t("live.povRequestUnavailable"), cardReason) : void request(p, chase))} disabledReason={cardReason} busy={busy === p.steamId} />
         ))}
         {coaches.map((p) => (
-          <p key={p.steamId} className="roster-coach small muted">
-            Coach: {p.name}
-            <Button size="sm" variant="ghost" onClick={() => setCoach(p, false)}>
-              Not a coach
-            </Button>
-          </p>
+          <p key={p.steamId} className="roster-coach small muted"><T k="live.coachNameButton" values={{ name: p.name, button: <Button size="sm" variant="ghost" onClick={() => setCoach(p, false)}>{t("live.notACoach")}</Button> }} /></p>
         ))}
         {team.length > 5 ? (
           <div className="roster-coach small">
-            <span>More than five players. Which is the coach?</span>
+            <span>{t("live.moreThanFivePlayersWhich")}</span>
             {team.map((p) => (
               <Button key={p.steamId} size="sm" variant="ghost" onClick={() => setCoach(p, true)}>
                 {p.name}
@@ -674,50 +639,48 @@ export function LiveControlScreen() {
 
   return (
     <div className="page page-live">
-      <h1 className="sr-only">Live Control</h1>
+      <h1 className="sr-only">{t("live.liveControl")}</h1>
       <MatchHeader snap={snap} />
       <SideTeamsLine />
       {cardReason ? (
-        <Note tone="warn" title="POV control unavailable">
-          {cardReason}. Cards still show telemetry. <Link to="/settings/setup">Open Setup</Link>
-        </Note>
+        <Note tone="warn" title={t("live.povControlUnavailable")}><T k="live.cardreasonCardsStillShowTelemetry" values={{ cardReason }} tags={{ link: (c) => <Link to="/settings/setup">{c}</Link> }} /></Note>
       ) : null}
       <div className="live-grid">
         {column("CT")}
         <div className="live-center">
           <AutoDirectorCard compact />
-          <Panel title="Camera" subtitle="Click a player, or press their number key, to switch POV. Hold Shift for the chase view.">
+          <Panel title={t("live.camera")} subtitle={t("live.clickAPlayerOrPress")}>
             <PovStatus snap={snap} />
           </Panel>
-          <Panel title="Observer">
+          <Panel title={t("live.observer")}>
             <ObserverModeSelect snap={snap} />
             <ActionsBar snap={snap} cameras={cameras} />
-            <Details summary="Options">
+            <Details summary={t("live.options")}>
               <DirectorControls snap={snap} />
             </Details>
           </Panel>
-          <Panel title="Director">
+          <Panel title={t("live.director")}>
             <DirectorPanel snap={snap} threshold={threshold} nameOf={nameOf} />
           </Panel>
         </div>
         {column("T")}
       </div>
       <div className="live-lower">
-        <Panel title="Match timeline" className="panel-timeline">
+        <Panel title={t("live.matchTimeline")} className="panel-timeline">
           <Timeline nameOf={nameOf} />
         </Panel>
         <div className="stack">
           <MapIntroCard />
           <TeamCommsCard />
-          <Panel title="Utility">
+          <Panel title={t("live.utility")}>
             <OpportunityList opportunities={snap.opportunities} nameOf={nameOf} />
           </Panel>
-          <Panel title="Production">
+          <Panel title={t("live.production")}>
             <ProductionPanel snap={snap} />
           </Panel>
         </div>
       </div>
-      {s.players.length > 0 && sides.none.length > 0 ? <p className="small muted">{sides.none.length} player(s) without a side: {sides.none.map((p) => p.name).join(", ")}</p> : null}
+      {s.players.length > 0 && sides.none.length > 0 ? <p className="small muted">{t("live.countPlayerSWithoutA", { count: sides.none.length, join: sides.none.map((p) => p.name).join(", ") })}</p> : null}
     </div>
   );
 }

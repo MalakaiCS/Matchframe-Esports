@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { api, ApiError, describeError, seg } from "../api/index.ts";
 import type { StagedImage } from "../api/types.ts";
+import { formatNumber, locale, t } from "../i18n/index.ts";
 import { countryLabel, countryOptions, flagUrl } from "../lib/flags.ts";
 import { assetUrl } from "./AssetUpload.tsx";
 import { Button } from "./ui.tsx";
@@ -73,7 +74,7 @@ export interface ComboOption {
  * Searchable single-choice dropdown (combobox): type to filter, arrow keys and Enter to choose,
  * Escape to close. `emptyLabel` adds a "none" choice (e.g. Unassigned).
  */
-export function Combobox({ id, options, value, onChange, placeholder = "Searchâ€¦", emptyLabel, invalid, disabled, ariaLabel }: { id: string; options: ComboOption[]; value: string | null; onChange: (key: string | null) => void; placeholder?: string; emptyLabel?: string; invalid?: boolean; disabled?: boolean; ariaLabel?: string }) {
+export function Combobox({ id, options, value, onChange, placeholder, emptyLabel, invalid, disabled, ariaLabel }: { id: string; options: ComboOption[]; value: string | null; onChange: (key: string | null) => void; placeholder?: string; emptyLabel?: string; invalid?: boolean; disabled?: boolean; ariaLabel?: string }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -141,7 +142,7 @@ export function Combobox({ id, options, value, onChange, placeholder = "Searchâ€
           aria-activedescendant={open && filtered[active] ? `${listId}-${active}` : undefined}
           autoComplete="off"
           disabled={disabled}
-          placeholder={selected ? selected.label : emptyLabel && value === null ? emptyLabel : placeholder}
+          placeholder={selected ? selected.label : emptyLabel && value === null ? emptyLabel : (placeholder ?? t("common.form.search"))}
           value={open ? query : (selected?.label ?? (value === null && emptyLabel ? emptyLabel : ""))}
           onFocus={() => {
             setOpen(true);
@@ -160,7 +161,7 @@ export function Combobox({ id, options, value, onChange, placeholder = "Searchâ€
       </div>
       {open ? (
         <ul className="cbx-list" role="listbox" id={listId} ref={listRef}>
-          {filtered.length === 0 ? <li className="cbx-empty">No matches</li> : null}
+          {filtered.length === 0 ? <li className="cbx-empty">{t("common.form.noMatches")}</li> : null}
           {filtered.map((o, i) => (
             <li
               key={o.key || "__none"}
@@ -188,7 +189,7 @@ export function Combobox({ id, options, value, onChange, placeholder = "Searchâ€
 
 export function CountrySelect({ id, value, onChange, invalid }: { id: string; value: string | null; onChange: (code: string | null) => void; invalid?: boolean }) {
   const options = useMemo(() => countryOptions().map((c) => ({ key: c.code, label: c.name, keywords: c.code, icon: <Flag code={c.code} /> })), []);
-  return <Combobox id={id} options={options} value={value} onChange={onChange} placeholder="Search countries" emptyLabel="No country" invalid={invalid} />;
+  return <Combobox id={id} options={options} value={value} onChange={onChange} placeholder={t("common.form.searchCountries")} emptyLabel={t("common.form.noCountry")} invalid={invalid} />;
 }
 
 export interface TeamChoice {
@@ -203,7 +204,7 @@ export function TeamLogo({ assetId, size = 28, name }: { assetId: string | null 
   const url = assetUrl(assetId);
   return (
     <span className="team-logo" style={{ width: size, height: size }}>
-      {url ? <img src={url} alt={name ? `${name} logo` : ""} /> : <span className="team-logo-empty" aria-hidden>{(name ?? "?").slice(0, 2).toUpperCase()}</span>}
+      {url ? <img src={url} alt={name ? t("common.image.teamLogo", { name }) : ""} /> : <span className="team-logo-empty" aria-hidden>{(name ?? "?").slice(0, 2).toUpperCase()}</span>}
     </span>
   );
 }
@@ -212,11 +213,11 @@ export function TeamSelect({ id, teams, value, onChange, emptyLabel, invalid, ex
   const options = useMemo(
     () =>
       teams
-        .filter((t) => !t.archived || t.id === value)
-        .map((t) => ({ key: t.id, label: t.name, keywords: t.shortName, icon: <TeamLogo assetId={t.logoAssetId} size={20} name={t.name} />, hint: t.id === exclude ? "already the other team" : t.shortName })),
+        .filter((tm) => !tm.archived || tm.id === value)
+        .map((tm) => ({ key: tm.id, label: tm.name, keywords: tm.shortName, icon: <TeamLogo assetId={tm.logoAssetId} size={20} name={tm.name} />, hint: tm.id === exclude ? t("common.form.alreadyOtherTeam") : tm.shortName })),
     [teams, value, exclude],
   );
-  return <Combobox id={id} options={options} value={value} onChange={onChange} placeholder="Search teams" emptyLabel={emptyLabel} invalid={invalid} disabled={disabled} />;
+  return <Combobox id={id} options={options} value={value} onChange={onChange} placeholder={t("common.form.searchTeams")} emptyLabel={emptyLabel} invalid={invalid} disabled={disabled} />;
 }
 
 export const IMAGE_LIMIT = 2 * 1024 * 1024;
@@ -241,10 +242,12 @@ export function ImageField({ id, label, value, onChange, kind, disabledReason }:
   const [error, setError] = useState<string | null>(null);
   const [over, setOver] = useState(false);
   const url = value.staged?.previewUrl ?? assetUrl(value.assetId);
+  // The label inside a sentence ("Upload logo"); German keeps its nouns capitalised.
+  const inSentence = locale() === "de" ? label : label.toLowerCase();
   const upload = async (f: File) => {
     setError(null);
-    if (!/\.(png|jpe?g|webp)$/i.test(f.name) && !/^image\/(png|jpeg|webp)$/.test(f.type)) return setError(`${f.name} is not a PNG, JPEG or WebP image.`);
-    if (f.size > IMAGE_LIMIT) return setError(`${f.name} is ${(f.size / 1024 / 1024).toFixed(1)} MB; the limit is 2 MB.`);
+    if (!/\.(png|jpe?g|webp)$/i.test(f.name) && !/^image\/(png|jpeg|webp)$/.test(f.type)) return setError(t("common.image.notImage", { name: f.name }));
+    if (f.size > IMAGE_LIMIT) return setError(t("common.image.tooLarge", { name: f.name, mb: formatNumber(f.size / 1024 / 1024, { maximumFractionDigits: 1 }) }));
     setBusy(true);
     try {
       const staged = await api.upload<StagedImage>("/api/v1/uploads/images", await f.arrayBuffer(), f.type || "application/octet-stream");
@@ -275,16 +278,14 @@ export function ImageField({ id, label, value, onChange, kind, disabledReason }:
       }}
     >
       <div className={`imgfield-preview ${kind === "avatar" ? "is-avatar" : ""}`}>
-        {url ? <img src={url} alt={`${label} preview`} /> : <span className="imgfield-empty">No {label.toLowerCase()}</span>}
+        {url ? <img src={url} alt={t("common.image.preview", { label })} /> : <span className="imgfield-empty">{t("common.image.none", { label: inSentence })}</span>}
       </div>
       <div className="imgfield-side">
-        <p className="small">
-          Drop a PNG, JPEG or WebP here, or choose a file. Up to 2 MB. A square image of at least 200 Ã— 200 pixels works best; the whole image is shown.
-        </p>
-        <input id={id} ref={input} type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" className="sr-only" aria-label={`Upload ${label.toLowerCase()}`} onChange={(e) => e.target.files?.[0] && void upload(e.target.files[0])} />
+        <p className="small">{t("common.image.help")}</p>
+        <input id={id} ref={input} type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" className="sr-only" aria-label={t("common.image.upload", { label: inSentence })} onChange={(e) => e.target.files?.[0] && void upload(e.target.files[0])} />
         <div className="row">
           <Button size="sm" onClick={() => input.current?.click()} disabled={busy} disabledReason={blocked}>
-            {busy ? "Uploadingâ€¦" : url ? `Replace ${label.toLowerCase()}` : `Upload ${label.toLowerCase()}`}
+            {busy ? t("common.image.uploading") : url ? t("common.image.replace", { label: inSentence }) : t("common.image.upload", { label: inSentence })}
           </Button>
           {url ? (
             <Button
@@ -297,13 +298,13 @@ export function ImageField({ id, label, value, onChange, kind, disabledReason }:
                 setError(null);
               }}
             >
-              Remove
+              {t("common.image.remove")}
             </Button>
           ) : null}
         </div>
         {value.staged ? (
           <span className="small muted">
-            New image, {value.staged.width} Ã— {value.staged.height} {value.staged.type.toUpperCase()}: kept when you choose Save and Exit.
+            {t("common.image.staged", { w: value.staged.width, h: value.staged.height, type: value.staged.type.toUpperCase() })}
           </span>
         ) : null}
         {value.staged?.advice ? <span className="small text-warn">{value.staged.advice}</span> : null}

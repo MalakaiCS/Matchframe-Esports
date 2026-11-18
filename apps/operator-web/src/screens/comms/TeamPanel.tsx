@@ -4,69 +4,71 @@ import { useToast } from "../../components/toasts.tsx";
 import { Badge, Button, EmptyState, KV, Meter, Note, Panel, type Tone } from "../../components/ui.tsx";
 import { usePermission } from "../../state/session.tsx";
 import type { CommsParticipant, CommsSlot } from "./types.ts";
+import { t } from "../../i18n/index.ts";
+import { fmtSec } from "../../lib/format.ts";
 
 /** A slot's state in words. */
 export function slotState(s: CommsSlot): { tone: Tone; text: string } {
   switch (s.state) {
     case "ready":
-      return { tone: "ok", text: "Ready: the buffer holds the delay" };
+      return { tone: "ok", text: t("comms.readyTheBufferHoldsThe") };
     case "buffering":
-      return { tone: "info", text: s.readyInMs !== null ? `Buffering: ready in ${Math.max(1, Math.ceil(s.readyInMs / 1000))} s` : "Buffering" };
+      return { tone: "info", text: s.readyInMs !== null ? t("comms.bufferingReadyInMaxS", { max: Math.max(1, Math.ceil(s.readyInMs / 1000)) }) : t("comms.buffering") };
     case "connecting":
-      return { tone: "warn", text: "Connecting: TeamSpeak tab found, not captured yet" };
+      return { tone: "warn", text: t("comms.connectingTeamspeakTabFoundNot") };
     case "waiting":
-      return { tone: "warn", text: "Waiting for its TeamSpeak tab" };
+      return { tone: "warn", text: t("comms.waitingForItsTeamspeakTab") };
     default:
-      return { tone: "neutral", text: "Team Comms is off" };
+      return { tone: "neutral", text: t("comms.teamCommsIsOff") };
   }
 }
 
 /** −60…0 dBFS as 0…1 for a meter. */
 const meterOf = (db: number | null | undefined) => (db === null || db === undefined || db <= -60 ? 0 : Math.min(1, (db + 60) / 60));
-export const fmtDelay = (ms: number) => `${(ms / 1000).toFixed(3)} s`;
+export const fmtDelay = (ms: number) => fmtSec(ms / 1000, 3);
 
 /** One team's TeamSpeak connection, buffer, delay and people, with what each output includes. */
 export function TeamPanel({ slot, people, delayMs, onChanged }: { slot: CommsSlot; people: CommsParticipant[]; delayMs: number; onChanged: () => void }) {
   const st = slotState(slot);
   const tab = slot.tab;
-  const name = slot.team?.name ?? `Team ${slot.id}`;
+  const name = slot.team?.name ?? t("comms.teamId", { id: slot.id });
   return (
     <Panel
       title={
         <span className="row">
-          {name} <span className="muted small">slot {slot.id}</span>
+          {name} <span className="muted small">{t("comms.slotId2", { id: slot.id })}</span>
         </span>
       }
-      subtitle={slot.team ? "By team, never by side: halftime changes nothing here." : "Activate a match: slot A is its team A, slot B its team B."}
+      subtitle={slot.team ? t("comms.byTeamNeverBySide2") : t("comms.activateAMatchSlotA")}
       actions={<Badge tone={st.tone}>{st.text}</Badge>}
       className="comms-team"
     >
       <div className="stack-sm">
         <KV
           items={[
-            ["TeamSpeak", tab ? `${tab.server?.name ?? tab.server?.host ?? "server"} · ${tab.channel?.name ?? "no channel"} · ${tab.status}` : slot.config.channel ? `Not connected (channel “${slot.config.channel}”)` : "No channel set"],
-            ["Listener", tab?.listener ? `${tab.listener.nickname}: ${tab.listener.inputMuted && tab.listener.inputDeactivated ? "microphone off" : "microphone ON"}, ${tab.listener.outputMuted ? "DEAFENED (no capture)" : "not deafened"}${tab.listener.recording ? ", recording shown" : ""}` : "—"],
-            ["Capture", tab ? (tab.capturing ? `Captured · ${people.filter((p) => p.present).length} in the channel` : "Not captured") : "—"],
-            ["Delay", `${fmtDelay(delayMs)} (shared by both teams)`],
+            ["TeamSpeak", tab ? `${tab.server?.name ?? tab.server?.host ?? t("comms.server")} · ${tab.channel?.name ?? t("comms.noChannel")} · ${tab.status}` : slot.config.channel ? t("comms.notConnectedChannel", { channel: slot.config.channel }) : t("comms.noChannelSet")],
+            [t("comms.kvListener"), tab?.listener ? `${tab.listener.nickname}: ${tab.listener.inputMuted && tab.listener.inputDeactivated ? t("comms.micOff") : t("comms.micOn")}, ${tab.listener.outputMuted ? t("comms.deafened") : t("comms.notDeafened")}${tab.listener.recording ? t("comms.recordingShown") : ""}` : "—"],
+            [t("comms.kvCapture"), tab ? (tab.capturing ? t("comms.capturedInChannel", { n: people.filter((p) => p.present).length }) : t("comms.notCaptured")) : "—"],
+            [t("comms.delay"), t("comms.sharedDelay", { delay: fmtDelay(delayMs) })],
           ]}
         />
         {slot.issue ? <Note tone="warn">{slot.issue}</Note> : null}
-        {slot.lost ? <Note tone="danger" title="Source lost">{slot.lost.reason}</Note> : null}
+        {slot.lost ? <Note tone="danger" title={t("comms.sourceLost")}>{slot.lost.reason}</Note> : null}
         {people.length === 0 ? (
-          <EmptyState title="Nobody heard yet">People in the team's channel appear here as TeamSpeak reports them, each excluded until you include them.</EmptyState>
+          <EmptyState title={t("comms.nobodyHeardYet")}>{t("comms.peopleInTheTeamS")}</EmptyState>
         ) : (
           <div className="table-wrap">
             <table className="table table-compact comms-people">
               <thead>
                 <tr>
                   <th>TeamSpeak</th>
-                  <th>Roster player</th>
-                  <th title="Heard on the public broadcast during this team's listen-in">Broadcast</th>
-                  <th title="Heard in the dedicated recording">Recording</th>
-                  <th>Level</th>
-                  <th>Live (not on air)</th>
-                  <th>Delayed (output time)</th>
-                  <th>Preview</th>
+                  <th>{t("comms.rosterPlayer")}</th>
+                  <th title={t("comms.heardOnThePublicBroadcast")}>{t("comms.broadcast")}</th>
+                  <th title={t("comms.heardInTheDedicatedRecording")}>{t("comms.recording")}</th>
+                  <th>{t("comms.level")}</th>
+                  <th>{t("comms.liveNotOnAir")}</th>
+                  <th>{t("comms.delayedOutputTime")}</th>
+                  <th>{t("comms.preview")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -91,7 +93,7 @@ function PersonRow({ p, slot, onChanged }: { p: CommsParticipant; slot: CommsSlo
       await api.put(`/api/v1/comms/participants/${seg(p.key)}`, patch);
       onChanged();
     } catch (e) {
-      toast.push("danger", "Not saved", describeError(e));
+      toast.push("danger", t("comms.notSaved"), describeError(e));
     }
   };
   const who = p.displayName || p.nickname;
@@ -100,16 +102,16 @@ function PersonRow({ p, slot, onChanged }: { p: CommsParticipant; slot: CommsSlo
     <tr className={p.present ? "" : "is-away"}>
       <td>
         <div className="comms-person">
-          <strong>{p.nickname || "(no name)"}</strong>
-          <span className="muted small" title="TeamSpeak identity (stable across reconnects)">
-            {p.uid.length > 10 ? `${p.uid.slice(0, 8)}…` : p.uid} · {p.present ? "in the channel" : "away"}
+          <strong>{p.nickname || t("comms.noName")}</strong>
+          <span className="muted small" title={t("comms.teamspeakIdentityStableAcrossReconnects")}>
+            {p.uid.length > 10 ? `${p.uid.slice(0, 8)}…` : p.uid} · {p.present ? t("comms.inTheChannel") : t("comms.away")}
           </span>
-          {!p.includeBroadcast && !p.includeRecording && !p.playerId ? <Badge tone="warn">Excluded until included</Badge> : null}
+          {!p.includeBroadcast && !p.includeRecording && !p.playerId ? <Badge tone="warn">{t("comms.excludedUntilIncluded")}</Badge> : null}
         </div>
       </td>
       <td>
-        <select aria-label={`Roster player for ${who}`} value={p.playerId ?? ""} disabled={!!reason} onChange={(e) => void save({ playerId: e.target.value || null })}>
-          <option value="">Not mapped</option>
+        <select aria-label={t("comms.rosterPlayerForWho", { who })} value={p.playerId ?? ""} disabled={!!reason} onChange={(e) => void save({ playerId: e.target.value || null })}>
+          <option value="">{t("comms.notMapped")}</option>
           {slot.roster.map((r) => (
             <option key={r.id} value={r.id}>
               {r.displayName}
@@ -118,10 +120,10 @@ function PersonRow({ p, slot, onChanged }: { p: CommsParticipant; slot: CommsSlo
         </select>
       </td>
       <td>
-        <input type="checkbox" aria-label={`Include ${who} in Broadcast`} checked={p.includeBroadcast} disabled={!!reason} onChange={(e) => void save({ includeBroadcast: e.target.checked })} />
+        <input type="checkbox" aria-label={t("comms.includeWhoInBroadcast", { who })} checked={p.includeBroadcast} disabled={!!reason} onChange={(e) => void save({ includeBroadcast: e.target.checked })} />
       </td>
       <td>
-        <input type="checkbox" aria-label={`Include ${who} in Recording`} checked={p.includeRecording} disabled={!!reason} onChange={(e) => void save({ includeRecording: e.target.checked })} />
+        <input type="checkbox" aria-label={t("comms.includeWhoInRecording", { who })} checked={p.includeRecording} disabled={!!reason} onChange={(e) => void save({ includeRecording: e.target.checked })} />
       </td>
       <td>
         <div className="comms-level">
@@ -130,27 +132,27 @@ function PersonRow({ p, slot, onChanged }: { p: CommsParticipant; slot: CommsSlo
             min={-30}
             max={12}
             step={1}
-            aria-label={`Level for ${who} (dB)`}
+            aria-label={t("comms.levelForWhoDb", { who })}
             value={level ?? p.levelDb}
             disabled={!!reason}
             onChange={(e) => setLevel(Number(e.target.value))}
             onPointerUp={() => level !== null && void save({ levelDb: level }).then(() => setLevel(null))}
             onKeyUp={() => level !== null && void save({ levelDb: level }).then(() => setLevel(null))}
           />
-          <span className="mono small">{(level ?? p.levelDb) > 0 ? "+" : ""}{level ?? p.levelDb} dB</span>
+          <span className="mono small">{t("comms.vV2Db", { v: (level ?? p.levelDb) > 0 ? "+" : "", v2: level ?? p.levelDb })}</span>
         </div>
       </td>
-      <td title="As it arrives from TeamSpeak, before the delay. Never on air.">
-        <Meter value={meterOf(p.incoming.db)} tone="neutral" label={`${who}: incoming level, live, not on air`} />
-        <span className="small muted">{p.incoming.talking ? "talking" : ""}</span>
+      <td title={t("comms.asItArrivesFromTeamspeak")}>
+        <Meter value={meterOf(p.incoming.db)} tone="neutral" label={t("comms.whoIncomingLevelLiveNot", { who })} />
+        <span className="small muted">{p.incoming.talking ? t("comms.talking") : ""}</span>
       </td>
-      <td title="At the outputs' time (after the delay), before inclusion: what including them would put out.">
-        <Meter value={meterOf(sig?.db)} tone={sig?.speaking ? "ok" : "neutral"} label={`${who}: delayed level at the outputs' time`} />
-        <span className="small muted">{sig?.speaking ? "speaking" : ""}</span>
+      <td title={t("comms.atTheOutputsTimeAfter")}>
+        <Meter value={meterOf(sig?.db)} tone={sig?.speaking ? "ok" : "neutral"} label={t("comms.whoDelayedLevelAtThe", { who })} />
+        <span className="small muted">{sig?.speaking ? t("comms.speaking2") : ""}</span>
       </td>
       <td>
-        <Button size="sm" variant={p.preview ? "primary" : "secondary"} aria-pressed={p.preview} disabledReason={reason} onClick={() => void save({ preview: !p.preview })} title="Your headphones only: never the broadcast or the recording">
-          {p.preview ? "Soloed" : "Solo"}
+        <Button size="sm" variant={p.preview ? "primary" : "secondary"} aria-pressed={p.preview} disabledReason={reason} onClick={() => void save({ preview: !p.preview })} title={t("comms.yourHeadphonesOnlyNeverThe")}>
+          {p.preview ? t("comms.soloed") : t("comms.solo")}
         </Button>
       </td>
     </tr>

@@ -1,5 +1,6 @@
 import { getOperatorToken } from "../api/auth.ts";
 import { engineWsUrl } from "./engine.ts";
+import { t } from "../i18n/index.ts";
 
 /**
  * Team Comms' private preview in the operator's headphones (ADR-066): the engine's preview mix (only
@@ -26,7 +27,7 @@ export interface PreviewDevice {
 export async function listOutputDevices(md: Pick<MediaDevices, "enumerateDevices"> | undefined = typeof navigator !== "undefined" ? navigator.mediaDevices : undefined): Promise<PreviewDevice[]> {
   if (!md?.enumerateDevices) return [];
   const all = await md.enumerateDevices();
-  return all.filter((d) => d.kind === "audiooutput" && d.deviceId !== "default" && d.deviceId !== "communications").map((d, i) => ({ deviceId: d.deviceId, label: d.label || `Output ${i + 1}` }));
+  return all.filter((d) => d.kind === "audiooutput" && d.deviceId !== "default" && d.deviceId !== "communications").map((d, i) => ({ deviceId: d.deviceId, label: d.label || t("lib.outputN", { n: i + 1 }) }));
 }
 
 export function decodePreview(buf: ArrayBuffer): { start: number; rate: number; samples: Float32Array } | null {
@@ -104,7 +105,7 @@ export class CommsPreviewPlayer {
     if (!this.stopped) return this.setDevice(deviceId);
     this.stopped = false;
     const Ctx = this.o.AudioContextImpl ?? (typeof AudioContext !== "undefined" ? AudioContext : null);
-    if (!Ctx) return this.set({ state: "error", error: "This window has no Web Audio: the preview can't play here." });
+    if (!Ctx) return this.set({ state: "error", error: t("lib.noWebAudio") });
     try {
       const ctx = new Ctx({ sampleRate: 48_000, latencyHint: "interactive" }) as SinkAudioContext;
       this.ctx = ctx;
@@ -170,7 +171,7 @@ export class CommsPreviewPlayer {
 
   private connect(): void {
     const url = (this.o.url ?? defaultUrl)();
-    if (!url) return this.set({ state: "error", error: "Not signed in to the engine." });
+    if (!url) return this.set({ state: "error", error: t("lib.notSignedInEngine") });
     const Ws = this.o.WebSocketImpl ?? WebSocket;
     this.set({ state: "connecting", error: null });
     const ws = new Ws(url);
@@ -187,7 +188,7 @@ export class CommsPreviewPlayer {
       if (this.ws !== ws) return;
       this.ws = null;
       if (this.stopped) return;
-      this.set({ state: "connecting", error: "Connection to the engine lost; trying again." });
+      this.set({ state: "connecting", error: t("lib.engineConnectionLost") });
       this.retry = setTimeout(() => this.connect(), 1000);
     };
   }

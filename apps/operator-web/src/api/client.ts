@@ -2,6 +2,7 @@
  * Small typed client for the local engine REST API. Every request carries the bearer token; error
  * responses ({error, message, detail}) become ApiError with a readable explanation.
  */
+import { t } from "../i18n/index.ts";
 
 export class ApiError extends Error {
   constructor(
@@ -44,25 +45,25 @@ export function describeError(e: unknown): string {
     const msg = e.message || e.code;
     switch (e.status) {
       case 401:
-        return "Not authenticated: the access token is missing, expired or was rejected. Restart the MatchFrame program, or check the token in File → Connection settings.";
+        return t("api.error.notAuthenticated");
       case 403:
-        if (e.code === "bad_origin") return "Blocked: this page is not allowed to change engine state. Use the MatchFrame program.";
-        if (e.code === "scope") return `Not allowed for this link: ${msg}`;
-        return `Permission denied: ${msg}`;
+        if (e.code === "bad_origin") return t("api.error.badOrigin");
+        if (e.code === "scope") return t("api.error.scope", { msg });
+        return t("api.error.forbidden", { msg });
       case 404:
-        return `Not found: ${msg}`;
+        return t("api.error.notFound", { msg });
       case 409: {
         const detail = issuesText(e.detail);
-        return `Conflict: ${msg}${detail ? ` (${detail})` : ""}`;
+        return detail ? t("api.error.conflictDetail", { msg, detail }) : t("api.error.conflict", { msg });
       }
       case 413:
-        return `Too large: ${msg}`;
+        return t("api.error.tooLarge", { msg });
       case 400: {
         const detail = issuesText(e.detail);
-        return detail ? `Invalid request: ${msg} — ${detail}` : `Invalid request: ${msg}`;
+        return detail ? t("api.error.invalidDetail", { msg, detail }) : t("api.error.invalid", { msg });
       }
       default:
-        if (e.status >= 500) return `Engine error (${e.status}): ${msg}`;
+        if (e.status >= 500) return t("api.error.engine", { status: e.status, msg });
         return `${msg} (HTTP ${e.status})`;
     }
   }
@@ -132,7 +133,7 @@ export function createApiClient(getToken: TokenSource, opts: ApiClientOptions = 
     try {
       res = await doFetch(base + path, { method, headers, body: body ?? null, credentials: "omit" });
     } catch (e) {
-      throw new NetworkError(`Engine unreachable (${method} ${path}): ${e instanceof Error ? e.message : String(e)}. Is the MatchFrame engine running?`);
+      throw new NetworkError(t("api.error.unreachable", { request: `${method} ${path}`, reason: e instanceof Error ? e.message : String(e) }));
     }
     if (!res.ok) throw await toApiError(res);
     return res;
@@ -146,7 +147,7 @@ export function createApiClient(getToken: TokenSource, opts: ApiClientOptions = 
     try {
       return JSON.parse(text) as T;
     } catch {
-      throw new ApiError(res.status, "bad_response", `Unexpected non-JSON response from ${path}`);
+      throw new ApiError(res.status, "bad_response", t("api.error.notJson", { path }));
     }
   }
 

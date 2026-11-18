@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { api, describeError } from "../api/index.ts";
 import { fmtBytes } from "../lib/format.ts";
 import { Button } from "./ui.tsx";
+import { t } from "../i18n/index.ts";
 
 /** The engine's asset upload limit (POST /api/v1/assets; larger bodies get 413). */
 export const ASSET_UPLOAD_LIMIT = 20 * 1024 * 1024;
@@ -12,7 +13,7 @@ export function assetUrl(id: string | null | undefined): string | null {
 }
 
 export async function uploadAsset(file: File): Promise<{ assetId: string; url: string }> {
-  if (file.size > ASSET_UPLOAD_LIMIT) throw new Error(`${file.name} is ${fmtBytes(file.size)}; the engine accepts uploads up to ${fmtBytes(ASSET_UPLOAD_LIMIT)}.`);
+  if (file.size > ASSET_UPLOAD_LIMIT) throw new Error(t("editor.uploadTooLarge", { name: file.name, size: fmtBytes(file.size), limit: fmtBytes(ASSET_UPLOAD_LIMIT) }));
   return api.upload(`/api/v1/assets?name=${encodeURIComponent(file.name)}`, await file.arrayBuffer(), file.type || "application/octet-stream");
 }
 
@@ -27,13 +28,13 @@ export function AssetUpload({ value, onChange, label, disabledReason }: { value:
     <div className="field">
       <span className="field-label">{label}</span>
       <div className="row">
-        {url ? isVideo ? <span className="small mono">{value}</span> : <img className="thumb" src={url} alt={`${label} preview`} /> : null}
+        {url ? isVideo ? <span className="small mono">{value}</span> : <img className="thumb" src={url} alt={t("editor.labelPreview", { label })} /> : null}
         <input
           ref={ref}
           type="file"
           accept={ACCEPT}
           className="sr-only"
-          aria-label={`Upload ${label}`}
+          aria-label={t("editor.uploadLabel", { label })}
           onChange={async (e) => {
             const f = e.target.files?.[0];
             if (!f) return;
@@ -50,13 +51,11 @@ export function AssetUpload({ value, onChange, label, disabledReason }: { value:
             }
           }}
         />
-        <Button size="sm" onClick={() => ref.current?.click()} disabled={busy} disabledReason={disabledReason ?? null} title={`PNG, JPG, WebP, SVG, GIF, WebM or MP4 up to ${fmtBytes(ASSET_UPLOAD_LIMIT)}`}>
-          {busy ? "Uploading…" : url ? "Replace" : "Upload"}
+        <Button size="sm" onClick={() => ref.current?.click()} disabled={busy} disabledReason={disabledReason ?? null} title={t("editor.pngJpgWebpSvgGif", { ASSET_UPLOAD_LIMIT: fmtBytes(ASSET_UPLOAD_LIMIT) })}>
+          {busy ? t("editor.uploading") : url ? t("editor.replace") : t("editor.upload")}
         </Button>
         {value ? (
-          <Button size="sm" variant="ghost" onClick={() => onChange(null)}>
-            Remove
-          </Button>
+          <Button size="sm" variant="ghost" onClick={() => onChange(null)}>{t("editor.remove")}</Button>
         ) : null}
       </div>
       {error ? <span className="action-error">{error}</span> : null}
@@ -74,12 +73,12 @@ export function MapPoolEditor({ value, onChange, suggestions }: { value: string[
   };
   return (
     <div className="field">
-      <span className="field-label">Map pool ({value.length})</span>
+      <span className="field-label">{t("editor.mapPoolCount", { count: value.length })}</span>
       <div className="pill-list">
         {value.map((m) => (
           <span className="pill" key={m}>
             {m}
-            <button aria-label={`Remove ${m}`} onClick={() => onChange(value.filter((x) => x !== m))}>
+            <button aria-label={t("editor.removeM", { m })} onClick={() => onChange(value.filter((x) => x !== m))}>
               ×
             </button>
           </span>
@@ -96,20 +95,16 @@ export function MapPoolEditor({ value, onChange, suggestions }: { value: string[
               add(input);
             }
           }}
-          placeholder="de_mirage"
+          placeholder={t("editor.deMirage")}
         />
         <datalist id="map-suggestions">
           {suggestions.filter((s) => !value.includes(s)).map((s) => (
             <option key={s} value={s} />
           ))}
         </datalist>
-        <Button size="sm" onClick={() => add(input)} disabled={!input.trim()}>
-          Add map
-        </Button>
+        <Button size="sm" onClick={() => add(input)} disabled={!input.trim()}>{t("editor.addMap")}</Button>
         {suggestions.length ? (
-          <Button size="sm" variant="ghost" onClick={() => onChange([...new Set([...value, ...suggestions])])}>
-            Add all suggested
-          </Button>
+          <Button size="sm" variant="ghost" onClick={() => onChange([...new Set([...value, ...suggestions])])}>{t("editor.addAllSuggested")}</Button>
         ) : null}
       </div>
     </div>

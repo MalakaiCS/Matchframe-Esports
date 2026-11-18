@@ -3,6 +3,8 @@ import { api, describeError, NetworkError } from "./api/index.ts";
 import { resolveOperatorToken, setOperatorToken } from "./api/auth.ts";
 import type { Me } from "./api/types.ts";
 import { BrandBadge } from "./components/icons.tsx";
+import { t, useLocale } from "./i18n/index.ts";
+import { T } from "./i18n/T.tsx";
 import { Sidebar, useModuleAvailability } from "./components/Sidebar.tsx";
 import { SignInNotice } from "./components/SignIn.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
@@ -23,9 +25,9 @@ export { NAV, ROUTES, REDIRECTS } from "./routes.tsx";
 function NotFound({ path }: { path: string }) {
   return (
     <div className="page">
-      <h1 className="page-title">Page not found</h1>
+      <h1 className="page-title">{t("shell.notFound.title")}</h1>
       <p>
-        There is no console page at <code>{path}</code>. <Link to="/">Go to the HUD Library.</Link>
+        <T k="shell.notFound.body" values={{ path: <code>{path}</code> }} /> <Link to="/">{t("shell.notFound.link")}</Link>
       </p>
     </div>
   );
@@ -35,7 +37,7 @@ function NotFound({ path }: { path: string }) {
 function SectionBar({ item, path }: { item: NavItem; path: string }) {
   if (!item.sub) return null;
   return (
-    <div className="section-bar" role="navigation" aria-label={`${item.label} pages`}>
+    <div className="section-bar" role="navigation" aria-label={t("shell.sectionPages", { module: item.label })}>
       {item.sub.map((p) => {
         const active = p.path === path;
         return (
@@ -54,8 +56,8 @@ function ModuleNotice({ id }: { id: NavId }) {
   if (!availability) return null;
   return (
     <div className="module-notice" data-module-notice={id}>
-      <Note tone={availability.level === "unavailable" ? "warn" : "neutral"} title={availability.level === "unavailable" ? `${navItem(id).label} unavailable` : "Desktop HUDs unavailable"}>
-        {availability.reason} {id === "director" ? <Link to="/settings/account">Open Settings → Account</Link> : null}
+      <Note tone={availability.level === "unavailable" ? "warn" : "neutral"} title={availability.level === "unavailable" ? t("shell.moduleUnavailable", { module: navItem(id).label }) : t("shell.desktopHudsUnavailable")}>
+        {availability.reason} {id === "director" ? <Link to="/settings/account">{t("shell.openAccount")}</Link> : null}
       </Note>
     </div>
   );
@@ -71,8 +73,8 @@ function useStopShortcut(enabled: boolean) {
       if (isTypingTarget(e.target)) return;
       e.preventDefault();
       emergencyStop()
-        .then(() => toast.push("ok", `Emergency stop engaged (${e.key}): automation stopped`))
-        .catch((err) => toast.push("danger", "Stop automation failed", describeError(err)));
+        .then(() => toast.push("ok", t("shell.stopEngagedKey", { key: e.key })))
+        .catch((err) => toast.push("danger", t("shell.stopFailed"), describeError(err)));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -83,8 +85,8 @@ function useStopShortcut(enabled: boolean) {
 function useDesktopEvents() {
   const toast = useToast();
   useEffect(() => {
-    const off = window.matchframe?.onEmergencyStop?.(() => toast.push("ok", "Emergency stop engaged from the desktop global hotkey"));
-    const offCrash = onCrashReportSent((r) => toast.push("info", `Crash report sent (ID ${r.id})`, "Quote this ID to MatchFrame support. It's also under Settings → General → Program."));
+    const off = window.matchframe?.onEmergencyStop?.(() => toast.push("ok", t("shell.stopFromHotkey")));
+    const offCrash = onCrashReportSent((r) => toast.push("info", t("shell.crashSent", { id: r.id }), t("shell.crashSentBody")));
     return () => {
       off?.();
       offCrash();
@@ -126,11 +128,11 @@ export function Shell({ me }: { me: Me }) {
   const crumbs = redirect ? [] : crumbsFor(path);
   useEffect(() => {
     document.title = `${route ? route.title : "MatchFrame"} · MatchFrame Esports`;
-  }, [route]);
+  });
   return (
     <SessionContext.Provider value={{ me }}>
       <a href="#main" className="skip-link">
-        Skip to content
+        {t("shell.skip")}
       </a>
       <div className={`shell ${navCollapsed ? "nav-collapsed" : ""}`}>
         <Sidebar collapsed={navCollapsed} onToggle={() => setNavCollapsed(!navCollapsed)} activeId={route?.nav ?? null} />
@@ -141,7 +143,7 @@ export function Shell({ me }: { me: Me }) {
           {item ? <SectionBar item={item} path={path} /> : null}
           {item ? <ModuleNotice id={item.id} /> : null}
           {redirect ? null : Screen ? (
-            <Suspense fallback={<div className="page"><Loading label="Loading page…" /></div>}>
+            <Suspense fallback={<div className="page"><Loading label={t("shell.loadingPage")} /></div>}>
               <Screen />
             </Suspense>
           ) : (
@@ -166,8 +168,8 @@ function TokenGate() {
     if (!token) return setGate({ kind: "no_token" });
     try {
       const me = await api.get<Me>("/api/v1/me");
-      if (!me.role) return setGate({ kind: "invalid", message: "The engine did not accept this token. It may have been rotated, revoked or belong to another engine installation." });
-      if (me.role === "captain") return setGate({ kind: "invalid", message: "This is a captain veto token, not an operator token. Captains use their veto link in a browser." });
+      if (!me.role) return setGate({ kind: "invalid", message: t("shell.gate.rejected") });
+      if (me.role === "captain") return setGate({ kind: "invalid", message: t("shell.gate.captain") });
       setGate({ kind: "ready", me });
     } catch (e) {
       setGate({ kind: e instanceof NetworkError ? "unreachable" : "invalid", message: describeError(e) });
@@ -185,28 +187,30 @@ function TokenGate() {
         <div className="gate-brand gate-brand-badge">
           <BrandBadge />
         </div>
-        {gate.kind === "resolving" ? <p>{window.matchframe?.connectionMode === "remote" ? "Connecting to the production computer…" : "Connecting to the MatchFrame engine…"}</p> : null}
+        {gate.kind === "resolving" ? <p>{window.matchframe?.connectionMode === "remote" ? t("shell.gate.connectingRemote") : t("shell.gate.connecting")}</p> : null}
         {gate.kind === "unreachable" ? (
           <>
-            <Note tone="danger" title="Engine unreachable">
+            <Note tone="danger" title={t("shell.gate.unreachable")}>
               {gate.message}
             </Note>
             <div className="row">
               <Button variant="primary" onClick={() => void verify()}>
-                Try again
+                {t("shell.gate.tryAgain")}
               </Button>
-              {window.matchframe?.openConnection ? <Button onClick={() => void window.matchframe!.openConnection!()}>Connection settings</Button> : null}
+              {window.matchframe?.openConnection ? <Button onClick={() => void window.matchframe!.openConnection!()}>{t("shell.gate.connection")}</Button> : null}
             </div>
           </>
         ) : null}
         {gate.kind === "no_token" || gate.kind === "invalid" ? (
           <>
             {gate.kind === "invalid" ? (
-              <Note tone="danger" title="Token not accepted">
+              <Note tone="danger" title={t("shell.gate.notAccepted")}>
                 {gate.message}
               </Note>
             ) : (
-              <p>This console runs inside the MatchFrame program, which signs it in automatically. During development, paste the operator token from <code>operator-token.txt</code> in the MatchFrame data folder.</p>
+              <p>
+                <T k="shell.gate.devHint" />
+              </p>
             )}
             <form
               onSubmit={(e) => {
@@ -216,22 +220,24 @@ function TokenGate() {
                 void verify();
               }}
             >
-              <Field label="Operator token" hint="Kept only for this session; never shown in the address bar.">
+              <Field label={t("shell.gate.token")} hint={t("shell.gate.tokenHint")}>
                 <input type="password" autoComplete="off" value={manual} onChange={(e) => setManual(e.target.value)} />
               </Field>
-              <Button type="submit" variant="primary" disabledReason={manual.trim() ? null : "Paste a token first"} reasonPlacement="tooltip">
-                Continue
+              <Button type="submit" variant="primary" disabledReason={manual.trim() ? null : t("shell.gate.pasteFirst")} reasonPlacement="tooltip">
+                {t("shell.gate.continue")}
               </Button>
             </form>
           </>
         ) : null}
-        <p className="gate-foot">Emergency stop shortcut once connected: {STOP_SHORTCUT_LABEL} (or Pause).</p>
+        <p className="gate-foot">{t("shell.gate.foot", { key: STOP_SHORTCUT_LABEL })}</p>
       </div>
     </div>
   );
 }
 
 export function App() {
+  // The whole console renders again in the new language when the Language setting changes (ADR-082).
+  useLocale();
   return (
     <ToastProvider>
       <TokenGate />

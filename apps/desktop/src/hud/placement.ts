@@ -1,3 +1,4 @@
+import { t } from "../i18n.ts";
 import type { DisplayInfo, OverlayConfigPatch, Rect, Size } from "./types.ts";
 
 /**
@@ -98,7 +99,7 @@ export function displayForRect<D extends DisplayLike>(displays: readonly D[], re
 /** The display with that id; the primary when it is gone (or no id is given); the first display otherwise. */
 export function pickDisplay<D extends DisplayLike>(displays: readonly D[], id: number | null | undefined, primaryId: number | null): D {
   const found = (id !== null && id !== undefined ? displays.find((d) => d.id === id) : undefined) ?? displays.find((d) => d.id === primaryId) ?? displays[0];
-  if (!found) throw new Error("No display is connected.");
+  if (!found) throw new Error(t("hud.noDisplay"));
   return found;
 }
 
@@ -106,7 +107,7 @@ export function pickDisplay<D extends DisplayLike>(displays: readonly D[], id: n
 export function toDisplayInfo(d: DisplayLike & { label?: string; workArea: Rect }, primaryId: number | null, index: number, physical?: Size): DisplayInfo {
   return {
     id: d.id,
-    label: d.label?.trim() || `Display ${index + 1}`,
+    label: d.label?.trim() || t("hud.display", { n: index + 1 }),
     primary: d.id === primaryId,
     bounds: { ...d.bounds },
     workArea: { ...d.workArea },

@@ -5,6 +5,7 @@ import { ActionButton, Badge, Checkbox, CopyButton, Field, Mono, Note, Panel } f
 import { useToast } from "../../components/toasts.tsx";
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
+import { t } from "../../i18n/index.ts";
 
 /** GET /api/v1/replay-graphic (services/local-engine/src/routes/replay-graphic.ts). */
 export interface ReplayGraphicView {
@@ -26,8 +27,8 @@ interface ObsSetup {
 
 /** What the lower third says, in a line. */
 export function describeClip(c: HudReplayClip): string {
-  const what = c.clutchVersus !== null ? `1v${c.clutchVersus} clutch` : c.multiKill ?? (c.kills === 1 ? "kill" : null);
-  return [c.player?.name ?? "Replay", what, c.weapon?.displayName, c.headshot ? "headshot" : null, c.roundNumber !== null ? `round ${c.roundNumber}` : null].filter(Boolean).join(" · ");
+  const what = c.clutchVersus !== null ? t("prod.text1vClutchversusClutch", { clutchVersus: c.clutchVersus }) : c.multiKill ?? (c.kills === 1 ? t("prod.kill") : null);
+  return [c.player?.name ?? t("prod.replay"), what, c.weapon?.displayName, c.headshot ? t("prod.headshot") : null, c.roundNumber !== null ? t("prod.roundN", { n: c.roundNumber }) : null].filter(Boolean).join(" · ");
 }
 
 /**
@@ -46,18 +47,18 @@ export function ReplayGraphicPanel() {
     try {
       g.setData(await api.put<ReplayGraphicView>("/api/v1/replay-graphic", patch));
     } catch (e) {
-      toast.push("danger", "Setting not saved", describeError(e));
+      toast.push("danger", t("prod.settingNotSaved"), describeError(e));
     }
   };
   const off = !!reason || !st;
   const out = st?.output ?? null;
   return (
-    <Panel title="Replay graphic" subtitle="A REPLAY tag and a lower third with the play, a moment after each replay starts." actions={st?.onAir ? <Badge tone="accent">On air</Badge> : st ? <Badge tone={st.settings.enabled ? "ok" : "neutral"}>{st.settings.enabled ? "On" : "Off"}</Badge> : null}>
+    <Panel title={t("prod.replayGraphic")} subtitle={t("prod.aReplayTagAndA")} actions={st?.onAir ? <Badge tone="accent">{t("prod.onAir")}</Badge> : st ? <Badge tone={st.settings.enabled ? "ok" : "neutral"}>{st.settings.enabled ? t("prod.on") : t("prod.off")}</Badge> : null}>
       <div className="stack-sm">
-        <Checkbox checked={st?.settings.enabled ?? true} disabled={off} label="Show the replay graphic" hint="Who made the play, the weapon, headshot, victims, 2K to ACE or a clutch, and the round. Off: the replay page stays empty." onChange={(v) => void save({ enabled: v })} />
-        <Field label="HUD" hint="Each MatchFrame HUD has its own replay graphic. Imported HUDs (hud.json format) have none: they get MatchFrame's built-in one.">
+        <Checkbox checked={st?.settings.enabled ?? true} disabled={off} label={t("prod.showTheReplayGraphic")} hint={t("prod.whoMadeThePlayThe")} onChange={(v) => void save({ enabled: v })} />
+        <Field label="HUD" hint={t("prod.eachMatchframeHudHasIts")}>
           <select value={st?.settings.hudId ?? "auto"} disabled={off} onChange={(e) => void save({ hudId: e.target.value })}>
-            <option value="auto">Automatic: the HUD in OBS</option>
+            <option value="auto">{t("prod.automaticTheHudInObs")}</option>
             {(lib.data?.huds ?? []).map((h) => (
               <option key={h.id} value={h.id}>
                 {h.name}
@@ -68,7 +69,7 @@ export function ReplayGraphicPanel() {
         {out ? (
           <div className="stack-sm">
             <p className="small">
-              {out.why} <span className="muted">Page: {out.hudName}, replay</span>
+              {out.why} <span className="muted">{t("prod.pageHudnameReplay", { hudName: out.hudName })}</span>
             </p>
             <div className="row">
               <Mono>{out.url}</Mono>
@@ -76,21 +77,19 @@ export function ReplayGraphicPanel() {
             </div>
           </div>
         ) : st ? (
-          <Note tone="warn">No HUD has a replay page: the built-in HUD's files are missing (run pnpm build).</Note>
+          <Note tone="warn">{t("prod.noHudHasAReplay")}</Note>
         ) : null}
         <div className="row">
           <ActionButton
             action={() => api.post<ObsSetup>("/api/v1/replay-graphic/obs")}
-            success={(r) => `${r.created ? `“${r.source}” added on top of “${r.scene}”` : `“${r.source}” in “${r.scene}” shows ${r.output.hudName}'s replay graphic`}${r.onTop ? "" : " (move it to the top of the scene in OBS)"}`}
+            success={(r) => `${r.created ? t("prod.sourceAddedOnTopOf", { source: r.source, scene: r.scene }) : t("prod.sourceInSceneShowsHudname", { source: r.source, scene: r.scene, hudName: r.output.hudName })}${r.onTop ? "" : t("prod.moveItToTheTop2")}`}
             onDone={() => void g.reload()}
-            disabledReason={setupReason ?? (!st ? "Loading…" : !st.obsConnected ? "Connect OBS first (Settings → Devices)" : !st.replayScene ? "Map the replay scene first (Set up OBS replay scene, or OBS scenes)" : null)}
-          >
-            Add replay graphic to the OBS replay scene
-          </ActionButton>
-          {st?.replayScene ? <span className="muted small">Replay scene: {st.replayScene}</span> : null}
+            disabledReason={setupReason ?? (!st ? t("common.loading") : !st.obsConnected ? t("prod.connectObsFirstSettingsDevices") : !st.replayScene ? t("prod.mapTheReplaySceneFirst") : null)}
+          >{t("prod.addReplayGraphicToThe")}</ActionButton>
+          {st?.replayScene ? <span className="muted small">{t("prod.replaySceneReplayscene", { replayScene: st.replayScene })}</span> : null}
         </div>
-        {st?.onAir ? <p className="small">On air: {describeClip(st.onAir)}</p> : null}
-        <p className="muted small">A 1920×1080 browser source named “{st?.source ?? "MatchFrame Replay Graphic"}” over the replay clip. Choosing another HUD here points it at that HUD's page; press again when another HUD is on air in OBS. With vMix, add the address as a Web Browser input over your replays.</p>
+        {st?.onAir ? <p className="small">{t("prod.onAirOnair", { onAir: describeClip(st.onAir) })}</p> : null}
+        <p className="muted small">{t("prod.a19201080BrowserSource", { v: st?.source ?? "MatchFrame Replay Graphic" })}</p>
       </div>
     </Panel>
   );

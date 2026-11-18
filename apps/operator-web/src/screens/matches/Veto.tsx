@@ -7,9 +7,10 @@ import { fmtTime } from "../../lib/format.ts";
 import { useApi } from "../../lib/hooks.ts";
 import { usePermission } from "../../state/session.tsx";
 import { engineOrigin } from "../../lib/engine.ts";
+import { perLocale, t } from "../../i18n/index.ts";
 import "../../styles/group-a.css";
 
-export const VETO_KIND_LABEL: Record<string, string> = { ban: "Ban", pick: "Pick", decider: "Decider", side_choice: "Side choice" };
+export const VETO_KIND_LABEL: Record<string, string> = perLocale(() => ({ ban: t("matches.ban"), pick: t("matches.pick"), decider: t("matches.decider"), side_choice: t("matches.sideChoice") }));
 
 export function stepActorName(step: VetoStep, teamA: string, teamB: string): string {
   return step.actor === "A" ? teamA : step.actor === "B" ? teamB : "automatic";
@@ -25,16 +26,14 @@ function CaptainLinks({ match, teamA, teamB }: { match: MatchDetail; teamA: Team
       <ActionButton
         size="sm"
         action={() => api.post<{ id: string; token: string }>("/api/v1/tokens", { role: "captain", label: `Captain ${team?.shortName ?? ""} · ${match.title ?? match.id}`.slice(0, 80), matchId: match.id, teamId: team!.id, ttlHours: Number(ttl) })}
-        success="Captain link issued (shown once)"
-        onDone={(t) => setLinks({ ...links, [team!.id]: `${engineOrigin()}/captain?match=${encodeURIComponent(match.id)}&token=${t.token}` })}
-        disabledReason={reason ?? (team ? null : "Team missing")}
-        aria-label={`Issue link for ${team?.name ?? "team"}`}
-      >
-        Issue link
-      </ActionButton>
+        success={t("matches.captainLinkIssuedShownOnce")}
+        onDone={(tRow) => setLinks({ ...links, [team!.id]: `${engineOrigin()}/captain?match=${encodeURIComponent(match.id)}&token=${tRow.token}` })}
+        disabledReason={reason ?? (team ? null : t("matches.teamMissing"))}
+        aria-label={t("matches.issueLinkForV", { v: team?.name ?? "team" })}
+      >{t("matches.issueLink")}</ActionButton>
       {team && links[team.id] ? (
         <span className="url-box" style={{ flex: 1 }}>
-          <input readOnly value={links[team.id]} aria-label={`Captain link for ${team.name}`} onFocus={(e) => e.target.select()} />
+          <input readOnly value={links[team.id]} aria-label={t("matches.captainLinkForName", { name: team.name })} onFocus={(e) => e.target.select()} />
           <CopyButton text={links[team.id]!} />
         </span>
       ) : null}
@@ -43,12 +42,12 @@ function CaptainLinks({ match, teamA, teamB }: { match: MatchDetail; teamA: Team
   return (
     <>
       <div className="row-end">
-        <Field label="Link valid for">
+        <Field label={t("matches.linkValidFor")}>
           <select value={ttl} onChange={(e) => setTtl(e.target.value)} style={{ width: 160 }}>
-            <option value="2">2 hours</option>
-            <option value="6">6 hours</option>
-            <option value="12">12 hours</option>
-            <option value="24">24 hours</option>
+            <option value="2">{t("matches.text2Hours")}</option>
+            <option value="6">{t("matches.text6Hours")}</option>
+            <option value="12">{t("matches.text12Hours")}</option>
+            <option value="24">{t("matches.text24Hours")}</option>
           </select>
         </Field>
       </div>
@@ -67,8 +66,8 @@ export function VetoBoard({ match, teamA, teamB, onMapsChanged }: { match: Match
   const [reviseMap, setReviseMap] = useState("");
   const [reviseSide, setReviseSide] = useState<Side | "">("");
   const [seqText, setSeqText] = useState("");
-  const A = teamA?.name ?? "Team A";
-  const B = teamB?.name ?? "Team B";
+  const A = teamA?.name ?? t("matches.teamA");
+  const B = teamB?.name ?? t("matches.teamB");
   const teamIdOf = (actor: "A" | "B" | null) => (actor === "A" ? match.teamAId : actor === "B" ? match.teamBId : null);
   return (
     <Async state={veto} empty={null}>
@@ -80,8 +79,8 @@ export function VetoBoard({ match, teamA, teamB, onMapsChanged }: { match: Match
         const seq = parseJsonOr<{ steps: VetoStep[] } | VetoStep[]>(seqText, []);
         return (
           <div className="stack">
-            {match.mapPool.length < match.format.bestOf ? <Note tone="warn">The map pool ({match.mapPool.length}) is smaller than best-of {match.format.bestOf}: extend it in the match details.</Note> : null}
-            <Panel title="Veto" subtitle={`BO${match.format.bestOf} · ${match.mapPool.length} maps in the pool · ${v.complete ? "complete" : `step ${cur?.order} of ${v.steps.length}`}`}>
+            {match.mapPool.length < match.format.bestOf ? <Note tone="warn">{t("matches.theMapPoolCountIs", { count: match.mapPool.length, bestOf: match.format.bestOf })}</Note> : null}
+            <Panel title={t("matches.veto")} subtitle={t("matches.boBestofCountMapsIn", { bestOf: match.format.bestOf, count: match.mapPool.length, v: v.complete ? t("matches.completeLower") : t("matches.stepOrderOfCount", { order: cur?.order, count: v.steps.length }) })}>
               <ol className="veto-steps">
                 {v.steps.map((s) => {
                   const d = decided(s.order);
@@ -93,21 +92,19 @@ export function VetoBoard({ match, teamA, teamB, onMapsChanged }: { match: Match
                         <span className={`veto-kind k-${s.kind}`}>{VETO_KIND_LABEL[s.kind]}</span>
                       </div>
                       <div className="small">{stepActorName(s, A, B)}</div>
-                      <div>{d ? <strong>{d.mapName ?? d.side ?? "—"}</strong> : <span className="muted small">{isCur ? "Now" : "Pending"}</span>}</div>
+                      <div>{d ? <strong>{d.mapName ?? d.side ?? "—"}</strong> : <span className="muted small">{isCur ? t("matches.now") : t("matches.pending")}</span>}</div>
                     </li>
                   );
                 })}
               </ol>
               {cur ? (
                 <div style={{ marginTop: 14 }}>
-                  <h3>
-                    Step {cur.order}: {VETO_KIND_LABEL[cur.kind]} — {stepActorName(cur, A, B)}
-                  </h3>
+                  <h3>{t("matches.stepOrderVetoKindLabel", { order: cur.order, VETO_KIND_LABEL: VETO_KIND_LABEL[cur.kind], cur: stepActorName(cur, A, B) })}</h3>
                   {cur.kind === "ban" || cur.kind === "pick" ? (
                     <div className="map-buttons" style={{ marginTop: 8 }}>
                       {v.remainingMaps.map((m) => (
                         <ActionButton key={m} variant={cur.kind === "ban" ? "danger" : "primary"} action={() => act({ mapName: m })} success={`${stepActorName(cur, A, B)} ${cur.kind === "ban" ? "banned" : "picked"} ${m}`} onDone={() => void veto.reload()} disabledReason={reason}>
-                          {cur.kind === "ban" ? "Ban" : "Pick"} {m}
+                          {cur.kind === "ban" ? t("matches.ban") : t("matches.pick")} {m}
                         </ActionButton>
                       ))}
                     </div>
@@ -115,58 +112,50 @@ export function VetoBoard({ match, teamA, teamB, onMapsChanged }: { match: Match
                   {cur.kind === "side_choice" ? (
                     <div className="row" style={{ marginTop: 8 }}>
                       {(["CT", "T"] as const).map((sd) => (
-                        <ActionButton key={sd} variant="primary" action={() => act({ side: sd })} success={`${stepActorName(cur, A, B)} chose ${sd}`} onDone={() => void veto.reload()} disabledReason={reason}>
-                          Start {sd}
-                        </ActionButton>
+                        <ActionButton key={sd} variant="primary" action={() => act({ side: sd })} success={t("matches.curChoseSd", { cur: stepActorName(cur, A, B), sd })} onDone={() => void veto.reload()} disabledReason={reason}>{t("matches.startSd", { sd })}</ActionButton>
                       ))}
-                      <span className="small muted">on {v.pickedMaps[v.pickedMaps.length - 1]?.mapName ?? "the last picked map"}</span>
+                      <span className="small muted">{t("matches.onV", { v: v.pickedMaps[v.pickedMaps.length - 1]?.mapName ?? t("matches.theLastPickedMap") })}</span>
                     </div>
                   ) : null}
                   {cur.kind === "decider" ? (
                     <div style={{ marginTop: 8 }}>
-                      <ActionButton variant="primary" action={() => act({})} success="Decider locked" onDone={() => void veto.reload()} disabledReason={reason ?? (v.remainingMaps.length === 1 ? null : `Decider needs exactly one remaining map (have ${v.remainingMaps.length})`)}>
-                        Lock decider: {v.remainingMaps.join(", ")}
-                      </ActionButton>
+                      <ActionButton variant="primary" action={() => act({})} success={t("matches.deciderLocked")} onDone={() => void veto.reload()} disabledReason={reason ?? (v.remainingMaps.length === 1 ? null : t("matches.deciderNeedsExactlyOneRemaining", { count: v.remainingMaps.length }))}>{t("matches.lockDeciderJoin", { join: v.remainingMaps.join(", ") })}</ActionButton>
                     </div>
                   ) : null}
                 </div>
               ) : null}
               <section className="ga-section">
-                <h3 className="ga-section-title">Result</h3>
+                <h3 className="ga-section-title">{t("matches.result")}</h3>
                 {v.pickedMaps.length === 0 ? (
-                  <p className="muted">No maps picked yet.</p>
+                  <p className="muted">{t("matches.noMapsPickedYet")}</p>
                 ) : (
                   <ol style={{ margin: 0, paddingLeft: 20 }}>
                     {v.pickedMaps.map((p) => (
                       <li key={p.mapName}>
-                        <strong>{p.mapName}</strong> — {p.decider ? "decider" : `picked by ${p.pickedBy === "A" ? A : B}`}
-                        {p.startingSide ? ` · ${p.startingSide.team === "A" ? A : B} start ${p.startingSide.side}` : ""}
+                        <strong>{p.mapName}</strong> — {p.decider ? t("matches.decider2") : t("matches.pickedByV", { v: p.pickedBy === "A" ? A : B })}
+                        {p.startingSide ? t("matches.vStartSide", { v: p.startingSide.team === "A" ? A : B, side: p.startingSide.side }) : ""}
                       </li>
                     ))}
                   </ol>
                 )}
                 <div className="ga-actions">
-                  <ActionButton variant="primary" action={() => api.post<{ maps: unknown[] }>(`/api/v1/veto/${seg(match.id)}/apply-to-maps`)} success={(r) => `${r.maps.length} map(s) written to the match`} onDone={onMapsChanged} disabledReason={reason ?? (v.complete ? null : "Finish the veto first")} confirm={{ title: "Apply veto result to the match maps?", body: "The captain decisions become the match's veto (replacing entries edited in the match editor) and its maps follow the picks. A map that stays in place keeps its result; a map with a result is never replaced." }}>
-                    Apply to match maps
-                  </ActionButton>
+                  <ActionButton variant="primary" action={() => api.post<{ maps: unknown[] }>(`/api/v1/veto/${seg(match.id)}/apply-to-maps`)} success={(r) => t("matches.countMapSWrittenTo", { count: r.maps.length })} onDone={onMapsChanged} disabledReason={reason ?? (v.complete ? null : t("matches.finishTheVetoFirst"))} confirm={{ title: t("matches.applyVetoResultToThe"), body: t("matches.theCaptainDecisionsBecomeThe") }}>{t("matches.applyToMatchMaps")}</ActionButton>
                   <ActionButton
                     variant="ghost"
                     action={(why) => api.post(`/api/v1/veto/${seg(match.id)}/reset`, { reason: why })}
-                    success="Veto reset"
+                    success={t("matches.vetoReset")}
                     onDone={() => void veto.reload()}
-                    disabledReason={reason ?? (v.decisions.length ? null : "Nothing to reset")}
-                    confirm={{ title: "Reset the veto?", body: "Deletes all veto decisions for this match. The reason is written to the audit log.", reasonLabel: "Reason", danger: true, confirmLabel: "Reset veto" }}
-                  >
-                    Reset veto…
-                  </ActionButton>
+                    disabledReason={reason ?? (v.decisions.length ? null : t("matches.nothingToReset"))}
+                    confirm={{ title: t("matches.resetTheVeto"), body: t("matches.deletesAllVetoDecisionsFor"), reasonLabel: t("matches.reason"), danger: true, confirmLabel: t("matches.resetVeto2") }}
+                  >{t("matches.resetVeto")}</ActionButton>
                 </div>
               </section>
-              <Details summary="Revise a decision" className="ga-section">
-                <p className="small muted">An audited correction; the original stays in the history.</p>
+              <Details summary={t("matches.reviseADecision")} className="ga-section">
+                <p className="small muted">{t("matches.anAuditedCorrectionTheOriginal")}</p>
                 <div className="row-end">
-                  <Field label="Step">
+                  <Field label={t("matches.step")}>
                     <select value={reviseStep} onChange={(e) => setReviseStep(e.target.value)}>
-                      <option value="">Choose…</option>
+                      <option value="">{t("matches.choose")}</option>
                       {v.decisions.map((d) => (
                         <option key={d.id} value={d.stepOrder}>
                           {d.stepOrder} · {VETO_KIND_LABEL[d.kind]} · {d.mapName ?? d.side}
@@ -175,9 +164,9 @@ export function VetoBoard({ match, teamA, teamB, onMapsChanged }: { match: Match
                     </select>
                   </Field>
                   {reviseTarget && reviseTarget.kind !== "side_choice" ? (
-                    <Field label="New map">
+                    <Field label={t("matches.newMap")}>
                       <select value={reviseMap} onChange={(e) => setReviseMap(e.target.value)}>
-                        <option value="">Choose…</option>
+                        <option value="">{t("matches.choose")}</option>
                         {match.mapPool.map((m) => (
                           <option key={m} value={m}>
                             {m}
@@ -187,9 +176,9 @@ export function VetoBoard({ match, teamA, teamB, onMapsChanged }: { match: Match
                     </Field>
                   ) : null}
                   {reviseTarget?.kind === "side_choice" ? (
-                    <Field label="New side">
+                    <Field label={t("matches.newSide")}>
                       <select value={reviseSide} onChange={(e) => setReviseSide(e.target.value as Side | "")}>
-                        <option value="">Choose…</option>
+                        <option value="">{t("matches.choose")}</option>
                         <option value="CT">CT</option>
                         <option value="T">T</option>
                       </select>
@@ -197,29 +186,27 @@ export function VetoBoard({ match, teamA, teamB, onMapsChanged }: { match: Match
                   ) : null}
                   <ActionButton
                     action={(why) => api.post(`/api/v1/veto/${seg(match.id)}/revise`, { stepOrder: Number(reviseStep), teamId: reviseTarget!.teamId, mapName: reviseTarget!.kind === "side_choice" ? null : reviseMap, side: reviseTarget!.kind === "side_choice" ? reviseSide : null, reason: why })}
-                    success="Decision revised"
+                    success={t("matches.decisionRevised")}
                     onDone={() => void veto.reload()}
-                    disabledReason={reason ?? (!reviseTarget ? "Choose a decided step" : reviseTarget.kind === "side_choice" ? (reviseSide ? null : "Choose a side") : reviseMap ? null : "Choose a map")}
-                    confirm={{ title: `Revise step ${reviseStep}?`, reasonLabel: "Reason (audited)", confirmLabel: "Revise" }}
-                  >
-                    Revise…
-                  </ActionButton>
+                    disabledReason={reason ?? (!reviseTarget ? t("matches.chooseADecidedStep") : reviseTarget.kind === "side_choice" ? (reviseSide ? null : t("matches.chooseASide")) : reviseMap ? null : t("matches.chooseAMap"))}
+                    confirm={{ title: t("matches.reviseStepRevisestep", { reviseStep }), reasonLabel: t("matches.reasonAudited"), confirmLabel: t("matches.revise2") }}
+                  >{t("matches.revise")}</ActionButton>
                 </div>
               </Details>
-              <Details summary={`History${v.history.length ? ` (${v.history.length})` : ""}`}>
+              <Details summary={t("matches.historyV", { v: v.history.length ? ` (${v.history.length})` : "" })}>
                 {v.history.length === 0 ? (
-                  <p className="muted small">No decisions yet.</p>
+                  <p className="muted small">{t("matches.noDecisionsYet")}</p>
                 ) : (
                   <table className="table table-compact">
                     <thead>
                       <tr>
-                        <th>Step</th>
-                        <th>Action</th>
-                        <th>Team</th>
-                        <th>Decision</th>
-                        <th>By</th>
-                        <th>At</th>
-                        <th>Status</th>
+                        <th>{t("matches.step")}</th>
+                        <th>{t("matches.action")}</th>
+                        <th>{t("matches.team")}</th>
+                        <th>{t("matches.decision")}</th>
+                        <th>{t("matches.by")}</th>
+                        <th>{t("matches.at")}</th>
+                        <th>{t("matches.status")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -232,8 +219,8 @@ export function VetoBoard({ match, teamA, teamB, onMapsChanged }: { match: Match
                           <td className="small">{d.decidedBy}</td>
                           <td className="small">{fmtTime(d.decidedAt)}</td>
                           <td className={`small ${d.supersededBy ? "text-warn" : "muted"}`}>
-                            {d.supersededBy ? "Superseded" : "Active"}
-                            {d.revisionOf ? " · revision" : ""}
+                            {d.supersededBy ? t("matches.superseded") : t("matches.active")}
+                            {d.revisionOf ? t("matches.revision") : ""}
                           </td>
                         </tr>
                       ))}
@@ -241,15 +228,13 @@ export function VetoBoard({ match, teamA, teamB, onMapsChanged }: { match: Match
                   </table>
                 )}
               </Details>
-              <Details summary="Custom sequence">
-                <p className="small muted">Only before the first decision.</p>
+              <Details summary={t("matches.customSequence")}>
+                <p className="small muted">{t("matches.onlyBeforeTheFirstDecision")}</p>
                 {!seqText ? (
-                  <Button size="sm" onClick={() => setSeqText(JSON.stringify(v.steps, null, 2))}>
-                    Edit sequence as JSON
-                  </Button>
+                  <Button size="sm" onClick={() => setSeqText(JSON.stringify(v.steps, null, 2))}>{t("matches.editSequenceAsJson")}</Button>
                 ) : (
                   <>
-                    <JsonEditor label="Steps [{order, kind: ban|pick|decider|side_choice, actor: A|B|null}]" value={seqText} onChange={setSeqText} rows={10} />
+                    <JsonEditor label={t("matches.stepsOrderKindBanPick")} value={seqText} onChange={setSeqText} rows={10} />
                     <div className="form-actions">
                       <ActionButton
                         action={() => {
@@ -257,24 +242,20 @@ export function VetoBoard({ match, teamA, teamB, onMapsChanged }: { match: Match
                           const steps = Array.isArray(seq.value) ? seq.value : seq.value.steps;
                           return api.put(`/api/v1/veto/${seg(match.id)}/sequence`, { steps });
                         }}
-                        success="Veto sequence saved"
+                        success={t("matches.vetoSequenceSaved")}
                         onDone={() => {
                           setSeqText("");
                           void veto.reload();
                         }}
-                        disabledReason={reason ?? (v.decisions.length ? "The veto has started — reset it first" : seq.ok ? null : "Invalid JSON")}
-                      >
-                        Save sequence
-                      </ActionButton>
-                      <Button variant="ghost" onClick={() => setSeqText("")}>
-                        Cancel
-                      </Button>
+                        disabledReason={reason ?? (v.decisions.length ? t("matches.theVetoHasStartedReset") : seq.ok ? null : t("matches.invalidJson"))}
+                      >{t("matches.saveSequence")}</ActionButton>
+                      <Button variant="ghost" onClick={() => setSeqText("")}>{t("common.cancel")}</Button>
                     </div>
                   </>
                 )}
               </Details>
             </Panel>
-            <Panel title="Captain links" subtitle="Scoped to this match and one team: captains see only the veto and act only on their own turns. Revoke links in Devices.">
+            <Panel title={t("matches.captainLinks")} subtitle={t("matches.scopedToThisMatchAnd")}>
               <CaptainLinks match={match} teamA={teamA} teamB={teamB} />
             </Panel>
           </div>
