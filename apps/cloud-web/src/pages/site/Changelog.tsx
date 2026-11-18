@@ -11,6 +11,20 @@ interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: "0.13.3",
+    title: "Four HUDs",
+    summary: "The Pro CS2 HUD and the Sample CS2 HUD leave the program; Stage, Vector, Lineup and the MatchFrame Broadcast HUD stay.",
+    sections: [
+      {
+        heading: "HUD Library",
+        items: [
+          "The Pro CS2 HUD and the MatchFrame Sample CS2 HUD are no longer included, and the update removes them from the library.",
+          "A broadcast output that used one of them switches to the MatchFrame Broadcast HUD. A HUD you imported yourself stays.",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.13.2",
     title: "Seven languages, and HLAE set up for you",
     summary: "The whole program in Portuguese (Brazil), Spanish, German, French, Polish and Russian, and HLAE downloaded and kept up to date by the program.",
